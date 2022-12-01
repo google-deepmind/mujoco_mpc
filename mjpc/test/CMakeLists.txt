@@ -26,8 +26,6 @@ macro(test name)
     mujoco
   )
   target_include_directories(${name} PRIVATE ${MUJOCO_TEST_INCLUDE})
-  target_compile_options(${name} PRIVATE -fsanitize=address)
-  target_link_options(${name} PRIVATE -fsanitize=address)
   set_target_properties(${name} PROPERTIES BUILD_RPATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   # gtest_discover_tests is recommended over gtest_add_tests, but has some issues in Windows.
   gtest_add_tests(

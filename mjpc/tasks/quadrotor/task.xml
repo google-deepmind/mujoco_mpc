@@ -1,0 +1,59 @@
+<mujoco model="Quadrotor Racing">
+  <include file="../common.xml"/>
+  <include file="quadrotor.xml" />
+
+  <size memory="100K"/>
+
+  <statistic extent="2" center="0.0 0.0 0.0"/>
+
+  <custom>
+    <numeric name="task_transition" data="1" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_sample_width" data="0.01" />
+    <numeric name="sampling_control_width" data="0.015" />
+    <numeric name="sampling_spline_points" data="32" />
+    <numeric name="sampling_exploration" data="0.3" />
+    <numeric name="sampling_processed_noise" data="1" />
+    <numeric name="sampling_processed_noise_neighbors" data="3" />
+    <numeric name="sampling_processed_noise_passes" data="3" />
+    <numeric name="sampling_representation" data="2" />
+    <numeric name="sampling_trajectories" data="32" />
+    <numeric name="gradient_spline_points" data="10" />
+    <numeric name="residual_Lin. Vel. X" data="0 -1.0 1.0" />
+    <numeric name="residual_Lin. Vel. Y" data="0 -1.0 1.0" />
+    <numeric name="residual_Lin. Vel. Z" data="0 -1.0 1.0" />
+    <numeric name="residual_Ang. Vel. X" data="0 -1.0 1.0" />
+    <numeric name="residual_Ang. Vel. Y" data="0 -1.0 1.0" />
+    <numeric name="residual_Ang. Vel. Z" data="0 -1.0 1.0" />
+  </custom>
+
+  <sensor>
+    <user name="Position" needstage="acc" dim="3" user="0 5.0 0 25.0"/>
+    <user name="Orientation" needstage="acc" dim="9" user="0 0.5 0 5.0"/>
+    <user name="Lin. Vel." needstage="acc" dim="3" user="0 0.3 0.0 5.0"/>
+    <user name="Ang. Vel." needstage="acc" dim="3" user="0 0.3 0.0 5.0"/>
+    <user name="Control" needstage="acc" dim="4" user="0 1.0e-2 0.0 1.0"/>
+    <framepos name="trace" objtype="body" objname="quadrotor"/>
+    <framepos name="position" objtype="body" objname="quadrotor"/>
+    <framequat name="orientation" objtype="body" objname="quadrotor"/>
+    <framelinvel name="linear_velocity" objtype="body" objname="quadrotor"/>
+    <frameangvel name="angular_velocity" objtype="body" objname="quadrotor"/>
+  </sensor>
+
+  <keyframe>
+    <key name="home" mpos="0.0 0.0 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="1.2 0.0 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="2.3 0.6 1.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="2.7 0.95 1.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="4.6 0.4 0.75" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="5.0 -1.6 0.75" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="3.4 -2.5 0.35" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="2.5 -2.25 1.45" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="2.5 -2.25 2.25" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="1.5 -1.75 1.85" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="1.05 -1.75 1.3" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key mpos="0.1 -1.4 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+  </keyframe>
+</mujoco>

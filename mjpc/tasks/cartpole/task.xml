@@ -1,0 +1,28 @@
+<mujoco model="Cart-Pole Swing-Up">
+  <include file="../common.xml"/>
+  <include file="cartpole.xml" />
+
+  <size memory="4K"/>
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_sample_width" data="0.01" />
+    <numeric name="sampling_control_width" data="0.015" />
+    <numeric name="sampling_spline_points" data="10" />
+    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="gradient_spline_points" data="10" />
+    <numeric name="residual_Goal" data="0 -1.5 1.5" />
+  </custom>
+
+  <sensor>
+    <user name="Vertical" needstage="acc" dim="1" user="6 10.0 0 100.0 0.01"/>
+    <user name="Centered" needstage="acc" dim="1" user="6 10.0 0 100.0 0.01"/>
+    <user name="Velocity" needstage="acc" dim="1" user="0 0.1 0.0 1.0"/>
+    <user name="Control" needstage="acc" dim="1" user="0 0.1 0.0 1.0"/>
+    <framepos name="trace" objtype="site" objname="tip"/>
+    <framepos name="position" objtype="site" objname="tip"/>
+    <framelinvel name="velocity" objtype="site" objname="tip"/>
+  </sensor>
+</mujoco>

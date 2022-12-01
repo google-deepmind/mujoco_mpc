@@ -1,0 +1,63 @@
+<mujoco model="Quadruped">
+  <include file="../common.xml"/>
+
+  <size memory="1M"/>
+
+  <custom>
+    <numeric name="task_reset" data="0" />
+    <numeric name="task_risk" data="0.0" />
+    <numeric name="task_transition" data="0" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.35" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Speed" data="0 -1 1" />
+    <numeric name="residual_Heading" data="0 -3.14 3.14" />
+  </custom>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6"  ambient="0.3 0.3 0.3" specular="0 0 0"/>
+  </visual>
+
+  <statistic extent="1" center="0 0 .3"/>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3"
+      directional="true" castshadow="false"/>
+    <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/>
+  </worldbody>
+
+  <include file="a1.xml" />
+
+  <sensor>
+    <user name="Upright" needstage="acc" dim="3" user="0 3 0 5" />
+    <user name="Velocity" needstage="acc" dim="2" user="7 1 0 5 .2 4" />
+    <user name="Heading" needstage="acc" dim="2" user="0 1 0 5" />
+    <user name="Control" needstage="acc" dim="12" user="0 0.2 0.0 1.0" />
+    <framepos      name="trace" objtype="body" objname="trunk"/>
+    <subtreecom    name="torso_subtreecom" body="trunk"/>
+    <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
+    <framezaxis    name="torso_up" objtype="xbody" objname="trunk"/>
+    <framexaxis    name="torso_forward" objtype="xbody" objname="trunk"/>
+    <framepos      name="position" objtype="body" objname="trunk"/>
+    <gyro          name="gyro" site="torso"/>
+    <framepos      name="FR" objtype="site" objname="FR"/>
+    <framepos      name="FL" objtype="site" objname="FL"/>
+    <framepos      name="RR" objtype="site" objname="RR"/>
+    <framepos      name="RL" objtype="site" objname="RL"/>
+    <framelinvel   name="FRvel" objtype="site" objname="FR"/>
+    <framelinvel   name="FLvel" objtype="site" objname="FL"/>
+    <framelinvel   name="RRvel" objtype="site" objname="RR"/>
+    <framelinvel   name="RLvel" objtype="site" objname="RL"/>
+    <framepos      name="FRshoulder" objtype="xbody" objname="FR_thigh"/>
+    <framepos      name="FLshoulder" objtype="xbody" objname="FL_thigh"/>
+    <framepos      name="RRshoulder" objtype="xbody" objname="RR_thigh"/>
+    <framepos      name="RLshoulder" objtype="xbody" objname="RL_thigh"/>
+  </sensor>
+
+  <keyframe>
+    <key name="home" qpos="0 0 0.3 0.999944 -0.000299272 -0.0101993 0.00264232 -0.000341931 0.0181576 -0.0268335 0.00160968 0.0247957 -0.0270045 0.00191398 -0.033048 -0.0675298 -0.00199489 -0.0374747 -0.0681862"/>
+  </keyframe>
+</mujoco>

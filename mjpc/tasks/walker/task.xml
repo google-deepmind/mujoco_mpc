@@ -1,0 +1,29 @@
+<mujoco model="Walker Locomotion">
+  <include file="../common.xml"/>
+  <include file="walker.xml" />
+
+  <size memory="100K"/>
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.8" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Height Goal" data="1.2 0.5 1.2" />
+    <numeric name="residual_Speed Goal" data="0 -5.0 5.0" />
+  </custom>
+
+  <sensor>
+    <user name="Control" needstage="acc" dim="6" user="0 1.0e-5 0.0 1.0" />
+    <user name="Height" needstage="acc" dim="1" user="0 10.0 0.0 10.0" />
+    <user name="Rotation" needstage="acc" dim="1" user="0 3.0 0.0 5.0" />
+    <user name="Speed" needstage="acc" dim="1" user="0 1.0 0.0 1.0" />
+    <framepos      name="trace" objtype="site" objname="torso_site"/>
+    <framepos      name="torso_position" objtype="xbody" objname="torso"/>
+    <subtreecom    name="torso_subtreecom" body="torso"/>
+    <subtreelinvel name="torso_subtreelinvel" body="torso"/>
+    <framezaxis    name="torso_zaxis" objtype="xbody" objname="torso"/>
+  </sensor>
+</mujoco>

@@ -1,0 +1,71 @@
+<mujoco model="Quadruped Terrain">
+  <include file="../common.xml"/>
+
+  <size memory="1M"/>
+
+  <custom>
+    <numeric name="task_transition" data="1" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.25" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.15" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Height Goal" data="0.25" />
+  </custom>
+
+  <asset>
+    <mesh name="inflated_trunk" scale="1.2 1.2 1.2" file="trunk.obj"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+        directional="true" castshadow="true"/>
+    <body name="goal" mocap="true" pos="-0.125 -0.625 0.25" quat="0.7071 0 0 -0.7071">
+        <geom type="capsule" size="0.1 0.1 0.05" contype="0" conaffinity="0" rgba="0 1 0 .5" fromto="-0.1 0 0 0.1 0 0"/>
+    </body>
+    <geom name="floor" size="0 0 0.05" pos="0 0 -0.01" type="plane" rgba="0 0 0 1"/>
+  </worldbody>
+
+  <include file="a1.xml" />
+  <include file="assets/fractal.xml" />
+
+  <sensor>
+    <user name="Stand" needstage="acc" dim="1" user="0 1.0 0.0 10.0" />
+    <user name="Body Pos." needstage="acc" dim="3" user="0 5.0 0.0 100.0" />
+    <user name="Body Rot." needstage="acc" dim="9" user="0 1.0 0.0 10.0" />
+    <user name="Control" needstage="acc" dim="12" user="0 0.25 0.0 1.0" />
+    <framepos      name="trace" objtype="body" objname="trunk"/>
+    <framepos      name="position" objtype="body" objname="trunk"/>
+    <framequat     name="orientation" objtype="xbody" objname="trunk"/>
+    <subtreecom    name="torso_subtreecom" body="trunk"/>
+    <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
+    <framezaxis    name="torso_zaxis" objtype="xbody" objname="trunk"/>
+    <framepos      name="FR" objtype="site" objname="FR"/>
+    <framepos      name="FL" objtype="site" objname="FL"/>
+    <framepos      name="RR" objtype="site" objname="RR"/>
+    <framepos      name="RL" objtype="site" objname="RL"/>
+  </sensor>
+
+  <keyframe>
+    <key name="home" qpos="-0.0218846 -0.00761031 0.261501 0.687326 0.014696 -0.0122004 -0.726098 -0.00181525 0.00123972 -0.0485806 -0.00349432 0.00500918 -0.023133 -0.00118292 -0.0109732 -0.0465082 0.0116829 -0.0201041 -0.065258" mpos="-0.125 -0.625 0.25" mquat="0.7071 0 0 -0.7071" />
+    <key mpos="-0.25 -1.0 0.25" mquat="0.7071 0 0 -0.7071" />
+    <key mpos="-0.352465 -1.59862 0.25" mquat="0.57708 0.00553628 0.0193185 -0.816441" />
+    <key mpos="-0.521426 -2.13349 0.25" mquat="0.376087 0.0126024 0.043511 -0.925476" />
+    <key mpos="-1.01012 -2.46729 0.25" mquat="0.22392 -0.01447 -0.020911 -0.974276" />
+    <key mpos="-2.01529 -2.4747 0.25" mquat="-0.120595 -0.000947347 -0.00240632 -0.992698" />
+    <key mpos="-2.70571 -2.30555 0.25" mquat="-0.318146 0.000988078 0.00725028 -0.948013"/>
+    <key mpos="-3.33213 -1.54147 0.25" mquat="-0.513833 0.00638754 0.0104858 -0.857802" />
+    <key mpos="-4.3052 -1.01978 0.25" mquat="-0.333376 -0.0158649 -0.0174328 -0.942499" />
+    <key mpos="-4.65979 -0.304562 0.25" mquat="-0.640389 -0.0128244 -0.0106949 -0.767869" />
+    <key mpos="-4.74108 0.688841 0.282658" mquat="-0.750482 0.00603289 0.00164193 -0.660861"/>
+    <key mpos="-4.72309 2.03176 0.332065" mquat="-0.947639 0.027713 0.0847702 -0.306636" />
+    <key mpos="-4.261 2.18683 0.482171" mquat="-0.968425 0.0751566 0.122897 -0.203472" />
+    <key mpos="-3.82627 2.35773 0.664309" mquat="-0.973036 0.0828384 0.125644 -0.174795" />
+    <key mpos="-3.42159 2.52583 0.74358" mquat="-0.983078 0.0536915 0.0765578 -0.157522"/>
+    <key mpos="-2.97588 2.51519 0.668477" mquat="-0.987317 0.00974949 -0.158461 -0.000752004" />
+    <key mpos="-2.12638 2.40482 0.294929" mquat="-0.990415 0.0141218 -0.0226965 0.135512"/>
+    <key mpos="-0.520779 1.66374 0.294929" mquat="-0.879422 0.00987186 0.00827335 0.475868"/>
+    <key mpos="-0.0844852 0.465219 0.294929" mquat="-0.724005 -0.0134362 -0.0156856 0.689485"/>
+  </keyframe>
+</mujoco>

@@ -1,0 +1,37 @@
+<mujoco model="Particle Control">
+  <include file="particle.xml" />
+
+  <size nuserdata="1" memory="10K"/>
+
+  <custom>
+    <numeric name="task_risk" data="1.0" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_timestep" data="0.1" />
+    <numeric name="agent_sample_width" data="0.001" />
+    <numeric name="agent_policy_width" data="0.0015" />
+    <numeric name="sampling_spline_points" data="11" />
+    <numeric name="sampling_exploration" data="0.01" />
+    <numeric name="sampling_processed_noise" data="1" />
+    <numeric name="sampling_processed_noise_neighbors" data="3" />
+    <numeric name="sampling_processed_noise_passes" data="3" />
+    <numeric name="gradient_spline_points" data="11" />
+    <numeric name="test_double" data="0.1" />
+    <numeric name="test_int" data="1" />
+    <numeric name="test_doubles" data="0.2 0.3" />
+    <numeric name="residual_x goal" data="0.05" />
+    <numeric name="residual_y goal" data="-0.1" />
+  </custom>
+
+  <sensor>
+    <user name="Position" needstage="acc" dim="2" user="0 5.0 0.0 10.0" />
+    <user name="Velocity" needstage="acc" dim="2" user="0 0.1 0.0 1.0" />
+    <framepos name="trace" objtype="site" objname="tip"/>
+    <framepos name="position" objtype="site" objname="tip"/>
+    <framelinvel name="velocity" objtype="site" objname="tip"/>
+  </sensor>
+
+  <keyframe>
+    <key name="home" qpos="1.0 2.0" />
+  </keyframe>
+</mujoco>

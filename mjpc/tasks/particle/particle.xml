@@ -1,0 +1,36 @@
+<mujoco model="Particle">
+  <option timestep="0.01">
+    <flag contact="disable"/>
+  </option>
+
+  <default>
+    <joint type="hinge" axis="0 0 1" limited="true" range="-.29 .29" damping="1"/>
+    <motor gear=".1" ctrlrange="-1 1" ctrllimited="true"/>
+  </default>
+
+  <worldbody>
+    <body name="goal" mocap="true" pos="0.25 0 0.01" quat="1 0 0 0">
+        <geom type="sphere" size=".01" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+    <light name="light" pos="0 0 1"/>
+    <camera name="fixed" pos="0 0 .75" quat="1 0 0 0"/>
+    <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="blue_grid"/>
+    <geom name="wall_x" type="plane" pos="-.3 0 .02" zaxis="1 0 0"  size=".02 .3 .02" material="decoration"/>
+    <geom name="wall_y" type="plane" pos="0 -.3 .02" zaxis="0 1 0"  size=".3 .02 .02" material="decoration"/>
+    <geom name="wall_neg_x" type="plane" pos=".3 0 .02" zaxis="-1 0 0"  size=".02 .3 .02" material="decoration"/>
+    <geom name="wall_neg_y" type="plane" pos="0 .3 .02" zaxis="0 -1 0"  size=".3 .02 .02" material="decoration"/>
+
+    <body name="pointmass" pos="0 0 .01">
+      <camera name="cam0" pos="0 -0.3 0.3" xyaxes="1 0 0 0 0.7 0.7"/>
+      <joint name="root_x" type="slide"  pos="0 0 0" axis="1 0 0" />
+      <joint name="root_y" type="slide"  pos="0 0 0" axis="0 1 0" />
+      <geom name="pointmass" type="sphere" size=".01" material="self" mass=".3"/>
+      <site name="tip" pos="0 0 0" size="0.01"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="x_motor" joint="root_x" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="y_motor" joint="root_y" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
+  </actuator>
+</mujoco>

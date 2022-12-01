@@ -1,0 +1,157 @@
+<mujoco model="Quadrotor">
+  <compiler inertiafromgeom="true" coordinate="local"/>
+  <option timestep="0.01" gravity="0 0 -9.81" density="1" viscosity="1e-5" />
+
+  <worldbody>
+      <geom name="floor" type="plane" conaffinity="1" size="100 100 .2" material="blue_grid"/>
+    <body name="goal" mocap="true" pos="0.0 0.0 0.5" quat="0.0 0.70710678 0.0 0.70710678">
+      <geom type="sphere" size="0.05" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+
+    <!-- gait 1 -->
+    <body name="gait1_left" pos="1.0 0.35 0.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait1_right" pos="1.0 -0.35 0.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait1_top" pos="1.0 0.0 0.85" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait1_bottom" pos="1.0 0.0 0.15" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 2 -->
+    <body name="gait2_left" pos="2.25 1.0 1.5" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait2_right" pos="2.75 0.5 1.5" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait2_top" pos="2.5 0.75 1.85" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait2_bottom" pos="2.5 0.75 1.15" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 3 -->
+    <body name="gait3_left" pos="4.75 0.75 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait3_right" pos="4.25 0.25 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait3_top" pos="4.5 0.5 1.1" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait3_bottom" pos="4.5 0.5 0.4" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 4 -->
+    <body name="gait4_left" pos="5.35 -1.5 0.75" quat="0.7071 0 0 0.7071">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait4_right" pos="4.65 -1.5 0.75" quat="0.7071 0 0 0.7071">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait4_top" pos="5.0 -1.5 1.1" quat="0.7071 0 0 0.7071">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait4_bottom" pos="5.0 -1.5 0.4" quat="0.7071 0 0 0.7071">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 5 -->
+    <body name="gait5_left" pos="3.5 -2.85 0.35" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait5_right" pos="3.5 -2.15 0.35" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait5_top" pos="3.5 -2.5 0.7" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait5_bottom" pos="3.5 -2.5 0.0" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 6 -->
+    <body name="gait6_left" pos="2.5 -1.9 1.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="-0.35 0.0 0.0 0.35 0.0 0.0"/>
+    </body>
+    <body name="gait6_right" pos="2.5 -2.6 1.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="-0.35 0.0 0.0 0.35 0.0 0.0"/>
+    </body>
+    <body name="gait6_top" pos="2.85 -2.25 1.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait6_bottom" pos="2.15 -2.25 1.5" quat="1 0 0 0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 7 -->
+    <body name="gait7_left" pos="1.25 -2.1 1.5" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait7_right" pos="1.25 -1.4 1.5" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait7_top" pos="1.0 -1.75 1.75" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait7_bottom" pos="1.5 -1.75 1.25" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <!-- gait 8 -->
+    <body name="gait8_left" pos="0.45 -1.25 0.5" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait8_right" pos="-0.05 -1.75 0.5" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.35 0.0 0 0.35"/>
+    </body>
+    <body name="gait8_top" pos="0.2 -1.5 0.85" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+    <body name="gait8_bottom" pos="0.2 -1.5 0.15" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule" size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.35 0.0 0.0 0.35 0.0"/>
+    </body>
+
+    <body name="quadrotor" pos="0 0 0.1">
+      <geom name="core" type="box" pos="0 0 0" quat = "1. 0. 0. 0" size="0.06 0.035 0.025"  rgba="0.3 0.3 0.8 1" mass = ".2"/>
+
+      <geom name="a00" type="box" pos=".071 0.071 0.0" size="0.05 0.01 0.0025"  quat = ".924 0.0 0.0 0.383" rgba="0.5 0.5 0.5 1" mass = ".025"/>
+      <geom name="a10" type="box" pos=".071 -0.071 0.0" size="0.05 0.01 0.0025"  quat = ".383 0.0 0.0 0.924" rgba="0.5 0.5 0.5 1" mass = ".025"/>
+      <geom name="a20" type="box" pos="-0.071 -0.071 0.0" size="0.05 0.01 0.0025"  quat = "-.383 0.0 0.0 0.924" rgba="0.5 0.5 0.5 1" mass = ".025"/>
+      <geom name="a30" type="box" pos="-.071 0.071 0.0" size="0.05 0.01 0.0025"  quat = ".924 0.0 0.0 -0.383" rgba="0.5 0.5 0.5 1" mass = ".025"/>
+
+      <joint name="root"   type="free" damping="0" armature="0" pos="0 0 0" />
+
+      <!-- Actuator sites to attach actuators  -->
+            <site name="thrust" type="box" pos="0 0 0"  size="0.06 0.035 0.025"  quat = "1.0 0.0 0.0 0." rgba="0.5 0.5 0.5 1"/>
+      <site name="rateX" type="box" pos="0 0 0" quat = "1. 0. 0. 0."  size="0.06 0.035 0.025" rgba="0.5 0.5 0.5 1" />
+      <site name="rateY" type="box" pos="0 0 0" quat = "1. 0. 0. 0."  size="0.06 0.035 0.025" rgba="0.5 0.5 0.5 1" />
+      <site name="rateZ" type="box" pos="0 0 0" quat = "1. 0. 0. 0."  size="0.06 0.035 0.025" rgba="0.5 0.5 0.5 1" />
+
+      <!-- Thruster geometries for collisions since site's are excluded from collision checking -->
+            <geom name="thruster0" type="cylinder" pos=" 0.1  0.1  0.01" size="0.05 0.0025"  quat = "1.0 0.0 0.0 0." rgba="0.5 0.5 0.5 1" mass = ".025"/>
+            <geom name="thruster1" type="cylinder" pos=" 0.1 -0.1  0.01" size="0.05 0.0025"  quat = "1.0 0.0 0.0 0." rgba="0.5 0.5 0.5 1" mass = ".025"/>
+            <geom name="thruster2" type="cylinder" pos="-0.1 -0.1  0.01" size="0.05 0.0025"  quat = "1.0 0.0 0.0 0." rgba="0.5 0.5 0.5 1" mass = ".025"/>
+            <geom name="thruster3" type="cylinder" pos="-0.1  0.1  0.01" size="0.05 0.0025"  quat = "1.0 0.0 0.0 0." rgba="0.5 0.5 0.5 1" mass = ".025"/>
+
+            <!-- Visualization of the coordinate frame -->
+      <!-- <site name="qcX" type="box" pos="0.1 0.0 0.0" size="0.1 0.005 0.005"  quat = " 1.000  0.0  0.0    0."     rgba="1 0 0 1" />
+      <site name="qcY" type="box" pos="0.0 0.1 0.0" size="0.1 0.005 0.005"  quat = " 0.707  0.0  0.0    0.707"  rgba="0 1 0 1" />
+      <site name="qcZ" type="box" pos="0.0 0.0 0.1" size="0.1 0.005 0.005"  quat = "-0.707  0.0  0.707  0."     rgba="0 0 1 1" /> -->
+    </body>
+  </worldbody>
+    <actuator>
+    <motor ctrllimited="true" ctrlrange="0.0 1.0" gear="0  0. 5. 0. 0. 0." site="thrust"/>
+    <velocity ctrllimited="true" ctrlrange="-1 1" gear="0. 0. 0. 1. 0. 0." kv="0.1" site="rateX"/>
+    <velocity ctrllimited="true" ctrlrange="-1 1" gear="0. 0. 0. 0. 1. 0." kv="0.1" site="rateY"/>
+    <velocity ctrllimited="true" ctrlrange="-1 1" gear="0. 0. 0. 0. 0. 1." kv="0.1" site="rateZ"/>
+  </actuator>
+</mujoco>

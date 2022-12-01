@@ -1,0 +1,51 @@
+<mujoco model="Cart-Pole">
+  <option timestep="0.01" integrator="RK4" gravity="0 0 -10">
+    <flag contact="disable" energy="enable"/>
+  </option>
+
+  <default>
+    <default class="pole">
+      <joint type="hinge" axis="0 1 0"  damping="2e-6"/>
+      <geom type="capsule" fromto="0 0 0 0 0 -1" size="0.045" material="self" mass=".1"/>
+    </default>
+  </default>
+
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
+    <map znear=".01"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0 0 0" rgb2="0 0 0" width="300" height="300" mark="edge" markrgb="1 1 1"/>
+    <material name="grid" texture="grid" texrepeat="3 3" texuniform="true" reflectance=".2"/>
+    <material name="self" rgba=".7 .5 .3 1"/>
+    <material name="decoration" rgba=".3 .5 .7 1"/>
+    <material name="target" rgba="0 1 0 0.5"/>
+  </asset>
+
+  <worldbody>
+    <body name="goal" mocap="true" pos="0 0 2" quat="1 0 0 0">
+        <geom type="sphere" size=".1" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+    <light name="light" pos="0 0 6"/>
+    <camera name="fixed" pos="0 -4 1" zaxis="0 -1 0"/>
+    <camera name="lookatcart" mode="targetbody" target="cart" pos="0 -2 2"/>
+    <geom name="floor" pos="0 0 -.05" size="4 4 .2" type="plane" material="grid"/>
+    <geom name="rail1" type="capsule" pos="0  .07 1" zaxis="1 0 0" size="0.02 2" material="decoration" />
+    <geom name="rail2" type="capsule" pos="0 -.07 1" zaxis="1 0 0" size="0.02 2" material="decoration" />
+    <body name="cart" pos="0 0 1">
+      <joint name="slider" type="slide" limited="true" axis="1 0 0" range="-1.8 1.8" solreflimit=".08 1" damping="1.0e-4"/>
+      <geom name="cart" type="box" size="0.2 0.15 0.1" material="self"  mass="1"/>
+      <body name="pole_1" childclass="pole">
+        <joint name="hinge_1" damping="1.0e-4"/>
+        <geom name="pole_1"/>
+        <site name="tip" pos="0 0 -1"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="slide" joint="slider" gear="10" ctrllimited="true" ctrlrange="-1 1" />
+  </actuator>
+</mujoco>

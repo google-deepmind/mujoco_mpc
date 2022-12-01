@@ -1,0 +1,57 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  mujoco_mpc:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            additional_label: "with Clang 14"
+            cmake_args: >-
+              -G Ninja
+              -DCMAKE_C_COMPILER:STRING=clang-14
+              -DCMAKE_CXX_COMPILER:STRING=clang++-14
+            tmpdir: "/tmp"
+          - os: macos-12
+            cmake_args: >-
+              -G Ninja
+            tmpdir: "/tmp"
+
+    name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Prepare Linux
+      if: ${{ runner.os == 'Linux' }}
+      run: >
+        sudo apt-get update && sudo apt-get install
+        libgl1-mesa-dev
+        libxinerama-dev
+        libxcursor-dev
+        libxrandr-dev
+        libxi-dev
+        ninja-build
+    - name: Prepare macOS
+      if: ${{ runner.os == 'macOS' }}
+      run: brew install ninja
+    - name: Configure MuJoCo MPC
+      working-directory: mjpc
+      run: >
+        mkdir build &&
+        cd build &&
+        cmake ..
+        ${{ matrix.cmake_args }}
+    - name: Build MuJoCo MPC
+      working-directory: mjpc/build
+      run: cmake --build .
+    - name: Test MuJoCo MPC
+      working-directory: mjpc/build
+      run: ctest --output-on-failure .

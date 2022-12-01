@@ -126,10 +126,13 @@ void Agent::Allocate() {
 // reset data, settings, planners, states
 void Agent::Reset() {
   // planner
-  ActivePlanner().Reset(kMaxTrajectoryHorizon);
+  for (const auto& planner : planners_) {
+    planner->Reset(kMaxTrajectoryHorizon);
+  }
 
-  // state
-  ActiveState().Reset(model_);
+  for (const auto& state : states_) {
+    state->Reset(model_);
+  }
 
   // cost
   cost_ = 0.0;

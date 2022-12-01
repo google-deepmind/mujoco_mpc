@@ -41,7 +41,6 @@ include(MpcOptions)
 include(MujocoMacOS)
 
 option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
-option(MJPC_ENABLE_ASAN "Enable AddressSanitizer on MJPC builds" OFF)
 
 include(FindOrFetch)
 
@@ -174,10 +173,6 @@ endif()
 
 set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
-if(MJPC_ENABLE_ASAN)
-  set(MJPC_COMPILE_OPTIONS "${MJPC_COMPILE_OPTIONS}" -fsanitize=address)
-  set(MJPC_LINK_OPTIONS "${MJPC_LINK_OPTIONS}" -fsanitize=address)
-endif()
 
 add_library(threadpool STATIC)
 target_sources(

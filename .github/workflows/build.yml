@@ -23,6 +23,9 @@ jobs:
             cmake_args: >-
               -G Ninja
             tmpdir: "/tmp"
+          - os: windows-2022
+            cmake_build_args: "-- -m"
+            tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"
     runs-on: ${{ matrix.os }}
@@ -47,11 +50,11 @@ jobs:
       run: >
         mkdir build &&
         cd build &&
-        cmake ..
+        cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
       working-directory: mjpc/build
-      run: cmake --build .
+      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }}
     - name: Test MuJoCo MPC
       working-directory: mjpc/build
-      run: ctest --output-on-failure .
+      run: ctest -C Release --output-on-failure .

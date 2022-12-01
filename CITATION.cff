@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Howell
+    given-names: Taylor
+  - family-names: Gileadi
+    given-names: Nimrod
+  - family-names: Tunyasuvunakool
+    given-names: Saran
+  - family-names: Zakka
+    given-names: Kevin
+  - family-names: Erez
+    given-names: Tom
+  - family-names: Tassa
+    given-names: Yuval
+title: "Predictive Sampling: Real-time Behaviour Synthesis with MuJoCo"
+date-released: 2022-12-01
+url: "https://github.com/deepmind/mujoco_mpc"

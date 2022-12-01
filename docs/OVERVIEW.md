@@ -79,7 +79,7 @@ $$ \frac{\partial^2 c}{\partial s \, \partial a} \approx \sum \limits_{i} w_i \c
 
 via [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm).
 
-Derivatives of $\text{norm}$, i.e., $\frac{\partial \text{norm}}{\partial \text{residual}}$, $\frac{\partial^2 \text{norm}}{\partial \text{residual}^2}$, are computed [analytically](mjpc/norm.cc).
+Derivatives of $\text{norm}$, i.e., $\frac{\partial \text{norm}}{\partial \text{residual}}$, $\frac{\partial^2 \text{norm}}{\partial \text{residual}^2}$, are computed [analytically](../mjpc/norm.cc).
 
 The $\text{residual}$ Jacobians, i.e., $\frac{\partial \text{residual}}{\partial \text{state}}$, $\frac{\partial \text{residual}}{\partial \text{action}}$, are computed efficiently using MuJoCo's efficient [finite-difference utility](https://mujoco.readthedocs.io/en/latest/APIreference.html#mjd-transitionfd).
 
@@ -172,10 +172,10 @@ As mentioned above, the cost is a sum of terms, each computed as a (scalar) norm
 
 - `term_name`: String describing term name (to appear in GUI).
 - `residual_dimension`: number of elements in residual.
-- `norm_type`: Integer corresponding to the NormType enum, see [norms](mjpc/norm.h).
+- `norm_type`: Integer corresponding to the NormType enum, see [norms](../mjpc/norm.h).
 - `weight`: Real number specifying weight value of the cost.
 - `weight_lower_bound`, `weight_upper_bound`: Real numbers specifying lower and upper bounds on $\text{weight}$, used for configuring the GUI slider.
-- `parameters`: Optional real numbers specifying $\text{norm}$-specific parameters, see [norm implementation](mjpc/norm.cc).
+- `parameters`: Optional real numbers specifying $\text{norm}$-specific parameters, see [norm implementation](../mjpc/norm.cc).
 
 The user sensors defining the residuals should be declared first. Therefore, all sensors should be defined in the task file. After the cost terms are specified, more sensors can be defined to specify the task, e.g., when the residual implementation relies on reading a sensor value. If a sensor named `trace` exists, the GUI will use it to draw the traces of the tentative and nominal trajectories.
 
@@ -225,17 +225,17 @@ The swimmer's cost has two terms:
 
 The repository includes additional example tasks:
 
-- [Humanoid Stand+Walk](mjpc/tasks/humanoid/task.xml)
-- Quadruped [Terrain](mjpc/tasks/quadruped/task_hill.xml) | [Flat](mjpc/tasks/quadruped/task_flat.xml)
-- [Walker](mjpc/tasks/walker/task.xml)
-- [In-Hand Manipulation](mjpc/tasks/hand/task.xml)
-- [Cart-Pole](mjpc/tasks/cartpole/task.xml)
-- [Particle](mjpc/tasks/particle/task.xml)
-- [Quadrotor](mjpc/tasks/quadrotor/task.xml)
+- [Humanoid Stand+Walk](../mjpc/tasks/humanoid/task.xml)
+- Quadruped [Terrain](../mjpc/tasks/quadruped/task_hill.xml) | [Flat](../mjpc/tasks/quadruped/task_flat.xml)
+- [Walker](../mjpc/tasks/walker/task.xml)
+- [In-Hand Manipulation](../mjpc/tasks/hand/task.xml)
+- [Cart-Pole](../mjpc/tasks/cartpole/task.xml)
+- [Particle](../mjpc/tasks/particle/task.xml)
+- [Quadrotor](../mjpc/tasks/quadrotor/task.xml)
 
 ### Task Transitions
 
-The `task` [class](mjpc/task.h) supports *transitions* for subgoal-reaching tasks.  The transition function is called at every step, and is meant to allow the task specification to adapt to the agent's behavior (e.g., moving the target whenever the agent reaches it).  This function should test whether a transition condition is fulfilled, and at that event it should mutate the task specification.  It has the following interface:
+The `task` [class](../mjpc/task.h) supports *transitions* for subgoal-reaching tasks.  The transition function is called at every step, and is meant to allow the task specification to adapt to the agent's behavior (e.g., moving the target whenever the agent reaches it).  This function should test whether a transition condition is fulfilled, and at that event it should mutate the task specification.  It has the following interface:
 
 ```c++
 void Swimmer::Transition(
@@ -248,7 +248,7 @@ void Swimmer::Transition(
 - `model`: the task's `mjModel`.  It is marked `const` because changes to it here will only affect the GUI and will not affect the planner's copies.
 - `data`: the task's `mjData`.  A transition should mutate fields of `mjData`, see below.
 
-Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
+Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
 
 ## Planners
 

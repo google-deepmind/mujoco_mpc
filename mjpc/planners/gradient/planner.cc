@@ -279,7 +279,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto policy_update_start = std::chrono::steady_clock::now();
   {
     const std::unique_lock<std::shared_mutex> lock(mtx_);
-    policy.CopyFrom(candidate_policy[0], horizon);
+    policy.CopyParametersFrom(candidate_policy[0].parameters, candidate_policy[0].times);
   }
   policy_update_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(

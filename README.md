@@ -2,6 +2,15 @@
   <a href="#"><img alt="MuJoCo MPC" src="docs/assets/banner.png" width="100%"></a>
 </h1>
 
+<p>
+  <a href="https://github.com/deepmind/mujoco_mpc/actions/workflows/build.yml?query=branch%3Amain" alt="GitHub Actions">
+    <img src="https://img.shields.io/github/workflow/status/deepmind/mujoco_mpc/build/main">
+  </a>
+  <a href="https://github.com/deepmind/mujoco_mpc/blob/main/LICENSE" alt="License">
+    <img src="https://img.shields.io/github/license/deepmind/mujoco_mpc">
+  </a>
+</p>
+
 **MuJoCo MPC (MJPC)** is an interactive application and software framework for real-time predictive control with [MuJoCo](https://mujoco.org/), developed by DeepMind.
 
 MJPC allows the user to easily author and solve complex robotics tasks, and currently supports three shooting-based planners: derivative-based iLQG and Gradient Descent, and a simple yet very competitive derivative-free method called Predictive Sampling.

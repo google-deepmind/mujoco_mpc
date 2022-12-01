@@ -24,7 +24,7 @@ $$
 \end{align*}
 $$
 
-where the goal is to optimize state ($s \in \mathbf{S}$), action ($a \in \mathbf{A}$) trajectories subject to a model $m : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{S}$ specifying the transition dynamics of the system. The minimization objective is the total return, which is the sum of step-wise values $c : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{R}_{+}$ along the trajectory from the current time until the horizon $T$.
+where the goal is to optimize state $s \in \mathbf{S}$, action $a \in \mathbf{A}$ trajectories subject to a model $m : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{S}$ specifying the transition dynamics of the system. The minimization objective is the total return, which is the sum of step-wise values $c : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{R}_{+}$ along the trajectory from the current time until the horizon $T$.
 
 ## Cost Function
 
@@ -48,7 +48,7 @@ $$
 f(x, R) = \frac{e^{R \cdot x} - 1}{R}.
 $$
 
-The mapping, $f : \mathbf{R}_{+} \times \mathbf{R} \rightarrow \mathbf{R}_{+}$, has the following properties:
+The mapping, $f : \mathbf{R}_ {+} \times \mathbf{R} \rightarrow \mathbf{R}_ {+}$, has the following properties:
 
 - It is defined and smooth for any $R$
 - At $R=0$, it reduces to the identity $f(x; 0) = x$
@@ -79,7 +79,7 @@ $$ \frac{\partial^2 c}{\partial s \, \partial a} \approx \sum \limits_{i} w_i \c
 
 via [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm).
 
-Derivatives of $\text{norm}$s, i.e., $\frac{\partial \text{norm}}{\partial \text{residual}}$, $\frac{\partial^2 \text{norm}}{\partial \text{residual}^2}$, are computed [analytically](mjpc/norm.cc).
+Derivatives of $\text{norm}$, i.e., $\frac{\partial \text{norm}}{\partial \text{residual}}$, $\frac{\partial^2 \text{norm}}{\partial \text{residual}^2}$, are computed [analytically](mjpc/norm.cc).
 
 The $\text{residual}$ Jacobians, i.e., $\frac{\partial \text{residual}}{\partial \text{state}}$, $\frac{\partial \text{residual}}{\partial \text{action}}$, are computed efficiently using MuJoCo's efficient [finite-difference utility](https://mujoco.readthedocs.io/en/latest/APIreference.html#mjd-transitionfd).
 
@@ -94,11 +94,13 @@ $$ \frac{\partial J}{\partial s} = e^{R \cdot c} \cdot \frac{\partial c}{\partia
 $$ \frac{\partial J}{\partial a} = e^{R \cdot c} \cdot \frac{\partial c}{\partial a}.$$
 
 Hessians are approximated:
+
 $$ \frac{\partial^2 J}{\partial s^2} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial s^2} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial s}\Big)^T \frac{\partial c}{\partial s},$$
 
 $$ \frac{\partial^2 J}{\partial a^2} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial a^2} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial a}\Big)^T \frac{\partial c}{\partial a},$$
 
 $$ \frac{\partial^2 J}{\partial s \, \partial a} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial s \partial a} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial s}\Big)^T \frac{\partial c}{\partial a},$$
+
 as before, via Gauss-Newton.
 
 ## Task Specification

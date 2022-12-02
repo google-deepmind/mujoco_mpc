@@ -174,6 +174,7 @@ int TaskIdByName(std::string_view name) {
 
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
+  mjpc::SetPhysicsThreadId();
   // cpu-sim syncronization point
   double syncCPU = 0;
   mjtNum syncSim = 0;
@@ -402,32 +403,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 }
 }  // namespace
 
-// ---------------------------- physics_thread ---------------------------------
-
-void PhysicsThread(mj::Simulate* sim, const char* filename) {
-  // request loadmodel if file given (otherwise drag-and-drop)
-  if (filename != nullptr) {
-    m = LoadModel(filename, *sim);
-    if (m) d = mj_makeData(m);
-    if (d) {
-      sim->load(filename, m, d, true);
-      mj_forward(m, d);
-
-      // allocate ctrlnoise
-      free(ctrlnoise);
-      ctrlnoise = static_cast<mjtNum*>(malloc(sizeof(mjtNum) * m->nu));
-      mju_zero(ctrlnoise, m->nu);
-    }
-  }
-
-  PhysicsLoop(*sim);
-
-  // delete everything we allocated
-  free(ctrlnoise);
-  mj_deleteData(d);
-  mj_deleteModel(m);
-}
-
 // ------------------------------- main ----------------------------------------
 
 // machinery for replacing command line error by a macOS dialog box
@@ -450,6 +425,8 @@ int main(int argc, char** argv) {
     std::exit(1);
   }
 #endif
+
+  mjpc::SetMainThreadId();
 
   absl::ParseCommandLine(argc, argv);
   std::printf("MuJoCo version %s\n", mj_versionString());

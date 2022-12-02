@@ -24,8 +24,10 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <thread>
 
 // DEEPMIND INTERNAL IMPORT
+#include <absl/log/check.h>
 #include <absl/strings/str_cat.h>
 #include <mujoco/mujoco.h>
 
@@ -563,6 +565,31 @@ int CheckWarnings(mjData* data) {
     }
   }
   return 0;
+}
+
+namespace {
+  static std::thread::id main_thread_id;
+  static std::thread::id physics_thread_id;
+}  // namespace
+
+// crashes if current thread is not the main thread.
+void AssertMainThread() {
+  CHECK_EQ(main_thread_id, std::this_thread::get_id());
+}
+
+// to be called by the main thread, to set up AssertMainThread
+void SetMainThreadId() {
+  main_thread_id = std::this_thread::get_id();
+}
+
+// crashes if current thread is not the physics thread.
+void AssertPhysicsThread() {
+  CHECK_EQ(physics_thread_id, std::this_thread::get_id());
+}
+
+// to be called by the physics thread, to set up AssertPhysicsThread
+void SetPhysicsThreadId() {
+  physics_thread_id = std::this_thread::get_id();
 }
 
 // compute vector with log-based scaling between min and max values

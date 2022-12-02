@@ -256,6 +256,7 @@ set_target_properties(libmjpc PROPERTIES OUTPUT_NAME mjpc)
 target_compile_options(libmjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
 target_link_libraries(
   libmjpc
+  absl::check
   absl::random_random
   mujoco::mujoco
   threadpool

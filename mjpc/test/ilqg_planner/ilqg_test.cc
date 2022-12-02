@@ -20,6 +20,7 @@
 #include "test/load.h"
 #include "test/testdata/particle_residual.h"
 #include "threadpool.h"
+#include "utilities.h"
 
 namespace mjpc {
 namespace {
@@ -47,6 +48,10 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 
 // test iLQG planner on particle task
 TEST(iLQGTest, Particle) {
+  // Disable checks for thread IDs
+  SetPhysicsThreadId();
+  SetMainThreadId();
+
   // load model
   model = LoadTestModel("particle_task.xml");
 

@@ -449,6 +449,9 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
       // sample policy parameters
       s.SamplePolicy(i);
 
+      // set policy representation 
+      s.candidate_policy[i].representation = s.policy.representation;
+
       // ----- rollout sample policy ----- //
 
       // policy

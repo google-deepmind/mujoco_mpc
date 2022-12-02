@@ -83,7 +83,7 @@ double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name) {
   int id = mj_name2id(m, mjOBJ_SENSOR, name.c_str());
   if (id == -1) {
-    mju_error_s("sensor \"%s\" not found.", name.c_str());
+    std::cerr << "sensor \"" << name << "\" not found.\n";
     return nullptr;
   } else {
     return d->sensordata + m->sensor_adr[id];

@@ -59,13 +59,14 @@ MJPC is not production-quality software, it is a **research prototype**. There a
 
 ## Citation
 
-If you use MJPC in your work, please cite our accompanying [preprint]():
+If you use MJPC in your work, please cite our accompanying [preprint](https://arxiv.org/abs/2212.00541):
 
 ```bibtex
 @article{howell2022,
   author = {Howell, Taylor and Gileadi, Nimrod and Tunyasuvunakool, Saran and Zakka, Kevin and Erez, Tom and Tassa, Yuval},
   title = {{Predictive Sampling: Real-time Behaviour Synthesis with MuJoCo}},
-  url = {},
+  journal={arXiv preprint arXiv:2212.00541},
+  url = {https://arxiv.org/abs/2212.00541},
   year = {2022},
 }
 ```

@@ -176,8 +176,8 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto policy_update_start = std::chrono::steady_clock::now();
   {
     std::unique_lock<std::shared_mutex> lock(mtx_);
-    policy.CopyFrom(candidate_policy[winner],
-                    candidate_policy->num_spline_points);
+    policy.CopyParametersFrom(candidate_policy[winner].parameters,
+                    candidate_policy[winner].times);
   }
   policy_update_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(
@@ -446,8 +446,8 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, i]() {
-      // sample policy parameters
       s.SamplePolicy(i);
+      s.candidate_policy[i].representation = s.policy.representation;
 
       // ----- rollout sample policy ----- //
 

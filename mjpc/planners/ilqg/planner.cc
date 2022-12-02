@@ -303,14 +303,12 @@ void iLQGPlanner::NominalTrajectory(int horizon) {
 // set action from policy
 void iLQGPlanner::ActionFromPolicy(double* action, const double* state,
                                    double time) {
-  AssertPhysicsThread();
   const std::shared_lock<std::shared_mutex> lock(mtx_);
   policy.Action(action, state, time);
 }
 
 // return trajectory with best total return
 const Trajectory* iLQGPlanner::BestTrajectory() {
-  AssertMainThread();
   const std::shared_lock<std::shared_mutex> lock(mtx_);
   return &policy.trajectory;
 }
@@ -320,7 +318,6 @@ void iLQGPlanner::Traces(mjvScene* scn) {}
 
 // planner-specific GUI elements
 void iLQGPlanner::GUI(mjUI& ui) {
-  AssertMainThread();
   mjuiDef defiLQG[] = {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory, "0 1"},
       // {mjITEM_RADIO, "Action Lmt.", 2, &settings.action_limits, "Off\nOn"},
@@ -339,7 +336,6 @@ void iLQGPlanner::GUI(mjUI& ui) {
 // planner-specific plots
 void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                         int planning) {
-  AssertMainThread();
   // bounds
   double planner_bounds[2] = {-6, 6};
 

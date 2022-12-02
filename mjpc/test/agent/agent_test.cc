@@ -33,13 +33,7 @@ Agent* agent = nullptr;
 
 class AgentTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    // Disable checks for thread IDs by pretending this is both the main thread
-    // and the physics thread.
-    SetMainThreadId();
-    SetPhysicsThreadId();
-    agent = new Agent;
-  }
+  void SetUp() override { agent = new Agent; }
   void TearDown() override {
     delete agent;
     agent = nullptr;

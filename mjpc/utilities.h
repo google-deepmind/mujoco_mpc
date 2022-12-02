@@ -137,18 +137,6 @@ int NumAvailableHardwareThreads();
 // check mjData for warnings, return 1 if any warnings
 int CheckWarnings(mjData* data);
 
-// crashes if current thread is not the main thread.
-void AssertMainThread();
-
-// to be called by the main thread, to set up AssertMainThread
-void SetMainThreadId();
-
-// crashes if current thread is not the physics thread.
-void AssertPhysicsThread();
-
-// to be called by the physics thread, to set up AssertPhysicsThread
-void SetPhysicsThreadId();
-
 // compute vector with log-based scaling between min and max values
 void LogScale(double* values, double max_value, double min_value, int steps);
 

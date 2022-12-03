@@ -343,10 +343,8 @@ void PhysicsLoop(mj::Simulate& sim) {
 
             // run single step, let next iteration deal with timing
             mj_step(m, d);
-          }
 
-          // in-sync: step until ahead of cpu
-          else {
+          } else {  // in-sync: step until ahead of cpu
             bool measured = false;
             mjtNum prevSim = d->time;
             double refreshTime = simRefreshFraction / sim.refreshRate;
@@ -375,10 +373,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               }
             }
           }
-        }
-
-        // paused
-        else {
+        } else {  // paused
           // apply pose perturbation
           sim.applyposepertubations(1);  // move mocap and dynamic bodies
 
@@ -392,7 +387,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           sim.agent.task().Transition(m, d);
         }
       }
-    }  // release std::lock_guard<std::mutex>
+    }  // release sim.mtx
 
     // state
     if (sim.uiloadrequest.load() == 0) {

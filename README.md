@@ -63,11 +63,15 @@ If you use MJPC in your work, please cite our accompanying [preprint](https://ar
 
 ```bibtex
 @article{howell2022,
-  author = {Howell, Taylor and Gileadi, Nimrod and Tunyasuvunakool, Saran and Zakka, Kevin and Erez, Tom and Tassa, Yuval},
-  title = {{Predictive Sampling: Real-time Behaviour Synthesis with MuJoCo}},
-  journal={arXiv preprint 2212.00541},
-  url = {https://arxiv.org/abs/2212.00541},
-  year = {2022},
+  title={{Predictive Sampling: Real-time Behaviour Synthesis with MuJoCo}},
+  author={Howell, Taylor and Gileadi, Nimrod and Tunyasuvunakool, Saran and Zakka, Kevin and Erez, Tom and Tassa, Yuval},
+  archivePrefix={arXiv},
+  eprint={2212.00541},
+  primaryClass={cs.RO},
+  url={https://arxiv.org/abs/2212.00541},
+  doi={10.48550/arXiv.2212.00541},
+  year={2022},
+  month={dec}
 }
 ```
 

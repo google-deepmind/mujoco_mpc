@@ -446,7 +446,10 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, i]() {
+      // sample policy parameters
       s.SamplePolicy(i);
+
+      // set policy representation
       s.candidate_policy[i].representation = s.policy.representation;
 
       // ----- rollout sample policy ----- //

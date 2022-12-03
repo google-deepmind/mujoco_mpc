@@ -71,22 +71,22 @@ void controller(const mjModel* m, mjData* d);
 }
 
 // controller callback
-void controller(const mjModel* m, mjData* data) {
+void controller(const mjModel* m, mjData* d) {
   // if agent, skip
-  if (data != d) {
+  if (d->userdata[0] > 0) {
     return;
   }
   // if simulation:
-  if (sim->agent.action_enabled) {
+  if (sim->agent.action_enabled && d->userdata[0] == 0) {
     sim->agent.ActivePlanner().ActionFromPolicy(
-        data->ctrl, &sim->agent.ActiveState().state()[0],
+        d->ctrl, &sim->agent.ActiveState().state()[0],
         sim->agent.ActiveState().time());
   }
   // if noise
   if (!sim->agent.allocate_enabled && sim->uiloadrequest.load() == 0 &&
       sim->ctrlnoisestd) {
     for (int j = 0; j < sim->m->nu; j++) {
-      data->ctrl[j] += ctrlnoise[j];
+      d->ctrl[j] += ctrlnoise[j];
     }
   }
 }

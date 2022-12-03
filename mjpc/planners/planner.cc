@@ -28,6 +28,11 @@ void Planner::ResizeMjData(const mjModel* model, int num_threads) {
     data_.reserve(new_size);
     while (data_.size() < new_size) {
       data_.push_back(MakeUniqueMjData(mj_makeData(model)));
+      mjData* d = data_.back().get();
+
+      // make new
+      d->userdata[0] = 1;
+      mju_zero(d->ctrl, model->nu);
     }
   }
 }

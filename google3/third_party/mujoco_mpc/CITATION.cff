@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+authors:
+  - family-names: Howell
+    given-names: Taylor
+  - family-names: Gileadi
+    given-names: Nimrod
+  - family-names: Tunyasuvunakool
+    given-names: Saran
+  - family-names: Zakka
+    given-names: Kevin
+  - family-names: Erez
+    given-names: Tom
+  - family-names: Tassa
+    given-names: Yuval
+date-released: "2022-12-01"
+message: "If you use this software, please cite it as below."
+preferred-citation:
+  authors:
+  - family-names: Howell
+    given-names: Taylor
+  - family-names: Gileadi
+    given-names: Nimrod
+  - family-names: Tunyasuvunakool
+    given-names: Saran
+  - family-names: Zakka
+    given-names: Kevin
+  - family-names: Erez
+    given-names: Tom
+  - family-names: Tassa
+    given-names: Yuval
+  date-published: "2022-12-01"
+  doi: 10.48550/ARXIV.2212.00541
+  month: 12
+  publisher:
+    name: arXiv
+  title: "Predictive Sampling: Real-time Behaviour Synthesis with MuJoCo"
+  type: article
+  url: "https://arxiv.org/abs/2212.00541"
+  year: 2022
+title: "MuJoCo MPC (MJPC)"
+url: "https://github.com/deepmind/mujoco_mpc"

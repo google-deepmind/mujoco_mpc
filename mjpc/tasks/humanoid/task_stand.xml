@@ -1,7 +1,8 @@
-<mujoco model="Humanoid Locomotion">
+<mujoco model="Humanoid">
   <include file="../common.xml"/>
   <include file="humanoid.xml" />
   <size memory="400K"/>
+
   <custom>
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.35" />
@@ -9,15 +10,15 @@
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.05" />
     <numeric name="gradient_spline_points" data="5" />
-    <numeric name="residual_Height Goal" data="1.4 0.0 2.0" />
+    <numeric name="residual_Height Goal" data="1.4 0.0 1.5" />
   </custom>
+
   <sensor>
-    <user name="Control" needstage="acc" dim="21" user="3 0.1 0.0 1.0 0.3" />
-    <user name="COM-Feet" needstage="acc" dim="1" user="6 100.0 0.0 1000.0 0.1" />
-    <user name="Torso-COM" needstage="acc" dim="1" user="6 1.0 0.0 10.0 0.1" />
-    <user name="Head-Feet" needstage="acc" dim="1" user="6 100.0 0.0 1000.0 0.1" />
-    <user name="COM Vel." needstage="acc" dim="2" user="0 10.0 0.0 100.0" />
-    <user name="Jnt. Vel." needstage="acc" dim="27" user="0 0.01 0.0 1.0" />
+    <user name="Height" needstage="acc" dim="1" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Balance" needstage="acc" dim="1" user="6 50.0 0.0 100.0 0.1" />
+    <user name="CoM Vel." needstage="acc" dim="2" user="0 10.0 0.0 100.0" />
+    <user name="Joint Vel." needstage="acc" dim="27" user="0 0.01 0.0 0.1" />
+    <user name="Control" needstage="acc" dim="21" user="3 0.025 0.0 0.1 0.3" />
     <framepos name="trace" objtype="body" objname="torso"/>
     <framepos name="torso_position" objtype="body" objname="torso"/>
     <framepos name="head_position" objtype="body" objname="head"/>
@@ -30,5 +31,7 @@
     <framepos name="sp1" objtype="site" objname="sp1"/>
     <framepos name="sp2" objtype="site" objname="sp2"/>
     <framepos name="sp3" objtype="site" objname="sp3"/>
+    <subtreelinvel name="foot_right_vel" body="foot_right"/>
+    <subtreelinvel name="foot_left_vel" body="foot_left"/>
   </sensor>
 </mujoco>

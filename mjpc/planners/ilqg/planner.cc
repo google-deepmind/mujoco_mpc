@@ -135,6 +135,8 @@ void iLQGPlanner::SetState(State& state) {
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ResizeMjData(model, pool.NumThreads());
   
+  policy.feedback = 0;
+
   // timers
   double nominal_time = 0.0;
   double model_derivative_time = 0.0;
@@ -153,6 +155,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy nominal policy
   candidate_policy[0].CopyFrom(policy, horizon);
   candidate_policy[0].representation = policy.representation;
+  candidate_policy[0].feedback = 0;
 
   // rollout nominal policy
   this->NominalTrajectory(horizon);
@@ -235,6 +238,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     for (int i = 1; i < num_trajectory; i++) {
       candidate_policy[i].CopyFrom(candidate_policy[0], horizon);
       candidate_policy[i].representation = candidate_policy[0].representation;
+      candidate_policy[i].feedback = 0;
     }
 
     // improvement step sizes (log scaling)

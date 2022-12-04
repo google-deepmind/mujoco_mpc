@@ -156,7 +156,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // rollout nominal policy
   this->NominalTrajectory(horizon);
-  
+
   // set previous best cost
   double c_prev = trajectory[0].total_return;
 
@@ -358,8 +358,8 @@ void iLQGPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory, "0 1"},
       // {mjITEM_RADIO, "Action Lmt.", 2, &settings.action_limits, "Off\nOn"},
       // {mjITEM_SLIDERINT, "Iterations", 2, &settings.max_rollout, "1 25"},
-      // {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
-      //  "Zero\nLinear\nCubic"},
+      {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
+       "Zero\nLinear\nCubic"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

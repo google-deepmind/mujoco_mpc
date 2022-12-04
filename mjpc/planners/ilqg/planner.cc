@@ -54,6 +54,7 @@ void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
                                  dim_action),
                          model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
+  settings.regularization_type = GetNumberOrDefault(settings.regularization_type, model, "ilqg_regularization_type");
 }
 
 // allocate memory
@@ -135,8 +136,6 @@ void iLQGPlanner::SetState(State& state) {
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ResizeMjData(model, pool.NumThreads());
   
-  policy.feedback = 0;
-
   // timers
   double nominal_time = 0.0;
   double model_derivative_time = 0.0;
@@ -155,7 +154,6 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy nominal policy
   candidate_policy[0].CopyFrom(policy, horizon);
   candidate_policy[0].representation = policy.representation;
-  candidate_policy[0].feedback = 0;
 
   // rollout nominal policy
   this->NominalTrajectory(horizon);
@@ -215,7 +213,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     auto backward_pass_start = std::chrono::steady_clock::now();
   
     // compute feedback gains and action improvement via Riccati
-    int bp_status = backward_pass.Riccati(
+    backward_pass.Riccati(
         &candidate_policy[0], &model_derivative, &cost_derivative,
         dim_state_derivative, dim_action, horizon, backward_pass.regularization,
         boxqp, candidate_policy[0].trajectory.actions.data(),
@@ -227,10 +225,6 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
             std::chrono::steady_clock::now() - backward_pass_start)
             .count();
 
-    // TODO(taylorhowell): implement routine in case backward fails
-    if (bp_status != 0) {
-    }
-
     // ----- rollout policy ----- //
     auto rollouts_start = std::chrono::steady_clock::now();
 
@@ -238,7 +232,6 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     for (int i = 1; i < num_trajectory; i++) {
       candidate_policy[i].CopyFrom(candidate_policy[0], horizon);
       candidate_policy[i].representation = candidate_policy[0].representation;
-      candidate_policy[i].feedback = 0;
     }
 
     // improvement step sizes (log scaling)
@@ -364,6 +357,8 @@ void iLQGPlanner::GUI(mjUI& ui) {
       // {mjITEM_SLIDERINT, "Iterations", 2, &settings.max_rollout, "1 25"},
       {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
+      {mjITEM_SELECT, "Reg. Type", 2, &settings.regularization_type,
+       "Control\nState-Control\nCost-To-Go\nNone"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

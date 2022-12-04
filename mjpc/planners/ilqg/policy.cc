@@ -52,9 +52,6 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
 
   // representation
   representation = GetNumberOrDefault(1, model, "ilqg_representation");
-
-  // feedback 
-  feedback = 0;
 }
 
 // reset memory to zeros

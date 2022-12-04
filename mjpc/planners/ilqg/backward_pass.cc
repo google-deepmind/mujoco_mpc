@@ -113,7 +113,7 @@ int iLQGBackwardPass::RiccatiStep(
   mju_addTo(Quut, cuut, m * m);
 
   //----- regularize ----- //
-  if (reg_type == kCostToGoRegularization) {
+  if (reg_type == kValueRegularization) {
     // regularize cost-to-go
     mju_copy(Vxx_reg, Wxx, n * n);
     for (int i = 0; i < n; i++) {

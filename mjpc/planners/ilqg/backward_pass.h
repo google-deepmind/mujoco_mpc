@@ -28,7 +28,7 @@ namespace mjpc {
 enum BackwardPassRegularization : int {
   kControlRegularization = 0,
   kStateControlRegularization,
-  kCostToGoRegularization
+  kValueRegularization
 };
 
 // data and methods to compute iLQG backward pass

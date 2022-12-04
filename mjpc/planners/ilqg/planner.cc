@@ -358,7 +358,7 @@ void iLQGPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SELECT, "Reg. Type", 2, &settings.regularization_type,
-       "Control\nState-Control\nCost-To-Go\nNone"},
+       "Control\nFeedback\nValue\nNone"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

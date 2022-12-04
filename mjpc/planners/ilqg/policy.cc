@@ -162,8 +162,6 @@ void iLQGPolicy::CopyFrom(const iLQGPolicy& policy, int horizon) {
   // action improvement
   mju_copy(action_improvement.data(), policy.action_improvement.data(),
            horizon * model->nu);
-
-  representation = policy.representation;
 }
 
 }  // namespace mjpc

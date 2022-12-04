@@ -14,11 +14,11 @@
   </custom>
 
   <sensor>
-    <user name="Height" needstage="acc" dim="1" user="6 100.0 0.0 100.0 0.1" />
-    <user name="Balance" needstage="acc" dim="1" user="1 50.0 0.0 100.0 0.05 1" />
-    <user name="CoM Vel." needstage="acc" dim="2" user="0 10.0 0.0 100.0" />
-    <user name="Joint Vel." needstage="acc" dim="27" user="0 0.01 0.0 0.1" />
-    <user name="Control" needstage="acc" dim="21" user="3 0.025 0.0 0.1 0.3" />
+    <user name="Height" dim="1" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Balance" dim="1" user="1 50.0 0.0 100.0 0.05 1" />
+    <user name="CoM Vel." dim="2" user="0 10.0 0.0 100.0" />
+    <user name="Joint Vel." dim="27" user="0 0.01 0.0 0.1" />
+    <user name="Control" dim="21" user="3 0.025 0.0 0.1 0.3" />
     <framepos name="trace" objtype="body" objname="torso"/>
     <framepos name="torso_position" objtype="body" objname="torso"/>
     <framepos name="head_position" objtype="body" objname="head"/>

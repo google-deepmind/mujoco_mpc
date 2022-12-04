@@ -198,17 +198,18 @@ void residual(
 
 #### Examples
 
-As an example, consider this snippet specifying the Swimmer task:
+As an example, consider these snippets specifying the Swimmer task:
 
-```c++
+```xml
 <sensor>
-  <user name="Control" needstage="acc" dim="5" user="0 0.1 0 0.1" />
-  <user name="Distance" needstage="acc" dim="2" user="2 30 0 100 0.04" />
+  <user name="Control" dim="5" user="0 0.1 0 0.1" />
+  <user name="Distance" dim="2" user="2 30 0 100 0.04" />
   <framepos name="trace" objtype="geom" objname="nose"/>
   <framepos name="nose" objtype="geom" objname="nose"/>
   <framepos name="target" objtype="body" objname="target"/>
 </sensor>
-...
+```
+```c++
 void Swimmer::Residual(double* residual, const double* parameters,
                         const mjModel* model, const mjData* data) {
   mju_copy(residual, data->ctrl, model->nu);

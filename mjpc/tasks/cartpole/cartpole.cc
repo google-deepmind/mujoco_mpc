@@ -21,24 +21,23 @@
 namespace mjpc {
 
 // ------- Residuals for cartpole task ------
-//   Number of residuals: 4
-//     Residual (0): distance from vertical
-//     Residual (1): distance from goal
-//     Residual (2): angular velocity
-//     Residual (3): control
+//     Vertical: Pole angle cosine should be -1
+//     Centered: Cart should be at goal position
+//     Velocity: Pole angular velocity should be small
+//     Control:  Control should be small
 // ------------------------------------------
 void Cartpole::Residual(const double* parameters, const mjModel* model,
                         const mjData* data, double* residual) {
-  // ---------- Residual (0) ----------
+  // ---------- Vertical ----------
   residual[0] = std::cos(data->qpos[1]) + 1;
 
-  // ---------- Residual (1) ----------
+  // ---------- Centered ----------
   residual[1] = data->qpos[0] - parameters[0];
 
-  // ---------- Residual (2) ----------
+  // ---------- Velocity ----------
   residual[2] = data->qvel[1];
 
-  // ---------- Residual (3) ----------
+  // ---------- Control ----------
   residual[3] = data->ctrl[0];
 }
 

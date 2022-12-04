@@ -16,7 +16,7 @@
   </custom>
 
   <sensor>
-    <user name="Control" needstage="acc" dim="6" user="0 1.0e-5 0.0 1.0" />
+    <user name="Control" needstage="acc" dim="6" user="0 0.1 0.0 1.0" />
     <user name="Height" needstage="acc" dim="1" user="0 10.0 0.0 10.0" />
     <user name="Rotation" needstage="acc" dim="1" user="0 3.0 0.0 5.0" />
     <user name="Speed" needstage="acc" dim="1" user="0 1.0 0.0 1.0" />

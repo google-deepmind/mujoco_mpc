@@ -177,11 +177,11 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
         mju_scl(DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),
                 DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),
                 s, dim_state_derivative * dim_state_derivative);
-        mju_mulMatMat(cd.cxx_scratch_.data(),
+        mju_mulMatMat(DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative),
                       DataAt(cd.cx, t * dim_state_derivative),
                       DataAt(cd.cx, t * dim_state_derivative),
                       dim_state_derivative, 1, dim_state_derivative);
-        mju_scl(DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative), cd.cxx_scratch_.data(), risk * s,
+        mju_scl(DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative), DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative), risk * s,
                 dim_state_derivative * dim_state_derivative);
         mju_addTo(
             DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),

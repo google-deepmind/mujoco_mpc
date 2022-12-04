@@ -25,7 +25,7 @@ struct iLQGSettings {
   double fd_mode = 0;  // type of finite difference; 0: one-sided, 1: centered
   double min_regularization = 1.0e-6;  // minimum regularization value
   double max_regularization = 1.0e6;   // maximum regularization value
-  int regularization_type = 0;         // 0: control; 1: state + control
+  int regularization_type = 2;         // 0: control; 1: feedback; 2: value; 3: none
   int max_regularization_iter =
       5;  // maximum number of regularization updates per iteration
   int action_limits = 0;  // flag

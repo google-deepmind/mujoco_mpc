@@ -171,9 +171,6 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // rollout nominal trajectory
   this->NominalTrajectory(horizon);
 
-  // copy nominal trajectory
-  candidate_policy[0].trajectory = trajectory[0];
-
   // previous best cost
   double c_prev = trajectory[0].total_return;
   
@@ -191,8 +188,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // compute model and sensor Jacobians
     model_derivative.Compute(
-        model, data_, candidate_policy[0].trajectory.states.data(),
-        candidate_policy[0].trajectory.actions.data(), dim_state,
+        model, data_, trajectory[0].states.data(),
+        trajectory[0].actions.data(), dim_state,
         dim_state_derivative, dim_action, dim_sensor, horizon,
         settings.fd_tolerance, settings.fd_mode, pool);
 
@@ -208,7 +205,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // compute cost derivatives
     cost_derivative.Compute(
-        candidate_policy[0].trajectory.residual.data(),
+        trajectory[0].residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
         dim_state_derivative, dim_action, dim_max, dim_sensor,
         task->num_residual, task->dim_norm_residual.data(), task->num_norms,
@@ -234,14 +231,14 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     mappings[policy.representation]->Compute(
         candidate_policy[0].times.data(), candidate_policy[0].parameters.data(),
         candidate_policy[0].num_spline_points,
-        candidate_policy[0].trajectory.times.data(),
-        candidate_policy[0].trajectory.horizon - 1);
+        trajectory[0].times.data(),
+        trajectory[0].horizon - 1);
 
     // compute total derivatives
     mju_mulMatTVec(candidate_policy[0].parameter_update.data(),
                    mappings[policy.representation]->Get(),
                    candidate_policy[0].k.data(),
-                   model->nu * (candidate_policy[0].trajectory.horizon - 1),
+                   model->nu * (trajectory[0].horizon - 1),
                    model->nu * candidate_policy[0].num_spline_points);
 
     // stop timer
@@ -293,6 +290,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // update nominal with winner
     candidate_policy[0].CopyParametersFrom(candidate_policy[winner].parameters, candidate_policy[winner].times);
+    trajectory[0] = trajectory[winner];
 
     // improvement
     step_size = improvement_step[winner];
@@ -306,17 +304,18 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
                          .count();
   }
 
+
   // update nominal policy
   auto policy_update_start = std::chrono::steady_clock::now();
+
+  // check for improvement
+  if (c_best >= c_prev) {
+    winner = num_trajectory - 1;
+  }
+
   {
     const std::unique_lock<std::shared_mutex> lock(mtx_);
-    // improvement
-    if (c_best < c_prev) {
-      policy.CopyFrom(candidate_policy[0], candidate_policy[0].num_spline_points);
-    // nominal
-    } else {
-      policy.CopyFrom(candidate_policy[num_trajectory - 1], candidate_policy[num_trajectory - 1].num_spline_points);
-    }
+    policy.CopyParametersFrom(candidate_policy[winner].parameters, candidate_policy[winner].times);
   }
 
   // stop timer
@@ -423,7 +422,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
 
 // return trajectory with best total return
 const Trajectory* GradientPlanner::BestTrajectory() {
-  return &policy.trajectory;
+  return &trajectory[winner];
 }
 
 // visualize candidate traces in GUI

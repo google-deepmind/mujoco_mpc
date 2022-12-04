@@ -12,7 +12,7 @@
     <numeric name="residual_Height Goal" data="1.4 0.0 2.0" />
   </custom>
   <sensor>
-    <user name="Control" needstage="acc" dim="21" user="3 0.025 0.0 1.0 0.3" />
+    <user name="Control" needstage="acc" dim="21" user="3 0.1 0.0 1.0 0.3" />
     <user name="COM-Feet" needstage="acc" dim="1" user="6 100.0 0.0 1000.0 0.1" />
     <user name="Torso-COM" needstage="acc" dim="1" user="6 1.0 0.0 10.0 0.1" />
     <user name="Head-Feet" needstage="acc" dim="1" user="6 100.0 0.0 1000.0 0.1" />

@@ -1,0 +1,43 @@
+<mujoco model="Humanoid Locomotion">
+  <include file="../common.xml"/>
+  <include file="humanoid.xml" />
+  <size memory="400K"/>
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.35" />
+    <numeric name="agent_timestep" data="0.015" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.05" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Torso" data="1.35 1.0 1.5" />
+    <numeric name="residual_Vel. X" data="0.0 -3.0 3.0" />
+    <numeric name="residual_Vel. Y" data="0.0 -3.0 3.0" />
+  </custom>
+
+  <sensor>
+    <user name="Control" dim="21" user="5 1.0e-6 0 1.0 2.1" />
+    <user name="Height" dim="1" user="7 2.0 0 10.0 0.1 4.0" />
+    <user name="Pelvis/Feet" dim="1" user="8 1.0 0.0 10.0 0.05" />
+    <user name="Balance" dim="2" user="1 0.5 0.0 10.0 0.02 4.0" />
+    <user name="Upright" dim="8" user="2 0.3 0.0 10.0 0.01" />    
+    <user name="Posture" dim="21" user="0 1.0e-5 0 1.0" />
+    <user name="Walk" dim="1" user="7 0.1 0.0 10.0 0.5 3.0" />
+    <framepos name="trace" objtype="body" objname="torso"/>
+    <framepos name="torso_position" objtype="body" objname="torso"/>
+    <subtreecom name="torso_subcom" body="torso"/>
+    <subtreelinvel name="torso_subcomvel" body="torso"/>
+    <framepos name="foot_right" objtype="body" objname="foot_right"/>
+    <framepos name="foot_left" objtype="body" objname="foot_left"/>
+    <framepos name="pelvis_position" objtype="body" objname="pelvis"/>
+    <framezaxis name="torso_up" objtype="xbody" objname="torso"/>
+    <framezaxis name="pelvis_up" objtype="xbody" objname="pelvis"/>
+    <framezaxis name="foot_right_up" objtype="xbody" objname="foot_right"/>
+    <framezaxis name="foot_left_up" objtype="xbody" objname="foot_left"/>
+    <framexaxis name="torso_forward" objtype="xbody" objname="torso"/>
+    <framexaxis name="pelvis_forward" objtype="xbody" objname="pelvis"/>
+    <framexaxis name="foot_right_forward" objtype="xbody" objname="foot_right"/>
+    <framexaxis name="foot_left_forward" objtype="xbody" objname="foot_left"/>
+    <subtreelinvel name="waist_lower_subcomvel" body="waist_lower"/>
+    <framelinvel name="torso_velocity" objtype="body" objname="torso"/>
+  </sensor>
+</mujoco>

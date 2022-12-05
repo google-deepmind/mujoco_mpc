@@ -48,7 +48,6 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  noise_type = SamplingNoiseType::kGaussian;
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
 
   // set number of trajectories to rollout
@@ -149,9 +148,12 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto nominal_start = std::chrono::steady_clock::now();
 
   // copy nominal policy
-  policy.num_parameters = model->nu * policy.num_spline_points; // set
-  candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
-
+  {
+    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    policy.num_parameters = model->nu * policy.num_spline_points; // set
+    candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
+  }
+  
   // resample policy
   this->ResamplePolicy(horizon);
 

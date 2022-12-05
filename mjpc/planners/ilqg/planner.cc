@@ -152,9 +152,12 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto nominal_start = std::chrono::steady_clock::now();
 
   // copy nominal policy
-  candidate_policy[0].CopyFrom(policy, horizon);
-  candidate_policy[0].representation = policy.representation;
-
+  {
+    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    candidate_policy[0].CopyFrom(policy, horizon);
+    candidate_policy[0].representation = policy.representation;
+  }
+  
   // rollout nominal policy
   this->NominalTrajectory(horizon);
   if (trajectory[0].failure) {
@@ -471,56 +474,55 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
 // compute candidate trajectories
 void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
-  {
-    int count_before = pool.GetCount();
-    for (int i = 0; i < num_trajectory; i++) {
-      pool.Schedule([&data = data_, &trajectory = trajectory,
-                     &candidate_policy = candidate_policy,
-                     &improvement_step = improvement_step, &model = this->model,
-                     &task = this->task, &state = this->state,
-                     &time = this->time, &mocap = this->mocap, horizon, i]() {
-        // scale improvement
-        mju_addScl(candidate_policy[i].trajectory.actions.data(),
-                   candidate_policy[i].trajectory.actions.data(),
-                   candidate_policy[i].action_improvement.data(),
-                   improvement_step[i], model->nu * horizon);
+  int count_before = pool.GetCount();
+  for (int i = 0; i < num_trajectory; i++) {
+    pool.Schedule([&data = data_, &trajectory = trajectory,
+                    &candidate_policy = candidate_policy,
+                    &improvement_step = improvement_step, &model = this->model,
+                    &task = this->task, &state = this->state,
+                    &time = this->time, &mocap = this->mocap, horizon, i]() {
+      // scale improvement
+      mju_addScl(candidate_policy[i].trajectory.actions.data(),
+                  candidate_policy[i].trajectory.actions.data(),
+                  candidate_policy[i].action_improvement.data(),
+                  improvement_step[i], model->nu * horizon);
 
-        // policy
-        auto feedback_policy = [&candidate_policy = candidate_policy, model, i](
-                                   double* action, const double* state,
-                                   int index) {
-          // dimensions
-          int dim_state = model->nq + model->nv + model->na;
-          int dim_state_derivative = 2 * model->nv + model->na;
-          int dim_action = model->nu;
+      // policy
+      auto feedback_policy = [&candidate_policy = candidate_policy, model, i](
+                                  double* action, const double* state,
+                                  int index) {
+        // dimensions
+        int dim_state = model->nq + model->nv + model->na;
+        int dim_state_derivative = 2 * model->nv + model->na;
+        int dim_action = model->nu;
 
-          // set improved action
-          mju_copy(action, DataAt(candidate_policy[i].trajectory.actions, index * dim_action), dim_action);
+        // set improved action
+        mju_copy(action, DataAt(candidate_policy[i].trajectory.actions, index * dim_action), dim_action);
 
-          // ----- feedback ----- // 
-          
-          // difference between current state and nominal state
-          StateDiff(model, candidate_policy[i].state_scratch.data(), DataAt(candidate_policy[i].trajectory.states, index * dim_state), state, 1.0);
+        // ----- feedback ----- // 
+        
+        // difference between current state and nominal state
+        StateDiff(model, candidate_policy[i].state_scratch.data(), DataAt(candidate_policy[i].trajectory.states, index * dim_state), state, 1.0);
 
-          // compute feedback term
-          mju_mulMatVec(candidate_policy[i].action_scratch.data(), DataAt(candidate_policy[i].feedback_gain, index * dim_action * dim_state_derivative),
-                candidate_policy[i].state_scratch.data(), dim_action, dim_state_derivative);
-          
-          // add feedback
-          mju_addTo(action, candidate_policy[i].action_scratch.data(), dim_action);
-  
-          // clamp controls
-          Clamp(action, model->actuator_ctrlrange, dim_action);
-        };
+        // compute feedback term
+        mju_mulMatVec(candidate_policy[i].action_scratch.data(), DataAt(candidate_policy[i].feedback_gain, index * dim_action * dim_state_derivative),
+              candidate_policy[i].state_scratch.data(), dim_action, dim_state_derivative);
+        
+        // add feedback
+        mju_addTo(action, candidate_policy[i].action_scratch.data(), dim_action);
 
-        // policy rollout (discrete time)
-        trajectory[i].RolloutDiscrete(feedback_policy, task, model,
-                              data[ThreadPool::WorkerId()].get(), state.data(),
-                              time, mocap.data(), horizon);
-      });
-    }
-    pool.WaitCount(count_before + num_trajectory);
+        // clamp controls
+        Clamp(action, model->actuator_ctrlrange, dim_action);
+      };
+
+      // policy rollout (discrete time)
+      trajectory[i].RolloutDiscrete(feedback_policy, task, model,
+                            data[ThreadPool::WorkerId()].get(), state.data(),
+                            time, mocap.data(), horizon);
+    });
   }
+  pool.WaitCount(count_before + num_trajectory);
+
   pool.ResetCount();
 }
 

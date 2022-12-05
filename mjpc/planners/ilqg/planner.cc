@@ -153,7 +153,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // copy nominal policy
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     candidate_policy[0].CopyFrom(policy, horizon);
     candidate_policy[0].representation = policy.representation;
   }
@@ -313,7 +313,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     // improvement
     if (c_best < c_prev) {
       policy.CopyFrom(candidate_policy[0], horizon);

@@ -148,6 +148,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // nominal rollout
   auto nominal_start = std::chrono::steady_clock::now();
   this->NominalTrajectory(horizon);
+  if (trajectory[0].failure) {
+    std::cerr << "Nominal trajectory diverged.\n";
+  }
   double c_prev = trajectory[0].total_return;
 
   candidate_policy[0].trajectory = trajectory[0];
@@ -205,8 +208,8 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     auto rollouts_start = std::chrono::steady_clock::now();
 
     // copy policy
-    for (int i = 1; i < num_trajectory; i++) {
-      candidate_policy[i].CopyFrom(candidate_policy[0], horizon);
+    for (int j = 1; j < num_trajectory; j++) {
+      candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
     }
 
     // improvement step sizes (log scaling)
@@ -220,7 +223,15 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // ----- evaluate rollouts ------ //
     winner = num_trajectory - 1;
     c_best = c_prev;
+    int failed = 0;
+    if (trajectory[num_trajectory - 1].failure) {
+      failed++;
+    }
     for (int j = num_trajectory - 2; j >= 0; j--) {
+      if (trajectory[j].failure) {
+        failed++;
+        continue;
+      }
       // compute cost
       double c_sample = trajectory[j].total_return;
 
@@ -229,6 +240,10 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         c_best = c_sample;
         winner = j;
       }
+    }
+    if (failed) {
+      std::cerr << "iLQG: " << failed << " out of " << num_trajectory
+                << " rollouts failed.\n";
     }
 
     // update nominal with winner

@@ -551,18 +551,19 @@ int NumAvailableHardwareThreads(void) {
 }
 #endif
 
-// check mjData for warnings, return 1 if any warnings
-int CheckWarnings(mjData* data) {
-  for (int i = 0; i < mjNWARNING - 1; i++) {
+// check mjData for warnings, return true if any warnings
+bool CheckWarnings(mjData* data) {
+  bool warnings_found = false;
+  for (int i = 0; i < mjNWARNING; i++) {
     if (data->warning[i].number > 0) {
       // reset
       data->warning[i].number = 0;
 
       // return failure
-      return 1;
+      warnings_found = true;
     }
   }
-  return 0;
+  return warnings_found;
 }
 
 // compute vector with log-based scaling between min and max values

@@ -34,6 +34,7 @@ void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
   this->dim_state = dim_state;
   this->dim_action = dim_action;
   this->dim_feature = dim_residual;
+  this->failure = false;
 }
 
 // allocate memory
@@ -72,6 +73,7 @@ void Trajectory::Reset(int T) {
   std::fill(costs.begin(), costs.begin() + T, 0.0);
   std::fill(residual.begin(), residual.begin() + dim_feature * T, 0.0);
   total_return = 0.0;
+  failure = false;
 
   // traces
   std::fill(trace.begin(), trace.begin() + 3 * T, 0.0);
@@ -83,6 +85,7 @@ void Trajectory::Rollout(
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
     double time, const double* mocap, int steps) {
+  failure = false;
   // horizon
   horizon = steps;
 
@@ -117,7 +120,7 @@ void Trajectory::Rollout(
   if (tr) mju_copy(trace.data(), tr, 3);
 
   // check for step warnings
-  if (CheckWarnings(data)) {
+  if ((failure |= CheckWarnings(data))) {
     total_return = kMaxReturnValue;
     std::cerr << "Rollout divergence at step\n";
     return;
@@ -150,7 +153,7 @@ void Trajectory::Rollout(
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
 
     // check for step warnings
-    if (CheckWarnings(data)) {
+    if ((failure |= CheckWarnings(data))) {
       // this->Reset(horizon);
       // mj_resetData(model, data);
       total_return = kMaxReturnValue;
@@ -189,7 +192,7 @@ void Trajectory::Rollout(
   if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
 
   // check for step warnings
-  if (CheckWarnings(data)) {
+  if ((failure |= CheckWarnings(data))) {
     // this->Reset(horizon);
     // mj_resetData(model, data);
     total_return = kMaxReturnValue;

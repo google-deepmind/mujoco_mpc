@@ -37,9 +37,9 @@
   </worldbody>
 
   <sensor>
-    <user name="In Hand" needstage="acc" dim="3" user="1 20 0 100 0.02 2"/>
-    <user name="Orientation" needstage="acc" dim="3" user="0 3 0 10" />
-    <user name="Cube Vel." needstage="acc" dim="3" user="0 10 0 20" />
+    <user name="In Hand" dim="3" user="1 20 0 100 0.02 2"/>
+    <user name="Orientation" dim="3" user="0 3 0 10" />
+    <user name="Cube Vel." dim="3" user="0 10 0 20" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>

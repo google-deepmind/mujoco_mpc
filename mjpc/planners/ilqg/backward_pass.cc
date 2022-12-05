@@ -136,7 +136,7 @@ int iLQGBackwardPass::RiccatiStep(
     mju_copy(Qxu_reg, Qxut, n * m);
     mju_copy(Quu_reg, Quut, m * m);
   }
-  
+
   if (mu) {
     if (reg_type == kControlRegularization) {
       for (i = 0; i < m; i++) {
@@ -192,7 +192,7 @@ int iLQGBackwardPass::RiccatiStep(
         Kt[j + n * boxqp.index[i]] = -tmp2[j * mFree + i];
       }
     }
-    
+
     // dut - solution to QP
     mju_copy(dut, boxqp.res.data(), m);
   } else {

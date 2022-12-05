@@ -65,6 +65,7 @@ class Trajectory {
   std::vector<double> costs;     // horizon
   std::vector<double> trace;     // (horizon   x 3)
   double total_return;           // (1)
+  bool failure;                  // true if last rollout had a warning
 
  private:
   // calculates total_return and costs

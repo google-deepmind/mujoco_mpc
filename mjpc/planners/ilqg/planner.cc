@@ -135,7 +135,7 @@ void iLQGPlanner::SetState(State& state) {
 // optimize nominal policy using iLQG
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ResizeMjData(model, pool.NumThreads());
-  
+
   // timers
   double nominal_time = 0.0;
   double model_derivative_time = 0.0;
@@ -157,6 +157,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // rollout nominal policy
   this->NominalTrajectory(horizon);
+  if (trajectory[0].failure) {
+    std::cerr << "Nominal trajectory diverged.\n";
+  }
 
   // set previous best cost
   double c_prev = trajectory[0].total_return;
@@ -211,7 +214,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // ----- backward pass ----- //
     // start timer
     auto backward_pass_start = std::chrono::steady_clock::now();
-  
+
     // compute feedback gains and action improvement via Riccati
     backward_pass.Riccati(
         &candidate_policy[0], &model_derivative, &cost_derivative,
@@ -229,9 +232,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     auto rollouts_start = std::chrono::steady_clock::now();
 
     // copy policy
-    for (int i = 1; i < num_trajectory; i++) {
-      candidate_policy[i].CopyFrom(candidate_policy[0], horizon);
-      candidate_policy[i].representation = candidate_policy[0].representation;
+    for (int j = 1; j < num_trajectory; j++) {
+      candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
+      candidate_policy[j].representation = candidate_policy[0].representation;
     }
 
     // improvement step sizes (log scaling)
@@ -244,7 +247,15 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // ----- evaluate rollouts ------ //
     winner = num_trajectory - 1;
+    int failed = 0;
+    if (trajectory[num_trajectory - 1].failure) {
+      failed++;
+    }
     for (int j = num_trajectory - 2; j >= 0; j--) {
+      if (trajectory[j].failure) {
+        failed++;
+        continue;
+      }
       // compute cost
       double c_sample = trajectory[j].total_return;
 
@@ -253,6 +264,10 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         c_best = c_sample;
         winner = j;
       }
+    }
+    if (failed) {
+      std::cerr << "iLQG: " << failed << " out of " << num_trajectory
+                << " rollouts failed.\n";
     }
 
     // update nominal with winner

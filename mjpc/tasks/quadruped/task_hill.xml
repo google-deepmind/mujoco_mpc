@@ -31,10 +31,10 @@
   <include file="assets/fractal.xml" />
 
   <sensor>
-    <user name="Stand" needstage="acc" dim="1" user="0 1.0 0.0 10.0" />
-    <user name="Body Pos." needstage="acc" dim="3" user="0 5.0 0.0 100.0" />
-    <user name="Body Rot." needstage="acc" dim="9" user="0 1.0 0.0 10.0" />
-    <user name="Control" needstage="acc" dim="12" user="0 0.25 0.0 1.0" />
+    <user name="Stand" dim="1" user="0 1.0 0.0 10.0" />
+    <user name="Body Pos." dim="3" user="0 5.0 0.0 100.0" />
+    <user name="Body Rot." dim="9" user="0 1.0 0.0 10.0" />
+    <user name="Control" dim="12" user="0 0.25 0.0 1.0" />
     <framepos      name="trace" objtype="body" objname="trunk"/>
     <framepos      name="position" objtype="body" objname="trunk"/>
     <framequat     name="orientation" objtype="xbody" objname="trunk"/>

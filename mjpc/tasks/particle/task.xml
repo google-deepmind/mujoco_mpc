@@ -17,9 +17,9 @@
   </custom>
 
   <sensor>
-    <user name="Position" needstage="acc" dim="2" user="0 5.0 0.0 10.0" />
-    <user name="Velocity" needstage="acc" dim="2" user="0 0.1 0.0 1.0" />
-    <user name="Control" needstage="acc" dim="2" user="0 0.1 0.0 1.0" />
+    <user name="Position" dim="2" user="0 5.0 0.0 10.0" />
+    <user name="Velocity" dim="2" user="0 0.1 0.0 1.0" />
+    <user name="Control" dim="2" user="0 0.1 0.0 1.0" />
     <framepos name="trace" objtype="site" objname="tip"/>
     <framepos name="position" objtype="site" objname="tip"/>
     <framelinvel name="velocity" objtype="site" objname="tip"/>

@@ -134,8 +134,8 @@ void PlotData(mjvFigure* fig, double* bounds, const double* xs,
 // number of available hardware threads
 int NumAvailableHardwareThreads();
 
-// check mjData for warnings, return 1 if any warnings
-int CheckWarnings(mjData* data);
+// check mjData for warnings, return true if any warnings
+bool CheckWarnings(mjData* data);
 
 // compute vector with log-based scaling between min and max values
 void LogScale(double* values, double max_value, double min_value, int steps);

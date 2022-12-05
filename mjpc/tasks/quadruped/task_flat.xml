@@ -32,10 +32,10 @@
   <include file="a1.xml" />
 
   <sensor>
-    <user name="Upright" needstage="acc" dim="3" user="0 3 0 5" />
-    <user name="Velocity" needstage="acc" dim="2" user="7 1 0 5 .2 4" />
-    <user name="Heading" needstage="acc" dim="2" user="0 1 0 5" />
-    <user name="Control" needstage="acc" dim="12" user="0 0.2 0.0 1.0" />
+    <user name="Upright" dim="3" user="0 3 0 5" />
+    <user name="Velocity" dim="2" user="7 1 0 5 .2 4" />
+    <user name="Heading" dim="2" user="0 1 0 5" />
+    <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
     <framepos      name="trace" objtype="body" objname="trunk"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>

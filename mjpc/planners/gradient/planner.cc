@@ -173,7 +173,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // previous best cost
   double c_prev = trajectory[0].total_return;
-  
+
   // stop timer
   nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
                      std::chrono::steady_clock::now() - nominal_start)
@@ -355,7 +355,7 @@ void GradientPlanner::ActionFromPolicy(double* action, const double* state,
 
 // update policy for current time
 void GradientPlanner::ResamplePolicy(int horizon) {
-  // dimensions 
+  // dimensions
   int num_parameters = candidate_policy[0].num_parameters;
   int num_spline_points = candidate_policy[0].num_spline_points;
 

@@ -138,7 +138,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // for the duration of this function.
   int num_trajectories = num_trajectories_;
   ResizeMjData(model, pool.NumThreads());
-  
+
   // timers
   double nominal_time = 0.0;
   double rollouts_time = 0.0;
@@ -149,7 +149,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto nominal_start = std::chrono::steady_clock::now();
 
   // copy nominal policy
-  policy.num_parameters = model->nu * policy.num_spline_points; // set 
+  policy.num_parameters = model->nu * policy.num_spline_points; // set
   candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
 
   // resample policy
@@ -234,7 +234,7 @@ void SamplingPlanner::ActionFromPolicy(double* action, const double* state,
 
 // update policy via resampling
 void SamplingPlanner::ResamplePolicy(int horizon) {
-  // dimensions 
+  // dimensions
   int num_spline_points = candidate_policy[0].num_spline_points;
 
   // set time
@@ -265,7 +265,7 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
 
-  // dimensions 
+  // dimensions
   int num_spline_points = candidate_policy->num_spline_points;
   int num_parameters = candidate_policy->num_parameters;
 
@@ -279,7 +279,7 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   for (int k = 0; k < num_parameters; k++) {
     noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
   }
-    
+
   // copy policy
   candidate_policy[i].CopyFrom(candidate_policy[0], num_spline_points);
 
@@ -302,7 +302,7 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
 // compute candidate trajectories
 void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
                                ThreadPool& pool) {
-  // reset noise compute time 
+  // reset noise compute time
   noise_compute_time = 0.0;
 
   // random search

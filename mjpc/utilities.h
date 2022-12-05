@@ -150,6 +150,13 @@ inline T* DataAt(std::vector<T>& vec, typename std::vector<T>::size_type elem) {
   }
 }
 
+// increases the value of an atomic variable.
+// in C++20 atomic::operator+= is built-in for floating point numbers, but this
+// function works in C++11
+inline void IncrementAtomic(std::atomic<double>& v, double a) {
+  for (double t = v.load(); !v.compare_exchange_weak(t, t + a);) {}
+}
+
 // get a pointer to a specific element of a vector, or nullptr if out of bounds
 template <typename T>
 inline const T* DataAt(const std::vector<T>& vec,

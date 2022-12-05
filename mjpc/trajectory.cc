@@ -77,7 +77,7 @@ void Trajectory::Reset(int T) {
   std::fill(trace.begin(), trace.begin() + 3 * T, 0.0);
 }
 
-// simulate model forward in time with continuous time policy
+// simulate model forward in time
 void Trajectory::Rollout(
     std::function<void(double* action, const double* state, double time)>
         policy,
@@ -102,15 +102,15 @@ void Trajectory::Rollout(
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
+  // step1
+  mj_step1(model, data);
+
   // action from policy
   policy(actions.data(), states.data(), time);
   mju_copy(data->ctrl, actions.data(), model->nu);
 
   // initial residual
   task->Residuals(model, data, residual.data());
-
-  // step simulation
-  mj_step(model, data);
 
   // initial trace
   double* tr = SensorByName(model, data, "trace");
@@ -124,6 +124,9 @@ void Trajectory::Rollout(
   }
 
   for (int t = 1; t < horizon - 1; t++) {
+    // step2
+    mj_step2(model, data);
+
     // record state
     mju_copy(DataAt(states, t * dim_state), data->qpos, model->nq);
     mju_copy(DataAt(states, t * dim_state + model->nq), data->qvel, model->nv);
@@ -131,16 +134,16 @@ void Trajectory::Rollout(
              model->na);
     times[t] = data->time;
 
+    // step1
+    mj_step1(model, data);
+
     // set action
     policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
            data->time);
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
 
-     // residual
+    // residual
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
-
-    // step simulation
-    mj_step(model, data);
 
     // record trace
     tr = SensorByName(model, data, "trace");
@@ -153,6 +156,9 @@ void Trajectory::Rollout(
       return;
     }
   }
+
+  // final step2
+  mj_step2(model, data);
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -170,11 +176,11 @@ void Trajectory::Rollout(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
+  // final step2
+  mj_step1(model, data);
+
   // final residual
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
-
-  //  partial step
-  mj_step1(model, data);
 
   // final trace
   tr = SensorByName(model, data, "trace");
@@ -191,7 +197,7 @@ void Trajectory::Rollout(
   UpdateReturn(task);
 }
 
-// simulate model forward in time with discrete-time indexed policy
+// simulate model forward in time
 void Trajectory::RolloutDiscrete(
     std::function<void(double* action, const double* state, int index)>
         policy,
@@ -216,15 +222,15 @@ void Trajectory::RolloutDiscrete(
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
+  // step1
+  mj_step1(model, data);
+
   // action from policy
   policy(actions.data(), states.data(), 0);
   mju_copy(data->ctrl, actions.data(), model->nu);
 
   // initial residual
   task->Residuals(model, data, residual.data());
-
-  // step simulation
-  mj_step(model, data);
 
   // initial trace
   double* tr = SensorByName(model, data, "trace");
@@ -238,12 +244,18 @@ void Trajectory::RolloutDiscrete(
   }
 
   for (int t = 1; t < horizon - 1; t++) {
+    // step2
+    mj_step2(model, data);
+
     // record state
     mju_copy(DataAt(states, t * dim_state), data->qpos, model->nq);
     mju_copy(DataAt(states, t * dim_state + model->nq), data->qvel, model->nv);
     mju_copy(DataAt(states, t * dim_state + model->nq + model->nv), data->act,
              model->na);
     times[t] = data->time;
+
+    // step1
+    mj_step1(model, data);
 
     // set action
     policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
@@ -252,9 +264,6 @@ void Trajectory::RolloutDiscrete(
 
     // residual
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
-
-    // step simulation
-    mj_step(model, data);
 
     // record trace
     tr = SensorByName(model, data, "trace");
@@ -267,6 +276,9 @@ void Trajectory::RolloutDiscrete(
       return;
     }
   }
+
+  // final step2
+  mj_step2(model, data);
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -284,11 +296,13 @@ void Trajectory::RolloutDiscrete(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
+  // final step2
+  mj_step1(model, data);
+
   // final residual
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
-  mj_step1(model, data);
   tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
 

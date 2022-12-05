@@ -28,12 +28,13 @@ namespace mjpc {
 void Particle::Residual(const double* parameters, const mjModel* model,
                         const mjData* data, double* residual) {
   // ----- residual (0) ----- //
-  mju_copy(residual, data->qpos, model->nq);
-  residual[0] -= data->mocap_pos[0];
-  residual[1] -= data->mocap_pos[1];
+  double* position = SensorByName(model, data, "position");
+  double* goal = SensorByName(model, data, "goal");
+  mju_sub(residual, position, goal, model->nq);
 
   // ----- residual (1) ----- //
-  mju_copy(residual + 2, data->qvel, model->nv);
+  double* velocity = SensorByName(model, data, "velocity");
+  mju_copy(residual + 2, velocity, model->nv);
 
   // ----- residual (2) ----- //
   mju_copy(residual + 4, data->ctrl, model->nu);

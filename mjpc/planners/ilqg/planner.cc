@@ -486,13 +486,35 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
                    improvement_step[i], model->nu * horizon);
 
         // policy
-        auto feedback_policy = [&candidate_policy = candidate_policy, i](
+        auto feedback_policy = [&candidate_policy = candidate_policy, model, i](
                                    double* action, const double* state,
-                                   double time) {
-          candidate_policy[i].Action(action, state, time);
+                                   int index) {
+          // dimensions
+          int dim_state = model->nq + model->nv + model->na;
+          int dim_state_derivative = 2 * model->nv + model->na;
+          int dim_action = model->nu;
+
+          // set improved action
+          mju_copy(action, DataAt(candidate_policy[i].trajectory.actions, index * dim_action), dim_action);
+
+          // ----- feedback ----- // 
+          
+          // difference between current state and nominal state
+          StateDiff(model, candidate_policy[i].state_scratch.data(), DataAt(candidate_policy[i].trajectory.states, index * dim_state), state, 1.0);
+
+          // compute feedback term
+          mju_mulMatVec(candidate_policy[i].action_scratch.data(), DataAt(candidate_policy[i].feedback_gain, index * dim_action * dim_state_derivative),
+                candidate_policy[i].state_scratch.data(), dim_action, dim_state_derivative);
+          
+          // add feedback
+          mju_addTo(action, candidate_policy[i].action_scratch.data(), dim_action);
+  
+          // clamp controls
+          Clamp(action, model->actuator_ctrlrange, dim_action);
         };
-        // policy rollout
-        trajectory[i].Rollout(feedback_policy, task, model,
+
+        // policy rollout (discrete time)
+        trajectory[i].RolloutDiscrete(feedback_policy, task, model,
                               data[ThreadPool::WorkerId()].get(), state.data(),
                               time, mocap.data(), horizon);
       });

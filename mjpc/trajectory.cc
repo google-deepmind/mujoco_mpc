@@ -77,7 +77,7 @@ void Trajectory::Reset(int T) {
   std::fill(trace.begin(), trace.begin() + 3 * T, 0.0);
 }
 
-// simulate model forward in time
+// simulate model forward in time with continuous time policy
 void Trajectory::Rollout(
     std::function<void(double* action, const double* state, double time)>
         policy,
@@ -102,9 +102,6 @@ void Trajectory::Rollout(
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
-  // step1
-  mj_step1(model, data);
-
   // action from policy
   policy(actions.data(), states.data(), time);
   mju_copy(data->ctrl, actions.data(), model->nu);
@@ -116,6 +113,9 @@ void Trajectory::Rollout(
   double* tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(trace.data(), tr, 3);
 
+   // step simulation
+  mj_step(model, data);
+
   // check for step warnings
   if (CheckWarnings(data)) {
     total_return = kMaxReturnValue;
@@ -124,18 +124,12 @@ void Trajectory::Rollout(
   }
 
   for (int t = 1; t < horizon - 1; t++) {
-    // step2
-    mj_step2(model, data);
-
     // record state
     mju_copy(DataAt(states, t * dim_state), data->qpos, model->nq);
     mju_copy(DataAt(states, t * dim_state + model->nq), data->qvel, model->nv);
     mju_copy(DataAt(states, t * dim_state + model->nq + model->nv), data->act,
              model->na);
     times[t] = data->time;
-
-    // step1
-    mj_step1(model, data);
 
     // set action
     policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
@@ -149,18 +143,16 @@ void Trajectory::Rollout(
     tr = SensorByName(model, data, "trace");
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
 
+    // step simulation
+    mj_step(model, data);
+
     // check for step warnings
     if (CheckWarnings(data)) {
-      // this->Reset(horizon);
-      // mj_resetData(model, data);
       total_return = kMaxReturnValue;
       std::cerr << "Rollout divergence\n";
       return;
     }
   }
-
-  // final step2
-  mj_step2(model, data);
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -178,9 +170,6 @@ void Trajectory::Rollout(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
-  // final step2
-  mj_step1(model, data);
-
   // final residual
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
@@ -190,8 +179,6 @@ void Trajectory::Rollout(
 
   // check for step warnings
   if (CheckWarnings(data)) {
-    // this->Reset(horizon);
-    // mj_resetData(model, data);
     total_return = kMaxReturnValue;
     std::cerr << "Rollout divergence\n";
     return;
@@ -201,7 +188,7 @@ void Trajectory::Rollout(
   UpdateReturn(task);
 }
 
-// simulate model forward in time
+// simulate model forward in time with discrete-time indexed policy
 void Trajectory::RolloutDiscrete(
     std::function<void(double* action, const double* state, int index)>
         policy,

@@ -161,11 +161,6 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
       model_->opt.timestep = timestep_;
       model_->opt.integrator = integrator_;
 
-      // make contacts differentiable
-      // for (int i = 0; i < model_->ngeom; i++) {
-      //   model_->geom_solimp[mjNIMP * i] = 0.0;
-      // }
-
       // set planning steps
       steps_ =
           mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
@@ -187,20 +182,6 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
 
           // counter
           count_ += 1;
-
-          if (0) {
-            const Trajectory* traj = ActivePlanner().BestTrajectory();
-            printf("horizon: %i\n", traj->horizon);
-            printf("traces: \n");
-            mju_printMat(traj->trace.data(), traj->horizon, 3);
-            printf("states: \n");
-            mju_printMat(traj->states.data(), traj->horizon, model_->nq + model_->nv + model_->na);
-            printf("actions: \n");
-            mju_printMat(traj->actions.data(), traj->horizon, model_->nu);
-            printf("residual: \n");
-            mju_printMat(traj->residual.data(), traj->horizon, traj->dim_feature);
-            printf("\n");
-          }
         } else {
           // rollout nominal policy
           ActivePlanner().NominalTrajectory(steps_);

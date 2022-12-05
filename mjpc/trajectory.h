@@ -46,14 +46,14 @@ class Trajectory {
   // reset memory to zeros
   void Reset(int T);
 
-  // simulate model forward in time (continuous, i.e., mj_step1 and mj_step2)
+  // simulate model forward in time with continuous-time indexed policy
   void Rollout(
       std::function<void(double* action, const double* state, double time)>
           policy,
       const Task* task, const mjModel* model, mjData* data, const double* state,
       double time, const double* mocap, int steps);
 
-  // simulate model forward in time (continuous, i.e., mj_step1 and mj_step2)
+  // simulate model forward in time with discrete-time indexed policy
   void RolloutDiscrete(
       std::function<void(double* action, const double* state, int index)>
           policy,

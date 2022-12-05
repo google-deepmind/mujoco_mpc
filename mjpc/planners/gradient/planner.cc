@@ -164,7 +164,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy nominal policy
   policy.num_parameters = model->nu * policy.num_spline_points;
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
   }
 
@@ -317,7 +317,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.CopyParametersFrom(candidate_policy[winner].parameters, candidate_policy[winner].times);
   }
 

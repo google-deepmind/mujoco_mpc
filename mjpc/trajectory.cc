@@ -79,7 +79,7 @@ void Trajectory::Reset(int T) {
   std::fill(trace.begin(), trace.begin() + 3 * T, 0.0);
 }
 
-// simulate model forward in time
+// simulate model forward in time with continuous-time indexed policy
 void Trajectory::Rollout(
     std::function<void(double* action, const double* state, double time)>
         policy,
@@ -200,7 +200,7 @@ void Trajectory::Rollout(
   UpdateReturn(task);
 }
 
-// simulate model forward in time
+// simulate model forward in time with discrete-time indexed policy
 void Trajectory::RolloutDiscrete(
     std::function<void(double* action, const double* state, int index)>
         policy,

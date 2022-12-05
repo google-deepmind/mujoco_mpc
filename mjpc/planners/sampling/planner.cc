@@ -149,7 +149,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // copy nominal policy
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.num_parameters = model->nu * policy.num_spline_points; // set
     candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
   }
@@ -194,7 +194,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // copy best candidate policy
   {
-    std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.CopyParametersFrom(candidate_policy[winner].parameters,
                     candidate_policy[winner].times);
   }

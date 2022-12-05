@@ -109,12 +109,12 @@ void Trajectory::Rollout(
   // initial residual
   task->Residuals(model, data, residual.data());
 
+  // step simulation
+  mj_step(model, data);
+
   // initial trace
   double* tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(trace.data(), tr, 3);
-
-   // step simulation
-  mj_step(model, data);
 
   // check for step warnings
   if (CheckWarnings(data)) {
@@ -136,15 +136,15 @@ void Trajectory::Rollout(
            data->time);
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
 
-    // residual
+     // residual
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
+
+    // step simulation
+    mj_step(model, data);
 
     // record trace
     tr = SensorByName(model, data, "trace");
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
-
-    // step simulation
-    mj_step(model, data);
 
     // check for step warnings
     if (CheckWarnings(data)) {
@@ -172,6 +172,9 @@ void Trajectory::Rollout(
 
   // final residual
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
+
+  //  partial step
+  mj_step1(model, data);
 
   // final trace
   tr = SensorByName(model, data, "trace");
@@ -220,12 +223,12 @@ void Trajectory::RolloutDiscrete(
   // initial residual
   task->Residuals(model, data, residual.data());
 
+  // step simulation
+  mj_step(model, data);
+
   // initial trace
   double* tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(trace.data(), tr, 3);
-
-  // step simulation
-  mj_step(model, data);
 
   // check for step warnings
   if (CheckWarnings(data)) {
@@ -250,12 +253,12 @@ void Trajectory::RolloutDiscrete(
     // residual
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
 
+    // step simulation
+    mj_step(model, data);
+
     // record trace
     tr = SensorByName(model, data, "trace");
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
-
-    // step simulation
-    mj_step(model, data);
 
     // check for step warnings
     if (CheckWarnings(data)) {
@@ -285,6 +288,7 @@ void Trajectory::RolloutDiscrete(
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
+  mj_step1(model, data);
   tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
 

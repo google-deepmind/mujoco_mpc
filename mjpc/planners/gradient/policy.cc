@@ -30,11 +30,6 @@ void GradientPolicy::Allocate(const mjModel* model, const Task& task,
   // model
   this->model = model;
 
-  // reference trajectory
-  trajectory.Initialize(model->nq + model->nv + model->na, model->nu,
-                        task.num_residual, kMaxTrajectoryHorizon);
-  trajectory.Allocate(kMaxTrajectoryHorizon);
-
   // action improvement
   k.resize(model->nu * kMaxTrajectoryHorizon);
 
@@ -59,7 +54,6 @@ void GradientPolicy::Allocate(const mjModel* model, const Task& task,
 
 // reset memory to zeros
 void GradientPolicy::Reset(int horizon) {
-  trajectory.Reset(horizon);
   std::fill(k.begin(), k.begin() + horizon * model->nu, 0.0);
 
   // parameters
@@ -98,9 +92,6 @@ void GradientPolicy::Action(double* action, const double* state,
 
 // copy policy
 void GradientPolicy::CopyFrom(const GradientPolicy& policy, int horizon) {
-  // reference
-  trajectory = policy.trajectory;
-
   // action improvement
   mju_copy(k.data(), policy.k.data(), horizon * model->nu);
 

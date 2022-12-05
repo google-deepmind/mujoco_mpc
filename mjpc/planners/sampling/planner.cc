@@ -138,24 +138,36 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // for the duration of this function.
   int num_trajectories = num_trajectories_;
   ResizeMjData(model, pool.NumThreads());
+  
   // timers
   double nominal_time = 0.0;
   double rollouts_time = 0.0;
   double policy_update_time = 0.0;
 
-  // nominal
+  // ----- nominal policy ----- //
+  // start timer
   auto nominal_start = std::chrono::steady_clock::now();
-  this->UpdatePolicy(horizon);
+
+  // copy nominal policy
+  policy.num_parameters = model->nu * policy.num_spline_points; // set 
+  candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
+
+  // resample policy
+  this->ResamplePolicy(horizon);
+
+  // stop timer
   nominal_time += std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::steady_clock::now() - nominal_start)
                       .count();
 
-  // sample policies
+  // ----- rollout noisy policies ----- //
+  // start timer
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // sample random policies and rollout
   double best_return = trajectories[winner].total_return;
 
+  // simulate noisy policies
   this->Rollouts(num_trajectories, horizon, pool);
 
   // ----- compare rollouts ----- //
@@ -168,17 +180,24 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       winner = i;
     }
   }
+
+  // stop timer
   rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
                        std::chrono::steady_clock::now() - rollouts_start)
                        .count();
 
   // ----- update policy ----- //
+  // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
+
+  // copy best candidate policy
   {
     std::unique_lock<std::shared_mutex> lock(mtx_);
     policy.CopyParametersFrom(candidate_policy[winner].parameters,
                     candidate_policy[winner].times);
   }
+
+  // stop timer
   policy_update_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - policy_update_start)
@@ -196,18 +215,14 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 // compute trajectory using nominal policy
 void SamplingPlanner::NominalTrajectory(int horizon) {
   // set policy
-  auto nominal_policy = [&policy = policy, &mtx = mtx_](
+  auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {
-    const std::shared_lock<std::shared_mutex> lock(mtx);
-    policy.Action(action, state, time);
+    cp.Action(action, state, time);
   };
 
   // rollout nominal policy
   trajectories[0].Rollout(nominal_policy, task, model, data_[0].get(),
                           state.data(), time, mocap.data(), horizon);
-
-  // nominal -> winner
-  winner = 0;
 }
 
 // set action from policy
@@ -218,34 +233,107 @@ void SamplingPlanner::ActionFromPolicy(double* action, const double* state,
 }
 
 // update policy via resampling
-void SamplingPlanner::UpdatePolicy(int horizon) {
-  const std::unique_lock<std::shared_mutex> lock(mtx_);
-  // set number of parameters
-  policy.num_parameters = model->nu * policy.num_spline_points;
+void SamplingPlanner::ResamplePolicy(int horizon) {
+  // dimensions 
+  int num_spline_points = candidate_policy[0].num_spline_points;
 
+  // set time
   double nominal_time = time;
   double time_shift = mju_max(
-      (horizon - 1) * model->opt.timestep / (policy.num_spline_points - 1),
+      (horizon - 1) * model->opt.timestep / (num_spline_points - 1),
       1.0e-5);
 
-  // set number of parameters
-  policy.num_parameters = model->nu * policy.num_spline_points;
-
   // get spline points
-  for (int t = 0; t < policy.num_spline_points; t++) {
+  for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
-    policy.Action(DataAt(parameters_scratch, t * model->nu), nullptr,
+    candidate_policy[0].Action(DataAt(parameters_scratch, t * model->nu), nullptr,
                   nominal_time);
     nominal_time += time_shift;
   }
 
   // copy policy parameters
-  policy.CopyParametersFrom(parameters_scratch, times_scratch);
+  candidate_policy[0].CopyParametersFrom(parameters_scratch, times_scratch);
 
   // time power transformation
-  PowerSequence(policy.times.data(), time_shift, policy.times[0],
-                policy.times[policy.num_spline_points - 1], timestep_power,
-                policy.num_spline_points);
+  PowerSequence(candidate_policy[0].times.data(), time_shift, candidate_policy[0].times[0],
+                candidate_policy[0].times[num_spline_points - 1], timestep_power,
+                num_spline_points);
+}
+
+// add random noise to nominal policy
+void SamplingPlanner::AddNoiseToPolicy(int i) {
+  // start timer
+  auto noise_start = std::chrono::steady_clock::now();
+
+  // dimensions 
+  int num_spline_points = candidate_policy->num_spline_points;
+  int num_parameters = candidate_policy->num_parameters;
+
+  // sampling token
+  absl::BitGen gen_;
+
+  // shift index
+  int shift = i * (model->nu * kMaxTrajectoryHorizon);
+
+  // sample noise
+  for (int k = 0; k < num_parameters; k++) {
+    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
+  }
+    
+  // copy policy
+  candidate_policy[i].CopyFrom(candidate_policy[0], num_spline_points);
+
+  // add noise
+  mju_addTo(candidate_policy[i].parameters.data(), DataAt(noise, shift),
+            num_parameters);
+
+  // clamp parameters
+  for (int t = 0; t < num_spline_points; t++) {
+    Clamp(DataAt(candidate_policy[i].parameters, t * model->nu),
+          model->actuator_ctrlrange, model->nu);
+  }
+
+  // end timer
+  noise_compute_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now() - noise_start)
+                            .count();
+}
+
+// compute candidate trajectories
+void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
+                               ThreadPool& pool) {
+  // reset noise compute time 
+  noise_compute_time = 0.0;
+
+  // random search
+  int count_before = pool.GetCount();
+  for (int i = 0; i < num_trajectories; i++) {
+    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                   &state = this->state, &time = this->time,
+                   &mocap = this->mocap, horizon, i]() {
+      // sample noise policy
+      if (i != 0) s.AddNoiseToPolicy(i);
+
+      // set policy representation
+      s.candidate_policy[i].representation = s.policy.representation;
+
+      // ----- rollout sample policy ----- //
+
+      // policy
+      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
+                                 double* action, const double* state,
+                                 double time) {
+        candidate_policy[i].Action(action, state, time);
+      };
+
+      // policy rollout
+      s.trajectories[i].Rollout(sample_policy_i, task, model,
+                                s.data_[ThreadPool::WorkerId()].get(),
+                                state.data(), time, mocap.data(), horizon);
+    });
+  }
+  pool.WaitCount(count_before + num_trajectories);
+  pool.ResetCount();
 }
 
 // return trajectory with best total return
@@ -366,109 +454,6 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   mju::strcpy_arr(fig_timer->linename[10], "Noise");
   mju::strcpy_arr(fig_timer->linename[1], "Rollout");
   mju::strcpy_arr(fig_timer->linename[9], "Policy Update");
-}
-
-// randomly sample policy (+)
-void SamplingPlanner::SamplePolicy(int i) {
-  // reset noise timer
-  if (i == 0) {
-    noise_compute_time = 0.0;
-  }
-
-  // start timer
-  auto noise_start = std::chrono::steady_clock::now();
-
-  // sampling token
-  absl::BitGen gen_;
-
-  // shift index
-  int shift = i * (model->nu * kMaxTrajectoryHorizon);
-
-  if (i > 0) {
-    if (noise_type == SamplingNoiseType::kGaussian) {
-      for (int k = 0; k < policy.num_parameters; k++) {
-        noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
-      }
-    } else if (noise_type == SamplingNoiseType::kUniform) {
-      double unit_uni_std = std::sqrt(12);
-      for (int t = 0; t < policy.num_spline_points; t++) {
-        for (int j = 0; j < model->nu; j++) {
-          // lower bound
-          double lower_bound =
-              mju_max(policy.parameters[t * model->nu + j] -
-                          0.5 * noise_exploration * unit_uni_std,
-                      model->actuator_ctrlrange[2 * j]);
-          // upper bound
-          double upper_bound =
-              mju_min(policy.parameters[t * model->nu + j] +
-                          0.5 * noise_exploration * unit_uni_std,
-                      model->actuator_ctrlrange[2 * j + 1]);
-
-          // sample noise between bounds
-          noise[t * model->nu + j + shift] =
-              absl::Uniform<double>(gen_, lower_bound, upper_bound) -
-              policy.parameters[t * model->nu + j];
-        }
-      }
-    }
-  }
-
-  // copy policy
-  {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
-    candidate_policy[i].CopyFrom(policy, policy.num_spline_points);
-  }
-
-  if (i > 0) {
-    // add noise
-    mju_addTo(candidate_policy[i].parameters.data(), DataAt(noise, shift),
-              policy.num_parameters);
-
-    // Clamp
-    for (int t = 0; t < policy.num_spline_points; t++) {
-      Clamp(DataAt(candidate_policy[i].parameters, t * model->nu),
-            model->actuator_ctrlrange, model->nu);
-    }
-  }
-
-  // end timer
-  noise_compute_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - noise_start)
-                            .count();
-}
-
-// compute candidate trajectories
-void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
-                               ThreadPool& pool) {
-  // random search
-  int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectories; i++) {
-    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
-                   &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, i]() {
-      // sample policy parameters
-      s.SamplePolicy(i);
-
-      // set policy representation
-      s.candidate_policy[i].representation = s.policy.representation;
-
-      // ----- rollout sample policy ----- //
-
-      // policy
-      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                 double* action, const double* state,
-                                 double time) {
-        candidate_policy[i].Action(action, state, time);
-      };
-
-      // policy rollout
-      s.trajectories[i].Rollout(sample_policy_i, task, model,
-                                s.data_[ThreadPool::WorkerId()].get(),
-                                state.data(), time, mocap.data(), horizon);
-    });
-  }
-  pool.WaitCount(count_before + num_trajectories);
-  pool.ResetCount();
 }
 
 }  // namespace mjpc

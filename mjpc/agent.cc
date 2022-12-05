@@ -161,6 +161,11 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
       model_->opt.timestep = timestep_;
       model_->opt.integrator = integrator_;
 
+      // make contacts differentiable
+      // for (int i = 0; i < model_->ngeom; i++) {
+      //   model_->geom_solimp[mjNIMP * i] = 0.0;
+      // }
+      
       // set planning steps
       steps_ =
           mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);

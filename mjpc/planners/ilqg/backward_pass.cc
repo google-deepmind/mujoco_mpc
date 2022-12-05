@@ -37,7 +37,7 @@ void iLQGBackwardPass::Allocate(int dim_dstate, int dim_action, int T) {
   Quu.resize(dim_action * dim_action * (T - 1));
   Q_scratch.resize(
       10 *
-      (7 * dim_action + 2 * dim_action * dim_action + dim_dstate * dim_action +
+      (dim_dstate * dim_dstate + 7 * dim_action + 2 * dim_action * dim_action + dim_dstate * dim_action +
        3 * mju_max(dim_action, dim_dstate) * mju_max(dim_action, dim_dstate)));
 
   // regularization
@@ -71,11 +71,13 @@ int iLQGBackwardPass::RiccatiStep(
     const double *action, const double *action_limits, int reg_type,
     int limits) {
   int i, mmn = mju_max(m, n);
-  mjtNum *Quu_reg, *Qxu_reg, *tmp, *tmp2, *tmp3;
+  mjtNum *Vxx_reg, *Quu_reg, *Qxu_reg, *tmp, *tmp2, *tmp3;
 
   // allocate workspace variables
+  Vxx_reg = scratch;
+  scratch += n * n;
   Qxu_reg = scratch;
-  scratch += m * n;
+  scratch += n * m;
   Quu_reg = scratch;
   scratch += m * m;
   tmp = scratch;
@@ -111,14 +113,36 @@ int iLQGBackwardPass::RiccatiStep(
   mju_addTo(Quut, cuut, m * m);
 
   //----- regularize ----- //
-  mju_copy(Qxu_reg, Qxut, n * m);
-  mju_copy(Quu_reg, Quut, m * m);
+  if (reg_type == kValueRegularization) {
+    // regularize cost-to-go
+    mju_copy(Vxx_reg, Wxx, n * n);
+    for (int i = 0; i < n; i++) {
+      Vxx_reg[n * i + i] += mu;
+    }
+
+    // Qxu_reg = cxut + At'*Vxx_reg*Bt
+    //    tmp  = At'*Vxx_reg
+    mju_mulMatTMat(tmp, At, Vxx_reg, n, n, n);
+    //    Qxu_reg = cxut  + tmp*Bt;
+    mju_mulMatMat(Qxu_reg, tmp, Bt, n, n, m);
+    mju_addTo(Qxu_reg, cxut, n * m);
+
+    // Quu_reg = cuut + Bt'*Vxx_reg*Bt;
+    //    tmp = Bt'*Vxx_reg
+    mju_mulMatTMat(tmp2, Bt, Vxx_reg, n, m, n);
+    mju_mulMatMat(Quu_reg, tmp2, Bt, m, n, m);
+    mju_addTo(Quu_reg, cuut, m * m);
+  } else {
+    mju_copy(Qxu_reg, Qxut, n * m);
+    mju_copy(Quu_reg, Quut, m * m);
+  }
+  
   if (mu) {
-    if (reg_type == 0) {
+    if (reg_type == kControlRegularization) {
       for (i = 0; i < m; i++) {
         Quu_reg[i * m + i] += mu;  // Quu_reg = Quut + mu*eye(m)
       }
-    } else if (reg_type == 1) {
+    } else if (reg_type == kStateControlRegularization) {
       mju_mulMatTMat(tmp, At, Bt, n, n, m);
       mju_addToScl(Qxu_reg, tmp, mu,
                    m * n);  // Qxu_reg = Qxut + mu*At'*Bt
@@ -135,11 +159,13 @@ int iLQGBackwardPass::RiccatiStep(
     // set problem
     mju_scl(boxqp.H.data(), Quu_reg, 1.0, m * m);
     mju_scl(boxqp.g.data(), Qut, 1.0, m);
+
     for (int i = 0; i < m; i++) {
       boxqp.lower[i] = action_limits[2 * i] - action[i];
       boxqp.upper[i] = action_limits[2 * i + 1] - action[i];
     }
-    // solve QP
+
+    // solve constrained quadratic program
     int mFree = mju_boxQP(boxqp.res.data(), boxqp.R.data(), boxqp.index.data(),
                           boxqp.H.data(), boxqp.g.data(), m, boxqp.lower.data(),
                           boxqp.upper.data());
@@ -166,6 +192,7 @@ int iLQGBackwardPass::RiccatiStep(
         Kt[j + n * boxqp.index[i]] = -tmp2[j * mFree + i];
       }
     }
+    
     // dut - solution to QP
     mju_copy(dut, boxqp.res.data(), m);
   } else {

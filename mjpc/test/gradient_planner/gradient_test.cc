@@ -58,8 +58,6 @@ TEST(GradientTest, Gradient) {
 
   // // policy
   GradientPolicy p;
-  p.trajectory.Initialize(n, m, 0, T);
-  p.trajectory.Allocate(T);
   p.k.resize(m * T);
 
   // model derivatives

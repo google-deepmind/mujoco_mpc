@@ -86,6 +86,12 @@ void Trajectory::Rollout(
   // horizon
   horizon = steps;
 
+  // set mocap
+  for (int i = 0; i < model->nmocap; i++) {
+    mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
+    mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
+  }
+
   // set initial state
   mju_copy(states.data(), state, dim_state);
   mju_copy(data->qpos, state, model->nq);
@@ -95,12 +101,6 @@ void Trajectory::Rollout(
   // set initial time
   times[0] = time;
   data->time = time;
-
-  // set mocap
-  for (int i = 0; i < model->nmocap; i++) {
-    mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
-    mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
-  }
 
   // step1
   mj_step1(model, data);
@@ -176,7 +176,7 @@ void Trajectory::Rollout(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
-  // final step2
+  // final step1
   mj_step1(model, data);
 
   // final residual
@@ -206,6 +206,12 @@ void Trajectory::RolloutDiscrete(
   // horizon
   horizon = steps;
 
+  // set mocap
+  for (int i = 0; i < model->nmocap; i++) {
+    mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
+    mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
+  }
+
   // set initial state
   mju_copy(states.data(), state, dim_state);
   mju_copy(data->qpos, state, model->nq);
@@ -215,12 +221,6 @@ void Trajectory::RolloutDiscrete(
   // set initial time
   times[0] = time;
   data->time = time;
-
-  // set mocap
-  for (int i = 0; i < model->nmocap; i++) {
-    mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
-    mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
-  }
 
   // step1
   mj_step1(model, data);
@@ -236,16 +236,16 @@ void Trajectory::RolloutDiscrete(
   double* tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(trace.data(), tr, 3);
 
-  // check for step warnings
-  if (CheckWarnings(data)) {
-    total_return = kMaxReturnValue;
-    std::cerr << "Rollout divergence at step\n";
-    return;
-  }
-
   for (int t = 1; t < horizon - 1; t++) {
     // step2
     mj_step2(model, data);
+
+    // check for step warnings
+    if (CheckWarnings(data)) {
+      total_return = kMaxReturnValue;
+      std::cerr << "Rollout divergence at step\n";
+      return;
+    }
 
     // record state
     mju_copy(DataAt(states, t * dim_state), data->qpos, model->nq);
@@ -268,17 +268,17 @@ void Trajectory::RolloutDiscrete(
     // record trace
     tr = SensorByName(model, data, "trace");
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
-
-    // check for step warnings
-    if (CheckWarnings(data)) {
-      total_return = kMaxReturnValue;
-      std::cerr << "Rollout divergence\n";
-      return;
-    }
   }
 
   // final step2
   mj_step2(model, data);
+
+  // check for step warnings
+  if (CheckWarnings(data)) {
+    total_return = kMaxReturnValue;
+    std::cerr << "Rollout divergence\n";
+    return;
+  }
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -296,7 +296,7 @@ void Trajectory::RolloutDiscrete(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
-  // final step2
+  // final step1
   mj_step1(model, data);
 
   // final residual
@@ -305,13 +305,6 @@ void Trajectory::RolloutDiscrete(
   // final trace
   tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
-
-  // check for step warnings
-  if (CheckWarnings(data)) {
-    total_return = kMaxReturnValue;
-    std::cerr << "Rollout divergence\n";
-    return;
-  }
 
   // compute return
   UpdateReturn(task);

@@ -18,6 +18,9 @@ target_link_libraries(agent_test load gmock)
 test(cost_derivatives_test)
 target_link_libraries(cost_derivatives_test finite_difference gmock)
 
+test(norm_test)
+target_link_libraries(norm_test finite_difference gmock)
+
 test(rollout_test)
 target_link_libraries(rollout_test load gmock)
 

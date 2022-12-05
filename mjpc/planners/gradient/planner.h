@@ -67,8 +67,11 @@ class GradientPlanner : public Planner {
   void ActionFromPolicy(double* action, const double* state,
                         double time) override;
 
-  // update policy for current time
-  void UpdatePolicy(int horizon);
+  // resample nominal policy for current time
+  void ResamplePolicy(int horizon);
+
+  // compute candidate trajectories
+  void Rollouts(int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -82,9 +85,6 @@ class GradientPlanner : public Planner {
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
              int planning) override;
-
-  // compute candidate trajectories
-  void Rollouts(int horizon, ThreadPool& pool);
 
   // ----- members ----- //
   mjModel* model;

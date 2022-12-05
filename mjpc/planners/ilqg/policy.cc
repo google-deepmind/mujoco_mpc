@@ -138,7 +138,6 @@ void iLQGPolicy::Action(double* action, const double* state,
                        dim_action * dim_state_derivative,
                        trajectory.horizon - 1);
   }
-  // ----- policy ----- //
 
   // add feedback
   StateDiff(model, state_scratch.data(), state_interp.data(), state, 1.0);
@@ -162,8 +161,6 @@ void iLQGPolicy::CopyFrom(const iLQGPolicy& policy, int horizon) {
   // action improvement
   mju_copy(action_improvement.data(), policy.action_improvement.data(),
            horizon * model->nu);
-
-  representation = policy.representation;
 }
 
 }  // namespace mjpc

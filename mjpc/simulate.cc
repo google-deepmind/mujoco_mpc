@@ -479,7 +479,7 @@ void infotext(mj::Simulate* sim,
   solerr = mju_log10(mju_max(mjMINVAL, solerr));
 
   // prepare info text
-  mju::strcpy_arr(title, "Cost\nDoFs\nControls\nTime\nMemory");
+  mju::strcpy_arr(title, "Objective\nDoFs\nControls\nTime\nMemory");
   mju::sprintf_arr(content,
                    "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
                    sim->agent.ActivePlanner().BestTrajectory()->total_return,

@@ -52,7 +52,6 @@ class GradientPolicy : public Policy {
   // ----- members ----- //
   const mjModel* model;
 
-  Trajectory trajectory;  // reference trajectory
   std::vector<double> k;  // action improvement
 
   std::vector<double> parameters;

@@ -54,6 +54,7 @@ void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
                                  dim_action),
                          model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
+  settings.regularization_type = GetNumberOrDefault(settings.regularization_type, model, "ilqg_regularization_type");
 }
 
 // allocate memory
@@ -134,6 +135,7 @@ void iLQGPlanner::SetState(State& state) {
 // optimize nominal policy using iLQG
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ResizeMjData(model, pool.NumThreads());
+
   // timers
   double nominal_time = 0.0;
   double model_derivative_time = 0.0;
@@ -145,37 +147,56 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // maximum number of trajectories in linesearch
   num_trajectory = mju_min(num_trajectory, kMaxTrajectory);
 
-  // nominal rollout
+  // ----- nominal rollout ----- //
+  // start timer
   auto nominal_start = std::chrono::steady_clock::now();
+
+  // copy nominal policy
+  candidate_policy[0].CopyFrom(policy, horizon);
+  candidate_policy[0].representation = policy.representation;
+
+  // rollout nominal policy
   this->NominalTrajectory(horizon);
   if (trajectory[0].failure) {
     std::cerr << "Nominal trajectory diverged.\n";
   }
+
+  // set previous best cost
   double c_prev = trajectory[0].total_return;
 
+  // set candidate policy nominal trajectory
   candidate_policy[0].trajectory = trajectory[0];
-  candidate_policy[0].representation = policy.representation;
-  nominal_time += std::chrono::duration_cast<std::chrono::microseconds>(
+
+  // end timer
+  nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::steady_clock::now() - nominal_start)
                       .count();
 
   // rollouts
   double c_best = c_prev;
   for (int i = 0; i < settings.max_rollout; i++) {
-    // model derivatives
+    // ----- model derivatives ----- //
+    // start timer
     auto model_derivative_start = std::chrono::steady_clock::now();
+
+    // compute model and sensor Jacobians
     model_derivative.Compute(
         model, data_, candidate_policy[0].trajectory.states.data(),
         candidate_policy[0].trajectory.actions.data(), dim_state,
         dim_state_derivative, dim_action, dim_sensor, horizon,
         settings.fd_tolerance, settings.fd_mode, pool);
+
+    // stop timer
     model_derivative_time +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - model_derivative_start)
             .count();
 
-    // cost derivatives
+    // ----- cost derivatives ----- //
+    // start timer
     auto cost_derivative_start = std::chrono::steady_clock::now();
+
+    // cost derivatives
     cost_derivative.Compute(
         candidate_policy[0].trajectory.residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
@@ -183,22 +204,25 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         task->num_residual, task->dim_norm_residual.data(), task->num_norms,
         task->weight.data(), task->norm.data(), task->norm_parameters.data(),
         task->num_norm_parameters.data(), task->risk, horizon, pool);
+
+    // end timer
     cost_derivative_time +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - cost_derivative_start)
             .count();
 
-    // backward pass
+    // ----- backward pass ----- //
+    // start timer
     auto backward_pass_start = std::chrono::steady_clock::now();
-    {
-      const std::shared_lock<std::shared_mutex> lock(mtx_);
-      candidate_policy[0].trajectory = policy.trajectory;
-    }
+
+    // compute feedback gains and action improvement via Riccati
     backward_pass.Riccati(
         &candidate_policy[0], &model_derivative, &cost_derivative,
         dim_state_derivative, dim_action, horizon, backward_pass.regularization,
         boxqp, candidate_policy[0].trajectory.actions.data(),
         model->actuator_ctrlrange, settings);
+
+    // end timer
     backward_pass_time +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - backward_pass_start)
@@ -210,6 +234,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // copy policy
     for (int j = 1; j < num_trajectory; j++) {
       candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
+      candidate_policy[j].representation = candidate_policy[0].representation;
     }
 
     // improvement step sizes (log scaling)
@@ -222,7 +247,6 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // ----- evaluate rollouts ------ //
     winner = num_trajectory - 1;
-    c_best = c_prev;
     int failed = 0;
     if (trajectory[num_trajectory - 1].failure) {
       failed++;
@@ -276,17 +300,27 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       std::cout << std::endl;
     }
 
+    // stop timer
     rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
                          std::chrono::steady_clock::now() - rollouts_start)
                          .count();
   }
 
+  // ----- policy update ----- //
+  // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
   {
     const std::unique_lock<std::shared_mutex> lock(mtx_);
-    policy.CopyFrom(candidate_policy[0], horizon);
+    // improvement
+    if (c_best < c_prev) {
+      policy.CopyFrom(candidate_policy[0], horizon);
+    // nominal
+    } else {
+      policy.CopyFrom(candidate_policy[num_trajectory - 1], horizon);
+    }
   }
 
+  // stop timer
   policy_update_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - policy_update_start)
@@ -304,15 +338,14 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 // compute trajectory using nominal policy
 void iLQGPlanner::NominalTrajectory(int horizon) {
   // policy
-  auto nominal_policy = [&policy = policy, &mtx = mtx_](
-                            double* action, const double* state, double time) {
-    const std::shared_lock<std::shared_mutex> lock(mtx);
-    policy.Action(action, state, time);
+  auto nominal_policy = [&cp = candidate_policy[0]](double* action, const double* state,
+                                           double time) {
+    cp.Action(action, state, time);
   };
 
   // policy rollout
-  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), horizon);
+  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(), state.data(),
+                        time, mocap.data(), horizon);
 }
 
 // set action from policy
@@ -337,8 +370,10 @@ void iLQGPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory, "0 1"},
       // {mjITEM_RADIO, "Action Lmt.", 2, &settings.action_limits, "Off\nOn"},
       // {mjITEM_SLIDERINT, "Iterations", 2, &settings.max_rollout, "1 25"},
-      // {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
-      //  "Zero\nLinear\nCubic"},
+      {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
+       "Zero\nLinear\nCubic"},
+      {mjITEM_SELECT, "Reg. Type", 2, &settings.regularization_type,
+       "Control\nFeedback\nValue\nNone"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

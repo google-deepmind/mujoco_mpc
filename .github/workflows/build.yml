@@ -24,7 +24,10 @@ jobs:
               -G Ninja
             tmpdir: "/tmp"
           - os: windows-2022
-            cmake_build_args: "-- -m"
+            cmake_args: >-
+              -G Ninja
+              -DCMAKE_C_COMPILER:STRING=clang
+              -DCMAKE_CXX_COMPILER:STRING=clang++
             tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"

@@ -343,7 +343,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 
             // run single step, let next iteration deal with timing
             mj_step(m, d);
-
           } else {  // in-sync: step until ahead of cpu
             bool measured = false;
             mjtNum prevSim = d->time;

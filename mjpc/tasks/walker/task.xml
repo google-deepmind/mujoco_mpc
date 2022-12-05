@@ -16,7 +16,7 @@
   </custom>
 
   <sensor>
-    <user name="Control" dim="6" user="0 1.0e-5 0.0 1.0" />
+    <user name="Control" dim="6" user="0 0.1 0.0 1.0" />
     <user name="Height" dim="1" user="0 10.0 0.0 10.0" />
     <user name="Rotation" dim="1" user="0 3.0 0.0 5.0" />
     <user name="Speed" dim="1" user="0 1.0 0.0 1.0" />

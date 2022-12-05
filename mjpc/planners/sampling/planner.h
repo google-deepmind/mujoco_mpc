@@ -73,8 +73,14 @@ class SamplingPlanner : public Planner {
   void ActionFromPolicy(double* action, const double* state,
                         double time) override;
 
-  // update policy via resampling
-  void UpdatePolicy(int horizon);
+  // resample nominal policy
+  void ResamplePolicy(int horizon);
+
+  // add noise to nominal policy
+  void AddNoiseToPolicy(int i);
+
+  // compute candidate trajectories
+  void Rollouts(int num_trajectories, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -88,12 +94,6 @@ class SamplingPlanner : public Planner {
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
              int planning) override;
-
-  // randomly sample policy (+)
-  void SamplePolicy(int i);
-
-  // compute candidate trajectories
-  void Rollouts(int num_trajectories, int horizon, ThreadPool& pool);
 
   // ----- members ----- //
   mjModel* model;

@@ -36,7 +36,7 @@ You will need [CMake](https://cmake.org/) and a working C++20 compiler to build 
 
 For a video overview of MJPC, click below.
 
-[![Getting Started](http://img.youtube.com/vi/5IeKvQyuxV0/hqdefault.jpg)](https://dpmd.ai/mjpc)
+[![Getting Started](http://img.youtube.com/vi/Bdx7DuAMB6o/hqdefault.jpg)](https://dpmd.ai/mjpc)
 
 For a detailed dive of the graphical user interface, see the [MJPC GUI](docs/GUI.md) documentation.
 

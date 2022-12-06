@@ -95,22 +95,25 @@ void Humanoid::ResidualStand(const double* parameters, const mjModel* model,
   }
 }
 
-// ------------------ Residuals for humanoid stand task ------------
+// ------------------ Residuals for humanoid walk task ------------
 //   Number of residuals: 
-//     Residual (0): 
-
+//     Residual (0): torso height
+//     Residual (1): pelvis-feet aligment
+//     Residual (2): balance
+//     Residual (3): upright
+//     Residual (4): posture
+//     Residual (5): walk
+//     Residual (6): move feet
+//     Residual (7): control
 //   Number of parameters: 
-//     Parameter (0): 
+//     Parameter (0): torso height goal
+//     Parameter (1): speed goal
 // ----------------------------------------------------------------
-void Humanoid::ResidualRun(const double* parameters, const mjModel* model,
+void Humanoid::ResidualWalk(const double* parameters, const mjModel* model,
                              const mjData* data, double* residual) {
   int counter = 0;
 
-  // ----- scaled torque ----- //
-  mju_copy(&residual[counter], data->ctrl, model->nu);
-  counter += model->nu;
-
-  // ----- height ----- //
+  // ----- torso height ----- //
   double torso_height = mjpc::SensorByName(model, data, "torso_position")[2];
   residual[counter++] = torso_height - parameters[0];
 
@@ -149,6 +152,7 @@ void Humanoid::ResidualRun(const double* parameters, const mjModel* model,
   t = mju_max(-length, mju_min(length, t));
   mju_scl3(vec, axis, t);
   mju_add3(pcp, vec, center);
+  pcp[2] = 1.0e-3;
 
   // is standing 
   double standing	= torso_height / mju_sqrt(torso_height * torso_height + 0.45 * 0.45) - 0.4;
@@ -159,17 +163,17 @@ void Humanoid::ResidualRun(const double* parameters, const mjModel* model,
   counter +=2 ;
 
   // ----- upright ----- //
-  double torso_up = mjpc::SensorByName(model, data, "torso_up")[2];
-  double pelvis_up = mjpc::SensorByName(model, data, "pelvis_up")[2];
+  double* torso_up = mjpc::SensorByName(model, data, "torso_up");
+  double* pelvis_up = mjpc::SensorByName(model, data, "pelvis_up");
   double* foot_right_up = mjpc::SensorByName(model, data, "foot_right_up");
   double* foot_left_up = mjpc::SensorByName(model, data, "foot_left_up");
   double z_ref[3] = {0.0, 0.0, 1.0};
 
   // torso
-  residual[counter++] = torso_up - 1.0;
+  residual[counter++] = torso_up[2] - 1.0;
 
   // pelvis
-  residual[counter++] = 0.3 * (pelvis_up - 1.0);
+  residual[counter++] = 0.3 * (pelvis_up[2] - 1.0);
 
   // right foot
   mju_sub3(&residual[counter], foot_right_up, z_ref);
@@ -196,8 +200,6 @@ void Humanoid::ResidualRun(const double* parameters, const mjModel* model,
   mju_addTo(forward, foot_right_forward, 2);
   mju_addTo(forward, foot_left_forward, 2);
   mju_normalize(forward, 2);
-  forward[0] -= parameters[1];
-  forward[1] -= parameters[2];
 
   // com vel
   double* waist_lower_subcomvel = mjpc::SensorByName(model, data, "waist_lower_subcomvel");
@@ -207,19 +209,24 @@ void Humanoid::ResidualRun(const double* parameters, const mjModel* model,
   mju_scl(com_vel, com_vel, 0.5, 2);
 
   // walk forward 
-  residual[counter++] = standing * mju_dot(com_vel, forward, 2);
+  residual[counter++] = standing * (mju_dot(com_vel, forward, 2) - parameters[1]);
 
-  // // move feet 
-  // double* foot_right_velocity = mjpc::SensorByName(model, data, "foot_right_velocity");
-  // double* foot_left_velocity = mjpc::SensorByName(model, data, "foot_left_velocity");
-  // double move_feet[2];
-  // mju_copy(move_feet, com_vel, 2);
-  // mju_addToScl(move_feet, foot_right_velocity, -0.5, 2);
-  // mju_addToScl(move_feet, foot_left_velocity, -0.5, 2);
+  // ----- move feet ----- // 
+  double* foot_right_velocity = mjpc::SensorByName(model, data, "foot_right_velocity");
+  double* foot_left_velocity = mjpc::SensorByName(model, data, "foot_left_velocity");
+  double move_feet[2];
+  mju_copy(move_feet, com_vel, 2);
+  mju_addToScl(move_feet, foot_right_velocity, -0.5, 2);
+  mju_addToScl(move_feet, foot_left_velocity, -0.5, 2);
 
-  // ----- walk ----- //
+  mju_copy(&residual[counter], move_feet, 2);
+  mju_scl(&residual[counter], &residual[counter], standing, 2);
+  counter += 2;
+
+  // ----- control ----- //
+  mju_copy(&residual[counter], data->ctrl, model->nu);
+  counter += model->nu;
   
-
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function
   int user_sensor_dim = 0;

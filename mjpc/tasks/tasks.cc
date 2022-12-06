@@ -37,9 +37,9 @@ const TaskDefinition kTasksArray[]{
         .residual = &Humanoid::ResidualStand,
     },
     {
-        .name = "Humanoid Run",
-        .xml_path = "humanoid/task_run.xml",
-        .residual = &Humanoid::ResidualRun,
+        .name = "Humanoid Walk",
+        .xml_path = "humanoid/task_walk.xml",
+        .residual = &Humanoid::ResidualWalk,
     },
     {
         .name = "Swimmer",

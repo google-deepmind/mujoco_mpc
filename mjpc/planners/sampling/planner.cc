@@ -294,9 +294,10 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   }
 
   // end timer
-  noise_compute_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - noise_start)
-                            .count();
+  IncrementAtomic(noise_compute_time,
+                  std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::steady_clock::now() - noise_start)
+                      .count());
 }
 
 // compute candidate trajectories

@@ -15,6 +15,7 @@
 #ifndef MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 #define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 
+#include <atomic>
 #include <memory>
 #include <shared_mutex>
 #include <vector>
@@ -138,7 +139,7 @@ class SamplingPlanner : public Planner {
 
   // timing
   double nominal_compute_time;
-  double noise_compute_time;
+  std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;
 

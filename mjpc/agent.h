@@ -140,7 +140,7 @@ class Agent {
   std::vector<double> terms_;
 
   // planning iterations counter
-  int count_;
+  std::atomic_int count_;
 
   // names
   char task_names_[1024];

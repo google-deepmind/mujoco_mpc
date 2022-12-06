@@ -25,10 +25,10 @@ test(rollout_test)
 target_link_libraries(rollout_test load gmock)
 
 test(threadpool_test)
-target_link_libraries(threadpool_test gmock)
+target_link_libraries(threadpool_test threadpool gmock)
 
 test(trajectory_test)
 target_link_libraries(trajectory_test gmock)
 
 test(utilities_test)
-target_link_libraries(utilities_test load gmock)
+target_link_libraries(utilities_test load threadpool gmock)

@@ -15,6 +15,7 @@
 #ifndef MJPC_UTILITIES_H_
 #define MJPC_UTILITIES_H_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>

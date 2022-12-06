@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "utilities.h"
+
+#include <atomic>
 #include <cstdint>
 #include <limits>
 

@@ -35,6 +35,7 @@ namespace mju = ::mujoco::util_mjpc;
 void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
   // delete mjData instances since model might have changed.
   data_.clear();
+  
   // allocate one mjData for nominal.
   ResizeMjData(model, 1);
 

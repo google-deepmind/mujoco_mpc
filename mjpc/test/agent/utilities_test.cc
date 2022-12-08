@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "utilities.h"
+
+#include <atomic>
 #include <cstdint>
 #include <limits>
 
@@ -20,6 +22,7 @@
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
 #include "test/load.h"
+#include "threadpool.h"
 
 namespace mjpc {
 namespace {
@@ -269,6 +272,21 @@ TEST(UtilitiesTest, LinearInterpolation) {
   double y3;
   LinearInterpolation(&y3, 2.5, x, y, 1, 2);
   EXPECT_NEAR(y3, 2.0, 1.0e-5);
+}
+
+TEST(UtilitiesTest, IncrementAtomic) {
+  const double kInitial = 1;
+  std::atomic<double> v = kInitial;
+  const int kN = 10;
+  {
+    mjpc::ThreadPool pool(kN);
+    for (int i = 0; i < kN; ++i) {
+      pool.Schedule([&v]() {
+        IncrementAtomic(v, 10);
+      });
+    }
+  }
+  EXPECT_EQ(v.load(), kInitial + 10 * kN);
 }
 
 }  // namespace

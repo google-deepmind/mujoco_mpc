@@ -36,12 +36,6 @@ inline constexpr int MaxSamplingSplinePower = 5;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
 
-// sampling noise type
-enum SamplingNoiseType : int {
-  kGaussian,
-  kUniform,
-};
-
 class SamplingPlanner : public Planner {
  public:
   // constructor
@@ -120,7 +114,6 @@ class SamplingPlanner : public Planner {
   double timestep_power;
 
   // ----- noise ----- //
-  SamplingNoiseType noise_type;
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;

@@ -34,7 +34,7 @@ struct Humanoid {
                             const mjData* data, double* residual);
 
   // ------------------ Residuals for humanoid walk task ------------
-  //   Number of residuals: 
+  //   Number of residuals:
   //     Residual (0): torso height
   //     Residual (1): pelvis-feet aligment
   //     Residual (2): balance
@@ -43,7 +43,7 @@ struct Humanoid {
   //     Residual (5): walk
   //     Residual (6): move feet
   //     Residual (7): control
-  //   Number of parameters: 
+  //   Number of parameters:
   //     Parameter (0): torso height goal
   //     Parameter (1): speed goal
   // ----------------------------------------------------------------

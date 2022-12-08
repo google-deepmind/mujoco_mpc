@@ -153,7 +153,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     policy.num_parameters = model->nu * policy.num_spline_points; // set
     candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
   }
-  
+
   // resample policy
   this->ResamplePolicy(horizon);
 

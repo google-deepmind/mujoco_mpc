@@ -16,7 +16,6 @@
 #define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 
 #include <atomic>
-#include <memory>
 #include <shared_mutex>
 #include <vector>
 

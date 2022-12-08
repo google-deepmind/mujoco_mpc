@@ -87,7 +87,7 @@ void Trajectory::Rollout(
     double time, const double* mocap, int steps) {
   // reset failure flag
   failure = false;
-  
+
   // horizon
   horizon = steps;
 

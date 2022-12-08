@@ -54,7 +54,8 @@ void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
                                  dim_action),
                          model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
-  settings.regularization_type = GetNumberOrDefault(settings.regularization_type, model, "ilqg_regularization_type");
+  settings.regularization_type = GetNumberOrDefault(
+      settings.regularization_type, model, "ilqg_regularization_type");
 }
 
 // allocate memory
@@ -157,7 +158,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     candidate_policy[0].CopyFrom(policy, horizon);
     candidate_policy[0].representation = policy.representation;
   }
-  
+
   // rollout nominal policy
   this->NominalTrajectory(horizon);
   if (trajectory[0].failure) {
@@ -172,8 +173,8 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // end timer
   nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::steady_clock::now() - nominal_start)
-                      .count();
+                     std::chrono::steady_clock::now() - nominal_start)
+                     .count();
 
   // rollouts
   double c_best = c_prev;
@@ -219,11 +220,11 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     auto backward_pass_start = std::chrono::steady_clock::now();
 
     // compute feedback gains and action improvement via Riccati
-    backward_pass.Riccati(
-        &candidate_policy[0], &model_derivative, &cost_derivative,
-        dim_state_derivative, dim_action, horizon, backward_pass.regularization,
-        boxqp, candidate_policy[0].trajectory.actions.data(),
-        model->actuator_ctrlrange, settings);
+    backward_pass.Riccati(&candidate_policy[0], &model_derivative,
+                          &cost_derivative, dim_state_derivative, dim_action,
+                          horizon, backward_pass.regularization, boxqp,
+                          candidate_policy[0].trajectory.actions.data(),
+                          model->actuator_ctrlrange, settings);
 
     // end timer
     backward_pass_time +=
@@ -241,8 +242,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes (log scaling)
-    LogScale(improvement_step, 1.0, settings.min_step_size,
-              num_trajectory - 1);
+    LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
     improvement_step[num_trajectory - 1] = 0.0;
 
     // feedback rollouts (parallel)
@@ -317,7 +317,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // improvement
     if (c_best < c_prev) {
       policy.CopyFrom(candidate_policy[0], horizon);
-    // nominal
+      // nominal
     } else {
       policy.CopyFrom(candidate_policy[num_trajectory - 1], horizon);
     }
@@ -341,14 +341,14 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 // compute trajectory using nominal policy
 void iLQGPlanner::NominalTrajectory(int horizon) {
   // policy
-  auto nominal_policy = [&cp = candidate_policy[0]](double* action, const double* state,
-                                           double time) {
+  auto nominal_policy = [&cp = candidate_policy[0]](
+                            double* action, const double* state, double time) {
     cp.Action(action, state, time);
   };
 
   // policy rollout
-  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(), state.data(),
-                        time, mocap.data(), horizon);
+  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
+                        state.data(), time, mocap.data(), horizon);
 }
 
 // set action from policy
@@ -477,39 +477,49 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&data = data_, &trajectory = trajectory,
-                    &candidate_policy = candidate_policy,
-                    &improvement_step = improvement_step, &model = this->model,
-                    &task = this->task, &state = this->state,
-                    &time = this->time, &mocap = this->mocap, horizon, i]() {
+                   &candidate_policy = candidate_policy,
+                   &improvement_step = improvement_step, &model = this->model,
+                   &task = this->task, &state = this->state, &time = this->time,
+                   &mocap = this->mocap, horizon, i]() {
       // scale improvement
       mju_addScl(candidate_policy[i].trajectory.actions.data(),
-                  candidate_policy[i].trajectory.actions.data(),
-                  candidate_policy[i].action_improvement.data(),
-                  improvement_step[i], model->nu * horizon);
+                 candidate_policy[i].trajectory.actions.data(),
+                 candidate_policy[i].action_improvement.data(),
+                 improvement_step[i], model->nu * horizon);
 
       // policy
       auto feedback_policy = [&candidate_policy = candidate_policy, model, i](
-                                  double* action, const double* state,
-                                  int index) {
+                              double* action, const double* state,
+                              int index) {
         // dimensions
         int dim_state = model->nq + model->nv + model->na;
         int dim_state_derivative = 2 * model->nv + model->na;
         int dim_action = model->nu;
 
         // set improved action
-        mju_copy(action, DataAt(candidate_policy[i].trajectory.actions, index * dim_action), dim_action);
+        mju_copy(
+            action,
+            DataAt(candidate_policy[i].trajectory.actions, index * dim_action),
+            dim_action);
 
-        // ----- feedback ----- // 
-        
+        // ----- feedback ----- //
+
         // difference between current state and nominal state
-        StateDiff(model, candidate_policy[i].state_scratch.data(), DataAt(candidate_policy[i].trajectory.states, index * dim_state), state, 1.0);
+        StateDiff(
+            model, candidate_policy[i].state_scratch.data(),
+            DataAt(candidate_policy[i].trajectory.states, index * dim_state),
+            state, 1.0);
 
         // compute feedback term
-        mju_mulMatVec(candidate_policy[i].action_scratch.data(), DataAt(candidate_policy[i].feedback_gain, index * dim_action * dim_state_derivative),
-              candidate_policy[i].state_scratch.data(), dim_action, dim_state_derivative);
-        
+        mju_mulMatVec(candidate_policy[i].action_scratch.data(),
+                      DataAt(candidate_policy[i].feedback_gain,
+                             index * dim_action * dim_state_derivative),
+                      candidate_policy[i].state_scratch.data(), dim_action,
+                      dim_state_derivative);
+
         // add feedback
-        mju_addTo(action, candidate_policy[i].action_scratch.data(), dim_action);
+        mju_addTo(action, candidate_policy[i].action_scratch.data(),
+                  dim_action);
 
         // clamp controls
         Clamp(action, model->actuator_ctrlrange, dim_action);
@@ -517,8 +527,8 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
 
       // policy rollout (discrete time)
       trajectory[i].RolloutDiscrete(feedback_policy, task, model,
-                            data[ThreadPool::WorkerId()].get(), state.data(),
-                            time, mocap.data(), horizon);
+                                    data[ThreadPool::WorkerId()].get(),
+                                    state.data(), time, mocap.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory);

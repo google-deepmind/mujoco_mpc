@@ -85,7 +85,9 @@ void Trajectory::Rollout(
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
     double time, const double* mocap, int steps) {
+  // reset failure flag
   failure = false;
+  
   // horizon
   horizon = steps;
 
@@ -119,16 +121,16 @@ void Trajectory::Rollout(
   double* tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(trace.data(), tr, 3);
 
-  // check for step warnings
-  if ((failure |= CheckWarnings(data))) {
-    total_return = kMaxReturnValue;
-    std::cerr << "Rollout divergence at step\n";
-    return;
-  }
-
   for (int t = 1; t < horizon - 1; t++) {
     // step2
     mj_step2(model, data);
+
+    // check for step warnings
+    if ((failure |= CheckWarnings(data))) {
+      total_return = kMaxReturnValue;
+      std::cerr << "Rollout divergence at step\n";
+      return;
+    }
 
     // record state
     mju_copy(DataAt(states, t * dim_state), data->qpos, model->nq);
@@ -151,17 +153,17 @@ void Trajectory::Rollout(
     // record trace
     tr = SensorByName(model, data, "trace");
     if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
-
-    // check for step warnings
-    if ((failure |= CheckWarnings(data))) {
-      total_return = kMaxReturnValue;
-      std::cerr << "Rollout divergence\n";
-      return;
-    }
   }
 
   // final step2
   mj_step2(model, data);
+
+  // check for step warnings
+  if ((failure |= CheckWarnings(data))) {
+    total_return = kMaxReturnValue;
+    std::cerr << "Rollout divergence at step\n";
+    return;
+  }
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -189,13 +191,6 @@ void Trajectory::Rollout(
   tr = SensorByName(model, data, "trace");
   if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
 
-  // check for step warnings
-  if ((failure |= CheckWarnings(data))) {
-    total_return = kMaxReturnValue;
-    std::cerr << "Rollout divergence\n";
-    return;
-  }
-
   // compute return
   UpdateReturn(task);
 }
@@ -206,6 +201,9 @@ void Trajectory::RolloutDiscrete(
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
     double time, const double* mocap, int steps) {
+  // reset failure flag
+  failure = false;
+
   // horizon
   horizon = steps;
 
@@ -244,7 +242,7 @@ void Trajectory::RolloutDiscrete(
     mj_step2(model, data);
 
     // check for step warnings
-    if (CheckWarnings(data)) {
+    if ((failure |= CheckWarnings(data))) {
       total_return = kMaxReturnValue;
       std::cerr << "Rollout divergence at step\n";
       return;
@@ -277,9 +275,9 @@ void Trajectory::RolloutDiscrete(
   mj_step2(model, data);
 
   // check for step warnings
-  if (CheckWarnings(data)) {
+  if ((failure |= CheckWarnings(data))) {
     total_return = kMaxReturnValue;
-    std::cerr << "Rollout divergence\n";
+    std::cerr << "Rollout divergence at step\n";
     return;
   }
 

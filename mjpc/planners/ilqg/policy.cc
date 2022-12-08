@@ -14,9 +14,10 @@
 
 #include "planners/ilqg/policy.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 
-#include <mujoco/mujoco.h>
 #include "task.h"
 #include "trajectory.h"
 #include "utilities.h"
@@ -144,7 +145,7 @@ void iLQGPolicy::Action(double* action, const double* state,
   mju_mulMatVec(action_scratch.data(), feedback_gain_scratch.data(),
                 state_scratch.data(), dim_action, dim_state_derivative);
   mju_addTo(action, action_scratch.data(), dim_action);
-  
+
   // clamp controls
   Clamp(action, model->actuator_ctrlrange, dim_action);
 }

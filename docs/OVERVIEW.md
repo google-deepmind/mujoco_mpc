@@ -226,7 +226,7 @@ The swimmer's cost has two terms:
 
 The repository includes additional example tasks:
 
-- [Humanoid Stand](../mjpc/tasks/humanoid/task_stand.xml)
+- Humanoid [Stand](../mjpc/tasks/humanoid/task_stand.xml) | [Walk](../mjpc/tasks/humanoid/task_walk.xml)
 - Quadruped [Terrain](../mjpc/tasks/quadruped/task_hill.xml) | [Flat](../mjpc/tasks/quadruped/task_flat.xml)
 - [Walker](../mjpc/tasks/walker/task.xml)
 - [In-Hand Manipulation](../mjpc/tasks/hand/task.xml)

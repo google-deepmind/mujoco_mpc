@@ -32,9 +32,14 @@ namespace {
 // kNumTasks and the size of the array initializer.
 const TaskDefinition kTasksArray[]{
     {
-        .name = "Humanoid",
+        .name = "Humanoid Stand",
         .xml_path = "humanoid/task_stand.xml",
         .residual = &Humanoid::ResidualStand,
+    },
+    {
+        .name = "Humanoid Walk",
+        .xml_path = "humanoid/task_walk.xml",
+        .residual = &Humanoid::ResidualWalk,
     },
     {
         .name = "Swimmer",

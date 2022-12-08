@@ -239,13 +239,13 @@ The repository includes additional example tasks:
 The `task` [class](../mjpc/task.h) supports *transitions* for subgoal-reaching tasks.  The transition function is called at every step, and is meant to allow the task specification to adapt to the agent's behavior (e.g., moving the target whenever the agent reaches it).  This function should test whether a transition condition is fulfilled, and at that event it should mutate the task specification.  It has the following interface:
 
 ```c++
-void Swimmer::Transition(
-  int& state,
+int Swimmer::Transition(
+  int state,
   const mjModel* model,
   mjData* data)
 ```
 
-- `state`: an integer marking the current task mode.  This is useful when the sub-goals are enumerable (e.g., when cycling between keyframes).  If the user uses this feature, this function should mutate this variable upon transition (that's why it's not `const`).
+- `state`: an integer marking the current task mode.  This is useful when the sub-goals are enumerable (e.g., when cycling between keyframes).  If the user uses this feature, the function should return a new state upon transition.
 - `model`: the task's `mjModel`.  It is marked `const` because changes to it here will only affect the GUI and will not affect the planner's copies.
 - `data`: the task's `mjData`.  A transition should mutate fields of `mjData`, see below.
 

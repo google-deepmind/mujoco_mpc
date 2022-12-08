@@ -16,7 +16,6 @@
 #define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 
 #include <atomic>
-#include <memory>
 #include <shared_mutex>
 #include <vector>
 
@@ -35,12 +34,6 @@ inline constexpr int MinSamplingSplinePower = 1;
 inline constexpr int MaxSamplingSplinePower = 5;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
-
-// sampling noise type
-enum SamplingNoiseType : int {
-  kGaussian,
-  kUniform,
-};
 
 class SamplingPlanner : public Planner {
  public:
@@ -120,7 +113,6 @@ class SamplingPlanner : public Planner {
   double timestep_power;
 
   // ----- noise ----- //
-  SamplingNoiseType noise_type;
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;

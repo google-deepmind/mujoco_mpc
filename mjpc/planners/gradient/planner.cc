@@ -163,7 +163,10 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // copy nominal policy
   policy.num_parameters = model->nu * policy.num_spline_points;
-  candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
+  {
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
+    candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
+  }
 
   // resample policy
   this->ResamplePolicy(horizon);
@@ -314,7 +317,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.CopyParametersFrom(candidate_policy[winner].parameters, candidate_policy[winner].times);
   }
 
@@ -387,36 +390,34 @@ void GradientPlanner::ResamplePolicy(int horizon) {
 
 // compute candidate trajectories
 void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
-  {
-    int count_before = pool.GetCount();
-    for (int i = 0; i < num_trajectory; i++) {
-      pool.Schedule([&data = data_, &trajectory = trajectory,
-                     &candidate_policy = candidate_policy,
-                     &improvement_step = improvement_step, &model = this->model,
-                     &task = this->task, &state = this->state,
-                     &time = this->time, &mocap = this->mocap, horizon, i]() {
-        // scale improvement
-        mju_addScl(candidate_policy[i].parameters.data(),
-                   candidate_policy[i].parameters.data(),
-                   candidate_policy[i].parameter_update.data(),
-                   improvement_step[i],
-                   model->nu * candidate_policy[i].num_spline_points);
+  int count_before = pool.GetCount();
+  for (int i = 0; i < num_trajectory; i++) {
+    pool.Schedule([&data = data_, &trajectory = trajectory,
+                    &candidate_policy = candidate_policy,
+                    &improvement_step = improvement_step, &model = this->model,
+                    &task = this->task, &state = this->state,
+                    &time = this->time, &mocap = this->mocap, horizon, i]() {
+      // scale improvement
+      mju_addScl(candidate_policy[i].parameters.data(),
+                  candidate_policy[i].parameters.data(),
+                  candidate_policy[i].parameter_update.data(),
+                  improvement_step[i],
+                  model->nu * candidate_policy[i].num_spline_points);
 
-        // policy
-        auto feedback_policy = [&candidate_policy = candidate_policy, i](
-                                   double* action, const double* state,
-                                   double time) {
-          candidate_policy[i].Action(action, state, time);
-        };
+      // policy
+      auto feedback_policy = [&candidate_policy = candidate_policy, i](
+                                  double* action, const double* state,
+                                  double time) {
+        candidate_policy[i].Action(action, state, time);
+      };
 
-        // policy rollout
-        trajectory[i].Rollout(feedback_policy, task, model,
-                              data[ThreadPool::WorkerId()].get(), state.data(),
-                              time, mocap.data(), horizon);
-      });
-    }
-    pool.WaitCount(count_before + num_trajectory);
+      // policy rollout
+      trajectory[i].Rollout(feedback_policy, task, model,
+                            data[ThreadPool::WorkerId()].get(), state.data(),
+                            time, mocap.data(), horizon);
+    });
   }
+  pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
 }
 

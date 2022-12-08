@@ -32,6 +32,23 @@ struct Humanoid {
   // ----------------------------------------------------------------
   static void ResidualStand(const double* parameters, const mjModel* model,
                             const mjData* data, double* residual);
+
+  // ------------------ Residuals for humanoid walk task ------------
+  //   Number of residuals:
+  //     Residual (0): torso height
+  //     Residual (1): pelvis-feet aligment
+  //     Residual (2): balance
+  //     Residual (3): upright
+  //     Residual (4): posture
+  //     Residual (5): walk
+  //     Residual (6): move feet
+  //     Residual (7): control
+  //   Number of parameters:
+  //     Parameter (0): torso height goal
+  //     Parameter (1): speed goal
+  // ----------------------------------------------------------------
+  static void ResidualWalk(const double* parameters, const mjModel* model,
+                            const mjData* data, double* residual);
 };
 }  // namespace mjpc
 

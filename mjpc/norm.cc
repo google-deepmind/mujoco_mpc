@@ -68,7 +68,7 @@ double Norm(double* g, double* H, const double* x, const double* params,
       }
       y *= 0.5;
 
-      if (g) {  // z
+      if (g) {  // x
         for (int i = 0; i < n; i++) {
           g[i] = x[i];
         }
@@ -179,7 +179,6 @@ double Norm(double* g, double* H, const double* x, const double* params,
     }
 
     case NormType::kSmoothAbs2Loss: {  // y = (abs(x)^q + p^q)^(1/q) - p
-      q = params[1];
       for (int i = 0; i < n; i++) {
         double a = mju_abs(x[i]);
         double d = mju_pow(a, q);
@@ -201,7 +200,7 @@ double Norm(double* g, double* H, const double* x, const double* params,
           if (g) g[i] = s / (1 + s);
           if (H) H[i * n + i] = s / (p * (1 + s) * (1 + s));
         } else {
-          y = x[i] > 0 ? x[i] : 0;
+          y += x[i] > 0 ? x[i] : 0;
           if (g) g[i] = x[i] > 0 ? 1 : 0;
           if (H) H[i * n + i] = 0;
         }

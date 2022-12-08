@@ -55,7 +55,6 @@ MJPC is not production-quality software, it is a **research prototype**. There a
 - We have not tested MJPC on Windows, but there should be no issues in principle.
 - Task specification, in particular the setting of norms and their parameters in XML, is a bit clunky. We are still iterating on the design.
 - The Gradient Descent search step is proportional to the scale of the cost function and requires per-task tuning in order to work well. This is not a bug but a property of vanilla gradient descent. It might be possible to ameliorate this with some sort of gradient normalisation, but we have not investigated this thoroughly.
-- There is a subtle issue with iLQG that we have not yet been able to resolve. It manifests as jittery behaviour and increasing cost-to-go after only a single simulation step (right arrow key on the keyboard, in pause mode). We are currently investigating it and hope to resolve it in the near future.
 
 ## Citation
 

@@ -88,8 +88,15 @@ void Task::GetFrom(const mjModel* model) {
                num_norm_parameters[num_norms]);
       parameter_shift += num_norm_parameters[num_norms];
       num_norms += 1;
+
+      // check for max norms
+      if (num_norms > kMaxCostTerms) {
+        mju_error("Number of cost terms exceeds maximum. Either: 1) reduce number of terms 2) increase kMaxCostTerms");
+      }
     }
   }
+
+
 
   // set residual parameters
   this->SetFeatureParameters(model);

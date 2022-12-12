@@ -29,6 +29,7 @@
     <framepos name="trace" objtype="site" objname="tip"/>
     <framepos name="position" objtype="site" objname="tip"/>
     <framelinvel name="velocity" objtype="site" objname="tip"/>
+    <framepos name="goal" objtype="body" objname="goal"/>
   </sensor>
 
   <keyframe>

@@ -68,12 +68,13 @@ class Task {
 
   // cost parameters
   int num_residual;
-  int num_norms;
+  int num_cost;
+  int num_trace;
   std::vector<int> dim_norm_residual;
-  std::vector<int> num_norm_parameters;
+  std::vector<int> num_num_parameter;
   std::vector<NormType> norm;
   std::vector<double> weight;
-  std::vector<double> norm_parameters;
+  std::vector<double> num_parameter;
   double risk;
 
   // residual parameters

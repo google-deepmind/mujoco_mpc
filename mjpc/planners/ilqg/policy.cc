@@ -31,7 +31,7 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
 
   // reference trajectory
   trajectory.Initialize(model->nq + model->nv + model->na, model->nu,
-                        task.num_residual, kMaxTrajectoryHorizon);
+                        task.num_residual, task.num_trace, kMaxTrajectoryHorizon);
   trajectory.Allocate(kMaxTrajectoryHorizon);
 
   // feedback gains

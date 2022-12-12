@@ -68,7 +68,7 @@ void iLQGPlanner::Allocate() {
   // candidate trajectories
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(dim_state, dim_action, task->num_residual,
-                             kMaxTrajectoryHorizon);
+                             task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
@@ -206,9 +206,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         candidate_policy[0].trajectory.residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
         dim_state_derivative, dim_action, dim_max, dim_sensor,
-        task->num_residual, task->dim_norm_residual.data(), task->num_norms,
-        task->weight.data(), task->norm.data(), task->norm_parameters.data(),
-        task->num_norm_parameters.data(), task->risk, horizon, pool);
+        task->num_residual, task->dim_norm_residual.data(), task->num_cost,
+        task->weight.data(), task->norm.data(), task->num_parameter.data(),
+        task->num_num_parameter.data(), task->risk, horizon, pool);
 
     // end timer
     cost_derivative_time +=

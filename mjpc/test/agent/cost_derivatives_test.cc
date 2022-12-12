@@ -64,17 +64,17 @@ TEST(FiniteDifferenceHessianTest, Quadratic) {
 
 //   // set cost
 //   task.num_residual = 1;
-//   task.num_norms = 1;
+//   task.num_cost = 1;
 //   task.dim_norm_residual.resize(1);
 //   task.dim_norm_residual[0] = 3;
-//   task.num_norm_parameters.resize(1);
-//   task.num_norm_parameters[0] = 0;
+//   task.num_num_parameter.resize(1);
+//   task.num_num_parameter[0] = 0;
 //   task.norm.resize(1);
 //   task.norm[0] = NormType::kNull;
 //   task.weight.resize(1);
 //   task.weight[0] = 1.23;
-//   task.norm_parameters.resize(1);
-//   task.norm_parameters[0] = 0.0;
+//   task.num_parameter.resize(1);
+//   task.num_parameter[0] = 0.0;
 //   task.risk = 0.35;
 //   task.num_residual_parameters = 0;
 //   task.residual_parameters.resize(1);

@@ -38,7 +38,7 @@ class Trajectory {
   // ----- methods -----//
 
   // initialize trajectory dimensions
-  void Initialize(int dim_state, int dim_action, int dim_residual, int horizon);
+  void Initialize(int dim_state, int dim_action, int dim_residual, int num_trace, int horizon);
 
   // allocate memory
   void Allocate(int T);
@@ -62,9 +62,10 @@ class Trajectory {
 
   // ----- members ----- //
   int horizon;                   // trajectory length
-  int dim_state;                 // state dimensions
-  int dim_action;                // action dimensions
-  int dim_feature;               // residual dimensions
+  int dim_state;                 // states dimension
+  int dim_action;                // actions dimension
+  int dim_feature;               // residuals dimension
+  int dim_trace;                 // traces dimension
   std::vector<double> states;    // (horizon   x nq + nv + na)
   std::vector<double> actions;   // (horizon-1 x num_action)
   std::vector<double> times;     // horizon

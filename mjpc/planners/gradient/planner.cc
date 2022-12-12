@@ -68,7 +68,7 @@ void GradientPlanner::Allocate() {
   // candidate trajectories
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(dim_state, dim_action, task->num_residual,
-                             kMaxTrajectoryHorizon);
+                             task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
@@ -211,9 +211,9 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         trajectory[0].residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
         dim_state_derivative, dim_action, dim_max, dim_sensor,
-        task->num_residual, task->dim_norm_residual.data(), task->num_norms,
-        task->weight.data(), task->norm.data(), task->norm_parameters.data(),
-        task->num_norm_parameters.data(), task->risk, horizon, pool);
+        task->num_residual, task->dim_norm_residual.data(), task->num_cost,
+        task->weight.data(), task->norm.data(), task->num_parameter.data(),
+        task->num_num_parameter.data(), task->risk, horizon, pool);
 
     // stop timer
     cost_derivative_time +=
@@ -449,20 +449,22 @@ void GradientPlanner::Traces(mjvScene* scn) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom >= scn->maxgeom) continue;
-      // initialize geometry
-      mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
-                   color);
+      for (int j = 0; j < task->num_trace; j++) {
+        // initialize geometry
+        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
+                    color);
 
-      // make geometry
-      mjv_makeConnector(
-          &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-          trajectory[k].trace[3 * i], trajectory[k].trace[3 * i + 1],
-          trajectory[k].trace[3 * i + 2], trajectory[k].trace[3 * (i + 1)],
-          trajectory[k].trace[3 * (i + 1) + 1],
-          trajectory[k].trace[3 * (i + 1) + 2]);
+        // make geometry
+        mjv_makeConnector(
+            &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
+            trajectory[k].trace[3 * task->num_trace * i + 3 * j], trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j], trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
-      // increment number of geometries
-      scn->ngeom += 1;
+        // increment number of geometries
+        scn->ngeom += 1;
+      }
     }
   }
 }

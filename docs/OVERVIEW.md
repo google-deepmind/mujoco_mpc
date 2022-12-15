@@ -149,8 +149,6 @@ It is also possible to create GUI elements for  parameters that are passed to th
 - `lower_bound`: Real specifying lower bound of GUI slider.
 - `upper_bound`: Real specifying upper bound of GUI slider.
 
-Finally, the task file must specify `<size nuserdata="1"/>`, as that memory space is used by the planners.  In our task examples, this line appears in the file [`common.xml`](../mjpc/tasks/common.xml) that also shares visual definitions across the tasks.
-
 ### Residual Specification
 
 As mentioned above, the cost is a sum of terms, each computed as a (scalar) norm of a (vector) residual. Each term is defined as a [user sensor](https://mujoco.readthedocs.io/en/latest/XMLreference.html#sensor-user). The sensor values constitute the residual vector (implemented by the residual function, see below). The norm for each term is defined by the [`user` attribute](https://mujoco.readthedocs.io/en/latest/modeling.html#cuser) of the respective user sensor, according to the following format:

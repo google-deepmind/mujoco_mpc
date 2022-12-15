@@ -44,9 +44,6 @@ void Agent::Initialize(mjModel* model, mjData* data,
                        ResidualFunction* residual,
                        TransitionFunction* transition) {
   // ----- model ----- //
-  if (!(model->nuserdata == 1)) {
-    mju_error("Model passed to Agent requires nuserdata == 1\n");
-  }
   if (this->model_) mj_deleteModel(this->model_);
   this->model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 

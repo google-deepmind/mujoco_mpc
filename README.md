@@ -15,8 +15,8 @@
 
 MJPC allows the user to easily author and solve complex robotics tasks, and currently supports three shooting-based planners: derivative-based iLQG and Gradient Descent, and a simple yet very competitive derivative-free method called Predictive Sampling.
 
+- [Overview](#overview)
 - [Installation](#installation)
-- [Getting Started](#getting-started)
 - [Predictive Control](#predictive-control)
 - [Contributing](#contributing)
 - [Known Issues](#known-issues)
@@ -24,21 +24,27 @@ MJPC allows the user to easily author and solve complex robotics tasks, and curr
 - [Acknowledgments](#acknowledgments)
 - [License and Disclaimer](#license-and-disclaimer)
 
+## Overview
+
+To read the paper describing this software package, please see out [preprint](https://arxiv.org/abs/2212.00541).
+
+For a quick video overview of MJPC, click below.
+
+[![Video](http://img.youtube.com/vi/Bdx7DuAMB6o/hqdefault.jpg)](https://dpmd.ai/mjpc)
+
+For a longer talk at the MIT Robotics Seminar describing our results, click below.
+
+[![Talk](http://img.youtube.com/vi/2xVN-qY78P4/hqdefault.jpg)](https://www.youtube.com/watch?v=2xVN-qY78P4)
+
+For a detailed dive of the graphical user interface, see the [MJPC GUI](docs/GUI.md) documentation.
+
 ## Installation
 
 You will need [CMake](https://cmake.org/) and a working C++20 compiler to build MJPC. We recommend using [VSCode](https://code.visualstudio.com/) and 2 of its extensions ([CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)) to simplify the build process.
 
 1. Clone the repository: `git clone https://github.com/deepmind/mujoco_mpc.git`
 2. Configure the project with CMake (a pop-up should appear in VSCode)
-3. Build and run the `mjpc` target. This will open and run the graphical user interface.
-
-## Getting Started
-
-For a video overview of MJPC, click below.
-
-[![Getting Started](http://img.youtube.com/vi/Bdx7DuAMB6o/hqdefault.jpg)](https://dpmd.ai/mjpc)
-
-For a detailed dive of the graphical user interface, see the [MJPC GUI](docs/GUI.md) documentation.
+3. Build and run the `mjpc` target in "release" mode (VSCode defaults to "debug"). This will open and run the graphical user interface.
 
 ## Predictive Control
 

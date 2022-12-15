@@ -1,7 +1,7 @@
 <mujoco model="Particle Control">
   <include file="particle.xml" />
 
-  <size nuserdata="1" memory="10K"/>
+  <size memory="10K"/>
 
   <custom>
     <numeric name="task_risk" data="1.0" />

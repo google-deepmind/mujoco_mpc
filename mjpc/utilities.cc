@@ -84,7 +84,7 @@ double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name) {
   int id = mj_name2id(m, mjOBJ_SENSOR, name.c_str());
   if (id == -1) {
-    // std::cerr << "sensor \"" << name << "\" not found.\n";
+    std::cerr << "sensor \"" << name << "\" not found.\n";
     return nullptr;
   } else {
     return d->sensordata + m->sensor_adr[id];
@@ -93,23 +93,19 @@ double* SensorByName(const mjModel* m, const mjData* d,
 
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d, int num_trace) {
+  if (num_trace > kMaxTraces) {
+    mju_error("Number of traces should be less than 100\n");
+  }
   if (num_trace == 0) {
     return;
   }
 
-  // get first trace, either "trace" or "trace0"
-  double* trace = SensorByName(m, d, "trace");
-  if (!trace) {
-    trace = SensorByName(m, d, "trace0");
-  }
-  if (trace) mju_copy(traces, trace, 3);
-
   // allocate string
   char str[7];
-  for (int i = 1; i < num_trace; i++) {
+  for (int i = 0; i < num_trace; i++) {
     // set trace id
     mujoco::util_mjpc::sprintf_arr(str, "trace%i", i);
-    trace = SensorByName(m, d, str);
+    double* trace = SensorByName(m, d, str);
     if (trace) mju_copy(traces + 3 * i, trace, 3);
   }
 }

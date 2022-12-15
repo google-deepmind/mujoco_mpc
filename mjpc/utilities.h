@@ -27,6 +27,9 @@
 
 namespace mjpc {
 
+// maximum number of traces that are visualized
+inline constexpr int kMaxTraces = 99;
+
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state);
 

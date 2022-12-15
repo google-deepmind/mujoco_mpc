@@ -71,7 +71,7 @@ class Task {
   int num_cost;
   int num_trace;
   std::vector<int> dim_norm_residual;
-  std::vector<int> num_num_parameter;
+  std::vector<int> num_norm_parameter;
   std::vector<NormType> norm;
   std::vector<double> weight;
   std::vector<double> num_parameter;

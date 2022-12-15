@@ -47,8 +47,8 @@ TEST(TasksTest, Task) {
   EXPECT_EQ(task.num_cost, 2);
   EXPECT_EQ(task.dim_norm_residual[0], 2);
   EXPECT_EQ(task.dim_norm_residual[1], 2);
-  EXPECT_EQ(task.num_num_parameter[0], 0);
-  EXPECT_EQ(task.num_num_parameter[1], 0);
+  EXPECT_EQ(task.num_norm_parameter[0], 0);
+  EXPECT_EQ(task.num_norm_parameter[1], 0);
   EXPECT_EQ(task.norm[0], NormType::kQuadratic);
   EXPECT_EQ(task.norm[1], NormType::kQuadratic);
   EXPECT_NEAR(task.weight[0], 5.0, 1.0e-5);

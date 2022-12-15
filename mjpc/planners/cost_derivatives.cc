@@ -115,7 +115,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
                               const int* dim_norm_residual, int num_cost,
                               const double* weights, const NormType* norms,
                               const double* parameters,
-                              const int* num_num_parameter, double risk,
+                              const int* num_norm_parameter, double risk,
                               int T, ThreadPool& pool) {
   // reset
   this->Reset(dim_state_derivative, dim_action, num_residual, T);
@@ -124,7 +124,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
     for (int t = 0; t < T; t++) {
       pool.Schedule([&cd = *this, &r, &rx, &ru, num_cost, num_residual,
                      &dim_norm_residual, &weights, &norms, &parameters,
-                     &num_num_parameter, risk, num_sensors,
+                     &num_norm_parameter, risk, num_sensors,
                      dim_state_derivative, dim_action, dim_max, t, T]() {
         // ----- term derivatives ----- //
         int f_shift = 0;
@@ -154,7 +154,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
               weights[i] / T, parameters + p_shift, norms[i]);
 
           f_shift += dim_norm_residual[i];
-          p_shift += num_num_parameter[i];
+          p_shift += num_norm_parameter[i];
         }
 
         // ----- risk transformation ----- //

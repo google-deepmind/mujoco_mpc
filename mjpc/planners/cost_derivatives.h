@@ -54,7 +54,7 @@ class CostDerivatives {
                int dim_action, int dim_max, int num_sensors, int num_residual,
                const int* dim_norm_residual, int num_cost,
                const double* weights, const NormType* norms,
-               const double* parameters, const int* num_num_parameter,
+               const double* parameters, const int* num_norm_parameter,
                double risk, int T, ThreadPool& pool);
 
   std::vector<double> cr;   // norm gradient wrt residual

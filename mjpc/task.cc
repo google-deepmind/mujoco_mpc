@@ -55,7 +55,7 @@ void Task::GetFrom(const mjModel* model) {
 
   // allocate memory
   dim_norm_residual.resize(kMaxCostTerms);
-  num_num_parameter.resize(kMaxCostTerms);
+  num_norm_parameter.resize(kMaxCostTerms);
   norm.resize(kMaxCostTerms);
   weight.resize(kMaxCostTerms);
   num_parameter.resize(2 * kMaxCostTerms);
@@ -73,6 +73,9 @@ void Task::GetFrom(const mjModel* model) {
                      5) == 0) {
       num_trace += 1;
     }
+  }
+  if (num_trace > kMaxTraces) {
+    mju_error("Number of traces should be less than 100\n");
   }
 
   // loop over sensors
@@ -93,10 +96,10 @@ void Task::GetFrom(const mjModel* model) {
       }
       norm[num_cost] = (NormType)s[0];
       weight[num_cost] = s[1];
-      num_num_parameter[num_cost] = NormParameterDimension(s[0]);
+      num_norm_parameter[num_cost] = NormParameterDimension(s[0]);
       mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
-               num_num_parameter[num_cost]);
-      parameter_shift += num_num_parameter[num_cost];
+               num_norm_parameter[num_cost]);
+      parameter_shift += num_norm_parameter[num_cost];
       num_cost += 1;
 
       // check for max norms
@@ -125,7 +128,7 @@ void Task::CostTerms(double* terms, const double* residual) const {
     f_shift += dim_norm_residual[k];
 
     // shift parameters
-    p_shift += num_num_parameter[k];
+    p_shift += num_norm_parameter[k];
   }
 }
 

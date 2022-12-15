@@ -48,6 +48,7 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
   // interpolation
   // feedback gains ((T - 1) * dim_action * dim_state_derivative)
   feedback_gain_scratch.resize(model->nu * (2 * model->nv + model->na));
+  
   // state interpolation (dim_state_derivative)
   state_interp.resize(model->nq + model->nv + model->na);
 

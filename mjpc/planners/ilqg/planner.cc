@@ -68,7 +68,7 @@ void iLQGPlanner::Allocate() {
   // candidate trajectories
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(dim_state, dim_action, task->num_residual,
-                             kMaxTrajectoryHorizon);
+                             task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
@@ -187,7 +187,8 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // compute model and sensor Jacobians
     model_derivative.Compute(
         model, data_, candidate_policy[0].trajectory.states.data(),
-        candidate_policy[0].trajectory.actions.data(), dim_state,
+        candidate_policy[0].trajectory.actions.data(),
+        candidate_policy[0].trajectory.times.data(), dim_state,
         dim_state_derivative, dim_action, dim_sensor, horizon,
         settings.fd_tolerance, settings.fd_mode, pool);
 
@@ -206,9 +207,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         candidate_policy[0].trajectory.residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
         dim_state_derivative, dim_action, dim_max, dim_sensor,
-        task->num_residual, task->dim_norm_residual.data(), task->num_norms,
-        task->weight.data(), task->norm.data(), task->norm_parameters.data(),
-        task->num_norm_parameters.data(), task->risk, horizon, pool);
+        task->num_residual, task->dim_norm_residual.data(), task->num_cost,
+        task->weight.data(), task->norm.data(), task->num_parameter.data(),
+        task->num_norm_parameter.data(), task->risk, horizon, pool);
 
     // end timer
     cost_derivative_time +=
@@ -490,8 +491,8 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
 
       // policy
       auto feedback_policy = [&candidate_policy = candidate_policy, model, i](
-                              double* action, const double* state,
-                              int index) {
+                                 double* action, const double* state,
+                                 int index) {
         // dimensions
         int dim_state = model->nq + model->nv + model->na;
         int dim_state_derivative = 2 * model->nv + model->na;

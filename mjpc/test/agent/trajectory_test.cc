@@ -26,7 +26,7 @@ TEST(TrajectoryTest, Reset) {
   Trajectory trajectory;
 
   // allocate
-  trajectory.Initialize(2, 2, 2, 2);
+  trajectory.Initialize(2, 2, 2, 1, 2);
   trajectory.Allocate(2);
 
   // fill
@@ -58,9 +58,9 @@ TEST(TrajectoryTest, Copy) {
   Trajectory trajectory_copy;
 
   // allocate
-  trajectory.Initialize(2, 2, 2, 2);
+  trajectory.Initialize(2, 2, 2, 1, 2);
   trajectory.Allocate(2);
-  trajectory_copy.Initialize(2, 2, 2, 2);
+  trajectory_copy.Initialize(2, 2, 2, 1, 2);
   trajectory_copy.Allocate(2);
 
   // fill

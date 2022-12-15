@@ -177,7 +177,7 @@ As mentioned above, the cost is a sum of terms, each computed as a (scalar) norm
 - `weight_lower_bound`, `weight_upper_bound`: Real numbers specifying lower and upper bounds on $\text{weight}$, used for configuring the GUI slider.
 - `parameters`: Optional real numbers specifying $\text{norm}$-specific parameters, see [norm implementation](../mjpc/norm.cc).
 
-The user sensors defining the residuals should be declared first. Therefore, all sensors should be defined in the task file. After the cost terms are specified, more sensors can be defined to specify the task, e.g., when the residual implementation relies on reading a sensor value. If a sensor named `trace` exists, the GUI will use it to draw the traces of the tentative and nominal trajectories.
+The user sensors defining the residuals should be declared first. Therefore, all sensors should be defined in the task file. After the cost terms are specified, more sensors can be defined to specify the task, e.g., when the residual implementation relies on reading a sensor value. If a sensor named `trace%i` exists, the GUI will use it to draw the traces of the tentative and nominal trajectories.
 
 Computing the residual vectors is specified via a C++ function with the following interface:
 
@@ -204,7 +204,7 @@ As an example, consider these snippets specifying the Swimmer task:
 <sensor>
   <user name="Control" dim="5" user="0 0.1 0 0.1" />
   <user name="Distance" dim="2" user="2 30 0 100 0.04" />
-  <framepos name="trace" objtype="geom" objname="nose"/>
+  <framepos name="trace0" objtype="geom" objname="nose"/>
   <framepos name="nose" objtype="geom" objname="nose"/>
   <framepos name="target" objtype="body" objname="target"/>
 </sensor>

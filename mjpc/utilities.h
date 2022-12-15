@@ -27,6 +27,9 @@
 
 namespace mjpc {
 
+// maximum number of traces that are visualized
+inline constexpr int kMaxTraces = 99;
+
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state);
 
@@ -60,6 +63,9 @@ void Clamp(double* x, const double* bounds, int n);
 // get sensor data using string
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name);
+
+// get traces from sensors
+void GetTraces(double* traces, const mjModel* m, const mjData* d, int num_trace);
 
 // get keyframe data using string
 double* KeyFrameByName(const mjModel* m, const mjData* d,

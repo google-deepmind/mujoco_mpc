@@ -29,11 +29,12 @@ inline constexpr double kMaxReturnValue = 1.0e6;
 
 // initialize dimensions
 void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
-                            int horizon) {
+                            int num_trace, int horizon) {
   this->horizon = horizon;
   this->dim_state = dim_state;
   this->dim_action = dim_action;
   this->dim_feature = dim_residual;
+  this->dim_trace = 3 * num_trace;
   this->failure = false;
 }
 
@@ -55,7 +56,7 @@ void Trajectory::Allocate(int T) {
   times.resize(T);
 
   // traces
-  trace.resize(3 * T);
+  trace.resize(dim_trace * T);
 }
 
 // reset memory to zeros
@@ -76,7 +77,7 @@ void Trajectory::Reset(int T) {
   failure = false;
 
   // traces
-  std::fill(trace.begin(), trace.begin() + 3 * T, 0.0);
+  std::fill(trace.begin(), trace.begin() + dim_trace * T, 0.0);
 }
 
 // simulate model forward in time with continuous-time indexed policy
@@ -118,8 +119,7 @@ void Trajectory::Rollout(
   task->Residuals(model, data, residual.data());
 
   // initial trace
-  double* tr = SensorByName(model, data, "trace");
-  if (tr) mju_copy(trace.data(), tr, 3);
+  GetTraces(trace.data(), model, data, task->num_trace);
 
   for (int t = 1; t < horizon - 1; t++) {
     // step2
@@ -151,8 +151,7 @@ void Trajectory::Rollout(
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
 
     // record trace
-    tr = SensorByName(model, data, "trace");
-    if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
+    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data, task->num_trace);
   }
 
   // final step2
@@ -188,8 +187,7 @@ void Trajectory::Rollout(
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
-  tr = SensorByName(model, data, "trace");
-  if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
+  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data, task->num_trace);
 
   // compute return
   UpdateReturn(task);
@@ -234,8 +232,8 @@ void Trajectory::RolloutDiscrete(
   task->Residuals(model, data, residual.data());
 
   // initial trace
-  double* tr = SensorByName(model, data, "trace");
-  if (tr) mju_copy(trace.data(), tr, 3);
+  GetTraces(trace.data(), model, data, task->num_trace);
+
 
   for (int t = 1; t < horizon - 1; t++) {
     // step2
@@ -267,8 +265,7 @@ void Trajectory::RolloutDiscrete(
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
 
     // record trace
-    tr = SensorByName(model, data, "trace");
-    if (tr) mju_copy(DataAt(trace, t * 3), tr, 3);
+    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data, task->num_trace);
   }
 
   // final step2
@@ -304,8 +301,7 @@ void Trajectory::RolloutDiscrete(
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
-  tr = SensorByName(model, data, "trace");
-  if (tr) mju_copy(DataAt(trace, (horizon - 1) * 3), tr, 3);
+  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data, task->num_trace);
 
   // compute return
   UpdateReturn(task);

@@ -44,19 +44,20 @@ void ModelDerivatives::Reset(int dim_state_derivative, int dim_action,
 // compute derivatives at all time steps
 void ModelDerivatives::Compute(const mjModel* m,
                                const std::vector<UniqueMjData>& data,
-                               const double* x, const double* u, int dim_state,
-                               int dim_state_derivative, int dim_action,
+                               const double* x, const double* u, const double* h,
+                               int dim_state, int dim_state_derivative, int dim_action,
                                int dim_sensor, int T, double tol, int mode,
                                ThreadPool& pool) {
   {
     int count_before = pool.GetCount();
     for (int t = 0; t < T; t++) {
-      pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u,
+      pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &h,
                      dim_state, dim_state_derivative, dim_action, dim_sensor,
                      tol, mode, t, T]() {
         mjData* d = data[ThreadPool::WorkerId()].get();
         // set state
         SetState(m, d, x + t * dim_state);
+        d->time = h[t];
 
         // Jacobians
         if (t == T - 1) {

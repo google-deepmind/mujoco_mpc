@@ -112,25 +112,25 @@ double CostDerivatives::DerivativeStep(
 void CostDerivatives::Compute(double* r, double* rx, double* ru,
                               int dim_state_derivative, int dim_action,
                               int dim_max, int num_sensors, int num_residual,
-                              const int* dim_norm_residual, int num_norms,
+                              const int* dim_norm_residual, int num_cost,
                               const double* weights, const NormType* norms,
                               const double* parameters,
-                              const int* num_norm_parameters, double risk,
+                              const int* num_norm_parameter, double risk,
                               int T, ThreadPool& pool) {
   // reset
   this->Reset(dim_state_derivative, dim_action, num_residual, T);
   {
     int count_before = pool.GetCount();
     for (int t = 0; t < T; t++) {
-      pool.Schedule([&cd = *this, &r, &rx, &ru, num_norms, num_residual,
+      pool.Schedule([&cd = *this, &r, &rx, &ru, num_cost, num_residual,
                      &dim_norm_residual, &weights, &norms, &parameters,
-                     &num_norm_parameters, risk, num_sensors,
+                     &num_norm_parameter, risk, num_sensors,
                      dim_state_derivative, dim_action, dim_max, t, T]() {
         // ----- term derivatives ----- //
         int f_shift = 0;
         int p_shift = 0;
         double c = 0.0;
-        for (int i = 0; i < num_norms; i++) {
+        for (int i = 0; i < num_cost; i++) {
           c += cd.DerivativeStep(
               DataAt(cd.cx, t * dim_state_derivative),
               DataAt(cd.cu, t * dim_action),
@@ -154,7 +154,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
               weights[i] / T, parameters + p_shift, norms[i]);
 
           f_shift += dim_norm_residual[i];
-          p_shift += num_norm_parameters[i];
+          p_shift += num_norm_parameter[i];
         }
 
         // ----- risk transformation ----- //

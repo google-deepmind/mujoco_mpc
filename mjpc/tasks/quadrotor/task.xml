@@ -35,7 +35,7 @@
     <user name="Lin. Vel." dim="3" user="0 0.3 0.0 5.0"/>
     <user name="Ang. Vel." dim="3" user="0 0.3 0.0 5.0"/>
     <user name="Control" dim="4" user="0 1.0e-2 0.0 1.0"/>
-    <framepos name="trace" objtype="body" objname="quadrotor"/>
+    <framepos name="trace0" objtype="body" objname="quadrotor"/>
     <framepos name="position" objtype="body" objname="quadrotor"/>
     <framequat name="orientation" objtype="body" objname="quadrotor"/>
     <framelinvel name="linear_velocity" objtype="body" objname="quadrotor"/>

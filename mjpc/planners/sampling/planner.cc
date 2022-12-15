@@ -79,7 +79,7 @@ void SamplingPlanner::Allocate() {
   // trajectory and parameters
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectories[i].Initialize(num_state, model->nu, task->num_residual,
-                               kMaxTrajectoryHorizon);
+                               task->num_trace, kMaxTrajectoryHorizon);
     trajectories[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
@@ -371,20 +371,22 @@ void SamplingPlanner::Traces(mjvScene* scn) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom >= scn->maxgeom) continue;
-      // initialize geometry
-      mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
-                   color);
+      for (int j = 0; j < task->num_trace; j++) {
+        // initialize geometry
+        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
+                    color);
 
-      // make geometry
-      mjv_makeConnector(
-          &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-          trajectories[k].trace[3 * i], trajectories[k].trace[3 * i + 1],
-          trajectories[k].trace[3 * i + 2], trajectories[k].trace[3 * (i + 1)],
-          trajectories[k].trace[3 * (i + 1) + 1],
-          trajectories[k].trace[3 * (i + 1) + 2]);
+        // make geometry
+        mjv_makeConnector(
+            &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
+            trajectories[k].trace[3 * task->num_trace * i + 3 * j], trajectories[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * i + 2 + 3 * j], trajectories[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
-      // increment number of geometries
-      scn->ngeom += 1;
+        // increment number of geometries
+        scn->ngeom += 1;
+      }
     }
   }
 }

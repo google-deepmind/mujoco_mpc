@@ -117,7 +117,7 @@ void Agent::Allocate() {
 
   // cost
   residual_.resize(task_.num_residual);
-  terms_.resize(task_.num_norms * kMaxTrajectoryHorizon);
+  terms_.resize(task_.num_cost * kMaxTrajectoryHorizon);
 }
 
 // reset data, settings, planners, states
@@ -239,23 +239,29 @@ void Agent::ModifyScene(mjvScene* scn) {
 
   // policy
   for (int i = 0; i < winner->horizon - 1; i++) {
-    // check max geoms
-    if (scn->ngeom >= scn->maxgeom) {
-      continue;
+    for (int j = 0; j < task_.num_trace; j++) {
+      // check max geoms
+      if (scn->ngeom >= scn->maxgeom) {
+        printf("max geom!!!\n");
+        continue;
+      }
+
+      // initialize geometry
+      mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, zero3, zero3, zero9,
+                  color);
+
+      // make geometry
+      mjv_makeConnector(
+          &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
+          winner->trace[3 * task_.num_trace * i + 3 * j],
+          winner->trace[3 * task_.num_trace * i + 1 + 3 * j],
+          winner->trace[3 * task_.num_trace * i + 2 + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 1 + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 2 + 3 * j]);
+      // increment number of geometries
+      scn->ngeom += 1;
     }
-
-    // initialize geometry
-    mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, zero3, zero3, zero9,
-                 color);
-
-    // make geometry
-    mjv_makeConnector(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-                      winner->trace[3 * i], winner->trace[3 * i + 1],
-                      winner->trace[3 * i + 2], winner->trace[3 * (i + 1)],
-                      winner->trace[3 * (i + 1) + 1],
-                      winner->trace[3 * (i + 1) + 2]);
-    // increment number of geometries
-    scn->ngeom += 1;
   }
 
   // sample traces
@@ -277,9 +283,9 @@ void Agent::Gui(mjUI& ui) {
   mjui_add(&ui, defTask);
 
   // norm weights
-  if (task_.num_norms) {
+  if (task_.num_cost) {
     mjuiDef defNormWeight[kMaxCostTerms + 1];
-    for (int i = 0; i < task_.num_norms; i++) {
+    for (int i = 0; i < task_.num_cost; i++) {
       // element
       defNormWeight[i] = {mjITEM_SLIDERNUM, "weight", 2,
                           DataAt(task_.weight, i), "0 1"};
@@ -293,7 +299,7 @@ void Agent::Gui(mjUI& ui) {
       mju::sprintf_arr(defNormWeight[i].other, "%f %f", s[2], s[3]);
     }
 
-    defNormWeight[task_.num_norms] = {mjITEM_END};
+    defNormWeight[task_.num_cost] = {mjITEM_END};
     mjui_add(&ui, defNormWeight);
   }
 
@@ -476,16 +482,16 @@ void Agent::PlotInitialize() {
   plots_.cost.linergb[3][0] = 1.0f;
   plots_.cost.linergb[3][1] = 1.0f;
   plots_.cost.linergb[3][2] = 1.0f;
-  for (int i = 0; i < task_.num_norms; i++) {
+  for (int i = 0; i < task_.num_cost; i++) {
     // history
     plots_.cost.linergb[4 + i][0] = CostColors[i][0];
     plots_.cost.linergb[4 + i][1] = CostColors[i][1];
     plots_.cost.linergb[4 + i][2] = CostColors[i][2];
 
     // prediction
-    plots_.cost.linergb[4 + task_.num_norms + i][0] = 0.9 * CostColors[i][0];
-    plots_.cost.linergb[4 + task_.num_norms + i][1] = 0.9 * CostColors[i][1];
-    plots_.cost.linergb[4 + task_.num_norms + i][2] = 0.9 * CostColors[i][2];
+    plots_.cost.linergb[4 + task_.num_cost + i][0] = 0.9 * CostColors[i][0];
+    plots_.cost.linergb[4 + task_.num_cost + i][1] = 0.9 * CostColors[i][1];
+    plots_.cost.linergb[4 + task_.num_cost + i][2] = 0.9 * CostColors[i][2];
   }
 
   // history of control
@@ -557,7 +563,7 @@ void Agent::PlotInitialize() {
 // reset plot data to zeros
 void Agent::PlotReset() {
   // cost reset
-  for (int k = 0; k < 4 + 2 * task_.num_norms; k++) {
+  for (int k = 0; k < 4 + 2 * task_.num_cost; k++) {
     PlotResetData(&plots_.cost, 1000, k);
   }
 
@@ -603,7 +609,7 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // compute individual costs
   for (int t = 0; t < winner->horizon; t++) {
-    task_.CostTerms(DataAt(terms_, t * task_.num_norms),
+    task_.CostTerms(DataAt(terms_, t * task_.num_cost),
                     DataAt(winner->residual, t * task_.num_residual));
   }
 
@@ -628,21 +634,21 @@ void Agent::Plots(const mjData* data, int shift) {
   mju::strcpy_arr(plots_.cost.linename[0], "Total Cost");
 
   // plot costs
-  for (int k = 0; k < task_.num_norms; k++) {
+  for (int k = 0; k < task_.num_cost; k++) {
     // current residual
     if (shift) {
       PlotUpdateData(&plots_.cost, cost_bounds, data->time, terms_[k], 1000,
                      4 + k, 1, 1, time_lower_bound);
     }
     // legend
-    mju::strcpy_arr(plots_.cost.linename[4 + task_.num_norms + k],
+    mju::strcpy_arr(plots_.cost.linename[4 + task_.num_cost + k],
                     model_->names + model_->name_sensoradr[k]);
   }
 
   // predicted residual
   PlotData(&plots_.cost, cost_bounds, winner->times.data(), terms_.data(),
-           task_.num_norms, task_.num_norms, winner->horizon,
-           4 + task_.num_norms, time_lower_bound);
+           task_.num_cost, task_.num_cost, winner->horizon,
+           4 + task_.num_cost, time_lower_bound);
 
   // vertical lines at current time and agent time
   PlotVertical(&plots_.cost, data->time, cost_bounds[0], cost_bounds[1], 10, 1);

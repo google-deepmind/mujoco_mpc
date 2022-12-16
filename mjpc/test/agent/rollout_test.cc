@@ -70,7 +70,7 @@ TEST(RolloutTest, Particle) {
   Trajectory trajectory;
   int horizon = 100;
   trajectory.Initialize(model->nq + model->nv, model->nu, num_residual,
-                        horizon);
+                        1, horizon);
   trajectory.Allocate(horizon);
 
   // ----- rollout ----- //

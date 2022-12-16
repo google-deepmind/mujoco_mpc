@@ -79,7 +79,7 @@ void SamplingPlanner::Allocate() {
   // trajectory and parameters
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectories[i].Initialize(num_state, model->nu, task->num_residual,
-                               kMaxTrajectoryHorizon);
+                               task->num_trace, kMaxTrajectoryHorizon);
     trajectories[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
@@ -150,7 +150,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy nominal policy
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
-    policy.num_parameters = model->nu * policy.num_spline_points; // set
+    policy.num_parameters = model->nu * policy.num_spline_points;  // set
     candidate_policy[0].CopyFrom(policy, policy.num_spline_points);
   }
 
@@ -248,8 +248,8 @@ void SamplingPlanner::ResamplePolicy(int horizon) {
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
-    candidate_policy[0].Action(DataAt(parameters_scratch, t * model->nu), nullptr,
-                  nominal_time);
+    candidate_policy[0].Action(DataAt(parameters_scratch, t * model->nu),
+                               nullptr, nominal_time);
     nominal_time += time_shift;
   }
 
@@ -257,9 +257,10 @@ void SamplingPlanner::ResamplePolicy(int horizon) {
   candidate_policy[0].CopyParametersFrom(parameters_scratch, times_scratch);
 
   // time power transformation
-  PowerSequence(candidate_policy[0].times.data(), time_shift, candidate_policy[0].times[0],
-                candidate_policy[0].times[num_spline_points - 1], timestep_power,
-                num_spline_points);
+  PowerSequence(candidate_policy[0].times.data(), time_shift,
+                candidate_policy[0].times[0],
+                candidate_policy[0].times[num_spline_points - 1],
+                timestep_power, num_spline_points);
 }
 
 // add random noise to nominal policy
@@ -371,20 +372,24 @@ void SamplingPlanner::Traces(mjvScene* scn) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom >= scn->maxgeom) continue;
-      // initialize geometry
-      mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
-                   color);
+      for (int j = 0; j < task->num_trace; j++) {
+        // initialize geometry
+        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
+                    color);
 
-      // make geometry
-      mjv_makeConnector(
-          &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-          trajectories[k].trace[3 * i], trajectories[k].trace[3 * i + 1],
-          trajectories[k].trace[3 * i + 2], trajectories[k].trace[3 * (i + 1)],
-          trajectories[k].trace[3 * (i + 1) + 1],
-          trajectories[k].trace[3 * (i + 1) + 2]);
+        // make geometry
+        mjv_makeConnector(
+            &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
+            trajectories[k].trace[3 * task->num_trace * i + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectories[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
-      // increment number of geometries
-      scn->ngeom += 1;
+        // increment number of geometries
+        scn->ngeom += 1;
+      }
     }
   }
 }

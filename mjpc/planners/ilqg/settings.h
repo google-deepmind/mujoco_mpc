@@ -19,16 +19,16 @@ namespace mjpc {
 
 // iLQG settings
 struct iLQGSettings {
-  int max_rollout = 1;           // maximum number of planner iterations
-  double min_step_size = 1.0e-3; // minimum step size for line search
-  double fd_tolerance = 1.0e-6;  // finite difference tolerance
+  int max_rollout = 1;            // maximum number of planner iterations
+  double min_step_size = 1.0e-3;  // minimum step size for line search
+  double fd_tolerance = 1.0e-6;   // finite difference tolerance
   double fd_mode = 0;  // type of finite difference; 0: one-sided, 1: centered
   double min_regularization = 1.0e-6;  // minimum regularization value
   double max_regularization = 1.0e6;   // maximum regularization value
-  int regularization_type = 0;         // 0: control; 1: feedback; 2: value; 3: none
+  int regularization_type = 0;  // 0: control; 1: feedback; 2: value; 3: none
   int max_regularization_iter =
       5;  // maximum number of regularization updates per iteration
-  int action_limits = 0;  // flag
+  int action_limits = 1;  // flag
   int verbose = 0;        // print optimizer info
 };
 

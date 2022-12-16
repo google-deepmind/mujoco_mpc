@@ -20,7 +20,7 @@
     <user name="Height" dim="1" user="0 10.0 0.0 10.0" />
     <user name="Rotation" dim="1" user="0 3.0 0.0 5.0" />
     <user name="Speed" dim="1" user="0 1.0 0.0 1.0" />
-    <framepos      name="trace" objtype="site" objname="torso_site"/>
+    <framepos      name="trace0" objtype="site" objname="torso_site"/>
     <framepos      name="torso_position" objtype="xbody" objname="torso"/>
     <subtreecom    name="torso_subtreecom" body="torso"/>
     <subtreelinvel name="torso_subtreelinvel" body="torso"/>

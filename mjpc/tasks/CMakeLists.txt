@@ -14,4 +14,10 @@
 
 # Copy the model files to the binary directory to make them available to the
 # built binary.
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${CMAKE_BINARY_DIR})
+add_custom_target(copy_resources ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Copying tasks into binary directory")
+
+add_dependencies(mjpc copy_resources)

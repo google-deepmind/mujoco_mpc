@@ -14,10 +14,9 @@
 
 #include "planners/ilqg/policy.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 
+#include <mujoco/mujoco.h>
 #include "task.h"
 #include "trajectory.h"
 #include "utilities.h"
@@ -31,7 +30,8 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
 
   // reference trajectory
   trajectory.Initialize(model->nq + model->nv + model->na, model->nu,
-                        task.num_residual, kMaxTrajectoryHorizon);
+                        task.num_residual, task.num_trace,
+                        kMaxTrajectoryHorizon);
   trajectory.Allocate(kMaxTrajectoryHorizon);
 
   // feedback gains
@@ -48,6 +48,7 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
   // interpolation
   // feedback gains ((T - 1) * dim_action * dim_state_derivative)
   feedback_gain_scratch.resize(model->nu * (2 * model->nv + model->na));
+
   // state interpolation (dim_state_derivative)
   state_interp.resize(model->nq + model->nv + model->na);
 

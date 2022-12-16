@@ -28,6 +28,7 @@
 // DEEPMIND INTERNAL IMPORT
 #include <absl/strings/str_cat.h>
 #include <mujoco/mujoco.h>
+#include "array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
 #include <thread>
@@ -87,6 +88,26 @@ double* SensorByName(const mjModel* m, const mjData* d,
     return nullptr;
   } else {
     return d->sensordata + m->sensor_adr[id];
+  }
+}
+
+// get traces from sensors
+void GetTraces(double* traces, const mjModel* m, const mjData* d,
+               int num_trace) {
+  if (num_trace > kMaxTraces) {
+    mju_error("Number of traces should be less than 100\n");
+  }
+  if (num_trace == 0) {
+    return;
+  }
+
+  // allocate string
+  char str[7];
+  for (int i = 0; i < num_trace; i++) {
+    // set trace id
+    mujoco::util_mjpc::sprintf_arr(str, "trace%i", i);
+    double* trace = SensorByName(m, d, str);
+    if (trace) mju_copy(traces + 3 * i, trace, 3);
   }
 }
 

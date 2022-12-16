@@ -176,13 +176,13 @@ TEST(UtilitiesTest, ByName) {
 
   // get invalid keyframe
   double* k0;
-  k0 = KeyFrameByName(model, data, "invalid");
+  k0 = KeyQPosByName(model, data, "invalid");
 
   EXPECT_EQ(k0, nullptr);
 
   // get "home" keyframe
   double* k1;
-  k1 = KeyFrameByName(model, data, "home");
+  k1 = KeyQPosByName(model, data, "home");
 
   EXPECT_NEAR(k1[0], 1.0, 1.0e-5);
   EXPECT_NEAR(k1[1], 2.0, 1.0e-5);

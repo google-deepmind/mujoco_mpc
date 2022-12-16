@@ -1175,8 +1175,8 @@ void uiEvent(mjuiState* state) {
           sensorupdate(sim);
           updatesettings(sim);
           // set initial configuration via keyframe
-          double* qpos_key = mjpc::KeyFrameByName(sim->mnew, sim->dnew,
-                                                   "home");
+          double* qpos_key = mjpc::KeyQPosByName(sim->mnew, sim->dnew,
+                                                 "home");
           if (qpos_key) {
             mju_copy(sim->dnew->qpos, qpos_key, sim->mnew->nq);
           }

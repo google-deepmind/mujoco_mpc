@@ -1174,12 +1174,19 @@ void uiEvent(mjuiState* state) {
           profilerupdate(sim);
           sensorupdate(sim);
           updatesettings(sim);
-          // set initial configuration via keyframe
-          double* qpos_key = mjpc::KeyQPosByName(sim->mnew, sim->dnew,
+          // set initial qpos via keyframe
+          double* key_qpos = mjpc::KeyQPosByName(sim->mnew, sim->dnew,
                                                  "home");
-          if (qpos_key) {
-            mju_copy(sim->dnew->qpos, qpos_key, sim->mnew->nq);
+          if (key_qpos) {
+            mju_copy(sim->dnew->qpos, key_qpos, sim->mnew->nq);
           }
+          // set initial qvel via keyframe
+          double* key_qvel = mjpc::KeyQVelByName(sim->mnew, sim->dnew,
+                                                 "home");
+          if (key_qvel) {
+            mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
+          }
+
           sim->agent.PlotReset();
         }
         break;

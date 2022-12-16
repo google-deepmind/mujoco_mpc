@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/deepmind/mujoco_mpc/actions/workflows/build.yml?query=branch%3Amain" alt="GitHub Actions">
-    <img src="https://img.shields.io/github/workflow/status/deepmind/mujoco_mpc/build/main">
+    <img src="https://img.shields.io/github/actions/workflow/status/deepmind/mujoco_mpc/build.yml?branch=main">
   </a>
   <a href="https://github.com/deepmind/mujoco_mpc/blob/main/LICENSE" alt="License">
     <img src="https://img.shields.io/github/license/deepmind/mujoco_mpc">

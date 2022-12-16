@@ -38,7 +38,8 @@ class Trajectory {
   // ----- methods -----//
 
   // initialize trajectory dimensions
-  void Initialize(int dim_state, int dim_action, int dim_residual, int num_trace, int horizon);
+  void Initialize(int dim_state, int dim_action, int dim_residual,
+                  int num_trace, int horizon);
 
   // allocate memory
   void Allocate(int T);

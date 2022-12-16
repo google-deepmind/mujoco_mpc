@@ -1,7 +1,7 @@
 <mujoco model="Cart-Pole Swing-Up">
   <include file="cartpole.xml" />
 
-  <size nuserdata="1" memory="40K"/>
+  <size memory="40K"/>
 
   <custom>
     <numeric name="agent_planner" data="0" />

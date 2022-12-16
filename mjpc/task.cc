@@ -14,10 +14,9 @@
 
 #include "task.h"
 
-#include <mujoco/mujoco.h>
-
 #include <cstring>
 
+#include <mujoco/mujoco.h>
 #include "utilities.h"
 
 namespace mjpc {
@@ -104,8 +103,9 @@ void Task::GetFrom(const mjModel* model) {
 
       // check for max norms
       if (num_cost > kMaxCostTerms) {
-        mju_error("Number of cost terms exceeds maximum. Either: 1) reduce number of "
-                  "terms 2) increase kMaxCostTerms");
+        mju_error(
+            "Number of cost terms exceeds maximum. Either: 1) reduce number of "
+            "terms 2) increase kMaxCostTerms");
       }
     }
   }

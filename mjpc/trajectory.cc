@@ -151,7 +151,8 @@ void Trajectory::Rollout(
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
 
     // record trace
-    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data, task->num_trace);
+    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
+              task->num_trace);
   }
 
   // final step2
@@ -187,7 +188,8 @@ void Trajectory::Rollout(
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
-  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data, task->num_trace);
+  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
+            task->num_trace);
 
   // compute return
   UpdateReturn(task);
@@ -265,7 +267,8 @@ void Trajectory::RolloutDiscrete(
     task->Residuals(model, data, DataAt(residual, t * dim_feature));
 
     // record trace
-    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data, task->num_trace);
+    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
+              task->num_trace);
   }
 
   // final step2
@@ -301,7 +304,8 @@ void Trajectory::RolloutDiscrete(
   task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
 
   // final trace
-  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data, task->num_trace);
+  GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
+            task->num_trace);
 
   // compute return
   UpdateReturn(task);

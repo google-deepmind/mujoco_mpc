@@ -177,15 +177,20 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
         mju_scl(DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),
                 DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),
                 s, dim_state_derivative * dim_state_derivative);
-        mju_mulMatMat(DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative),
+        mju_mulMatMat(DataAt(cd.cxx_scratch_,
+                             t * dim_state_derivative * dim_state_derivative),
                       DataAt(cd.cx, t * dim_state_derivative),
                       DataAt(cd.cx, t * dim_state_derivative),
                       dim_state_derivative, 1, dim_state_derivative);
-        mju_scl(DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative), DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative), risk * s,
-                dim_state_derivative * dim_state_derivative);
+        mju_scl(DataAt(cd.cxx_scratch_,
+                       t * dim_state_derivative * dim_state_derivative),
+                DataAt(cd.cxx_scratch_,
+                       t * dim_state_derivative * dim_state_derivative),
+                risk * s, dim_state_derivative * dim_state_derivative);
         mju_addTo(
             DataAt(cd.cxx, t * dim_state_derivative * dim_state_derivative),
-            DataAt(cd.cxx_scratch_, t * dim_state_derivative * dim_state_derivative),
+            DataAt(cd.cxx_scratch_,
+                   t * dim_state_derivative * dim_state_derivative),
             dim_state_derivative * dim_state_derivative);
 
         // cxu
@@ -193,23 +198,30 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
                 DataAt(cd.cxu, t * dim_state_derivative * dim_action), s,
                 dim_state_derivative * dim_action);
         mju_mulMatMat(
-            DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action), DataAt(cd.cx, t * dim_state_derivative),
+            DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action),
+            DataAt(cd.cx, t * dim_state_derivative),
             DataAt(cd.cu, t * dim_action), dim_state_derivative, 1, dim_action);
-        mju_scl(DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action), DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action), risk * s,
-                dim_state_derivative * dim_action);
-        mju_addTo(DataAt(cd.cxu, t * dim_state_derivative * dim_action),
-                  DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action), dim_state_derivative * dim_action);
+        mju_scl(DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action),
+                DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action),
+                risk * s, dim_state_derivative * dim_action);
+        mju_addTo(
+            DataAt(cd.cxu, t * dim_state_derivative * dim_action),
+            DataAt(cd.cxu_scratch_, t * dim_state_derivative * dim_action),
+            dim_state_derivative * dim_action);
 
         // cuu
         mju_scl(DataAt(cd.cuu, t * dim_action * dim_action),
                 DataAt(cd.cuu, t * dim_action * dim_action), s,
                 dim_action * dim_action);
-        mju_mulMatMat(DataAt(cd.cuu_scratch_, t * dim_action * dim_action), DataAt(cd.cu, t * dim_action),
+        mju_mulMatMat(DataAt(cd.cuu_scratch_, t * dim_action * dim_action),
+                      DataAt(cd.cu, t * dim_action),
                       DataAt(cd.cu, t * dim_action), dim_action, 1, dim_action);
-        mju_scl(DataAt(cd.cuu_scratch_, t * dim_action * dim_action), DataAt(cd.cuu_scratch_, t * dim_action * dim_action), risk * s,
+        mju_scl(DataAt(cd.cuu_scratch_, t * dim_action * dim_action),
+                DataAt(cd.cuu_scratch_, t * dim_action * dim_action), risk * s,
                 dim_action * dim_action);
         mju_addTo(DataAt(cd.cuu, t * dim_action * dim_action),
-                  DataAt(cd.cuu_scratch_, t * dim_action * dim_action), dim_action * dim_action);
+                  DataAt(cd.cuu_scratch_, t * dim_action * dim_action),
+                  dim_action * dim_action);
       });
     }
     pool.WaitCount(count_before + T);

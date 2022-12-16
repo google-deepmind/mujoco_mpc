@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "array_safety.h"
 #include "utilities.h"
 
 #include <cerrno>
@@ -29,6 +28,7 @@
 // DEEPMIND INTERNAL IMPORT
 #include <absl/strings/str_cat.h>
 #include <mujoco/mujoco.h>
+#include "array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
 #include <thread>
@@ -92,7 +92,8 @@ double* SensorByName(const mjModel* m, const mjData* d,
 }
 
 // get traces from sensors
-void GetTraces(double* traces, const mjModel* m, const mjData* d, int num_trace) {
+void GetTraces(double* traces, const mjModel* m, const mjData* d,
+               int num_trace) {
   if (num_trace > kMaxTraces) {
     mju_error("Number of traces should be less than 100\n");
   }

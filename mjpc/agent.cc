@@ -44,9 +44,6 @@ void Agent::Initialize(mjModel* model, mjData* data,
                        ResidualFunction* residual,
                        TransitionFunction* transition) {
   // ----- model ----- //
-  if (!(model->nuserdata == 1)) {
-    mju_error("Model passed to Agent requires nuserdata == 1\n");
-  }
   if (this->model_) mj_deleteModel(this->model_);
   this->model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
@@ -254,11 +251,14 @@ void Agent::ModifyScene(mjvScene* scn) {
                   color);
 
       // make geometry
-      mjv_makeConnector(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-                        winner->trace[3 * task_.num_trace * i + 3 * j], winner->trace[3 * task_.num_trace * i + 1 + 3 * j],
-                        winner->trace[3 * task_.num_trace * i + 2 + 3 * j], winner->trace[3 * task_.num_trace * (i + 1) + 3 * j],
-                        winner->trace[3 * task_.num_trace * (i + 1) + 1 + 3 * j],
-                        winner->trace[3 * task_.num_trace * (i + 1) + 2 + 3 * j]);
+      mjv_makeConnector(
+          &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
+          winner->trace[3 * task_.num_trace * i + 3 * j],
+          winner->trace[3 * task_.num_trace * i + 1 + 3 * j],
+          winner->trace[3 * task_.num_trace * i + 2 + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 1 + 3 * j],
+          winner->trace[3 * task_.num_trace * (i + 1) + 2 + 3 * j]);
       // increment number of geometries
       scn->ngeom += 1;
     }

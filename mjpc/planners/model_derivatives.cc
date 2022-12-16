@@ -44,8 +44,9 @@ void ModelDerivatives::Reset(int dim_state_derivative, int dim_action,
 // compute derivatives at all time steps
 void ModelDerivatives::Compute(const mjModel* m,
                                const std::vector<UniqueMjData>& data,
-                               const double* x, const double* u, const double* h,
-                               int dim_state, int dim_state_derivative, int dim_action,
+                               const double* x, const double* u,
+                               const double* h, int dim_state,
+                               int dim_state_derivative, int dim_action,
                                int dim_sensor, int T, double tol, int mode,
                                ThreadPool& pool) {
   {

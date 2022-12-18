@@ -9,6 +9,8 @@
 *.o
 *.so
 *.so.*
+# Clang cache
+.cache/
 # Exclude editor config
 .vscode/
 .vs/

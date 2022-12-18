@@ -24,3 +24,5 @@ Info.framework.plist
 __pycache__/
 *.py[cod]
 *$py.class
+# MuJoCo
+MUJOCO_LOG.TXT

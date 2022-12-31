@@ -60,7 +60,7 @@ TEST(iLQGTest, Particle) {
   // State state;
   state.Initialize(model);
   state.Allocate(model);
-  state.Reset(model);
+  state.Reset();
   state.Set(model, data);
 
   // ----- task ----- //

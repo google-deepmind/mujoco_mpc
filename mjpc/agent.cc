@@ -128,7 +128,7 @@ void Agent::Reset() {
   }
 
   for (const auto& state : states_) {
-    state->Reset(model_);
+    state->Reset();
   }
 
   // cost

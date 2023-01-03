@@ -230,7 +230,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           concatenated_task_names << task.name << '\n';
         }
         const auto& task = mjpc::kTasks[sim.agent.task().id];
-        sim.agent.Initialize(m, d, concatenated_task_names.str(),
+        sim.agent.Initialize(m, concatenated_task_names.str(),
                              mjpc::kPlannerNames, task.residual,
                              task.transition);
       }
@@ -500,7 +500,7 @@ int main(int argc, char** argv) {
       concatenated_task_names << task.name << '\n';
     }
     const auto& task = mjpc::kTasks[sim->agent.task().id];
-    sim->agent.Initialize(m, d, concatenated_task_names.str(),
+    sim->agent.Initialize(m, concatenated_task_names.str(),
                           mjpc::kPlannerNames, task.residual,
                           task.transition);
   }

@@ -39,9 +39,8 @@ inline constexpr double kMaxPlanningHorizon = 2.5;
 }  // namespace
 
 // initialize data, settings, planners, states
-void Agent::Initialize(mjModel* model, mjData* data,
-                       const std::string& task_names, const char planner_str[],
-                       ResidualFunction* residual,
+void Agent::Initialize(mjModel* model, const std::string& task_names,
+                       const char planner_str[], ResidualFunction* residual,
                        TransitionFunction* transition) {
   // ----- model ----- //
   if (this->model_) mj_deleteModel(this->model_);

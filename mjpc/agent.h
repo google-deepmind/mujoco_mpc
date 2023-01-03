@@ -51,7 +51,7 @@ class Agent {
   // ----- methods ----- //
 
   // initialize data, settings, planners, states
-  void Initialize(mjModel* model, mjData* data, const std::string& task_names,
+  void Initialize(mjModel* model, const std::string& task_names,
                   const char planner_str[], ResidualFunction* residual,
                   TransitionFunction* transition);
 

@@ -15,6 +15,7 @@
 #include "tasks/quadrotor/quadrotor.h"
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {
@@ -58,7 +59,8 @@ void Quadrotor::Residual(const double* parameters, const mjModel* model,
 }
 
 // ----- Transition for quadrotor task -----
-int Quadrotor::Transition(int state, const mjModel* model, mjData* data) {
+int Quadrotor::Transition(int state, const mjModel* model, mjData* data,
+                          Task* task) {
   int new_state = state;
 
   // goal position

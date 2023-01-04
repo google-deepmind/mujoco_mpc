@@ -16,6 +16,7 @@
 #define MJPC_TASKS_HAND_HAND_H_
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
 struct Hand {
@@ -34,7 +35,8 @@ struct Hand {
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-static int Transition(int state, const mjModel* model, mjData* data);
+  static int Transition(int state, const mjModel* model, mjData* data,
+                        Task* task);
 };
 }  // namespace mjpc
 

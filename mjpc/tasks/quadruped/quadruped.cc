@@ -15,6 +15,7 @@
 #include "tasks/quadruped/quadruped.h"
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {
@@ -77,7 +78,8 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-int Quadruped::Transition(int state, const mjModel* model, mjData* data) {
+int Quadruped::Transition(int state, const mjModel* model, mjData* data,
+                          Task* task) {
   int new_state = state;
 
   // ---------- Compute tolerance ----------

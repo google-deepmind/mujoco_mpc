@@ -16,6 +16,7 @@
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {
@@ -41,7 +42,8 @@ void Swimmer::Residual(const double* parameters, const mjModel* model,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-int Swimmer::Transition(int state, const mjModel* model, mjData* data) {
+int Swimmer::Transition(int state, const mjModel* model, mjData* data,
+                        Task* task) {
   double* target = mjpc::SensorByName(model, data, "target");
   double* nose = mjpc::SensorByName(model, data, "nose");
   double nose_to_target[2];

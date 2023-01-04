@@ -28,9 +28,12 @@ inline constexpr double kRiskNeutralTolerance = 1.0e-6;
 // maximum cost terms
 inline constexpr int kMaxCostTerms = 30;
 
+class Task;
+
 using ResidualFunction = void(const double* parameters, const mjModel* model,
                               const mjData* data, double* residual);
-using TransitionFunction = int(int state, const mjModel* model, mjData* data);
+using TransitionFunction = int(int state, const mjModel* model, mjData* data,
+                               Task* task);
 
 // contains information for computing costs
 class Task {
@@ -91,7 +94,8 @@ class Task {
   TransitionFunction* transition_;
 };
 
-extern int NullTransition(int state, const mjModel* model, mjData* data);
+extern int NullTransition(int state, const mjModel* model, mjData* data,
+                          Task* task);
 
 struct TaskDefinition {
   const char* name;

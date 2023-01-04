@@ -69,6 +69,11 @@
       <default class="elbow">
         <joint range="-100 50" stiffness="0"/>
       </default>
+
+      <!-- tracking site -->
+      <default class="tracking_site">
+        <site type="sphere" size="0.027" rgba="1 0 0 1" group="3"/>
+      </default>
     </default>
   </default>
 
@@ -83,6 +88,7 @@
       <geom name="waist_upper" fromto="-.01 -.06 -.12 -.01 .06 -.12" size=".06"/>
       <body name="head" pos="0 0 .19">
         <geom name="head" type="sphere" size=".09"/>
+        <site name="tracking[head]" class="tracking_site" pos="0.09 0 0" />
         <camera name="egocentric" pos=".09 0 0" xyaxes="0 -1 0 .1 0 1" fovy="80"/>
       </body>
       <body name="waist_lower" pos="-.01 0 -.26">
@@ -90,15 +96,18 @@
         <joint name="abdomen_z" pos="0 0 .065" axis="0 0 1" range="-45 45" class="joint_big_stiff"/>
         <joint name="abdomen_y" pos="0 0 .065" axis="0 1 0" range="-75 30" class="joint_big"/>
         <body name="pelvis" pos="0 0 -.165">
+          <site name="tracking[pelvis]" class="tracking_site" pos="0 0 0.075" size=".05" />
           <joint name="abdomen_x" pos="0 0 .1" axis="1 0 0" range="-35 35" class="joint_big"/>
           <geom name="butt" fromto="-.02 -.07 0 -.02 .07 0" size=".09"/>
           <body name="thigh_right" pos="0 -.1 -.04">
+            <site name="tracking[rhip]" class="tracking_site" pos="0 0.025 0.025" />
             <joint name="hip_x_right" axis="1 0 0" class="hip_x"/>
             <joint name="hip_z_right" axis="0 0 1" class="hip_z"/>
             <joint name="hip_y_right" class="hip_y"/>
             <geom name="thigh_right" fromto="0 0 0 0 .01 -.34" class="thigh"/>
             <body name="shin_right" pos="0 .01 -.4">
               <joint name="knee_right" class="knee"/>
+              <site name="tracking[rknee]" class="tracking_site" pos="0 0 0.05" />
               <geom name="shin_right" class="shin"/>
               <body name="foot_right" pos="0 0 -.39">
                 <joint name="ankle_y_right" class="ankle_y"/>
@@ -108,16 +117,24 @@
                 <site name="foot_right" pos=".05 .03 0" type="sphere" size=".027"/>
                 <site name="sp2" pos="-.07 0 0" type="sphere" size=".027"/>
                 <site name="sp3" pos=".14 0 0" type="sphere" size=".027"/>
+                <body name="heel_right" pos="-0.05 0 0.04">
+                  <site name="tracking[rheel]" class="tracking_site" />
+                </body>
+                <body name="toe_right" pos="0.07 0 -0.01">
+                  <site name="tracking[rtoe]" class="tracking_site" />
+                </body>
               </body>
             </body>
           </body>
           <body name="thigh_left" pos="0 .1 -.04">
+            <site name="tracking[lhip]" class="tracking_site" pos="0 -0.025 0.025" />
             <joint name="hip_x_left" axis="-1 0 0" class="hip_x"/>
             <joint name="hip_z_left" axis="0 0 -1" class="hip_z"/>
             <joint name="hip_y_left" class="hip_y"/>
             <geom name="thigh_left" fromto="0 0 0 0 -.01 -.34" class="thigh"/>
             <body name="shin_left" pos="0 -.01 -.4">
               <joint name="knee_left" class="knee"/>
+              <site name="tracking[lknee]" class="tracking_site" pos="0 0 0.05" />
               <geom name="shin_left" fromto="0 0 0 0 0 -.3" class="shin"/>
               <body name="foot_left" pos="0 0 -.39">
                 <joint name="ankle_y_left" class="ankle_y"/>
@@ -127,17 +144,26 @@
                 <site name="foot_left" pos=".05 -.03 0" type="sphere" size=".027"/>
                 <site name="sp0" pos="-.07 0 0" type="sphere" size=".027"/>
                 <site name="sp1" pos=".14 0 0" type="sphere" size=".027"/>
+                <body name="heel_left" pos="-0.05 0 0.04">
+                  <site name="tracking[lheel]" class="tracking_site" />
+                </body>
+                <body name="toe_left" pos="0.07 0 -0.01">
+                  <site name="tracking[ltoe]" class="tracking_site" />
+                </body>
               </body>
             </body>
           </body>
         </body>
       </body>
       <body name="upper_arm_right" pos="0 -.17 .06">
+        <site name="tracking[rshoulder]" class="tracking_site" />
         <joint name="shoulder1_right" axis="2 1 1"  class="shoulder"/>
         <joint name="shoulder2_right" axis="0 -1 1" class="shoulder"/>
         <geom name="upper_arm_right" fromto="0 0 0 .16 -.16 -.16" class="arm_upper"/>
         <body name="lower_arm_right" pos=".18 -.18 -.18">
           <joint name="elbow_right" axis="0 -1 1" class="elbow"/>
+          <site name="tracking[relbow]" class="tracking_site" />
+          <site name="tracking[rhand]" class="tracking_site" pos="0.13 0.13 0.13" />
           <geom name="lower_arm_right" fromto=".01 .01 .01 .17 .17 .17" class="arm_lower"/>
           <body name="hand_right" pos=".18 .18 .18">
             <geom name="hand_right" zaxis="1 1 1" class="hand"/>
@@ -145,11 +171,14 @@
         </body>
       </body>
       <body name="upper_arm_left" pos="0 .17 .06">
+        <site name="tracking[lshoulder]" class="tracking_site" />
         <joint name="shoulder1_left" axis="-2 1 -1" class="shoulder"/>
         <joint name="shoulder2_left" axis="0 -1 -1"  class="shoulder"/>
         <geom name="upper_arm_left" fromto="0 0 0 .16 .16 -.16" class="arm_upper"/>
         <body name="lower_arm_left" pos=".18 .18 -.18">
           <joint name="elbow_left" axis="0 -1 -1" class="elbow"/>
+          <site name="tracking[lelbow]" class="tracking_site" />
+          <site name="tracking[lhand]" class="tracking_site" pos="0.13 -0.13 0.13" />
           <geom name="lower_arm_left" fromto=".01 -.01 .01 .17 -.17 .17" class="arm_lower"/>
           <body name="hand_left" pos=".18 -.18 .18">
             <geom name="hand_left" zaxis="1 -1 1" class="hand"/>

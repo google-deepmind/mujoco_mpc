@@ -292,8 +292,11 @@ void PhysicsLoop(mj::Simulate& sim) {
       // lock the sim mutex
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
-      // run only if model is present
-      if (m) {
+      if (m) {  // run only if model is present
+        if (sim.agent.task().transition_status == 1) {
+          sim.agent.task().Transition(m, d);
+        }
+
         // running
         if (sim.run) {
           // record cpu time at start of iteration
@@ -378,12 +381,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
-        }
-
-        // transition
-        if (sim.agent.task().transition_status == 1 &&
-            sim.uiloadrequest.load() == 0) {
-          sim.agent.task().Transition(m, d);
         }
       }
     }  // release sim.mtx

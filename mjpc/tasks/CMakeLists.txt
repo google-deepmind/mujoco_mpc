@@ -20,4 +20,6 @@ add_custom_target(copy_resources ALL
         ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Copying tasks into binary directory")
 
-add_dependencies(mjpc copy_resources)
+add_dependencies(copy_menagerie_resources copy_resources)
+
+add_dependencies(mjpc copy_menagerie_resources)

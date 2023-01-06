@@ -18,6 +18,7 @@
 #include "tasks/cartpole/cartpole.h"
 #include "tasks/hand/hand.h"
 #include "tasks/humanoid/humanoid.h"
+#include "tasks/panda/panda.h"
 #include "tasks/particle/particle.h"
 #include "tasks/quadrotor/quadrotor.h"
 #include "tasks/quadruped/quadruped.h"
@@ -89,6 +90,12 @@ const TaskDefinition kTasksArray[]{
         .xml_path = "quadrotor/task.xml",
         .residual = &Quadrotor::Residual,
         .transition = &Quadrotor::Transition,
+    },
+    {
+        .name = "Panda",
+        .xml_path = "panda/task.xml",
+        .residual = &Panda::Residual,
+        .transition = &Panda::Transition,
     },
 };
 }  // namespace

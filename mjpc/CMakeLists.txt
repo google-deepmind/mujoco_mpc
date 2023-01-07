@@ -47,7 +47,7 @@ include(FindOrFetch)
 find_package(Threads REQUIRED)
 
 set(MUJOCO_BUILD_EXAMPLES OFF)
-set(MUJOCO_BUILD_SIMULATE OFF)
+set(MUJOCO_BUILD_SIMULATE ON)
 set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
@@ -64,6 +64,7 @@ findorfetch(
   main
   TARGETS
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   EXCLUDE_FROM_ALL
 )
 
@@ -284,13 +285,10 @@ target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(
   mjpc
-  glfw_dispatch.cc
-  glfw_dispatch.h
   main.cc
   simulate.cc
   simulate.h
-  uitools.cc
-  uitools.h
+  $<TARGET_OBJECTS:mujoco::platform_ui_adapter>
 )
 target_link_libraries(
   mjpc
@@ -302,6 +300,7 @@ target_link_libraries(
   libmjpc
   lodepng
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
 )

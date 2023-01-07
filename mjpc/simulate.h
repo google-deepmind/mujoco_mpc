@@ -16,12 +16,15 @@
 #define MJPC_SIMULATE_H_
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
+#include <ratio>
 #include <thread>
 
-#include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
+#include <platform_ui_adapter.h>
 #include "agent.h"
 
 #ifdef MJSIMULATE_STATIC
@@ -44,8 +47,11 @@ namespace mujoco {
 // Simulate states not contained in MuJoCo structures
 class MJSIMULATEAPI Simulate {
  public:
+  using Clock = std::chrono::steady_clock;
+  static_assert(std::ratio_less_equal_v<Clock::period, std::milli>);
+
   // create object and initialize the simulate ui
-  Simulate() = default;
+  Simulate(std::unique_ptr<PlatformUIAdapter> platform_ui);
 
   // Apply UI pose perturbations to model and data
   void applyposepertubations(int flg_paused);
@@ -67,11 +73,7 @@ class MJSIMULATEAPI Simulate {
   // render the ui to the window
   void render();
 
-  // clear callbacks registered in external structures
-  void clearcallback();
-
   // loop to render the UI (must be called from main thread because of MacOS)
-  // https://discourse.glfw.org/t/multithreading-glfw/573/5
   void renderloop();
 
   // constants
@@ -164,15 +166,13 @@ class MJSIMULATEAPI Simulate {
   mjvFigure figsensor = {};
 
   // OpenGL rendering and UI
-  GLFWvidmode vmode = {};
   int refreshRate = 60;
   int windowpos[2] = {0};
   int windowsize[2] = {0};
-  mjrContext con = {};
-  GLFWwindow* window = nullptr;
-  mjuiState uistate = {};
   mjUI ui0 = {};
   mjUI ui1 = {};
+  std::unique_ptr<PlatformUIAdapter> platform_ui;
+  mjuiState& uistate;
 
   // agent
   mjpc::Agent agent;

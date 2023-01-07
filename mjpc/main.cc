@@ -29,7 +29,7 @@
 #include <absl/flags/parse.h>
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
-#include "glfw_dispatch.h"
+#include <glfw_adapter.h>
 #include "array_safety.h"
 #include "agent.h"
 #include "planners/include.h"
@@ -43,8 +43,6 @@ ABSL_FLAG(std::string, task, "", "Which model to load on startup.");
 namespace {
 namespace mj = ::mujoco;
 namespace mju = ::mujoco::util_mjpc;
-
-using ::mujoco::Glfw;
 
 // maximum mis-alignment before re-sync (simulation seconds)
 const double syncMisalign = 0.1;
@@ -62,8 +60,10 @@ mjData* d = nullptr;
 // control noise variables
 mjtNum* ctrlnoise = nullptr;
 
+using Seconds = std::chrono::duration<double>;
+
 // --------------------------------- callbacks ---------------------------------
-auto sim = std::make_unique<mj::Simulate>();
+std::unique_ptr<mj::Simulate> sim;
 
 // controller
 extern "C" {
@@ -175,7 +175,7 @@ int TaskIdByName(std::string_view name) {
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
   // cpu-sim syncronization point
-  double syncCPU = 0;
+  std::chrono::time_point<mj::Simulate::Clock> syncCPU;
   mjtNum syncSim = 0;
 
   // run until asked to exit
@@ -300,10 +300,10 @@ void PhysicsLoop(mj::Simulate& sim) {
         // running
         if (sim.run) {
           // record cpu time at start of iteration
-          double startCPU = Glfw().glfwGetTime();
+          const auto startCPU = mj::Simulate::Clock::now();
 
           // elapsed CPU and simulation time since last sync
-          double elapsedCPU = startCPU - syncCPU;
+          const auto elapsedCPU = startCPU - syncCPU;
           double elapsedSim = d->time - syncSim;
 
           // inject noise
@@ -329,11 +329,11 @@ void PhysicsLoop(mj::Simulate& sim) {
           // misalignment condition: distance from target sim time is bigger
           // than syncmisalign
           bool misaligned =
-              mju_abs(elapsedCPU / slowdown - elapsedSim) > syncMisalign;
+              mju_abs(Seconds(elapsedCPU).count()/slowdown - elapsedSim) > syncMisalign;
 
           // out-of-sync (for any reason): reset sync times, step
-          if (elapsedSim < 0 || elapsedCPU < 0 || syncCPU == 0 || misaligned ||
-              sim.speedChanged) {
+          if (elapsedSim < 0 || elapsedCPU.count() < 0 || syncCPU.time_since_epoch().count() == 0 ||
+              misaligned || sim.speedChanged) {
             // re-sync
             syncCPU = startCPU;
             syncSim = d->time;
@@ -352,12 +352,12 @@ void PhysicsLoop(mj::Simulate& sim) {
             double refreshTime = simRefreshFraction / sim.refreshRate;
 
             // step while sim lags behind cpu and within refreshTime
-            while ((d->time - syncSim) * slowdown <
-                       (Glfw().glfwGetTime() - syncCPU) &&
-                   (Glfw().glfwGetTime() - startCPU) < refreshTime) {
+            while (Seconds((d->time - syncSim)*slowdown) < mj::Simulate::Clock::now() - syncCPU &&
+                   mj::Simulate::Clock::now() - startCPU < Seconds(refreshTime)) {
               // measure slowdown before first step
               if (!measured && elapsedSim) {
-                sim.measuredSlowdown = elapsedCPU / elapsedSim;
+                sim.measuredSlowdown =
+                    std::chrono::duration<double>(elapsedCPU).count() / elapsedSim;
                 measured = true;
               }
 
@@ -451,10 +451,8 @@ int main(int argc, char** argv) {
   // threads
   printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
 
-  // init GLFW
-  if (!Glfw().glfwInit()) {
-    mju_error("could not initialize GLFW");
-  }
+
+  sim = std::make_unique<mj::Simulate>(std::make_unique<mujoco::GlfwAdapter>());
 
   std::string task = absl::GetFlag(FLAGS_task);
   if (!task.empty()) {
@@ -524,17 +522,18 @@ int main(int argc, char** argv) {
   mjpc::ThreadPool physics_pool(1);
   physics_pool.Schedule([]() { PhysicsLoop(*sim.get()); });
 
-  // start plan thread
-  mjpc::ThreadPool plan_pool(1);
-  plan_pool.Schedule(
-      []() { sim->agent.Plan(sim->exitrequest, sim->uiloadrequest); });
+  {
+    // start plan thread
+    mjpc::ThreadPool plan_pool(1);
+    plan_pool.Schedule(
+        []() { sim->agent.Plan(sim->exitrequest, sim->uiloadrequest); });
 
-  // start simulation UI loop (blocking call)
-  sim->renderloop();
-  // terminate GLFW (crashes with Linux NVidia drivers)
-#if defined(__APPLE__) || defined(_WIN32)
-  Glfw().glfwTerminate();
-#endif
+    // start simulation UI loop (blocking call)
+    sim->renderloop();
+  }
+
+  // destroy the Simulate instance
+  sim.release();
 
   return 0;
 }

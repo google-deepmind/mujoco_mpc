@@ -163,11 +163,18 @@ if(NOT menagerie_POPULATED)
   FetchContent_Populate(menagerie)
 endif()
 
-add_custom_target(copy_menagerie_resources ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
-        ${CMAKE_CURRENT_BINARY_DIR}/tasks/panda/assets
-        COMMENT "Copying menagerie assets into binary directory")
+add_custom_target(
+  copy_menagerie_resources ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/shadow_hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/hand/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/panda/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/unitree_a1/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/quadruped/assets
+  COMMENT "Copying menagerie assets into binary directory")
 
 if(NOT TARGET lodepng)
   FetchContent_Declare(

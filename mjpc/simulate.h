@@ -92,7 +92,7 @@ class MJSIMULATEAPI Simulate {
   std::mutex mtx;
   std::condition_variable cond_loadrequest;
 
-  std::vector<mjpc::TaskDefinition> tasks;
+  std::vector<mjpc::TaskDefinition<>> tasks;
 
   // options
   int spacing = 0;

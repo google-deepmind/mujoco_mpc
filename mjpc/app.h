@@ -20,7 +20,7 @@
 #include "task.h"
 
 namespace mjpc {
-void StartApp(std::vector<mjpc::TaskDefinition> tasks);
+void StartApp(std::vector<mjpc::TaskDefinition<>> tasks);
 
 }  // namespace mjpc
 #endif  // MJPC_MJPC_APP_H_

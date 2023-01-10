@@ -31,7 +31,7 @@ namespace {
 // Define the array without an explicit size then bind it to an explicitly
 // sized reference afterward. This way the compiler enforces equality between
 // kNumTasks and the size of the array initializer.
-const TaskDefinition kTasksArray[]{
+const TaskDefinition<const char*> kTasksArray[]{
     {
         .name = "Humanoid Stand",
         .xml_path = "humanoid/task_stand.xml",
@@ -100,6 +100,6 @@ const TaskDefinition kTasksArray[]{
 };
 }  // namespace
 
-const TaskDefinition (&kTasks)[kNumTasks] = kTasksArray;
+const TaskDefinition<const char*> (&kTasks)[kNumTasks] = kTasksArray;
 
 }  // namespace mjpc

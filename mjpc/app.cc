@@ -403,7 +403,7 @@ void PhysicsThread(mj::Simulate* sim, const char* filename) {
 namespace mjpc {
 
 // run event loop
-int StartApp(std::vector<mjpc::TaskDefinition> tasks) {
+int StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
@@ -412,8 +412,8 @@ int StartApp(std::vector<mjpc::TaskDefinition> tasks) {
   // threads
   printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
 
-
-  sim = std::make_unique<mj::Simulate>(std::make_unique<mujoco::GlfwAdapter>());
+  sim = std::make_unique<mj::Simulate>(
+      std::make_unique<mujoco::GlfwAdapter>());
 
   sim->tasks = std::move(tasks);
   std::string task = absl::GetFlag(FLAGS_task);

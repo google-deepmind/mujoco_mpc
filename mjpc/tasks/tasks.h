@@ -21,7 +21,7 @@
 
 namespace mjpc {
 inline constexpr int kNumTasks = 12;
-extern const TaskDefinition (&kTasks)[kNumTasks];
+extern const TaskDefinition<const char*> (&kTasks)[kNumTasks];
 }  // namespace mjpc
 
 #endif  // MJPC_TASKS_TASKS_H_

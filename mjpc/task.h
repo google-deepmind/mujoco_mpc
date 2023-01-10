@@ -98,9 +98,10 @@ class Task {
 extern int NullTransition(int state, const mjModel* model, mjData* data,
                           Task* task);
 
+template <typename T = std::string>
 struct TaskDefinition {
-  std::string name;
-  std::string xml_path;
+  T name;
+  T xml_path;
   ResidualFunction* residual;
   TransitionFunction* transition = &NullTransition;
 };

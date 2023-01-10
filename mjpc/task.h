@@ -15,6 +15,7 @@
 #ifndef MJPC_TASK_H_
 #define MJPC_TASK_H_
 
+#include <string>
 #include <vector>
 
 #include <mujoco/mujoco.h>
@@ -98,8 +99,8 @@ extern int NullTransition(int state, const mjModel* model, mjData* data,
                           Task* task);
 
 struct TaskDefinition {
-  const char* name;
-  const char* xml_path;
+  std::string name;
+  std::string xml_path;
   ResidualFunction* residual;
   TransitionFunction* transition = &NullTransition;
 };

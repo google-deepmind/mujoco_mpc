@@ -1,7 +1,10 @@
 <mujoco model="Panda Flip">
   <include file="../common.xml"/>
 
-  <size memory="256K" nkey="1"/>
+  <option timestep="0.001" cone="elliptic" integrator="implicit">
+    <flag multiccd="enable"/>
+  </option>
+  <size memory="1M"/>
 
   <custom>
     <numeric name="task_transition" data="1" />
@@ -28,12 +31,42 @@
     <global azimuth="90" elevation="-30"/>
   </visual>
 
+  <asset>
+    <mesh name="red_rgb_object/mesh_visual_red_rgb_object_00" class="red_rgb_object/" file="rgb/cbbe2184a4c7ca15fbe747d648486246e21e61c2.stl" scale="1 1 1"/>
+    <mesh name="red_rgb_object/mesh_collision_red_rgb_object_00" class="red_rgb_object/" file="rgb/cbbe2184a4c7ca15fbe747d648486246e21e61c2.stl" scale=".9 .9 .9"/>
+    <mesh name="green_rgb_object/mesh_visual_green_rgb_object_00" class="green_rgb_object/" file="rgb/b794feb2658282cf158501e5e8f0aceb213f0176.stl" scale="1 1 1"/>
+    <mesh name="green_rgb_object/mesh_collision_green_rgb_object_00" class="green_rgb_object/" file="rgb/b794feb2658282cf158501e5e8f0aceb213f0176.stl" scale="1 1 1"/>
+    <mesh name="blue_rgb_object/mesh_visual_blue_rgb_object_00" class="blue_rgb_object/" file="rgb/76c74f1a0292eda8bf64fb70a28cb8c2fafc8b49.stl" scale="1 1 1"/>
+    <mesh name="blue_rgb_object/mesh_collision_blue_rgb_object_00" class="blue_rgb_object/" file="rgb/76c74f1a0292eda8bf64fb70a28cb8c2fafc8b49.stl" scale="1 1 1"/>
+  </asset>
   <default>
-    <geom friction=".6"/>
+    <default class="red_rgb_object/">
+      <default class="red_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 0 0 1" mass="0.001"/>
+      </default>
+      <default class="red_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+    <default class="green_rgb_object/">
+      <default class="green_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="0 1 0 1" mass="0.001"/>
+      </default>
+      <default class="green_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+    <default class="blue_rgb_object/">
+      <default class="blue_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="0 0 1 1" mass="0.001"/>
+      </default>
+      <default class="blue_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
   </default>
 
   <worldbody>
-    <site name="world" xyaxes="-1 0 0 0  1 0"/>
     <light pos="0   -1 1.5" dir=".5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
     <light pos="1.2 -1 1.5" dir="-.5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
     <geom name="floor" pos="0 0 0" size="0 0 0.05" type="plane" material="blue_grid"/>

@@ -12,16 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Definitions for tasks built into mujoco_mpc.
+#ifndef MJPC_MJPC_TASKS_MTS_MTS_H_
+#define MJPC_MJPC_TASKS_MTS_MTS_H_
 
-#ifndef MJPC_TASKS_TASKS_H_
-#define MJPC_TASKS_TASKS_H_
 
+#include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-inline constexpr int kNumTasks = 13;
-extern const TaskDefinition<const char*> (&kTasks)[kNumTasks];
+struct MTS {
+  static void Residual(const double* parameters, const mjModel* model,
+                           const mjData* data, double* residual);
+  static int Transition(int stage, const mjModel* model, mjData* data,
+                            Task* task);
+};
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_TASKS_H_
+
+#endif  // MJPC_MJPC_TASKS_MTS_MTS_H_

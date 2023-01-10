@@ -19,6 +19,7 @@
 #include "tasks/hand/hand.h"
 #include "tasks/humanoid/humanoid.h"
 #include "tasks/panda/panda.h"
+#include "tasks/mts/mts.h"
 #include "tasks/particle/particle.h"
 #include "tasks/quadrotor/quadrotor.h"
 #include "tasks/quadruped/quadruped.h"
@@ -96,6 +97,12 @@ const TaskDefinition<const char*> kTasksArray[]{
         .xml_path = "panda/task.xml",
         .residual = &Panda::Residual,
         .transition = &Panda::Transition,
+    },
+    {
+        .name = "MTS_bring",
+        .xml_path = "mts/task_bring.xml",
+        .residual = &MTS::Residual,
+        .transition = &MTS::Transition,
     },
 };
 }  // namespace

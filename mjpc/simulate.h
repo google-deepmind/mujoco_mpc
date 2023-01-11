@@ -62,7 +62,7 @@ class MJSIMULATEAPI Simulate {
 
   // Request that the Simulate UI thread render a new model
   // optionally delete the old model and data when done
-  void load(const char* file, mjModel* m, mjData* d, bool delete_old_m_d);
+  void load(std::string file, mjModel* m, mjData* d, bool delete_old_m_d);
 
   // functions below are used by the renderthread
   // load mjb or xml model that has been requested by load()
@@ -79,7 +79,6 @@ class MJSIMULATEAPI Simulate {
 
   int TaskIdByName(std::string_view name);
 
-  // constants
   static constexpr int kMaxFilenameLength = 1000;
 
   // model and data to be visualized
@@ -126,11 +125,10 @@ class MJSIMULATEAPI Simulate {
   //   0: model loaded or no load requested.
   int loadrequest = 0;
 
-  // strings
   char loadError[kMaxFilenameLength] = "";
-  char dropfilename[kMaxFilenameLength] = "";
-  char filename[kMaxFilenameLength] = "";
-  char previous_filename[kMaxFilenameLength] = "";
+  std::string dropfilename;
+  std::string filename;
+  std::string previous_filename;
 
   // time synchronization
   int realTimeIndex = 0;

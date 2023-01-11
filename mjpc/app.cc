@@ -108,29 +108,22 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 
 //--------------------------------- simulation ---------------------------------
 
-mjModel* LoadModel(const char* file, mj::Simulate& sim) {
-  // this copy is needed so that the mju::strlen call below compiles
-  char filename[mj::Simulate::kMaxFilenameLength];
-  mju::strcpy_arr(filename, file);
-
+mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
   // make sure filename is not empty
-  if (!filename[0]) {
+  if (filename.empty()) {
     return nullptr;
   }
 
   // load and compile
   char loadError[kErrorLength] = "";
   mjModel* mnew = 0;
-  if (mju::strlen_arr(filename) > 4 &&
-      !std::strncmp(
-          filename + mju::strlen_arr(filename) - 4, ".mjb",
-          mju::sizeof_arr(filename) - mju::strlen_arr(filename) + 4)) {
-    mnew = mj_loadModel(filename, nullptr);
+  if (!absl::StrContains(filename, ".mjb")) {
+    mnew = mj_loadModel(filename.c_str(), nullptr);
     if (!mnew) {
       mju::strcpy_arr(loadError, "could not load binary model");
     }
   } else {
-    mnew = mj_loadXML(filename, nullptr, loadError,
+    mnew = mj_loadXML(filename.c_str(), nullptr, loadError,
                       mj::Simulate::kMaxFilenameLength);
     // remove trailing newline character from loadError
     if (loadError[0]) {
@@ -174,7 +167,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        sim.load(sim.dropfilename, mnew, dnew, true);
+        sim.load(sim.dropfilename.c_str(), mnew, dnew, true);
 
         m = mnew;
         d = dnew;
@@ -190,7 +183,7 @@ void PhysicsLoop(mj::Simulate& sim) {
     // ----- task reload ----- //
     if (sim.uiloadrequest.load() == 1) {
       // get new model + task
-      sim.tasks[sim.agent.task().id].xml_path.copy(sim.filename, 1000);
+      sim.filename = sim.tasks[sim.agent.task().id].xml_path;
 
       mjModel* mnew = LoadModel(sim.filename, sim);
       mjData* dnew = nullptr;
@@ -226,11 +219,11 @@ void PhysicsLoop(mj::Simulate& sim) {
     // reload model to refresh UI
     if (sim.uiloadrequest.load() == 1) {
       mjModel* mnew =
-          LoadModel(sim.tasks[sim.agent.task().id].xml_path.c_str(), sim);
+          LoadModel(sim.tasks[sim.agent.task().id].xml_path, sim);
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        sim.load(sim.filename, mnew, dnew, true);
+        sim.load(sim.filename.c_str(), mnew, dnew, true);
         m = mnew;
         d = dnew;
         mj_forward(m, d);
@@ -253,7 +246,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // reload GUI
     if (sim.uiloadrequest.load() == -1) {
-      sim.load(sim.filename, sim.m, sim.d, false);
+      sim.load(sim.filename.c_str(), sim.m, sim.d, false);
       sim.uiloadrequest.fetch_add(1);
     }
     // ----------------------- //
@@ -372,32 +365,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 }
 }  // namespace
 
-// ---------------------------- physics_thread ---------------------------------
-
-void PhysicsThread(mj::Simulate* sim, const char* filename) {
-  // request loadmodel if file given (otherwise drag-and-drop)
-  if (filename != nullptr) {
-    m = LoadModel(filename, *sim);
-    if (m) d = mj_makeData(m);
-    if (d) {
-      sim->load(filename, m, d, true);
-      mj_forward(m, d);
-
-      // allocate ctrlnoise
-      free(ctrlnoise);
-      ctrlnoise = static_cast<mjtNum*>(malloc(sizeof(mjtNum) * m->nu));
-      mju_zero(ctrlnoise, m->nu);
-    }
-  }
-
-  PhysicsLoop(*sim);
-
-  // delete everything we allocated
-  free(ctrlnoise);
-  mj_deleteData(d);
-  mj_deleteModel(m);
-}
-
 // ------------------------------- main ----------------------------------------
 
 namespace mjpc {
@@ -429,7 +396,8 @@ int StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
     }
   }
 
-  m = LoadModel(sim->tasks[sim->agent.task().id].xml_path.c_str(), *sim);
+  sim->filename = sim->tasks[sim->agent.task().id].xml_path;
+  m = LoadModel(sim->filename, *sim);
   if (m) d = mj_makeData(m);
   sim->mnew = m;
   sim->dnew = d;

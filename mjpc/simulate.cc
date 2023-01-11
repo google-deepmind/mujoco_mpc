@@ -1570,7 +1570,7 @@ void uiEvent(mjuiState* state) {
   // Dropped files
   if (state->type == mjEVENT_FILESDROP && state->dropcount > 0) {
     while (sim->droploadrequest.load()) {}
-    mju::strcpy_arr(sim->dropfilename, state->droppaths[0]);
+    sim->dropfilename = state->droppaths[0];
     sim->droploadrequest.store(true);
     return;
   }
@@ -1605,14 +1605,14 @@ void Simulate::applyforceperturbations() {
 }
 
 //------------------------- Tell the render thread to load a file and wait -------------------------
-void Simulate::load(const char* file,
+void Simulate::load(std::string file,
                     mjModel* mnew,
                     mjData* dnew,
                     bool delete_old_m_d) {
   this->mnew = mnew;
   this->dnew = dnew;
   this->delete_old_m_d = delete_old_m_d;
-  mju::strcpy_arr(this->filename, file);
+  this->filename = std::move(file);
 
   {
     std::unique_lock<std::mutex> lock(mtx);
@@ -1650,9 +1650,9 @@ void Simulate::loadmodel() {
   this->pert.skinselect = -1;
 
   // align and scale view unless reloading the same file
-  if (mju::strcmp_arr(this->filename, this->previous_filename)) {
+  if (this->filename != this->previous_filename) {
     alignscale(this);
-    mju::strcpy_arr(this->previous_filename, this->filename);
+    this->previous_filename = this->filename;
   }
 
   // update scene

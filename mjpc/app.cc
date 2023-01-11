@@ -117,7 +117,7 @@ mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
   // load and compile
   char loadError[kErrorLength] = "";
   mjModel* mnew = 0;
-  if (!absl::StrContains(filename, ".mjb")) {
+  if (absl::StrContains(filename, ".mjb")) {
     mnew = mj_loadModel(filename.c_str(), nullptr);
     if (!mnew) {
       mju::strcpy_arr(loadError, "could not load binary model");

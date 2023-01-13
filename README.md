@@ -52,7 +52,7 @@ Additionally, install [Xcode](https://developer.apple.com/xcode/).
 ### Ubuntu 
 Additionally, install:
 ```shell
-sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev 
+sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev ninja-build
 ```
 
 ### Build Issues 

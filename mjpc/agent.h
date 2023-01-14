@@ -92,6 +92,8 @@ class Agent {
   // render plots
   void PlotShow(mjrRect* rect, mjrContext* con);
 
+  void SetState(const mjData* data);
+
   mjpc::Planner& ActivePlanner() { return *planners_[planner_]; }
   mjpc::State& ActiveState() { return *states_[state_]; }
 

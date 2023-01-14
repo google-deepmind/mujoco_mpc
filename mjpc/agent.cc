@@ -141,6 +141,10 @@ void Agent::Reset() {
   std::fill(terms_.begin(), terms_.end(), 0.0);
 }
 
+void Agent::SetState(const mjData* data) {
+  ActiveState().Set(model_, data);
+}
+
 void Agent::PlanIteration(ThreadPool& pool) {
   // start agent timer
   auto agent_start = std::chrono::steady_clock::now();

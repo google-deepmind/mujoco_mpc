@@ -396,32 +396,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 }
 }  // namespace
 
-// ---------------------------- physics_thread ---------------------------------
-
-void PhysicsThread(mj::Simulate* sim, const char* filename) {
-  // request loadmodel if file given (otherwise drag-and-drop)
-  if (filename != nullptr) {
-    m = LoadModel(filename, *sim);
-    if (m) d = mj_makeData(m);
-    if (d) {
-      sim->load(filename, m, d, true);
-      mj_forward(m, d);
-
-      // allocate ctrlnoise
-      free(ctrlnoise);
-      ctrlnoise = static_cast<mjtNum*>(malloc(sizeof(mjtNum) * m->nu));
-      mju_zero(ctrlnoise, m->nu);
-    }
-  }
-
-  PhysicsLoop(*sim);
-
-  // delete everything we allocated
-  free(ctrlnoise);
-  mj_deleteData(d);
-  mj_deleteModel(m);
-}
-
 // ------------------------------- main ----------------------------------------
 
 // machinery for replacing command line error by a macOS dialog box
@@ -534,6 +508,12 @@ int main(int argc, char** argv) {
 
   // start simulation UI loop (blocking call)
   sim->renderloop();
+
+  // delete everything we allocated
+  free(ctrlnoise);
+  mj_deleteData(d);
+  mj_deleteModel(m);
+  
   // terminate GLFW (crashes with Linux NVidia drivers)
 #if defined(__APPLE__) || defined(_WIN32)
   Glfw().glfwTerminate();

@@ -40,11 +40,23 @@ For a detailed dive of the graphical user interface, see the [MJPC GUI](docs/GUI
 
 ## Installation
 
-You will need [CMake](https://cmake.org/) and a working C++20 compiler to build MJPC. We recommend using [VSCode](https://code.visualstudio.com/) and 2 of its extensions ([CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)) to simplify the build process.
+You will need [CMake](https://cmake.org/) and a working C++20 compiler to build MJPC. We recommend using [VSCode](https://code.visualstudio.com/) and 2 of its extensions ([CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)) to simplify the build process. 
 
 1. Clone the repository: `git clone https://github.com/deepmind/mujoco_mpc.git`
 2. Configure the project with CMake (a pop-up should appear in VSCode)
 3. Build and run the `mjpc` target in "release" mode (VSCode defaults to "debug"). This will open and run the graphical user interface.
+
+### macOS 
+Additionally, install [Xcode](https://developer.apple.com/xcode/).
+
+### Ubuntu 
+Additionally, install:
+```shell
+sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev ninja-build
+```
+
+### Build Issues 
+If you encounter build issues, please see the [Github Actions](https://github.com/deepmind/mujoco_mpc/.github/workflows/build.yaml). Note, we are using `clang-14`.
 
 ## Predictive Control
 

@@ -895,11 +895,10 @@ void makesections(mj::Simulate* sim) {
   }
 
   // clear model-dependent sections of UI
-  sim->ui0.nsect = SECT_TASK;
+  sim->ui0.nsect = SECT_PHYSICS;
   sim->ui1.nsect = 0;
 
   // make
-  sim->agent.Gui(sim->ui0);
   makephysics(sim, oldstate0[SECT_PHYSICS]);
   makerendering(sim, oldstate0[SECT_RENDERING]);
   makegroup(sim, oldstate0[SECT_GROUP]);
@@ -1988,6 +1987,7 @@ void Simulate::renderloop() {
   mjui_add(&this->ui0, defFile);
   mjui_add(&this->ui0, this->defOption);
   mjui_add(&this->ui0, this->defSimulation);
+  this->agent.Gui(this->ui0);
   mjui_add(&this->ui0, this->defWatch);
   uiModify(this->window, &this->ui0, &this->uistate, &this->con);
   uiModify(this->window, &this->ui1, &this->uistate, &this->con);

@@ -2,6 +2,8 @@
 
   <statistic extent="2" center="0 0 1"/>
 
+  <option timestep="0.005"/>
+
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
     <site size=".04" group="3"/>

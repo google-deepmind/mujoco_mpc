@@ -66,8 +66,8 @@ const TaskDefinition<const char*> kTasksArray[]{
     },
     {
         .name = "Particle",
-        .xml_path = "particle/task.xml",
-        .residual = &Particle::Residual,
+        .xml_path = "particle/task_timevarying.xml",
+        .residual = &Particle::ResidualTimeVarying,
     },
     {
         .name = "Quadruped Hill",

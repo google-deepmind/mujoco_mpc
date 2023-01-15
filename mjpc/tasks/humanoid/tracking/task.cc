@@ -56,7 +56,9 @@ void Humanoid::Tracking::Residual(const double* parameters, const mjModel* model
   for (const auto& body_name : body_names) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
     std::string pos_sensor_name = "tracking_pos[" + body_name + "]";
-    int body_mocapid = model->body_mocapid[mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str())];
+    int mocap_body_id = mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str());
+    assert(0 <= mocap_body_id);
+    int body_mocapid = model->body_mocapid[mocap_body_id];
     assert(0 <= body_mocapid);
 
     double mocap_body_pos[3];
@@ -74,8 +76,9 @@ void Humanoid::Tracking::Residual(const double* parameters, const mjModel* model
   for (const auto& body_name : body_names) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
     std::string linvel_sensor_name = "tracking_linvel[" + body_name + "]";
-    int body_mocapid = model->body_mocapid[
-      mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str())];
+    int mocap_body_id = mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str());
+    assert(0 <= mocap_body_id);
+    int body_mocapid = model->body_mocapid[mocap_body_id];
     assert(0 <= body_mocapid);
 
     double mocap_body_linvel[3];

@@ -19,7 +19,7 @@
 #include <vector>
 #include <absl/flags/parse.h>
 
-#include "third_party/mujoco_mpc/mjpc/app.h"
+#include "app.h"
 #include "task.h"
 #include "utilities.h"
 #include "tasks/tasks.h"

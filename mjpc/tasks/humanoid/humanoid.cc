@@ -74,8 +74,8 @@ void Humanoid::ResidualStand(const double* parameters, const mjModel* model,
   counter += 2;
 
   // ----- joint velocity ----- //
-  mju_copy(residual + counter, data->qvel, model->nv);
-  counter += model->nv;
+  mju_copy(residual + counter, data->qvel + 6, model->nv - 6);
+  counter += model->nv - 6;
 
   // ----- action ----- //
   mju_copy(&residual[counter], data->ctrl, model->nu);

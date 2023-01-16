@@ -27,6 +27,7 @@
 
 // DEEPMIND INTERNAL IMPORT
 #include <absl/strings/str_cat.h>
+#include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "array_safety.h"
 
@@ -88,6 +89,16 @@ double* SensorByName(const mjModel* m, const mjData* d,
     return nullptr;
   } else {
     return d->sensordata + m->sensor_adr[id];
+  }
+}
+
+int CostTermByName(const mjModel* m, const mjData* d, const std::string& name) {
+  int id = mj_name2id(m, mjOBJ_SENSOR, name.c_str());
+  if (id == -1 || m->sensor_type[id] != mjSENS_USER) {
+    std::cerr << "cost term \"" << name << "\" not found.\n";
+    return -1;
+  } else {
+    return id;
   }
 }
 

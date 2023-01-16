@@ -166,7 +166,7 @@ void Task::Transition(const mjModel* m, mjData* d) {
 // initial residual parameters from model
 void Task::SetFeatureParameters(const mjModel* model) {
   // set counter
-  int num_residual_parameters = 0;
+  num_residual_parameters = 0;
 
   // search custom numeric in model for "residual"
   for (int i = 0; i < model->nnumeric; i++) {

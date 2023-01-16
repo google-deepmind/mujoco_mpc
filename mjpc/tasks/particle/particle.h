@@ -19,14 +19,28 @@
 
 namespace mjpc {
 struct Particle {
-// -------- Residuals for particle task -------
+// -------- Residuals for particle move-to-goal task -------
 //   Number of residuals: 3
 //     Residual (0): position - goal_position
 //     Residual (1): velocity
 //     Residual (2): control
 // --------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
+static void ResidualGoal(const double* parameters, const mjModel* model,
                      const mjData* data, double* residual);
+
+// -------- Residuals for particle track task -------
+//   Number of residuals: 3
+//     Residual (0): position - goal_position
+//     Residual (1): velocity
+//     Residual (2): control
+// --------------------------------------------
+static void ResidualTrack(const double* parameters, const mjModel* model,
+                     const mjData* data, double* residual);
+
+// -------- Transition for particle track task --------
+// Set goal to next.
+// -----------------------------------------------
+static int Transition(int state, const mjModel* model, mjData* data);
 };
 }  // namespace mjpc
 

@@ -33,7 +33,7 @@ void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
   this->horizon = horizon;
   this->dim_state = dim_state;
   this->dim_action = dim_action;
-  this->dim_feature = dim_residual;
+  this->dim_residual = dim_residual;
   this->dim_trace = 3 * num_trace;
   this->failure = false;
 }
@@ -50,7 +50,7 @@ void Trajectory::Allocate(int T) {
   costs.resize(T);
 
   // residual
-  residual.resize(dim_feature * T);
+  residual.resize(dim_residual * T);
 
   // times
   times.resize(T);
@@ -72,7 +72,7 @@ void Trajectory::Reset(int T) {
 
   // costs
   std::fill(costs.begin(), costs.begin() + T, 0.0);
-  std::fill(residual.begin(), residual.begin() + dim_feature * T, 0.0);
+  std::fill(residual.begin(), residual.begin() + dim_residual * T, 0.0);
   total_return = 0.0;
   failure = false;
 
@@ -148,7 +148,7 @@ void Trajectory::Rollout(
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
 
     // residual
-    task->Residuals(model, data, DataAt(residual, t * dim_feature));
+    task->Residuals(model, data, DataAt(residual, t * dim_residual));
 
     // record trace
     GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
@@ -185,7 +185,7 @@ void Trajectory::Rollout(
   mj_step1(model, data);
 
   // final residual
-  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
+  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_residual));
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
@@ -264,7 +264,7 @@ void Trajectory::RolloutDiscrete(
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
 
     // residual
-    task->Residuals(model, data, DataAt(residual, t * dim_feature));
+    task->Residuals(model, data, DataAt(residual, t * dim_residual));
 
     // record trace
     GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
@@ -301,7 +301,7 @@ void Trajectory::RolloutDiscrete(
   mj_step1(model, data);
 
   // final residual
-  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
+  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_residual));
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,

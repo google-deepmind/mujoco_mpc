@@ -56,6 +56,7 @@ void ModelDerivatives::Compute(const mjModel* m,
                      dim_state, dim_state_derivative, dim_action, dim_sensor,
                      tol, mode, t, T]() {
         mjData* d = data[ThreadPool::WorkerId()].get();
+        
         // set state
         SetState(m, d, x + t * dim_state);
         d->time = h[t];

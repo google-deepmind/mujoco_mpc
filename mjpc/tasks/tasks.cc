@@ -63,9 +63,15 @@ const TaskDefinition kTasksArray[]{
         .residual = &Acrobot::Residual,
     },
     {
-        .name = "Particle",
-        .xml_path = "particle/task.xml",
-        .residual = &Particle::Residual,
+        .name = "Particle Goal",
+        .xml_path = "particle/task_goal.xml",
+        .residual = &Particle::ResidualGoal,
+    },
+    {
+        .name = "Particle Track",
+        .xml_path = "particle/task_track.xml",
+        .residual = &Particle::ResidualTrack,
+        .transition = &Particle::Transition,
     },
     {
         .name = "Quadruped Hill",

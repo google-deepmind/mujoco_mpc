@@ -79,6 +79,7 @@ class Task {
 
   // residual parameters
   std::vector<double> residual_parameters;
+  int num_residual_parameters;
 
  private:
   // initial residual parameters from model

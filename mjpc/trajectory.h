@@ -65,7 +65,7 @@ class Trajectory {
   int horizon;                   // trajectory length
   int dim_state;                 // states dimension
   int dim_action;                // actions dimension
-  int dim_feature;               // residuals dimension
+  int dim_residual;              // residuals dimension
   int dim_trace;                 // traces dimension
   std::vector<double> states;    // (horizon   x nq + nv + na)
   std::vector<double> actions;   // (horizon-1 x num_action)

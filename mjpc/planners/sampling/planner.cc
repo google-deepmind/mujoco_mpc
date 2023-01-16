@@ -92,7 +92,7 @@ void SamplingPlanner::Allocate() {
 void SamplingPlanner::Reset(int horizon) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
-  std::fill(mocap.begin(), mocap.end(), 7 * model->nmocap);
+  std::fill(mocap.begin(), mocap.end(), 0.0);
   time = 0.0;
 
   // policy parameters

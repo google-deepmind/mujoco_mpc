@@ -145,7 +145,7 @@ void Agent::SetState(const mjData* data) {
   ActiveState().Set(model_, data);
 }
 
-void Agent::PlanIteration(ThreadPool& pool) {
+void Agent::PlanIteration(ThreadPool* pool) {
   // start agent timer
   auto agent_start = std::chrono::steady_clock::now();
 
@@ -164,7 +164,7 @@ void Agent::PlanIteration(ThreadPool& pool) {
 
     if (plan_enabled) {
       // planner policy
-      ActivePlanner().OptimizePolicy(steps_, pool);
+      ActivePlanner().OptimizePolicy(steps_, *pool);
 
       // compute time
       agent_compute_time_ =
@@ -193,7 +193,7 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
   // main loop
   while (!exitrequest.load()) {
     if (model_ && uiloadrequest.load() == 0) {
-      PlanIteration(pool);
+      PlanIteration(&pool);
     }
   }  // exitrequest sent -- stop planning
 }

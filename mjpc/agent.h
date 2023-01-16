@@ -25,6 +25,7 @@
 #include "states/include.h"
 #include "states/state.h"
 #include "task.h"
+#include "threadpool.h"
 
 namespace mjpc {
 
@@ -61,7 +62,7 @@ class Agent {
   // reset data, settings, planners, states
   void Reset();
 
-  void PlanIteration(ThreadPool& pool);
+  void PlanIteration(ThreadPool* pool);
 
   // call planner to update nominal policy
   void Plan(std::atomic<bool>& exitrequest, std::atomic<int>& uiloadrequest);

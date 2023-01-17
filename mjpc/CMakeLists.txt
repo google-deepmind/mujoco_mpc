@@ -292,6 +292,8 @@ target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(
   mjpc
+  app.cc
+  app.h
   main.cc
   simulate.cc
   simulate.h

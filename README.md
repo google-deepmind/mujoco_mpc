@@ -46,6 +46,18 @@ You will need [CMake](https://cmake.org/) and a working C++20 compiler to build 
 2. Configure the project with CMake (a pop-up should appear in VSCode)
 3. Build and run the `mjpc` target in "release" mode (VSCode defaults to "debug"). This will open and run the graphical user interface.
 
+### macOS
+Additionally, install [Xcode](https://developer.apple.com/xcode/).
+
+### Ubuntu
+Additionally, install:
+```shell
+sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev ninja-build
+```
+
+### Build Issues
+If you encounter build issues, please see the [Github Actions](https://github.com/deepmind/mujoco_mpc/.github/workflows/build.yaml). Note, we are using `clang-14`.
+
 ## Predictive Control
 
 See the [Predictive Control](docs/OVERVIEW.md) documentation for more information.

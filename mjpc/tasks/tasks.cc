@@ -18,6 +18,8 @@
 #include "tasks/cartpole/cartpole.h"
 #include "tasks/hand/hand.h"
 #include "tasks/humanoid/humanoid.h"
+#include "tasks/panda/panda.h"
+// DEEPMIND INTERNAL IMPORT
 #include "tasks/particle/particle.h"
 #include "tasks/quadrotor/quadrotor.h"
 #include "tasks/quadruped/quadruped.h"
@@ -30,7 +32,7 @@ namespace {
 // Define the array without an explicit size then bind it to an explicitly
 // sized reference afterward. This way the compiler enforces equality between
 // kNumTasks and the size of the array initializer.
-const TaskDefinition kTasksArray[]{
+const TaskDefinition<const char*> kTasksArray[]{
     {
         .name = "Humanoid Stand",
         .xml_path = "humanoid/task_stand.xml",
@@ -64,8 +66,8 @@ const TaskDefinition kTasksArray[]{
     },
     {
         .name = "Particle",
-        .xml_path = "particle/task.xml",
-        .residual = &Particle::Residual,
+        .xml_path = "particle/task_timevarying.xml",
+        .residual = &Particle::ResidualTimeVarying,
     },
     {
         .name = "Quadruped Hill",
@@ -90,9 +92,16 @@ const TaskDefinition kTasksArray[]{
         .residual = &Quadrotor::Residual,
         .transition = &Quadrotor::Transition,
     },
+    {
+        .name = "Panda",
+        .xml_path = "panda/task.xml",
+        .residual = &Panda::Residual,
+        .transition = &Panda::Transition,
+    },
+// DEEPMIND INTERNAL TASKS
 };
 }  // namespace
 
-const TaskDefinition (&kTasks)[kNumTasks] = kTasksArray;
+const TaskDefinition<const char*> (&kTasks)[kNumTasks] = kTasksArray;
 
 }  // namespace mjpc

@@ -39,9 +39,8 @@ inline constexpr double kMaxPlanningHorizon = 2.5;
 }  // namespace
 
 // initialize data, settings, planners, states
-void Agent::Initialize(mjModel* model, mjData* data,
-                       const std::string& task_names, const char planner_str[],
-                       ResidualFunction* residual,
+void Agent::Initialize(mjModel* model, const std::string& task_names,
+                       const char planner_str[], ResidualFunction* residual,
                        TransitionFunction* transition) {
   // ----- model ----- //
   if (this->model_) mj_deleteModel(this->model_);
@@ -128,7 +127,7 @@ void Agent::Reset() {
   }
 
   for (const auto& state : states_) {
-    state->Reset(model_);
+    state->Reset();
   }
 
   // cost
@@ -142,6 +141,49 @@ void Agent::Reset() {
   std::fill(terms_.begin(), terms_.end(), 0.0);
 }
 
+void Agent::SetState(const mjData* data) {
+  ActiveState().Set(model_, data);
+}
+
+void Agent::PlanIteration(ThreadPool* pool) {
+  // start agent timer
+  auto agent_start = std::chrono::steady_clock::now();
+
+  // set agent time and time step
+  model_->opt.timestep = timestep_;
+  model_->opt.integrator = integrator_;
+
+  // set planning steps
+  steps_ =
+      mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
+
+  // plan
+  if (!allocate_enabled) {
+    // set state
+    ActivePlanner().SetState(ActiveState());
+
+    if (plan_enabled) {
+      // planner policy
+      ActivePlanner().OptimizePolicy(steps_, *pool);
+
+      // compute time
+      agent_compute_time_ =
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - agent_start)
+              .count();
+
+      // counter
+      count_ += 1;
+    } else {
+      // rollout nominal policy
+      ActivePlanner().NominalTrajectory(steps_);
+
+      // set timers
+      agent_compute_time_ = 0.0;
+    }
+  }
+}
+
 // call planner to update nominal policy
 void Agent::Plan(std::atomic<bool>& exitrequest,
                  std::atomic<int>& uiloadrequest) {
@@ -151,42 +193,7 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
   // main loop
   while (!exitrequest.load()) {
     if (model_ && uiloadrequest.load() == 0) {
-      // start agent timer
-      auto agent_start = std::chrono::steady_clock::now();
-
-      // set agent time and time step
-      model_->opt.timestep = timestep_;
-      model_->opt.integrator = integrator_;
-
-      // set planning steps
-      steps_ =
-          mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
-
-      // plan
-      if (!allocate_enabled) {
-        // set state
-        ActivePlanner().SetState(ActiveState());
-
-        if (plan_enabled) {
-          // planner policy
-          ActivePlanner().OptimizePolicy(steps_, pool);
-
-          // compute time
-          agent_compute_time_ =
-              std::chrono::duration_cast<std::chrono::microseconds>(
-                  std::chrono::steady_clock::now() - agent_start)
-                  .count();
-
-          // counter
-          count_ += 1;
-        } else {
-          // rollout nominal policy
-          ActivePlanner().NominalTrajectory(steps_);
-
-          // set timers
-          agent_compute_time_ = 0.0;
-        }
-      }
+      PlanIteration(&pool);
     }
   }  // exitrequest sent -- stop planning
 }

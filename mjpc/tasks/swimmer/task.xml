@@ -4,14 +4,14 @@
 
   <custom>
     <numeric name="task_transition" data="1" />
-    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="2" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_integrator" data="2" />
     <numeric name="agent_sample_width" data="0.001" />
     <numeric name="agent_policy_width" data="0.0015" />
     <numeric name="sampling_spline_points" data="10" />
-    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="sampling_exploration" data="0.05" />
     <numeric name="gradient_spline_points" data="10" />
   </custom>
 
@@ -23,8 +23,8 @@
   </worldbody>
 
   <sensor>
-    <user name="Control" dim="5" user="0 0.1 0 0.1" />
-    <user name="Distance" dim="2" user="2 30 0 100 0.04" />
+    <user name="Control" dim="5" user="0 0.1 0 1" />
+    <user name="Distance" dim="2" user="2 10 0 10 0.04" />
     <framepos name="trace0" objtype="geom" objname="nose"/>
     <framepos name="nose" objtype="geom" objname="nose"/>
     <framepos name="target" objtype="body" objname="target"/>

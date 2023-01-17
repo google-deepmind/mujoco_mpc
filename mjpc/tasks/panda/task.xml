@@ -1,0 +1,78 @@
+<mujoco model="Panda">
+  <include file="../common.xml"/>
+
+  <size memory="1M"/>
+
+  <custom>
+    <numeric name="task_transition" data="1" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_timestep" data="0.009" />
+    <numeric name="agent_sample_width" data="0.0025" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_trajectories" data="60"/>
+    <numeric name="sampling_spline_points" data="7" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="gradient_spline_points" data="6" />
+  </custom>
+
+  <statistic extent="1.5" center="0.1 0.2 0.3"/>
+
+  <visual>
+    <quality shadowsize="8192"/>
+    <global azimuth="180" elevation="-30"/>
+    <scale framelength=".3" framewidth=".03"/>
+  </visual>
+
+  <default>
+    <geom solref=".001 1"/>
+  </default>
+
+  <compiler texturedir="./textures"/>
+
+  <worldbody>
+    <site name="world"/>
+    <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+        directional="true" castshadow="true"/>
+    <geom name="floor" pos="0 0 0" size="0 0 0.05" type="plane" material="blue_grid"/>
+
+    <body name="target" mocap="true" pos="0.6 0.4 0.05">
+      <geom name="target"  type="box" size="0.02 0.03 0.02" contype="0" conaffinity="0" rgba=".5 .5 .5 .3"/>
+      <site name="target1" type="box" pos="0  .026 0" size="0.021 0.005 0.021" rgba="1 .1 .1 .3"/>
+      <site name="target2" type="box" pos="0 -.026 0" size="0.021 0.005 0.021" rgba=".1 .1 1 .3"/>
+    </body>
+
+    <body name="box" pos="0.4 0.5 0.2">
+      <freejoint/>
+      <geom name="box"  type="box" size="0.02 0.03 0.02" priority="1" condim="6" friction="1 .01 .003"/>
+      <site name="box1" type="box" pos="0  .026 0" size="0.021 0.005 0.021" rgba="1 .1 .1 1"/>
+      <site name="box2" type="box" pos="0 -.026 0" size="0.021 0.005 0.021" rgba=".1 .1 1 1"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <exclude body1="world" body2="left_finger"/>
+    <exclude body1="world" body2="right_finger"/>
+    <exclude body1="left_finger" body2="right_finger"/>
+  </contact>
+
+  <keyframe>
+    <key name="home" qpos="-0.026895 0.391451 0.0199961 0.959693 0 0 -0.281049 1.00714 0.42312 -0.00198696 -1.65569 -0.05794 2.28189 0.393188 0.005 0.005"/>
+  </keyframe>
+
+  <sensor>
+    <user name="Reach" dim="3" user="2 1 0 5 0.01"/>
+    <user name="Bring" dim="6" user="2 .1 0 1 0.003"/>
+    <framepos name="hand" objtype="site" objname="eeff"/>
+    <framepos name="box" objtype="geom" objname="box"/>
+    <framepos name="box1" objtype="site" objname="box1"/>
+    <framepos name="box2" objtype="site" objname="box2"/>
+    <framepos name="target" objtype="geom" objname="target"/>
+    <framepos name="target1" objtype="site" objname="target1"/>
+    <framepos name="target2" objtype="site" objname="target2"/>
+    <framepos name="trace0" objtype="site" objname="touch_left"/>
+    <framepos name="trace1" objtype="site" objname="touch_right"/>
+  </sensor>
+
+  <include file="panda.xml"/>
+</mujoco>

@@ -15,6 +15,7 @@
 #include "tasks/hand/hand.h"
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {
@@ -78,7 +79,8 @@ void Hand::Residual(const double* parameters, const mjModel* model,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-int Hand::Transition(int state, const mjModel* model, mjData* data) {
+int Hand::Transition(int state, const mjModel* model, mjData* data,
+                     Task* task) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");

@@ -6,7 +6,7 @@
   <default>
     <default class="swimmer">
       <joint type="hinge" pos="0 -.05 0" axis="0 0 1" limited="true" solreflimit=".05 .3"
-             solimplimit="0 .8 .1" armature="1e-6" range="-80 80" stiffness=".001"/>
+             solimplimit="0 .8 .1" armature="1e-6" range="-90 90" stiffness=".001"/>
       <default class="inertial">
         <geom type="box" size=".001 .05 .01" material="self" mass=".01" group="3"/>
       </default>
@@ -18,7 +18,7 @@
     <default class="free">
       <joint limited="false" stiffness="0" armature="0"/>
     </default>
-    <motor gear="1e-3" ctrllimited="true" ctrlrange="-1 1"/>
+    <general gainprm="2e-3" ctrllimited="true" ctrlrange="-1 1" dyntype="filter" dynprm="0.6"/>
   </default>
 
   <worldbody>
@@ -71,11 +71,11 @@
   </worldbody>
 
   <actuator>
-    <motor name="motor_0" joint="joint_0"/>
-    <motor name="motor_1" joint="joint_1"/>
-    <motor name="motor_2" joint="joint_2"/>
-    <motor name="motor_3" joint="joint_3"/>
-    <motor name="motor_4" joint="joint_4"/>
+    <general name="0" joint="joint_0"/>
+    <general name="1" joint="joint_1"/>
+    <general name="2" joint="joint_2"/>
+    <general name="3" joint="joint_3"/>
+    <general name="4" joint="joint_4"/>
   </actuator>
 
 </mujoco>

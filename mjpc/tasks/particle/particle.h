@@ -27,6 +27,10 @@ struct Particle {
 // --------------------------------------------
 static void Residual(const double* parameters, const mjModel* model,
                      const mjData* data, double* residual);
+
+static void ResidualTimeVarying(const double* parameters, const mjModel* model,
+                                const mjData* data, double* residual);
+
 };
 }  // namespace mjpc
 

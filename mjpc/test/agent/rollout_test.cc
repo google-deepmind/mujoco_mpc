@@ -21,6 +21,20 @@
 
 namespace mjpc {
 namespace {
+
+mjpc::Task task;
+
+extern "C" {
+void sensor(const mjModel* m, mjData* d, int stage);
+}
+
+// sensor callback
+void sensor(const mjModel* model, mjData* data, int stage) {
+  if (stage == mjSTAGE_ACC) {
+    task.Residuals(model, data, data->sensordata);
+  }
+}
+
 // test trajectory rollout with PD controller on particle task
 TEST(RolloutTest, Particle) {
   // load model
@@ -29,9 +43,6 @@ TEST(RolloutTest, Particle) {
   // create data
   mjData* data = mj_makeData(model);
 
-  // set data
-  mj_forward(model, data);
-
   // residual
   ResidualFunction* state_residual = [](const double* params,
                                         const mjModel* model,
@@ -39,10 +50,15 @@ TEST(RolloutTest, Particle) {
     mju_copy(residual, data->qpos, model->nq);
     mju_copy(residual + model->nq, data->qvel, model->nv);
   };
-  mjpc::Task task;
   task.Set(model, state_residual, mjpc::NullTransition);
   ASSERT_EQ(model->nq + model->nv, task.num_residual);
   int num_residual = task.num_residual;
+
+  // set callback
+  mjcb_sensor = sensor;
+
+  // set data
+  mj_forward(model, data);
 
   // policy
   double position_goal[2] = {0.1, 0.1};
@@ -110,6 +126,9 @@ TEST(RolloutTest, Particle) {
   // delete model + data
   mj_deleteData(data);
   mj_deleteModel(model);
+
+  // unset callback
+  mjcb_sensor = nullptr;
 }
 
 }  // namespace

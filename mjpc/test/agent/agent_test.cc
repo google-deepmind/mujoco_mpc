@@ -60,7 +60,7 @@ class AgentTest : public ::testing::Test {
     // ----- initialize agent ----- //
     const char task_str[] = "";
     const char planners_str[] = "";
-    agent->Initialize(model, data, task_str, planners_str, particle_residual,
+    agent->Initialize(model, task_str, planners_str, particle_residual,
                     mjpc::NullTransition);
 
     // test
@@ -102,7 +102,7 @@ class AgentTest : public ::testing::Test {
     // ----- initialize agent ----- //
     const char task_str[] = "";
     const char planners_str[] = "";
-    agent->Initialize(model, data, task_str, planners_str, particle_residual,
+    agent->Initialize(model, task_str, planners_str, particle_residual,
                     mjpc::NullTransition);
   agent->Allocate();
   agent->Reset();

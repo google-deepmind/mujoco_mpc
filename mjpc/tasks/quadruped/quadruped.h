@@ -16,6 +16,7 @@
 #define MJPC_TASKS_QUADRUPED_QUADRUPED_H_
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
 struct Quadruped {
@@ -38,7 +39,8 @@ static void ResidualFloor(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-static int Transition(int state, const mjModel* model, mjData* data);
+static int Transition(int state, const mjModel* model, mjData* data,
+                      Task* task);
 };
 }  // namespace mjpc
 

@@ -16,6 +16,7 @@
 #define MJPC_TASKS_QUADROTOR_QUADROTOR_H_
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
 struct Quadrotor {
@@ -32,7 +33,8 @@ static void Residual(const double* parameters, const mjModel* model,
                      const mjData* data, double* residuals);
 
 // ----- Transition for quadrotor task -----
-static int Transition(int state, const mjModel* model, mjData* data);
+static int Transition(int state, const mjModel* model, mjData* data,
+                      Task* task);
 };
 }  // namespace mjpc
 

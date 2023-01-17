@@ -65,7 +65,7 @@ class StateTest : public ::testing::Test {
     EXPECT_NEAR(mju_L1(mocap_error, 7), 0.0, 1.0e-5);
 
     // reset
-    state.Reset(model);
+    state.Reset();
 
     // test reset
     EXPECT_NEAR(mju_L1(state.state_.data(), 4), 0.0, 1.0e-5);

@@ -24,14 +24,14 @@
 namespace mjpc {
 
 // allocate memory
-void State::Allocate(mjModel* model) {
+void State::Allocate(const mjModel* model) {
   const std::unique_lock<std::shared_mutex> lock(mtx_);
   state_.resize(model->nq + model->nv + model->na);
   mocap_.resize(7 * model->nmocap);
 }
 
 // reset memory to zeros
-void State::Reset(mjModel* model) {
+void State::Reset() {
   const std::unique_lock<std::shared_mutex> lock(mtx_);
   std::fill(state_.begin(), state_.end(), (double)0.0);
   std::fill(mocap_.begin(), mocap_.end(), 0.0);
@@ -39,7 +39,7 @@ void State::Reset(mjModel* model) {
 }
 
 // set state from data
-void State::Set(mjModel* model, mjData* data) {
+void State::Set(const mjModel* model, const mjData* data) {
   if (model && data) {
     const std::unique_lock<std::shared_mutex> lock(mtx_);
 

@@ -16,6 +16,7 @@
 #define MJPC_TASKS_SWIMMER_SWIMMER_H_
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
 struct Swimmer {
@@ -31,7 +32,8 @@ static void Residual(const double* parameters, const mjModel* model,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-static int Transition(int state, const mjModel* model, mjData* data);
+static int Transition(int state, const mjModel* model, mjData* data,
+                      Task* task);
 };
 }  // namespace mjpc
 

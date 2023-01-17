@@ -36,16 +36,16 @@ class State {
   // ----- methods ----- //
 
   // initialize settings
-  void Initialize(mjModel* model) {}
+  void Initialize(const mjModel* model) {}
 
   // allocate memory
-  void Allocate(mjModel* model);
+  void Allocate(const mjModel* model);
 
   // reset memory to zeros
-  void Reset(mjModel* model);
+  void Reset();
 
   // set state from data
-  void Set(mjModel* model, mjData* data);
+  void Set(const mjModel* model, const mjData* data);
 
   // copy into destination
   void CopyTo(double* dst_state, double* dst_mocap, double* time) const;

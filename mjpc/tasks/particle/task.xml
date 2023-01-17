@@ -8,7 +8,7 @@
     <numeric name="task_risk" data="1" />
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.5" />
-    <numeric name="agent_timestep" data="0.1" />
+    <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_sample_width" data="0.001" />
     <numeric name="agent_policy_width" data="0.0015" />
     <numeric name="sampling_spline_points" data="5" />
@@ -25,4 +25,11 @@
     <framelinvel name="velocity" objtype="site" objname="tip"/>
     <framepos name="goal" objtype="body" objname="goal"/>
   </sensor>
+
+  <worldbody>
+    <body name="goal" mocap="true" pos="0.25 0 0.01" quat="1 0 0 0">
+        <geom type="sphere" size=".01" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+  </worldbody>
+
 </mujoco>

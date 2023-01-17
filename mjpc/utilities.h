@@ -64,6 +64,8 @@ void Clamp(double* x, const double* bounds, int n);
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name);
 
+int CostTermByName(const mjModel* m, const mjData* d, const std::string& name);
+
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d,
                int num_trace);

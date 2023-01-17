@@ -115,15 +115,17 @@ void Trajectory::Rollout(
   policy(actions.data(), states.data(), time);
   mju_copy(data->ctrl, actions.data(), model->nu);
 
-  // initial residual
-  task->Residuals(model, data, residual.data());
-
-  // initial trace
-  GetTraces(trace.data(), model, data, task->num_trace);
-
   for (int t = 1; t < horizon - 1; t++) {
     // step2
     mj_step2(model, data);
+
+    // record residual
+    mju_copy(DataAt(residual, (t - 1) * dim_feature), data->sensordata,
+             dim_feature);
+
+    // record trace
+    GetTraces(DataAt(trace, (t - 1) * 3 * task->num_trace), model, data,
+              task->num_trace);
 
     // check for step warnings
     if ((failure |= CheckWarnings(data))) {
@@ -146,13 +148,6 @@ void Trajectory::Rollout(
     policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
            data->time);
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
-
-    // residual
-    task->Residuals(model, data, DataAt(residual, t * dim_feature));
-
-    // record trace
-    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
-              task->num_trace);
   }
 
   // final step2
@@ -164,6 +159,14 @@ void Trajectory::Rollout(
     std::cerr << "Rollout divergence at step\n";
     return;
   }
+
+  // penultimate residual
+  mju_copy(DataAt(residual, (horizon - 2) * dim_feature), data->sensordata,
+                  dim_feature);
+
+  // penultimate trace
+  GetTraces(DataAt(trace, (horizon - 2) * 3 * task->num_trace), model, data,
+            task->num_trace);
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -181,11 +184,12 @@ void Trajectory::Rollout(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
-  // final step1
-  mj_step1(model, data);
+  // final forward
+  mj_forward(model, data);
 
   // final residual
-  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
+  mju_copy(DataAt(residual, (horizon - 1) * dim_feature), data->sensordata,
+           dim_feature);
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
@@ -230,16 +234,18 @@ void Trajectory::RolloutDiscrete(
   policy(actions.data(), states.data(), 0);
   mju_copy(data->ctrl, actions.data(), model->nu);
 
-  // initial residual
-  task->Residuals(model, data, residual.data());
-
-  // initial trace
-  GetTraces(trace.data(), model, data, task->num_trace);
-
 
   for (int t = 1; t < horizon - 1; t++) {
     // step2
     mj_step2(model, data);
+
+    // record residual
+    mju_copy(DataAt(residual, (t - 1) * dim_feature), data->sensordata,
+             dim_feature);
+
+    // record trace
+    GetTraces(DataAt(trace, (t - 1) * 3 * task->num_trace), model, data,
+              task->num_trace);
 
     // check for step warnings
     if ((failure |= CheckWarnings(data))) {
@@ -259,16 +265,8 @@ void Trajectory::RolloutDiscrete(
     mj_step1(model, data);
 
     // set action
-    policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
-           t);
+    policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state), t);
     mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
-
-    // residual
-    task->Residuals(model, data, DataAt(residual, t * dim_feature));
-
-    // record trace
-    GetTraces(DataAt(trace, t * 3 * task->num_trace), model, data,
-              task->num_trace);
   }
 
   // final step2
@@ -280,6 +278,14 @@ void Trajectory::RolloutDiscrete(
     std::cerr << "Rollout divergence at step\n";
     return;
   }
+
+  // penultimate residual
+  mju_copy(DataAt(residual, (horizon - 2) * dim_feature), data->sensordata,
+                  dim_feature);
+
+  // penultimate trace
+  GetTraces(DataAt(trace, (horizon - 2) * 3 * task->num_trace), model, data,
+            task->num_trace);
 
   // record final state
   mju_copy(DataAt(states, (horizon - 1) * dim_state), data->qpos, model->nq);
@@ -297,11 +303,12 @@ void Trajectory::RolloutDiscrete(
     mju_zero(DataAt(actions, (horizon - 1) * dim_action), dim_action);
   }
 
-  // final step1
-  mj_step1(model, data);
+  // final forward
+  mj_forward(model, data);
 
   // final residual
-  task->Residuals(model, data, DataAt(residual, (horizon - 1) * dim_feature));
+  mju_copy(DataAt(residual, (horizon - 1) * dim_feature), data->sensordata,
+           dim_feature);
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,

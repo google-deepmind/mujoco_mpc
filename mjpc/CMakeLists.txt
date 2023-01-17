@@ -47,7 +47,7 @@ include(FindOrFetch)
 find_package(Threads REQUIRED)
 
 set(MUJOCO_BUILD_EXAMPLES OFF)
-set(MUJOCO_BUILD_SIMULATE OFF)
+set(MUJOCO_BUILD_SIMULATE ON)
 set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
@@ -64,6 +64,7 @@ findorfetch(
   main
   TARGETS
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   EXCLUDE_FROM_ALL
 )
 
@@ -151,6 +152,30 @@ set(BUILD_SHARED_LIBS
 )
 unset(BUILD_SHARED_LIBS_OLD)
 
+FetchContent_Declare(
+  menagerie
+  GIT_REPOSITORY https://github.com/deepmind/mujoco_menagerie.git
+  GIT_TAG main
+)
+
+FetchContent_GetProperties(menagerie)
+if(NOT menagerie_POPULATED)
+  FetchContent_Populate(menagerie)
+endif()
+
+add_custom_target(
+  copy_menagerie_resources ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/shadow_hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/hand/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/panda/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/unitree_a1/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/quadruped/assets
+  COMMENT "Copying menagerie assets into binary directory")
+
 if(NOT TARGET lodepng)
   FetchContent_Declare(
     lodepng
@@ -207,6 +232,8 @@ add_library(
   tasks/hand/hand.h
   tasks/humanoid/humanoid.cc
   tasks/humanoid/humanoid.h
+  tasks/panda/panda.cc
+  tasks/panda/panda.h
   tasks/particle/particle.cc
   tasks/particle/particle.h
   tasks/quadrotor/quadrotor.cc
@@ -265,13 +292,12 @@ target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(
   mjpc
-  glfw_dispatch.cc
-  glfw_dispatch.h
+  app.cc
+  app.h
   main.cc
   simulate.cc
   simulate.h
-  uitools.cc
-  uitools.h
+  $<TARGET_OBJECTS:mujoco::platform_ui_adapter>
 )
 target_link_libraries(
   mjpc
@@ -283,6 +309,7 @@ target_link_libraries(
   libmjpc
   lodepng
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
 )

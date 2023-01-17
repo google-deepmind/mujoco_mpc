@@ -370,7 +370,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 // run event loop
-int StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
+void StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
@@ -392,7 +392,6 @@ int StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
         std::cerr << '\t' << task.name << '\n';
       }
       mju_error("Invalid --task flag.");
-      return -1;
     }
   }
 
@@ -456,7 +455,5 @@ int StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
 
   // destroy the Simulate instance
   sim.release();
-
-  return 0;
 }
 }  // namespace mjpc

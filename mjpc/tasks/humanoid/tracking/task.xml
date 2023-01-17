@@ -13,7 +13,7 @@
     <numeric name="sampling_exploration" data="0.15" />
     <numeric name="sampling_trajectories" data="16" />
     <numeric name="gradient_spline_points" data="5" />
-    <numeric name="ilqg_num_rollouts" data="6" />
+    <numeric name="ilqg_num_rollouts" data="16" />
     <numeric name="ilqg_regularization_type" data="1" />
     <numeric name="ilqg_representation" data="2" />
   </custom>
@@ -77,41 +77,27 @@
 
   <sensor>
     <user name="joint vel." dim="21" user="0 0.001 0.0 0.01" />
-    <user name="control" dim="21" user="3 0 0.0 0.1 0.3" />
+    <user name="control" dim="21" user="3 0.1 0 1.0 0.3" />
 
-    <user name="root pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="head pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="ltoe pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="rtoe pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="lheel pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="rheel pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="lknee pos error" dim="3" user="6 10.0 0.0 100.0 0.1" />
-    <user name="rknee pos error" dim="3" user="6 10.0 0.0 100.0 0.1" />
-    <user name="lhand pos error" dim="3" user="6 60.0 0.0 100.0 0.1" />
-    <user name="rhand pos error" dim="3" user="6 60.0 0.0 100.0 0.1" />
-    <user name="lelbow pos error" dim="3" user="6 10.0 0.0 100.0 0.1" />
-    <user name="relbow pos error" dim="3" user="6 10.0 0.0 100.0 0.1" />
-    <user name="lshoulder pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="rshoulder pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="lhip pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
-    <user name="rhip pos error" dim="3" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[root]" dim="3" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[head]" dim="3" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[knee]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[hand]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[elbow]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[shoulder]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[hip]" dim="6" user="6 30.0 0.0 100.0 0.1" />
 
-    <user name="root vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="head vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="ltoe vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rtoe vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lheel vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rheel vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lknee vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rknee vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lhand vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rhand vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lelbow vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="relbow vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lshoulder vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rshoulder vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="lhip vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
-    <user name="rhip vel error" dim="3" user="6 0.003 0.0 1.0 0.1" />
+    <user name="vel[root]" dim="3" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[head]" dim="3" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[toe]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[heel]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[knee]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[hand]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[elbow]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[shoulder]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[hip]" dim="6" user="6 0.1 0 1.0 0.3" />
 
     <framepos name="trace0" objtype="body" objname="torso"/>
 

@@ -125,8 +125,8 @@ void humanoid::Tracking::Residual(const double* parameters, const mjModel* model
   }
   if (user_sensor_dim != counter) {
     std::printf("user_sensor_dim=%d, counter=%d", user_sensor_dim, counter);
-    mju_error_i("mismatch between total user-sensor dimension"
-                "and actual length of residual %d", user_sensor_dim);
+    mju_error_i("mismatch between total user-sensor dimension "
+                "and actual length of residual %d", counter);
   }
 
 }

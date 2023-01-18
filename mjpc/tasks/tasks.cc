@@ -36,7 +36,7 @@ namespace {
 // kNumTasks and the size of the array initializer.
 const TaskDefinition<const char*> kTasksArray[]{
     {
-        .name = "Humanoid Tracking",
+        .name = "Humanoid Track",
         .xml_path = "humanoid/tracking/task.xml",
         .residual = &humanoid::Tracking::Residual,
         .transition = &humanoid::Tracking::Transition,

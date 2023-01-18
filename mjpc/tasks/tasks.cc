@@ -38,8 +38,8 @@ const TaskDefinition<const char*> kTasksArray[]{
     {
         .name = "Humanoid Tracking",
         .xml_path = "humanoid/tracking/task.xml",
-        .residual = &Humanoid::Tracking::Residual,
-        .transition = &Humanoid::Tracking::Transition,
+        .residual = &humanoid::Tracking::Residual,
+        .transition = &humanoid::Tracking::Transition,
     },
     {
         .name = "Humanoid Stand",

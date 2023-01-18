@@ -19,7 +19,7 @@
 #include "../../../task.h"
 
 namespace mjpc {
-namespace Humanoid {
+namespace humanoid {
 
 struct Tracking {
 
@@ -40,7 +40,7 @@ struct Tracking {
 
 };
 
-}  // namespace Humanoid
+}  // namespace humanoid
 }  // namespace mjpc
 
 #endif  // MJPC_TASKS_HUMANOID_TRACKING_TASK_H_

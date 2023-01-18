@@ -32,7 +32,7 @@ namespace mjpc {
 //   Number of parameters: TODO(hartikainen)
 //     Parameter (0): TODO(hartikainen)
 // ----------------------------------------------------------------
-void Humanoid::Tracking::Residual(const double* parameters, const mjModel* model,
+void humanoid::Tracking::Residual(const double* parameters, const mjModel* model,
                                   const mjData* data, double* residual) {
   int counter = 0;
 
@@ -117,7 +117,7 @@ void Humanoid::Tracking::Residual(const double* parameters, const mjModel* model
 // -------- Transition for humanoid task ---------
 //   TODO(hartikainen)
 // -----------------------------------------------
-int Humanoid::Tracking::Transition(int state, const mjModel* model, mjData* data,
+int humanoid::Tracking::Transition(int state, const mjModel* model, mjData* data,
                                    Task* task) {
   // TODO(hartikainen): Add distance-based target transition logic.
   // TODO(hartikainen): is `data->time` the right thing to index here?

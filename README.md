@@ -16,7 +16,11 @@
 MJPC allows the user to easily author and solve complex robotics tasks, and currently supports three shooting-based planners: derivative-based iLQG and Gradient Descent, and a simple yet very competitive derivative-free method called Predictive Sampling.
 
 - [Overview](#overview)
+- [Graphical User Interface](#graphical-user-interface)
 - [Installation](#installation)
+  - [macOS](#macos)
+  - [Ubuntu](#ubuntu)
+  - [Build Issues](#build-issues)
 - [Predictive Control](#predictive-control)
 - [Contributing](#contributing)
 - [Known Issues](#known-issues)
@@ -35,6 +39,8 @@ For a quick video overview of MJPC, click below.
 For a longer talk at the MIT Robotics Seminar describing our results, click below.
 
 [![Talk](http://img.youtube.com/vi/2xVN-qY78P4/hqdefault.jpg)](https://www.youtube.com/watch?v=2xVN-qY78P4)
+
+## Graphical User Interface
 
 For a detailed dive of the graphical user interface, see the [MJPC GUI](docs/GUI.md) documentation.
 

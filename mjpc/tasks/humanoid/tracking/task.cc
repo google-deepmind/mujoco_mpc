@@ -24,6 +24,11 @@
 #include "utilities.h"
 
 
+template <typename T>
+T clamp(const T& n, const T& lower, const T& upper) {
+  return std::max(lower, std::min(n, upper));
+}
+
 namespace mjpc {
 
 // ------------- Residuals for humanoid tracking task -------------
@@ -32,8 +37,9 @@ namespace mjpc {
 //   Number of parameters: TODO(hartikainen)
 //     Parameter (0): TODO(hartikainen)
 // ----------------------------------------------------------------
-void humanoid::Tracking::Residual(const double* parameters, const mjModel* model,
-                                  const mjData* data, double* residual) {
+void humanoid::Tracking::Residual(const double* parameters,
+                                  const mjModel* model, const mjData* data,
+                                  double* residual) {
   // ----- get mocap frames ----- //
   float fps = 30.0;
 
@@ -41,10 +47,11 @@ void humanoid::Tracking::Residual(const double* parameters, const mjModel* model
   // Linearly interpolate between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = clamp((data->time * fps), 0.0, (double)last_key_index);
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
-  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index) - key_index_0;
+  double weight_1 = clamp(data->time * fps, 0.0, (double)last_key_index)
+                    - key_index_0;
   double weight_0 = 1.0 - weight_1;
 
   // ----- residual ----- //
@@ -85,7 +92,8 @@ void humanoid::Tracking::Residual(const double* parameters, const mjModel* model
       weight_1);
 
     // current position
-    double* sensor_pos = mjpc::SensorByName(model, data, pos_sensor_name.c_str());
+    double* sensor_pos = mjpc::SensorByName(
+        model, data, pos_sensor_name.c_str());
     mju_subFrom3(&residual[counter], sensor_pos);
 
     counter += 3;
@@ -109,7 +117,8 @@ void humanoid::Tracking::Residual(const double* parameters, const mjModel* model
     mju_scl3(&residual[counter], &residual[counter], fps);
 
     // subtract current velocity
-    double* sensor_linvel = mjpc::SensorByName(model, data, linvel_sensor_name.c_str());
+    double* sensor_linvel = mjpc::SensorByName(
+        model, data, linvel_sensor_name.c_str());
     mju_subFrom3(&residual[counter], sensor_linvel);
 
     counter += 3;
@@ -134,18 +143,19 @@ void humanoid::Tracking::Residual(const double* parameters, const mjModel* model
 // -------- Transition for humanoid task ---------
 //   TODO(hartikainen)
 // -----------------------------------------------
-int humanoid::Tracking::Transition(int state, const mjModel* model, mjData* data,
-                                   Task* task) {
+int humanoid::Tracking::Transition(int state, const mjModel* model,
+                                   mjData* data, Task* task) {
   float fps = 30.0;
 
   // Positions:
   // Linearly interpolate between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = clamp((data->time * fps), 0.0, (double)last_key_index);
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
-  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index) - key_index_0;
+  double weight_1 = clamp(data->time * fps, 0.0, (double)last_key_index)
+                    - key_index_0;
   double weight_0 = 1.0 - weight_1;
 
   double mocap_pos_0[3 * model->nmocap];

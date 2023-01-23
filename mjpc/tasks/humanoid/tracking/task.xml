@@ -11,7 +11,7 @@
     <numeric name="agent_timestep" data="0.005" />
     <numeric name="sampling_spline_points" data="16" />
     <numeric name="sampling_exploration" data="0.15" />
-    <numeric name="sampling_trajectories" data="16" />
+    <numeric name="sampling_trajectories" data="32" />
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="ilqg_num_rollouts" data="16" />
     <numeric name="ilqg_regularization_type" data="1" />

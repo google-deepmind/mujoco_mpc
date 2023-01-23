@@ -89,20 +89,27 @@ void Trajectory::Rollout(
   // reset failure flag
   failure = false;
 
+  // model sizes
+  int nq = model->nq;
+  int nv = model->nv;
+  int na = model->na;
+  int nu = model->nu;
+  int nmocap = model->nmocap;
+
   // horizon
   horizon = steps;
 
   // set mocap
-  for (int i = 0; i < model->nmocap; i++) {
+  for (int i = 0; i < nmocap; i++) {
     mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
   // set initial state
   mju_copy(states.data(), state, dim_state);
-  mju_copy(data->qpos, state, model->nq);
-  mju_copy(data->qvel, state + model->nq, model->nv);
-  mju_copy(data->act, state + model->nq + model->nv, model->na);
+  mju_copy(data->qpos, state, nq);
+  mju_copy(data->qvel, state + nq, nv);
+  mju_copy(data->act, state + nq + nv, na);
 
   // set initial time
   times[0] = time;
@@ -110,13 +117,12 @@ void Trajectory::Rollout(
 
   for (int t = 0; t < horizon - 1; t++) {
     // set action
-    policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state),
-           data->time);
-    mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
+    policy(DataAt(actions, t * nu), DataAt(states, t * dim_state), data->time);
+    mju_copy(data->ctrl, DataAt(actions, t * nu), nu);
 
     // step
     mj_step(model, data);
-    
+
     // record residual
     mju_copy(DataAt(residual, t * dim_residual), data->sensordata,
              dim_residual);
@@ -133,10 +139,9 @@ void Trajectory::Rollout(
     }
 
     // record state
-    mju_copy(DataAt(states, (t + 1) * dim_state), data->qpos, model->nq);
-    mju_copy(DataAt(states, (t + 1) * dim_state + model->nq), data->qvel, model->nv);
-    mju_copy(DataAt(states, (t + 1) * dim_state + model->nq + model->nv), data->act,
-             model->na);
+    mju_copy(DataAt(states, (t + 1) * dim_state), data->qpos, nq);
+    mju_copy(DataAt(states, (t + 1) * dim_state + nq), data->qvel, nv);
+    mju_copy(DataAt(states, (t + 1) * dim_state + nq + nv), data->act, na);
     times[t + 1] = data->time;
   }
 
@@ -179,20 +184,27 @@ void Trajectory::RolloutDiscrete(
   // reset failure flag
   failure = false;
 
+  // model sizes
+  int nq = model->nq;
+  int nv = model->nv;
+  int na = model->na;
+  int nu = model->nu;
+  int nmocap = model->nmocap;
+
   // horizon
   horizon = steps;
 
   // set mocap
-  for (int i = 0; i < model->nmocap; i++) {
+  for (int i = 0; i < nmocap; i++) {
     mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
   // set initial state
   mju_copy(states.data(), state, dim_state);
-  mju_copy(data->qpos, state, model->nq);
-  mju_copy(data->qvel, state + model->nq, model->nv);
-  mju_copy(data->act, state + model->nq + model->nv, model->na);
+  mju_copy(data->qpos, state, nq);
+  mju_copy(data->qvel, state + nq, nv);
+  mju_copy(data->act, state + nq + nv, na);
 
   // set initial time
   times[0] = time;
@@ -200,8 +212,8 @@ void Trajectory::RolloutDiscrete(
 
   for (int t = 0; t < horizon - 1; t++) {
     // set action
-    policy(DataAt(actions, t * model->nu), DataAt(states, t * dim_state), t);
-    mju_copy(data->ctrl, DataAt(actions, t * model->nu), model->nu);
+    policy(DataAt(actions, t * nu), DataAt(states, t * dim_state), t);
+    mju_copy(data->ctrl, DataAt(actions, t * nu), nu);
 
     // step
     mj_step(model, data);
@@ -222,10 +234,9 @@ void Trajectory::RolloutDiscrete(
     }
 
     // record state
-    mju_copy(DataAt(states, (t + 1) * dim_state), data->qpos, model->nq);
-    mju_copy(DataAt(states, (t + 1) * dim_state + model->nq), data->qvel, model->nv);
-    mju_copy(DataAt(states, (t + 1) * dim_state + model->nq + model->nv), data->act,
-             model->na);
+    mju_copy(DataAt(states, (t + 1) * dim_state), data->qpos, nq);
+    mju_copy(DataAt(states, (t + 1) * dim_state + nq), data->qvel, nv);
+    mju_copy(DataAt(states, (t + 1) * dim_state + nq + nv), data->act, na);
     times[t + 1] = data->time;
   }
 

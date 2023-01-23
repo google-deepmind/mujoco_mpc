@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_MJPC_APP_H_
-#define MJPC_MJPC_APP_H_
+#ifndef MJPC_APP_H_
+#define MJPC_APP_H_
 
 #include <vector>
 
@@ -23,4 +23,4 @@ namespace mjpc {
 void StartApp(std::vector<mjpc::TaskDefinition<>> tasks);
 
 }  // namespace mjpc
-#endif  // MJPC_MJPC_APP_H_
+#endif  // MJPC_APP_H_

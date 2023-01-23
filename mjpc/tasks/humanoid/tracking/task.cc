@@ -14,6 +14,7 @@
 
 #include "tasks/humanoid/tracking/task.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <iostream>
@@ -23,11 +24,6 @@
 #include "../../../task.h"
 #include "utilities.h"
 
-
-template <typename T>
-T clamp(const T& n, const T& lower, const T& upper) {
-  return std::max(lower, std::min(n, upper));
-}
 
 namespace mjpc {
 
@@ -47,10 +43,10 @@ void humanoid::Tracking::Residual(const double* parameters,
   // Linearly interpolate between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
-  double weight_1 = clamp(data->time * fps, 0.0, (double)last_key_index)
+  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)
                     - key_index_0;
   double weight_0 = 1.0 - weight_1;
 
@@ -151,10 +147,10 @@ int humanoid::Tracking::Transition(int state, const mjModel* model,
   // Linearly interpolate between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
-  double weight_1 = clamp(data->time * fps, 0.0, (double)last_key_index)
+  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)
                     - key_index_0;
   double weight_0 = 1.0 - weight_1;
 

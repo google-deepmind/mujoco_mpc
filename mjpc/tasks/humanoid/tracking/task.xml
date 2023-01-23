@@ -79,7 +79,7 @@
     <user name="joint vel." dim="21" user="0 0.001 0.0 0.01" />
     <user name="control" dim="21" user="3 0.1 0 1.0 0.3" />
 
-    <user name="pos[root]" dim="3" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[root]" dim="3" user="6 100.0 0.0 100.0 0.1" />
     <user name="pos[head]" dim="3" user="6 0.0 0.0 100.0 0.1" />
     <user name="pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
     <user name="pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />

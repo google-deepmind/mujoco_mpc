@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 
@@ -71,9 +72,8 @@ void humanoid::Tracking::Residual(const double* parameters,
     "rhip",
   };
 
-  for (const auto& body_name : body_names) {
+  auto get_body_mpos = [=](std::string body_name, double result[3]) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
-    std::string pos_sensor_name = "tracking_pos[" + body_name + "]";
     int mocap_body_id = mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str());
     assert(0 <= mocap_body_id);
     int body_mocapid = model->body_mocapid[mocap_body_id];
@@ -81,20 +81,51 @@ void humanoid::Tracking::Residual(const double* parameters,
 
     // current frame
     mju_scl3(
-      &residual[counter],
+      result,
       model->key_mpos + model->nmocap * 3 * key_index_0 + 3 * body_mocapid,
       weight_0);
 
     // next frame
     mju_addToScl3(
-      &residual[counter],
+      result,
       model->key_mpos + model->nmocap * 3 * key_index_1 + 3 * body_mocapid,
       weight_1);
+  };
 
-    // current position
+  auto get_body_sensor_pos = [=](std::string body_name, double result[3]) {
+    std::string pos_sensor_name = "tracking_pos[" + body_name + "]";
     double* sensor_pos = mjpc::SensorByName(
         model, data, pos_sensor_name.c_str());
-    mju_subFrom3(&residual[counter], sensor_pos);
+    mju_copy3(result, sensor_pos);
+  };
+
+  double pelvis_mpos[3];
+  get_body_mpos("pelvis", pelvis_mpos);
+
+  double pelvis_sensor_pos[3];
+  get_body_sensor_pos("pelvis", pelvis_sensor_pos);
+
+  for (const auto& body_name : body_names) {
+    double body_mpos[3];
+    get_body_mpos(body_name, body_mpos);
+
+    // current position
+    double body_sensor_pos[3];
+    get_body_sensor_pos(body_name, body_sensor_pos);
+
+    if (std::strcmp(body_name.c_str(), "pelvis") != 0) {
+      mju_subFrom3(body_mpos, pelvis_mpos);
+      mju_subFrom3(body_sensor_pos, pelvis_sensor_pos);
+    }
+
+    mju_sub3(&residual[counter], body_mpos, body_sensor_pos);
+
+    if (std::strcmp(body_name.c_str(), "pelvis") == 0) {
+      if (0.85 < pelvis_sensor_pos[2]
+          && pelvis_sensor_pos[2] < 0.95) {
+        residual[counter + 2] = residual[counter + 2] * 0.3;
+      }
+    }
 
     counter += 3;
   }

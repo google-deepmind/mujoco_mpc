@@ -33,7 +33,7 @@ void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
   this->horizon = horizon;
   this->dim_state = dim_state;
   this->dim_action = dim_action;
-  this->dim_feature = dim_residual;
+  this->dim_residual = dim_residual;
   this->dim_trace = 3 * num_trace;
   this->failure = false;
 }
@@ -50,7 +50,7 @@ void Trajectory::Allocate(int T) {
   costs.resize(T);
 
   // residual
-  residual.resize(dim_feature * T);
+  residual.resize(dim_residual * T);
 
   // times
   times.resize(T);
@@ -72,7 +72,7 @@ void Trajectory::Reset(int T) {
 
   // costs
   std::fill(costs.begin(), costs.begin() + T, 0.0);
-  std::fill(residual.begin(), residual.begin() + dim_feature * T, 0.0);
+  std::fill(residual.begin(), residual.begin() + dim_residual * T, 0.0);
   total_return = 0.0;
   failure = false;
 
@@ -120,8 +120,8 @@ void Trajectory::Rollout(
     mj_step2(model, data);
 
     // record residual
-    mju_copy(DataAt(residual, (t - 1) * dim_feature), data->sensordata,
-             dim_feature);
+    mju_copy(DataAt(residual, (t - 1) * dim_residual), data->sensordata,
+             dim_residual);
 
     // record trace
     GetTraces(DataAt(trace, (t - 1) * 3 * task->num_trace), model, data,
@@ -161,8 +161,8 @@ void Trajectory::Rollout(
   }
 
   // penultimate residual
-  mju_copy(DataAt(residual, (horizon - 2) * dim_feature), data->sensordata,
-                  dim_feature);
+  mju_copy(DataAt(residual, (horizon - 2) * dim_residual), data->sensordata,
+                  dim_residual);
 
   // penultimate trace
   GetTraces(DataAt(trace, (horizon - 2) * 3 * task->num_trace), model, data,
@@ -188,8 +188,8 @@ void Trajectory::Rollout(
   mj_forward(model, data);
 
   // final residual
-  mju_copy(DataAt(residual, (horizon - 1) * dim_feature), data->sensordata,
-           dim_feature);
+  mju_copy(DataAt(residual, (horizon - 1) * dim_residual), data->sensordata,
+           dim_residual);
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
@@ -240,8 +240,8 @@ void Trajectory::RolloutDiscrete(
     mj_step2(model, data);
 
     // record residual
-    mju_copy(DataAt(residual, (t - 1) * dim_feature), data->sensordata,
-             dim_feature);
+    mju_copy(DataAt(residual, (t - 1) * dim_residual), data->sensordata,
+             dim_residual);
 
     // record trace
     GetTraces(DataAt(trace, (t - 1) * 3 * task->num_trace), model, data,
@@ -280,8 +280,8 @@ void Trajectory::RolloutDiscrete(
   }
 
   // penultimate residual
-  mju_copy(DataAt(residual, (horizon - 2) * dim_feature), data->sensordata,
-                  dim_feature);
+  mju_copy(DataAt(residual, (horizon - 2) * dim_residual), data->sensordata,
+                  dim_residual);
 
   // penultimate trace
   GetTraces(DataAt(trace, (horizon - 2) * 3 * task->num_trace), model, data,
@@ -307,8 +307,8 @@ void Trajectory::RolloutDiscrete(
   mj_forward(model, data);
 
   // final residual
-  mju_copy(DataAt(residual, (horizon - 1) * dim_feature), data->sensordata,
-           dim_feature);
+  mju_copy(DataAt(residual, (horizon - 1) * dim_residual), data->sensordata,
+           dim_residual);
 
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,

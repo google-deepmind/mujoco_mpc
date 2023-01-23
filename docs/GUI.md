@@ -14,6 +14,8 @@ The MJPC GUI is built on top of MuJoCo's `simulate` application with a few addit
 
 - Press `F1` to bring up a help pane that describes how to use the GUI.
 - The MJPC GUI is an extension of MuJoCo's native `simulate` viewer, with the same keyboard shortcuts and mouse functionality. 
+    - `+` speeds up the simulation, resulting in fewer planning steps per simulation step. 
+    - `-` slows down the simulation, resulting in more planning steps per simulation step. 
 - The `simulate` viewer enables drag-and-drop interaction with simulated objects to apply forces or torques. 
     - Double-click on a body to select it. 
     - `Ctrl + left drag` applies a torque to the selected object, resulting in rotation. 

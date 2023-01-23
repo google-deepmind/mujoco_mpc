@@ -23,18 +23,24 @@ namespace humanoid {
 
 struct Tracking {
 
-  // -------------- Residuals for humanoid tracking task ------------
-  //   Number of residuals: TODO(hartikainen)
-  //     Residual (0): TODO(hartikainen)
-  //   Number of parameters: TODO(hartikainen)
-  //     Parameter (0): TODO(hartikainen)
+  // ------------- Residuals for humanoid tracking task -------------
+  //   Number of residuals:
+  //     Residual (0): Joint vel: minimise joint velocity
+  //     Residual (1): Control: minimise control
+  //     Residual (2-11): Tracking position: minimise tracking position error
+  //         for {root, head, toe, heel, knee, hand, elbow, shoulder, hip}.
+  //     Residual (11-20): Tracking velocity: minimise tracking velocity error
+  //         for {root, head, toe, heel, knee, hand, elbow, shoulder, hip}.
+  //   Number of parameters: 0
   // ----------------------------------------------------------------
   static void Residual(const double* parameters, const mjModel* model,
                        const mjData* data, double* residual);
 
-  // ------------ Transition for humanoid tracking task -------------
-  //   TODO(hartikainen)
-  // ----------------------------------------------------------------
+  // --------------------- Transition for humanoid task -------------------------
+  //   Set `data->mocap_pos` based on `data->time` to move the mocap sites.
+  //   Linearly interpolate between two consecutive key frames in order to
+  //   smooth the transitions between keyframes.
+  // ----------------------------------------------------------------------------
   static int Transition(int state, const mjModel* model, mjData* data,
                         Task* task);
 

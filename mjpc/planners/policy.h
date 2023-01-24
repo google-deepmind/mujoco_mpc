@@ -20,6 +20,7 @@
 
 namespace mjpc {
 
+// type of interpolation
 enum PolicyRepresentation : int {
   kZeroSpline,
   kLinearSpline,

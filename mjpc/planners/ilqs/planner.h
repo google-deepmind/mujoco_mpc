@@ -19,10 +19,9 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "planners/ilqg/backward_pass.h"
-#include "planners/ilqg/policy.h"
-#include "planners/ilqg/settings.h"
+#include "planners/ilqg/planner.h"
 #include "planners/planner.h"
+#include "planners/sampling/planner.h"
 #include "states/state.h"
 #include "trajectory.h"
 
@@ -69,70 +68,12 @@ class iLQSPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
              int planning) override;
 
-  // compute candidate trajectories
-  void Rollouts(int horizon, ThreadPool& pool);
+  // ----- planners ----- //
+  SamplingPlanner sampling;
+  iLQGPlanner ilqg;
 
-  // ----- members ----- //
-  mjModel* model;
-  const Task* task;
-
-  // state
-  std::vector<double> state;
-  double time;
-  std::vector<double> mocap;
-
-  // policy
-  iLQGPolicy policy;
-  iLQGPolicy candidate_policy[kMaxTrajectory];
-
-  // dimensions
-  int dim_state;             // state
-  int dim_state_derivative;  // state derivative
-  int dim_action;            // action
-  int dim_sensor;            // output (i.e., all sensors)
-  int dim_max;               // maximum dimension
-
-  // candidate trajectories
-  Trajectory trajectory[kMaxTrajectory];
-  int num_trajectory;
-
-  // model derivatives
-  ModelDerivatives model_derivative;
-
-  // cost derivatives
-  CostDerivatives cost_derivative;
-
-  // backward pass
-  iLQGBackwardPass backward_pass;
-
-  // boxQP
-  BoxQP boxqp;
-
-  // step sizes
-  double improvement_step[kMaxTrajectory];
-
-  // best trajectory id
+  // winning planner
   int winner;
-
-  // settings
-  iLQGSettings settings;
-
-  // values
-  double step_size;
-  double improvement;
-  double expected;
-  double surprise;
-
-  // compute time
-  double nominal_compute_time;
-  double model_derivative_compute_time;
-  double cost_derivative_compute_time;
-  double rollouts_compute_time;
-  double backward_pass_compute_time;
-  double policy_update_compute_time;
-
- private:
-  mutable std::shared_mutex mtx_;
 };
 
 }  // namespace mjpc

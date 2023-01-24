@@ -122,14 +122,25 @@ void GetTraces(double* traces, const mjModel* m, const mjData* d,
   }
 }
 
-// get keyframe data using string
-double* KeyFrameByName(const mjModel* m, const mjData* d,
-                       const std::string& name) {
+// get keyframe `qpos` data using string
+double* KeyQPosByName(const mjModel* m, const mjData* d,
+                      const std::string& name) {
   int id = mj_name2id(m, mjOBJ_KEY, name.c_str());
   if (id == -1) {
     return nullptr;
   } else {
     return m->key_qpos + m->nq * id;
+  }
+}
+
+// get keyframe `qvel` data using string
+double* KeyQVelByName(const mjModel* m, const mjData* d,
+                      const std::string& name) {
+  int id = mj_name2id(m, mjOBJ_KEY, name.c_str());
+  if (id == -1) {
+    return nullptr;
+  } else {
+    return m->key_qvel + m->nv * id;
   }
 }
 

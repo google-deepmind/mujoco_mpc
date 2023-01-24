@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -49,7 +50,8 @@ void humanoid::Tracking::Residual(const double* parameters,
   // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = std::floor(
+    std::clamp(data->time * fps, 0.0, (double)last_key_index));
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
   double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)
@@ -187,7 +189,8 @@ int humanoid::Tracking::Transition(int state, const mjModel* model,
   // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
+  int key_index_0 = std::floor(
+    std::clamp(data->time * fps, 0.0, (double)last_key_index));
   int key_index_1 = std::min(key_index_0 + 1, last_key_index);
 
   double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)

@@ -274,6 +274,8 @@ add_library(
   planners/ilqg/policy.cc
   planners/ilqg/policy.h
   planners/ilqg/settings.h
+  planners/ilqs/planner.cc
+  planners/ilqs/planner.h
   norm.cc
   norm.h
   task.cc

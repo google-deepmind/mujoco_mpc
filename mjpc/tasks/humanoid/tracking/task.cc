@@ -27,6 +27,19 @@
 #include "utilities.h"
 
 
+static std::tuple<int, int, double, double> compute_interpolation_values(
+  double index, int max_index) {
+  int index_0 = std::floor(std::clamp(index, 0.0, (double)max_index));
+  int index_1 = std::min(index_0 + 1, max_index);
+
+  double weight_1 = std::clamp(index, 0.0, (double)max_index)
+    - index_0;
+  double weight_0 = 1.0 - weight_1;
+
+  return {index_0, index_1, weight_0, weight_1};
+}
+
+
 namespace mjpc {
 
 // ------------- Residuals for humanoid tracking task -------------
@@ -45,18 +58,16 @@ void humanoid::Tracking::Residual(const double* parameters,
   // ----- get mocap frames ----- //
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
+  double current_index = data->time * fps;
+  int last_key_index = (model->nkey) - 1;
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
-  int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::floor(
-    std::clamp(data->time * fps, 0.0, (double)last_key_index));
-  int key_index_1 = std::min(key_index_0 + 1, last_key_index);
-
-  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)
-                    - key_index_0;
-  double weight_0 = 1.0 - weight_1;
+  int key_index_0, key_index_1;
+  double weight_0, weight_1;
+  std::tie(key_index_0, key_index_1, weight_0, weight_1) =
+    compute_interpolation_values(current_index, last_key_index);
 
   // ----- residual ----- //
   int counter = 0;
@@ -184,18 +195,16 @@ int humanoid::Tracking::Transition(int state, const mjModel* model,
                                    mjData* data, Task* task) {
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
+  double current_index = data->time * fps;
+  int last_key_index = (model->nkey) - 1;
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
-  int last_key_index = (model->nkey) - 1;
-  int key_index_0 = std::floor(
-    std::clamp(data->time * fps, 0.0, (double)last_key_index));
-  int key_index_1 = std::min(key_index_0 + 1, last_key_index);
-
-  double weight_1 = std::clamp(data->time * fps, 0.0, (double)last_key_index)
-                    - key_index_0;
-  double weight_0 = 1.0 - weight_1;
+  int key_index_0, key_index_1;
+  double weight_0, weight_1;
+  std::tie(key_index_0, key_index_1, weight_0, weight_1) =
+    compute_interpolation_values(current_index, last_key_index);
 
   double mocap_pos_0[3 * model->nmocap];
   double mocap_pos_1[3 * model->nmocap];

@@ -17,7 +17,8 @@
 #include "tasks/acrobot/acrobot.h"
 #include "tasks/cartpole/cartpole.h"
 #include "tasks/hand/hand.h"
-#include "tasks/humanoid/humanoid.h"
+#include "tasks/humanoid/stand/task.h"
+#include "tasks/humanoid/walk/task.h"
 #include "tasks/panda/panda.h"
 // DEEPMIND INTERNAL IMPORT
 #include "tasks/particle/particle.h"
@@ -35,13 +36,13 @@ namespace {
 const TaskDefinition<const char*> kTasksArray[]{
     {
         .name = "Humanoid Stand",
-        .xml_path = "humanoid/task_stand.xml",
-        .residual = &Humanoid::ResidualStand,
+        .xml_path = "humanoid/stand/task.xml",
+        .residual = &humanoid::Stand::Residual,
     },
     {
         .name = "Humanoid Walk",
-        .xml_path = "humanoid/task_walk.xml",
-        .residual = &Humanoid::ResidualWalk,
+        .xml_path = "humanoid/walk/task.xml",
+        .residual = &humanoid::Walk::Residual,
     },
     {
         .name = "Swimmer",

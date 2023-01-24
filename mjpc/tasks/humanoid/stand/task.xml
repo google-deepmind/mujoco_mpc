@@ -1,6 +1,6 @@
 <mujoco model="Humanoid">
-  <include file="../common.xml"/>
-  <include file="humanoid.xml" />
+  <include file="../../common.xml"/>
+  <include file="../humanoid.xml" />
   <size memory="400K"/>
 
   <custom>

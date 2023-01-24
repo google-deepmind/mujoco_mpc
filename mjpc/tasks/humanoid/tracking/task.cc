@@ -42,10 +42,11 @@ void humanoid::Tracking::Residual(const double* parameters,
                                   const mjModel* model, const mjData* data,
                                   double* residual) {
   // ----- get mocap frames ----- //
+  // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
 
   // Positions:
-  // Linearly interpolate between two consecutive key frames in order to
+  // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
   int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
@@ -72,6 +73,7 @@ void humanoid::Tracking::Residual(const double* parameters,
     "rhip",
   };
 
+  // Compute interpolated frame.
   auto get_body_mpos = [=](std::string body_name, double result[3]) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
     int mocap_body_id = mj_name2id(model, mjOBJ_BODY, mocap_body_name.c_str());
@@ -178,10 +180,11 @@ void humanoid::Tracking::Residual(const double* parameters,
 // ----------------------------------------------------------------------------
 int humanoid::Tracking::Transition(int state, const mjModel* model,
                                    mjData* data, Task* task) {
+  // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
 
   // Positions:
-  // Linearly interpolate between two consecutive key frames in order to
+  // We interpolate linearly between two consecutive key frames in order to
   // provide smoother signal for tracking.
   int last_key_index = (model->nkey) - 1;
   int key_index_0 = std::clamp((data->time * fps), 0.0, (double)last_key_index);
@@ -194,6 +197,7 @@ int humanoid::Tracking::Transition(int state, const mjModel* model,
   double mocap_pos_0[3 * model->nmocap];
   double mocap_pos_1[3 * model->nmocap];
 
+  // Compute interpolated frame.
   mju_scl(mocap_pos_0,
           model->key_mpos + model->nmocap * 3 * key_index_0,
           weight_0,

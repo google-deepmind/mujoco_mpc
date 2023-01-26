@@ -67,7 +67,6 @@ class Planner {
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                      int planning) = 0;
 
- protected:
   std::vector<UniqueMjData> data_;
   void ResizeMjData(const mjModel* model, int num_threads);
 };

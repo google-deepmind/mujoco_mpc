@@ -131,7 +131,7 @@ class iLQGPlanner : public Planner {
   double backward_pass_compute_time;
   double policy_update_compute_time;
 
- private:
+  // mutex
   mutable std::shared_mutex mtx_;
 };
 

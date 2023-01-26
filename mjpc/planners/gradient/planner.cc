@@ -231,9 +231,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // compute spline mapping derivatives
     mappings[policy.representation]->Compute(
-        candidate_policy[0].times.data(), candidate_policy[0].parameters.data(),
-        candidate_policy[0].num_spline_points, trajectory[0].times.data(),
-        trajectory[0].horizon - 1);
+        candidate_policy[0].times.data(), candidate_policy[0].num_spline_points, 
+        trajectory[0].times.data(), trajectory[0].horizon - 1);
 
     // compute total derivatives
     mju_mulMatTVec(candidate_policy[0].parameter_update.data(),
@@ -249,15 +248,6 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // check for failure
     if (gd_status != 0) return;
-
-    // TODO(taylorhowell): normalize gradient heuristic for cost scale
-    // invariance double grad_norm =
-    //     mju_norm(candidate_policy[0].parameter_update.data(),
-    //              model->nu * candidate_policy[0].num_spline_points);
-    // mju_scl(candidate_policy[0].parameter_update.data(),
-    //         candidate_policy[0].parameter_update.data(),
-    //         1.0 / grad_norm / candidate_policy[0].num_spline_points,
-    //         model->nu * candidate_policy[0].num_spline_points);
 
     // ----- rollout policy ----- //
     // start timer

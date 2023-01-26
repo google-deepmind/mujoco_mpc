@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_TASKS_HUMANOID_HUMANOID_H_
-#define MJPC_TASKS_HUMANOID_HUMANOID_H_
+#ifndef MJPC_TASKS_HUMANOID_STAND_TASK_H_
+#define MJPC_TASKS_HUMANOID_STAND_TASK_H_
 
 #include <mujoco/mujoco.h>
 
 namespace mjpc {
-struct Humanoid {
+namespace humanoid {
+
+struct Stand {
+
   // ------------------ Residuals for humanoid stand task ------------
   //   Number of residuals: 6
   //     Residual (0): control
@@ -30,26 +33,12 @@ struct Humanoid {
   //   Number of parameters: 1
   //     Parameter (0): height_goal
   // ----------------------------------------------------------------
-  static void ResidualStand(const double* parameters, const mjModel* model,
-                            const mjData* data, double* residual);
+  static void Residual(const double* parameters, const mjModel* model,
+                       const mjData* data, double* residual);
 
-  // ------------------ Residuals for humanoid walk task ------------
-  //   Number of residuals:
-  //     Residual (0): torso height
-  //     Residual (1): pelvis-feet aligment
-  //     Residual (2): balance
-  //     Residual (3): upright
-  //     Residual (4): posture
-  //     Residual (5): walk
-  //     Residual (6): move feet
-  //     Residual (7): control
-  //   Number of parameters:
-  //     Parameter (0): torso height goal
-  //     Parameter (1): speed goal
-  // ----------------------------------------------------------------
-  static void ResidualWalk(const double* parameters, const mjModel* model,
-                            const mjData* data, double* residual);
 };
+
+}  // namespace humanoid
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_HUMANOID_HUMANOID_H_
+#endif  // MJPC_TASKS_HUMANOID_STAND_TASK_H_

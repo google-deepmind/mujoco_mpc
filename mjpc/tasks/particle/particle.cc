@@ -15,6 +15,7 @@
 #include "tasks/particle/particle.h"
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {
@@ -61,6 +62,20 @@ void Particle::ResidualTimeVarying(const double* parameters,
 
   // ----- residual (2) ----- //
   mju_copy(residual + 4, data->ctrl, model->nu);
+}
+
+int Particle::Transition(int state, const mjModel* model, mjData* data,
+                         Task* task) {
+  int new_state = state;
+
+  // some Lissajous curve
+  double goal[2] {0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
+
+  // update mocap position
+  data->mocap_pos[0] = goal[0];
+  data->mocap_pos[1] = goal[1];
+
+  return new_state;
 }
 
 }  // namespace mjpc

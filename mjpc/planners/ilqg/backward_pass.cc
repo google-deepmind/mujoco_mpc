@@ -170,7 +170,7 @@ int iLQGBackwardPass::RiccatiStep(
                           boxqp.H.data(), boxqp.g.data(), m, boxqp.lower.data(),
                           boxqp.upper.data());
     if (mFree < 0) {
-      // printf("backward_pass failure\n");
+      printf("backward_pass failure\n");
       return 0;
     }
 
@@ -198,7 +198,12 @@ int iLQGBackwardPass::RiccatiStep(
   } else {
     // Quut^-1
     mju_copy(tmp3, Quu_reg, m * m);
-    mju_cholFactor(tmp3, m, 0.0);
+    int rank = mju_cholFactor(tmp3, m, 0.0);
+
+    if (rank < m) {
+      printf("backward pass failure\n");
+      return 0;
+    }
 
     // Kt = - Quut \ Qxut
     for (int i = 0; i < n; i++) {

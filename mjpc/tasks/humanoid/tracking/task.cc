@@ -223,9 +223,7 @@ int humanoid::Tracking::Transition(int state, const mjModel* model,
   mju_copy(data->mocap_pos, mocap_pos_0, model->nmocap * 3);
   mju_addTo(data->mocap_pos, mocap_pos_1, model->nmocap * 3);
 
-  int new_state = key_index_0;
-
-  return new_state;
+  return 0;
 }
 
 }  // namespace mjpc

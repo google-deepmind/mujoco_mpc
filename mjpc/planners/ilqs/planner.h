@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
+#include "planners/gradient/spline_mapping.h"
 #include "planners/ilqg/planner.h"
 #include "planners/planner.h"
 #include "planners/sampling/planner.h"
@@ -31,7 +32,12 @@ namespace mjpc {
 class iLQSPlanner : public Planner {
  public:
   // constructor
-  iLQSPlanner() = default;
+  iLQSPlanner() {
+    // spline mapping linear operators for policy conversion
+    mappings.emplace_back(new ZeroSplineMapping);
+    mappings.emplace_back(new LinearSplineMapping);
+    mappings.emplace_back(new CubicSplineMapping);
+  }
 
   // initialize data and settings
   void Initialize(mjModel* model, const Task& task) override;
@@ -71,6 +77,12 @@ class iLQSPlanner : public Planner {
   // ----- planners ----- //
   SamplingPlanner sampling;
   iLQGPlanner ilqg;
+
+  // ----- policy conversion ----- //
+  // spline mapping
+  std::vector<std::unique_ptr<SplineMapping>> mappings;
+  std::vector<double> parameter_matrix_scratch;
+  std::vector<double> parameter_vector_scratch;
 
   // winning planner
   int winner;

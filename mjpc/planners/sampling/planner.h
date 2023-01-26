@@ -74,7 +74,7 @@ class SamplingPlanner : public Planner {
   void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectories, int horizon, ThreadPool& pool);
+  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -107,7 +107,7 @@ class SamplingPlanner : public Planner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectories[kMaxTrajectory];
+  Trajectory trajectory[kMaxTrajectory];
 
   // rollout parameters
   double timestep_power;
@@ -136,7 +136,7 @@ class SamplingPlanner : public Planner {
   double policy_update_compute_time;
 
  private:
-  int num_trajectories_;
+  int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };
 

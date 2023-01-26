@@ -51,7 +51,7 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
 
   // set number of trajectories to rollout
-  num_trajectories_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   winner = 0;
 }
@@ -78,9 +78,9 @@ void SamplingPlanner::Allocate() {
 
   // trajectory and parameters
   for (int i = 0; i < kMaxTrajectory; i++) {
-    trajectories[i].Initialize(num_state, model->nu, task->num_residual,
+    trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                                task->num_trace, kMaxTrajectoryHorizon);
-    trajectories[i].Allocate(kMaxTrajectoryHorizon);
+    trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
 
@@ -107,7 +107,7 @@ void SamplingPlanner::Reset(int horizon) {
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
-    trajectories[i].Reset(kMaxTrajectoryHorizon);
+    trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
 
@@ -132,10 +132,10 @@ void SamplingPlanner::SetState(State& state) {
 
 // optimize nominal policy using random sampling
 void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // if num_trajectories_ has changed, use it in this new iteration.
-  // num_trajectories_ might change while this function runs. Keep it constant
+  // if num_trajectory_ has changed, use it in this new iteration.
+  // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
-  int num_trajectories = num_trajectories_;
+  int num_trajectory = num_trajectory_;
   ResizeMjData(model, pool.NumThreads());
 
   // timers
@@ -167,18 +167,18 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // sample random policies and rollout
-  double best_return = trajectories[winner].total_return;
+  double best_return = trajectory[winner].total_return;
 
   // simulate noisy policies
-  this->Rollouts(num_trajectories, horizon, pool);
+  this->Rollouts(num_trajectory, horizon, pool);
 
   // ----- compare rollouts ----- //
   // reset
   winner = 0;
 
   // random search
-  for (int i = 1; i < num_trajectories; i++) {
-    if (trajectories[i].total_return < trajectories[winner].total_return) {
+  for (int i = 1; i < num_trajectory; i++) {
+    if (trajectory[i].total_return < trajectory[winner].total_return) {
       winner = i;
     }
   }
@@ -206,7 +206,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
           .count();
 
   // improvement
-  improvement = mju_max(best_return - trajectories[winner].total_return, 0.0);
+  improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
 
   // set timers
   nominal_compute_time = nominal_time;
@@ -223,7 +223,7 @@ void SamplingPlanner::NominalTrajectory(int horizon) {
   };
 
   // rollout nominal policy
-  trajectories[0].Rollout(nominal_policy, task, model, data_[0].get(),
+  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
                           state.data(), time, mocap.data(), horizon);
 }
 
@@ -304,14 +304,14 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
 }
 
 // compute candidate trajectories
-void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
+void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
                                ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
 
   // random search
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectories; i++) {
+  for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, i]() {
@@ -331,18 +331,18 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
       };
 
       // policy rollout
-      s.trajectories[i].Rollout(sample_policy_i, task, model,
+      s.trajectory[i].Rollout(sample_policy_i, task, model,
                                 s.data_[ThreadPool::WorkerId()].get(),
                                 state.data(), time, mocap.data(), horizon);
     });
   }
-  pool.WaitCount(count_before + num_trajectories);
+  pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
 }
 
 // return trajectory with best total return
 const Trajectory* SamplingPlanner::BestTrajectory() {
-  return &trajectories[winner];
+  return &trajectory[winner];
 }
 
 // visualize planner-specific traces
@@ -365,7 +365,7 @@ void SamplingPlanner::Traces(mjvScene* scn) {
   auto best = this->BestTrajectory();
 
   // sample traces
-  for (int k = 0; k < num_trajectories_; k++) {
+  for (int k = 0; k < num_trajectory_; k++) {
     // skip winner
     if (k == winner) continue;
 
@@ -380,12 +380,12 @@ void SamplingPlanner::Traces(mjvScene* scn) {
         // make geometry
         mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectories[k].trace[3 * task->num_trace * i + 3 * j],
-            trajectories[k].trace[3 * task->num_trace * i + 1 + 3 * j],
-            trajectories[k].trace[3 * task->num_trace * i + 2 + 3 * j],
-            trajectories[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
-            trajectories[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
-            trajectories[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
+            trajectory[k].trace[3 * task->num_trace * i + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
         // increment number of geometries
         scn->ngeom += 1;
@@ -397,7 +397,7 @@ void SamplingPlanner::Traces(mjvScene* scn) {
 // planner-specific GUI elements
 void SamplingPlanner::GUI(mjUI& ui) {
   mjuiDef defSampling[] = {
-      {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectories_, "0 1"},
+      {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},

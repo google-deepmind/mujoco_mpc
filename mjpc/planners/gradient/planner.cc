@@ -229,7 +229,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
                                      &cost_derivative, dim_state_derivative,
                                      dim_action, horizon);
 
-    // compute spline mapping derivatives
+    // compute spline mapping linear operator
     mappings[policy.representation]->Compute(
         candidate_policy[0].times.data(), candidate_policy[0].num_spline_points, 
         trajectory[0].times.data(), trajectory[0].horizon - 1);

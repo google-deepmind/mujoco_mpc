@@ -46,6 +46,15 @@ void iLQSPlanner::Allocate() {
 
   // iLQG 
   ilqg.Allocate();
+
+  // ----- policy conversion ----- //
+  // spline mapping
+  for (auto& mapping : mappings) {
+    mapping->Allocate(sampling.model->nu);
+  }
+  // scratch
+  parameter_matrix_scratch.resize((kMaxTrajectoryHorizon * sampling.model->nu) * (kMaxTrajectoryHorizon * sampling.model->nu));
+  parameter_vector_scratch.resize(kMaxTrajectoryHorizon * sampling.model->nu);
 }
 
 // reset memory to zeros
@@ -58,6 +67,14 @@ void iLQSPlanner::Reset(int horizon) {
 
   // winner
   winner = 1;
+
+  // ----- policy conversion ----- //
+  std::fill(parameter_matrix_scratch.begin(), 
+            parameter_matrix_scratch.begin() + (kMaxTrajectoryHorizon * sampling.model->nu) * (kMaxTrajectoryHorizon * sampling.model->nu), 
+            0.0);
+  std::fill(parameter_vector_scratch.begin(), 
+            parameter_vector_scratch.begin() + (kMaxTrajectoryHorizon * sampling.model->nu), 
+            0.0);
 }
 
 // set state
@@ -114,6 +131,39 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
                      std::chrono::steady_clock::now() - nominal_start)
                      .count();
+
+  // ----- policy conversion ----- //
+  // compute spline mapping linear operator
+  mappings[sampling.policy.representation]->Compute(
+      sampling.candidate_policy[0].times.data(), sampling.candidate_policy[0].num_spline_points, 
+      sampling.trajectory[0].times.data(), sampling.trajectory[0].horizon - 1);
+
+  // recover parameters from trajectory via least-squares
+  //   A = Mapping' Mapping
+  mju_mulMatTMat(parameter_matrix_scratch.data(), 
+                 mappings[sampling.policy.representation]->Get(), 
+                 mappings[sampling.policy.representation]->Get(), 
+                 sampling.model->nu * (horizon - 1),
+                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points,
+                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+
+  // factorization 
+  mju_cholFactor(parameter_matrix_scratch.data(), 
+                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points, 
+                 0.0);
+
+  // parameter vector scratch 
+  //   Parameters = Mapping' Trajectory
+  mju_mulMatTVec(parameter_vector_scratch.data(), 
+                 mappings[sampling.policy.representation]->Get(), 
+                 ilqg.candidate_policy[0].trajectory.actions.data(), 
+                 sampling.model->nu * (horizon - 1),
+                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+
+  // compute parameters 
+  mju_cholSolve(sampling.candidate_policy[0].parameters.data(), 
+                parameter_matrix_scratch.data(), parameter_vector_scratch.data(), 
+                sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
 
   // rollouts
   double c_best = c_prev;

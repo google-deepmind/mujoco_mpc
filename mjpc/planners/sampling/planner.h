@@ -135,7 +135,6 @@ class SamplingPlanner : public Planner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
- private:
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };

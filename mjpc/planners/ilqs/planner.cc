@@ -108,66 +108,119 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto nominal_start = std::chrono::steady_clock::now();
 
-  // copy nominal policy
-  {
-    const std::shared_lock<std::shared_mutex> lock(ilqg.mtx_);
-    ilqg.candidate_policy[0].CopyFrom(ilqg.policy, horizon);
-    ilqg.candidate_policy[0].representation = ilqg.policy.representation;
+  // previous best cost
+  double c_prev;
+
+  // Sampling is current policy
+  if (winner == 0) {
+    // ----- new policy parameters for Sampling ----- //
+    // copy nominal policy
+    {
+      const std::shared_lock<std::shared_mutex> lock(sampling.mtx_);
+      sampling.policy.num_parameters = sampling.model->nu * sampling.policy.num_spline_points;  // set
+      sampling.candidate_policy[0].CopyFrom(sampling.policy, sampling.policy.num_spline_points);
+    }
+
+    // rollout nominal policy
+    sampling.NominalTrajectory(horizon);
+    if (sampling.trajectory[0].failure) {
+      std::cerr << "Nominal trajectory diverged.\n";
+    }
+
+    // approximate new sampling policy
+    sampling.ResamplePolicy(horizon);
+
+    // set previous best cost
+    c_prev = sampling.trajectory[sampling.winner].total_return;
+
+    // set ilqg nominal trajectory
+    ilqg.candidate_policy[0].trajectory = sampling.trajectory[0];
+
+  // iLQG is current policy
+  } else {
+    // ----- new nominal trajectory for iLQG ----- //
+    // copy nominal policy
+    {
+      const std::shared_lock<std::shared_mutex> lock(ilqg.mtx_);
+      ilqg.candidate_policy[0].CopyFrom(ilqg.policy, horizon);
+      ilqg.candidate_policy[0].representation = ilqg.policy.representation;
+    }
+
+    // rollout nominal policy
+    ilqg.NominalTrajectory(horizon);
+    if (ilqg.trajectory[0].failure) {
+      std::cerr << "Nominal trajectory diverged.\n";
+    }
+
+    // set previous best cost
+    c_prev = ilqg.trajectory[0].total_return;
+
+    // set candidate policy nominal trajectory
+    ilqg.candidate_policy[0].trajectory = ilqg.trajectory[0];
+
+    // ----- policy conversion - trajectory -> parameters ----- //
+    // copy nominal policy
+    {
+      const std::shared_lock<std::shared_mutex> lock(sampling.mtx_);
+      sampling.policy.num_parameters = sampling.model->nu * sampling.policy.num_spline_points;  // set
+      sampling.candidate_policy[0].CopyFrom(sampling.policy, sampling.policy.num_spline_points);
+    }
+
+    // compute spline mapping linear operator
+    mappings[sampling.policy.representation]->Compute(
+        sampling.candidate_policy[0].times.data(), sampling.candidate_policy[0].num_spline_points, 
+        sampling.trajectory[0].times.data(), sampling.trajectory[0].horizon - 1);
+
+    // recover parameters from trajectory via least-squares
+    //   A = Mapping' Mapping
+    mju_mulMatTMat(parameter_matrix_scratch.data(), 
+                  mappings[sampling.policy.representation]->Get(), 
+                  mappings[sampling.policy.representation]->Get(), 
+                  sampling.model->nu * (horizon - 1),
+                  sampling.model->nu * sampling.candidate_policy[0].num_spline_points,
+                  sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+
+    // factorization 
+    mju_cholFactor(parameter_matrix_scratch.data(), 
+                  sampling.model->nu * sampling.candidate_policy[0].num_spline_points, 
+                  0.0);
+
+    // parameter vector scratch 
+    //   Parameters = Mapping' Trajectory
+    mju_mulMatTVec(parameter_vector_scratch.data(), 
+                  mappings[sampling.policy.representation]->Get(), 
+                  ilqg.candidate_policy[0].trajectory.actions.data(), 
+                  sampling.model->nu * (horizon - 1),
+                  sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+
+    // compute parameters 
+    mju_cholSolve(sampling.candidate_policy[0].parameters.data(), 
+                  parameter_matrix_scratch.data(), parameter_vector_scratch.data(), 
+                  sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+
+    // clamp parameters
+    for (int t = 0; t < sampling.candidate_policy[0].num_spline_points; t++) {
+      Clamp(DataAt(sampling.candidate_policy[0].parameters, t * sampling.model->nu),
+            sampling.model->actuator_ctrlrange, sampling.model->nu);
+    }
+
+    printf("mapping: \n");
+    mju_printMat(mappings[sampling.policy.representation]->Get(), sampling.model->nu * (horizon - 1),
+                  sampling.model->nu * sampling.policy.num_spline_points);
+
+    printf("recovered parameters: \n");
+    mju_printMat(sampling.candidate_policy[0].parameters.data(), 
+                 sampling.candidate_policy[0].num_spline_points, 
+                 sampling.model->nu);
   }
-
-  // rollout nominal policy
-  ilqg.NominalTrajectory(horizon);
-  if (ilqg.trajectory[0].failure) {
-    std::cerr << "Nominal trajectory diverged.\n";
-  }
-
-  // set previous best cost
-  double c_prev = ilqg.trajectory[0].total_return;
-
-  // set candidate policy nominal trajectory
-  ilqg.candidate_policy[0].trajectory = ilqg.trajectory[0];
 
   // end timer
   nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
                      std::chrono::steady_clock::now() - nominal_start)
                      .count();
 
-  // ----- policy conversion ----- //
-  // compute spline mapping linear operator
-  mappings[sampling.policy.representation]->Compute(
-      sampling.candidate_policy[0].times.data(), sampling.candidate_policy[0].num_spline_points, 
-      sampling.trajectory[0].times.data(), sampling.trajectory[0].horizon - 1);
+  // ----- iLQG ----- //
 
-  // recover parameters from trajectory via least-squares
-  //   A = Mapping' Mapping
-  mju_mulMatTMat(parameter_matrix_scratch.data(), 
-                 mappings[sampling.policy.representation]->Get(), 
-                 mappings[sampling.policy.representation]->Get(), 
-                 sampling.model->nu * (horizon - 1),
-                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points,
-                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
-
-  // factorization 
-  mju_cholFactor(parameter_matrix_scratch.data(), 
-                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points, 
-                 0.0);
-
-  // parameter vector scratch 
-  //   Parameters = Mapping' Trajectory
-  mju_mulMatTVec(parameter_vector_scratch.data(), 
-                 mappings[sampling.policy.representation]->Get(), 
-                 ilqg.candidate_policy[0].trajectory.actions.data(), 
-                 sampling.model->nu * (horizon - 1),
-                 sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
-
-  // compute parameters 
-  mju_cholSolve(sampling.candidate_policy[0].parameters.data(), 
-                parameter_matrix_scratch.data(), parameter_vector_scratch.data(), 
-                sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
-
-  // rollouts
-  double c_best = c_prev;
-  
   // ----- model derivatives ----- //
   // start timer
   auto model_derivative_start = std::chrono::steady_clock::now();
@@ -238,8 +291,13 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // feedback rollouts (parallel)
   ilqg.Rollouts(horizon, pool);
 
+  // ----- Sampling ----- //
+  // simulate noisy policies
+  sampling.Rollouts(sampling.num_trajectory_, horizon, pool);
+
   // ----- evaluate rollouts ------ //
-  winner = ilqg.num_trajectory - 1;
+  double c_best = c_prev;
+  ilqg.winner = ilqg.num_trajectory - 1;
   int failed = 0;
   if (ilqg.trajectory[ilqg.num_trajectory - 1].failure) {
     failed++;
@@ -255,7 +313,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // compare cost
     if (c_sample < c_best) {
       c_best = c_sample;
-      winner = j;
+      ilqg.winner = j;
     }
   }
   if (failed) {
@@ -264,7 +322,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // update nominal with winner
-  ilqg.candidate_policy[0].trajectory = ilqg.trajectory[winner];
+  ilqg.candidate_policy[0].trajectory = ilqg.trajectory[ilqg.winner];
 
   // improvement
   ilqg.step_size = ilqg.improvement_step[ilqg.winner];
@@ -284,7 +342,6 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
                         std::chrono::steady_clock::now() - rollouts_start)
                         .count();
   
-
   // ----- policy update ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
@@ -312,6 +369,54 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ilqg.rollouts_compute_time = rollouts_time;
   ilqg.backward_pass_compute_time = backward_pass_time;
   ilqg.policy_update_compute_time = policy_update_time;
+
+  // ----- Sampling ----- //
+  // // start timer
+  // auto rollouts_start = std::chrono::steady_clock::now();
+
+  // // simulate noisy policies
+  // sampling.Rollouts(sampling.num_trajectory_, horizon, pool);
+
+  // // ----- compare rollouts ----- //
+  // // reset
+  // sampling.winner = 0;
+
+  // // random search
+  // for (int i = 1; i < sampling.num_trajectory_; i++) {
+  //   if (sampling.trajectory[i].total_return < sampling.trajectory[sampling.winner].total_return) {
+  //     sampling.winner = i;
+  //   }
+  // }
+
+  // // stop timer
+  // rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
+  //                      std::chrono::steady_clock::now() - rollouts_start)
+  //                      .count();
+
+  // // ----- update policy ----- //
+  // // start timer
+  // auto policy_update_start = std::chrono::steady_clock::now();
+
+  // // copy best candidate policy
+  // {
+  //   const std::shared_lock<std::shared_mutex> lock(sampling.mtx_);
+  //   sampling.policy.CopyParametersFrom(sampling.candidate_policy[sampling.winner].parameters,
+  //                   sampling.candidate_policy[sampling.winner].times);
+  // }
+
+  // // stop timer
+  // policy_update_time +=
+  //     std::chrono::duration_cast<std::chrono::microseconds>(
+  //         std::chrono::steady_clock::now() - policy_update_start)
+  //         .count();
+
+  // // improvement
+  // sampling.improvement = mju_max(c_prev - sampling.trajectory[sampling.winner].total_return, 0.0);
+
+  // // set timers
+  // sampling.nominal_compute_time = nominal_time;
+  // sampling.rollouts_compute_time = rollouts_time;
+  // sampling.policy_update_compute_time = policy_update_time;
 }
 
 // compute trajectory using nominal policy
@@ -351,10 +456,10 @@ const Trajectory* iLQSPlanner::BestTrajectory() {
 // visualize planner-specific traces in GUI
 void iLQSPlanner::Traces(mjvScene* scn) {
   // Sampling 
-  // sampling.Traces(scn);
+  sampling.Traces(scn);
 
   // iLQG 
-  ilqg.Traces(scn);
+  // ilqg.Traces(scn);
 }
 
 // planner-specific GUI elements
@@ -375,10 +480,10 @@ void iLQSPlanner::GUI(mjUI& ui) {
 void iLQSPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                         int planning) {
   // Sampling 
-  // sampling.Plots(fig_planner, fig_timer, planning);
+  sampling.Plots(fig_planner, fig_timer, planning);
 
   // iLQG
-  ilqg.Plots(fig_planner, fig_timer, planning);
+  // ilqg.Plots(fig_planner, fig_timer, planning);
 }
 
 }  // namespace mjpc

@@ -53,7 +53,7 @@ void GradientPlanner::Initialize(mjModel* model, const Task& task) {
       2 * model->nv + model->na;    // state derivative dimension
   dim_action = model->nu;           // action dimension
   dim_sensor = model->nsensordata;  // number of sensor values
-  dim_max = 10 * mju_max(mju_max(mju_max(dim_state, dim_state_derivative),
+  dim_max = mju_max(mju_max(mju_max(dim_state, dim_state_derivative),
                                  dim_action),
                          model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(32, model, "gradient_num_trajectory");

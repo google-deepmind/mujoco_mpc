@@ -94,6 +94,7 @@ class GradientPlanner : public Planner {
   std::vector<double> state;
   double time;
   std::vector<double> mocap;
+  std::vector<double> userdata;
 
   // policy
   GradientPolicy policy;

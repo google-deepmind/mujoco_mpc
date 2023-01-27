@@ -42,8 +42,7 @@ void Swimmer::Residual(const double* parameters, const mjModel* model,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-int Swimmer::Transition(int state, const mjModel* model, mjData* data,
-                        Task* task) {
+void Swimmer::Transition(const mjModel* model, mjData* data, Task* task) {
   double* target = mjpc::SensorByName(model, data, "target");
   double* nose = mjpc::SensorByName(model, data, "nose");
   double nose_to_target[2];
@@ -53,6 +52,6 @@ int Swimmer::Transition(int state, const mjModel* model, mjData* data,
     data->mocap_pos[0] = absl::Uniform<double>(gen_, -.8, .8);
     data->mocap_pos[1] = absl::Uniform<double>(gen_, -.8, .8);
   }
-  return state;
 }
+
 }  // namespace mjpc

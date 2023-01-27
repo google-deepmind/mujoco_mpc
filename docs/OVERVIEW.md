@@ -18,23 +18,23 @@
 
 $$
 \begin{align*}
-    \underset{s_{1:{T}}, a_{1:T}}{\text{minimize }} & \, \sum \limits_{t = 0}^{T} c(s_t, a_t),\\
-    \text{s.t.} & \, s_{t+1} = m(s_t, a_t),\\
-    & (s_0 \, \text{given}),
+    \underset{x_{1:{T}}, u_{1:T}}{\text{minimize }} & \quad \sum \limits_{t = 0}^{T} c(x_t, u_t),\\
+    \text{subject to} & \quad x_{t+1} = f(x_t, u_t),\\
+    & \quad (x_0 \, \text{given}),
 \end{align*}
 $$
 
-where the goal is to optimize state $s \in \mathbf{S}$, action $a \in \mathbf{A}$ trajectories subject to a model $m : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{S}$ specifying the transition dynamics of the system. The minimization objective is the total return, which is the sum of step-wise values $c : \mathbf{S} \times \mathbf{A} \rightarrow \mathbf{R}_{+}$ along the trajectory from the current time until the horizon $T$.
+where the goal is to optimize state, $x \in \mathbf{R}^n$, action $u \in \mathbf{R}^m$ trajectories subject to a model $f : \mathbf{R}^n \times \mathbf{R}^m \rightarrow \mathbf{R}^n$ specifying the transition dynamics of the system. The minimization objective is the total return, which is the sum of step-wise values $c : \mathbf{R}^n \times \mathbf{R}^m \rightarrow \mathbf{R}_{+}$ along the trajectory from the current time until the horizon $T$.
 
 ## Cost Function
 
-Behaviors are designed by specifying a per-timestep cost $c$ of the form:
+Behaviors are designed by specifying a per-timestep cost $l$ of the form:
 
 $$
-c(s, a) = \sum_i^N w_i \cdot \text{n}_i\Big(\textbf{r}_i(s, a)\Big)
+l(x, u) = \sum_i^M w_i \cdot \text{n}_i\Big(\textbf{r}_i(x, u)\Big)
 $$
 
-The cost is a sum of $N$ terms, each comprising:
+The cost is a sum of $M$ terms, each comprising:
 
 - A nonnegative scalar weight $w \ge 0$ that determines the relative importance of this term.
 - A norm function $\rm n(\cdot)$ taking a vector and returning a non-negative scalar that achieves its minimum at $\bf 0$.
@@ -42,22 +42,22 @@ The cost is a sum of $N$ terms, each comprising:
 
 ### Risk (in)sensitive costs
 
-We additionally provide a convenient family of exponential transformations $J(s, a; R) = f(c(s, a), R)$ that can be applied to the cost function to model risk-seeking and risk-averse behaviors. This family is parameterized by a scalar $R \in \mathbf{R}$ (our default is $R=0$) and is given by:
+We additionally provide a convenient family of exponential transformations, $c(x, u) = \rho(l(x, u); R), that can be applied to the cost function to model risk-seeking and risk-averse behaviors. This family is parameterized by a scalar $R \in \mathbf{R}$ (our default is $R=0$) and is given by:
 
 $$
-f(x, R) = \frac{e^{R \cdot x} - 1}{R}.
+\rho(l, R) = \frac{e^{R \cdot l} - 1}{R}.
 $$
 
-The mapping, $f : \mathbf{R}_ {+} \times \mathbf{R} \rightarrow \mathbf{R}_ {+}$, has the following properties:
+The mapping, $\rho : \mathbf{R}_ {+} \times \mathbf{R} \rightarrow \mathbf{R}_ {+}$, has the following properties:
 
 - It is defined and smooth for any $R$
-- At $R=0$, it reduces to the identity $f(x; 0) = x$
-- 0 is a fixed point of the function: $f(0; R) = 0$
-- It is nonnegative: $f(x; R) \geq 0$ if $x \geq 0$
-- It is strictly monotonic: $f(x; R) \gt f(y; R)$ if $x > y$
-- The value of $f(x;R)$ has the same unit as $x$
+- At $R=0$, it reduces to the identity $\rho(l; 0) = l$
+- 0 is a fixed point of the function: $\rho(0; R) = 0$
+- It is nonnegative: $\rho(l; R) \geq 0$ if $l \geq 0$
+- It is strictly monotonic: $\rho(l; R) \gt \rho(q; R)$ if $l > q$
+- The value of $\rho(l; R)$ has the same unit as $l$
 
-$R=0$ can be interpreted as risk neutral, $R>0$ as risk-averse, and $R<0$ as risk-seeking. See [Whittle et. al, 1981](https://www.jstor.org/stable/1426972) for more details on risk sensitive control. Furthermore, when $R < 0$, this transformation creates cost functions that are equivalent to the rewards commonly used in the Reinforcement Learning literature. For example using the quadratic norm $\text{n}(\textbf{r}) = \textbf{r}^T Q \textbf{r}$ for some symmetric positive definite (SPD) matrix $Q=\Sigma^{-1}$ and a risk parameter $R=-1$ leads to an inverted-Gaussian cost $c=1 - e^{-\textbf{r}^T \Sigma^{-1} \textbf{r}}$, whose minimisation is equivalent to performing maximum likelihood estimation for the Gaussian.
+$R=0$ can be interpreted as risk neutral, $R>0$ as risk-averse, and $R<0$ as risk-seeking. See [Whittle et. al, 1981](https://www.jstor.org/stable/1426972) for more details on risk sensitive control. Furthermore, when $R < 0$, this transformation creates cost functions that are equivalent to the rewards commonly used in the Reinforcement Learning literature. For example using the quadratic norm $\text{n}(\textbf{r}) = \textbf{r}^T Q \textbf{r}$ for some symmetric positive definite (SPD) matrix $Q=\Sigma^{-1}$ and a risk parameter $R=-1$ leads to an inverted-Gaussian cost $1 - e^{-\textbf{r}^T \Sigma^{-1} \textbf{r}}$, whose minimisation is equivalent to performing maximum likelihood estimation for the Gaussian.
 
 ## Cost Derivatives
 
@@ -65,23 +65,23 @@ Many planners (e.g., Gradient Descent and [iLQG](https://homes.cs.washington.edu
 
 Gradients are computed exactly:
 
-$$ \frac{\partial c}{\partial s} = \sum \limits_{i} w_i \cdot \frac{\partial \text{n}_i}{\partial \textbf{r}} \frac{\partial \textbf{r}_i}{\partial s},$$
+$$ \frac{\partial l}{\partial x} = \sum \limits_{i} w_i \cdot \frac{\partial \text{n}_i}{\partial \textbf{r}} \frac{\partial \textbf{r}_i}{\partial x},$$
 
-$$ \frac{\partial c}{\partial a} = \sum \limits_{i} w_i \cdot \frac{\partial \text{n}_i}{\partial \textbf{r}} \frac{\partial \textbf{r}_i}{\partial a}.$$
+$$ \frac{\partial l}{\partial u} = \sum \limits_{i} w_i \cdot \frac{\partial \text{n}_i}{\partial \textbf{r}} \frac{\partial \textbf{r}_i}{\partial u}.$$
 
 Hessians are approximated:
 
-$$ \frac{\partial^2 c}{\partial s^2} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial s}\Big)^T\frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial s},$$
+$$ \frac{\partial^2 l}{\partial x^2} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial x}\Big)^T\frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial x},$$
 
-$$ \frac{\partial^2 c}{\partial a^2} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial a}\Big)^T\frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial a},$$
+$$ \frac{\partial^2 l}{\partial u^2} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial u}\Big)^T\frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial u},$$
 
-$$ \frac{\partial^2 c}{\partial s \, \partial a} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial s}\Big)^T \frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial a},$$
+$$ \frac{\partial^2 l}{\partial x \, \partial u} \approx \sum \limits_{i} w_i \cdot \Big(\frac{\partial \textbf{r}_i}{\partial x}\Big)^T \frac{\partial^2 \text{n}_i}{\partial \textbf{r}^2} \frac{\partial \textbf{r}_i}{\partial u},$$
 
 via [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm).
 
-Derivatives of $\text{norm}$, i.e., $\frac{\partial \text{norm}}{\partial \text{residual}}$, $\frac{\partial^2 \text{norm}}{\partial \text{residual}^2}$, are computed [analytically](../mjpc/norm.cc).
+Derivatives of $\text{n}$, i.e., $\frac{\partial \text{n}}{\partial \text{r}}$, $\frac{\partial^2 \text{n}}{\partial \text{r}^2}$, are computed [analytically](../mjpc/norm.cc).
 
-The $\text{residual}$ Jacobians, i.e., $\frac{\partial \text{residual}}{\partial \text{state}}$, $\frac{\partial \text{residual}}{\partial \text{action}}$, are computed efficiently using MuJoCo's efficient [finite-difference utility](https://mujoco.readthedocs.io/en/latest/APIreference.html#mjd-transitionfd).
+The residual Jacobians, i.e., $\frac{\partial \text{r}}{\partial x}$, $\frac{\partial \text{r}}{\partial u}$, are computed efficiently using MuJoCo's efficient [finite-difference utility](https://mujoco.readthedocs.io/en/latest/APIreference.html#mjd-transitionfd).
 
 ### Risk (in)sensitive derivatives
 
@@ -89,17 +89,17 @@ Likewise, we also provide derivaties for the risk (in)sensitive cost functions.
 
 Gradients are computed exactly:
 
-$$ \frac{\partial J}{\partial s} = e^{R \cdot c} \cdot \frac{\partial c}{\partial s},$$
+$$ \frac{\partial c}{\partial x} = e^{R \cdot l} \cdot \frac{\partial l}{\partial x},$$
 
-$$ \frac{\partial J}{\partial a} = e^{R \cdot c} \cdot \frac{\partial c}{\partial a}.$$
+$$ \frac{\partial c}{\partial u} = e^{R \cdot l} \cdot \frac{\partial l}{\partial u}.$$
 
 Hessians are approximated:
 
-$$ \frac{\partial^2 J}{\partial s^2} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial s^2} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial s}\Big)^T \frac{\partial c}{\partial s},$$
+$$ \frac{\partial^2 c}{\partial x^2} \approx e^{R \cdot l} \cdot \frac{\partial^2 l}{\partial x^2} + R \cdot e^{R \cdot l} \cdot \Big(\frac{\partial l}{\partial x}\Big)^T \frac{\partial l}{\partial x},$$
 
-$$ \frac{\partial^2 J}{\partial a^2} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial a^2} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial a}\Big)^T \frac{\partial c}{\partial a},$$
+$$ \frac{\partial^2 c}{\partial u^2} \approx e^{R \cdot l} \cdot \frac{\partial^2 l}{\partial u^2} + R \cdot e^{R \cdot l} \cdot \Big(\frac{\partial l}{\partial u}\Big)^T \frac{\partial l}{\partial u},$$
 
-$$ \frac{\partial^2 J}{\partial s \, \partial a} \approx e^{R \cdot c} \cdot \frac{\partial^2 c}{\partial s \partial a} + R \cdot e^{R \cdot c} \cdot \Big(\frac{\partial c}{\partial s}\Big)^T \frac{\partial c}{\partial a},$$
+$$ \frac{\partial^2 c}{\partial x \, \partial u} \approx e^{R \cdot l} \cdot \frac{\partial^2 l}{\partial x \partial u} + R \cdot e^{R \cdot l} \cdot \Big(\frac{\partial l}{\partial x}\Big)^T \frac{\partial l}{\partial u},$$
 
 as before, via Gauss-Newton.
 
@@ -225,12 +225,15 @@ The swimmer's cost has two terms:
 The repository includes additional example tasks:
 
 - Humanoid [Stand](../mjpc/tasks/humanoid/stand/task.xml) | [Walk](../mjpc/tasks/humanoid/walk/task.xml)
-- Quadruped [Terrain](../mjpc/tasks/quadruped/task_hill.xml) | [Flat](../mjpc/tasks/quadruped/task_flat.xml)
+- [Swimmer](../mjpc/tasks/swimmer/task.xml)
 - [Walker](../mjpc/tasks/walker/task.xml)
-- [In-Hand Manipulation](../mjpc/tasks/hand/task.xml)
 - [Cart-Pole](../mjpc/tasks/cartpole/task.xml)
+- [Acrobot](../mjpc/tasks/acrobot/task.xml)
 - [Particle](../mjpc/tasks/particle/task.xml)
+- Quadruped [Hill](../mjpc/tasks/quadruped/task_hill.xml) | [Flat](../mjpc/tasks/quadruped/task_flat.xml)
+- [In-Hand Manipulation](../mjpc/tasks/hand/task.xml)
 - [Quadrotor](../mjpc/tasks/quadrotor/task.xml)
+- [Panda Arm Manipulation](../mjpc/tasks/panda/task.xml)
 
 ### Task Transitions
 
@@ -238,16 +241,24 @@ The `task` [class](../mjpc/task.h) supports *transitions* for subgoal-reaching t
 
 ```c++
 int Swimmer::Transition(
-  int state,
   const mjModel* model,
-  mjData* data)
+  mjData* data,
+  Task* task)
 ```
 
 - `state`: an integer marking the current task mode.  This is useful when the sub-goals are enumerable (e.g., when cycling between keyframes).  If the user uses this feature, the function should return a new state upon transition.
 - `model`: the task's `mjModel`.  It is marked `const` because changes to it here will only affect the GUI and will not affect the planner's copies.
 - `data`: the task's `mjData`.  A transition should mutate fields of `mjData`, see below.
+- `task`: task object.
 
-Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
+Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) or `userdata` to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
+
+Additionally, custom labeled buttons can be added to the GUI by specifying a string of labels delimited with a pipe character: `|`. For example:
+```xml
+<custom>
+  <text name="task_transition" data="Label (1)|Label (2)|Label(3)" />
+</custom>
+```
 
 ## Planners
 
@@ -255,12 +266,29 @@ The purpose of `Planner` is to find improved policies using numerical optimizati
 
 This library includes three planners that use different techniques to perform this search:
 
-- **Zero-Order**
-  - Random Search
+- **Predictive Sampling**
+  - random search
   - derivative free
-- **First-Order**
-  - Gradient Descent
+  - spline representation for controls
+- **Gradient Descent**
   - requires gradients
-- **Second-Order**
-  - Iterative Linear Quadratic Gaussian (iLQG)
+  - spline representation for controls
+- **Iterative Linear Quadratic Gausian (iLQG)**
   - requires gradients and Hessians
+  - direct representation for controls
+
+## State
+
+Rollouts are performed after setting both the simulation and initialization states.
+
+### Simulation State
+This includes:
+- configuration: `data->qpos`
+- velocity: `data->qvel`
+- acceleration: `data->qacc`
+
+### Initialization State
+This includes:
+- mocap: `data->mocap`
+- userdata: `data->userdata`
+- time: `data->time`

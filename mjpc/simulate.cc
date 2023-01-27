@@ -900,7 +900,7 @@ void makesections(mj::Simulate* sim) {
   sim->ui1.nsect = 0;
 
   // make
-  sim->agent.Gui(sim->ui0);
+  sim->agent.GUI(sim->ui0);
   makephysics(sim, oldstate0[SECT_PHYSICS]);
   makerendering(sim, oldstate0[SECT_RENDERING]);
   makegroup(sim, oldstate0[SECT_GROUP]);

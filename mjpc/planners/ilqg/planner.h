@@ -80,6 +80,7 @@ class iLQGPlanner : public Planner {
   std::vector<double> state;
   double time;
   std::vector<double> mocap;
+  std::vector<double> userdata;
 
   // policy
   iLQGPolicy policy;

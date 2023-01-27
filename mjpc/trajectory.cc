@@ -85,7 +85,7 @@ void Trajectory::Rollout(
     std::function<void(double* action, const double* state, double time)>
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
-    double time, const double* mocap, int steps) {
+    double time, const double* mocap, const double* userdata, int steps) {
   // reset failure flag
   failure = false;
 
@@ -95,6 +95,7 @@ void Trajectory::Rollout(
   int na = model->na;
   int nu = model->nu;
   int nmocap = model->nmocap;
+  int nuserdata = model->nuserdata;
 
   // horizon
   horizon = steps;
@@ -104,6 +105,9 @@ void Trajectory::Rollout(
     mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
+
+  // set userdata
+  mju_copy(data->userdata, userdata, nuserdata);
 
   // set initial state
   mju_copy(states.data(), state, dim_state);
@@ -180,7 +184,7 @@ void Trajectory::RolloutDiscrete(
     std::function<void(double* action, const double* state, int index)>
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
-    double time, const double* mocap, int steps) {
+    double time, const double* mocap, const double* userdata, int steps) {
   // reset failure flag
   failure = false;
 
@@ -190,6 +194,7 @@ void Trajectory::RolloutDiscrete(
   int na = model->na;
   int nu = model->nu;
   int nmocap = model->nmocap;
+  int nuserdata = model->nuserdata;
 
   // horizon
   horizon = steps;
@@ -199,6 +204,9 @@ void Trajectory::RolloutDiscrete(
     mju_copy(data->mocap_pos + 3 * i, mocap + 7 * i, 3);
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
+
+  // set userdata
+  mju_copy(data->userdata, userdata, nuserdata);
 
   // set initial state
   mju_copy(states.data(), state, dim_state);

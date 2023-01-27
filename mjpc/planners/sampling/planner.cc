@@ -64,6 +64,7 @@ void SamplingPlanner::Allocate() {
   // state
   state.resize(num_state);
   mocap.resize(7 * model->nmocap);
+  userdata.resize(model->nuserdata);
 
   // policy
   int num_max_parameter = model->nu * kMaxTrajectoryHorizon;
@@ -93,6 +94,7 @@ void SamplingPlanner::Reset(int horizon) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
+  std::fill(userdata.begin(), userdata.end(), 0.0);
   time = 0.0;
 
   // policy parameters
@@ -127,7 +129,8 @@ void SamplingPlanner::Reset(int horizon) {
 
 // set state
 void SamplingPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(), &this->time);
+  state.CopyTo(this->state.data(), this->mocap.data(), 
+               this->userdata.data(), &this->time);
 }
 
 // optimize nominal policy using random sampling
@@ -224,7 +227,7 @@ void SamplingPlanner::NominalTrajectory(int horizon) {
 
   // rollout nominal policy
   trajectories[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                          state.data(), time, mocap.data(), horizon);
+                          state.data(), time, mocap.data(), userdata.data(), horizon);
 }
 
 // set action from policy
@@ -314,7 +317,7 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
   for (int i = 0; i < num_trajectories; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, i]() {
+                   &mocap = this->mocap, &userdata = this->userdata, horizon, i]() {
       // sample noise policy
       if (i != 0) s.AddNoiseToPolicy(i);
 
@@ -333,7 +336,7 @@ void SamplingPlanner::Rollouts(int num_trajectories, int horizon,
       // policy rollout
       s.trajectories[i].Rollout(sample_policy_i, task, model,
                                 s.data_[ThreadPool::WorkerId()].get(),
-                                state.data(), time, mocap.data(), horizon);
+                                state.data(), time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectories);

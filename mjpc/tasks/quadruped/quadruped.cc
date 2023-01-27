@@ -78,47 +78,47 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-int Quadruped::Transition(int state, const mjModel* model, mjData* data,
-                          Task* task) {
-  int new_state = state;
+void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
+  // set stage to GUI selection
+  if (task->transition_stage > 0) {
+    data->userdata[0] = task->transition_stage - 1;
+  } else {
+    // ---------- Compute tolerance ----------
+    // goal position
+    const double* goal_position = data->mocap_pos;
 
-  // ---------- Compute tolerance ----------
-  // goal position
-  const double* goal_position = data->mocap_pos;
+    // goal orientation
+    const double* goal_orientation = data->mocap_quat;
 
-  // goal orientation
-  const double* goal_orientation = data->mocap_quat;
+    // system's position
+    double* position = mjpc::SensorByName(model, data, "position");
 
-  // system's position
-  double* position = mjpc::SensorByName(model, data, "position");
+    // system's orientation
+    double* orientation = mjpc::SensorByName(model, data, "orientation");
 
-  // system's orientation
-  double* orientation = mjpc::SensorByName(model, data, "orientation");
+    // position error
+    double position_error[3];
+    mju_sub3(position_error, position, goal_position);
+    double position_error_norm = mju_norm3(position_error);
 
-  // position error
-  double position_error[3];
-  mju_sub3(position_error, position, goal_position);
-  double position_error_norm = mju_norm3(position_error);
+    // orientation error
+    double geodesic_distance =
+        1.0 - mju_abs(mju_dot(goal_orientation, orientation, 4));
 
-  // orientation error
-  double geodesic_distance =
-      1.0 - mju_abs(mju_dot(goal_orientation, orientation, 4));
-
-  // ---------- Check tolerance ----------
-  double tolerance = 1.5e-1;
-  if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
-    // update task state
-    new_state += 1;
-    if (new_state == model->nkey) {
-      new_state = 0;
+    // ---------- Check tolerance ----------
+    double tolerance = 1.5e-1;
+    if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
+      // update task state
+      data->userdata[0] += 1;
+      if (data->userdata[0] == model->nkey) {
+        data->userdata[0] = 0;
+      }
     }
   }
 
   // ---------- Set goal ----------
-  mju_copy3(data->mocap_pos, model->key_mpos + 3 * new_state);
-  mju_copy4(data->mocap_quat, model->key_mquat + 4 * new_state);
-
-  return new_state;
+  mju_copy3(data->mocap_pos, model->key_mpos + 3 * (int)data->userdata[0]);
+  mju_copy4(data->mocap_quat, model->key_mquat + 4 * (int)data->userdata[0]);
 }
 
 void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,

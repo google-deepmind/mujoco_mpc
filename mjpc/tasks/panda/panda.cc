@@ -65,14 +65,12 @@ void Panda::Residual(const double* parameters, const mjModel* model,
   }
 }
 
-int Panda::Transition(int stage, const mjModel* model, mjData* data,
-                          Task* task) {
+void Panda::Transition(const mjModel* model, mjData* data, Task* task) {
   double residuals[100];
   double terms[10];
   task->Residuals(model, data, residuals);
   task->CostTerms(terms, residuals);
   double bring_dist = (mju_norm3(residuals+3) + mju_norm3(residuals+6)) / 2;
-
 
   // reset:
   if (data->time > 0 && bring_dist < .015) {
@@ -81,7 +79,6 @@ int Panda::Transition(int stage, const mjModel* model, mjData* data,
     data->qpos[0] = absl::Uniform<double>(gen_, -.5, .5);
     data->qpos[1] = absl::Uniform<double>(gen_, -.5, .5);
     data->qpos[2] = .05;
-
 
     // target:
     data->mocap_pos[0] = absl::Uniform<double>(gen_, -.5, .5);
@@ -92,9 +89,6 @@ int Panda::Transition(int stage, const mjModel* model, mjData* data,
     data->mocap_quat[2] = absl::Uniform<double>(gen_, -1, 1);
     data->mocap_quat[3] = absl::Uniform<double>(gen_, -1, 1);
     mju_normalize4(data->mocap_quat);
-    return 0;
   }
-
-  return stage;
 }
 }  // namespace mjpc

@@ -52,14 +52,14 @@ class Trajectory {
       std::function<void(double* action, const double* state, double time)>
           policy,
       const Task* task, const mjModel* model, mjData* data, const double* state,
-      double time, const double* mocap, int steps);
+      double time, const double* mocap, const double* userdata, int steps);
 
   // simulate model forward in time with discrete-time indexed policy
   void RolloutDiscrete(
       std::function<void(double* action, const double* state, int index)>
           policy,
       const Task* task, const mjModel* model, mjData* data, const double* state,
-      double time, const double* mocap, int steps);
+      double time, const double* mocap, const double* userdata, int steps);
 
   // ----- members ----- //
   int horizon;                   // trajectory length

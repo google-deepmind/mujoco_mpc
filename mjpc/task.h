@@ -33,7 +33,7 @@ class Task;
 
 using ResidualFunction = void(const double* parameters, const mjModel* model,
                               const mjData* data, double* residual);
-using TransitionFunction = int(int state, const mjModel* model, mjData* data,
+using TransitionFunction = void(const mjModel* model, mjData* data,
                                Task* task);
 
 // contains information for computing costs
@@ -67,8 +67,7 @@ class Task {
   void Transition(const mjModel* m, mjData* d);
 
   int id = 0;             // task ID
-  int transition_state;   // state
-  int transition_status;  // status
+  int transition_stage;   // stage
 
   // cost parameters
   int num_residual;
@@ -95,8 +94,7 @@ class Task {
   TransitionFunction* transition_;
 };
 
-extern int NullTransition(int state, const mjModel* model, mjData* data,
-                          Task* task);
+extern void NullTransition(const mjModel* model, mjData* data, Task* task);
 
 template <typename T = std::string>
 struct TaskDefinition {

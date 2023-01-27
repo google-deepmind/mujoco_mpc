@@ -21,9 +21,8 @@
 namespace mjpc {
 struct Panda {
   static void Residual(const double* parameters, const mjModel* model,
-                           const mjData* data, double* residual);
-  static int Transition(int stage, const mjModel* model, mjData* data,
-                            Task* task);
+                       const mjData* data, double* residual);
+  static void Transition(const mjModel* model, mjData* data, Task* task);
 };
 }  // namespace mjpc
 

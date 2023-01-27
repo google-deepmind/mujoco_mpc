@@ -64,18 +64,13 @@ void Particle::ResidualTimeVarying(const double* parameters,
   mju_copy(residual + 4, data->ctrl, model->nu);
 }
 
-int Particle::Transition(int state, const mjModel* model, mjData* data,
-                         Task* task) {
-  int new_state = state;
-
+void Particle::Transition(const mjModel* model, mjData* data, Task* task) {
   // some Lissajous curve
   double goal[2] {0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
 
   // update mocap position
   data->mocap_pos[0] = goal[0];
   data->mocap_pos[1] = goal[1];
-
-  return new_state;
 }
 
 }  // namespace mjpc

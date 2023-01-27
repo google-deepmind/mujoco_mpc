@@ -35,8 +35,7 @@ struct Hand {
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-  static int Transition(int state, const mjModel* model, mjData* data,
-                        Task* task);
+static void Transition(const mjModel* model, mjData* data, Task* task);
 };
 }  // namespace mjpc
 

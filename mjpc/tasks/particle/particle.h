@@ -32,8 +32,7 @@ static void Residual(const double* parameters, const mjModel* model,
 static void ResidualTimeVarying(const double* parameters, const mjModel* model,
                                 const mjData* data, double* residual);
 
-static int Transition(int state, const mjModel* model, mjData* data,
-                                Task* task);
+static void Transition(const mjModel* model, mjData* data, Task* task);
 
 };
 }  // namespace mjpc

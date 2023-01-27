@@ -39,8 +39,7 @@ static void ResidualFloor(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-static int Transition(int state, const mjModel* model, mjData* data,
-                      Task* task);
+static void Transition(const mjModel* model, mjData* data, Task* task);
 };
 }  // namespace mjpc
 

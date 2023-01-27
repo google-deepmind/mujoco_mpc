@@ -78,8 +78,7 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-int Quadruped::Transition(int state, const mjModel* model, mjData* data,
-                          Task* task) {
+void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
   // set stage to GUI selection
   if (task->transition_stage > 0) {
     data->userdata[0] = task->transition_stage - 1;
@@ -120,8 +119,6 @@ int Quadruped::Transition(int state, const mjModel* model, mjData* data,
   // ---------- Set goal ----------
   mju_copy3(data->mocap_pos, model->key_mpos + 3 * (int)data->userdata[0]);
   mju_copy4(data->mocap_quat, model->key_mquat + 4 * (int)data->userdata[0]);
-
-  return 0;
 }
 
 void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,

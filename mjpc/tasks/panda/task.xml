@@ -4,7 +4,6 @@
   <size memory="1M"/>
 
   <custom>
-    <text name="task_transition" data="1" />
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.009" />

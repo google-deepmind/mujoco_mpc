@@ -190,8 +190,7 @@ void humanoid::Tracking::Residual(const double *parameters,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-int humanoid::Tracking::Transition(int state, const mjModel *model,
-                                   mjData *data, Task *task) {
+void humanoid::Tracking::Transition(const mjModel *model, mjData *data, Task *task) {
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
   double current_index = data->time * fps;
@@ -217,8 +216,6 @@ int humanoid::Tracking::Transition(int state, const mjModel *model,
 
   mju_copy(data->mocap_pos, mocap_pos_0, model->nmocap * 3);
   mju_addTo(data->mocap_pos, mocap_pos_1, model->nmocap * 3);
-
-  return 0;
 }
 
 } // namespace mjpc

@@ -41,8 +41,7 @@ struct Tracking {
   //   Linearly interpolate between two consecutive key frames in order to
   //   smooth the transitions between keyframes.
   // ----------------------------------------------------------------------------
-  static int Transition(int state, const mjModel* model, mjData* data,
-                        Task* task);
+  static void Transition(const mjModel* model, mjData* data, Task* task);
 
 };
 

@@ -241,7 +241,6 @@ The `task` [class](../mjpc/task.h) supports *transitions* for subgoal-reaching t
 
 ```c++
 int Swimmer::Transition(
-  int state,
   const mjModel* model,
   mjData* data,
   Task* task)
@@ -252,7 +251,14 @@ int Swimmer::Transition(
 - `data`: the task's `mjData`.  A transition should mutate fields of `mjData`, see below.
 - `task`: task object.
 
-Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
+Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) or `userdata` to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
+
+Additionally, custom labeled buttons can be added to the GUI by specifying a string of labels delimited with a pipe character: `|`. For example: 
+```xml
+<custom>
+  <text name="task_transition" data="Label (1)|Label (2)|Label(3)" />
+</custom>
+```
 
 ## Planners
 

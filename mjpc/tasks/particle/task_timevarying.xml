@@ -5,6 +5,7 @@
   <size memory="10K"/>
 
   <custom>
+    <numeric name="task_transition" data="1" />
     <numeric name="task_risk" data="1" />
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.5" />

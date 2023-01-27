@@ -36,6 +36,10 @@ inline constexpr double kMinTimeStep = 1.0e-4;
 inline constexpr double kMaxTimeStep = 0.1;
 inline constexpr double kMinPlanningHorizon = 1.0e-5;
 inline constexpr double kMaxPlanningHorizon = 2.5;
+
+// maximum number of actions to plot
+const int kMaxActionPlots = 25;
+
 }  // namespace
 
 // initialize data, settings, planners, states
@@ -502,28 +506,30 @@ void Agent::PlotInitialize() {
   }
 
   // history of control
-  for (int i = 0; i < model_->nu; i++) {
+  int dim_action = mju_min(model_->nu, kMaxActionPlots);
+
+  for (int i = 0; i < dim_action; i++) {
     plots_.action.linergb[i][0] = 0.0f;
     plots_.action.linergb[i][1] = 1.0f;
     plots_.action.linergb[i][2] = 1.0f;
   }
 
   // best control
-  for (int i = 0; i < model_->nu; i++) {
-    plots_.action.linergb[model_->nu + i][0] = 1.0f;
-    plots_.action.linergb[model_->nu + i][1] = 0.0f;
-    plots_.action.linergb[model_->nu + i][2] = 1.0f;
+  for (int i = 0; i < dim_action; i++) {
+    plots_.action.linergb[dim_action + i][0] = 1.0f;
+    plots_.action.linergb[dim_action + i][1] = 0.0f;
+    plots_.action.linergb[dim_action + i][2] = 1.0f;
   }
 
   // current line
-  plots_.action.linergb[2 * model_->nu][0] = 1.0f;
-  plots_.action.linergb[2 * model_->nu][1] = 0.647f;
-  plots_.action.linergb[2 * model_->nu][2] = 0.0f;
+  plots_.action.linergb[2 * dim_action][0] = 1.0f;
+  plots_.action.linergb[2 * dim_action][1] = 0.647f;
+  plots_.action.linergb[2 * dim_action][2] = 0.0f;
 
   // policy line
-  plots_.action.linergb[2 * model_->nu + 1][0] = 1.0f;
-  plots_.action.linergb[2 * model_->nu + 1][1] = 0.647f;
-  plots_.action.linergb[2 * model_->nu + 1][2] = 0.0f;
+  plots_.action.linergb[2 * dim_action + 1][0] = 1.0f;
+  plots_.action.linergb[2 * dim_action + 1][1] = 0.647f;
+  plots_.action.linergb[2 * dim_action + 1][2] = 0.0f;
 
   // history of agent compute time
   plots_.timer.linergb[0][0] = 0.0f;
@@ -575,7 +581,7 @@ void Agent::PlotReset() {
   }
 
   // action reset
-  for (int j = 0; j < 2 * model_->nu + 2; j++) {
+  for (int j = 0; j < 2 * mju_min(model_->nu, kMaxActionPlots) + 2; j++) {
     PlotResetData(&plots_.action, 1000, j);
   }
 
@@ -666,10 +672,12 @@ void Agent::Plots(const mjData* data, int shift) {
   // ----- action ----- //
   double action_bounds[2] = {-1.0, 1.0};
 
+  int dim_action = mju_min(model_->nu, kMaxActionPlots);
+
   // shift data
   if (shift) {
     // agent history
-    for (int j = 0; j < model_->nu; j++) {
+    for (int j = 0; j < dim_action; j++) {
       PlotUpdateData(&plots_.action, action_bounds, data->time, data->ctrl[j],
                      1000, j, 1, 1, time_lower_bound);
     }
@@ -677,26 +685,26 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // agent actions
   PlotData(&plots_.action, action_bounds, winner->times.data(),
-           winner->actions.data(), model_->nu, model_->nu, winner->horizon,
-           model_->nu, time_lower_bound);
+           winner->actions.data(), model_->nu, dim_action, winner->horizon,
+           dim_action, time_lower_bound);
 
   // set final action for visualization
-  for (int j = 0; j < model_->nu; j++) {
+  for (int j = 0; j < dim_action; j++) {
     // set data
     if (winner->horizon > 1) {
-      plots_.action.linedata[model_->nu + j][2 * (winner->horizon - 1) + 1] =
+      plots_.action.linedata[dim_action + j][2 * (winner->horizon - 1) + 1] =
           winner->actions[(winner->horizon - 2) * model_->nu + j];
     } else {
-      plots_.action.linedata[model_->nu + j][2 * (winner->horizon - 1) + 1] = 0;
+      plots_.action.linedata[dim_action + j][2 * (winner->horizon - 1) + 1] = 0;
     }
   }
 
   // vertical lines at current time and agent time
   PlotVertical(&plots_.action, data->time, action_bounds[0], action_bounds[1],
-               10, 2 * model_->nu);
+               10, 2 * dim_action);
   PlotVertical(&plots_.action,
                (winner->times[0] > 0.0 ? winner->times[0] : data->time),
-               action_bounds[0], action_bounds[1], 10, 2 * model_->nu + 1);
+               action_bounds[0], action_bounds[1], 10, 2 * dim_action + 1);
 
   // ranges
   plots_.action.range[0][0] = data->time - horizon_ + model_->opt.timestep;
@@ -706,7 +714,7 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // legend
   mju::strcpy_arr(plots_.action.linename[0], "History");
-  mju::strcpy_arr(plots_.action.linename[model_->nu], "Prediction");
+  mju::strcpy_arr(plots_.action.linename[dim_action], "Prediction");
 
   // ----- planner ----- //
 

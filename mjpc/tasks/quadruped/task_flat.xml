@@ -4,9 +4,9 @@
   <size memory="1M"/>
 
   <custom>
-    <numeric name="agent_planner" data="0" />
-    <numeric name="agent_horizon" data="0.35" />
-    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_planner" data="2" />
+    <numeric name="agent_horizon" data="0.3" />
+    <numeric name="agent_timestep" data="0.015" />
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.1" />
     <numeric name="gradient_spline_points" data="5" />
@@ -28,11 +28,29 @@
 
   <include file="a1.xml" />
 
+  <actuator>
+    <general class="torque" name="FR_hip" joint="FR_hip_joint"/>
+    <general class="torque" name="FR_thigh" joint="FR_thigh_joint"/>
+    <general class="torque" name="FR_calf" joint="FR_calf_joint"/>
+    <general class="torque" name="FL_hip" joint="FL_hip_joint"/>
+    <general class="torque" name="FL_thigh" joint="FL_thigh_joint"/>
+    <general class="torque" name="FL_calf" joint="FL_calf_joint"/>
+    <general class="torque" name="RR_hip" joint="RR_hip_joint"/>
+    <general class="torque" name="RR_thigh" joint="RR_thigh_joint"/>
+    <general class="torque" name="RR_calf" joint="RR_calf_joint"/>
+    <general class="torque" name="RL_hip" joint="RL_hip_joint"/>
+    <general class="torque" name="RL_thigh" joint="RL_thigh_joint"/>
+    <general class="torque" name="RL_calf" joint="RL_calf_joint"/>
+  </actuator>
+
   <sensor>
-    <user name="Upright" dim="3" user="0 3 0 10" />
-    <user name="Velocity" dim="2" user="7 1 0 5 .2 4" />
-    <user name="Heading" dim="2" user="0 1 0 5" />
-    <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
+    <user name="Height" dim="1" user="6 3 0 10 0.05" />
+    <user name="Upright" dim="3" user="6 1 0 10 0.05" />
+    <user name="Velocity" dim="3" user="6 .1 0 1 .2" />
+    <user name="Heading" dim="2" user="0 .1 0 1" />
+    <user name="Control" dim="12" user="0 0.02 0.0 0.1" />
+    <user name="Posture" dim="12" user="0 0.1 0.0 1" />
+    <user name="Trot" dim="4" user="6 1 0 5 .02" />
     <framepos      name="trace0" objtype="body" objname="trunk"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>

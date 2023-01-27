@@ -24,6 +24,8 @@
     </default>
   </default>
 
+  <option timestep="0.005"/>
+
   <worldbody>
     <body name="mocap[pelvis]" mocap="true">
       <site name="mocap[pelvis]" class="mocap_site" size="0.05" />

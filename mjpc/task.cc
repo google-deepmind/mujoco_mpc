@@ -114,14 +114,16 @@ void Task::GetFrom(const mjModel* model) {
 }
 
 // compute weighted cost terms
-void Task::CostTerms(double* terms, const double* residual) const {
+void Task::CostTerms(double* terms, const double* residual,
+                     bool weighted) const {
   int f_shift = 0;
   int p_shift = 0;
   for (int k = 0; k < num_cost; k++) {
     // running cost
-    terms[k] = weight[k] * Norm(nullptr, nullptr, residual + f_shift,
-                                DataAt(num_parameter, p_shift),
-                                dim_norm_residual[k], norm[k]);
+    terms[k] =
+        (weighted ? weight[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
+                                          DataAt(num_parameter, p_shift),
+                                          dim_norm_residual[k], norm[k]);
 
     // shift residual
     f_shift += dim_norm_residual[k];

@@ -55,7 +55,8 @@ class Task {
   void GetFrom(const mjModel* model);
 
   // compute cost terms
-  void CostTerms(double* terms, const double* residual) const;
+  void CostTerms(double* terms, const double* residual,
+                 bool weighted = true) const;
 
   // compute weighted cost
   double CostValue(const double* residual) const;

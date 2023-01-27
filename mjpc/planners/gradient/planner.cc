@@ -142,7 +142,7 @@ void GradientPlanner::Reset(int horizon) {
 
 // set state
 void GradientPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(), 
+  state.CopyTo(this->state.data(), this->mocap.data(),
                this->userdata.data(), &this->time);
 }
 

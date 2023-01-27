@@ -106,7 +106,7 @@ void Trajectory::Rollout(
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
-  // set userdata 
+  // set userdata
   mju_copy(data->userdata, userdata, nuserdata);
 
   // set initial state
@@ -205,7 +205,7 @@ void Trajectory::RolloutDiscrete(
     mju_copy(data->mocap_quat + 4 * i, mocap + 7 * i + 3, 4);
   }
 
-  // set userdata 
+  // set userdata
   mju_copy(data->userdata, userdata, nuserdata);
 
   // set initial state

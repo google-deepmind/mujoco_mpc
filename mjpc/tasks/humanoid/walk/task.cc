@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "tasks/humanoid/walk/task.h"
-#include "mujoco/mjmodel.h"
 
 #include <iostream>
 

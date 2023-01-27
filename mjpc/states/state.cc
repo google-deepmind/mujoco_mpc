@@ -59,7 +59,7 @@ void State::Set(const mjModel* model, const mjData* data) {
       mju_copy(DataAt(mocap_, 7 * i + 3), data->mocap_quat + 4 * i, 4);
     }
 
-    // userdata 
+    // userdata
     mju_copy(userdata_.data(), data->userdata, model->nuserdata);
 
     // time

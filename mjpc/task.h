@@ -33,8 +33,7 @@ class Task;
 
 using ResidualFunction = void(const double* parameters, const mjModel* model,
                               const mjData* data, double* residual);
-using TransitionFunction = void(const mjModel* model, mjData* data,
-                               Task* task);
+using TransitionFunction = void(const mjModel* model, mjData* data, Task* task);
 
 // contains information for computing costs
 class Task {
@@ -55,7 +54,8 @@ class Task {
   void GetFrom(const mjModel* model);
 
   // compute cost terms
-  void CostTerms(double* terms, const double* residual) const;
+  void CostTerms(double* terms, const double* residual,
+                 bool weighted = true) const;
 
   // compute weighted cost
   double CostValue(const double* residual) const;

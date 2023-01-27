@@ -22,7 +22,7 @@
 #include <iostream>
 #include <map>
 
-#include "../../../task.h"
+#include "task.h"
 #include "utilities.h"
 #include <mujoco/mujoco.h>
 
@@ -37,7 +37,7 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 
   return {index_0, index_1, weight_0, weight_1};
 }
-} // namespace
+}  // namespace
 
 namespace mjpc {
 
@@ -190,10 +190,11 @@ void humanoid::Tracking::Residual(const double *parameters,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-void humanoid::Tracking::Transition(const mjModel *model, mjData *data, Task *task) {
+void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
+                                    Task *task) {
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
-  double current_index = data->time * fps;
+  double current_index = d->time * fps;
   int last_key_index = (model->nkey) - 1;
 
   // Positions:
@@ -204,8 +205,10 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *data, Task *ta
   std::tie(key_index_0, key_index_1, weight_0, weight_1) =
       ComputeInterpolationValues(current_index, last_key_index);
 
-  double mocap_pos_0[3 * model->nmocap];
-  double mocap_pos_1[3 * model->nmocap];
+  mjMARKSTACK;
+
+  mjtNum* mocap_pos_0 = mj_stackAlloc(d, 3 * model->nmocap);
+  mjtNum* mocap_pos_1 = mj_stackAlloc(d, 3 * model->nmocap);
 
   // Compute interpolated frame.
   mju_scl(mocap_pos_0, model->key_mpos + model->nmocap * 3 * key_index_0,
@@ -214,8 +217,9 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *data, Task *ta
   mju_scl(mocap_pos_1, model->key_mpos + model->nmocap * 3 * key_index_1,
           weight_1, model->nmocap * 3);
 
-  mju_copy(data->mocap_pos, mocap_pos_0, model->nmocap * 3);
-  mju_addTo(data->mocap_pos, mocap_pos_1, model->nmocap * 3);
+  mju_copy(d->mocap_pos, mocap_pos_0, model->nmocap * 3);
+  mju_addTo(d->mocap_pos, mocap_pos_1, model->nmocap * 3);
+  mjFREESTACK;
 }
 
-} // namespace mjpc
+}  // namespace mjpc

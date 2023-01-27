@@ -350,7 +350,7 @@ void Agent::GUI(mjUI& ui) {
 
   // transition
   char* names = GetCustomTextData(model_, "task_transition");
-  
+
   if (names) {
     mjuiDef defTransition[] = {
         {mjITEM_SEPARATOR, "Transition", 1},

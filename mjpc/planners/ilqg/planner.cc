@@ -133,7 +133,7 @@ void iLQGPlanner::Reset(int horizon) {
 
 // set state
 void iLQGPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(), 
+  state.CopyTo(this->state.data(), this->mocap.data(),
                this->userdata.data(), &this->time);
 }
 
@@ -348,7 +348,7 @@ void iLQGPlanner::NominalTrajectory(int horizon) {
   // policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {
-    cp.Action(action, state, time);
+    cp.Action(action, nullptr, time);
   };
 
   // policy rollout

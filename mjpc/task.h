@@ -67,8 +67,7 @@ class Task {
   void Transition(const mjModel* m, mjData* d);
 
   int id = 0;             // task ID
-  int transition_state;   // state
-  int transition_status;  // status
+  int transition_stage;   // stage
 
   // cost parameters
   int num_residual;

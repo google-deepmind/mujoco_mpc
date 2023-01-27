@@ -38,8 +38,7 @@ void Task::GetFrom(const mjModel* model) {
   // ----- defaults ----- //
 
   // transition
-  transition_status = GetNumberOrDefault(0, model, "task_transition");
-  transition_state = 0;
+  transition_stage = 0;
 
   // risk value
   risk = GetNumberOrDefault(0.0, model, "task_risk");
@@ -160,7 +159,7 @@ void Task::Residuals(const mjModel* m, const mjData* d,
 }
 
 void Task::Transition(const mjModel* m, mjData* d) {
-  transition_state = transition_(transition_state, m, d, this);
+  transition_(transition_stage, m, d, this);
 }
 
 // initial residual parameters from model

@@ -3,7 +3,7 @@
   <include file="swimmer.xml" />
 
   <custom>
-    <numeric name="task_transition" data="1" />
+    <text name="task_transition" data="1" />
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="2" />
     <numeric name="agent_timestep" data="0.01" />

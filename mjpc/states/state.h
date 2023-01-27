@@ -48,15 +48,17 @@ class State {
   void Set(const mjModel* model, const mjData* data);
 
   // copy into destination
-  void CopyTo(double* dst_state, double* dst_mocap, double* time) const;
+  void CopyTo(double* dst_state, double* dst_mocap, double* dst_userdata, double* time) const;
 
   const std::vector<double>& state() const { return state_; }
   const std::vector<double>& mocap() const { return mocap_; }
+  const std::vector<double>& userdata() const { return userdata_; }
   double time() const { return time_; }
 
  private:
   std::vector<double> state_;  // (state dimension x 1)
   std::vector<double> mocap_;  // (mocap dimension x 1)
+  std::vector<double> userdata_; // (nuserdata x 1)
   double time_;
   mutable std::shared_mutex mtx_;
 };

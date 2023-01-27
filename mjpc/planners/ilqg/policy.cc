@@ -142,12 +142,10 @@ void iLQGPolicy::Action(double* action, const double* state,
   }
 
   // add feedback
-  if (state) {
-    StateDiff(model, state_scratch.data(), state_interp.data(), state, 1.0);
-    mju_mulMatVec(action_scratch.data(), feedback_gain_scratch.data(),
-                  state_scratch.data(), dim_action, dim_state_derivative);
-    mju_addTo(action, action_scratch.data(), dim_action);
-  }
+  StateDiff(model, state_scratch.data(), state_interp.data(), state, 1.0);
+  mju_mulMatVec(action_scratch.data(), feedback_gain_scratch.data(),
+                state_scratch.data(), dim_action, dim_state_derivative);
+  mju_addTo(action, action_scratch.data(), dim_action);
 
   // clamp controls
   Clamp(action, model->actuator_ctrlrange, dim_action);

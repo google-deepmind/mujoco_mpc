@@ -348,7 +348,7 @@ void iLQGPlanner::NominalTrajectory(int horizon) {
   // policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {
-    cp.Action(action, nullptr, time);
+    cp.Action(action, state, time);
   };
 
   // policy rollout

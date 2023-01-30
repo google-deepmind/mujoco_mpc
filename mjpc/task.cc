@@ -16,6 +16,7 @@
 
 #include <cstring>
 
+#include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include "utilities.h"
 
@@ -171,8 +172,8 @@ void Task::SetFeatureParameters(const mjModel* model) {
 
   // search custom numeric in model for "residual"
   for (int i = 0; i < model->nnumeric; i++) {
-    if (std::strncmp(model->names + model->name_numericadr[i], "residual_",
-                     8) == 0) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_")) {
       num_residual_parameters += 1;
     }
   }
@@ -183,8 +184,12 @@ void Task::SetFeatureParameters(const mjModel* model) {
   // set values
   int shift = 0;
   for (int i = 0; i < model->nnumeric; i++) {
-    if (std::strncmp(model->names + model->name_numericadr[i], "residual_",
-                     9) == 0) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_select_")) {
+      residual_parameters[shift] = DefaultResidualSelection(model, i);
+      shift++;
+    } else if (absl::StartsWith(model->names + model->name_numericadr[i],
+                                "residual_")) {
       int dim = 1;  // model->numeric_size[i];
       double* params = model->numeric_data + model->numeric_adr[i];
       mju_copy(DataAt(residual_parameters, shift), params, dim);

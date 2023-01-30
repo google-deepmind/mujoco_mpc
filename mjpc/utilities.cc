@@ -24,9 +24,13 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 // DEEPMIND INTERNAL IMPORT
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
 #include <absl/strings/str_cat.h>
+#include <absl/strings/str_split.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "array_safety.h"
@@ -90,6 +94,43 @@ void Clamp(double* x, const double* bounds, int n) {
   }
 }
 
+absl::flat_hash_map<std::string, std::vector<std::string>>
+ResidualSelectionLists(const mjModel* m) {
+  absl::flat_hash_map<std::string, std::vector<std::string>> result;
+  for (int i = 0; i < m->ntext; i++) {
+    if (!absl::StartsWith(std::string_view(m->names + m->name_textadr[i]),
+                          "residual_list_")) {
+      continue;
+    }
+    std::string name = &m->names[m->name_textadr[i]];
+    std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+    result[absl::StripPrefix(name, "residual_list_")] =
+        absl::StrSplit(options, '|');
+  }
+  return result;
+}
+
+std::string ResidualSelection(const mjModel* m, std::string_view name,
+                              double residual_parameter) {
+  std::string list_name = absl::StrCat("residual_list_", name);
+
+  // we're using a double field to store an integer - reinterpret as an int
+  int list_index = *reinterpret_cast<const int*>(&residual_parameter);
+
+  for (int i = 0; i < m->ntext; i++) {
+    if (list_name == &m->names[m->name_textadr[i]]) {
+      // get the nth element in the list of options (without constructing a
+      // vector<string>)
+      std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+      for (std::string_view value : absl::StrSplit(options, '|')) {
+        if (list_index == 0) return std::string(value);
+        list_index--;
+      }
+    }
+  }
+  return "";
+}
+
 // get sensor data using string
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name) {
@@ -100,6 +141,12 @@ double* SensorByName(const mjModel* m, const mjData* d,
   } else {
     return d->sensordata + m->sensor_adr[id];
   }
+}
+
+double DefaultResidualSelection(const mjModel* m, int numeric_index) {
+  // list selections are stored as ints, but numeric values are doubles.
+  int value = m->numeric_data[m->numeric_adr[numeric_index]];
+  return *reinterpret_cast<const double*>(&value);
 }
 
 int CostTermByName(const mjModel* m, const mjData* d, const std::string& name) {

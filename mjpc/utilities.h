@@ -23,6 +23,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <absl/container/flat_hash_map.h>
 #include <mujoco/mujoco.h>
 
 namespace mjpc {
@@ -59,6 +60,20 @@ template <typename T>
 T GetNumberOrDefault(T default_value, const mjModel* m, std::string_view name) {
   return GetNumber<T>(m, name).value_or(default_value);
 }
+
+// returns a map from custom field name to the list of valid values for that
+// field
+absl::flat_hash_map<std::string, std::vector<std::string>>
+ResidualSelectionLists(const mjModel* m);
+
+// get the string selected in a drop down with the given name, given the value
+// in the residual parameters vector
+std::string ResidualSelection(const mjModel* m, std::string_view name,
+                              double residual_parameter);
+
+// returns a default value to put in residual parameters, given the index of a
+// custom numeric attribute in the model
+double DefaultResidualSelection(const mjModel* m, int numeric_index);
 
 // Clamp x between bounds, e.g., bounds[0] <= x[i] <= bounds[1]
 void Clamp(double* x, const double* bounds, int n);

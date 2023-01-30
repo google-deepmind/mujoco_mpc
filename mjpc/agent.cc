@@ -20,6 +20,11 @@
 #include <cstring>
 #include <string>
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/strip.h>
+#include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
 #include "array_safety.h"
@@ -326,18 +331,39 @@ void Agent::GUI(mjUI& ui) {
         "0 1"};
   }
 
+  absl::flat_hash_map<std::string, std::vector<std::string>> selections =
+      ResidualSelectionLists(model_);
+
   int shift = 0;
   for (int i = 0; i < model_->nnumeric; i++) {
-    if (std::strncmp(model_->names + model_->name_numericadr[i], "residual_",
-                     9) == 0) {
+    const char* name = model_->names + model_->name_numericadr[i];
+    if (absl::StartsWith(name, "residual_select_")) {
+      std::string_view list_name = absl::StripPrefix(name, "residual_select_");
+      if (auto it = selections.find(list_name); it != selections.end()) {
+        // insert a dropdown list
+        mjuiDef* uiItem = &defFeatureParameters[shift + parameter_shift];
+        uiItem->type = mjITEM_SELECT;
+        mju::strcpy_arr(uiItem->name, list_name.data());
+        mju::strcpy_arr(uiItem->other, absl::StrJoin(it->second, "\n").c_str());
+
+        // note: uiItem.pdata is pointing at a double in residual_parameters,
+        // but mjITEM_SELECT is going to treat is as an int. the
+        // ResidualSelection and DefaultResidualSelection functions hide the
+        // necessary casting when reading such values.
+
+      } else {
+        mju_error_s("Selection list not found for %s", name);
+        return;
+      }
+      shift += 1;
+    } else if (absl::StartsWith(name, "residual_")) {
+      mjuiDef* uiItem = &defFeatureParameters[shift + parameter_shift];
       // name
-      mju::strcpy_arr(defFeatureParameters[shift + parameter_shift].name,
-                      model_->names + model_->name_numericadr[i] +
-                          std::strlen("residual_"));
+      mju::strcpy_arr(uiItem->name, model_->names + model_->name_numericadr[i] +
+                                        std::strlen("residual_"));
       // limits
       if (model_->numeric_size[i] == 3) {
-        mju::sprintf_arr(defFeatureParameters[shift + parameter_shift].other,
-                         "%f %f",
+        mju::sprintf_arr(uiItem->other, "%f %f",
                          model_->numeric_data[model_->numeric_adr[i] + 1],
                          model_->numeric_data[model_->numeric_adr[i] + 2]);
       }

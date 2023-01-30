@@ -19,7 +19,6 @@ namespace mjpc {
 
 // iLQG settings
 struct iLQGSettings {
-  int max_rollout = 1;            // maximum number of planner iterations
   double min_step_size = 1.0e-3;  // minimum step size for line search
   double fd_tolerance = 1.0e-6;   // finite difference tolerance
   double fd_mode = 0;  // type of finite difference; 0: one-sided, 1: centered

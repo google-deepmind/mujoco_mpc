@@ -179,138 +179,136 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // rollouts
   double c_best = c_prev;
-  for (int i = 0; i < settings.max_rollout; i++) {
-    // ----- model derivatives ----- //
-    // start timer
-    auto model_derivative_start = std::chrono::steady_clock::now();
+  // ----- model derivatives ----- //
+  // start timer
+  auto model_derivative_start = std::chrono::steady_clock::now();
 
-    // compute model and sensor Jacobians
-    model_derivative.Compute(
-        model, data_, candidate_policy[0].trajectory.states.data(),
-        candidate_policy[0].trajectory.actions.data(),
-        candidate_policy[0].trajectory.times.data(), dim_state,
-        dim_state_derivative, dim_action, dim_sensor, horizon,
-        settings.fd_tolerance, settings.fd_mode, pool);
+  // compute model and sensor Jacobians
+  model_derivative.Compute(
+      model, data_, candidate_policy[0].trajectory.states.data(),
+      candidate_policy[0].trajectory.actions.data(),
+      candidate_policy[0].trajectory.times.data(), dim_state,
+      dim_state_derivative, dim_action, dim_sensor, horizon,
+      settings.fd_tolerance, settings.fd_mode, pool);
 
-    // stop timer
-    model_derivative_time +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - model_derivative_start)
-            .count();
+  // stop timer
+  model_derivative_time +=
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - model_derivative_start)
+          .count();
 
-    // ----- cost derivatives ----- //
-    // start timer
-    auto cost_derivative_start = std::chrono::steady_clock::now();
+  // ----- cost derivatives ----- //
+  // start timer
+  auto cost_derivative_start = std::chrono::steady_clock::now();
 
-    // cost derivatives
-    cost_derivative.Compute(
-        candidate_policy[0].trajectory.residual.data(),
-        model_derivative.C.data(), model_derivative.D.data(),
-        dim_state_derivative, dim_action, dim_max, dim_sensor,
-        task->num_residual, task->dim_norm_residual.data(), task->num_cost,
-        task->weight.data(), task->norm.data(), task->num_parameter.data(),
-        task->num_norm_parameter.data(), task->risk, horizon, pool);
+  // cost derivatives
+  cost_derivative.Compute(
+      candidate_policy[0].trajectory.residual.data(),
+      model_derivative.C.data(), model_derivative.D.data(),
+      dim_state_derivative, dim_action, dim_max, dim_sensor,
+      task->num_residual, task->dim_norm_residual.data(), task->num_cost,
+      task->weight.data(), task->norm.data(), task->num_parameter.data(),
+      task->num_norm_parameter.data(), task->risk, horizon, pool);
 
-    // end timer
-    cost_derivative_time +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - cost_derivative_start)
-            .count();
+  // end timer
+  cost_derivative_time +=
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - cost_derivative_start)
+          .count();
 
-    // ----- backward pass ----- //
-    // start timer
-    auto backward_pass_start = std::chrono::steady_clock::now();
+  // ----- backward pass ----- //
+  // start timer
+  auto backward_pass_start = std::chrono::steady_clock::now();
 
-    // compute feedback gains and action improvement via Riccati
-    backward_pass.Riccati(&candidate_policy[0], &model_derivative,
-                          &cost_derivative, dim_state_derivative, dim_action,
-                          horizon, backward_pass.regularization, boxqp,
-                          candidate_policy[0].trajectory.actions.data(),
-                          model->actuator_ctrlrange, settings);
+  // compute feedback gains and action improvement via Riccati
+  backward_pass.Riccati(&candidate_policy[0], &model_derivative,
+                        &cost_derivative, dim_state_derivative, dim_action,
+                        horizon, backward_pass.regularization, boxqp,
+                        candidate_policy[0].trajectory.actions.data(),
+                        model->actuator_ctrlrange, settings);
 
-    // end timer
-    backward_pass_time +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - backward_pass_start)
-            .count();
+  // end timer
+  backward_pass_time +=
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - backward_pass_start)
+          .count();
 
-    // ----- rollout policy ----- //
-    auto rollouts_start = std::chrono::steady_clock::now();
+  // ----- rollout policy ----- //
+  auto rollouts_start = std::chrono::steady_clock::now();
 
-    // copy policy
-    for (int j = 1; j < num_trajectory; j++) {
-      candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
-      candidate_policy[j].representation = candidate_policy[0].representation;
-    }
-
-    // improvement step sizes (log scaling)
-    LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
-    improvement_step[num_trajectory - 1] = 0.0;
-
-    // feedback rollouts (parallel)
-    this->Rollouts(horizon, pool);
-
-    // ----- evaluate rollouts ------ //
-    winner = num_trajectory - 1;
-    int failed = 0;
-    if (trajectory[num_trajectory - 1].failure) {
-      failed++;
-    }
-    for (int j = num_trajectory - 2; j >= 0; j--) {
-      if (trajectory[j].failure) {
-        failed++;
-        continue;
-      }
-      // compute cost
-      double c_sample = trajectory[j].total_return;
-
-      // compare cost
-      if (c_sample < c_best) {
-        c_best = c_sample;
-        winner = j;
-      }
-    }
-    if (failed) {
-      std::cerr << "iLQG: " << failed << " out of " << num_trajectory
-                << " rollouts failed.\n";
-    }
-
-    // update nominal with winner
-    candidate_policy[0].trajectory = trajectory[winner];
-
-    // improvement
-    step_size = improvement_step[winner];
-    expected = -1.0 * step_size *
-                   (backward_pass.dV[0] + step_size * backward_pass.dV[1]) +
-               1.0e-16;
-    improvement = c_prev - c_best;
-    surprise = mju_min(mju_max(0, improvement / expected), 2);
-
-    // update regularization
-    backward_pass.UpdateRegularization(settings.min_regularization,
-                                       settings.max_regularization, surprise,
-                                       step_size);
-
-    if (settings.verbose) {
-      std::cout << "dV: " << expected << '\n';
-      std::cout << "dV[0]: " << backward_pass.dV[0] << '\n';
-      std::cout << "dV[1]: " << backward_pass.dV[1] << '\n';
-      std::cout << "c_best: " << c_best << '\n';
-      std::cout << "c_prev: " << c_prev << '\n';
-      std::cout << "c_nominal: " << policy.trajectory.total_return << '\n';
-      std::cout << "step size: " << step_size << '\n';
-      std::cout << "improvement: " << improvement << '\n';
-      std::cout << "regularization: " << backward_pass.regularization << '\n';
-      std::cout << "factor: " << backward_pass.regularization_factor << '\n';
-      std::cout << std::endl;
-    }
-
-    // stop timer
-    rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                         std::chrono::steady_clock::now() - rollouts_start)
-                         .count();
+  // copy policy
+  for (int j = 1; j < num_trajectory; j++) {
+    candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
+    candidate_policy[j].representation = candidate_policy[0].representation;
   }
 
+  // improvement step sizes (log scaling)
+  LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
+  improvement_step[num_trajectory - 1] = 0.0;
+
+  // feedback rollouts (parallel)
+  this->Rollouts(horizon, pool);
+
+  // ----- evaluate rollouts ------ //
+  winner = num_trajectory - 1;
+  int failed = 0;
+  if (trajectory[num_trajectory - 1].failure) {
+    failed++;
+  }
+  for (int j = num_trajectory - 2; j >= 0; j--) {
+    if (trajectory[j].failure) {
+      failed++;
+      continue;
+    }
+    // compute cost
+    double c_sample = trajectory[j].total_return;
+
+    // compare cost
+    if (c_sample < c_best) {
+      c_best = c_sample;
+      winner = j;
+    }
+  }
+  if (failed) {
+    std::cerr << "iLQG: " << failed << " out of " << num_trajectory
+              << " rollouts failed.\n";
+  }
+
+  // update nominal with winner
+  candidate_policy[0].trajectory = trajectory[winner];
+
+  // improvement
+  step_size = improvement_step[winner];
+  expected = -1.0 * step_size *
+                  (backward_pass.dV[0] + step_size * backward_pass.dV[1]) +
+              1.0e-16;
+  improvement = c_prev - c_best;
+  surprise = mju_min(mju_max(0, improvement / expected), 2);
+
+  // update regularization
+  backward_pass.UpdateRegularization(settings.min_regularization,
+                                      settings.max_regularization, surprise,
+                                      step_size);
+
+  if (settings.verbose) {
+    std::cout << "dV: " << expected << '\n';
+    std::cout << "dV[0]: " << backward_pass.dV[0] << '\n';
+    std::cout << "dV[1]: " << backward_pass.dV[1] << '\n';
+    std::cout << "c_best: " << c_best << '\n';
+    std::cout << "c_prev: " << c_prev << '\n';
+    std::cout << "c_nominal: " << policy.trajectory.total_return << '\n';
+    std::cout << "step size: " << step_size << '\n';
+    std::cout << "improvement: " << improvement << '\n';
+    std::cout << "regularization: " << backward_pass.regularization << '\n';
+    std::cout << "factor: " << backward_pass.regularization_factor << '\n';
+    std::cout << std::endl;
+  }
+
+  // stop timer
+  rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now() - rollouts_start)
+                        .count();
+                        
   // ----- policy update ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();

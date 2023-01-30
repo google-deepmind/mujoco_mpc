@@ -22,6 +22,7 @@
 
 #include "planners/gradient/spline_mapping.h"
 #include "planners/ilqg/planner.h"
+#include "planners/linear_solve.h"
 #include "planners/planner.h"
 #include "planners/sampling/planner.h"
 #include "states/state.h"
@@ -82,11 +83,12 @@ class iLQSPlanner : public Planner {
   // ----- policy conversion ----- //
   // spline mapping
   std::vector<std::unique_ptr<SplineMapping>> mappings;
-  std::vector<double> parameter_matrix_scratch;
-  std::vector<double> parameter_vector_scratch;
 
-  // winning planner
-  int winner;
+  // linear system solver 
+  LinearSolve solver;
+
+  // online policy for returning actions
+  int online_policy;
 };
 
 }  // namespace mjpc

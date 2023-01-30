@@ -33,8 +33,8 @@ void Swimmer::Residual(const double* parameters, const mjModel* model,
 
   // ---------- Residuals (5-6) ----------
   // nose to target XY displacement
-  double* target = mjpc::SensorByName(model, data, "target");
-  double* nose = mjpc::SensorByName(model, data, "nose");
+  double* target = SensorByName(model, data, "target");
+  double* nose = SensorByName(model, data, "nose");
   mju_sub(residual + model->nu, nose, target, 2);
 }
 
@@ -43,8 +43,8 @@ void Swimmer::Residual(const double* parameters, const mjModel* model,
 //   move goal randomly.
 // ---------------------------------------------
 void Swimmer::Transition(const mjModel* model, mjData* data, Task* task) {
-  double* target = mjpc::SensorByName(model, data, "target");
-  double* nose = mjpc::SensorByName(model, data, "nose");
+  double* target = SensorByName(model, data, "target");
+  double* nose = SensorByName(model, data, "nose");
   double nose_to_target[2];
   mju_sub(nose_to_target, target, nose, 2);
   if (mju_norm(nose_to_target, 2) < 0.04) {

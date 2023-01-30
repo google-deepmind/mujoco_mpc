@@ -40,20 +40,20 @@ void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
   int counter = 0;
 
   // ----- torso height ----- //
-  double torso_height = mjpc::SensorByName(model, data, "torso_position")[2];
+  double torso_height = SensorByName(model, data, "torso_position")[2];
   residual[counter++] = torso_height - parameters[0];
 
   // ----- pelvis / feet ----- //
-  double* foot_right = mjpc::SensorByName(model, data, "foot_right");
-  double* foot_left = mjpc::SensorByName(model, data, "foot_left");
-  double pelvis_height = mjpc::SensorByName(model, data, "pelvis_position")[2];
+  double* foot_right = SensorByName(model, data, "foot_right");
+  double* foot_left = SensorByName(model, data, "foot_left");
+  double pelvis_height = SensorByName(model, data, "pelvis_position")[2];
   residual[counter++] =
       0.5 * (foot_left[2] + foot_right[2]) - pelvis_height - 0.2;
 
   // ----- balance ----- //
   // capture point
-  double* subcom = mjpc::SensorByName(model, data, "torso_subcom");
-  double* subcomvel = mjpc::SensorByName(model, data, "torso_subcomvel");
+  double* subcom = SensorByName(model, data, "torso_subcom");
+  double* subcomvel = SensorByName(model, data, "torso_subcomvel");
 
   double capture_point[3];
   mju_addScl(capture_point, subcom, subcomvel, 0.3, 3);
@@ -91,10 +91,10 @@ void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
   counter += 2;
 
   // ----- upright ----- //
-  double* torso_up = mjpc::SensorByName(model, data, "torso_up");
-  double* pelvis_up = mjpc::SensorByName(model, data, "pelvis_up");
-  double* foot_right_up = mjpc::SensorByName(model, data, "foot_right_up");
-  double* foot_left_up = mjpc::SensorByName(model, data, "foot_left_up");
+  double* torso_up = SensorByName(model, data, "torso_up");
+  double* pelvis_up = SensorByName(model, data, "pelvis_up");
+  double* foot_right_up = SensorByName(model, data, "foot_right_up");
+  double* foot_left_up = SensorByName(model, data, "foot_left_up");
   double z_ref[3] = {0.0, 0.0, 1.0};
 
   // torso
@@ -117,12 +117,10 @@ void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
   counter += model->nq - 7;
 
   // ----- walk ----- //
-  double* torso_forward = mjpc::SensorByName(model, data, "torso_forward");
-  double* pelvis_forward = mjpc::SensorByName(model, data, "pelvis_forward");
-  double* foot_right_forward =
-      mjpc::SensorByName(model, data, "foot_right_forward");
-  double* foot_left_forward =
-      mjpc::SensorByName(model, data, "foot_left_forward");
+  double* torso_forward = SensorByName(model, data, "torso_forward");
+  double* pelvis_forward = SensorByName(model, data, "pelvis_forward");
+  double* foot_right_forward = SensorByName(model, data, "foot_right_forward");
+  double* foot_left_forward = SensorByName(model, data, "foot_left_forward");
 
   double forward[2];
   mju_copy(forward, torso_forward, 2);
@@ -133,8 +131,8 @@ void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
 
   // com vel
   double* waist_lower_subcomvel =
-      mjpc::SensorByName(model, data, "waist_lower_subcomvel");
-  double* torso_velocity = mjpc::SensorByName(model, data, "torso_velocity");
+      SensorByName(model, data, "waist_lower_subcomvel");
+  double* torso_velocity = SensorByName(model, data, "torso_velocity");
   double com_vel[2];
   mju_add(com_vel, waist_lower_subcomvel, torso_velocity, 2);
   mju_scl(com_vel, com_vel, 0.5, 2);
@@ -144,14 +142,12 @@ void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
       standing * (mju_dot(com_vel, forward, 2) - parameters[1]);
 
   // ----- move feet ----- //
-  double* foot_right_velocity =
-      mjpc::SensorByName(model, data, "foot_right_velocity");
-  double* foot_left_velocity =
-      mjpc::SensorByName(model, data, "foot_left_velocity");
+  double* foot_right_vel = SensorByName(model, data, "foot_right_velocity");
+  double* foot_left_vel = SensorByName(model, data, "foot_left_velocity");
   double move_feet[2];
   mju_copy(move_feet, com_vel, 2);
-  mju_addToScl(move_feet, foot_right_velocity, -0.5, 2);
-  mju_addToScl(move_feet, foot_left_velocity, -0.5, 2);
+  mju_addToScl(move_feet, foot_right_vel, -0.5, 2);
+  mju_addToScl(move_feet, foot_left_vel, -0.5, 2);
 
   mju_copy(&residual[counter], move_feet, 2);
   mju_scl(&residual[counter], &residual[counter], standing, 2);

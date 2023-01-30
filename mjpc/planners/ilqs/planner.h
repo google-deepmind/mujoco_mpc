@@ -15,10 +15,11 @@
 #ifndef MJPC_PLANNERS_ILQS_OPTIMIZER_H_
 #define MJPC_PLANNERS_ILQS_OPTIMIZER_H_
 
+#include <mujoco/mujoco.h>
+
 #include <shared_mutex>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "planners/gradient/spline_mapping.h"
 #include "planners/ilqg/planner.h"
 #include "planners/planner.h"

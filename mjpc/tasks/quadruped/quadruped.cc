@@ -78,52 +78,64 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-int Quadruped::Transition(int state, const mjModel* model, mjData* data,
-                          Task* task) {
-  int new_state = state;
+void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
+  // set stage to GUI selection
+  if (task->transition_stage > 0) {
+    data->userdata[0] = task->transition_stage - 1;
+  } else {
+    // ---------- Compute tolerance ----------
+    // goal position
+    const double* goal_position = data->mocap_pos;
 
-  // ---------- Compute tolerance ----------
-  // goal position
-  const double* goal_position = data->mocap_pos;
+    // goal orientation
+    const double* goal_orientation = data->mocap_quat;
 
-  // goal orientation
-  const double* goal_orientation = data->mocap_quat;
+    // system's position
+    double* position = mjpc::SensorByName(model, data, "position");
 
-  // system's position
-  double* position = mjpc::SensorByName(model, data, "position");
+    // system's orientation
+    double* orientation = mjpc::SensorByName(model, data, "orientation");
 
-  // system's orientation
-  double* orientation = mjpc::SensorByName(model, data, "orientation");
+    // position error
+    double position_error[3];
+    mju_sub3(position_error, position, goal_position);
+    double position_error_norm = mju_norm3(position_error);
 
-  // position error
-  double position_error[3];
-  mju_sub3(position_error, position, goal_position);
-  double position_error_norm = mju_norm3(position_error);
+    // orientation error
+    double geodesic_distance =
+        1.0 - mju_abs(mju_dot(goal_orientation, orientation, 4));
 
-  // orientation error
-  double geodesic_distance =
-      1.0 - mju_abs(mju_dot(goal_orientation, orientation, 4));
-
-  // ---------- Check tolerance ----------
-  double tolerance = 1.5e-1;
-  if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
-    // update task state
-    new_state += 1;
-    if (new_state == model->nkey) {
-      new_state = 0;
+    // ---------- Check tolerance ----------
+    double tolerance = 1.5e-1;
+    if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
+      // update task state
+      data->userdata[0] += 1;
+      if (data->userdata[0] == model->nkey) {
+        data->userdata[0] = 0;
+      }
     }
   }
 
   // ---------- Set goal ----------
-  mju_copy3(data->mocap_pos, model->key_mpos + 3 * new_state);
-  mju_copy4(data->mocap_quat, model->key_mquat + 4 * new_state);
-
-  return new_state;
+  mju_copy3(data->mocap_pos, model->key_mpos + 3 * (int)data->userdata[0]);
+  mju_copy4(data->mocap_quat, model->key_mquat + 4 * (int)data->userdata[0]);
 }
 
 void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
                               const mjData* data, double* residual) {
   int counter = 0;
+  // ---------- Height ----------
+
+  double FRz = mjpc::SensorByName(model, data, "FR")[2];
+  double FLz = mjpc::SensorByName(model, data, "FL")[2];
+  double RRz = mjpc::SensorByName(model, data, "RR")[2];
+  double RLz = mjpc::SensorByName(model, data, "RL")[2];
+  double avg_foot_height = 0.25 * (FRz + FLz + RRz + RLz);
+
+  double height = mjpc::SensorByName(model, data, "position")[2];
+
+  residual[counter++] = height - avg_foot_height - 0.23;
+
   // ---------- Upright ----------
 
   // torso z vector shoulf be [0 0 1]
@@ -145,8 +157,8 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   mju_rotVecMatT(linvel_ego, linvel, data->xmat+9*torso_id);
 
   double velocity_goal = parameters[0];
-  residual[counter] = linvel_ego[0] - velocity_goal;
-  counter += 1;
+  residual[counter++] = linvel_ego[0] - velocity_goal;
+  residual[counter++] = linvel_ego[1];
 
   // foot average velocity, in the forward direction, should equal CoM velocity
   double* FRvel = mjpc::SensorByName(model, data, "FRvel");
@@ -166,7 +178,6 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   residual[counter] = foot_vel[0] - velocity_goal;
   counter += 1;
 
-
   // ---------- Yaw ----------
 
   // CoM linear velocity, in the torso frame
@@ -183,6 +194,19 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   // ---------- Control ----------
   mju_copy(residual + counter, data->ctrl, model->nu);
   counter += model->nu;
+
+  // ---------- Posture ----------
+  mju_copy(residual + counter, data->qpos + 7, model->nu);
+  counter += model->nu;
+
+  // Trot
+  double rate = 2.5;
+  double amplitude = .03;
+  double cpg = amplitude*mju_sin(rate * data->time * mjPI);
+  residual[counter++] = FRz - avg_foot_height - mju_max(0, cpg);
+  residual[counter++] = RLz - avg_foot_height - mju_max(0, cpg);
+  residual[counter++] = FLz - avg_foot_height - mju_max(0, -cpg);
+  residual[counter++] = RRz - avg_foot_height - mju_max(0, -cpg);
 
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function

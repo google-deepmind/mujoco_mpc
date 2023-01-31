@@ -280,7 +280,7 @@ void Agent::ModifyScene(mjvScene* scn) {
 }
 
 // graphical user interface elements for agent and task
-void Agent::Gui(mjUI& ui) {
+void Agent::GUI(mjUI& ui) {
   // ----- task ------ //
   mjuiDef defTask[] = {{mjITEM_SECTION, "Task", 1, nullptr, "AP"},
                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
@@ -349,19 +349,32 @@ void Agent::Gui(mjUI& ui) {
   mjui_add(&ui, defFeatureParameters);
 
   // transition
-  if (GetCustomNumericData(model_, "task_transition")) {
+  char* names = GetCustomTextData(model_, "task_transition");
+
+  if (names) {
     mjuiDef defTransition[] = {
         {mjITEM_SEPARATOR, "Transition", 1},
-        {mjITEM_RADIO, "Status", 2, &task_.transition_status, "Off\nOn"},
-        {mjITEM_SLIDERINT, "State", 2, &task_.transition_state, "0 1"},
+        {mjITEM_RADIO, "", 1, &task_.transition_stage, ""},
         {mjITEM_END},
     };
 
-    // set task state limits
-    mju::sprintf_arr(defTransition[2].other, "%i %i", 0, model_->nkey);
+    // concatenate names
+    int len = strlen(names);
+    std::string str;
+    for (int i = 0; i < len; i++) {
+      if (names[i] == '|') {
+        str.push_back('\n');
+      } else {
+        str.push_back(names[i]);
+      }
+    }
+
+    // update buttons
+    mju::strcpy_arr(defTransition[1].other, str.c_str());
 
     // set tolerance limits
-    mju::sprintf_arr(defTransition[3].other, "%f %f", 0.0, 1.0);
+    mju::sprintf_arr(defTransition[2].other, "%f %f", 0.0, 1.0);
+
     mjui_add(&ui, defTransition);
   }
 

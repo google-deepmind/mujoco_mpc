@@ -1,0 +1,151 @@
+<mujoco model="Humanoid Track">
+  <include file="../../common.xml"/>
+  <include file="../humanoid.xml" />
+  <size memory="400K"/>
+
+  <custom>
+    <numeric name="task_transition" data="1" />
+    <numeric name="sampling_representation" data="2" />
+    <numeric name="agent_planner" data="2" />
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="sampling_spline_points" data="16" />
+    <numeric name="sampling_exploration" data="0.15" />
+    <numeric name="sampling_trajectories" data="32" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="ilqg_regularization_type" data="1" />
+    <numeric name="ilqg_representation" data="2" />
+  </custom>
+
+  <default>
+    <default class="mocap_site">
+      <site type="sphere" size="0.027" rgba="0 0 1 1" group="2" material="target"/>
+    </default>
+  </default>
+
+  <option timestep="0.005"/>
+
+  <worldbody>
+    <body name="mocap[pelvis]" mocap="true">
+      <site name="mocap[pelvis]" class="mocap_site" size="0.05" />
+    </body>
+    <body name="mocap[head]" mocap="true">
+      <site name="mocap[head]" class="mocap_site" />
+    </body>
+    <body name="mocap[ltoe]" mocap="true">
+      <site name="mocap[ltoe]" class="mocap_site" />
+    </body>
+    <body name="mocap[rtoe]" mocap="true">
+      <site name="mocap[rtoe]" class="mocap_site" />
+    </body>
+    <body name="mocap[lheel]" mocap="true">
+      <site name="mocap[lheel]" class="mocap_site" />
+    </body>
+    <body name="mocap[rheel]" mocap="true">
+      <site name="mocap[rheel]" class="mocap_site" />
+    </body>
+    <body name="mocap[lknee]" mocap="true">
+      <site name="mocap[lknee]" class="mocap_site" />
+    </body>
+    <body name="mocap[rknee]" mocap="true">
+      <site name="mocap[rknee]" class="mocap_site" />
+    </body>
+    <body name="mocap[lhand]" mocap="true">
+      <site name="mocap[lhand]" class="mocap_site" />
+    </body>
+    <body name="mocap[rhand]" mocap="true">
+      <site name="mocap[rhand]" class="mocap_site" />
+    </body>
+    <body name="mocap[lelbow]" mocap="true">
+      <site name="mocap[lelbow]" class="mocap_site" />
+    </body>
+    <body name="mocap[relbow]" mocap="true">
+      <site name="mocap[relbow]" class="mocap_site" />
+    </body>
+    <body name="mocap[lshoulder]" mocap="true">
+      <site name="mocap[lshoulder]" class="mocap_site" />
+    </body>
+    <body name="mocap[rshoulder]" mocap="true">
+      <site name="mocap[rshoulder]" class="mocap_site" />
+    </body>
+    <body name="mocap[lhip]" mocap="true">
+      <site name="mocap[lhip]" class="mocap_site" />
+    </body>
+    <body name="mocap[rhip]" mocap="true">
+      <site name="mocap[rhip]" class="mocap_site" />
+    </body>
+  </worldbody>
+
+  <sensor>
+    <user name="joint vel." dim="21" user="0 0.001 0.0 0.01" />
+    <user name="control" dim="21" user="3 0.1 0 1.0 0.3" />
+
+    <user name="pos[root]" dim="3" user="6 100.0 0.0 100.0 0.1" />
+    <user name="pos[head]" dim="3" user="6 0.0 0.0 100.0 0.1" />
+    <user name="pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[knee]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[hand]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[elbow]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[shoulder]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="pos[hip]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+
+    <user name="vel[root]" dim="3" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[head]" dim="3" user="6 0.0 0 1.0 0.3" />
+    <user name="vel[toe]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[heel]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[knee]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[hand]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[elbow]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[shoulder]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="vel[hip]" dim="6" user="6 0.1 0 1.0 0.3" />
+
+    <framepos name="trace0" objtype="body" objname="torso"/>
+
+    <framepos name="tracking_pos[pelvis]" objtype="site" objname="tracking[pelvis]" />
+    <framepos name="tracking_pos[head]" objtype="site" objname="tracking[head]" />
+    <framepos name="tracking_pos[ltoe]" objtype="site" objname="tracking[ltoe]" />
+    <framepos name="tracking_pos[rtoe]" objtype="site" objname="tracking[rtoe]" />
+    <framepos name="tracking_pos[lheel]" objtype="site" objname="tracking[lheel]" />
+    <framepos name="tracking_pos[rheel]" objtype="site" objname="tracking[rheel]" />
+    <framepos name="tracking_pos[lknee]" objtype="site" objname="tracking[lknee]" />
+    <framepos name="tracking_pos[rknee]" objtype="site" objname="tracking[rknee]" />
+    <framepos name="tracking_pos[lhand]" objtype="site" objname="tracking[lhand]" />
+    <framepos name="tracking_pos[rhand]" objtype="site" objname="tracking[rhand]" />
+    <framepos name="tracking_pos[lelbow]" objtype="site" objname="tracking[lelbow]" />
+    <framepos name="tracking_pos[relbow]" objtype="site" objname="tracking[relbow]" />
+    <framepos name="tracking_pos[lshoulder]" objtype="site" objname="tracking[lshoulder]" />
+    <framepos name="tracking_pos[rshoulder]" objtype="site" objname="tracking[rshoulder]" />
+    <framepos name="tracking_pos[lhip]" objtype="site" objname="tracking[lhip]" />
+    <framepos name="tracking_pos[rhip]" objtype="site" objname="tracking[rhip]" />
+
+    <framelinvel name="tracking_linvel[pelvis]" objtype="site" objname="tracking[pelvis]" />
+    <framelinvel name="tracking_linvel[head]" objtype="site" objname="tracking[head]" />
+    <framelinvel name="tracking_linvel[ltoe]" objtype="site" objname="tracking[ltoe]" />
+    <framelinvel name="tracking_linvel[rtoe]" objtype="site" objname="tracking[rtoe]" />
+    <framelinvel name="tracking_linvel[lheel]" objtype="site" objname="tracking[lheel]" />
+    <framelinvel name="tracking_linvel[rheel]" objtype="site" objname="tracking[rheel]" />
+    <framelinvel name="tracking_linvel[lknee]" objtype="site" objname="tracking[lknee]" />
+    <framelinvel name="tracking_linvel[rknee]" objtype="site" objname="tracking[rknee]" />
+    <framelinvel name="tracking_linvel[lhand]" objtype="site" objname="tracking[lhand]" />
+    <framelinvel name="tracking_linvel[rhand]" objtype="site" objname="tracking[rhand]" />
+    <framelinvel name="tracking_linvel[lelbow]" objtype="site" objname="tracking[lelbow]" />
+    <framelinvel name="tracking_linvel[relbow]" objtype="site" objname="tracking[relbow]" />
+    <framelinvel name="tracking_linvel[lshoulder]" objtype="site" objname="tracking[lshoulder]" />
+    <framelinvel name="tracking_linvel[rshoulder]" objtype="site" objname="tracking[rshoulder]" />
+    <framelinvel name="tracking_linvel[lhip]" objtype="site" objname="tracking[lhip]" />
+    <framelinvel name="tracking_linvel[rhip]" objtype="site" objname="tracking[rhip]" />
+  </sensor>
+
+  <include file="./keyframes/CMU-CMU-02-02_04_poses.xml" />  <!-- simple jump, balance -->
+  <!-- <include file="./keyframes/CMU-CMU-87-87_01_poses.xml" />  <!-\- jump with kick and spin -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-88-88_06_poses.xml" />  <!-\- jump and spin kick -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-88-88_07_poses.xml" />  <!-\- cartwheel-\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-88-88_08_poses.xml" />  <!-\- crouch and flip backward on hands -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-88-88_09_poses.xml" />  <!-\- stretch and cartwheel -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-90-90_19_poses.xml" />  <!-\- monkey backflip -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-103-103_08_poses.xml" />  <!-\- dance: "xtra fancY charleston" -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-108-108_13_poses.xml" />  <!-\- run -\-> -->
+  <!-- <include file="./keyframes/CMU-CMU-137-137_40_poses.xml" />  <!-\- walk -\-> -->
+</mujoco>

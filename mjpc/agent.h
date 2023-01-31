@@ -71,7 +71,7 @@ class Agent {
   void ModifyScene(mjvScene* scn);
 
   // graphical user interface elements for agent and task
-  void Gui(mjUI& ui);
+  void GUI(mjUI& ui);
 
   // task-based GUI event
   void TaskEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,

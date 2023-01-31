@@ -79,8 +79,7 @@ void Hand::Residual(const double* parameters, const mjModel* model,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-int Hand::Transition(int state, const mjModel* model, mjData* data,
-                     Task* task) {
+void Hand::Transition(const mjModel* model, mjData* data, Task* task) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
@@ -108,8 +107,6 @@ int Hand::Transition(int state, const mjModel* model, mjData* data,
     }
     mj_forward(model, data);
   }
-
-  return state;
 }
 
 }  // namespace mjpc

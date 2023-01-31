@@ -73,6 +73,16 @@ double* GetCustomNumericData(const mjModel* m, std::string_view name) {
   return nullptr;
 }
 
+// get text data from custom using string
+char* GetCustomTextData(const mjModel* m, std::string_view name) {
+  for (int i = 0; i < m->ntextdata; i++) {
+    if (std::string_view(m->names + m->name_textadr[i]) == name) {
+      return m->text_data + m->text_adr[i];
+    }
+  }
+  return nullptr;
+}
+
 // Clamp x between bounds, e.g., bounds[0] <= x[i] <= bounds[1]
 void Clamp(double* x, const double* bounds, int n) {
   for (int i = 0; i < n; i++) {

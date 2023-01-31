@@ -18,6 +18,7 @@
 #include "tasks/cartpole/cartpole.h"
 #include "tasks/hand/hand.h"
 #include "tasks/humanoid/stand/task.h"
+#include "tasks/humanoid/tracking/task.h"
 #include "tasks/humanoid/walk/task.h"
 #include "tasks/panda/panda.h"
 // DEEPMIND INTERNAL IMPORT
@@ -43,6 +44,12 @@ const TaskDefinition<const char*> kTasksArray[]{
         .name = "Humanoid Walk",
         .xml_path = "humanoid/walk/task.xml",
         .residual = &humanoid::Walk::Residual,
+    },
+    {
+        .name = "Humanoid Track",
+        .xml_path = "humanoid/tracking/task.xml",
+        .residual = &humanoid::Tracking::Residual,
+        .transition = &humanoid::Tracking::Transition,
     },
     {
         .name = "Swimmer",

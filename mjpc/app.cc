@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app.h"
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -206,6 +208,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         for (const auto& task : sim.tasks) {
           concatenated_task_names << task.name << '\n';
         }
+
         const auto& task = sim.tasks[sim.agent.task().id];
         sim.agent.Initialize(m, concatenated_task_names.str(),
                              mjpc::kPlannerNames, task.residual,
@@ -271,9 +274,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
       if (m) {  // run only if model is present
-        if (sim.agent.task().transition_status == 1) {
-          sim.agent.task().Transition(m, d);
-        }
+        sim.agent.task().Transition(m, d);
 
         // running
         if (sim.run) {

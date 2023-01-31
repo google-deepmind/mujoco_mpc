@@ -38,8 +38,7 @@ void Task::GetFrom(const mjModel* model) {
   // ----- defaults ----- //
 
   // transition
-  transition_status = GetNumberOrDefault(0, model, "task_transition");
-  transition_state = 0;
+  transition_stage = 0;
 
   // risk value
   risk = GetNumberOrDefault(0.0, model, "task_risk");
@@ -94,6 +93,12 @@ void Task::GetFrom(const mjModel* model) {
         mju_error("Cost construction from XML: Missing parameter value\n");
       }
       norm[num_cost] = (NormType)s[0];
+
+      // check Null norm
+      if (norm[num_cost] == -1 && dim_norm_residual[num_cost] != 1) {
+        mju_error("Cost construction from XML: Missing parameter value\n");
+      }
+
       weight[num_cost] = s[1];
       num_norm_parameter[num_cost] = NormParameterDimension(s[0]);
       mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
@@ -115,14 +120,16 @@ void Task::GetFrom(const mjModel* model) {
 }
 
 // compute weighted cost terms
-void Task::CostTerms(double* terms, const double* residual) const {
+void Task::CostTerms(double* terms, const double* residual,
+                     bool weighted) const {
   int f_shift = 0;
   int p_shift = 0;
   for (int k = 0; k < num_cost; k++) {
     // running cost
-    terms[k] = weight[k] * Norm(nullptr, nullptr, residual + f_shift,
-                                DataAt(num_parameter, p_shift),
-                                dim_norm_residual[k], norm[k]);
+    terms[k] =
+        (weighted ? weight[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
+                                          DataAt(num_parameter, p_shift),
+                                          dim_norm_residual[k], norm[k]);
 
     // shift residual
     f_shift += dim_norm_residual[k];
@@ -160,7 +167,7 @@ void Task::Residuals(const mjModel* m, const mjData* d,
 }
 
 void Task::Transition(const mjModel* m, mjData* d) {
-  transition_state = transition_(transition_state, m, d, this);
+  transition_(m, d, this);
 }
 
 // initial residual parameters from model
@@ -192,8 +199,6 @@ void Task::SetFeatureParameters(const mjModel* model) {
   }
 }
 
-int NullTransition(int state, const mjModel* model, mjData* data, Task* task) {
-  return state;
-}
+void NullTransition(const mjModel* model, mjData* data, Task* task) {}
 
 }  // namespace mjpc

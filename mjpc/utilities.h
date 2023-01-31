@@ -39,6 +39,9 @@ void GetState(const mjModel* model, const mjData* data, double* state);
 // get numerical data from a custom element in mjModel with the given name
 double* GetCustomNumericData(const mjModel* m, std::string_view name);
 
+// get text data from a custom element in mjModel with the given name
+char* GetCustomTextData(const mjModel* m, std::string_view name);
+
 // get a scalar value from a custom element in mjModel with the given name
 template <typename T>
 std::optional<T> GetNumber(const mjModel* m, std::string_view name) {

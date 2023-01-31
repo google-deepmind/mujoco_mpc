@@ -1,10 +1,10 @@
 <mujoco model="Quadruped Terrain">
   <include file="../common.xml"/>
 
-  <size memory="1M"/>
+  <size memory="1M" nuserdata="1"/>
 
   <custom>
-    <numeric name="task_transition" data="1" />
+    <text name="task_transition" data="Loop|Stage1|Stage2|Stage3|Stage4|Stage5|Stage6|Stage7|Stage8|Stage9|Stage10|Stage11|Stage12|Stage13|Stage14|Stage15|Stage16|Stage17|Stage18|Stage19" />
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
@@ -28,6 +28,22 @@
   </worldbody>
 
   <include file="a1.xml" />
+
+  <actuator>
+    <position class="abduction" name="FR_hip" joint="FR_hip_joint"/>
+    <position class="hip" name="FR_thigh" joint="FR_thigh_joint"/>
+    <position class="knee" name="FR_calf" joint="FR_calf_joint"/>
+    <position class="abduction" name="FL_hip" joint="FL_hip_joint"/>
+    <position class="hip" name="FL_thigh" joint="FL_thigh_joint"/>
+    <position class="knee" name="FL_calf" joint="FL_calf_joint"/>
+    <position class="abduction" name="RR_hip" joint="RR_hip_joint"/>
+    <position class="hip" name="RR_thigh" joint="RR_thigh_joint"/>
+    <position class="knee" name="RR_calf" joint="RR_calf_joint"/>
+    <position class="abduction" name="RL_hip" joint="RL_hip_joint"/>
+    <position class="hip" name="RL_thigh" joint="RL_thigh_joint"/>
+    <position class="knee" name="RL_calf" joint="RL_calf_joint"/>
+  </actuator>
+
   <include file="assets/fractal.xml" />
 
   <sensor>

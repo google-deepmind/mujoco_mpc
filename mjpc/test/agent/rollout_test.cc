@@ -99,7 +99,7 @@ TEST(RolloutTest, Particle) {
   mju_copy(mocap + 3, data->mocap_quat, 4);
 
   // rollout feedback policy
-  trajectory.Rollout(feedback_policy, &task, model, data, state, time, mocap,
+  trajectory.Rollout(feedback_policy, &task, model, data, state, time, mocap, NULL,
                      horizon);
 
   // test final state

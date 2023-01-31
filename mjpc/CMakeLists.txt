@@ -232,6 +232,8 @@ add_library(
   tasks/hand/hand.h
   tasks/humanoid/stand/task.cc
   tasks/humanoid/stand/task.h
+  tasks/humanoid/tracking/task.cc
+  tasks/humanoid/tracking/task.h
   tasks/humanoid/walk/task.cc
   tasks/humanoid/walk/task.h
   tasks/panda/panda.cc

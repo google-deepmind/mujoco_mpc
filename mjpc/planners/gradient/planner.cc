@@ -64,6 +64,7 @@ void GradientPlanner::Allocate() {
   // state
   state.resize(model->nq + model->nv + model->na);
   mocap.resize(7 * model->nmocap);
+  userdata.resize(model->nuserdata);
 
   // candidate trajectories
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -104,6 +105,7 @@ void GradientPlanner::Reset(int horizon) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
+  std::fill(userdata.begin(), userdata.end(), 0.0);
   time = 0.0;
 
   // model derivatives
@@ -140,7 +142,8 @@ void GradientPlanner::Reset(int horizon) {
 
 // set state
 void GradientPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(), &this->time);
+  state.CopyTo(this->state.data(), this->mocap.data(),
+               this->userdata.data(), &this->time);
 }
 
 // optimize nominal policy via gradient descent
@@ -335,7 +338,7 @@ void GradientPlanner::NominalTrajectory(int horizon) {
 
   // nominal policy rollout
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), horizon);
+                        state.data(), time, mocap.data(), userdata.data(), horizon);
 }
 
 // compute action from policy
@@ -385,7 +388,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
                    &candidate_policy = candidate_policy,
                    &improvement_step = improvement_step, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, i]() {
+                   &mocap = this->mocap, horizon, &userdata = this->userdata, i]() {
       // scale improvement
       mju_addScl(candidate_policy[i].parameters.data(),
                  candidate_policy[i].parameters.data(),
@@ -403,7 +406,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
       // policy rollout
       trajectory[i].Rollout(feedback_policy, task, model,
                             data[ThreadPool::WorkerId()].get(), state.data(),
-                            time, mocap.data(), horizon);
+                            time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory);

@@ -2,25 +2,25 @@
   <include file="../common.xml"/>
   <include file="quadrotor.xml" />
 
-  <size memory="100K"/>
+  <size memory="100K" nuserdata="1"/>
 
   <statistic extent="2" center="0.0 0.0 0.0"/>
 
   <custom>
-    <numeric name="task_transition" data="1" />
+    <text name="task_transition" data="Loop|Stage1|Stage2|Stage3|Stage4|Stage5|Stage6|Stage7|Stage8|Stage9|Stage10|Stage11|Stage12" />
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="sampling_sample_width" data="0.01" />
     <numeric name="sampling_control_width" data="0.015" />
-    <numeric name="sampling_spline_points" data="32" />
+    <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.3" />
     <numeric name="sampling_processed_noise" data="1" />
     <numeric name="sampling_processed_noise_neighbors" data="3" />
     <numeric name="sampling_processed_noise_passes" data="3" />
     <numeric name="sampling_representation" data="2" />
     <numeric name="sampling_trajectories" data="32" />
-    <numeric name="gradient_spline_points" data="10" />
+    <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Lin. Vel. X" data="0 -1.0 1.0" />
     <numeric name="residual_Lin. Vel. Y" data="0 -1.0 1.0" />
     <numeric name="residual_Lin. Vel. Z" data="0 -1.0 1.0" />

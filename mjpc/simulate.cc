@@ -900,7 +900,7 @@ void makesections(mj::Simulate* sim) {
   sim->ui1.nsect = 0;
 
   // make
-  sim->agent.Gui(sim->ui0);
+  sim->agent.GUI(sim->ui0);
   makephysics(sim, oldstate0[SECT_PHYSICS]);
   makerendering(sim, oldstate0[SECT_RENDERING]);
   makegroup(sim, oldstate0[SECT_GROUP]);
@@ -1649,6 +1649,10 @@ void Simulate::loadmodel() {
 
   // re-create scene and context
   mjv_makeScene(this->m, &this->scn, maxgeom);
+  if (!this->platform_ui->IsGPUAccelerated()) {
+    this->scn.flags[mjRND_SHADOW] = 0;
+    this->scn.flags[mjRND_REFLECTION] = 0;
+  }
   this->platform_ui->RefreshMjrContext(this->m, 50*(this->font+1));
 
   // clear perturbation state
@@ -1958,7 +1962,10 @@ void Simulate::renderloop() {
   // make empty scene
   mjv_defaultScene(&this->scn);
   mjv_makeScene(nullptr, &this->scn, maxgeom);
-
+  if (!this->platform_ui->IsGPUAccelerated()) {
+    this->scn.flags[mjRND_SHADOW] = 0;
+    this->scn.flags[mjRND_REFLECTION] = 0;
+  }
   // select default font
   int fontscale = ComputeFontScale(*this->platform_ui);
   this->font = fontscale/50 - 1;

@@ -42,7 +42,7 @@ The cost is a sum of $M$ terms, each comprising:
 
 ### Risk (in)sensitive costs
 
-We additionally provide a convenient family of exponential transformations, $c(x, u) = \rho(l(x, u); R), that can be applied to the cost function to model risk-seeking and risk-averse behaviors. This family is parameterized by a scalar $R \in \mathbf{R}$ (our default is $R=0$) and is given by:
+We additionally provide a convenient family of exponential transformations, $c(x, u) = \rho(l(x, u); R)$, that can be applied to the cost function to model risk-seeking and risk-averse behaviors. This family is parameterized by a scalar $R \in \mathbf{R}$ (our default is $R=0$) and is given by:
 
 $$
 \rho(l, R) = \frac{e^{R \cdot l} - 1}{R}.

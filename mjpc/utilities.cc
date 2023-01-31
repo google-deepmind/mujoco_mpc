@@ -131,6 +131,26 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
   return "";
 }
 
+double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
+                                      const std::string_view value) {
+  std::string list_name = absl::StrCat("residual_list_", name);
+  for (int i = 0; i < m->ntext; i++) {
+    if (list_name == &m->names[m->name_textadr[i]]) {
+      int list_index = 0;
+      std::string_view options(m->text_data + m->text_adr[i],
+                               m->text_size[i] - 1);
+      std::vector<std::string> values = absl::StrSplit(options, '|');
+      for (std::string_view v : absl::StrSplit(options, '|')) {
+        if (v == value) {
+          return *reinterpret_cast<const double*>(&list_index);
+        }
+        list_index++;
+      }
+    }
+  }
+  return 0;
+}
+
 // get sensor data using string
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name) {

@@ -71,6 +71,11 @@ ResidualSelectionLists(const mjModel* m);
 std::string ResidualSelection(const mjModel* m, std::string_view name,
                               double residual_parameter);
 
+// returns a value for residual parameters that fits the given text value
+// in the given list
+double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
+                                      std::string_view value);
+
 // returns a default value to put in residual parameters, given the index of a
 // custom numeric attribute in the model
 double DefaultResidualSelection(const mjModel* m, int numeric_index);

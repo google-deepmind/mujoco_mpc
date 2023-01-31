@@ -545,19 +545,9 @@ void Agent::PlotInitialize() {
   plots_.action.linergb[2 * dim_action + 1][2] = 0.0f;
 
   // history of agent compute time
-  plots_.timer.linergb[0][0] = 0.0f;
+  plots_.timer.linergb[0][0] = 1.0f;
   plots_.timer.linergb[0][1] = 1.0f;
   plots_.timer.linergb[0][2] = 1.0f;
-
-  // history of rollout compute time
-  plots_.timer.linergb[1][0] = 0.5f;
-  plots_.timer.linergb[1][1] = 0.5f;
-  plots_.timer.linergb[1][2] = 0.5f;
-
-  // history of shift compute time
-  plots_.timer.linergb[5][0] = 1.0f;
-  plots_.timer.linergb[5][1] = 0.0f;
-  plots_.timer.linergb[5][2] = 1.0f;
 
   // x-tick labels
   plots_.cost.flg_ticklabel[0] = 0;
@@ -582,6 +572,17 @@ void Agent::PlotInitialize() {
     for (int i = 0; i < mjMAXLINEPNT; i++) {
       plots_.planner.linedata[j][2 * i] = (float)-i;
       plots_.timer.linedata[j][2 * i] = (float)-i;
+
+
+      // colors 
+      if (j == 0) continue;
+      plots_.planner.linergb[j][0] = CostColors[j][0];
+      plots_.planner.linergb[j][1] = CostColors[j][1];
+      plots_.planner.linergb[j][2] = CostColors[j][2];
+
+      plots_.timer.linergb[j][0] = CostColors[j][0];
+      plots_.timer.linergb[j][1] = CostColors[j][1];
+      plots_.timer.linergb[j][2] = CostColors[j][2];
     }
   }
 }
@@ -740,7 +741,7 @@ void Agent::Plots(const mjData* data, int shift) {
   // ----- compute timers ----- //
   double compute_bounds[2] = {0.0, 1.0};
 
-  ActivePlanner().Plots(&plots_.planner, &plots_.timer, plan_enabled);
+  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled);
 
   // history agent compute time
   PlotUpdateData(&plots_.timer, compute_bounds, plots_.timer.linedata[0][0] + 1,

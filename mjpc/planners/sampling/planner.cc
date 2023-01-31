@@ -14,13 +14,14 @@
 
 #include "planners/sampling/planner.h"
 
+#include <absl/random/random.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
-#include <absl/random/random.h>
 #include "array_safety.h"
 #include "planners/sampling/policy.h"
 #include "states/state.h"
@@ -80,7 +81,7 @@ void SamplingPlanner::Allocate() {
   // trajectory and parameters
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
-                               task->num_trace, kMaxTrajectoryHorizon);
+                             task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
@@ -129,8 +130,8 @@ void SamplingPlanner::Reset(int horizon) {
 
 // set state
 void SamplingPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(),
-               this->userdata.data(), &this->time);
+  state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
+               &this->time);
 }
 
 // optimize nominal policy using random sampling
@@ -199,7 +200,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.CopyParametersFrom(candidate_policy[winner].parameters,
-                    candidate_policy[winner].times);
+                              candidate_policy[winner].times);
   }
 
   // stop timer
@@ -227,7 +228,8 @@ void SamplingPlanner::NominalTrajectory(int horizon) {
 
   // rollout nominal policy
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                          state.data(), time, mocap.data(), userdata.data(), horizon);
+                        state.data(), time, mocap.data(), userdata.data(),
+                        horizon);
 }
 
 // set action from policy
@@ -245,8 +247,7 @@ void SamplingPlanner::ResamplePolicy(int horizon) {
   // set time
   double nominal_time = time;
   double time_shift = mju_max(
-      (horizon - 1) * model->opt.timestep / (num_spline_points - 1),
-      1.0e-5);
+      (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
@@ -317,7 +318,8 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
-                   &mocap = this->mocap, &userdata = this->userdata, horizon, i]() {
+                   &mocap = this->mocap, &userdata = this->userdata, horizon,
+                   i]() {
       // sample noise policy
       if (i != 0) s.AddNoiseToPolicy(i);
 
@@ -334,9 +336,9 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
       };
 
       // policy rollout
-      s.trajectory[i].Rollout(sample_policy_i, task, model,
-                                s.data_[ThreadPool::WorkerId()].get(),
-                                state.data(), time, mocap.data(), userdata.data(), horizon);
+      s.trajectory[i].Rollout(
+          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
+          state.data(), time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory);
@@ -378,7 +380,7 @@ void SamplingPlanner::Traces(mjvScene* scn) {
       for (int j = 0; j < task->num_trace; j++) {
         // initialize geometry
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
-                    color);
+                     color);
 
         // make geometry
         mjv_makeConnector(
@@ -426,17 +428,18 @@ void SamplingPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                            int planning) {
+                            int planner_shift, int timer_shift, int planning) {
   // ----- planner ----- //
   double planner_bounds[2] = {-6.0, 6.0};
 
   // improvement
-  mjpc::PlotUpdateData(
-      fig_planner, planner_bounds, fig_planner->linedata[0][0] + 1,
-      mju_log10(mju_max(improvement, 1.0e-6)), 100, 0, 0, 1, -100);
+  mjpc::PlotUpdateData(fig_planner, planner_bounds,
+                       fig_planner->linedata[0 + planner_shift][0] + 1,
+                       mju_log10(mju_max(improvement, 1.0e-6)), 100,
+                       0 + planner_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[0], "Improvement");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improvement");
 
   fig_planner->range[1][0] = planner_bounds[0];
   fig_planner->range[1][1] = planner_bounds[1];
@@ -447,24 +450,30 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // ----- timer ----- //
 
   // update plots
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[7][0] + 1,
-                 1.0e-3 * nominal_compute_time * planning, 100, 7, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * nominal_compute_time * planning, 100, 0 + timer_shift,
+                 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[10][0] + 1,
-                 1.0e-3 * noise_compute_time * planning, 100, 10, 0, 1, -100);
+  PlotUpdateData(
+      fig_timer, timer_bounds, fig_timer->linedata[1 + timer_shift][0] + 1,
+      1.0e-3 * noise_compute_time * planning, 100, 1 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[1][0] + 1,
-                 1.0e-3 * rollouts_compute_time * planning, 100, 1, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[2 + timer_shift][0] + 1,
+                 1.0e-3 * rollouts_compute_time * planning, 100,
+                 2 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[9][0] + 1,
-                 1.0e-3 * policy_update_compute_time * planning, 100, 9, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[3 + timer_shift][0] + 1,
+                 1.0e-3 * policy_update_compute_time * planning, 100,
+                 3 + timer_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[7], "Nominal");
-  mju::strcpy_arr(fig_timer->linename[10], "Noise");
-  mju::strcpy_arr(fig_timer->linename[1], "Rollout");
-  mju::strcpy_arr(fig_timer->linename[9], "Policy Update");
+  mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Nominal");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Noise");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Rollout");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Policy Update");
 }
 
 }  // namespace mjpc

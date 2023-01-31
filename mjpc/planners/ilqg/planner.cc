@@ -51,9 +51,9 @@ void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
       2 * model->nv + model->na;    // state derivative dimension
   dim_action = model->nu;           // action dimension
   dim_sensor = model->nsensordata;  // number of sensor values
-  dim_max = mju_max(mju_max(mju_max(dim_state, dim_state_derivative),
-                                 dim_action),
-                         model->nuser_sensor);
+  dim_max =
+      mju_max(mju_max(mju_max(dim_state, dim_state_derivative), dim_action),
+              model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
   settings.regularization_type = GetNumberOrDefault(
       settings.regularization_type, model, "ilqg_regularization_type");
@@ -133,8 +133,8 @@ void iLQGPlanner::Reset(int horizon) {
 
 // set state
 void iLQGPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(),
-               this->userdata.data(), &this->time);
+  state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
+               &this->time);
 }
 
 // optimize nominal policy using iLQG
@@ -206,12 +206,12 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // cost derivatives
   cost_derivative.Compute(
-      candidate_policy[0].trajectory.residual.data(),
-      model_derivative.C.data(), model_derivative.D.data(),
-      dim_state_derivative, dim_action, dim_max, dim_sensor,
-      task->num_residual, task->dim_norm_residual.data(), task->num_cost,
-      task->weight.data(), task->norm.data(), task->num_parameter.data(),
-      task->num_norm_parameter.data(), task->risk, horizon, pool);
+      candidate_policy[0].trajectory.residual.data(), model_derivative.C.data(),
+      model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
+      dim_sensor, task->num_residual, task->dim_norm_residual.data(),
+      task->num_cost, task->weight.data(), task->norm.data(),
+      task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
+      horizon, pool);
 
   // end timer
   cost_derivative_time +=
@@ -283,15 +283,15 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // improvement
   step_size = improvement_step[winner];
   expected = -1.0 * step_size *
-                  (backward_pass.dV[0] + step_size * backward_pass.dV[1]) +
-              1.0e-16;
+                 (backward_pass.dV[0] + step_size * backward_pass.dV[1]) +
+             1.0e-16;
   improvement = c_prev - c_best;
   surprise = mju_min(mju_max(0, improvement / expected), 2);
 
   // update regularization
   backward_pass.UpdateRegularization(settings.min_regularization,
-                                      settings.max_regularization, surprise,
-                                      step_size);
+                                     settings.max_regularization, surprise,
+                                     step_size);
 
   if (settings.verbose) {
     std::cout << "dV: " << expected << '\n';
@@ -309,9 +309,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // stop timer
   rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                        std::chrono::steady_clock::now() - rollouts_start)
-                        .count();
-                        
+                       std::chrono::steady_clock::now() - rollouts_start)
+                       .count();
+
   // ----- policy update ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
@@ -351,7 +351,8 @@ void iLQGPlanner::NominalTrajectory(int horizon) {
 
   // policy rollout
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), userdata.data(), horizon);
+                        state.data(), time, mocap.data(), userdata.data(),
+                        horizon);
 }
 
 // set action from policy
@@ -391,7 +392,7 @@ void iLQGPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                        int planning) {
+                        int planner_shift, int timer_shift, int planning) {
   // bounds
   double planner_bounds[2] = {-6, 6};
 
@@ -399,36 +400,40 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   // regularization
   mjpc::PlotUpdateData(fig_planner, planner_bounds,
-                       fig_planner->linedata[0][0] + 1,
+                       fig_planner->linedata[0 + planner_shift][0] + 1,
                        mju_log10(mju_max(backward_pass.regularization, 1.0e-6)),
-                       100, 0, 0, 1, -100);
+                       100, 0 + planner_shift, 0, 1, -100);
 
   // step size
-  mjpc::PlotUpdateData(
-      fig_planner, planner_bounds, fig_planner->linedata[1][0] + 1,
-      mju_log10(mju_max(step_size, 1.0e-6)), 100, 1, 0, 1, -100);
+  mjpc::PlotUpdateData(fig_planner, planner_bounds,
+                       fig_planner->linedata[1 + planner_shift][0] + 1,
+                       mju_log10(mju_max(step_size, 1.0e-6)), 100,
+                       1 + planner_shift, 0, 1, -100);
 
   // improvement
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[2][0] + 1,
-  //     mju_log10(mju_max(improvement, 1.0e-6)), 100, 2, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[2 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(improvement, 1.0e-6)), 100, 2
+  //     + planner_shift, 0, 1, -100);
 
   // // expected
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[3][0] + 1,
-  //     mju_log10(mju_max(expected, 1.0e-6)), 100, 3, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[3 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(expected, 1.0e-6)), 100, 3 +
+  //     planner_shift, 0, 1, -100);
 
   // // surprise
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[4][0] + 1,
-  //     mju_log10(mju_max(surprise, 1.0e-6)), 100, 4, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[4 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(surprise, 1.0e-6)), 100, 4 +
+  //     planner_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[0], "Regularization");
-  mju::strcpy_arr(fig_planner->linename[1], "Step Size");
-  // mju::strcpy_arr(fig_planner->linename[2], "Improvement");
-  // mju::strcpy_arr(fig_planner->linename[3], "Expected");
-  // mju::strcpy_arr(fig_planner->linename[4], "Surprise");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Regularization");
+  mju::strcpy_arr(fig_planner->linename[1 + planner_shift], "Step Size");
+  // mju::strcpy_arr(fig_planner->linename[2 + planner_shift], "Improvement");
+  // mju::strcpy_arr(fig_planner->linename[3 + planner_shift], "Expected");
+  // mju::strcpy_arr(fig_planner->linename[4 + planner_shift], "Surprise");
 
   // ranges
   fig_planner->range[1][0] = planner_bounds[0];
@@ -438,36 +443,43 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   double timer_bounds[2] = {0, 1};
 
   // update plots
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[9][0] + 1,
-                 1.0e-3 * nominal_compute_time * planning, 100, 9, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * nominal_compute_time * planning, 100, 0 + timer_shift,
+                 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[10][0] + 1,
-                 1.0e-3 * model_derivative_compute_time * planning, 100, 10, 0,
-                 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[1 + timer_shift][0] + 1,
+                 1.0e-3 * model_derivative_compute_time * planning,
+                 1 + timer_shift, 10, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[11][0] + 1,
-                 1.0e-3 * cost_derivative_compute_time * planning, 100, 11, 0,
-                 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[2 + timer_shift][0] + 1,
+                 1.0e-3 * cost_derivative_compute_time * planning,
+                 2 + timer_shift, 11, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[12][0] + 1,
-                 1.0e-3 * backward_pass_compute_time * planning, 100, 12, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[3 + timer_shift][0] + 1,
+                 1.0e-3 * backward_pass_compute_time * planning, 100,
+                 3 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[13][0] + 1,
-                 1.0e-3 * rollouts_compute_time * planning, 100, 13, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[4 + timer_shift][0] + 1,
+                 1.0e-3 * rollouts_compute_time * planning, 100,
+                 4 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[14][0] + 1,
-                 1.0e-3 * policy_update_compute_time * planning, 100, 14, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[5 + timer_shift][0] + 1,
+                 1.0e-3 * policy_update_compute_time * planning, 100,
+                 5 + timer_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[9], "Nominal");
-  mju::strcpy_arr(fig_timer->linename[10], "Model Deriv.");
-  mju::strcpy_arr(fig_timer->linename[11], "Cost Deriv.");
-  mju::strcpy_arr(fig_timer->linename[12], "Backward Pass");
-  mju::strcpy_arr(fig_timer->linename[13], "Rollouts");
-  mju::strcpy_arr(fig_timer->linename[14], "Policy Update");
+  mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Nominal");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Model Deriv.");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Cost Deriv.");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Backward Pass");
+  mju::strcpy_arr(fig_timer->linename[4 + timer_shift], "Rollouts");
+  mju::strcpy_arr(fig_timer->linename[5 + timer_shift], "Policy Update");
 
   fig_timer->range[0][0] = -100;
   fig_timer->range[0][1] = 0;
@@ -483,7 +495,8 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
                    &candidate_policy = candidate_policy,
                    &improvement_step = improvement_step, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, &userdata = this->userdata, i]() {
+                   &mocap = this->mocap, horizon, &userdata = this->userdata,
+                   i]() {
       // scale improvement
       mju_addScl(candidate_policy[i].trajectory.actions.data(),
                  candidate_policy[i].trajectory.actions.data(),
@@ -529,9 +542,9 @@ void iLQGPlanner::Rollouts(int horizon, ThreadPool& pool) {
       };
 
       // policy rollout (discrete time)
-      trajectory[i].RolloutDiscrete(feedback_policy, task, model,
-                                    data[ThreadPool::WorkerId()].get(),
-                                    state.data(), time, mocap.data(), userdata.data(), horizon);
+      trajectory[i].RolloutDiscrete(
+          feedback_policy, task, model, data[ThreadPool::WorkerId()].get(),
+          state.data(), time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory);

@@ -125,7 +125,7 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
 void ProjectToSegment(double x[3], const double p0[3], const double p1[3]);
 
 // default cost colors
-extern const float CostColors[10][3];
+extern const float CostColors[20][3];
 
 // plots - vertical line
 void PlotVertical(mjvFigure* fig, double time, double min_value,

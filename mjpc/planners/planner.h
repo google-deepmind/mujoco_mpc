@@ -16,6 +16,7 @@
 #define MJPC_PLANNERS_OPTIMIZER_H_
 
 #include <mujoco/mujoco.h>
+
 #include "states/state.h"
 #include "task.h"
 #include "threadpool.h"
@@ -65,7 +66,7 @@ class Planner {
 
   // planner-specific plots
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                     int planning) = 0;
+                     int planner_shift, int timer_shift, int planning) = 0;
 
   std::vector<UniqueMjData> data_;
   void ResizeMjData(const mjModel* model, int num_threads);

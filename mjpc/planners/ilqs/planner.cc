@@ -14,8 +14,6 @@
 
 #include "planners/ilqs/planner.h"
 
-#include "planners/linear_solve.h"
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -23,6 +21,7 @@
 
 #include "array_safety.h"
 #include "planners/ilqg/planner.h"
+#include "planners/linear_solve.h"
 #include "planners/planner.h"
 #include "planners/sampling/planner.h"
 #include "states/state.h"
@@ -90,6 +89,9 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   double nominal_time = 0.0;
   double rollouts_time = 0.0;
   double policy_update_time = 0.0;
+  double model_derivative_time = 0.0;
+  double cost_derivative_time = 0.0;
+  double backward_pass_time = 0.0;
 
   // ----- nominal policy ----- //
   // start timer
@@ -98,8 +100,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy nominal policy
   {
     const std::shared_lock<std::shared_mutex> lock(sampling.mtx_);
-    sampling.policy.num_parameters = sampling.model->nu * sampling.policy.num_spline_points;  // set
-    sampling.candidate_policy[0].CopyFrom(sampling.policy, sampling.policy.num_spline_points);
+    sampling.policy.num_parameters =
+        sampling.model->nu * sampling.policy.num_spline_points;  // set
+    sampling.candidate_policy[0].CopyFrom(sampling.policy,
+                                          sampling.policy.num_spline_points);
   }
 
   double* best_actions;
@@ -109,7 +113,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // rollout old policy
     sampling.NominalTrajectory(horizon);
 
-    // set candidate policy nominal trajectory 
+    // set candidate policy nominal trajectory
     ilqg.candidate_policy[0].trajectory = sampling.trajectory[0];
 
     best_actions = sampling.trajectory[0].actions.data();
@@ -137,29 +141,34 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // resample policy
-  sampling.ResamplePolicy(horizon); 
-  
+  // TODO(taylorhowell): remove and only utilized new time trajectory
+  sampling.ResamplePolicy(horizon);
+
   // get trajectory-parameter mapping
+  // TODO(taylorhowell): compute only when necessary
   mappings[sampling.policy.representation]->Compute(
       sampling.candidate_policy[0].times.data(),
       sampling.candidate_policy[0].num_spline_points,
       sampling.trajectory[0].times.data(), sampling.trajectory[0].horizon - 1);
 
   // linear system solve
-  if (solver.dim_row != sampling.model->nu * (horizon - 1) && solver.dim_col != sampling.model->nu * sampling.candidate_policy[0].num_spline_points) {
+  if (solver.dim_row != sampling.model->nu * (horizon - 1) &&
+      solver.dim_col !=
+          sampling.model->nu * sampling.candidate_policy[0].num_spline_points) {
     solver.Initialize(
-      sampling.model->nu * (horizon - 1),
-      sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
+        sampling.model->nu * (horizon - 1),
+        sampling.model->nu * sampling.candidate_policy[0].num_spline_points);
   }
-  
+
+  // TODO(taylorhowell): cheap version that reuses factorization if mapping hasn't changed
   solver.Solve(sampling.candidate_policy[0].parameters.data(),
-               mappings[sampling.policy.representation]->Get(),
-               best_actions);
+               mappings[sampling.policy.representation]->Get(), best_actions);
 
   // clamp parameters
   for (int t = 0; t < sampling.candidate_policy[0].num_spline_points; t++) {
-    Clamp(DataAt(sampling.candidate_policy[0].parameters, t * sampling.model->nu),
-          sampling.model->actuator_ctrlrange, sampling.model->nu);
+    Clamp(
+        DataAt(sampling.candidate_policy[0].parameters, t * sampling.model->nu),
+        sampling.model->actuator_ctrlrange, sampling.model->nu);
   }
 
   // stop timer
@@ -180,7 +189,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // random search
   for (int i = 1; i < num_trajectory; i++) {
-    if (sampling.trajectory[i].total_return < sampling.trajectory[sampling.winner].total_return) {
+    if (sampling.trajectory[i].total_return <
+        sampling.trajectory[sampling.winner].total_return) {
       sampling.winner = i;
     }
   }
@@ -197,8 +207,9 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy best candidate policy
   {
     const std::shared_lock<std::shared_mutex> lock(sampling.mtx_);
-    sampling.policy.CopyParametersFrom(sampling.candidate_policy[sampling.winner].parameters,
-                    sampling.candidate_policy[sampling.winner].times);
+    sampling.policy.CopyParametersFrom(
+        sampling.candidate_policy[sampling.winner].parameters,
+        sampling.candidate_policy[sampling.winner].times);
   }
 
   // stop timer
@@ -208,7 +219,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
           .count();
 
   // improvement
-  sampling.improvement = mju_max(best_return - sampling.trajectory[sampling.winner].total_return, 0.0);
+  sampling.improvement = mju_max(
+      best_return - sampling.trajectory[sampling.winner].total_return, 0.0);
 
   // set timers
   sampling.nominal_compute_time = nominal_time;
@@ -219,16 +231,20 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   if (sampling.improvement > 0) {
     // set policy
     online_policy = 0;
+
+    // set iLQG time to zero 
+    ilqg.nominal_compute_time = nominal_time;
+    ilqg.model_derivative_compute_time = model_derivative_time;
+    ilqg.cost_derivative_compute_time = cost_derivative_time;
+    ilqg.rollouts_compute_time = rollouts_time;
+    ilqg.backward_pass_compute_time = backward_pass_time;
+    ilqg.policy_update_compute_time = policy_update_time;
+
     return;
   }
 
   // ----- iLQG ----- //
-  ilqg.ResizeMjData(ilqg.model, pool.NumThreads());
-
-  // timers
-  double model_derivative_time = 0.0;
-  double cost_derivative_time = 0.0;
-  double backward_pass_time = 0.0;
+  ilqg.ResizeMjData(ilqg.model, pool.NumThreads()); 
 
   // maximum number of trajectories in linesearch
   ilqg.num_trajectory = mju_min(ilqg.num_trajectory, kMaxTrajectory);
@@ -272,9 +288,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       ilqg.candidate_policy[0].trajectory.residual.data(),
       ilqg.model_derivative.C.data(), ilqg.model_derivative.D.data(),
       ilqg.dim_state_derivative, ilqg.dim_action, ilqg.dim_max, ilqg.dim_sensor,
-      ilqg.task->num_residual, ilqg.task->dim_norm_residual.data(), ilqg.task->num_cost,
-      ilqg.task->weight.data(), ilqg.task->norm.data(), ilqg.task->num_parameter.data(),
-      ilqg.task->num_norm_parameter.data(), ilqg.task->risk, horizon, pool);
+      ilqg.task->num_residual, ilqg.task->dim_norm_residual.data(),
+      ilqg.task->num_cost, ilqg.task->weight.data(), ilqg.task->norm.data(),
+      ilqg.task->num_parameter.data(), ilqg.task->num_norm_parameter.data(),
+      ilqg.task->risk, horizon, pool);
 
   // end timer
   cost_derivative_time +=
@@ -288,10 +305,11 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // compute feedback gains and action improvement via Riccati
   ilqg.backward_pass.Riccati(&ilqg.candidate_policy[0], &ilqg.model_derivative,
-                        &ilqg.cost_derivative, ilqg.dim_state_derivative, ilqg.dim_action,
-                        horizon, ilqg.backward_pass.regularization, ilqg.boxqp,
-                        ilqg.candidate_policy[0].trajectory.actions.data(),
-                        ilqg.model->actuator_ctrlrange, ilqg.settings);
+                             &ilqg.cost_derivative, ilqg.dim_state_derivative,
+                             ilqg.dim_action, horizon,
+                             ilqg.backward_pass.regularization, ilqg.boxqp,
+                             ilqg.candidate_policy[0].trajectory.actions.data(),
+                             ilqg.model->actuator_ctrlrange, ilqg.settings);
 
   // end timer
   backward_pass_time +=
@@ -305,11 +323,13 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy policy
   for (int j = 1; j < ilqg.num_trajectory; j++) {
     ilqg.candidate_policy[j].CopyFrom(ilqg.candidate_policy[0], horizon);
-    ilqg.candidate_policy[j].representation = ilqg.candidate_policy[0].representation;
+    ilqg.candidate_policy[j].representation =
+        ilqg.candidate_policy[0].representation;
   }
 
   // improvement step sizes (log scaling)
-  LogScale(ilqg.improvement_step, 1.0, ilqg.settings.min_step_size, ilqg.num_trajectory - 1);
+  LogScale(ilqg.improvement_step, 1.0, ilqg.settings.min_step_size,
+           ilqg.num_trajectory - 1);
   ilqg.improvement_step[ilqg.num_trajectory - 1] = 0.0;
 
   // feedback rollouts (parallel)
@@ -346,21 +366,22 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // improvement
   ilqg.step_size = ilqg.improvement_step[ilqg.winner];
   ilqg.expected = -1.0 * ilqg.step_size *
-                  (ilqg.backward_pass.dV[0] + ilqg.step_size * ilqg.backward_pass.dV[1]) +
-              1.0e-16;
+                      (ilqg.backward_pass.dV[0] +
+                       ilqg.step_size * ilqg.backward_pass.dV[1]) +
+                  1.0e-16;
   ilqg.improvement = best_return - c_best;
   ilqg.surprise = mju_min(mju_max(0, ilqg.improvement / ilqg.expected), 2);
 
   // update regularization
   ilqg.backward_pass.UpdateRegularization(ilqg.settings.min_regularization,
-                                      ilqg.settings.max_regularization, ilqg.surprise,
-                                      ilqg.step_size);
+                                          ilqg.settings.max_regularization,
+                                          ilqg.surprise, ilqg.step_size);
 
   // stop timer
   rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                        std::chrono::steady_clock::now() - rollouts_start)
-                        .count();
-                        
+                       std::chrono::steady_clock::now() - rollouts_start)
+                       .count();
+
   // ----- policy update ----- //
   // start timer
   policy_update_start = std::chrono::steady_clock::now();
@@ -371,7 +392,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       ilqg.policy.CopyFrom(ilqg.candidate_policy[0], horizon);
       // nominal
     } else {
-      ilqg.policy.CopyFrom(ilqg.candidate_policy[ilqg.num_trajectory - 1], horizon);
+      ilqg.policy.CopyFrom(ilqg.candidate_policy[ilqg.num_trajectory - 1],
+                           horizon);
     }
   }
 
@@ -433,11 +455,8 @@ const Trajectory* iLQSPlanner::BestTrajectory() {
 
 // visualize planner-specific traces in GUI
 void iLQSPlanner::Traces(mjvScene* scn) {
-  // Sampling
-  // sampling.Traces(scn);
-
-  // iLQG
-  // ilqg.Traces(scn);
+  // visual sample traces from Sampling planner
+  sampling.Traces(scn);
 }
 
 // planner-specific GUI elements
@@ -455,12 +474,30 @@ void iLQSPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void iLQSPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                        int planning) {
+                        int planner_shift, int timer_shift, int planning) {
   // Sampling
-  // sampling.Plots(fig_planner, fig_timer, planning);
+  sampling.Plots(fig_planner, fig_timer, planner_shift, timer_shift, planning);
 
   // iLQG
-  // ilqg.Plots(fig_planner, fig_timer, planning);
+  ilqg.Plots(fig_planner, fig_timer, planner_shift + 1, timer_shift + 4, planning);
+
+  // ----- re-label ----- //
+  // planner plots 
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improve. (S)");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift + 1], "Reg. (LQ)");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift + 2], "Step Size (LQ)");
+
+  // timer plots 
+  mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Nominal (S)");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Noise (S)");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Rollout (S)");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Policy Update (S)");
+  mju::strcpy_arr(fig_timer->linename[0 + timer_shift + 4], "Nominal (LQ)");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift + 4], "Model Deriv. (LQ)");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift + 4], "Cost Deriv. (LQ)");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift + 4], "Backward Pass (LQ)");
+  mju::strcpy_arr(fig_timer->linename[4 + timer_shift + 4], "Rollouts (LQ)");
+  mju::strcpy_arr(fig_timer->linename[5 + timer_shift + 4], "Policy Update (LQ)");
 }
 
 }  // namespace mjpc

@@ -15,11 +15,12 @@
 #ifndef MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 #define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 
+#include <mujoco/mujoco.h>
+
 #include <atomic>
 #include <shared_mutex>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "planners/planner.h"
 #include "planners/sampling/policy.h"
 #include "states/state.h"
@@ -86,8 +87,8 @@ class SamplingPlanner : public Planner {
   void GUI(mjUI& ui) override;
 
   // planner-specific plots
-  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-             int planning) override;
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning) override;
 
   // ----- members ----- //
   mjModel* model;
@@ -100,7 +101,7 @@ class SamplingPlanner : public Planner {
   std::vector<double> userdata;
 
   // policy
-  SamplingPolicy policy; // (Guarded by mtx_)
+  SamplingPolicy policy;  // (Guarded by mtx_)
   SamplingPolicy candidate_policy[kMaxTrajectory];
 
   // scratch

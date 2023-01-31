@@ -25,6 +25,15 @@
 
 namespace mjpc {
 
+enum RiccatiStepStatusCode {
+  OK, ERROR
+};
+
+struct RiccatiStepStatus {
+  RiccatiStepStatusCode status;
+  std::string message;
+};
+
 enum BackwardPassRegularization : int {
   kControlRegularization = 0,
   kStateControlRegularization,
@@ -48,14 +57,14 @@ class iLQGBackwardPass {
   void Reset(int dim_dstate, int dim_action, int T);
 
   // Riccati at one time step
-  int RiccatiStep(int n, int m, double mu, const double *Wx, const double *Wxx,
-                  const double *At, const double *Bt, const double *cxt,
-                  const double *cut, const double *cxxt, const double *cxut,
-                  const double *cuut, double *Vxt, double *Vxxt, double *dut,
-                  double *Kt, double *dV, double *Qxt, double *Qut,
-                  double *Qxxt, double *Qxut, double *Quut, double *scratch,
-                  BoxQP &boxqp, const double *action,
-                  const double *action_limits, int reg_type, int limits);
+  RiccatiStepStatus RiccatiStep(int n, int m, double mu, const double *Wx, const double *Wxx,
+                                const double *At, const double *Bt, const double *cxt,
+                                const double *cut, const double *cxxt, const double *cxut,
+                                const double *cuut, double *Vxt, double *Vxxt, double *dut,
+                                double *Kt, double *dV, double *Qxt, double *Qut,
+                                double *Qxxt, double *Qxut, double *Quut, double *scratch,
+                                BoxQP &boxqp, const double *action,
+                                const double *action_limits, int reg_type, int limits);
 
   // compute backward pass using Riccati
   int Riccati(iLQGPolicy *p, const ModelDerivatives *md,

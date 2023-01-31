@@ -15,6 +15,7 @@
 #include "planners/ilqg/backward_pass.h"
 
 #include <algorithm>
+#include <iostream>
 
 #include <mujoco/mujoco.h>
 #include "planners/cost_derivatives.h"
@@ -62,7 +63,7 @@ void iLQGBackwardPass::Reset(int dim_dstate, int dim_action, int T) {
 }
 
 // Riccati at one time step
-int iLQGBackwardPass::RiccatiStep(
+RiccatiStepStatus iLQGBackwardPass::RiccatiStep(
     int n, int m, double mu, const double *Wx, const double *Wxx,
     const double *At, const double *Bt, const double *cxt, const double *cut,
     const double *cxxt, const double *cxut, const double *cuut, double *Vxt,
@@ -170,8 +171,10 @@ int iLQGBackwardPass::RiccatiStep(
                           boxqp.H.data(), boxqp.g.data(), m, boxqp.lower.data(),
                           boxqp.upper.data());
     if (mFree < 0) {
-      printf("backward_pass failure\n");
-      return 0;
+      return RiccatiStepStatus {
+        RiccatiStepStatusCode::ERROR,
+        "RiccatiStep failure: `mFree < 0`.\n",
+      };
     }
 
     // tmp = compress_free(Qxut)
@@ -201,8 +204,9 @@ int iLQGBackwardPass::RiccatiStep(
     int rank = mju_cholFactor(tmp3, m, 0.0);
 
     if (rank < m) {
-      printf("backward pass failure\n");
-      return 0;
+      return RiccatiStepStatus {
+        RiccatiStepStatusCode::ERROR, "RiccatiStep failure: `rank < m`.\n",
+      };
     }
 
     // Kt = - Quut \ Qxut
@@ -247,7 +251,7 @@ int iLQGBackwardPass::RiccatiStep(
   // Vxxt += Kt'*Quut*Kt + Qxut*Kt + Kt'*Qxut'
   mju_addTo(Vxxt, tmp, n * n);
   mju_symmetrize(Vxxt, Vxxt, n);
-  return 1;
+  return RiccatiStepStatus {RiccatiStepStatusCode::OK, ""};
 }
 
 // compute backward pass using Riccati
@@ -271,7 +275,7 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
   int time_index = T - 1;
   while (bp_iter < settings.max_regularization_iter) {
     for (int t = T - 1; t > 0; t--) {
-      int status = this->RiccatiStep(
+      RiccatiStepStatus status = this->RiccatiStep(
           dim_dstate, dim_action, reg, DataAt(Vx, t * dim_dstate),
           DataAt(Vxx, t * dim_dstate * dim_dstate),
           DataAt(md->A, (t - 1) * dim_dstate * dim_dstate),
@@ -293,7 +297,11 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
           settings.regularization_type, settings.action_limits);
 
       // failure
-      if (!status) {
+      if (status.status != RiccatiStepStatusCode::OK) {
+        std::cerr << "RiccatiStep error @ t = "
+                  << t << ". "
+                  << status.message
+                  << std::endl;
         time_index = t - 1;
         break;
       }

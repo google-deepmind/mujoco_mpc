@@ -498,6 +498,45 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
   }
 }
 
+// find frame that best matches 4 feet, z points to body
+void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
+               const double body[3],
+               const double foot0[3], const double foot1[3],
+               const double foot2[3], const double foot3[3]) {
+    // average foot pos
+    double pos[3];
+    for (int i = 0; i < 3; i++) {
+      pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
+    }
+
+    // compute feet covariance
+    double cov[9] = {0};
+    for (const double* foot : {foot0, foot1, foot2, foot3}) {
+      double dif[3], difTdif[9];
+      mju_sub3(dif, foot, pos);
+      mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
+      mju_addTo(cov, difTdif, 9);
+    }
+
+    // eigendecompose
+    double eigval[3], quat[4], mat[9];
+    mju_eig3(eigval, mat, quat, cov);
+
+    // make sure foot-plane normal (z axis) points to body
+    double zaxis[3] = {mat[2], mat[5], mat[8]};
+    double to_body[3];
+    mju_sub3(to_body, body, pos);
+    if (mju_dot3(zaxis, to_body) < 0) {
+      // flip both z and y (rotate around x), to maintain frame handedness
+      for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
+    }
+
+    // copy outputs
+    if (feet_pos) mju_copy3(feet_pos, pos);
+    if (feet_mat) mju_copy(feet_mat, mat, 9);
+    if (feet_quat) mju_mat2Quat(feet_quat, mat);
+}
+
 // set x to be the point on the segment [p0 p1] that is nearest to x
 void ProjectToSegment(double x[3], const double p0[3], const double p1[3]) {
   double axis[3];

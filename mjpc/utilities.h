@@ -139,6 +139,12 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
 // set x to be the point on the segment [p0 p1] that is nearest to x
 void ProjectToSegment(double x[3], const double p0[3], const double p1[3]);
 
+// find frame that best matches 4 feet, z points to body
+void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
+               const double body[3],
+               const double foot0[3], const double foot1[3],
+               const double foot2[3], const double foot3[3]);
+
 // default cost colors
 extern const float CostColors[10][3];
 

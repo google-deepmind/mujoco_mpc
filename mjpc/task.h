@@ -67,11 +67,11 @@ class Task {
   void Transition(const mjModel* m, mjData* d);
 
   int id = 0;             // task ID
-  int transition_stage;   // stage
+  int stage;              // stage
 
   // cost parameters
   int num_residual;
-  int num_cost;
+  int num_term;
   int num_trace;
   std::vector<int> dim_norm_residual;
   std::vector<int> num_norm_parameter;
@@ -81,7 +81,7 @@ class Task {
   double risk;
 
   // residual parameters
-  std::vector<double> residual_parameters;
+  std::vector<double> parameters;
 
  private:
   // initial residual parameters from model

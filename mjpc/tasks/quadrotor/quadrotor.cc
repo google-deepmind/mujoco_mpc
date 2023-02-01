@@ -60,8 +60,8 @@ void Quadrotor::Residual(const double* parameters, const mjModel* model,
 // ----- Transition for quadrotor task -----
 void Quadrotor::Transition(const mjModel* model, mjData* data, Task* task) {
   // set stage to GUI selection
-  if (task->transition_stage > 0) {
-    data->userdata[0] = task->transition_stage - 1;
+  if (task->stage > 0) {
+    data->userdata[0] = task->stage - 1;
   } else {
     // goal position
     const double* goal_position = data->mocap_pos;

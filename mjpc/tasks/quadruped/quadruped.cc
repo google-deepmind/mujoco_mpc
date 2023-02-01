@@ -80,8 +80,8 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 // -----------------------------------------------
 void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
   // set stage to GUI selection
-  if (task->transition_stage > 0) {
-    data->userdata[0] = task->transition_stage - 1;
+  if (task->stage > 0) {
+    data->userdata[0] = task->stage - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position

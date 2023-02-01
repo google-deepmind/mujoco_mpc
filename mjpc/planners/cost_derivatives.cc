@@ -112,7 +112,7 @@ double CostDerivatives::DerivativeStep(
 void CostDerivatives::Compute(double* r, double* rx, double* ru,
                               int dim_state_derivative, int dim_action,
                               int dim_max, int num_sensors, int num_residual,
-                              const int* dim_norm_residual, int num_cost,
+                              const int* dim_norm_residual, int num_term,
                               const double* weights, const NormType* norms,
                               const double* parameters,
                               const int* num_norm_parameter, double risk,
@@ -122,7 +122,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
   {
     int count_before = pool.GetCount();
     for (int t = 0; t < T; t++) {
-      pool.Schedule([&cd = *this, &r, &rx, &ru, num_cost, num_residual,
+      pool.Schedule([&cd = *this, &r, &rx, &ru, num_term, num_residual,
                      &dim_norm_residual, &weights, &norms, &parameters,
                      &num_norm_parameter, risk, num_sensors,
                      dim_state_derivative, dim_action, dim_max, t, T]() {
@@ -130,7 +130,7 @@ void CostDerivatives::Compute(double* r, double* rx, double* ru,
         int f_shift = 0;
         int p_shift = 0;
         double c = 0.0;
-        for (int i = 0; i < num_cost; i++) {
+        for (int i = 0; i < num_term; i++) {
           c += cd.DerivativeStep(
               DataAt(cd.cx, t * dim_state_derivative),
               DataAt(cd.cu, t * dim_action),

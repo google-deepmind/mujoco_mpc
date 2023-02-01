@@ -125,7 +125,7 @@ void Agent::Allocate() {
 
   // cost
   residual_.resize(task_.num_residual);
-  terms_.resize(task_.num_cost * kMaxTrajectoryHorizon);
+  terms_.resize(task_.num_term * kMaxTrajectoryHorizon);
 }
 
 // reset data, settings, planners, states
@@ -299,9 +299,9 @@ void Agent::GUI(mjUI& ui) {
   mjui_add(&ui, defTask);
 
   // norm weights
-  if (task_.num_cost) {
+  if (task_.num_term) {
     mjuiDef defNormWeight[kMaxCostTerms + 1];
-    for (int i = 0; i < task_.num_cost; i++) {
+    for (int i = 0; i < task_.num_term; i++) {
       // element
       defNormWeight[i] = {mjITEM_SLIDERNUM, "weight", 2,
                           DataAt(task_.weight, i), "0 1"};
@@ -315,19 +315,19 @@ void Agent::GUI(mjUI& ui) {
       mju::sprintf_arr(defNormWeight[i].other, "%f %f", s[2], s[3]);
     }
 
-    defNormWeight[task_.num_cost] = {mjITEM_END};
+    defNormWeight[task_.num_term] = {mjITEM_END};
     mjui_add(&ui, defNormWeight);
   }
 
   // residual parameters
-  int parameter_shift = (task_.residual_parameters.empty() ? 0 : 1);
+  int parameter_shift = (task_.parameters.empty() ? 0 : 1);
   mjuiDef defFeatureParameters[kMaxCostTerms + 2];
   if (parameter_shift > 0) {
     defFeatureParameters[0] = {mjITEM_SEPARATOR, "Residual Parameters", 1};
   }
-  for (int i = 0; i < task_.residual_parameters.size(); i++) {
+  for (int i = 0; i < task_.parameters.size(); i++) {
     defFeatureParameters[i + parameter_shift] = {
-        mjITEM_SLIDERNUM, "residual", 2, DataAt(task_.residual_parameters, i),
+        mjITEM_SLIDERNUM, "residual", 2, DataAt(task_.parameters, i),
         "0 1"};
   }
 
@@ -346,7 +346,7 @@ void Agent::GUI(mjUI& ui) {
         mju::strcpy_arr(uiItem->name, list_name.data());
         mju::strcpy_arr(uiItem->other, absl::StrJoin(it->second, "\n").c_str());
 
-        // note: uiItem.pdata is pointing at a double in residual_parameters,
+        // note: uiItem.pdata is pointing at a double in parameters,
         // but mjITEM_SELECT is going to treat is as an int. the
         // ResidualSelection and DefaultResidualSelection functions hide the
         // necessary casting when reading such values.
@@ -370,7 +370,7 @@ void Agent::GUI(mjUI& ui) {
       shift += 1;
     }
   }
-  defFeatureParameters[task_.residual_parameters.size() + parameter_shift] = {
+  defFeatureParameters[task_.parameters.size() + parameter_shift] = {
       mjITEM_END};
   mjui_add(&ui, defFeatureParameters);
 
@@ -380,7 +380,7 @@ void Agent::GUI(mjUI& ui) {
   if (names) {
     mjuiDef defTransition[] = {
         {mjITEM_SEPARATOR, "Transition", 1},
-        {mjITEM_RADIO, "", 1, &task_.transition_stage, ""},
+        {mjITEM_RADIO, "", 1, &task_.stage, ""},
         {mjITEM_END},
     };
 
@@ -505,7 +505,7 @@ void Agent::PlotInitialize() {
   mju::strcpy_arr(plots_.action.xlabel, "Time");
   mju::strcpy_arr(plots_.timer.xlabel, "Iteration");
 
-  // y-tick nubmer formats
+  // y-tick number formats
   mju::strcpy_arr(plots_.cost.yformat, "%.2f");
   mju::strcpy_arr(plots_.action.yformat, "%.2f");
   mju::strcpy_arr(plots_.planner.yformat, "%.2f");
@@ -532,16 +532,16 @@ void Agent::PlotInitialize() {
   plots_.cost.linergb[3][0] = 1.0f;
   plots_.cost.linergb[3][1] = 1.0f;
   plots_.cost.linergb[3][2] = 1.0f;
-  for (int i = 0; i < task_.num_cost; i++) {
+  for (int i = 0; i < task_.num_term; i++) {
     // history
     plots_.cost.linergb[4 + i][0] = CostColors[i][0];
     plots_.cost.linergb[4 + i][1] = CostColors[i][1];
     plots_.cost.linergb[4 + i][2] = CostColors[i][2];
 
     // prediction
-    plots_.cost.linergb[4 + task_.num_cost + i][0] = 0.9 * CostColors[i][0];
-    plots_.cost.linergb[4 + task_.num_cost + i][1] = 0.9 * CostColors[i][1];
-    plots_.cost.linergb[4 + task_.num_cost + i][2] = 0.9 * CostColors[i][2];
+    plots_.cost.linergb[4 + task_.num_term + i][0] = 0.9 * CostColors[i][0];
+    plots_.cost.linergb[4 + task_.num_term + i][1] = 0.9 * CostColors[i][1];
+    plots_.cost.linergb[4 + task_.num_term + i][2] = 0.9 * CostColors[i][2];
   }
 
   // history of control
@@ -615,7 +615,7 @@ void Agent::PlotInitialize() {
 // reset plot data to zeros
 void Agent::PlotReset() {
   // cost reset
-  for (int k = 0; k < 4 + 2 * task_.num_cost; k++) {
+  for (int k = 0; k < 4 + 2 * task_.num_term; k++) {
     PlotResetData(&plots_.cost, 1000, k);
   }
 
@@ -661,7 +661,7 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // compute individual costs
   for (int t = 0; t < winner->horizon; t++) {
-    task_.CostTerms(DataAt(terms_, t * task_.num_cost),
+    task_.CostTerms(DataAt(terms_, t * task_.num_term),
                     DataAt(winner->residual, t * task_.num_residual));
   }
 
@@ -686,21 +686,21 @@ void Agent::Plots(const mjData* data, int shift) {
   mju::strcpy_arr(plots_.cost.linename[0], "Total Cost");
 
   // plot costs
-  for (int k = 0; k < task_.num_cost; k++) {
+  for (int k = 0; k < task_.num_term; k++) {
     // current residual
     if (shift) {
       PlotUpdateData(&plots_.cost, cost_bounds, data->time, terms_[k], 1000,
                      4 + k, 1, 1, time_lower_bound);
     }
     // legend
-    mju::strcpy_arr(plots_.cost.linename[4 + task_.num_cost + k],
+    mju::strcpy_arr(plots_.cost.linename[4 + task_.num_term + k],
                     model_->names + model_->name_sensoradr[k]);
   }
 
   // predicted residual
   PlotData(&plots_.cost, cost_bounds, winner->times.data(), terms_.data(),
-           task_.num_cost, task_.num_cost, winner->horizon,
-           4 + task_.num_cost, time_lower_bound);
+           task_.num_term, task_.num_term, winner->horizon,
+           4 + task_.num_term, time_lower_bound);
 
   // vertical lines at current time and agent time
   PlotVertical(&plots_.cost, data->time, cost_bounds[0], cost_bounds[1], 10, 1);

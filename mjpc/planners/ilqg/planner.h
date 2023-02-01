@@ -119,7 +119,7 @@ class iLQGPlanner : public Planner {
   iLQGSettings settings;
 
   // values
-  double step_size;
+  double linesearch_step;
   double improvement;
   double expected;
   double surprise;

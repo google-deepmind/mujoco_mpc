@@ -134,7 +134,7 @@ void GradientPlanner::Reset(int horizon) {
   }
 
   // values
-  step_size = 0.0;
+  linesearch_step = 0.0;
   expected = 0.0;
   improvement = 0.0;
   surprise = 0.0;
@@ -288,8 +288,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     trajectory[0] = trajectory[winner];
 
     // improvement
-    step_size = improvement_step[winner];
-    expected = -step_size * (gradient.dV[0]) - 1.0e-16;
+    linesearch_step = improvement_step[winner];
+    expected = -linesearch_step * (gradient.dV[0]) - 1.0e-16;
     improvement = c_prev - c_best;
     surprise = mju_min(mju_max(0, improvement / expected), 2);
 
@@ -498,7 +498,7 @@ void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // step size
   mjpc::PlotUpdateData(fig_planner, planner_bounds,
                        fig_planner->linedata[0 + planner_shift][0] + 1,
-                       mju_log10(mju_max(step_size, 1.0e-6)), 100, 0, 0, 1,
+                       mju_log10(mju_max(linesearch_step, 1.0e-6)), 100, 0, 0, 1,
                        -100);
 
   // // improvement

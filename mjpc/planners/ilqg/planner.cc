@@ -125,7 +125,7 @@ void iLQGPlanner::Reset(int horizon) {
   }
 
   // values
-  step_size = 0.0;
+  linesearch_step = 0.0;
   improvement = 0.0;
   expected = 0.0;
   surprise = 0.0;
@@ -224,17 +224,111 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto backward_pass_start = std::chrono::steady_clock::now();
 
   // compute feedback gains and action improvement via Riccati
-  backward_pass.Riccati(&candidate_policy[0], &model_derivative,
-                        &cost_derivative, dim_state_derivative, dim_action,
-                        horizon, backward_pass.regularization, boxqp,
-                        candidate_policy[0].trajectory.actions.data(),
-                        model->actuator_ctrlrange, settings);
+  // backward_pass.Riccati(&candidate_policy[0], &model_derivative,
+  //                       &cost_derivative, dim_state_derivative, dim_action,
+  //                       horizon, backward_pass.regularization, boxqp,
+  //                       candidate_policy[0].trajectory.actions.data(),
+  //                       model->actuator_ctrlrange, settings);
+  
+  // initialize backward pass
+  int regularization_iteration = 0;
+  int backward_pass_status = 0;
+  int t;
+  while (regularization_iteration < settings.max_regularization_iterations && backward_pass_status == 0) {
+    // reset cost-to-go approximation difference
+    mju_zero(backward_pass.dV, 2);
+
+    // terminal time step cost-to-go
+    mju_copy(DataAt(backward_pass.Vx, (horizon - 1) * dim_state_derivative),
+             DataAt(cost_derivative.cx, (horizon - 1) * dim_state_derivative),
+             dim_state_derivative);
+    mju_copy(DataAt(backward_pass.Vxx, (horizon - 1) * dim_state_derivative * dim_state_derivative),
+             DataAt(cost_derivative.cxx, (horizon - 1) * dim_state_derivative * dim_state_derivative),
+             dim_state_derivative * dim_state_derivative);
+
+    // backward recursion
+    for (t = horizon - 2; t >= 0; t--) {
+      int status = backward_pass.RiccatiStep(
+          dim_state_derivative, dim_action, backward_pass.regularization,
+          DataAt(backward_pass.Vx, (t + 1) * dim_state_derivative),
+          DataAt(backward_pass.Vxx, (t + 1) * dim_state_derivative * dim_state_derivative),
+          DataAt(model_derivative.A, t * dim_state_derivative * dim_state_derivative),
+          DataAt(model_derivative.B, t * dim_state_derivative * dim_action),
+          DataAt(cost_derivative.cx, t * dim_state_derivative),
+          DataAt(cost_derivative.cu, t * dim_action),
+          DataAt(cost_derivative.cxx,
+                 t * dim_state_derivative * dim_state_derivative),
+          DataAt(cost_derivative.cxu, t * dim_state_derivative * dim_action),
+          DataAt(cost_derivative.cuu, t * dim_action * dim_action),
+          DataAt(backward_pass.Vx, t * dim_state_derivative),
+          DataAt(backward_pass.Vxx, t * dim_state_derivative * dim_state_derivative),
+          DataAt(candidate_policy[0].action_improvement, t * dim_action),
+          DataAt(candidate_policy[0].feedback_gain, t * dim_action * dim_state_derivative),
+          backward_pass.dV, DataAt(backward_pass.Qx, t * dim_state_derivative),
+          DataAt(backward_pass.Qu, t * dim_action),
+          DataAt(backward_pass.Qxx, t * dim_state_derivative * dim_state_derivative),
+          DataAt(backward_pass.Qxu, t * dim_state_derivative * dim_action),
+          DataAt(backward_pass.Quu, t * dim_action * dim_action), backward_pass.Q_scratch.data(),
+          boxqp, DataAt(candidate_policy[0].trajectory.actions, t * dim_action), model->actuator_ctrlrange,
+          settings.regularization_type, settings.action_limits);
+
+      // failure
+      if (!status) {
+        // information 
+        if (settings.verbose) {
+          printf("Backward Pass Failure (%i / %i)\n", regularization_iteration, settings.max_regularization_iterations);
+          printf("  time index: %i\n", t); // Note
+          printf("  simulation time: %f\n", time);
+          printf("  regularization: %f\n", backward_pass.regularization);
+          printf("  regularization factor: %f\n", backward_pass.regularization_factor);
+        }
+        break;
+      }
+
+      // complete
+      if (t == 0) {
+        // set feedback gains and improvement at final time step
+        mju_copy(DataAt(candidate_policy[0].feedback_gain,
+                        (horizon - 1) * dim_action * dim_state_derivative),
+                 DataAt(candidate_policy[0].feedback_gain,
+                        (horizon - 2) * dim_action * dim_state_derivative),
+                 dim_action * dim_state_derivative);
+        mju_copy(DataAt(candidate_policy[0].action_improvement, (horizon - 1) * dim_action),
+                 DataAt(candidate_policy[0].action_improvement, (horizon - 2) * dim_action),
+                 dim_action);
+        
+        // backward pass status -> success
+        backward_pass_status = 1;
+        break;
+      }
+    }
+
+    // increase regularization
+    if (backward_pass.regularization <= settings.max_regularization && backward_pass_status == 0) {
+      backward_pass.ScaleRegularization(backward_pass.regularization_factor,
+                                settings.min_regularization,
+                                settings.max_regularization);
+      regularization_iteration += 1;
+    }
+  }
 
   // end timer
   backward_pass_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - backward_pass_start)
           .count();
+
+  // terminate early if backward pass failure 
+  if (backward_pass_status == 0) {
+    // set timers
+    nominal_compute_time = nominal_time;
+    model_derivative_compute_time = model_derivative_time;
+    cost_derivative_compute_time = cost_derivative_time;
+    rollouts_compute_time = 0.0;
+    backward_pass_compute_time = backward_pass_time;
+    policy_update_compute_time = 0.0;
+    return;
+  }
 
   // ----- rollout policy ----- //
   auto rollouts_start = std::chrono::steady_clock::now();
@@ -246,7 +340,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // improvement step sizes (log scaling)
-  LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
+  LogScale(improvement_step, 1.0, settings.min_linesearch_step, num_trajectory - 1);
   improvement_step[num_trajectory - 1] = 0.0;
 
   // feedback rollouts (parallel)
@@ -281,9 +375,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   candidate_policy[0].trajectory = trajectory[winner];
 
   // improvement
-  step_size = improvement_step[winner];
-  expected = -1.0 * step_size *
-                 (backward_pass.dV[0] + step_size * backward_pass.dV[1]) +
+  linesearch_step = improvement_step[winner];
+  expected = -1.0 * linesearch_step *
+                 (backward_pass.dV[0] + linesearch_step * backward_pass.dV[1]) +
              1.0e-16;
   improvement = c_prev - c_best;
   surprise = mju_min(mju_max(0, improvement / expected), 2);
@@ -291,19 +385,21 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // update regularization
   backward_pass.UpdateRegularization(settings.min_regularization,
                                      settings.max_regularization, surprise,
-                                     step_size);
+                                     linesearch_step);
 
   if (settings.verbose) {
-    std::cout << "dV: " << expected << '\n';
-    std::cout << "dV[0]: " << backward_pass.dV[0] << '\n';
-    std::cout << "dV[1]: " << backward_pass.dV[1] << '\n';
-    std::cout << "c_best: " << c_best << '\n';
-    std::cout << "c_prev: " << c_prev << '\n';
-    std::cout << "c_nominal: " << policy.trajectory.total_return << '\n';
-    std::cout << "step size: " << step_size << '\n';
-    std::cout << "improvement: " << improvement << '\n';
-    std::cout << "regularization: " << backward_pass.regularization << '\n';
-    std::cout << "factor: " << backward_pass.regularization_factor << '\n';
+    std::cout << "iLQG Information\n" << '\n';
+    std::cout << "  best return: " << c_best << '\n';
+    std::cout << "  previous return: " << c_prev << '\n';
+    std::cout << "  nominal return: " << policy.trajectory.total_return << '\n';
+    std::cout << "  linesearch step size: " << linesearch_step << '\n';
+    std::cout << "  improvement: " << improvement << '\n';
+    std::cout << "  regularization: " << backward_pass.regularization << '\n';
+    std::cout << "  regularization factor: "
+              << backward_pass.regularization_factor << '\n';
+    std::cout << "  dV: " << expected << '\n';
+    std::cout << "  dV[0]: " << backward_pass.dV[0] << '\n';
+    std::cout << "  dV[1]: " << backward_pass.dV[1] << '\n';
     std::cout << std::endl;
   }
 
@@ -376,11 +472,11 @@ void iLQGPlanner::GUI(mjUI& ui) {
   mjuiDef defiLQG[] = {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory, "0 1"},
       // {mjITEM_RADIO, "Action Lmt.", 2, &settings.action_limits, "Off\nOn"},
-      // {mjITEM_SLIDERINT, "Iterations", 2, &settings.max_rollout, "1 25"},
       {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SELECT, "Reg. Type", 2, &settings.regularization_type,
        "Control\nFeedback\nValue\nNone"},
+      {mjITEM_CHECKINT, "Terminal Print", 2, &settings.verbose, ""},
       {mjITEM_END}};
 
   // set number of trajectory slider limits
@@ -407,7 +503,7 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // step size
   mjpc::PlotUpdateData(fig_planner, planner_bounds,
                        fig_planner->linedata[1 + planner_shift][0] + 1,
-                       mju_log10(mju_max(step_size, 1.0e-6)), 100,
+                       mju_log10(mju_max(linesearch_step, 1.0e-6)), 100,
                        1 + planner_shift, 0, 1, -100);
 
   // improvement

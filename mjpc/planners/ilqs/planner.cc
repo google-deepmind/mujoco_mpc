@@ -328,7 +328,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // improvement step sizes (log scaling)
-  LogScale(ilqg.improvement_step, 1.0, ilqg.settings.min_step_size,
+  LogScale(ilqg.improvement_step, 1.0, ilqg.settings.min_linesearch_step,
            ilqg.num_trajectory - 1);
   ilqg.improvement_step[ilqg.num_trajectory - 1] = 0.0;
 
@@ -364,10 +364,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ilqg.candidate_policy[0].trajectory = ilqg.trajectory[ilqg.winner];
 
   // improvement
-  ilqg.step_size = ilqg.improvement_step[ilqg.winner];
-  ilqg.expected = -1.0 * ilqg.step_size *
+  ilqg.linesearch_step = ilqg.improvement_step[ilqg.winner];
+  ilqg.expected = -1.0 * ilqg.linesearch_step *
                       (ilqg.backward_pass.dV[0] +
-                       ilqg.step_size * ilqg.backward_pass.dV[1]) +
+                       ilqg.linesearch_step * ilqg.backward_pass.dV[1]) +
                   1.0e-16;
   ilqg.improvement = best_return - c_best;
   ilqg.surprise = mju_min(mju_max(0, ilqg.improvement / ilqg.expected), 2);
@@ -375,7 +375,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // update regularization
   ilqg.backward_pass.UpdateRegularization(ilqg.settings.min_regularization,
                                           ilqg.settings.max_regularization,
-                                          ilqg.surprise, ilqg.step_size);
+                                          ilqg.surprise, ilqg.linesearch_step);
 
   // stop timer
   rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(

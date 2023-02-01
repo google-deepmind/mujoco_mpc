@@ -323,7 +323,7 @@ void Agent::GUI(mjUI& ui) {
   int parameter_shift = (task_.parameters.empty() ? 0 : 1);
   mjuiDef defFeatureParameters[kMaxCostTerms + 2];
   if (parameter_shift > 0) {
-    defFeatureParameters[0] = {mjITEM_SEPARATOR, "Residual Parameters", 1};
+    defFeatureParameters[0] = {mjITEM_SEPARATOR, "Parameters", 1};
   }
   for (int i = 0; i < task_.parameters.size(); i++) {
     defFeatureParameters[i + parameter_shift] = {
@@ -379,7 +379,7 @@ void Agent::GUI(mjUI& ui) {
 
   if (names) {
     mjuiDef defTransition[] = {
-        {mjITEM_SEPARATOR, "Transition", 1},
+        {mjITEM_SEPARATOR, "Stages", 1},
         {mjITEM_RADIO, "", 1, &task_.stage, ""},
         {mjITEM_END},
     };

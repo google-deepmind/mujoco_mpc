@@ -33,10 +33,10 @@ void Hand::Residual(const double* parameters, const mjModel* model,
   int counter = 0;
   // ---------- Residual (0) ----------
   // goal position
-  double* goal_position = mjpc::SensorByName(model, data, "palm_position");
+  double* goal_position = SensorByName(model, data, "palm_position");
 
   // system's position
-  double* position = mjpc::SensorByName(model, data, "cube_position");
+  double* position = SensorByName(model, data, "cube_position");
 
   // position error
   mju_sub3(residual + counter, position, goal_position);
@@ -44,11 +44,10 @@ void Hand::Residual(const double* parameters, const mjModel* model,
 
   // ---------- Residual (1) ----------
   // goal orientation
-  double* goal_orientation =
-      mjpc::SensorByName(model, data, "cube_goal_orientation");
+  double* goal_orientation = SensorByName(model, data, "cube_goal_orientation");
 
   // system's orientation
-  double* orientation = mjpc::SensorByName(model, data, "cube_orientation");
+  double* orientation = SensorByName(model, data, "cube_orientation");
   mju_normalize4(goal_orientation);
 
   // orientation error
@@ -57,7 +56,7 @@ void Hand::Residual(const double* parameters, const mjModel* model,
 
   // ---------- Residual (2) ----------
   double* cube_linear_velocity =
-      mjpc::SensorByName(model, data, "cube_linear_velocity");
+      SensorByName(model, data, "cube_linear_velocity");
   mju_copy(residual + counter, cube_linear_velocity, 3);
   counter += 3;
 
@@ -94,8 +93,7 @@ void Hand::Transition(const mjModel* model, mjData* data, Task* task) {
     }
   }
 
-  double* cube_lin_vel =
-      mjpc::SensorByName(model, data, "cube_linear_velocity");
+  double* cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
   if (on_floor && mju_norm3(cube_lin_vel) < .001) {
     // reset box pose, adding a little height
     int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");

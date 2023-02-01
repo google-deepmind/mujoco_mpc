@@ -36,15 +36,15 @@ void Walker::Residual(const double* parameters, const mjModel* model,
   counter += model->nu;
 
   // ---------- Residual (1) -----------
-  double height = mjpc::SensorByName(model, data, "torso_position")[2];
+  double height = SensorByName(model, data, "torso_position")[2];
   residual[counter++] = height - parameters[0];
 
   // ---------- Residual (2) ----------
-  double torso_up = mjpc::SensorByName(model, data, "torso_zaxis")[2];
+  double torso_up = SensorByName(model, data, "torso_zaxis")[2];
   residual[counter++] = torso_up - 1.0;
 
   // ---------- Residual (3) ----------
-  double com_vel = mjpc::SensorByName(model, data, "torso_subtreelinvel")[0];
+  double com_vel = SensorByName(model, data, "torso_subtreelinvel")[0];
   residual[counter++] = com_vel - parameters[1];
 
   // sensor dim sanity check

@@ -36,14 +36,14 @@ TEST(TasksTest, Task) {
 
   // test task
   EXPECT_NEAR(task.risk, 1.0, 1.0e-5);
-  EXPECT_EQ(task.transition_stage, 0);
-  EXPECT_EQ(task.residual_parameters.size(), 2);
-  EXPECT_NEAR(task.residual_parameters[0], 0.05, 1.0e-5);
-  EXPECT_NEAR(task.residual_parameters[1], -0.1, 1.0e-5);
+  EXPECT_EQ(task.stage, 0);
+  EXPECT_EQ(task.parameters.size(), 2);
+  EXPECT_NEAR(task.parameters[0], 0.05, 1.0e-5);
+  EXPECT_NEAR(task.parameters[1], -0.1, 1.0e-5);
 
   // test cost
   EXPECT_EQ(task.num_residual, 4);
-  EXPECT_EQ(task.num_cost, 2);
+  EXPECT_EQ(task.num_term, 2);
   EXPECT_EQ(task.dim_norm_residual[0], 2);
   EXPECT_EQ(task.dim_norm_residual[1], 2);
   EXPECT_EQ(task.num_norm_parameter[0], 0);

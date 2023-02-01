@@ -36,13 +36,13 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
   double height_goal = parameters[0];
 
   // system's standing height
-  double standing_height = mjpc::SensorByName(model, data, "position")[2];
+  double standing_height = SensorByName(model, data, "position")[2];
 
   // average foot height
-  double FRz = mjpc::SensorByName(model, data, "FR")[2];
-  double FLz = mjpc::SensorByName(model, data, "FL")[2];
-  double RRz = mjpc::SensorByName(model, data, "RR")[2];
-  double RLz = mjpc::SensorByName(model, data, "RL")[2];
+  double FRz = SensorByName(model, data, "FR")[2];
+  double FLz = SensorByName(model, data, "FL")[2];
+  double RRz = SensorByName(model, data, "RR")[2];
+  double RLz = SensorByName(model, data, "RL")[2];
   double avg_foot_height = 0.25 * (FRz + FLz + RRz + RLz);
 
   residual[0] = (standing_height - avg_foot_height) - height_goal;
@@ -52,7 +52,7 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
   const double* goal_position = data->mocap_pos;
 
   // system's position
-  double* position = mjpc::SensorByName(model, data, "position");
+  double* position = SensorByName(model, data, "position");
 
   // position error
   mju_sub3(residual + 1, position, goal_position);
@@ -65,7 +65,7 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 
   // system's orientation
   double body_rotmat[9];
-  double* orientation = mjpc::SensorByName(model, data, "orientation");
+  double* orientation = SensorByName(model, data, "orientation");
   mju_quat2Mat(body_rotmat, orientation);
 
   mju_sub(residual + 4, body_rotmat, goal_rotmat, 9);
@@ -80,8 +80,8 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 // -----------------------------------------------
 void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
   // set stage to GUI selection
-  if (task->transition_stage > 0) {
-    data->userdata[0] = task->transition_stage - 1;
+  if (task->stage > 0) {
+    data->userdata[0] = task->stage - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position
@@ -91,10 +91,10 @@ void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
     const double* goal_orientation = data->mocap_quat;
 
     // system's position
-    double* position = mjpc::SensorByName(model, data, "position");
+    double* position = SensorByName(model, data, "position");
 
     // system's orientation
-    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    double* orientation = SensorByName(model, data, "orientation");
 
     // position error
     double position_error[3];
@@ -126,20 +126,20 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   int counter = 0;
   // ---------- Height ----------
 
-  double FRz = mjpc::SensorByName(model, data, "FR")[2];
-  double FLz = mjpc::SensorByName(model, data, "FL")[2];
-  double RRz = mjpc::SensorByName(model, data, "RR")[2];
-  double RLz = mjpc::SensorByName(model, data, "RL")[2];
+  double FRz = SensorByName(model, data, "FR")[2];
+  double FLz = SensorByName(model, data, "FL")[2];
+  double RRz = SensorByName(model, data, "RR")[2];
+  double RLz = SensorByName(model, data, "RL")[2];
   double avg_foot_height = 0.25 * (FRz + FLz + RRz + RLz);
 
-  double height = mjpc::SensorByName(model, data, "position")[2];
+  double height = SensorByName(model, data, "position")[2];
 
   residual[counter++] = height - avg_foot_height - 0.23;
 
   // ---------- Upright ----------
 
   // torso z vector shoulf be [0 0 1]
-  double* upright = mjpc::SensorByName(model, data, "torso_up");
+  double* upright = SensorByName(model, data, "torso_up");
 
   residual[counter] = upright[0];
   counter += 1;
@@ -151,7 +151,7 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   // ---------- Velocity ----------
 
   // CoM linear velocity, in the forward direction, should equal velocity_goal
-  double* linvel = mjpc::SensorByName(model, data, "torso_subtreelinvel");
+  double* linvel = SensorByName(model, data, "torso_subtreelinvel");
   double linvel_ego[3];
   int torso_id = mj_name2id(model, mjOBJ_XBODY, "trunk");
   mju_rotVecMatT(linvel_ego, linvel, data->xmat+9*torso_id);
@@ -161,10 +161,10 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   residual[counter++] = linvel_ego[1];
 
   // foot average velocity, in the forward direction, should equal CoM velocity
-  double* FRvel = mjpc::SensorByName(model, data, "FRvel");
-  double* FLvel = mjpc::SensorByName(model, data, "FLvel");
-  double* RRvel = mjpc::SensorByName(model, data, "RRvel");
-  double* RLvel = mjpc::SensorByName(model, data, "RLvel");
+  double* FRvel = SensorByName(model, data, "FRvel");
+  double* FLvel = SensorByName(model, data, "FLvel");
+  double* RRvel = SensorByName(model, data, "RRvel");
+  double* RLvel = SensorByName(model, data, "RLvel");
 
   // average foot velocity
   double foot_vel[3] = {0};
@@ -181,7 +181,7 @@ void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
   // ---------- Yaw ----------
 
   // CoM linear velocity, in the torso frame
-  double* torso_forward = mjpc::SensorByName(model, data, "torso_forward");
+  double* torso_forward = SensorByName(model, data, "torso_forward");
   double torso_heading[2] = {torso_forward[0], torso_forward[1]};
   mju_normalize(torso_heading, 2);
 

@@ -210,7 +210,7 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         candidate_policy[0].trajectory.residual.data(),
         model_derivative.C.data(), model_derivative.D.data(),
         dim_state_derivative, dim_action, dim_max, dim_sensor,
-        task->num_residual, task->dim_norm_residual.data(), task->num_cost,
+        task->num_residual, task->dim_norm_residual.data(), task->num_term,
         task->weight.data(), task->norm.data(), task->num_parameter.data(),
         task->num_norm_parameter.data(), task->risk, horizon, pool);
 

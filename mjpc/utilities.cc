@@ -163,6 +163,36 @@ double* SensorByName(const mjModel* m, const mjData* d,
   }
 }
 
+// get default residual parameter data using string
+double DefaultParameterValue(const mjModel* model, std::string_view name) {
+  int id = mj_name2id(model, mjOBJ_NUMERIC,
+                      absl::StrCat("residual_", name).c_str());
+  if (id == -1) {
+    mju_error_s("Parameter '%s' not found", std::string(name).c_str());
+    return 0;
+  }
+  return model->numeric_data[model->numeric_adr[id]];
+}
+
+// get index to residual parameter data using string
+int ParameterIndex(const mjModel* model, std::string_view name) {
+  int id = mj_name2id(model, mjOBJ_NUMERIC,
+                      absl::StrCat("residual_", name).c_str());
+
+  if (id == -1) {
+    mju_error_s("Parameter '%s' not found", std::string(name).c_str());
+  }
+
+  int i;
+  for (i = 0; i < model->nnumeric; i++) {
+    const char* first_residual = mj_id2name(model, mjOBJ_NUMERIC, i);
+    if (absl::StartsWith(first_residual, "residual_")) {
+      break;
+    }
+  }
+  return id - i;
+}
+
 double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   // list selections are stored as ints, but numeric values are doubles.
   int value = m->numeric_data[m->numeric_adr[numeric_index]];

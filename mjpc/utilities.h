@@ -87,6 +87,10 @@ void Clamp(double* x, const double* bounds, int n);
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name);
 
+double DefaultParameterValue(const mjModel* model, std::string_view name);
+
+int ParameterIndex(const mjModel* model, std::string_view name);
+
 int CostTermByName(const mjModel* m, const mjData* d, const std::string& name);
 
 // get traces from sensors

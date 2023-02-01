@@ -131,7 +131,7 @@ class GradientPlanner : public Planner {
   std::vector<std::unique_ptr<SplineMapping>> mappings;
 
   // step sizes
-  double improvement_step[kMaxTrajectory];
+  double linesearch_steps[kMaxTrajectory];
 
   // best trajectory id
   int winner;

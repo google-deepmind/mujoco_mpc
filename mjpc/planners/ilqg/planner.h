@@ -70,7 +70,10 @@ class iLQGPlanner : public Planner {
              int timer_shift, int planning) override;
 
   // compute candidate trajectories
-  void Rollouts(int horizon, ThreadPool& pool);
+  void ActionImprovementRollouts(int horizon, ThreadPool& pool);
+
+  // compute candidate trajectories
+  void FeedbackScalingRollouts(int horizon, ThreadPool& pool);
 
   // ----- members ----- //
   mjModel* model;
@@ -110,7 +113,7 @@ class iLQGPlanner : public Planner {
   BoxQP boxqp;
 
   // step sizes
-  double improvement_step[kMaxTrajectory];
+  double linesearch_steps[kMaxTrajectory];
 
   // best trajectory id
   int winner;

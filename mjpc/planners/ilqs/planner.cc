@@ -320,20 +320,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // ----- rollout policy ----- //
   rollouts_start = std::chrono::steady_clock::now();
 
-  // copy policy
-  for (int j = 1; j < ilqg.num_trajectory; j++) {
-    ilqg.candidate_policy[j].CopyFrom(ilqg.candidate_policy[0], horizon);
-    ilqg.candidate_policy[j].representation =
-        ilqg.candidate_policy[0].representation;
-  }
-
-  // improvement step sizes (log scaling)
-  LogScale(ilqg.improvement_step, 1.0, ilqg.settings.min_linesearch_step,
-           ilqg.num_trajectory - 1);
-  ilqg.improvement_step[ilqg.num_trajectory - 1] = 0.0;
-
-  // feedback rollouts (parallel)
-  ilqg.Rollouts(horizon, pool);
+  // linesearch action improvement (parallel)
+  ilqg.ActionImprovementRollouts(horizon, pool);
 
   // ----- evaluate rollouts ------ //
   ilqg.winner = ilqg.num_trajectory - 1;
@@ -364,7 +352,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ilqg.candidate_policy[0].trajectory = ilqg.trajectory[ilqg.winner];
 
   // improvement
-  ilqg.linesearch_step = ilqg.improvement_step[ilqg.winner];
+  ilqg.linesearch_step = ilqg.linesearch_steps[ilqg.winner];
   ilqg.expected = -1.0 * ilqg.linesearch_step *
                       (ilqg.backward_pass.dV[0] +
                        ilqg.linesearch_step * ilqg.backward_pass.dV[1]) +

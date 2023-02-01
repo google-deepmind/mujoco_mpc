@@ -263,8 +263,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes
-    LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
-    improvement_step[num_trajectory - 1] = 0.0;
+    LogScale(linesearch_steps, 1.0, settings.min_step_size, num_trajectory - 1);
+    linesearch_steps[num_trajectory - 1] = 0.0;
 
     // rollouts (parallel)
     this->Rollouts(horizon, pool);
@@ -288,7 +288,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     trajectory[0] = trajectory[winner];
 
     // improvement
-    linesearch_step = improvement_step[winner];
+    linesearch_step = linesearch_steps[winner];
     expected = -linesearch_step * (gradient.dV[0]) - 1.0e-16;
     improvement = c_prev - c_best;
     surprise = mju_min(mju_max(0, improvement / expected), 2);
@@ -387,7 +387,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&data = data_, &trajectory = trajectory,
                    &candidate_policy = candidate_policy,
-                   &improvement_step = improvement_step, &model = this->model,
+                   &linesearch_steps = linesearch_steps, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, &userdata = this->userdata,
                    i]() {
@@ -395,7 +395,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
       mju_addScl(candidate_policy[i].parameters.data(),
                  candidate_policy[i].parameters.data(),
                  candidate_policy[i].parameter_update.data(),
-                 improvement_step[i],
+                 linesearch_steps[i],
                  model->nu * candidate_policy[i].num_spline_points);
 
       // policy

@@ -24,9 +24,13 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 // DEEPMIND INTERNAL IMPORT
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
 #include <absl/strings/str_cat.h>
+#include <absl/strings/str_split.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "array_safety.h"
@@ -90,6 +94,63 @@ void Clamp(double* x, const double* bounds, int n) {
   }
 }
 
+absl::flat_hash_map<std::string, std::vector<std::string>>
+ResidualSelectionLists(const mjModel* m) {
+  absl::flat_hash_map<std::string, std::vector<std::string>> result;
+  for (int i = 0; i < m->ntext; i++) {
+    if (!absl::StartsWith(std::string_view(m->names + m->name_textadr[i]),
+                          "residual_list_")) {
+      continue;
+    }
+    std::string name = &m->names[m->name_textadr[i]];
+    std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+    result[absl::StripPrefix(name, "residual_list_")] =
+        absl::StrSplit(options, '|');
+  }
+  return result;
+}
+
+std::string ResidualSelection(const mjModel* m, std::string_view name,
+                              double residual_parameter) {
+  std::string list_name = absl::StrCat("residual_list_", name);
+
+  // we're using a double field to store an integer - reinterpret as an int
+  int list_index = *reinterpret_cast<const int*>(&residual_parameter);
+
+  for (int i = 0; i < m->ntext; i++) {
+    if (list_name == &m->names[m->name_textadr[i]]) {
+      // get the nth element in the list of options (without constructing a
+      // vector<string>)
+      std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+      for (std::string_view value : absl::StrSplit(options, '|')) {
+        if (list_index == 0) return std::string(value);
+        list_index--;
+      }
+    }
+  }
+  return "";
+}
+
+double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
+                                      const std::string_view value) {
+  std::string list_name = absl::StrCat("residual_list_", name);
+  for (int i = 0; i < m->ntext; i++) {
+    if (list_name == &m->names[m->name_textadr[i]]) {
+      int list_index = 0;
+      std::string_view options(m->text_data + m->text_adr[i],
+                               m->text_size[i] - 1);
+      std::vector<std::string> values = absl::StrSplit(options, '|');
+      for (std::string_view v : absl::StrSplit(options, '|')) {
+        if (v == value) {
+          return *reinterpret_cast<const double*>(&list_index);
+        }
+        list_index++;
+      }
+    }
+  }
+  return 0;
+}
+
 // get sensor data using string
 double* SensorByName(const mjModel* m, const mjData* d,
                      const std::string& name) {
@@ -100,6 +161,42 @@ double* SensorByName(const mjModel* m, const mjData* d,
   } else {
     return d->sensordata + m->sensor_adr[id];
   }
+}
+
+// get default residual parameter data using string
+double DefaultParameterValue(const mjModel* model, std::string_view name) {
+  int id = mj_name2id(model, mjOBJ_NUMERIC,
+                      absl::StrCat("residual_", name).c_str());
+  if (id == -1) {
+    mju_error_s("Parameter '%s' not found", std::string(name).c_str());
+    return 0;
+  }
+  return model->numeric_data[model->numeric_adr[id]];
+}
+
+// get index to residual parameter data using string
+int ParameterIndex(const mjModel* model, std::string_view name) {
+  int id = mj_name2id(model, mjOBJ_NUMERIC,
+                      absl::StrCat("residual_", name).c_str());
+
+  if (id == -1) {
+    mju_error_s("Parameter '%s' not found", std::string(name).c_str());
+  }
+
+  int i;
+  for (i = 0; i < model->nnumeric; i++) {
+    const char* first_residual = mj_id2name(model, mjOBJ_NUMERIC, i);
+    if (absl::StartsWith(first_residual, "residual_")) {
+      break;
+    }
+  }
+  return id - i;
+}
+
+double DefaultResidualSelection(const mjModel* m, int numeric_index) {
+  // list selections are stored as ints, but numeric values are doubles.
+  int value = m->numeric_data[m->numeric_adr[numeric_index]];
+  return *reinterpret_cast<const double*>(&value);
 }
 
 int CostTermByName(const mjModel* m, const mjData* d, const std::string& name) {
@@ -449,6 +546,45 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
     mj_differentiatePos(m, ds, h, s1, s2);
     Diff(ds + nv, s1 + nq, s2 + nq, h, nv + na);
   }
+}
+
+// find frame that best matches 4 feet, z points to body
+void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
+               const double body[3],
+               const double foot0[3], const double foot1[3],
+               const double foot2[3], const double foot3[3]) {
+    // average foot pos
+    double pos[3];
+    for (int i = 0; i < 3; i++) {
+      pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
+    }
+
+    // compute feet covariance
+    double cov[9] = {0};
+    for (const double* foot : {foot0, foot1, foot2, foot3}) {
+      double dif[3], difTdif[9];
+      mju_sub3(dif, foot, pos);
+      mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
+      mju_addTo(cov, difTdif, 9);
+    }
+
+    // eigendecompose
+    double eigval[3], quat[4], mat[9];
+    mju_eig3(eigval, mat, quat, cov);
+
+    // make sure foot-plane normal (z axis) points to body
+    double zaxis[3] = {mat[2], mat[5], mat[8]};
+    double to_body[3];
+    mju_sub3(to_body, body, pos);
+    if (mju_dot3(zaxis, to_body) < 0) {
+      // flip both z and y (rotate around x), to maintain frame handedness
+      for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
+    }
+
+    // copy outputs
+    if (feet_pos) mju_copy3(feet_pos, pos);
+    if (feet_mat) mju_copy(feet_mat, mat, 9);
+    if (feet_quat) mju_mat2Quat(feet_quat, mat);
 }
 
 // set x to be the point on the segment [p0 p1] that is nearest to x

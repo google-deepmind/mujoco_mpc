@@ -34,18 +34,18 @@ void Panda::Residual(const double* parameters, const mjModel* model,
   int counter = 0;
 
   // reach
-  double* hand = mjpc::SensorByName(model, data, "hand");
-  double* box = mjpc::SensorByName(model, data, "box");
+  double* hand = SensorByName(model, data, "hand");
+  double* box = SensorByName(model, data, "box");
   mju_sub3(residual + counter, hand, box);
   counter += 3;
 
   // bring
-  double* box1 = mjpc::SensorByName(model, data, "box1");
-  double* target1 = mjpc::SensorByName(model, data, "target1");
+  double* box1 = SensorByName(model, data, "box1");
+  double* target1 = SensorByName(model, data, "target1");
   mju_sub3(residual + counter, box1, target1);
   counter += 3;
-  double* box2 = mjpc::SensorByName(model, data, "box2");
-  double* target2 = mjpc::SensorByName(model, data, "target2");
+  double* box2 = SensorByName(model, data, "box2");
+  double* target2 = SensorByName(model, data, "target2");
   mju_sub3(residual + counter, box2, target2);
   counter += 3;
 

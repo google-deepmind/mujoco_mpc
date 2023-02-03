@@ -39,11 +39,11 @@ void humanoid::Stand::Residual(const double* parameters, const mjModel* model,
   // ----- Height: head feet vertical error ----- //
 
   // feet sensor positions
-  double* f1_position = mjpc::SensorByName(model, data, "sp0");
-  double* f2_position = mjpc::SensorByName(model, data, "sp1");
-  double* f3_position = mjpc::SensorByName(model, data, "sp2");
-  double* f4_position = mjpc::SensorByName(model, data, "sp3");
-  double* head_position = mjpc::SensorByName(model, data, "head_position");
+  double* f1_position = SensorByName(model, data, "sp0");
+  double* f2_position = SensorByName(model, data, "sp1");
+  double* f3_position = SensorByName(model, data, "sp2");
+  double* f4_position = SensorByName(model, data, "sp3");
+  double* head_position = SensorByName(model, data, "head_position");
   double head_feet_error =
       head_position[2] - 0.25 * (f1_position[2] + f2_position[2] +
                                  f3_position[2] + f4_position[2]);
@@ -52,8 +52,8 @@ void humanoid::Stand::Residual(const double* parameters, const mjModel* model,
   // ----- Balance: CoM-feet xy error ----- //
 
   // capture point
-  double* com_position = mjpc::SensorByName(model, data, "torso_subtreecom");
-  double* com_velocity = mjpc::SensorByName(model, data, "torso_subtreelinvel");
+  double* com_position = SensorByName(model, data, "torso_subtreecom");
+  double* com_velocity = SensorByName(model, data, "torso_subtreelinvel");
   double kFallTime = 0.2;
   double capture_point[3] = {com_position[0], com_position[1], com_position[2]};
   mju_addToScl3(capture_point, com_velocity, kFallTime);

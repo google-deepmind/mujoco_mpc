@@ -140,7 +140,7 @@ class GradientPlanner : public Planner {
   GradientPlannerSettings settings;
 
   // values
-  double linesearch_step;
+  double action_step;
   double expected;
   double improvement;
   double surprise;

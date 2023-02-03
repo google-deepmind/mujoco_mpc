@@ -320,8 +320,18 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // ----- rollout policy ----- //
   rollouts_start = std::chrono::steady_clock::now();
 
+  // copy policy
+  for (int j = 1; j < ilqg.num_trajectory; j++) {
+    ilqg.candidate_policy[j].CopyFrom(ilqg.candidate_policy[0], horizon);
+    ilqg.candidate_policy[j].representation = ilqg.candidate_policy[0].representation;
+  }
+
+  // improvement step sizes (log scaling)
+  LogScale(ilqg.linesearch_steps, 1.0, ilqg.settings.min_linesearch_step, ilqg.num_trajectory - 1);
+  ilqg.linesearch_steps[ilqg.num_trajectory - 1] = 0.0;
+
   // linesearch action improvement (parallel)
-  ilqg.ActionImprovementRollouts(horizon, pool);
+  ilqg.ActionRollouts(horizon, pool);
 
   // ----- evaluate rollouts ------ //
   ilqg.winner = ilqg.num_trajectory - 1;
@@ -352,10 +362,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ilqg.candidate_policy[0].trajectory = ilqg.trajectory[ilqg.winner];
 
   // improvement
-  ilqg.linesearch_step = ilqg.linesearch_steps[ilqg.winner];
-  ilqg.expected = -1.0 * ilqg.linesearch_step *
+  ilqg.action_step = ilqg.linesearch_steps[ilqg.winner];
+  ilqg.expected = -1.0 * ilqg.action_step *
                       (ilqg.backward_pass.dV[0] +
-                       ilqg.linesearch_step * ilqg.backward_pass.dV[1]) +
+                       ilqg.action_step * ilqg.backward_pass.dV[1]) +
                   1.0e-16;
   ilqg.improvement = best_return - c_best;
   ilqg.surprise = mju_min(mju_max(0, ilqg.improvement / ilqg.expected), 2);
@@ -363,7 +373,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // update regularization
   ilqg.backward_pass.UpdateRegularization(ilqg.settings.min_regularization,
                                           ilqg.settings.max_regularization,
-                                          ilqg.surprise, ilqg.linesearch_step);
+                                          ilqg.surprise, ilqg.action_step);
 
   // stop timer
   rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(

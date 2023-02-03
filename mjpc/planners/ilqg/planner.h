@@ -69,11 +69,11 @@ class iLQGPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning) override;
 
-  // compute candidate trajectories
-  void ActionImprovementRollouts(int horizon, ThreadPool& pool);
+  // linesearch over feedback scaling
+  void FeedbackRollouts(int horizon, ThreadPool& pool);
 
-  // compute candidate trajectories
-  void FeedbackScalingRollouts(int horizon, ThreadPool& pool);
+  // linesearch over action improvement
+  void ActionRollouts(int horizon, ThreadPool& pool);
 
   // ----- members ----- //
   mjModel* model;
@@ -122,7 +122,8 @@ class iLQGPlanner : public Planner {
   iLQGSettings settings;
 
   // values
-  double linesearch_step;
+  double action_step;
+  double feedback_scaling;
   double improvement;
   double expected;
   double surprise;

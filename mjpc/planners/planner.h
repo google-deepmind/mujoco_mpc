@@ -49,7 +49,7 @@ class Planner {
   virtual void OptimizePolicy(int horizon, ThreadPool& pool) = 0;
 
   // compute trajectory using nominal policy
-  virtual void NominalTrajectory(int horizon) = 0;
+  virtual void NominalTrajectory(int horizon, ThreadPool& pool) = 0;
 
   // set action from policy
   virtual void ActionFromPolicy(double* action, const double* state,

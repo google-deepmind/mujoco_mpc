@@ -180,7 +180,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
       count_ += 1;
     } else {
       // rollout nominal policy
-      ActivePlanner().NominalTrajectory(steps_);
+      ActivePlanner().NominalTrajectory(steps_, *pool);
 
       // set timers
       agent_compute_time_ = 0.0;

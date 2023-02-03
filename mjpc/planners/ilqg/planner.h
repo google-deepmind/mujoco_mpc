@@ -50,7 +50,7 @@ class iLQGPlanner : public Planner {
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
 
   // compute trajectory using nominal policy
-  void NominalTrajectory(int horizon) override;
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
@@ -69,11 +69,19 @@ class iLQGPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning) override;
 
-  // linesearch over feedback scaling
-  void FeedbackRollouts(int horizon, ThreadPool& pool);
+  // single iLQG iteration
+  void Iteration(int horizon, ThreadPool& pool);
 
   // linesearch over action improvement
   void ActionRollouts(int horizon, ThreadPool& pool);
+
+  // linesearch over feedback scaling
+  void FeedbackRollouts(int horizon, ThreadPool& pool);
+
+  // return index of trajectory with best rollout
+  int BestRollout(double previous_return, int num_trajectory);
+
+  // 
 
   // ----- members ----- //
   mjModel* model;

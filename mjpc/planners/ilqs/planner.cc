@@ -85,14 +85,6 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   int num_trajectory = sampling.num_trajectory_;
   sampling.ResizeMjData(sampling.model, pool.NumThreads());
 
-  // timers
-  double nominal_time = 0.0;
-  double rollouts_time = 0.0;
-  double policy_update_time = 0.0;
-  double model_derivative_time = 0.0;
-  double cost_derivative_time = 0.0;
-  double backward_pass_time = 0.0;
-
   // ----- nominal policy ----- //
   // start timer
   auto nominal_start = std::chrono::steady_clock::now();
@@ -111,7 +103,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   if (online_policy == 0) {
     // rollout old policy
-    sampling.NominalTrajectory(horizon);
+    sampling.NominalTrajectory(horizon, pool);
 
     // set candidate policy nominal trajectory
     ilqg.candidate_policy[0].trajectory = sampling.trajectory[0];
@@ -119,21 +111,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     best_actions = sampling.trajectory[0].actions.data();
     best_return = sampling.trajectory[0].total_return;
   } else {
-    // copy nominal policy
-    {
-      const std::shared_lock<std::shared_mutex> lock(ilqg.mtx_);
-      ilqg.candidate_policy[0].CopyFrom(ilqg.policy, horizon);
-      ilqg.candidate_policy[0].representation = ilqg.policy.representation;
-    }
+    // get nominal trajectory
+    ilqg.NominalTrajectory(horizon, pool);
 
-    // rollout nominal policy
-    ilqg.NominalTrajectory(horizon);
-    if (ilqg.trajectory[0].failure) {
-      std::cerr << "Nominal trajectory diverged.\n";
-    }
-
-    // set candidate policy nominal trajectory
-    ilqg.candidate_policy[0].trajectory = ilqg.trajectory[0];
+    // set nominal trajectory
     sampling.trajectory[0] = ilqg.trajectory[0];
 
     best_actions = ilqg.trajectory[0].actions.data();
@@ -172,7 +153,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  nominal_time += std::chrono::duration_cast<std::chrono::microseconds>(
+  sampling.nominal_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::steady_clock::now() - nominal_start)
                       .count();
 
@@ -196,7 +177,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
+  sampling.rollouts_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
                        std::chrono::steady_clock::now() - rollouts_start)
                        .count();
 
@@ -213,7 +194,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  policy_update_time +=
+  sampling.policy_update_compute_time =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - policy_update_start)
           .count();
@@ -222,192 +203,23 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   sampling.improvement = mju_max(
       best_return - sampling.trajectory[sampling.winner].total_return, 0.0);
 
-  // set timers
-  sampling.nominal_compute_time = nominal_time;
-  sampling.rollouts_compute_time = rollouts_time;
-  sampling.policy_update_compute_time = policy_update_time;
-
   // check for improvement
   if (sampling.improvement > 0) {
     // set policy
     online_policy = 0;
 
     // set iLQG time to zero 
-    ilqg.nominal_compute_time = nominal_time;
-    ilqg.model_derivative_compute_time = model_derivative_time;
-    ilqg.cost_derivative_compute_time = cost_derivative_time;
-    ilqg.rollouts_compute_time = rollouts_time;
-    ilqg.backward_pass_compute_time = backward_pass_time;
-    ilqg.policy_update_compute_time = policy_update_time;
+    ilqg.model_derivative_compute_time = 0.0;
+    ilqg.cost_derivative_compute_time = 0.0;
+    ilqg.rollouts_compute_time = 0.0;
+    ilqg.backward_pass_compute_time = 0.0;
+    ilqg.policy_update_compute_time = 0.0;
 
     return;
   }
 
   // ----- iLQG ----- //
-  ilqg.ResizeMjData(ilqg.model, pool.NumThreads()); 
-
-  // maximum number of trajectories in linesearch
-  ilqg.num_trajectory = mju_min(ilqg.num_trajectory, kMaxTrajectory);
-
-  // ----- nominal rollout ----- //
-  // start timer
-  nominal_start = std::chrono::steady_clock::now();
-
-  // end timer
-  nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                     std::chrono::steady_clock::now() - nominal_start)
-                     .count();
-
-  // rollouts
-  double c_best = best_return;
-
-  // ----- model derivatives ----- //
-  // start timer
-  auto model_derivative_start = std::chrono::steady_clock::now();
-
-  // compute model and sensor Jacobians
-  ilqg.model_derivative.Compute(
-      ilqg.model, ilqg.data_, ilqg.candidate_policy[0].trajectory.states.data(),
-      ilqg.candidate_policy[0].trajectory.actions.data(),
-      ilqg.candidate_policy[0].trajectory.times.data(), ilqg.dim_state,
-      ilqg.dim_state_derivative, ilqg.dim_action, ilqg.dim_sensor, horizon,
-      ilqg.settings.fd_tolerance, ilqg.settings.fd_mode, pool);
-
-  // stop timer
-  model_derivative_time +=
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - model_derivative_start)
-          .count();
-
-  // ----- cost derivatives ----- //
-  // start timer
-  auto cost_derivative_start = std::chrono::steady_clock::now();
-
-  // cost derivatives
-  ilqg.cost_derivative.Compute(
-      ilqg.candidate_policy[0].trajectory.residual.data(),
-      ilqg.model_derivative.C.data(), ilqg.model_derivative.D.data(),
-      ilqg.dim_state_derivative, ilqg.dim_action, ilqg.dim_max, ilqg.dim_sensor,
-      ilqg.task->num_residual, ilqg.task->dim_norm_residual.data(),
-      ilqg.task->num_cost, ilqg.task->weight.data(), ilqg.task->norm.data(),
-      ilqg.task->num_parameter.data(), ilqg.task->num_norm_parameter.data(),
-      ilqg.task->risk, horizon, pool);
-
-  // end timer
-  cost_derivative_time +=
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - cost_derivative_start)
-          .count();
-
-  // ----- backward pass ----- //
-  // start timer
-  auto backward_pass_start = std::chrono::steady_clock::now();
-
-  // compute feedback gains and action improvement via Riccati
-  ilqg.backward_pass.Riccati(&ilqg.candidate_policy[0], &ilqg.model_derivative,
-                             &ilqg.cost_derivative, ilqg.dim_state_derivative,
-                             ilqg.dim_action, horizon,
-                             ilqg.backward_pass.regularization, ilqg.boxqp,
-                             ilqg.candidate_policy[0].trajectory.actions.data(),
-                             ilqg.model->actuator_ctrlrange, ilqg.settings);
-
-  // end timer
-  backward_pass_time +=
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - backward_pass_start)
-          .count();
-
-  // ----- rollout policy ----- //
-  rollouts_start = std::chrono::steady_clock::now();
-
-  // copy policy
-  for (int j = 1; j < ilqg.num_trajectory; j++) {
-    ilqg.candidate_policy[j].CopyFrom(ilqg.candidate_policy[0], horizon);
-    ilqg.candidate_policy[j].representation = ilqg.candidate_policy[0].representation;
-  }
-
-  // improvement step sizes (log scaling)
-  LogScale(ilqg.linesearch_steps, 1.0, ilqg.settings.min_linesearch_step, ilqg.num_trajectory - 1);
-  ilqg.linesearch_steps[ilqg.num_trajectory - 1] = 0.0;
-
-  // linesearch action improvement (parallel)
-  ilqg.ActionRollouts(horizon, pool);
-
-  // ----- evaluate rollouts ------ //
-  ilqg.winner = ilqg.num_trajectory - 1;
-  int failed = 0;
-  if (ilqg.trajectory[ilqg.num_trajectory - 1].failure) {
-    failed++;
-  }
-  for (int j = ilqg.num_trajectory - 2; j >= 0; j--) {
-    if (ilqg.trajectory[j].failure) {
-      failed++;
-      continue;
-    }
-    // compute cost
-    double c_sample = ilqg.trajectory[j].total_return;
-
-    // compare cost
-    if (c_sample < c_best) {
-      c_best = c_sample;
-      ilqg.winner = j;
-    }
-  }
-  if (failed) {
-    std::cerr << "iLQG: " << failed << " out of " << ilqg.num_trajectory
-              << " rollouts failed.\n";
-  }
-
-  // update nominal with winner
-  ilqg.candidate_policy[0].trajectory = ilqg.trajectory[ilqg.winner];
-
-  // improvement
-  ilqg.action_step = ilqg.linesearch_steps[ilqg.winner];
-  ilqg.expected = -1.0 * ilqg.action_step *
-                      (ilqg.backward_pass.dV[0] +
-                       ilqg.action_step * ilqg.backward_pass.dV[1]) +
-                  1.0e-16;
-  ilqg.improvement = best_return - c_best;
-  ilqg.surprise = mju_min(mju_max(0, ilqg.improvement / ilqg.expected), 2);
-
-  // update regularization
-  ilqg.backward_pass.UpdateRegularization(ilqg.settings.min_regularization,
-                                          ilqg.settings.max_regularization,
-                                          ilqg.surprise, ilqg.action_step);
-
-  // stop timer
-  rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                       std::chrono::steady_clock::now() - rollouts_start)
-                       .count();
-
-  // ----- policy update ----- //
-  // start timer
-  policy_update_start = std::chrono::steady_clock::now();
-  {
-    const std::shared_lock<std::shared_mutex> lock(ilqg.mtx_);
-    // improvement
-    if (c_best < best_return) {
-      ilqg.policy.CopyFrom(ilqg.candidate_policy[0], horizon);
-      // nominal
-    } else {
-      ilqg.policy.CopyFrom(ilqg.candidate_policy[ilqg.num_trajectory - 1],
-                           horizon);
-    }
-  }
-
-  // stop timer
-  policy_update_time +=
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - policy_update_start)
-          .count();
-
-  // set timers
-  ilqg.nominal_compute_time = nominal_time;
-  ilqg.model_derivative_compute_time = model_derivative_time;
-  ilqg.cost_derivative_compute_time = cost_derivative_time;
-  ilqg.rollouts_compute_time = rollouts_time;
-  ilqg.backward_pass_compute_time = backward_pass_time;
-  ilqg.policy_update_compute_time = policy_update_time;
+  ilqg.Iteration(horizon, pool);
 
   // set policy
   if (ilqg.improvement > 0) {
@@ -418,13 +230,13 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 }
 
 // compute trajectory using nominal policy
-void iLQSPlanner::NominalTrajectory(int horizon) {
+void iLQSPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   if (online_policy == 0) {
     // Sampling
-    sampling.NominalTrajectory(horizon);
+    sampling.NominalTrajectory(horizon, pool);
   } else {
     // iLQG
-    ilqg.NominalTrajectory(horizon);
+    ilqg.NominalTrajectory(horizon, pool);
   }
 }
 

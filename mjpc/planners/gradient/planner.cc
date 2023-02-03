@@ -175,7 +175,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   this->ResamplePolicy(horizon);
 
   // rollout nominal trajectory
-  this->NominalTrajectory(horizon);
+  this->NominalTrajectory(horizon, pool);
 
   // previous best cost
   double c_prev = trajectory[0].total_return;
@@ -329,7 +329,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 }
 
 // compute trajectory using nominal policy
-void GradientPlanner::NominalTrajectory(int horizon) {
+void GradientPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   // nominal policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {

@@ -170,7 +170,6 @@ int iLQGBackwardPass::RiccatiStep(
                           boxqp.H.data(), boxqp.g.data(), m, boxqp.lower.data(),
                           boxqp.upper.data());
     if (mFree < 0) {
-      printf("backward_pass failure\n");
       return 0;
     }
 
@@ -248,79 +247,6 @@ int iLQGBackwardPass::RiccatiStep(
   mju_addTo(Vxxt, tmp, n * n);
   mju_symmetrize(Vxxt, Vxxt, n);
   return 1;
-}
-
-// compute backward pass using Riccati
-int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
-                          const CostDerivatives *cd, int dim_dstate,
-                          int dim_action, int T, double reg, BoxQP &boxqp,
-                          const double *actions, const double *action_limits,
-                          const iLQGSettings &settings) {
-  // reset
-  mju_zero(dV, 2);
-
-  // final DerivativeStep cost-to-go
-  mju_copy(DataAt(Vx, (T - 1) * dim_dstate),
-           DataAt(cd->cx, (T - 1) * dim_dstate), dim_dstate);
-  mju_copy(DataAt(Vxx, (T - 1) * dim_dstate * dim_dstate),
-           DataAt(cd->cxx, (T - 1) * dim_dstate * dim_dstate),
-           dim_dstate * dim_dstate);
-
-  // iterate Riccati backward in time
-  int bp_iter = 0;
-  int time_index = T - 1;
-  while (bp_iter < settings.max_regularization_iterations) {
-    for (int t = T - 1; t > 0; t--) {
-      int status = this->RiccatiStep(
-          dim_dstate, dim_action, reg, DataAt(Vx, t * dim_dstate),
-          DataAt(Vxx, t * dim_dstate * dim_dstate),
-          DataAt(md->A, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(md->B, (t - 1) * dim_dstate * dim_action),
-          DataAt(cd->cx, (t - 1) * dim_dstate),
-          DataAt(cd->cu, (t - 1) * dim_action),
-          DataAt(cd->cxx, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(cd->cxu, (t - 1) * dim_dstate * dim_action),
-          DataAt(cd->cuu, (t - 1) * dim_action * dim_action),
-          DataAt(Vx, (t - 1) * dim_dstate),
-          DataAt(Vxx, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(p->action_improvement, (t - 1) * dim_action),
-          DataAt(p->feedback_gain, (t - 1) * dim_action * dim_dstate), dV,
-          DataAt(Qx, (t - 1) * dim_dstate), DataAt(Qu, (t - 1) * dim_action),
-          DataAt(Qxx, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(Qxu, (t - 1) * dim_dstate * dim_action),
-          DataAt(Quu, (t - 1) * dim_action * dim_action), Q_scratch.data(),
-          boxqp, actions + (t - 1) * dim_action, action_limits,
-          settings.regularization_type, settings.action_limits);
-
-      // failure
-      if (!status) {
-        time_index = t - 1;
-        break;
-      }
-
-      // complete
-      if (t == 1) {
-        mju_copy(DataAt(p->feedback_gain, (T - 1) * dim_action * dim_dstate),
-                 DataAt(p->feedback_gain, (T - 2) * dim_action * dim_dstate),
-                 dim_action * dim_dstate);
-        mju_copy(DataAt(p->action_improvement, (T - 1) * dim_action),
-                 DataAt(p->action_improvement, (T - 2) * dim_action),
-                 dim_action);
-        return 0;
-      }
-    }
-
-    // increase regularization
-    if (regularization <= settings.max_regularization) {
-      this->ScaleRegularization(regularization_factor,
-                                settings.min_regularization,
-                                settings.max_regularization);
-      bp_iter += 1;
-    } else {
-      return time_index;
-    }
-  }
-  return time_index;
 }
 
 // scale backward pass regularization

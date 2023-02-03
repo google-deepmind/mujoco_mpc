@@ -61,7 +61,7 @@ class GradientPlanner : public Planner {
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
 
   // compute trajectory using nominal policy
-  void NominalTrajectory(int horizon) override;
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // compute action from policy
   void ActionFromPolicy(double* action, const double* state,

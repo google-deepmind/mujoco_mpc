@@ -219,7 +219,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 }
 
 // compute trajectory using nominal policy
-void SamplingPlanner::NominalTrajectory(int horizon) {
+void SamplingPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   // set policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {

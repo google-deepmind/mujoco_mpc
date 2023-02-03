@@ -767,4 +767,151 @@ void LogScale(double* values, double max_value, double min_value, int steps) {
   }
 }
 
+// ============== 2d convex hull ==============
+
+// note: written in MuJoCo-style C for possible future inclusion
+namespace {  // private functions in an anonymous namespace
+
+// 2d vector dot-product
+mjtNum mju_dot2(const mjtNum vec1[2], const mjtNum vec2[2]) {
+  return vec1[0]*vec2[0] + vec1[1]*vec2[1];
+}
+
+// 2d vector squared distance
+mjtNum mju_sqrdist2(const mjtNum vec1[2], const mjtNum vec2[2]) {
+  const mjtNum diff[2] = {vec1[0]-vec2[0], vec1[1]-vec2[1]};
+  return mju_dot2(diff, diff);
+}
+
+// returns true if edge to candidate is to the right of edge to next
+bool IsEdgeOutside(const mjtNum current[2], const mjtNum next[2],
+                   const mjtNum candidate[2]) {
+  mjtNum current_edge[2] = {next[0] - current[0], next[1] - current[1]};
+  mjtNum candidate_edge[2] = {candidate[0] - current[0],
+                              candidate[1] - current[1]};
+  mjtNum rotated_edge[2] = {current_edge[1], -current_edge[0]};
+  mjtNum projection = mju_dot2(candidate_edge, rotated_edge);
+
+  // check if candidate edge is to the right
+  if (projection > mjMINVAL) {
+    // actually to the right: accept
+    return true;
+  } else if (abs(projection) < mjMINVAL) {
+    // numerically equivalent: accept if longer
+    mjtNum current_length2 = mju_dot2(current_edge, current_edge);
+    mjtNum candidate_length2 = mju_dot2(candidate_edge, candidate_edge);
+    return (candidate_length2 > current_length2);
+  }
+  // not to the right
+  return false;
+}
+
+// returns 2D point on line segment from v0 to v1 that is nearest to query point
+void ProjectToSegment2D(mjtNum res[2], const mjtNum query[2],
+                        const mjtNum v0[2], const mjtNum v1[2]) {
+  mjtNum axis[2] = {v1[0] - v0[0], v1[1] - v0[1]};
+  mjtNum length = mju_sqrt(mju_dot2(axis, axis));
+  axis[0] /= length;
+  axis[1] /= length;
+  mjtNum center[2] = {0.5*(v1[0] + v0[0]), 0.5*(v1[1] + v0[1])};
+  mjtNum t = mju_dot2(query, axis) - mju_dot2(center, axis);
+  t = mju_clip(t, -length/2, length/2);
+  res[0] = center[0] + t*axis[0];
+  res[1] = center[1] + t*axis[1];
+}
+
+}  // namespace
+
+// returns point in 2D convex hull that is nearest to query
+void NearestInHull(mjtNum res[2], const mjtNum query[2],
+                   const mjtNum* points, const int* hull, int num_hull) {
+  int outside = 0;      // assume query point is inside the hull
+  mjtNum best_sqrdist;  // smallest squared distance so far
+  for (int i = 0; i < num_hull; i++) {
+    int j = hull[i];
+    const mjtNum* v0 = points + 2*j;
+    const mjtNum* v1 = points + 2*((j + 1) % num_hull);
+
+    // edge from v0 to v1
+    mjtNum e01[2] = {v1[0] - v0[0], v1[1] - v0[1]};
+
+    // normal to the edge, pointing *into* the convex hull
+    mjtNum n01[2] = {-e01[1], e01[0]};
+
+    // if constraint is active, project to the edge, compare to best so far
+    mjtNum v0_to_query[2] = {query[0] - v0[0], query[1] - v0[1]};
+    if (mju_dot(v0_to_query, n01, 2) < 0) {
+      mjtNum projection[2];
+      ProjectToSegment2D(projection, query, v0, v1);
+      mjtNum sqrdist = mju_sqrdist2(projection, query);
+      if (!outside || (outside && sqrdist < best_sqrdist)) {
+        // first or closer candidate, copy to res
+        res[0] = projection[0];
+        res[1] = projection[1];
+        best_sqrdist = sqrdist;
+      }
+      outside = 1;
+    }
+  }
+
+  // not outside any edge, return the query point
+  if (!outside) {
+    res[0] = query[0];
+    res[1] = query[1];
+  }
+}
+
+// find the convex hull of a small set of 2D points
+int Hull2D(int* hull, int num_points, const mjtNum* points) {
+  // handle small number of points
+  if (num_points < 1) return 0;
+  hull[0] = 0;
+  if (num_points == 1) return 1;
+  if (num_points == 2) {
+    hull[1] = 1;
+    return 2;
+  }
+
+  // find the point with largest x value - must lie on hull
+  mjtNum best_x = points[0];
+  mjtNum best_y = points[1];
+  for (int i = 1; i < num_points; i++) {
+    mjtNum x = points[2*i];
+    mjtNum y = points[2*i + 1];
+
+    // accept if larger, use y value to tie-break exact equality
+    if (x > best_x || (x == best_x && y > best_y)) {
+      best_x = x;
+      best_y = y;
+      hull[0] = i;
+    }
+  }
+
+  //  Gift-wrapping algorithm takes time O(nh)
+  // TODO(benmoran) Investigate faster convex hull methods.
+  int num_hull = 1;
+  for (int i = 0; i < num_points; i++) {
+    // loop over all points, find point that is furthest outside
+    int next = -1;
+    for (int candidate = 0; candidate < num_points; candidate++) {
+      if ((next == -1) ||
+          IsEdgeOutside(points + 2*hull[num_hull - 1],
+                        points + 2*next,
+                        points + 2*candidate)) {
+        next = candidate;
+      }
+    }
+
+    // termination condition
+    if ((num_hull > 1) && (next == hull[0])) {
+      break;
+    }
+
+    // add new point
+    hull[num_hull++] = next;
+  }
+
+  return num_hull;
+}
+
 }  // namespace mjpc

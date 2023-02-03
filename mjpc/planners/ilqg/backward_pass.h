@@ -57,6 +57,12 @@ class iLQGBackwardPass {
                   BoxQP &boxqp, const double *action,
                   const double *action_limits, int reg_type, int limits);
 
+  // compute backward pass using Riccati
+  int Riccati(iLQGPolicy *p, const ModelDerivatives *md,
+              const CostDerivatives *cd, int dim_dstate, int dim_action, int T,
+              double reg, BoxQP &boxqp, const double *actions,
+              const double *action_limits, const iLQGSettings &settings);
+
   // scale backward pass regularization
   void ScaleRegularization(double factor, double reg_min, double reg_max);
 

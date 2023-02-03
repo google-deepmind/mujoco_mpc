@@ -63,8 +63,8 @@ void iLQSPlanner::Reset(int horizon) {
   // iLQG
   ilqg.Reset(horizon);
 
-  // online_policy
-  online_policy = 0;
+  // active_policy
+  active_policy = 0;
 }
 
 // set state
@@ -78,12 +78,17 @@ void iLQSPlanner::SetState(State& state) {
 
 // optimize nominal policy using iLQS
 void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // ----- Sampling ----- //
+   // ----- Sampling ----- //
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
   int num_trajectory = sampling.num_trajectory_;
   sampling.ResizeMjData(sampling.model, pool.NumThreads());
+
+  // timers
+  double nominal_time = 0.0;
+  double rollouts_time = 0.0;
+  double policy_update_time = 0.0;
 
   // ----- nominal policy ----- //
   // start timer
@@ -101,11 +106,12 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   double* best_actions;
   double best_return;
 
-  if (online_policy == 0) {
+  if (active_policy == 0) {
     // rollout old policy
     sampling.NominalTrajectory(horizon, pool);
 
     // set candidate policy nominal trajectory
+    ilqg.policy.trajectory = sampling.trajectory[0];
     ilqg.candidate_policy[0].trajectory = sampling.trajectory[0];
 
     best_actions = sampling.trajectory[0].actions.data();
@@ -115,10 +121,10 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     ilqg.NominalTrajectory(horizon, pool);
 
     // set nominal trajectory
-    sampling.trajectory[0] = ilqg.trajectory[0];
+    sampling.trajectory[0] = ilqg.candidate_policy[0].trajectory;
 
-    best_actions = ilqg.trajectory[0].actions.data();
-    best_return = ilqg.trajectory[0].total_return;
+    best_actions = ilqg.candidate_policy[0].trajectory.actions.data();
+    best_return = ilqg.candidate_policy[0].trajectory.total_return;
   }
 
   // resample policy
@@ -153,7 +159,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  sampling.nominal_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
+  nominal_time += std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::steady_clock::now() - nominal_start)
                       .count();
 
@@ -177,7 +183,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  sampling.rollouts_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
+  rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
                        std::chrono::steady_clock::now() - rollouts_start)
                        .count();
 
@@ -194,7 +200,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  sampling.policy_update_compute_time =
+  policy_update_time +=
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - policy_update_start)
           .count();
@@ -203,12 +209,18 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   sampling.improvement = mju_max(
       best_return - sampling.trajectory[sampling.winner].total_return, 0.0);
 
+  // set timers
+  sampling.nominal_compute_time = nominal_time;
+  sampling.rollouts_compute_time = rollouts_time;
+  sampling.policy_update_compute_time = policy_update_time;
+
   // check for improvement
   if (sampling.improvement > 0) {
     // set policy
-    online_policy = 0;
+    active_policy = 0;
 
     // set iLQG time to zero 
+    ilqg.nominal_compute_time = nominal_time;
     ilqg.model_derivative_compute_time = 0.0;
     ilqg.cost_derivative_compute_time = 0.0;
     ilqg.rollouts_compute_time = 0.0;
@@ -220,18 +232,12 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // ----- iLQG ----- //
   ilqg.Iteration(horizon, pool);
-
-  // set policy
-  if (ilqg.improvement > 0) {
-    online_policy = 1;
-  } else {
-    online_policy = 0;
-  }
+  active_policy = 1;
 }
 
 // compute trajectory using nominal policy
 void iLQSPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
-  if (online_policy == 0) {
+  if (active_policy == 0) {
     // Sampling
     sampling.NominalTrajectory(horizon, pool);
   } else {
@@ -243,7 +249,7 @@ void iLQSPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 // set action from policy
 void iLQSPlanner::ActionFromPolicy(double* action, const double* state,
                                    double time) {
-  if (online_policy == 0) {
+  if (active_policy == 0) {
     // Sampling
     sampling.ActionFromPolicy(action, state, time);
   } else {
@@ -254,11 +260,10 @@ void iLQSPlanner::ActionFromPolicy(double* action, const double* state,
 
 // return trajectory with best total return
 const Trajectory* iLQSPlanner::BestTrajectory() {
-  if (online_policy == 0) {
-    // Sampling
+  // return &trajectory;
+  if (active_policy == 0) {
     return sampling.BestTrajectory();
   } else {
-    // iLQG
     return ilqg.BestTrajectory();
   }
 }

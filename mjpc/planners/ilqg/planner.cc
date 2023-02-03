@@ -341,8 +341,8 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
 // single iLQG iteration
 void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
-  // get nominal trajectory 
-  this->NominalTrajectory(horizon, pool);
+  // set previous best cost
+  double previous_return = candidate_policy[0].trajectory.total_return;
 
   // ----- setup ----- //
   // resize data for rollouts
@@ -523,8 +523,6 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   this->ActionRollouts(horizon, pool);
 
   // ----- evaluate rollouts ----- //
-  // set previous best cost
-  double previous_return = candidate_policy[0].trajectory.total_return;
 
   // get best rollout
   int best_rollout = this->BestRollout(previous_return, num_trajectory);
@@ -670,19 +668,19 @@ void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
                    &linesearch_steps = linesearch_steps, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, &userdata = this->userdata,
-                   i]() {
+                   &settings = this->settings, i]() {
       
       // feedback scaling 
       candidate_policy[i].feedback_scaling = linesearch_steps[i];
 
       // policy
-      auto feedback_policy = [&candidate_policy = candidate_policy[i]](
+      auto feedback_policy = [&candidate_policy = candidate_policy[i], &settings = settings](
                                  double* action, const double* state,
                                  double time) {
-        candidate_policy.Action(action, state, time);
+        candidate_policy.Action(action, settings.nominal_feedback_scaling ? state : NULL, time);
       };
 
-      // policy rollout (discrete time)
+      // policy rollout
       trajectory[i].Rollout(
           feedback_policy, task, model, data[ThreadPool::WorkerId()].get(),
           state.data(), time, mocap.data(), userdata.data(), horizon);

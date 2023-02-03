@@ -88,7 +88,7 @@ class iLQSPlanner : public Planner {
   LinearSolve solver;
 
   // online policy for returning actions
-  int online_policy;
+  int active_policy;
 };
 
 }  // namespace mjpc

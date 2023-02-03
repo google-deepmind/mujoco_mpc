@@ -109,8 +109,7 @@ void humanoid::Tracking::Residual(const double *parameters,
   auto get_body_sensor_pos = [&](const std::string &body_name,
                                  double result[3]) {
     std::string pos_sensor_name = "tracking_pos[" + body_name + "]";
-    double *sensor_pos =
-        mjpc::SensorByName(model, data, pos_sensor_name.c_str());
+    double *sensor_pos = SensorByName(model, data, pos_sensor_name.c_str());
     mju_copy3(result, sensor_pos);
   };
 
@@ -163,7 +162,7 @@ void humanoid::Tracking::Residual(const double *parameters,
 
     // subtract current velocity
     double *sensor_linvel =
-        mjpc::SensorByName(model, data, linvel_sensor_name.c_str());
+        SensorByName(model, data, linvel_sensor_name.c_str());
     mju_subFrom3(&residual[counter], sensor_linvel);
 
     counter += 3;

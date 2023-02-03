@@ -52,7 +52,7 @@ class CostDerivatives {
   // compute derivatives at all time steps
   void Compute(double* r, double* rx, double* ru, int dim_state_derivative,
                int dim_action, int dim_max, int num_sensors, int num_residual,
-               const int* dim_norm_residual, int num_cost,
+               const int* dim_norm_residual, int num_term,
                const double* weights, const NormType* norms,
                const double* parameters, const int* num_norm_parameter,
                double risk, int T, ThreadPool& pool);

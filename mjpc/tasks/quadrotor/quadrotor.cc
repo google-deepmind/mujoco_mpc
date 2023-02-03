@@ -32,12 +32,12 @@ namespace mjpc {
 void Quadrotor::Residual(const double* parameters, const mjModel* model,
                          const mjData* data, double* residuals) {
   // ---------- Residual (0) ----------
-  double* position = mjpc::SensorByName(model, data, "position");
+  double* position = SensorByName(model, data, "position");
   mju_sub(residuals, position, data->mocap_pos, 3);
 
   // ---------- Residual (1) ----------
   double quadrotor_mat[9];
-  double* orientation = mjpc::SensorByName(model, data, "orientation");
+  double* orientation = SensorByName(model, data, "orientation");
   mju_quat2Mat(quadrotor_mat, orientation);
 
   double goal_mat[9];
@@ -46,12 +46,11 @@ void Quadrotor::Residual(const double* parameters, const mjModel* model,
   mju_sub(residuals + 3, quadrotor_mat, goal_mat, 9);
 
   // ---------- Residual (2) ----------
-  double* linear_velocity = mjpc::SensorByName(model, data, "linear_velocity");
+  double* linear_velocity = SensorByName(model, data, "linear_velocity");
   mju_sub(residuals + 12, linear_velocity, parameters, 3);
 
   // ---------- Residual (3) ----------
-  double* angular_velocity =
-      mjpc::SensorByName(model, data, "angular_velocity");
+  double* angular_velocity = SensorByName(model, data, "angular_velocity");
   mju_sub(residuals + 15, angular_velocity, parameters + 3, 3);
 
   // ---------- Residual (4) ----------
@@ -61,8 +60,8 @@ void Quadrotor::Residual(const double* parameters, const mjModel* model,
 // ----- Transition for quadrotor task -----
 void Quadrotor::Transition(const mjModel* model, mjData* data, Task* task) {
   // set stage to GUI selection
-  if (task->transition_stage > 0) {
-    data->userdata[0] = task->transition_stage - 1;
+  if (task->stage > 0) {
+    data->userdata[0] = task->stage - 1;
   } else {
     // goal position
     const double* goal_position = data->mocap_pos;
@@ -71,10 +70,10 @@ void Quadrotor::Transition(const mjModel* model, mjData* data, Task* task) {
     const double* goal_orientation = data->mocap_quat;
 
     // system's position
-    double* position = mjpc::SensorByName(model, data, "position");
+    double* position = SensorByName(model, data, "position");
 
     // system's orientation
-    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    double* orientation = SensorByName(model, data, "orientation");
 
     // position error
     double position_error[3];

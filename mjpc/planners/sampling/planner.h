@@ -69,7 +69,7 @@ class SamplingPlanner : public Planner {
                         double time) override;
 
   // resample nominal policy
-  void ResamplePolicy(int horizon);
+  void UpdateNominalPolicy(int horizon);
 
   // add noise to nominal policy
   void AddNoiseToPolicy(int i);
@@ -132,7 +132,6 @@ class SamplingPlanner : public Planner {
   int processed_noise_status;
 
   // timing
-  double nominal_compute_time;
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;

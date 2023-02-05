@@ -89,7 +89,7 @@ TEST(GradientTest, LinearTest) {
 
   LinearSplineMapping lsm;
   lsm.Allocate(n);
-  lsm.Compute(x, y, S, t, T);
+  lsm.Compute(x, S, t, T);
 
   // mapping error
   double map_error[n * T * n * S];

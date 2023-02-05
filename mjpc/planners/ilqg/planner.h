@@ -50,7 +50,7 @@ class iLQGPlanner : public Planner {
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
 
   // compute trajectory using nominal policy
-  void NominalTrajectory(int horizon) override;
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
@@ -66,11 +66,22 @@ class iLQGPlanner : public Planner {
   void GUI(mjUI& ui) override;
 
   // planner-specific plots
-  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-             int planning) override;
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning) override;
 
-  // compute candidate trajectories
-  void Rollouts(int horizon, ThreadPool& pool);
+  // single iLQG iteration
+  void Iteration(int horizon, ThreadPool& pool);
+
+  // linesearch over action improvement
+  void ActionRollouts(int horizon, ThreadPool& pool);
+
+  // linesearch over feedback scaling
+  void FeedbackRollouts(int horizon, ThreadPool& pool);
+
+  // return index of trajectory with best rollout
+  int BestRollout(double previous_return, int num_trajectory);
+
+  // 
 
   // ----- members ----- //
   mjModel* model;
@@ -110,7 +121,7 @@ class iLQGPlanner : public Planner {
   BoxQP boxqp;
 
   // step sizes
-  double improvement_step[kMaxTrajectory];
+  double linesearch_steps[kMaxTrajectory];
 
   // best trajectory id
   int winner;
@@ -119,7 +130,8 @@ class iLQGPlanner : public Planner {
   iLQGSettings settings;
 
   // values
-  double step_size;
+  double action_step;
+  double feedback_scaling;
   double improvement;
   double expected;
   double surprise;
@@ -132,7 +144,7 @@ class iLQGPlanner : public Planner {
   double backward_pass_compute_time;
   double policy_update_compute_time;
 
- private:
+  // mutex
   mutable std::shared_mutex mtx_;
 };
 

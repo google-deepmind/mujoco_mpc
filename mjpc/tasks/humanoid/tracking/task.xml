@@ -4,7 +4,6 @@
   <size memory="400K"/>
 
   <custom>
-    <numeric name="task_transition" data="1" />
     <numeric name="sampling_representation" data="2" />
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.5" />
@@ -78,28 +77,28 @@
   </worldbody>
 
   <sensor>
-    <user name="joint vel." dim="21" user="0 0.001 0.0 0.01" />
-    <user name="control" dim="21" user="3 0.1 0 1.0 0.3" />
+    <user name="Joint Vel." dim="21" user="0 0.001 0.0 0.01" />
+    <user name="Control" dim="21" user="3 0.1 0 1.0 0.3" />
 
-    <user name="pos[root]" dim="3" user="6 100.0 0.0 100.0 0.1" />
-    <user name="pos[head]" dim="3" user="6 0.0 0.0 100.0 0.1" />
-    <user name="pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[knee]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[hand]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[elbow]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[shoulder]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="pos[hip]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[root]" dim="3" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Pos[head]" dim="3" user="6 0.0 0.0 100.0 0.1" />
+    <user name="Pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[knee]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[hand]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[elbow]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[shoulder]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[hip]" dim="6" user="6 30.0 0.0 100.0 0.1" />
 
-    <user name="vel[root]" dim="3" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[head]" dim="3" user="6 0.0 0 1.0 0.3" />
-    <user name="vel[toe]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[heel]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[knee]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[hand]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[elbow]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[shoulder]" dim="6" user="6 0.1 0 1.0 0.3" />
-    <user name="vel[hip]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[root]" dim="3" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[head]" dim="3" user="6 0.0 0 1.0 0.3" />
+    <user name="Vel[toe]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[heel]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[knee]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[hand]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[elbow]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[shoulder]" dim="6" user="6 0.1 0 1.0 0.3" />
+    <user name="Vel[hip]" dim="6" user="6 0.1 0 1.0 0.3" />
 
     <framepos name="trace0" objtype="body" objname="torso"/>
 
@@ -138,13 +137,13 @@
     <framelinvel name="tracking_linvel[rhip]" objtype="site" objname="tracking[rhip]" />
   </sensor>
 
-  <include file="./keyframes/CMU-CMU-02-02_04_poses.xml" />  <!-- simple jump, balance -->
+  <!-- <include file="./keyframes/CMU-CMU-02-02_04_poses.xml" />  simple jump, balance -->
   <!-- <include file="./keyframes/CMU-CMU-87-87_01_poses.xml" />  <!-\- jump with kick and spin -\-> -->
   <!-- <include file="./keyframes/CMU-CMU-88-88_06_poses.xml" />  <!-\- jump and spin kick -\-> -->
   <!-- <include file="./keyframes/CMU-CMU-88-88_07_poses.xml" />  <!-\- cartwheel-\-> -->
   <!-- <include file="./keyframes/CMU-CMU-88-88_08_poses.xml" />  <!-\- crouch and flip backward on hands -\-> -->
   <!-- <include file="./keyframes/CMU-CMU-88-88_09_poses.xml" />  <!-\- stretch and cartwheel -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-90-90_19_poses.xml" />  <!-\- monkey backflip -\-> -->
+  <include file="./keyframes/CMU-CMU-90-90_19_poses.xml" />  <!-\- monkey backflip -\->
   <!-- <include file="./keyframes/CMU-CMU-103-103_08_poses.xml" />  <!-\- dance: "xtra fancY charleston" -\-> -->
   <!-- <include file="./keyframes/CMU-CMU-108-108_13_poses.xml" />  <!-\- run -\-> -->
   <!-- <include file="./keyframes/CMU-CMU-137-137_40_poses.xml" />  <!-\- walk -\-> -->

@@ -61,7 +61,7 @@ class GradientPlanner : public Planner {
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
 
   // compute trajectory using nominal policy
-  void NominalTrajectory(int horizon) override;
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // compute action from policy
   void ActionFromPolicy(double* action, const double* state,
@@ -83,8 +83,8 @@ class GradientPlanner : public Planner {
   void GUI(mjUI& ui) override;
 
   // planner-specific plots
-  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-             int planning) override;
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning) override;
 
   // ----- members ----- //
   mjModel* model;
@@ -131,7 +131,7 @@ class GradientPlanner : public Planner {
   std::vector<std::unique_ptr<SplineMapping>> mappings;
 
   // step sizes
-  double improvement_step[kMaxTrajectory];
+  double linesearch_steps[kMaxTrajectory];
 
   // best trajectory id
   int winner;
@@ -140,7 +140,7 @@ class GradientPlanner : public Planner {
   GradientPlannerSettings settings;
 
   // values
-  double step_size;
+  double action_step;
   double expected;
   double improvement;
   double surprise;

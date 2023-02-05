@@ -89,7 +89,7 @@ void Agent::Initialize(mjModel* model, const std::string& task_names,
 
   // status
   plan_enabled = false;
-  action_enabled = false;
+  action_enabled = true;
   visualize_enabled = false;
   allocate_enabled = true;
   plot_enabled = true;

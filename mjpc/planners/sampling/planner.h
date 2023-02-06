@@ -15,11 +15,12 @@
 #ifndef MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 #define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
 
+#include <mujoco/mujoco.h>
+
 #include <atomic>
 #include <shared_mutex>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "planners/planner.h"
 #include "planners/sampling/policy.h"
 #include "states/state.h"
@@ -61,20 +62,20 @@ class SamplingPlanner : public Planner {
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
 
   // compute trajectory using nominal policy
-  void NominalTrajectory(int horizon) override;
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
                         double time) override;
 
   // resample nominal policy
-  void ResamplePolicy(int horizon);
+  void UpdateNominalPolicy(int horizon);
 
   // add noise to nominal policy
   void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectories, int horizon, ThreadPool& pool);
+  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -86,8 +87,8 @@ class SamplingPlanner : public Planner {
   void GUI(mjUI& ui) override;
 
   // planner-specific plots
-  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-             int planning) override;
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning) override;
 
   // ----- members ----- //
   mjModel* model;
@@ -100,7 +101,7 @@ class SamplingPlanner : public Planner {
   std::vector<double> userdata;
 
   // policy
-  SamplingPolicy policy; // (Guarded by mtx_)
+  SamplingPolicy policy;  // (Guarded by mtx_)
   SamplingPolicy candidate_policy[kMaxTrajectory];
 
   // scratch
@@ -108,7 +109,7 @@ class SamplingPlanner : public Planner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectories[kMaxTrajectory];
+  Trajectory trajectory[kMaxTrajectory];
 
   // rollout parameters
   double timestep_power;
@@ -131,13 +132,11 @@ class SamplingPlanner : public Planner {
   int processed_noise_status;
 
   // timing
-  double nominal_compute_time;
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;
 
- private:
-  int num_trajectories_;
+  int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };
 

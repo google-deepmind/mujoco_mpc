@@ -71,7 +71,7 @@ class AgentTest : public ::testing::Test {
     EXPECT_NEAR(agent->horizon_, 1.0, 1.0e-5);
     EXPECT_EQ(agent->steps_, 11);
     EXPECT_FALSE(agent->plan_enabled);
-    EXPECT_FALSE(agent->action_enabled);
+    EXPECT_TRUE(agent->action_enabled);
     EXPECT_FALSE(agent->visualize_enabled);
     EXPECT_TRUE(agent->allocate_enabled);
     EXPECT_TRUE(agent->plot_enabled);

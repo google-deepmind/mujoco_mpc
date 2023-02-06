@@ -76,7 +76,7 @@ TEST(GradientTest, ZeroTest) {
 
   ZeroSplineMapping zsm;
   zsm.Allocate(n);
-  zsm.Compute(x, y, S, t, T);
+  zsm.Compute(x, S, t, T);
 
   // mapping error
   double map_error[n * T * n * S];

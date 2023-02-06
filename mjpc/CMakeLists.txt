@@ -255,6 +255,8 @@ add_library(
   planners/include.h
   planners/cost_derivatives.cc
   planners/cost_derivatives.h
+  planners/linear_solve.cc
+  planners/linear_solve.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
   planners/sampling/planner.cc
@@ -278,6 +280,8 @@ add_library(
   planners/ilqg/policy.cc
   planners/ilqg/policy.h
   planners/ilqg/settings.h
+  planners/ilqs/planner.cc
+  planners/ilqs/planner.h
   norm.cc
   norm.h
   task.cc

@@ -20,7 +20,7 @@ namespace mjpc {
 // GradientPlanner settings
 struct GradientPlannerSettings {
   int max_rollout = 1;           // maximum number of planner iterations
-  double min_step_size = 1.0e-8;    // minimum step size for line search
+  double min_linesearch_step = 1.0e-8;    // minimum step size for line search
   double fd_tolerance = 1.0e-5;  // finite-difference tolerance
   double fd_mode = 0;  // type of finite difference; 0: one-side, 1: centered
   int action_limits = 1;  // flag

@@ -598,7 +598,7 @@ void Agent::PlotInitialize() {
       plots_.timer.linedata[j][2 * i] = (float)-i;
 
 
-      // colors 
+      // colors
       if (j == 0) continue;
       plots_.planner.linergb[j][0] = CostColors[j][0];
       plots_.planner.linergb[j][1] = CostColors[j][1];

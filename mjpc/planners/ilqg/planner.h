@@ -81,7 +81,7 @@ class iLQGPlanner : public Planner {
   // return index of trajectory with best rollout
   int BestRollout(double previous_return, int num_trajectory);
 
-  // 
+  //
 
   // ----- members ----- //
   mjModel* model;

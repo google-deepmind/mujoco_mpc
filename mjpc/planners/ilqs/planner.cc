@@ -140,13 +140,13 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // check for improvement
   if (active_policy == kSampling) {
     if (sampling.improvement > 0) {
-      return; 
+      return;
     } else {
       // set iLQG nominal trajectory
       ilqg.candidate_policy[0].trajectory = sampling.trajectory[0];
     }
-  } 
-  
+  }
+
   // iLQG
   ilqg.Iteration(horizon, pool);
   if (ilqg.trajectory[ilqg.winner].total_return < sampling.trajectory[sampling.winner].total_return) {
@@ -218,13 +218,13 @@ void iLQSPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   ilqg.Plots(fig_planner, fig_timer, planner_shift + 1, timer_shift + 4, planning);
 
   // ----- re-label ----- //
-  // planner plots 
+  // planner plots
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improve. (S)");
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift + 1], "Reg. (LQ)");
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift + 2], "Action Step (LQ)");
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift + 3], "Feedback Scaling (LQ)");
 
-  // timer plots 
+  // timer plots
   mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Noise (S)");
   mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Rollout (S)");
   mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Policy Update (S)");

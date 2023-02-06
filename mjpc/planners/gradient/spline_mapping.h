@@ -65,7 +65,7 @@ class ZeroSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times, 
+  void Compute(const double* input_times, int num_input, const double* output_times,
                int num_output);
 
   // return mapping
@@ -91,7 +91,7 @@ class LinearSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times, 
+  void Compute(const double* input_times, int num_input, const double* output_times,
                int num_output);
 
   // return mapping
@@ -117,7 +117,7 @@ class CubicSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times, 
+  void Compute(const double* input_times, int num_input, const double* output_times,
                int num_output);
 
   // return mapping

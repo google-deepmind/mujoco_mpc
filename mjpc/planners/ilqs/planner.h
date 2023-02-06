@@ -84,7 +84,7 @@ class iLQSPlanner : public Planner {
   // spline mapping
   std::vector<std::unique_ptr<SplineMapping>> mappings;
 
-  // linear system solver 
+  // linear system solver
   LinearSolve solver;
 
   // online policy for returning actions

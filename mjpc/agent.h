@@ -140,7 +140,6 @@ class Agent {
   double rollout_compute_time_;
 
   // objective
-  std::vector<double> residual_;
   double cost_;
   std::vector<double> terms_;
 

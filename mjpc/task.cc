@@ -94,12 +94,6 @@ void Task::GetFrom(const mjModel* model) {
         mju_error("Cost construction from XML: Missing parameter value\n");
       }
       norm[num_term] = (NormType)s[0];
-
-      // check Null norm
-      if (norm[num_term] == -1 && dim_norm_residual[num_term] != 1) {
-        mju_error("Cost construction from XML: Missing parameter value\n");
-      }
-
       weight[num_term] = s[1];
       num_norm_parameter[num_term] = NormParameterDimension(s[0]);
       mju_copy(DataAt(num_parameter, parameter_shift), s + 4,

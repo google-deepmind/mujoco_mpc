@@ -31,7 +31,8 @@ void ZeroSplineMapping::Allocate(int dim) {
 }
 
 // compute zero-order-hold mapping
-void ZeroSplineMapping::Compute(const double* input_times, int num_input,
+void ZeroSplineMapping::Compute(const double* input_times,
+                                const double* input_values, int num_input,
                                 const double* output_times, int num_output) {
   // set zeros
   std::fill(mapping.begin(),
@@ -62,7 +63,8 @@ void LinearSplineMapping::Allocate(int dim) {
 }
 
 // compute linear-interpolation mapping
-void LinearSplineMapping::Compute(const double* input_times, int num_input,
+void LinearSplineMapping::Compute(const double* input_times,
+                                  const double* input_values, int num_input,
                                   const double* output_times, int num_output) {
   // set zeros
   std::fill(mapping.begin(),
@@ -112,7 +114,8 @@ void CubicSplineMapping::Allocate(int dim) {
 }
 
 // compute cubic-interpolation mapping
-void CubicSplineMapping::Compute(const double* input_times, int num_input,
+void CubicSplineMapping::Compute(const double* input_times,
+                                 const double* input_values, int num_input,
                                  const double* output_times, int num_output) {
   // FiniteDifferenceSlope matrix
   std::fill(

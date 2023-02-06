@@ -155,7 +155,7 @@ void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
                const double foot2[3], const double foot3[3]);
 
 // default cost colors
-extern const float CostColors[20][3];
+extern const float CostColors[10][3];
 
 // plots - vertical line
 void PlotVertical(mjvFigure* fig, double time, double min_value,

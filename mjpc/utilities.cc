@@ -136,7 +136,7 @@ double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
   std::string list_name = absl::StrCat("residual_list_", name);
   for (int i = 0; i < m->ntext; i++) {
     if (list_name == &m->names[m->name_textadr[i]]) {
-      int list_index = 0;
+      int64_t list_index = 0;
       std::string_view options(m->text_data + m->text_adr[i],
                                m->text_size[i] - 1);
       std::vector<std::string> values = absl::StrSplit(options, '|');
@@ -195,7 +195,7 @@ int ParameterIndex(const mjModel* model, std::string_view name) {
 
 double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   // list selections are stored as ints, but numeric values are doubles.
-  int value = m->numeric_data[m->numeric_adr[numeric_index]];
+  int64_t value = m->numeric_data[m->numeric_adr[numeric_index]];
   return *reinterpret_cast<const double*>(&value);
 }
 

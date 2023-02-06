@@ -217,6 +217,14 @@ inline UniqueMjData MakeUniqueMjData(mjData* d) {
   return UniqueMjData(d, mj_deleteData);
 }
 
+
+// returns point in 2D convex hull that is nearest to query
+void NearestInHull(mjtNum res[2], const mjtNum query[2],
+                   const mjtNum* points, const int* hull, int num_hull);
+
+// find the convex hull of a set of 2D points
+int Hull2D(int* hull, int num_points, const mjtNum* points);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

@@ -1,9 +1,11 @@
 <mujoco model="Humanoid Track">
   <include file="../../common.xml"/>
   <include file="../humanoid.xml" />
-  <size memory="400K"/>
+  <size memory="400K" nuserdata="1"/>
 
   <custom>
+    <text name="task_transition" data="Jump|Kick Spin" />
+    <!-- |Spin Kick|Cartwheel (1)|Crouch Flip|Cartwheel (2)|Monkey Flip|Dance|Run|Walk|Loop|None -->
     <numeric name="sampling_representation" data="2" />
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.5" />
@@ -137,14 +139,14 @@
     <framelinvel name="tracking_linvel[rhip]" objtype="site" objname="tracking[rhip]" />
   </sensor>
 
-  <!-- <include file="./keyframes/CMU-CMU-02-02_04_poses.xml" />  simple jump, balance -->
-  <!-- <include file="./keyframes/CMU-CMU-87-87_01_poses.xml" />  <!-\- jump with kick and spin -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-88-88_06_poses.xml" />  <!-\- jump and spin kick -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-88-88_07_poses.xml" />  <!-\- cartwheel-\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-88-88_08_poses.xml" />  <!-\- crouch and flip backward on hands -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-88-88_09_poses.xml" />  <!-\- stretch and cartwheel -\-> -->
+  <include file="./keyframes/CMU-CMU-02-02_04_poses.xml" />  simple jump, balance
+  <include file="./keyframes/CMU-CMU-87-87_01_poses.xml" />  <!-\- jump with kick and spin -\->
+  <include file="./keyframes/CMU-CMU-88-88_06_poses.xml" />  <!-\- jump and spin kick -\->
+  <include file="./keyframes/CMU-CMU-88-88_07_poses.xml" />  <!-\- cartwheel-\->
+  <include file="./keyframes/CMU-CMU-88-88_08_poses.xml" />  <!-\- crouch and flip backward on hands -\->
+  <include file="./keyframes/CMU-CMU-88-88_09_poses.xml" />  <!-\- stretch and cartwheel -\->
   <include file="./keyframes/CMU-CMU-90-90_19_poses.xml" />  <!-\- monkey backflip -\->
-  <!-- <include file="./keyframes/CMU-CMU-103-103_08_poses.xml" />  <!-\- dance: "xtra fancY charleston" -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-108-108_13_poses.xml" />  <!-\- run -\-> -->
-  <!-- <include file="./keyframes/CMU-CMU-137-137_40_poses.xml" />  <!-\- walk -\-> -->
+  <include file="./keyframes/CMU-CMU-103-103_08_poses.xml" />  <!-\- dance: "xtra fancY charleston" -\->
+  <include file="./keyframes/CMU-CMU-108-108_13_poses.xml" />  <!-\- run -\->
+  <include file="./keyframes/CMU-CMU-137-137_40_poses.xml" />  <!-\- walk -\->
 </mujoco>

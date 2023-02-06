@@ -170,6 +170,7 @@ int iLQGBackwardPass::RiccatiStep(
                           boxqp.H.data(), boxqp.g.data(), m, boxqp.lower.data(),
                           boxqp.upper.data());
     if (mFree < 0) {
+      printf("backward_pass failure\n");
       return 0;
     }
 
@@ -268,7 +269,7 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
   // iterate Riccati backward in time
   int bp_iter = 0;
   int time_index = T - 1;
-  while (bp_iter < settings.max_regularization_iterations) {
+  while (bp_iter < settings.max_regularization_iter) {
     for (int t = T - 1; t > 0; t--) {
       int status = this->RiccatiStep(
           dim_dstate, dim_action, reg, DataAt(Vx, t * dim_dstate),

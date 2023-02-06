@@ -74,8 +74,6 @@ void iLQGPolicy::Reset(int horizon) {
       0.0);
   std::fill(state_interp.begin(),
             state_interp.begin() + model->nq + model->nv + model->na, 0.0);
-
-  feedback_scaling = 1.0;
 }
 
 // set action from policy
@@ -148,7 +146,7 @@ void iLQGPolicy::Action(double* action, const double* state,
     StateDiff(model, state_scratch.data(), state_interp.data(), state, 1.0);
     mju_mulMatVec(action_scratch.data(), feedback_gain_scratch.data(),
                   state_scratch.data(), dim_action, dim_state_derivative);
-    mju_addToScl(action, action_scratch.data(), feedback_scaling, dim_action);
+    mju_addTo(action, action_scratch.data(), dim_action);
   }
 
   // clamp controls

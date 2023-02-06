@@ -12,39 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_POLICY_H_
-#define MJPC_PLANNERS_POLICY_H_
+#ifndef MJPC_PLANNERS_LINEAR_SOLVE_H_
+#define MJPC_PLANNERS_LINEAR_SOLVE_H_
 
-#include <mujoco/mjmodel.h>
-#include "task.h"
+#include <vector>
 
 namespace mjpc {
 
-// type of interpolation
-enum PolicyRepresentation : int {
-  kZeroSpline,
-  kLinearSpline,
-  kCubicSpline,
-};
-
-// virtual policy
-class Policy {
+// data and methods for linear solve (i.e., Ax = b) via least-squares or
+// least-norm https://ee263.stanford.edu/lectures/ls.pdf
+// https://ee263.stanford.edu/archive/min-norm.pdf
+class LinearSolve {
  public:
+  // constructor
+  LinearSolve() = default;
+
   // destructor
-  virtual ~Policy() = default;
+  ~LinearSolve() = default;
+
+  // ----- methods ----- //
 
   // allocate memory
-  virtual void Allocate(const mjModel* model, const Task& task,
-                        int horizon) = 0;
+  void Initialize(int dim_row, int dim_col);
 
   // reset memory to zeros
-  virtual void Reset(int horizon) = 0;
+  void Solve(double* x, const double* A, const double* b);
 
-  // set action from policy
-  virtual void Action(double* action, const double* state,
-                      double time) const = 0;
+  // members
+  int dim_row;
+  int dim_col;
+  std::vector<double> matrix_cache;
+  std::vector<double> vector_cache;
 };
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_POLICY_H_
+#endif  // MJPC_PLANNERS_LINEAR_SOLVE_H_

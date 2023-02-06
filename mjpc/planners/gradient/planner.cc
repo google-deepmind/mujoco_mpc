@@ -53,9 +53,9 @@ void GradientPlanner::Initialize(mjModel* model, const Task& task) {
       2 * model->nv + model->na;    // state derivative dimension
   dim_action = model->nu;           // action dimension
   dim_sensor = model->nsensordata;  // number of sensor values
-  dim_max = mju_max(mju_max(mju_max(dim_state, dim_state_derivative),
-                                 dim_action),
-                         model->nuser_sensor);
+  dim_max =
+      mju_max(mju_max(mju_max(dim_state, dim_state_derivative), dim_action),
+              model->nuser_sensor);
   num_trajectory = GetNumberOrDefault(32, model, "gradient_num_trajectory");
 }
 
@@ -134,7 +134,7 @@ void GradientPlanner::Reset(int horizon) {
   }
 
   // values
-  step_size = 0.0;
+  action_step = 0.0;
   expected = 0.0;
   improvement = 0.0;
   surprise = 0.0;
@@ -142,8 +142,8 @@ void GradientPlanner::Reset(int horizon) {
 
 // set state
 void GradientPlanner::SetState(State& state) {
-  state.CopyTo(this->state.data(), this->mocap.data(),
-               this->userdata.data(), &this->time);
+  state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
+               &this->time);
 }
 
 // optimize nominal policy via gradient descent
@@ -175,7 +175,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   this->ResamplePolicy(horizon);
 
   // rollout nominal trajectory
-  this->NominalTrajectory(horizon);
+  this->NominalTrajectory(horizon, pool);
 
   // previous best cost
   double c_prev = trajectory[0].total_return;
@@ -232,11 +232,10 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
                                      &cost_derivative, dim_state_derivative,
                                      dim_action, horizon);
 
-    // compute spline mapping derivatives
+    // compute spline mapping linear operator
     mappings[policy.representation]->Compute(
-        candidate_policy[0].times.data(), candidate_policy[0].parameters.data(),
-        candidate_policy[0].num_spline_points, trajectory[0].times.data(),
-        trajectory[0].horizon - 1);
+        candidate_policy[0].times.data(), candidate_policy[0].num_spline_points,
+        trajectory[0].times.data(), trajectory[0].horizon - 1);
 
     // compute total derivatives
     mju_mulMatTVec(candidate_policy[0].parameter_update.data(),
@@ -253,15 +252,6 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // check for failure
     if (gd_status != 0) return;
 
-    // TODO(taylorhowell): normalize gradient heuristic for cost scale
-    // invariance double grad_norm =
-    //     mju_norm(candidate_policy[0].parameter_update.data(),
-    //              model->nu * candidate_policy[0].num_spline_points);
-    // mju_scl(candidate_policy[0].parameter_update.data(),
-    //         candidate_policy[0].parameter_update.data(),
-    //         1.0 / grad_norm / candidate_policy[0].num_spline_points,
-    //         model->nu * candidate_policy[0].num_spline_points);
-
     // ----- rollout policy ----- //
     // start timer
     auto rollouts_start = std::chrono::steady_clock::now();
@@ -273,8 +263,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes
-    LogScale(improvement_step, 1.0, settings.min_step_size, num_trajectory - 1);
-    improvement_step[num_trajectory - 1] = 0.0;
+    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
+    linesearch_steps[num_trajectory - 1] = 0.0;
 
     // rollouts (parallel)
     this->Rollouts(horizon, pool);
@@ -298,8 +288,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     trajectory[0] = trajectory[winner];
 
     // improvement
-    step_size = improvement_step[winner];
-    expected = -step_size * (gradient.dV[0]) - 1.0e-16;
+    action_step = linesearch_steps[winner];
+    expected = -action_step * (gradient.dV[0]) - 1.0e-16;
     improvement = c_prev - c_best;
     surprise = mju_min(mju_max(0, improvement / expected), 2);
 
@@ -339,7 +329,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 }
 
 // compute trajectory using nominal policy
-void GradientPlanner::NominalTrajectory(int horizon) {
+void GradientPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   // nominal policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {
@@ -348,7 +338,8 @@ void GradientPlanner::NominalTrajectory(int horizon) {
 
   // nominal policy rollout
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), userdata.data(), horizon);
+                        state.data(), time, mocap.data(), userdata.data(),
+                        horizon);
 }
 
 // compute action from policy
@@ -396,14 +387,15 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&data = data_, &trajectory = trajectory,
                    &candidate_policy = candidate_policy,
-                   &improvement_step = improvement_step, &model = this->model,
+                   &linesearch_steps = linesearch_steps, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, &userdata = this->userdata, i]() {
+                   &mocap = this->mocap, horizon, &userdata = this->userdata,
+                   i]() {
       // scale improvement
       mju_addScl(candidate_policy[i].parameters.data(),
                  candidate_policy[i].parameters.data(),
                  candidate_policy[i].parameter_update.data(),
-                 improvement_step[i],
+                 linesearch_steps[i],
                  model->nu * candidate_policy[i].num_spline_points);
 
       // policy
@@ -498,36 +490,40 @@ void GradientPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                            int planning) {
+                            int planner_shift, int timer_shift, int planning) {
   // bounds
   double planner_bounds[2] = {-6, 6};
 
   // ----- planner ----- //
   // step size
-  mjpc::PlotUpdateData(
-      fig_planner, planner_bounds, fig_planner->linedata[0][0] + 1,
-      mju_log10(mju_max(step_size, 1.0e-6)), 100, 0, 0, 1, -100);
+  mjpc::PlotUpdateData(fig_planner, planner_bounds,
+                       fig_planner->linedata[0 + planner_shift][0] + 1,
+                       mju_log10(mju_max(action_step, 1.0e-6)), 100, 0, 0, 1,
+                       -100);
 
   // // improvement
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[1][0] + 1,
-  //     mju_log10(mju_max(improvement, 1.0e-6)), 100, 1, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[1 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(improvement, 1.0e-6)), 100, 1
+  //     + planner_shift, 0, 1, -100);
 
   // // expected
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[2][0] + 1,
-  //     mju_log10(mju_max(expected, 1.0e-6)), 100, 2, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[2 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(expected, 1.0e-6)), 100, 2 +
+  //     planner_shift, 0, 1, -100);
 
   // // surprise
   // mjpc::PlotUpdateData(
-  //     fig_planner, planner_bounds, fig_planner->linedata[3][0] + 1,
-  //     mju_log10(mju_max(surprise, 1.0e-6)), 100, 3, 0, 1, -100);
+  //     fig_planner, planner_bounds, fig_planner->linedata[3 +
+  //     planner_shift][0] + 1, mju_log10(mju_max(surprise, 1.0e-6)), 100, 3 +
+  //     planner_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[0], "Step Size");
-  // mju::strcpy_arr(fig_planner->linename[1], "Improvement");
-  // mju::strcpy_arr(fig_planner->linename[2], "Expected");
-  // mju::strcpy_arr(fig_planner->linename[3], "Surprise");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Step Size");
+  // mju::strcpy_arr(fig_planner->linename[1 + planner_shift], "Improvement");
+  // mju::strcpy_arr(fig_planner->linename[2 + planner_shift], "Expected");
+  // mju::strcpy_arr(fig_planner->linename[3 + planner_shift], "Surprise");
 
   // ranges
   fig_planner->range[1][0] = planner_bounds[0];
@@ -537,36 +533,43 @@ void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   double timer_bounds[2] = {0.0, 1.0};
 
   // update plots
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[9][0] + 1,
-                 1.0e-3 * nominal_compute_time * planning, 100, 9, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * nominal_compute_time * planning, 100, 0 + timer_shift,
+                 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[10][0] + 1,
-                 1.0e-3 * model_derivative_compute_time * planning, 100, 10, 0,
-                 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[1 + timer_shift][0] + 1,
+                 1.0e-3 * model_derivative_compute_time * planning, 100,
+                 1 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[11][0] + 1,
-                 1.0e-3 * cost_derivative_compute_time * planning, 100, 11, 0,
-                 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[2 + timer_shift][0] + 1,
+                 1.0e-3 * cost_derivative_compute_time * planning, 100,
+                 2 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[12][0] + 1,
-                 1.0e-3 * gradient_compute_time * planning, 100, 12, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[3 + timer_shift][0] + 1,
+                 1.0e-3 * gradient_compute_time * planning, 100, 4,
+                 3 + timer_shift, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[13][0] + 1,
-                 1.0e-3 * rollouts_compute_time * planning, 100, 13, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[4 + timer_shift][0] + 1,
+                 1.0e-3 * rollouts_compute_time * planning, 100,
+                 4 + timer_shift, 0, 1, -100);
 
-  PlotUpdateData(fig_timer, timer_bounds, fig_timer->linedata[14][0] + 1,
-                 1.0e-3 * policy_update_compute_time * planning, 100, 14, 0, 1,
-                 -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[5 + timer_shift][0] + 1,
+                 1.0e-3 * policy_update_compute_time * planning, 100,
+                 5 + timer_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[9], "Nominal");
-  mju::strcpy_arr(fig_timer->linename[10], "Model Deriv.");
-  mju::strcpy_arr(fig_timer->linename[11], "Cost Deriv.");
-  mju::strcpy_arr(fig_timer->linename[12], "Gradient");
-  mju::strcpy_arr(fig_timer->linename[13], "Rollouts");
-  mju::strcpy_arr(fig_timer->linename[14], "Policy Update");
+  mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Nominal");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Model Deriv.");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Cost Deriv.");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Gradient");
+  mju::strcpy_arr(fig_timer->linename[4 + timer_shift], "Rollouts");
+  mju::strcpy_arr(fig_timer->linename[5 + timer_shift], "Policy Update");
 }
 
 }  // namespace mjpc

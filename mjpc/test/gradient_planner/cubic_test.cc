@@ -153,7 +153,7 @@ TEST(GradientTest, CubicTest) {
 
   CubicSplineMapping csm;
   csm.Allocate(n);
-  csm.Compute(x, y, S, t, T);
+  csm.Compute(x, S, t, T);
 
   // mapping error
   double map_error[n * T * n * S];

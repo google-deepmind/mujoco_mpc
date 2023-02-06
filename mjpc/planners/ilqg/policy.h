@@ -60,6 +60,7 @@ class iLQGPolicy : public Policy {
   mutable std::vector<double> feedback_gain_scratch;
   mutable std::vector<double> state_interp;
   int representation;
+  double feedback_scaling;
 };
 
 }  // namespace mjpc

@@ -121,7 +121,7 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
     if (list_name == &m->names[m->name_textadr[i]]) {
       // get the nth element in the list of options (without constructing a
       // vector<string>)
-      std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+      std::string_view options(m->text_data + m->text_adr[i]);
       for (std::string_view value : absl::StrSplit(options, '|')) {
         if (list_index == 0) return std::string(value);
         list_index--;

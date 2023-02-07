@@ -160,7 +160,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
   }
 
-  // set winner 
+  // set winner
   winner = best_rollout;
 
   // stop timer
@@ -288,7 +288,7 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
                    i]() {
-      // copy nominal policy 
+      // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
         s.policy.num_parameters = model->nu * s.policy.num_spline_points;  // set

@@ -124,7 +124,6 @@ void Agent::Allocate() {
   allocate_enabled = false;
 
   // cost
-  residual_.resize(task_.num_residual);
   terms_.resize(task_.num_term * kMaxTrajectoryHorizon);
 }
 
@@ -146,7 +145,6 @@ void Agent::Reset() {
   count_ = 0;
 
   // cost
-  std::fill(residual_.begin(), residual_.end(), 0.0);
   std::fill(terms_.begin(), terms_.end(), 0.0);
 }
 
@@ -600,7 +598,7 @@ void Agent::PlotInitialize() {
       plots_.timer.linedata[j][2 * i] = (float)-i;
 
 
-      // colors 
+      // colors
       if (j == 0) continue;
       plots_.planner.linergb[j][0] = CostColors[j][0];
       plots_.planner.linergb[j][1] = CostColors[j][1];
@@ -657,8 +655,9 @@ void Agent::Plots(const mjData* data, int shift) {
   double cost_bounds[2] = {0.0, 1.0};
 
   // compute current cost
-  task_.Residuals(model_, data, residual_.data());
-  cost_ = task_.CostValue(residual_.data());
+  // residual values are the first entries in sensordata
+  const double* residual = data->sensordata;
+  cost_ = task_.CostValue(residual);
 
   // compute individual costs
   for (int t = 0; t < winner->horizon; t++) {

@@ -140,10 +140,10 @@ void iLQGPlanner::SetState(State& state) {
 
 // optimize nominal policy using iLQG
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // get nominal trajectory 
+  // get nominal trajectory
   this->NominalTrajectory(horizon, pool);
 
-  // iteration 
+  // iteration
   this->Iteration(horizon, pool);
 }
 
@@ -183,14 +183,14 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
       const std::shared_lock<std::shared_mutex> lock(mtx_);
       candidate_policy[0].trajectory = policy.trajectory;
     }
-        
-    // set feedback scaling 
+
+    // set feedback scaling
     feedback_scaling = 0.0;
   } else {
     // update nominal with winner
     candidate_policy[0].trajectory = trajectory[best_nominal];
 
-    // set feedback scaling 
+    // set feedback scaling
     feedback_scaling = linesearch_steps[best_nominal];
   }
 
@@ -669,8 +669,8 @@ void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
                    &task = this->task, &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, &userdata = this->userdata,
                    &settings = this->settings, i]() {
-      
-      // feedback scaling 
+
+      // feedback scaling
       candidate_policy[i].feedback_scaling = linesearch_steps[i];
 
       // policy

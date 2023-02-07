@@ -28,3 +28,5 @@ __pycache__/
 *$py.class
 # MuJoCo
 MUJOCO_LOG.TXT
+MJDATA.TXT
+MJMODEL.TXT

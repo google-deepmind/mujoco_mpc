@@ -73,7 +73,7 @@ set(MJPC_DEP_VERSION_abseil
     CACHE STRING "Version of `abseil` to be fetched."
 )
 
-set(MUJOCO_DEP_VERSION_glfw
+set(MUJOCO_DEP_VERSION_glfw3
     7d5a16ce714f0b5f4efa3262de22e4d948851525 # 3.3.6
     CACHE STRING "Version of `glfw` to be fetched."
 )
@@ -140,7 +140,7 @@ findorfetch(
   GIT_REPO
   https://github.com/glfw/glfw.git
   GIT_TAG
-  ${MUJOCO_DEP_VERSION_glfw}
+  ${MUJOCO_DEP_VERSION_glfw3}
   TARGETS
   glfw
   EXCLUDE_FROM_ALL

@@ -39,6 +39,54 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
   return {index_0, index_1, weight_0, weight_1};
 }
 
+// return length of motion trajectory
+int TrajectoryLength(int id) {
+  // Jump
+  if (id == 0) {
+    return 121;
+  // Kick Spin
+  } else if (id == 1) {
+    return 154;
+  // Spin Kick
+  } else if (id == 2) {
+    return 115;
+  // Cartwheel (1)
+  } else if (id == 3) {
+    return 78;
+  // Crouch Flip
+  } else if (id == 4) {
+    return 145;
+  // Cartwheel (2)
+  } else if (id == 5) {
+    return 188;
+  // Monkey Flip
+  } else if (id == 6) {
+    return 260;
+  // Dance
+  } else if (id == 7) {
+    return 279;
+  // Run
+  } else if (id == 8) {
+    return 39;
+  // Walk
+  } else if (id == 9) {
+    return 510;
+  // Stand
+  } else if (id == 10) {
+    return 1;
+  }
+  // Loop
+  return 121 + 154 + 115 + 78 + 145 + 188 + 260 + 279 + 39 + 510 + 1;
+}
+
+int MotionStartIndex(int id) {
+  int start = 0;
+  for (int i = 0; i < id; i++) {
+    start += TrajectoryLength(i);
+  }
+  return start;
+}
+
 }  // namespace
 
 namespace mjpc {
@@ -59,8 +107,10 @@ void humanoid::Tracking::Residual(const double *parameters,
   // ----- get mocap frames ----- //
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
-  double current_index = data->time * fps;
-  int last_key_index = (model->nkey) - 1;
+  int start = MotionStartIndex(data->userdata[0]);
+  int length = TrajectoryLength(data->userdata[0]);
+  double current_index = (data->time - data->userdata[1]) * fps + start;
+  int last_key_index = start + length;
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to
@@ -193,10 +243,35 @@ void humanoid::Tracking::Residual(const double *parameters,
 // ----------------------------------------------------------------------------
 void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
                                     Task *task) {
-  // Hardcoded constant matching keyframes from CMU mocap dataset.
+
+  // hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
-  double current_index = d->time * fps;
-  int last_key_index = (model->nkey) - 1;
+
+   
+  // get motion trajectory length
+  int length = TrajectoryLength(task->stage);
+
+  // get motion start index 
+  int start = MotionStartIndex(task->stage);
+
+  // check for motion switch 
+  if ((int)d->userdata[0] != task->stage || d->time == 0.0) {
+    d->userdata[0] = task->stage; // set motion id
+    d->userdata[1] = d->time;  // reference time
+
+    // set home state
+    double* qpos_home = model->key_qpos + model->nq * start;
+    double* qvel_home = model->key_qvel + model->nv * start;
+
+    mju_copy(d->qpos, qpos_home, model->nq);
+    mju_copy(d->qvel, qvel_home, model->nv);
+
+    printf("Motion Switch\n");
+  }
+
+  // indices
+  double current_index = (d->time - d->userdata[1]) * fps + start;  
+  int last_key_index = start + length - 1; // TODO(taylor): check...
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to
@@ -220,6 +295,7 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
 
   mju_copy(d->mocap_pos, mocap_pos_0, model->nmocap * 3);
   mju_addTo(d->mocap_pos, mocap_pos_1, model->nmocap * 3);
+
   mjFREESTACK;
 }
 

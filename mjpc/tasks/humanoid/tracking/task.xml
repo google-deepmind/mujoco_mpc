@@ -1,11 +1,10 @@
 <mujoco model="Humanoid Track">
   <include file="../../common.xml"/>
   <include file="../humanoid.xml" />
-  <size memory="400K" nuserdata="1"/>
+  <size memory="400K" nuserdata="2"/> <!-- userdata: [motion id, reference time]-->
 
   <custom>
-    <text name="task_transition" data="Jump|Kick Spin" />
-    <!-- |Spin Kick|Cartwheel (1)|Crouch Flip|Cartwheel (2)|Monkey Flip|Dance|Run|Walk|Loop|None -->
+    <text name="task_transition" data="Jump|Kick Spin|Spin Kick|Cartwheel (1)|Crouch Flip|Cartwheel (2)|Monkey Flip|Dance|Run|Walk" />
     <numeric name="sampling_representation" data="2" />
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.5" />

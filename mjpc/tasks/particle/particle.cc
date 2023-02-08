@@ -14,6 +14,8 @@
 
 #include "tasks/particle/particle.h"
 
+#include <string>
+
 #include <mujoco/mujoco.h>
 #include "task.h"
 #include "utilities.h"

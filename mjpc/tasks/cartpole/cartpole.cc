@@ -15,8 +15,10 @@
 #include "tasks/cartpole/cartpole.h"
 
 #include <cmath>
+#include <string>
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 #include "utilities.h"
 
 namespace mjpc {

@@ -21,10 +21,11 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <string>
 
+#include <mujoco/mujoco.h>
 #include "task.h"
 #include "utilities.h"
-#include <mujoco/mujoco.h>
 
 namespace {
 std::tuple<int, int, double, double> ComputeInterpolationValues(double index,

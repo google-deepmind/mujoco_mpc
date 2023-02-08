@@ -14,6 +14,8 @@
 
 #include "tasks/panda/panda.h"
 
+#include <string>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 #include "task.h"

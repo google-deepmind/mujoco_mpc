@@ -19,7 +19,7 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "norm.h"
+#include "mjpc/norm.h"
 
 namespace mjpc {
 

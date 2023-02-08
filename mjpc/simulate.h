@@ -26,7 +26,7 @@
 
 #include <mujoco/mujoco.h>
 #include <platform_ui_adapter.h>
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #ifdef MJSIMULATE_STATIC
   // static library

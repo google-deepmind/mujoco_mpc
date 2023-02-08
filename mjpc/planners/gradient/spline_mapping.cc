@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/gradient/spline_mapping.h"
+#include "mjpc/planners/gradient/spline_mapping.h"
 
 #include <algorithm>
 
-#include "trajectory.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

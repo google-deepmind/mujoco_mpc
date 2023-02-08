@@ -15,7 +15,7 @@
 #ifndef MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 #define MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 
-#include "task.h"
+#include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
 class CartpoleTestTask : public mjpc::Task {

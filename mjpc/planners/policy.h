@@ -16,7 +16,7 @@
 #define MJPC_PLANNERS_POLICY_H_
 
 #include <mujoco/mjmodel.h>
-#include "task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
 

@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/sampling/policy.h"
+#include "mjpc/planners/sampling/policy.h"
 
 #include <algorithm>
 
 #include <mujoco/mujoco.h>
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

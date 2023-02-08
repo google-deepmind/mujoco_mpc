@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/tasks.h"
+#include "mjpc/tasks/tasks.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -23,19 +23,19 @@
 #include <sstream>
 #include <vector>
 
-#include "tasks/acrobot/acrobot.h"
-#include "tasks/cartpole/cartpole.h"
-#include "tasks/hand/hand.h"
-#include "tasks/humanoid/stand/stand.h"
-#include "tasks/humanoid/tracking/tracking.h"
-#include "tasks/humanoid/walk/walk.h"
-#include "tasks/panda/panda.h"
+#include "mjpc/tasks/acrobot/acrobot.h"
+#include "mjpc/tasks/cartpole/cartpole.h"
+#include "mjpc/tasks/hand/hand.h"
+#include "mjpc/tasks/humanoid/stand/stand.h"
+#include "mjpc/tasks/humanoid/tracking/tracking.h"
+#include "mjpc/tasks/humanoid/walk/walk.h"
+#include "mjpc/tasks/panda/panda.h"
 // DEEPMIND INTERNAL IMPORT
-#include "tasks/particle/particle.h"
-#include "tasks/quadrotor/quadrotor.h"
-#include "tasks/quadruped/quadruped.h"
-#include "tasks/swimmer/swimmer.h"
-#include "tasks/walker/walker.h"
+#include "mjpc/tasks/particle/particle.h"
+#include "mjpc/tasks/quadrotor/quadrotor.h"
+#include "mjpc/tasks/quadruped/quadruped.h"
+#include "mjpc/tasks/swimmer/swimmer.h"
+#include "mjpc/tasks/walker/walker.h"
 
 namespace mjpc {
 

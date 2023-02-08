@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "task.h"
+#include "mjpc/task.h"
 
 #include <cstring>
 
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

@@ -14,10 +14,10 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "test/load.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/test/load.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-#include "task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
 void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id = 0);

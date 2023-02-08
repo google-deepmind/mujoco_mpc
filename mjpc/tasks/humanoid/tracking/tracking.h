@@ -16,7 +16,7 @@
 #define MJPC_TASKS_HUMANOID_TRACKING_TASK_H_
 
 #include <mujoco/mujoco.h>
-#include "task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
 namespace humanoid {

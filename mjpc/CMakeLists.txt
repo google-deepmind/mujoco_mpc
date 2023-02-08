@@ -209,6 +209,7 @@ target_link_libraries(
   threadpool
   absl::base
 )
+target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_library(
   libmjpc STATIC
@@ -297,7 +298,7 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(
   mjpc
@@ -322,7 +323,7 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(mjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(mjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(mjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
 target_link_options(mjpc PRIVATE ${MJPC_LINK_OPTIONS})
 target_compile_definitions(mjpc PRIVATE MJSIMULATE_STATIC)

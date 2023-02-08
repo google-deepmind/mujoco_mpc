@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #include <atomic>
 #include <chrono>
@@ -21,10 +21,10 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "test/load.h"
-#include "test/testdata/particle_residual.h"
-#include "threadpool.h"
+#include "mjpc/task.h"
+#include "mjpc/test/load.h"
+#include "mjpc/test/testdata/particle_residual.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 namespace {

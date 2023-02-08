@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 #include <cerrno>
 #include <cmath>
@@ -33,7 +33,7 @@
 #include <absl/strings/str_split.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
-#include "array_safety.h"
+#include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
 #include <thread>

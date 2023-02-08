@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/quadruped/quadruped.h"
+#include "mjpc/tasks/quadruped/quadruped.h"
 
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 std::string QuadrupedHill::XmlPath() const {

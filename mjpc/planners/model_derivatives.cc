@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/model_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
 
 #include <algorithm>
 
 #include <mujoco/mujoco.h>
-#include "threadpool.h"
-#include "utilities.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

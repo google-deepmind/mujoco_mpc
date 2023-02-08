@@ -15,11 +15,11 @@
 #include <memory>
 #include <string>
 #include <mujoco/mujoco.h>
-#include "agent.h"
-#include "task.h"
-#include "tasks/tasks.h"
-#include "threadpool.h"
-#include "utilities.h"
+#include "mjpc/agent.h"
+#include "mjpc/task.h"
+#include "mjpc/tasks/tasks.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 
 namespace mjpc {

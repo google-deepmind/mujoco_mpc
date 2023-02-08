@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "simulate.h"  // mjpc fork
+#include "mjpc/simulate.h"  // mjpc fork
 
 #include <algorithm>
 #include <atomic>
@@ -29,10 +29,10 @@
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mjxmacro.h>
 #include <platform_ui_adapter.h>
-#include "array_safety.h"
+#include "mjpc/array_safety.h"
 
-#include "agent.h"
-#include "utilities.h"
+#include "mjpc/agent.h"
+#include "mjpc/utilities.h"
 
 // When launched via an App Bundle on macOS, the working directory is the path
 // to the App Bundle's resource directory. This causes files to be saved into

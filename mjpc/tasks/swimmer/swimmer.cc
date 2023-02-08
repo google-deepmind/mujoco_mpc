@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/swimmer/swimmer.h"
+#include "mjpc/tasks/swimmer/swimmer.h"
 
 #include <string>
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 std::string Swimmer::XmlPath() const {

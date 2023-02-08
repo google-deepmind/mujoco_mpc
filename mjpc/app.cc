@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app.h"
+#include "mjpc/app.h"
 
 #include <atomic>
 #include <chrono>
@@ -33,12 +33,12 @@
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <glfw_adapter.h>
-#include "array_safety.h"
-#include "agent.h"
-#include "planners/include.h"
-#include "simulate.h"  // mjpc fork
-#include "threadpool.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/agent.h"
+#include "mjpc/planners/include.h"
+#include "mjpc/simulate.h"  // mjpc fork
+#include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 ABSL_FLAG(std::string, task, "", "Which model to load on startup.");
 

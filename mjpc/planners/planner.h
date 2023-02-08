@@ -17,11 +17,11 @@
 
 #include <mujoco/mujoco.h>
 
-#include "states/state.h"
-#include "task.h"
-#include "threadpool.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

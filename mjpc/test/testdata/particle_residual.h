@@ -16,7 +16,7 @@
 #define MJPC_TEST_TESTDATA_PARTICLE_RESIDUAL_H_
 
 #include <string>
-#include "task.h"
+#include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
 class ParticleTestTask : public mjpc::Task {

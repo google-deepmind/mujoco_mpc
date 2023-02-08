@@ -17,7 +17,7 @@
 #ifndef MJPC_TASKS_TASKS_H_
 #define MJPC_TASKS_TASKS_H_
 
-#include "task.h"
+#include "mjpc/task.h"
 
 #include <memory>
 #include <vector>

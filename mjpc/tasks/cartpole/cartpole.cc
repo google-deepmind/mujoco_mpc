@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/cartpole/cartpole.h"
+#include "mjpc/tasks/cartpole/cartpole.h"
 
 #include <cmath>
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 std::string Cartpole::XmlPath() const {

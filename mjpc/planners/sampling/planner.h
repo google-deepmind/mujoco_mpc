@@ -21,10 +21,10 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "planners/planner.h"
-#include "planners/sampling/policy.h"
-#include "states/state.h"
-#include "trajectory.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

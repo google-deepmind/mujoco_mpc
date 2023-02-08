@@ -22,11 +22,11 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "planners/include.h"
-#include "states/include.h"
-#include "states/state.h"
-#include "task.h"
-#include "threadpool.h"
+#include "mjpc/planners/include.h"
+#include "mjpc/states/include.h"
+#include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 

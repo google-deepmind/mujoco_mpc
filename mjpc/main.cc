@@ -19,10 +19,10 @@
 #include <vector>
 #include <absl/flags/parse.h>
 
-#include "app.h"
-#include "task.h"
-#include "utilities.h"
-#include "tasks/tasks.h"
+#include "mjpc/app.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
+#include "mjpc/tasks/tasks.h"
 
 
 // machinery for replacing command line error by a macOS dialog box

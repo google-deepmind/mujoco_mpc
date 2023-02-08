@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/sampling/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 
 #include <absl/random/random.h>
 
@@ -22,11 +22,11 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "array_safety.h"
-#include "planners/sampling/policy.h"
-#include "states/state.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

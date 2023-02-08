@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/gradient/planner.h"
+#include "mjpc/planners/gradient/planner.h"
 
 #include <algorithm>
 #include <chrono>
 #include <mutex>
 
-#include "array_safety.h"
-#include "planners/cost_derivatives.h"
-#include "planners/gradient/gradient.h"
-#include "planners/gradient/policy.h"
-#include "planners/gradient/settings.h"
-#include "planners/model_derivatives.h"
-#include "states/state.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/gradient/gradient.h"
+#include "mjpc/planners/gradient/policy.h"
+#include "mjpc/planners/gradient/settings.h"
+#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;

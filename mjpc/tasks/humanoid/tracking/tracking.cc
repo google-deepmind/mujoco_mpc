@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/tracking/tracking.h"
+#include "mjpc/tasks/humanoid/tracking/tracking.h"
 
 #include <algorithm>
 #include <array>
@@ -24,8 +24,8 @@
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace {
 std::tuple<int, int, double, double> ComputeInterpolationValues(double index,

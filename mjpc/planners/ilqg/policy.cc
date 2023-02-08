@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/ilqg/policy.h"
+#include "mjpc/planners/ilqg/policy.h"
 
 #include <algorithm>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

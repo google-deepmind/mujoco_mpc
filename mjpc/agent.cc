@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #include <algorithm>
 #include <atomic>
@@ -31,12 +31,12 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
-#include "array_safety.h"
-#include "planners/include.h"
-#include "task.h"
-#include "threadpool.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/include.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;

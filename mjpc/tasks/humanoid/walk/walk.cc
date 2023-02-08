@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/walk/task.h"
+#include "tasks/humanoid/walk/walk.h"
 
 #include <iostream>
 #include <string>

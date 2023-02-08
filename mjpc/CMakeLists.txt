@@ -230,12 +230,12 @@ add_library(
   tasks/cartpole/cartpole.h
   tasks/hand/hand.cc
   tasks/hand/hand.h
-  tasks/humanoid/stand/task.cc
-  tasks/humanoid/stand/task.h
-  tasks/humanoid/tracking/task.cc
-  tasks/humanoid/tracking/task.h
-  tasks/humanoid/walk/task.cc
-  tasks/humanoid/walk/task.h
+  tasks/humanoid/stand/stand.cc
+  tasks/humanoid/stand/stand.h
+  tasks/humanoid/tracking/tracking.cc
+  tasks/humanoid/tracking/tracking.h
+  tasks/humanoid/walk/walk.cc
+  tasks/humanoid/walk/walk.h
   tasks/panda/panda.cc
   tasks/panda/panda.h
   tasks/particle/particle.cc

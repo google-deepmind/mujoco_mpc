@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/tracking/task.h"
+#include "tasks/humanoid/tracking/tracking.h"
 
 #include <algorithm>
 #include <array>

@@ -26,9 +26,9 @@
 #include "tasks/acrobot/acrobot.h"
 #include "tasks/cartpole/cartpole.h"
 #include "tasks/hand/hand.h"
-#include "tasks/humanoid/stand/task.h"
-#include "tasks/humanoid/tracking/task.h"
-#include "tasks/humanoid/walk/task.h"
+#include "tasks/humanoid/stand/stand.h"
+#include "tasks/humanoid/tracking/tracking.h"
+#include "tasks/humanoid/walk/walk.h"
 #include "tasks/panda/panda.h"
 // DEEPMIND INTERNAL IMPORT
 #include "tasks/particle/particle.h"

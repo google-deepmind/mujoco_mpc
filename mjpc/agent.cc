@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <string>
+#include <sstream>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/match.h>
@@ -27,11 +31,12 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
-#include "array_safety.h"
-#include "task.h"
-#include "threadpool.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/include.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
@@ -48,12 +53,10 @@ const int kMaxActionPlots = 25;
 }  // namespace
 
 // initialize data, settings, planners, states
-void Agent::Initialize(mjModel* model, const std::string& task_names,
-                       const char planner_str[], ResidualFunction* residual,
-                       TransitionFunction* transition) {
+void Agent::Initialize(mjModel* model) {
   // ----- model ----- //
-  if (this->model_) mj_deleteModel(this->model_);
-  this->model_ = mj_copyModel(nullptr, model);  // agent's copy of model
+  if (model_) mj_deleteModel(model_);
+  model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
   // planner
   planner_ = GetNumberOrDefault(0, model, "agent_planner");
@@ -74,12 +77,12 @@ void Agent::Initialize(mjModel* model, const std::string& task_names,
   // planning steps
   steps_ = mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
 
-  // set task
-  task_.Set(model, residual, transition);
+  active_task_id_ = gui_task_id;
+  ActiveTask()->Reset(model);
 
   // initialize planner
   for (const auto& planner : planners_) {
-    planner->Initialize(this->model_, task_);
+    planner->Initialize(model_, *ActiveTask());
   }
 
   // initialize state
@@ -100,9 +103,7 @@ void Agent::Initialize(mjModel* model, const std::string& task_names,
   // counter
   count_ = 0;
 
-  // names
-  mju::strcpy_arr(this->task_names_, task_names.c_str());
-  mju::strcpy_arr(this->planner_names_, planner_str);
+  mju::strcpy_arr(this->planner_names_, kPlannerNames);
 
   // max threads
   max_threads_ = std::max(1, NumAvailableHardwareThreads() - 3);
@@ -124,7 +125,7 @@ void Agent::Allocate() {
   allocate_enabled = false;
 
   // cost
-  terms_.resize(task_.num_term * kMaxTrajectoryHorizon);
+  terms_.resize(ActiveTask()->num_term * kMaxTrajectoryHorizon);
 }
 
 // reset data, settings, planners, states
@@ -150,6 +151,24 @@ void Agent::Reset() {
 
 void Agent::SetState(const mjData* data) {
   ActiveState().Set(model_, data);
+}
+
+int Agent::GetTaskIdByName(std::string_view name) const {
+  for (int i = 0; i < tasks_.size(); i++) {
+    if (absl::EqualsIgnoreCase(name, tasks_[i]->Name())) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+void Agent::SetTaskList(std::vector<std::unique_ptr<Task>> tasks) {
+  tasks_ = std::move(tasks);
+  std::ostringstream concatenated_task_names;
+  for (const auto& task : tasks_) {
+    concatenated_task_names << task->Name() << '\n';
+  }
+  mju::strcpy_arr(task_names_, concatenated_task_names.str().c_str());
 }
 
 void Agent::PlanIteration(ThreadPool* pool) {
@@ -253,7 +272,8 @@ void Agent::ModifyScene(mjvScene* scn) {
 
   // policy
   for (int i = 0; i < winner->horizon - 1; i++) {
-    for (int j = 0; j < task_.num_trace; j++) {
+    int num_trace = ActiveTask()->num_trace;
+    for (int j = 0; j < num_trace; j++) {
       // check max geoms
       if (scn->ngeom >= scn->maxgeom) {
         printf("max geom!!!\n");
@@ -267,12 +287,12 @@ void Agent::ModifyScene(mjvScene* scn) {
       // make geometry
       mjv_makeConnector(
           &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-          winner->trace[3 * task_.num_trace * i + 3 * j],
-          winner->trace[3 * task_.num_trace * i + 1 + 3 * j],
-          winner->trace[3 * task_.num_trace * i + 2 + 3 * j],
-          winner->trace[3 * task_.num_trace * (i + 1) + 3 * j],
-          winner->trace[3 * task_.num_trace * (i + 1) + 1 + 3 * j],
-          winner->trace[3 * task_.num_trace * (i + 1) + 2 + 3 * j]);
+          winner->trace[3 * num_trace * i + 3 * j],
+          winner->trace[3 * num_trace * i + 1 + 3 * j],
+          winner->trace[3 * num_trace * i + 2 + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
       // increment number of geometries
       scn->ngeom += 1;
     }
@@ -285,24 +305,25 @@ void Agent::ModifyScene(mjvScene* scn) {
 // graphical user interface elements for agent and task
 void Agent::GUI(mjUI& ui) {
   // ----- task ------ //
-  mjuiDef defTask[] = {{mjITEM_SECTION, "Task", 1, nullptr, "AP"},
-                       {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-                       {mjITEM_SELECT, "Model", 1, &task_.id, ""},
-                       {mjITEM_SLIDERNUM, "Risk", 1, &task_.risk, "-1 1"},
-                       {mjITEM_SEPARATOR, "Cost Weights", 1},
-                       {mjITEM_END}};
+  mjuiDef defTask[] = {
+      {mjITEM_SECTION, "Task", 1, nullptr, "AP"},
+      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+      {mjITEM_SELECT, "Model", 1, &gui_task_id, ""},
+      {mjITEM_SLIDERNUM, "Risk", 1, &ActiveTask()->risk, "-1 1"},
+      {mjITEM_SEPARATOR, "Cost Weights", 1},
+      {mjITEM_END}};
 
   // task names
   mju::strcpy_arr(defTask[2].other, task_names_);
   mjui_add(&ui, defTask);
 
   // norm weights
-  if (task_.num_term) {
+  if (ActiveTask()->num_term) {
     mjuiDef defNormWeight[kMaxCostTerms + 1];
-    for (int i = 0; i < task_.num_term; i++) {
+    for (int i = 0; i < ActiveTask()->num_term; i++) {
       // element
       defNormWeight[i] = {mjITEM_SLIDERNUM, "weight", 2,
-                          DataAt(task_.weight, i), "0 1"};
+                          DataAt(ActiveTask()->weight, i), "0 1"};
 
       // name
       mju::strcpy_arr(defNormWeight[i].name,
@@ -313,19 +334,19 @@ void Agent::GUI(mjUI& ui) {
       mju::sprintf_arr(defNormWeight[i].other, "%f %f", s[2], s[3]);
     }
 
-    defNormWeight[task_.num_term] = {mjITEM_END};
+    defNormWeight[ActiveTask()->num_term] = {mjITEM_END};
     mjui_add(&ui, defNormWeight);
   }
 
   // residual parameters
-  int parameter_shift = (task_.parameters.empty() ? 0 : 1);
+  int parameter_shift = (ActiveTask()->parameters.empty() ? 0 : 1);
   mjuiDef defFeatureParameters[kMaxCostTerms + 2];
   if (parameter_shift > 0) {
     defFeatureParameters[0] = {mjITEM_SEPARATOR, "Parameters", 1};
   }
-  for (int i = 0; i < task_.parameters.size(); i++) {
+  for (int i = 0; i < ActiveTask()->parameters.size(); i++) {
     defFeatureParameters[i + parameter_shift] = {
-        mjITEM_SLIDERNUM, "residual", 2, DataAt(task_.parameters, i),
+        mjITEM_SLIDERNUM, "residual", 2, DataAt(ActiveTask()->parameters, i),
         "0 1"};
   }
 
@@ -368,7 +389,7 @@ void Agent::GUI(mjUI& ui) {
       shift += 1;
     }
   }
-  defFeatureParameters[task_.parameters.size() + parameter_shift] = {
+  defFeatureParameters[ActiveTask()->parameters.size() + parameter_shift] = {
       mjITEM_END};
   mjui_add(&ui, defFeatureParameters);
 
@@ -378,7 +399,7 @@ void Agent::GUI(mjUI& ui) {
   if (names) {
     mjuiDef defTransition[] = {
         {mjITEM_SEPARATOR, "Stages", 1},
-        {mjITEM_RADIO, "", 1, &task_.stage, ""},
+        {mjITEM_RADIO, "", 1, &ActiveTask()->stage, ""},
         {mjITEM_END},
     };
 
@@ -440,9 +461,11 @@ void Agent::TaskEvent(mjuiItem* it, mjData* data,
                       std::atomic<int>& uiloadrequest, int& run) {
   switch (it->itemid) {
     case 0:  // task reset
-      task_.GetFrom(model_);
+      ActiveTask()->Reset(model_);
       break;
     case 1:  // task switch
+      // the GUI changed the value of gui_task_id, but it's unsafe to switch
+      // tasks now.
       // turn off agent and traces
       plan_enabled = false;
       action_enabled = false;
@@ -530,16 +553,17 @@ void Agent::PlotInitialize() {
   plots_.cost.linergb[3][0] = 1.0f;
   plots_.cost.linergb[3][1] = 1.0f;
   plots_.cost.linergb[3][2] = 1.0f;
-  for (int i = 0; i < task_.num_term; i++) {
+  int num_term = ActiveTask()->num_term;
+  for (int i = 0; i < num_term; i++) {
     // history
     plots_.cost.linergb[4 + i][0] = CostColors[i][0];
     plots_.cost.linergb[4 + i][1] = CostColors[i][1];
     plots_.cost.linergb[4 + i][2] = CostColors[i][2];
 
     // prediction
-    plots_.cost.linergb[4 + task_.num_term + i][0] = 0.9 * CostColors[i][0];
-    plots_.cost.linergb[4 + task_.num_term + i][1] = 0.9 * CostColors[i][1];
-    plots_.cost.linergb[4 + task_.num_term + i][2] = 0.9 * CostColors[i][2];
+    plots_.cost.linergb[4 + num_term + i][0] = 0.9 * CostColors[i][0];
+    plots_.cost.linergb[4 + num_term + i][1] = 0.9 * CostColors[i][1];
+    plots_.cost.linergb[4 + num_term + i][2] = 0.9 * CostColors[i][2];
   }
 
   // history of control
@@ -614,7 +638,7 @@ void Agent::PlotInitialize() {
 // reset plot data to zeros
 void Agent::PlotReset() {
   // cost reset
-  for (int k = 0; k < 4 + 2 * task_.num_term; k++) {
+  for (int k = 0; k < 4 + 2 * ActiveTask()->num_term; k++) {
     PlotResetData(&plots_.cost, 1000, k);
   }
 
@@ -657,12 +681,13 @@ void Agent::Plots(const mjData* data, int shift) {
   // compute current cost
   // residual values are the first entries in sensordata
   const double* residual = data->sensordata;
-  cost_ = task_.CostValue(residual);
+  cost_ = ActiveTask()->CostValue(residual);
 
   // compute individual costs
   for (int t = 0; t < winner->horizon; t++) {
-    task_.CostTerms(DataAt(terms_, t * task_.num_term),
-                    DataAt(winner->residual, t * task_.num_residual));
+    ActiveTask()->CostTerms(
+        DataAt(terms_, t * ActiveTask()->num_term),
+        DataAt(winner->residual, t * ActiveTask()->num_residual));
   }
 
   // shift data
@@ -686,21 +711,21 @@ void Agent::Plots(const mjData* data, int shift) {
   mju::strcpy_arr(plots_.cost.linename[0], "Total Cost");
 
   // plot costs
-  for (int k = 0; k < task_.num_term; k++) {
+  for (int k = 0; k < ActiveTask()->num_term; k++) {
     // current residual
     if (shift) {
       PlotUpdateData(&plots_.cost, cost_bounds, data->time, terms_[k], 1000,
                      4 + k, 1, 1, time_lower_bound);
     }
     // legend
-    mju::strcpy_arr(plots_.cost.linename[4 + task_.num_term + k],
+    mju::strcpy_arr(plots_.cost.linename[4 + ActiveTask()->num_term + k],
                     model_->names + model_->name_sensoradr[k]);
   }
 
   // predicted residual
   PlotData(&plots_.cost, cost_bounds, winner->times.data(), terms_.data(),
-           task_.num_term, task_.num_term, winner->horizon,
-           4 + task_.num_term, time_lower_bound);
+           ActiveTask()->num_term, ActiveTask()->num_term, winner->horizon,
+           4 + ActiveTask()->num_term, time_lower_bound);
 
   // vertical lines at current time and agent time
   PlotVertical(&plots_.cost, data->time, cost_bounds[0], cost_bounds[1], 10, 1);

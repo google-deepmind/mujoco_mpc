@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
-#include "test/finite_difference.h"
+#include "mjpc/test/finite_difference.h"
 
 namespace mjpc {
 namespace {

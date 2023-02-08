@@ -20,13 +20,13 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "planners/gradient/spline_mapping.h"
-#include "planners/ilqg/planner.h"
-#include "planners/linear_solve.h"
-#include "planners/planner.h"
-#include "planners/sampling/planner.h"
-#include "states/state.h"
-#include "trajectory.h"
+#include "mjpc/planners/gradient/spline_mapping.h"
+#include "mjpc/planners/ilqg/planner.h"
+#include "mjpc/planners/linear_solve.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

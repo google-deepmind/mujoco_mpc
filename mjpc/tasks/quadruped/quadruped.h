@@ -15,11 +15,15 @@
 #ifndef MJPC_TASKS_QUADRUPED_QUADRUPED_H_
 #define MJPC_TASKS_QUADRUPED_QUADRUPED_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
-#include "task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
-struct Quadruped {
+class QuadrupedHill : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 // --------------------- Residuals for quadruped task --------------------
 //   Number of residuals: 4
 //     Residual (0): position_z - average(foot position)_z - height_goal
@@ -29,17 +33,17 @@ struct Quadruped {
 //   Number of parameters: 1
 //     Parameter (1): height_goal
 // -----------------------------------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
-                     const mjData* data, double* residual);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  void Transition(const mjModel* model, mjData* data) override;
+};
 
-static void ResidualFloor(const double* parameters, const mjModel* model,
-                          const mjData* data, double* residual);
-
-// -------- Transition for quadruped task --------
-//   If quadruped is within tolerance of goal ->
-//   set goal to next from keyframes.
-// -----------------------------------------------
-static void Transition(const mjModel* model, mjData* data, Task* task);
+class QuadrupedFlat : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 };
 }  // namespace mjpc
 

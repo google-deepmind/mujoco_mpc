@@ -17,8 +17,8 @@
 
 #include <vector>
 
-#include "norm.h"
-#include "threadpool.h"
+#include "mjpc/norm.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 

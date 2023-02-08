@@ -15,13 +15,15 @@
 #ifndef MJPC_TASKS_HUMANOID_STAND_TASK_H_
 #define MJPC_TASKS_HUMANOID_STAND_TASK_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
+#include "mjpc/task.h"
 
 namespace mjpc {
 namespace humanoid {
 
-struct Stand {
-
+class Stand : public Task {
+ public:
   // ------------------ Residuals for humanoid stand task ------------
   //   Number of residuals: 6
   //     Residual (0): control
@@ -33,9 +35,10 @@ struct Stand {
   //   Number of parameters: 1
   //     Parameter (0): height_goal
   // ----------------------------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
-
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  std::string Name() const override;
+  std::string XmlPath() const override;
 };
 
 }  // namespace humanoid

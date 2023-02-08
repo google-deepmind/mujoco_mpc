@@ -15,18 +15,23 @@
 #ifndef MJPC_TEST_TESTDATA_PARTICLE_RESIDUAL_H_
 #define MJPC_TEST_TESTDATA_PARTICLE_RESIDUAL_H_
 
+#include <string>
+#include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
-static inline void particle_residual(const double* residual_parameters,
-                                     const mjModel* model, const mjData* data,
-                                     double* residual) {
-  // goal position
-  mju_copy(residual, data->qpos, model->nq);
-  residual[0] -= data->mocap_pos[0];
-  residual[1] -= data->mocap_pos[1];
+class ParticleTestTask : public mjpc::Task {
+ public:
+  std::string Name() const override {return ""; }
+  std::string XmlPath() const override { return ""; }
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override {
+    // goal position
+    mju_copy(residual, data->qpos, model->nq);
+    residual[0] -= data->mocap_pos[0];
+    residual[1] -= data->mocap_pos[1];
 
-  // goal velocity error
-  mju_copy(residual + 2, data->qvel, model->nv);
-}
-
+    // goal velocity error
+    mju_copy(residual + 2, data->qvel, model->nv);
+  }
+};
 #endif  // MJPC_TEST_TESTDATA_PARTICLE_RESIDUAL_H_

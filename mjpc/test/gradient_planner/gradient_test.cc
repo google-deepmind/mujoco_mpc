@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/gradient/gradient.h"
+#include "mjpc/planners/gradient/gradient.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "planners/cost_derivatives.h"
-#include "planners/model_derivatives.h"
-#include "test/finite_difference.h"
-#include "test/lqr.h"
-#include "utilities.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/test/finite_difference.h"
+#include "mjpc/test/lqr.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

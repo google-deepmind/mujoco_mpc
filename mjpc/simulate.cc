@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "simulate.h"  // mjpc fork
+#include "mjpc/simulate.h"  // mjpc fork
 
 #include <algorithm>
 #include <atomic>
@@ -29,10 +29,10 @@
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mjxmacro.h>
 #include <platform_ui_adapter.h>
-#include "array_safety.h"
+#include "mjpc/array_safety.h"
 
-#include "agent.h"
-#include "utilities.h"
+#include "mjpc/agent.h"
+#include "mjpc/utilities.h"
 
 // When launched via an App Bundle on macOS, the working directory is the path
 // to the App Bundle's resource directory. This causes files to be saved into
@@ -1694,16 +1694,6 @@ void Simulate::loadmodel() {
   cond_loadrequest.notify_all();
 }
 
-// returns the index of a task, searching by name, case-insensitive.
-// -1 if not found.
-int Simulate::TaskIdByName(std::string_view name) {
-  for (int i = 0; i < this->tasks.size(); i++) {
-    if (absl::EqualsIgnoreCase(name, this->tasks[i].name)) {
-      return i;
-    }
-  }
-  return -1;
-}
 //------------------------------------------- rendering --------------------------------------------
 
 

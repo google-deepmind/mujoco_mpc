@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-#include "states/state.h"
+#include "mjpc/states/state.h"
 
 namespace mjpc {
 

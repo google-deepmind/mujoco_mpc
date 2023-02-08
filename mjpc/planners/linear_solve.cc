@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/linear_solve.h"
+#include "mjpc/planners/linear_solve.h"
 
 #include <mujoco/mujoco.h>
 
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

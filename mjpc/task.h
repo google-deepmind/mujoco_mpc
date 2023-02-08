@@ -19,7 +19,7 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "norm.h"
+#include "mjpc/norm.h"
 
 namespace mjpc {
 
@@ -29,29 +29,20 @@ inline constexpr double kRiskNeutralTolerance = 1.0e-6;
 // maximum cost terms
 inline constexpr int kMaxCostTerms = 35;
 
-class Task;
-
-using ResidualFunction = void(const double* parameters, const mjModel* model,
-                              const mjData* data, double* residual);
-using TransitionFunction = void(const mjModel* model, mjData* data, Task* task);
-
-// contains information for computing costs
 class Task {
  public:
   // constructor
   Task() = default;
-
-  // destructor
-  ~Task() = default;
+  virtual ~Task() = default;
 
   // ----- methods ----- //
 
-  // initialize task from model
-  void Set(const mjModel* model, ResidualFunction* residual,
-           TransitionFunction* transition);
+  virtual void Residual(const mjModel* model, const mjData* data,
+                        double* residual) const = 0;
+  virtual void Transition(const mjModel* model, mjData* data) {}
 
   // get information from model
-  void GetFrom(const mjModel* model);
+  virtual void Reset(const mjModel* model);
 
   // compute cost terms
   void CostTerms(double* terms, const double* residual,
@@ -60,13 +51,9 @@ class Task {
   // compute weighted cost
   double CostValue(const double* residual) const;
 
-  // compute residuals
-  void Residuals(const mjModel* m, const mjData* d, double* residuals) const;
+  virtual std::string Name() const = 0;
+  virtual std::string XmlPath() const = 0;
 
-  // apply transition function
-  void Transition(const mjModel* m, mjData* d);
-
-  int id = 0;             // task ID
   int stage;              // stage
 
   // cost parameters
@@ -86,22 +73,6 @@ class Task {
  private:
   // initial residual parameters from model
   void SetFeatureParameters(const mjModel* model);
-
-  // residual function
-  ResidualFunction* residual_;
-
-  // transition function
-  TransitionFunction* transition_;
-};
-
-extern void NullTransition(const mjModel* model, mjData* data, Task* task);
-
-template <typename T = std::string>
-struct TaskDefinition {
-  T name;
-  T xml_path;
-  ResidualFunction* residual;
-  TransitionFunction* transition = &NullTransition;
 };
 
 }  // namespace mjpc

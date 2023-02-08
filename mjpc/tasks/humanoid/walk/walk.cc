@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/walk/task.h"
+#include "mjpc/tasks/humanoid/walk/walk.h"
 
 #include <iostream>
+#include <string>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string humanoid::Walk::XmlPath() const {
+  return GetModelPath("humanoid/walk/task.xml");
+}
+std::string humanoid::Walk::Name() const { return "Humanoid Walk"; }
 
 // ------------------ Residuals for humanoid walk task ------------
 //   Number of residuals:
@@ -35,8 +41,8 @@ namespace mjpc {
 //     Parameter (0): torso height goal
 //     Parameter (1): speed goal
 // ----------------------------------------------------------------
-void humanoid::Walk::Residual(const double* parameters, const mjModel* model,
-                              const mjData* data, double* residual) {
+void humanoid::Walk::Residual(const mjModel* model,
+                              const mjData* data, double* residual) const {
   int counter = 0;
 
   // ----- torso height ----- //

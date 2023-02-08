@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 #include <atomic>
 #include <cstdint>
@@ -21,8 +21,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "test/load.h"
-#include "threadpool.h"
+#include "mjpc/test/load.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 namespace {

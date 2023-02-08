@@ -14,12 +14,12 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "planners/sampling/planner.h"
-#include "states/state.h"
-#include "task.h"
-#include "test/load.h"
-#include "test/testdata/particle_residual.h"
-#include "threadpool.h"
+#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/test/load.h"
+#include "mjpc/test/testdata/particle_residual.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 namespace {
@@ -31,12 +31,12 @@ mjModel* model;
 State state;
 
 // task
-Task task;
+ParticleTestTask task;
 
 // sensor callback
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
-    task.Residuals(model, data, data->sensordata);
+    task.Residual(model, data, data->sensordata);
   }
 }
 
@@ -44,6 +44,7 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 TEST(SamplingPlannerTest, RandomSearch) {
   // load model
   model = LoadTestModel("particle_task.xml");
+  task.Reset(model);
 
   // create data
   mjData* data = mj_makeData(model);
@@ -53,9 +54,6 @@ TEST(SamplingPlannerTest, RandomSearch) {
   state.Allocate(model);
   state.Reset();
   state.Set(model, data);
-
-  // ----- task ----- //
-  task.Set(model, particle_residual, mjpc::NullTransition);
 
   // ----- sampling planner ----- //
   SamplingPlanner planner;

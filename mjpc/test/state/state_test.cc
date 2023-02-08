@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "states/state.h"
+#include "mjpc/states/state.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "test/load.h"
-#include "utilities.h"
+#include "mjpc/test/load.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 class StateTest : public ::testing::Test {

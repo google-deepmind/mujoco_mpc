@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "states/state.h"
+#include "mjpc/states/state.h"
 
 #include <algorithm>
 #include <mutex>
 #include <shared_mutex>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

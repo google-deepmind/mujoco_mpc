@@ -19,12 +19,12 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "planners/ilqg/backward_pass.h"
-#include "planners/ilqg/policy.h"
-#include "planners/ilqg/settings.h"
-#include "planners/planner.h"
-#include "states/state.h"
-#include "trajectory.h"
+#include "mjpc/planners/ilqg/backward_pass.h"
+#include "mjpc/planners/ilqg/policy.h"
+#include "mjpc/planners/ilqg/settings.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

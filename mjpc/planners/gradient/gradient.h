@@ -17,9 +17,9 @@
 
 #include <vector>
 
-#include "planners/cost_derivatives.h"
-#include "planners/gradient/policy.h"
-#include "planners/model_derivatives.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/gradient/policy.h"
+#include "mjpc/planners/model_derivatives.h"
 
 namespace mjpc {
 

@@ -18,14 +18,15 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "planners/include.h"
-#include "states/include.h"
-#include "states/state.h"
-#include "task.h"
-#include "threadpool.h"
+#include "mjpc/planners/include.h"
+#include "mjpc/states/include.h"
+#include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 
@@ -52,9 +53,7 @@ class Agent {
   // ----- methods ----- //
 
   // initialize data, settings, planners, states
-  void Initialize(mjModel* model, const std::string& task_names,
-                  const char planner_str[], ResidualFunction* residual,
-                  TransitionFunction* transition);
+  void Initialize(mjModel* model);
 
   // allocate memory
   void Allocate();
@@ -93,12 +92,17 @@ class Agent {
   // render plots
   void PlotShow(mjrRect* rect, mjrContext* con);
 
+  // returns all task names, joined with '\n' characters
+  std::string GetTaskNames() const { return task_names_; }
+  void SetTaskList(std::vector<std::unique_ptr<Task>> tasks);
   void SetState(const mjData* data);
+  int GetTaskIdByName(std::string_view name) const;
+  void SetTaskByIndex(int id) { active_task_id_ = id; }
+  std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
+  mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
+  mjpc::State& ActiveState() const { return *states_[state_]; }
+  Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
 
-  mjpc::Planner& ActivePlanner() { return *planners_[planner_]; }
-  mjpc::State& ActiveState() { return *states_[state_]; }
-
-  Task& task() { return task_; }
   int max_threads() const { return max_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
@@ -107,6 +111,7 @@ class Agent {
   int visualize_enabled;
   int allocate_enabled;
   int plot_enabled;
+  int gui_task_id = 0;
 
  private:
   // model
@@ -124,8 +129,8 @@ class Agent {
   // time step
   double timestep_;
 
-  // task
-  Task task_;
+  std::vector<std::unique_ptr<Task>> tasks_;
+  int active_task_id_ = 0;
 
   // planners
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;

@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/hand/hand.h"
+#include "mjpc/tasks/hand/hand.h"
+
+#include <string>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string Hand::XmlPath() const {
+  return GetModelPath("hand/task.xml");
+}
+std::string Hand::Name() const { return "Hand"; }
 
 // ---------- Residuals for in-hand manipulation task ---------
 //   Number of residuals: 5
@@ -28,8 +34,8 @@ namespace mjpc {
 //     Residual (3): cube angular velocity
 //     Residual (4): control
 // ------------------------------------------------------------
-void Hand::Residual(const double* parameters, const mjModel* model,
-                    const mjData* data, double* residual) {
+void Hand::Residual(const mjModel* model, const mjData* data,
+                    double* residual) const {
   int counter = 0;
   // ---------- Residual (0) ----------
   // goal position
@@ -78,7 +84,7 @@ void Hand::Residual(const double* parameters, const mjModel* model,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-void Hand::Transition(const mjModel* model, mjData* data, Task* task) {
+void Hand::Transition(const mjModel* model, mjData* data) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");

@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/ilqg/planner.h"
+#include "mjpc/planners/ilqg/planner.h"
 
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 
-#include "array_safety.h"
-#include "planners/ilqg/backward_pass.h"
-#include "planners/ilqg/policy.h"
-#include "planners/ilqg/settings.h"
-#include "planners/planner.h"
-#include "states/state.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/ilqg/backward_pass.h"
+#include "mjpc/planners/ilqg/policy.h"
+#include "mjpc/planners/ilqg/settings.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;

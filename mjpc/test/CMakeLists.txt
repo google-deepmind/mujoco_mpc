@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(MUJOCO_TEST_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+set(MUJOCO_TEST_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(MUJOCO_TEST_WORKING_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(GoogleTest)
@@ -43,21 +43,21 @@ endmacro()
 
 # testdata path
 add_library(load STATIC load.h load.cc)
-target_include_directories(load PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(load PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_definitions(load PUBLIC MJSTATIC)
 target_link_libraries(load PUBLIC mujoco::mujoco absl::core_headers absl::strings)
 target_include_directories(load PRIVATE ${mujoco_SOURCE_DIR}/include gmock)
 
 # finite difference
 add_library(finite_difference STATIC finite_difference.h finite_difference.cc)
-target_include_directories(finite_difference PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(finite_difference PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_definitions(finite_difference PUBLIC MJSTATIC)
 target_link_libraries(finite_difference PUBLIC mujoco::mujoco)
 target_include_directories(finite_difference PRIVATE ${mujoco_SOURCE_DIR}/include gmock)
 
 # LQR
 add_library(lqr STATIC lqr.h lqr.cc)
-target_include_directories(lqr PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(lqr PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_definitions(lqr PUBLIC MJSTATIC)
 target_link_libraries(lqr PUBLIC mujoco::mujoco)
 target_include_directories(lqr PRIVATE ${mujoco_SOURCE_DIR}/include gmock)

@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/panda/panda.h"
+#include "mjpc/tasks/panda/panda.h"
+
+#include <string>
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string Panda::XmlPath() const {
+  return GetModelPath("panda/task.xml");
+}
+std::string Panda::Name() const { return "Panda"; }
 
 // ---------- Residuals for in-panda manipulation task ---------
 //   Number of residuals: 5
@@ -29,8 +35,8 @@ namespace mjpc {
 //     Residual (3): cube angular velocity
 //     Residual (4): control
 // ------------------------------------------------------------
-void Panda::Residual(const double* parameters, const mjModel* model,
-                         const mjData* data, double* residual) {
+void Panda::Residual(const mjModel* model, const mjData* data,
+                     double* residual) const {
   int counter = 0;
 
   // reach
@@ -65,11 +71,11 @@ void Panda::Residual(const double* parameters, const mjModel* model,
   }
 }
 
-void Panda::Transition(const mjModel* model, mjData* data, Task* task) {
+void Panda::Transition(const mjModel* model, mjData* data) {
   double residuals[100];
   double terms[10];
-  task->Residuals(model, data, residuals);
-  task->CostTerms(terms, residuals);
+  Residual(model, data, residuals);
+  CostTerms(terms, residuals);
   double bring_dist = (mju_norm3(residuals+3) + mju_norm3(residuals+6)) / 2;
 
   // reset:

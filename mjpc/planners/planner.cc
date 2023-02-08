@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/planner.h"
+#include "mjpc/planners/planner.h"
 
 #include <algorithm>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 void Planner::ResizeMjData(const mjModel* model, int num_threads) {

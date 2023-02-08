@@ -12,11 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/acrobot/acrobot.h"
+#include "mjpc/tasks/acrobot/acrobot.h"
+
+#include <string>
 
 #include <mujoco/mujoco.h>
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string Acrobot::XmlPath() const {
+  return GetModelPath("acrobot/task.xml");
+}
+std::string Acrobot::Name() const { return "Acrobot"; }
 
 // ---------- Residuals for acrobot task ---------
 //   Number of residuals: 5
@@ -24,8 +32,8 @@ namespace mjpc {
 //     Residual (2-3): Joint velocity
 //     Residual (4):   Control
 // -----------------------------------------------
-void Acrobot::Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual) {
+void Acrobot::Residual(const mjModel* model, const mjData* data,
+                       double* residual) const {
   // ---------- Residual (0-1) ----------
   mjtNum* goal_xpos = &data->site_xpos[3 * 0];
   mjtNum* tip_xpos = &data->site_xpos[3 * 1];

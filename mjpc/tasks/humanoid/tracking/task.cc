@@ -14,6 +14,8 @@
 
 #include "tasks/humanoid/tracking/task.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -24,7 +26,6 @@
 
 #include "task.h"
 #include "utilities.h"
-#include <mujoco/mujoco.h>
 
 namespace {
 // compute interpolation between mocap frames
@@ -41,44 +42,42 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 
 // return length of motion trajectory
 int TrajectoryLength(int id) {
-  // Jump
+  // Jump - CMU-CMU-02-02_04
   if (id == 0) {
     return 121;
-  // Kick Spin
+    // Kick Spin - CMU-CMU-87-87_01
   } else if (id == 1) {
     return 154;
-  // Spin Kick
+    // Spin Kick - CMU-CMU-88-88_06
   } else if (id == 2) {
     return 115;
-  // Cartwheel (1)
+    // Cartwheel (1) - CMU-CMU-88-88_07
   } else if (id == 3) {
     return 78;
-  // Crouch Flip
+    // Crouch Flip - CMU-CMU-88-88_08
   } else if (id == 4) {
     return 145;
-  // Cartwheel (2)
+    // Cartwheel (2) - CMU-CMU-88-88_09
   } else if (id == 5) {
     return 188;
-  // Monkey Flip
+    // Monkey Flip - CMU-CMU-90-90_19
   } else if (id == 6) {
     return 260;
-  // Dance
+    // Dance - CMU-CMU-103-103_08
   } else if (id == 7) {
     return 279;
-  // Run
+    // Run - CMU-CMU-108-108_13
   } else if (id == 8) {
     return 39;
-  // Walk
+    // Walk - CMU-CMU-137-137_40
   } else if (id == 9) {
     return 510;
-  // Stand
-  } else if (id == 10) {
-    return 1;
   }
-  // Loop
-  return 121 + 154 + 115 + 78 + 145 + 188 + 260 + 279 + 39 + 510 + 1;
+  // TODO(taylor): Loop
+  return 121 + 154 + 115 + 78 + 145 + 188 + 260 + 279 + 39 + 510;
 }
 
+// return starting keyframe index for motion
 int MotionStartIndex(int id) {
   int start = 0;
   for (int i = 0; i < id; i++) {
@@ -86,6 +85,13 @@ int MotionStartIndex(int id) {
   }
   return start;
 }
+
+// names for humanoid bodies
+const std::array<std::string, 16> body_names = {
+    "pelvis",    "head",      "ltoe",  "rtoe",  "lheel",  "rheel",
+    "lknee",     "rknee",     "lhand", "rhand", "lelbow", "relbow",
+    "lshoulder", "rshoulder", "lhip",  "rhip",
+};
 
 }  // namespace
 
@@ -131,12 +137,7 @@ void humanoid::Tracking::Residual(const double *parameters,
   mju_copy(&residual[counter], data->ctrl, model->nu);
   counter += model->nu;
 
-  std::array<std::string, 16> body_names = {
-      "pelvis",    "head",      "ltoe",  "rtoe",  "lheel",  "rheel",
-      "lknee",     "rknee",     "lhand", "rhand", "lelbow", "relbow",
-      "lshoulder", "rshoulder", "lhip",  "rhip",
-  };
-
+  // ----- position ----- //
   // Compute interpolated frame.
   auto get_body_mpos = [&](const std::string &body_name, double result[3]) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
@@ -146,16 +147,16 @@ void humanoid::Tracking::Residual(const double *parameters,
     assert(0 <= body_mocapid);
 
     // current frame
-    mju_scl3(result,
-             model->key_mpos + model->nmocap * 3 * key_index_0 +
-                 3 * body_mocapid,
-             weight_0);
+    mju_scl3(
+        result,
+        model->key_mpos + model->nmocap * 3 * key_index_0 + 3 * body_mocapid,
+        weight_0);
 
     // next frame
-    mju_addToScl3(result,
-                  model->key_mpos + model->nmocap * 3 * key_index_1 +
-                      3 * body_mocapid,
-                  weight_1);
+    mju_addToScl3(
+        result,
+        model->key_mpos + model->nmocap * 3 * key_index_1 + 3 * body_mocapid,
+        weight_1);
   };
 
   auto get_body_sensor_pos = [&](const std::string &body_name,
@@ -195,6 +196,7 @@ void humanoid::Tracking::Residual(const double *parameters,
     counter += 3;
   }
 
+  // ----- velocity ----- //
   for (const auto &body_name : body_names) {
     std::string mocap_body_name = "mocap[" + body_name + "]";
     std::string linvel_sensor_name = "tracking_linvel[" + body_name + "]";
@@ -204,12 +206,12 @@ void humanoid::Tracking::Residual(const double *parameters,
     assert(0 <= body_mocapid);
 
     // compute finite-difference velocity
-    mju_copy3(&residual[counter], model->key_mpos +
-                                      model->nmocap * 3 * key_index_1 +
-                                      3 * body_mocapid);
-    mju_subFrom3(&residual[counter], model->key_mpos +
-                                         model->nmocap * 3 * key_index_0 +
-                                         3 * body_mocapid);
+    mju_copy3(
+        &residual[counter],
+        model->key_mpos + model->nmocap * 3 * key_index_1 + 3 * body_mocapid);
+    mju_subFrom3(
+        &residual[counter],
+        model->key_mpos + model->nmocap * 3 * key_index_0 + 3 * body_mocapid);
     mju_scl3(&residual[counter], &residual[counter], fps);
 
     // subtract current velocity
@@ -230,9 +232,10 @@ void humanoid::Tracking::Residual(const double *parameters,
   }
   if (user_sensor_dim != counter) {
     std::printf("user_sensor_dim=%d, counter=%d", user_sensor_dim, counter);
-    mju_error_i("mismatch between total user-sensor dimension "
-                "and actual length of residual %d",
-                counter);
+    mju_error_i(
+        "mismatch between total user-sensor dimension "
+        "and actual length of residual %d",
+        counter);
   }
 }
 
@@ -243,35 +246,28 @@ void humanoid::Tracking::Residual(const double *parameters,
 // ----------------------------------------------------------------------------
 void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
                                     Task *task) {
-
   // hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
 
-   
   // get motion trajectory length
   int length = TrajectoryLength(task->stage);
 
-  // get motion start index 
+  // get motion start index
   int start = MotionStartIndex(task->stage);
 
-  // check for motion switch 
+  // check for motion switch
   if ((int)d->userdata[0] != task->stage || d->time == 0.0) {
-    d->userdata[0] = task->stage; // set motion id
-    d->userdata[1] = d->time;  // reference time
+    d->userdata[0] = task->stage;  // set motion id
+    d->userdata[1] = d->time;      // set reference time
 
-    // set home state
-    double* qpos_home = model->key_qpos + model->nq * start;
-    double* qvel_home = model->key_qvel + model->nv * start;
-
-    mju_copy(d->qpos, qpos_home, model->nq);
-    mju_copy(d->qvel, qvel_home, model->nv);
-
-    printf("Motion Switch\n");
+    // set initial state
+    mju_copy(d->qpos, model->key_qpos + model->nq * start, model->nq);
+    mju_copy(d->qvel, model->key_qvel + model->nv * start, model->nv);
   }
 
   // indices
-  double current_index = (d->time - d->userdata[1]) * fps + start;  
-  int last_key_index = start + length - 1; // TODO(taylor): check...
+  double current_index = (d->time - d->userdata[1]) * fps + start;
+  int last_key_index = start + length - 1;
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to
@@ -283,8 +279,8 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
 
   mjMARKSTACK;
 
-  mjtNum* mocap_pos_0 = mj_stackAlloc(d, 3 * model->nmocap);
-  mjtNum* mocap_pos_1 = mj_stackAlloc(d, 3 * model->nmocap);
+  mjtNum *mocap_pos_0 = mj_stackAlloc(d, 3 * model->nmocap);
+  mjtNum *mocap_pos_1 = mj_stackAlloc(d, 3 * model->nmocap);
 
   // Compute interpolated frame.
   mju_scl(mocap_pos_0, model->key_mpos + model->nmocap * 3 * key_index_0,

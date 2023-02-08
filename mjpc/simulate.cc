@@ -1694,16 +1694,6 @@ void Simulate::loadmodel() {
   cond_loadrequest.notify_all();
 }
 
-// returns the index of a task, searching by name, case-insensitive.
-// -1 if not found.
-int Simulate::TaskIdByName(std::string_view name) {
-  for (int i = 0; i < this->tasks.size(); i++) {
-    if (absl::EqualsIgnoreCase(name, this->tasks[i].name)) {
-      return i;
-    }
-  }
-  return -1;
-}
 //------------------------------------------- rendering --------------------------------------------
 
 

@@ -15,10 +15,16 @@
 #ifndef MJPC_TASKS_CARTPOLE_CARTPOLE_H_
 #define MJPC_TASKS_CARTPOLE_CARTPOLE_H_
 
+#include <string>
+
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
-struct Cartpole {
+class Cartpole : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
   // ------- Residuals for cartpole task ------
   //   Number of residuals: 4
   //     Residual (0): distance from vertical
@@ -26,8 +32,8 @@ struct Cartpole {
   //     Residual (2): angular velocity
   //     Residual (3): control
   // ------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 };
 }  // namespace mjpc
 

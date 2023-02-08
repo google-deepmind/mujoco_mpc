@@ -15,11 +15,15 @@
 #ifndef MJPC_TASKS_QUADROTOR_QUADROTOR_H_
 #define MJPC_TASKS_QUADROTOR_QUADROTOR_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-struct Quadrotor {
+class Quadrotor : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 // --------------- Residuals for quadrotor task ---------------
 //   Number of residuals: 5
 //     Residual (0): position - goal position
@@ -29,11 +33,9 @@ struct Quadrotor {
 //     Residual (4): control
 //   Number of parameters: 6
 // ------------------------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
-                     const mjData* data, double* residuals);
-
-// ----- Transition for quadrotor task -----
-static void Transition(const mjModel* model, mjData* data, Task* task);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

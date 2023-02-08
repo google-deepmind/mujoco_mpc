@@ -15,12 +15,13 @@
 #ifndef MJPC_APP_H_
 #define MJPC_APP_H_
 
+#include <memory>
 #include <vector>
 
 #include "task.h"
 
 namespace mjpc {
-void StartApp(std::vector<mjpc::TaskDefinition<>> tasks);
+void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id = 0);
 
 }  // namespace mjpc
 #endif  // MJPC_APP_H_

@@ -15,24 +15,27 @@
 #ifndef MJPC_TASKS_SWIMMER_SWIMMER_H_
 #define MJPC_TASKS_SWIMMER_SWIMMER_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-struct Swimmer {
+class Swimmer : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 // ----------------- Residuals for swimmer task ----------------
 //   Number of residuals: 7
 //     Residual (0-4): control
 //     Residual (5-6): XY displacement between nose and target
 // -------------------------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
-                     const mjData* data, double* residual);
-
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 // -------- Transition for swimmer task --------
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-static void Transition(const mjModel* model, mjData* data, Task* task);
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

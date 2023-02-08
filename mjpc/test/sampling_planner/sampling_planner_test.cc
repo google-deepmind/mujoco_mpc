@@ -31,12 +31,12 @@ mjModel* model;
 State state;
 
 // task
-Task task;
+ParticleTestTask task;
 
 // sensor callback
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
-    task.Residuals(model, data, data->sensordata);
+    task.Residual(model, data, data->sensordata);
   }
 }
 
@@ -44,6 +44,7 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 TEST(SamplingPlannerTest, RandomSearch) {
   // load model
   model = LoadTestModel("particle_task.xml");
+  task.Reset(model);
 
   // create data
   mjData* data = mj_makeData(model);
@@ -53,9 +54,6 @@ TEST(SamplingPlannerTest, RandomSearch) {
   state.Allocate(model);
   state.Reset();
   state.Set(model, data);
-
-  // ----- task ----- //
-  task.Set(model, particle_residual, mjpc::NullTransition);
 
   // ----- sampling planner ----- //
   SamplingPlanner planner;

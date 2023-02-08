@@ -15,14 +15,18 @@
 #ifndef MJPC_MJPC_TASKS_PANDA_PANDA_H_
 #define MJPC_MJPC_TASKS_PANDA_PANDA_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-struct Panda {
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
-  static void Transition(const mjModel* model, mjData* data, Task* task);
+class Panda : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

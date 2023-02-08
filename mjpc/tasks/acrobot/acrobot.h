@@ -15,18 +15,23 @@
 #ifndef MJPC_TASKS_ACROBOT_ACROBOT_H_
 #define MJPC_TASKS_ACROBOT_ACROBOT_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
-struct Acrobot {
+class Acrobot : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
   // ---------- Residuals for acrobot task ---------
   //   Number of residuals: 5
   //     Residual (0-1): Distance from tip to goal
   //     Residual (2-3): Joint velocity
   //     Residual (4):   Control
   // -----------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 };
 }  // namespace mjpc
 

@@ -22,6 +22,11 @@
 
 namespace mjpc {
 
+std::string humanoid::Stand::XmlPath() const {
+  return GetModelPath("humanoid/stand/task.xml");
+}
+std::string humanoid::Stand::Name() const { return "Humanoid Stand"; }
+
 // ------------------ Residuals for humanoid stand task ------------
 //   Number of residuals: 6
 //     Residual (0): Desired height
@@ -32,8 +37,8 @@ namespace mjpc {
 //   Number of parameters: 1
 //     Parameter (0): height_goal
 // ----------------------------------------------------------------
-void humanoid::Stand::Residual(const double* parameters, const mjModel* model,
-                               const mjData* data, double* residual) {
+void humanoid::Stand::Residual(const mjModel* model,
+                               const mjData* data, double* residual) const {
   int counter = 0;
 
   // ----- Height: head feet vertical error ----- //

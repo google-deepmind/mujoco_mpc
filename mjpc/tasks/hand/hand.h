@@ -15,11 +15,15 @@
 #ifndef MJPC_TASKS_HAND_HAND_H_
 #define MJPC_TASKS_HAND_HAND_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-struct Hand {
+class Hand : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
   // ---------- Residuals for in-hand manipulation task ---------
   //   Number of residuals: 5
   //     Residual (0): cube_position - palm_position
@@ -28,14 +32,13 @@ struct Hand {
   //     Residual (3): cube angular velocity
   //     Residual (4): control
   // ------------------------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
-
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 // ----- Transition for in-hand manipulation task -----
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-static void Transition(const mjModel* model, mjData* data, Task* task);
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

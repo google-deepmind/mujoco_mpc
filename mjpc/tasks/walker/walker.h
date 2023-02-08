@@ -15,10 +15,15 @@
 #ifndef MJPC_TASKS_WALKER_WALKER_H_
 #define MJPC_TASKS_WALKER_WALKER_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
-struct Walker {
+class Walker : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 // --------- Residuals for walker task --------
 //   Number of residuals: 4
 //     Residual (0): control
@@ -29,8 +34,8 @@ struct Walker {
 //     Parameter (0): height_goal
 //     Parameter (1): speed_goal
 // --------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
-                     const mjData* data, double* residual);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 };
 }  // namespace mjpc
 

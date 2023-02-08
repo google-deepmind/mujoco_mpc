@@ -19,6 +19,14 @@
 #include "utilities.h"
 
 namespace mjpc {
+std::string QuadrupedHill::XmlPath() const {
+  return GetModelPath("quadruped/task_hill.xml");
+}
+std::string QuadrupedFlat::XmlPath() const {
+  return GetModelPath("quadruped/task_flat.xml");
+}
+std::string QuadrupedHill::Name() const { return "Quadruped Hill"; }
+std::string QuadrupedFlat::Name() const { return "Quadruped Flat"; }
 
 // --------------------- Residuals for quadruped task --------------------
 //   Number of residuals: 4
@@ -29,8 +37,8 @@ namespace mjpc {
 //   Number of parameters: 1
 //     Parameter (1): height_goal
 // -----------------------------------------------------------------------
-void Quadruped::Residual(const double* parameters, const mjModel* model,
-                         const mjData* data, double* residual) {
+void QuadrupedHill::Residual(const mjModel* model, const mjData* data,
+                             double* residual) const {
   // ---------- Residual (0) ----------
   // standing height goal
   double height_goal = parameters[0];
@@ -78,10 +86,10 @@ void Quadruped::Residual(const double* parameters, const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
+void QuadrupedHill::Transition(const mjModel* model, mjData* data) {
   // set stage to GUI selection
-  if (task->stage > 0) {
-    data->userdata[0] = task->stage - 1;
+  if (stage > 0) {
+    data->userdata[0] = stage - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position
@@ -121,8 +129,8 @@ void Quadruped::Transition(const mjModel* model, mjData* data, Task* task) {
   mju_copy4(data->mocap_quat, model->key_mquat + 4 * (int)data->userdata[0]);
 }
 
-void Quadruped::ResidualFloor(const double* parameters, const mjModel* model,
-                              const mjData* data, double* residual) {
+void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
+                              double* residual) const {
   int counter = 0;
   // ---------- Height ----------
 

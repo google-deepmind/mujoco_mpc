@@ -15,25 +15,24 @@
 #ifndef MJPC_TASKS_PARTICLE_PARTICLE_H_
 #define MJPC_TASKS_PARTICLE_PARTICLE_H_
 
+#include <string>
 #include <mujoco/mujoco.h>
 #include "task.h"
 
 namespace mjpc {
-struct Particle {
+class Particle : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 // -------- Residuals for particle task -------
 //   Number of residuals: 3
 //     Residual (0): position - goal_position
 //     Residual (1): velocity
 //     Residual (2): control
 // --------------------------------------------
-static void Residual(const double* parameters, const mjModel* model,
-                     const mjData* data, double* residual);
-
-static void ResidualTimeVarying(const double* parameters, const mjModel* model,
-                                const mjData* data, double* residual);
-
-static void Transition(const mjModel* model, mjData* data, Task* task);
-
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

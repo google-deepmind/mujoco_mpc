@@ -21,18 +21,20 @@
 namespace mjpc {
 namespace {
 
+struct TestTask : public Task {
+  std::string Name() const override {return ""; }
+  std::string XmlPath() const override { return ""; }
+  void Residual(const mjModel*, const mjData*, double*) const override {};
+};
+
 // test task construction
 TEST(TasksTest, Task) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");
 
   // task
-  Task task;
-
-  // set task
-  ResidualFunction* residual_func = [](const double*, const mjModel*,
-                                       const mjData*, double*) {};
-  task.Set(model, residual_func, mjpc::NullTransition);
+  TestTask task;
+  task.Reset(model);
 
   // test task
   EXPECT_NEAR(task.risk, 1.0, 1.0e-5);

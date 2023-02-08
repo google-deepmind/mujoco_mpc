@@ -20,13 +20,17 @@
 #include "utilities.h"
 
 namespace mjpc {
+std::string Swimmer::XmlPath() const {
+  return GetModelPath("swimmer/task.xml");
+}
+std::string Swimmer::Name() const { return "Swimmer"; }
 // ----------------- Residuals for swimmer task ----------------
 //   Number of residuals: 7
 //     Residual (0-4): control
 //     Residual (5-6): XY displacement between nose and target
 // -------------------------------------------------------------
-void Swimmer::Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual) {
+void Swimmer::Residual(const mjModel* model, const mjData* data,
+                       double* residual) const {
   // ---------- Residual (0-4) ----------
   // controls
   mju_copy(residual, data->ctrl, model->nu);
@@ -42,7 +46,7 @@ void Swimmer::Residual(const double* parameters, const mjModel* model,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-void Swimmer::Transition(const mjModel* model, mjData* data, Task* task) {
+void Swimmer::Transition(const mjModel* model, mjData* data) {
   double* target = SensorByName(model, data, "target");
   double* nose = SensorByName(model, data, "nose");
   double nose_to_target[2];

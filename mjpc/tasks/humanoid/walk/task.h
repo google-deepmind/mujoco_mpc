@@ -16,11 +16,15 @@
 #define MJPC_TASKS_HUMANOID_WALK_TASK_H_
 
 #include <mujoco/mujoco.h>
+#include "task.h"
 
 namespace mjpc {
 namespace humanoid {
 
-struct Walk {
+class Walk : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
 
   // ------------------ Residuals for humanoid walk task ------------
   //   Number of residuals:
@@ -36,9 +40,8 @@ struct Walk {
   //     Parameter (0): torso height goal
   //     Parameter (1): speed goal
   // ----------------------------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
-
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 };
 
 }  // namespace humanoid

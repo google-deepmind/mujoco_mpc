@@ -17,8 +17,13 @@
 #include <cmath>
 
 #include <mujoco/mujoco.h>
+#include "utilities.h"
 
 namespace mjpc {
+std::string Cartpole::XmlPath() const {
+  return GetModelPath("cartpole/task.xml");
+}
+std::string Cartpole::Name() const { return "Cartpole"; }
 
 // ------- Residuals for cartpole task ------
 //     Vertical: Pole angle cosine should be -1
@@ -26,8 +31,8 @@ namespace mjpc {
 //     Velocity: Pole angular velocity should be small
 //     Control:  Control should be small
 // ------------------------------------------
-void Cartpole::Residual(const double* parameters, const mjModel* model,
-                        const mjData* data, double* residual) {
+void Cartpole::Residual(const mjModel* model, const mjData* data,
+                        double* residual) const {
   // ---------- Vertical ----------
   residual[0] = std::cos(data->qpos[1]) + 1;
 

@@ -22,7 +22,17 @@
 namespace mjpc {
 namespace {
 
-mjpc::Task task;
+struct ParticleCopyTestTask : public mjpc::Task {
+  std::string Name() const override {return ""; }
+  std::string XmlPath() const override { return ""; }
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override {
+    mju_copy(residual, data->qpos, model->nq);
+    mju_copy(residual + model->nq, data->qvel, model->nv);
+  }
+};
+
+ParticleCopyTestTask task;
 
 extern "C" {
 void sensor(const mjModel* m, mjData* d, int stage);
@@ -31,7 +41,7 @@ void sensor(const mjModel* m, mjData* d, int stage);
 // sensor callback
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
-    task.Residuals(model, data, data->sensordata);
+    task.Residual(model, data, data->sensordata);
   }
 }
 
@@ -39,18 +49,11 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 TEST(RolloutTest, Particle) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");
+  task.Reset(model);
 
   // create data
   mjData* data = mj_makeData(model);
 
-  // residual
-  ResidualFunction* state_residual = [](const double* params,
-                                        const mjModel* model,
-                                        const mjData* data, double* residual) {
-    mju_copy(residual, data->qpos, model->nq);
-    mju_copy(residual + model->nq, data->qvel, model->nv);
-  };
-  task.Set(model, state_residual, mjpc::NullTransition);
   ASSERT_EQ(model->nq + model->nv, task.num_residual);
   int num_residual = task.num_residual;
 
@@ -99,8 +102,8 @@ TEST(RolloutTest, Particle) {
   mju_copy(mocap + 3, data->mocap_quat, 4);
 
   // rollout feedback policy
-  trajectory.Rollout(feedback_policy, &task, model, data, state, time, mocap, NULL,
-                     horizon);
+  trajectory.Rollout(feedback_policy, &task, model, data, state, time, mocap,
+                     NULL, horizon);
 
   // test final state
   double position_error[2];

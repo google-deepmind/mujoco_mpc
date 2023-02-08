@@ -20,26 +20,10 @@
 
 namespace mjpc {
 
-// -------- Residuals for particle task -------
-//   Number of residuals: 3
-//     Residual (0): position - goal_position
-//     Residual (1): velocity
-//     Residual (2): control
-// --------------------------------------------
-void Particle::Residual(const double* parameters, const mjModel* model,
-                        const mjData* data, double* residual) {
-  // ----- residual (0) ----- //
-  double* position = SensorByName(model, data, "position");
-  double* goal = SensorByName(model, data, "goal");
-  mju_sub(residual, position, goal, model->nq);
-
-  // ----- residual (1) ----- //
-  double* velocity = SensorByName(model, data, "velocity");
-  mju_copy(residual + 2, velocity, model->nv);
-
-  // ----- residual (2) ----- //
-  mju_copy(residual + 4, data->ctrl, model->nu);
+std::string Particle::XmlPath() const {
+  return GetModelPath("particle/task_timevarying.xml");
 }
+std::string Particle::Name() const { return "Particle"; }
 
 // -------- Residuals for particle task -------
 //   Number of residuals: 3
@@ -47,9 +31,8 @@ void Particle::Residual(const double* parameters, const mjModel* model,
 //     Residual (1): velocity
 //     Residual (2): control
 // --------------------------------------------
-void Particle::ResidualTimeVarying(const double* parameters,
-                                   const mjModel* model, const mjData* data,
-                                   double* residual) {
+void Particle::Residual(const mjModel* model, const mjData* data,
+                                   double* residual) const {
   // ----- residual (0) ----- //
   // some Lissajous curve
   double goal[2] {0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time/mjPI)};
@@ -64,13 +47,12 @@ void Particle::ResidualTimeVarying(const double* parameters,
   mju_copy(residual + 4, data->ctrl, model->nu);
 }
 
-void Particle::Transition(const mjModel* model, mjData* data, Task* task) {
+void Particle::Transition(const mjModel* model, mjData* data) {
   // some Lissajous curve
-  double goal[2] {0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
+  double goal[2]{0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
 
   // update mocap position
   data->mocap_pos[0] = goal[0];
   data->mocap_pos[1] = goal[1];
 }
-
 }  // namespace mjpc

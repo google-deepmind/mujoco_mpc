@@ -103,7 +103,7 @@ void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
     if (!sim->agent.allocate_enabled && sim->uiloadrequest.load() == 0) {
       // users sensors must be ordered first and sequentially
-      sim->agent.task().Residuals(model, data, data->sensordata);
+      sim->agent.ActiveTask()->Residual(model, data, data->sensordata);
     }
   }
 }
@@ -185,12 +185,23 @@ void PhysicsLoop(mj::Simulate& sim) {
     // ----- task reload ----- //
     if (sim.uiloadrequest.load() == 1) {
       // get new model + task
-      sim.filename = sim.tasks[sim.agent.task().id].xml_path;
+      sim.filename = sim.agent.GetTaskXmlPath(sim.agent.gui_task_id);
 
       mjModel* mnew = LoadModel(sim.filename, sim);
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
+        // set initial qpos via keyframe
+        double* key_qpos = mjpc::KeyQPosByName(mnew, dnew, "home");
+        if (key_qpos) {
+          mju_copy(dnew->qpos, key_qpos, mnew->nq);
+        }
+
+        // set initial qvel via keyframe
+        double* key_qvel = mjpc::KeyQVelByName(mnew, dnew, "home");
+        if (key_qvel) {
+          mju_copy(dnew->qvel, key_qvel, mnew->nv);
+        }
         sim.load(sim.filename, mnew, dnew, true);
         m = mnew;
         d = dnew;
@@ -202,52 +213,10 @@ void PhysicsLoop(mj::Simulate& sim) {
         mju_zero(ctrlnoise, m->nu);
       }
 
-      // agent
-      {
-        std::ostringstream concatenated_task_names;
-        for (const auto& task : sim.tasks) {
-          concatenated_task_names << task.name << '\n';
-        }
-
-        const auto& task = sim.tasks[sim.agent.task().id];
-        sim.agent.Initialize(m, concatenated_task_names.str(),
-                             mjpc::kPlannerNames, task.residual,
-                             task.transition);
-      }
+      sim.agent.Initialize(m);
       sim.agent.Allocate();
       sim.agent.Reset();
       sim.agent.PlotInitialize();
-    }
-
-    // reload model to refresh UI
-    if (sim.uiloadrequest.load() == 1) {
-      mjModel* mnew =
-          LoadModel(sim.tasks[sim.agent.task().id].xml_path, sim);
-      mjData* dnew = nullptr;
-      if (mnew) dnew = mj_makeData(mnew);
-      if (dnew) {
-        sim.load(sim.filename.c_str(), mnew, dnew, true);
-        m = mnew;
-        d = dnew;
-        mj_forward(m, d);
-
-        // allocate ctrlnoise
-        free(ctrlnoise);
-        ctrlnoise = static_cast<mjtNum*>(malloc(sizeof(mjtNum) * m->nu));
-        mju_zero(ctrlnoise, m->nu);
-      }
-
-      // set initial qpos via keyframe
-      double* key_qpos = mjpc::KeyQPosByName(sim.mnew, sim.dnew, "home");
-      if (key_qpos) {
-        mju_copy(sim.dnew->qpos, key_qpos, sim.mnew->nq);
-      }
-
-      // set initial qvel via keyframe
-      double* key_qvel = mjpc::KeyQVelByName(sim.mnew, sim.dnew, "home");
-      if (key_qvel) {
-        mju_copy(sim.dnew->qvel, key_qvel, sim.mnew->nv);
-      }
 
       // decrement counter
       sim.uiloadrequest.fetch_sub(1);
@@ -274,7 +243,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
       if (m) {  // run only if model is present
-        sim.agent.task().Transition(m, d);
+        sim.agent.ActiveTask()->Transition(m, d);
 
         // running
         if (sim.run) {
@@ -377,7 +346,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 // run event loop
-void StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
+void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
@@ -389,22 +358,34 @@ void StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
   sim = std::make_unique<mj::Simulate>(
       std::make_unique<mujoco::GlfwAdapter>());
 
-  sim->tasks = std::move(tasks);
-  std::string task = absl::GetFlag(FLAGS_task);
-  if (!task.empty()) {
-    sim->agent.task().id = sim->TaskIdByName(task);
-    if (sim->agent.task().id == -1) {
-      std::cerr << "Invalid --task flag: '" << task << "'. Valid values:\n";
-      for (const auto& task : sim->tasks) {
-        std::cerr << '\t' << task.name << '\n';
-      }
+  sim->agent.SetTaskList(std::move(tasks));
+  std::string task_name = absl::GetFlag(FLAGS_task);
+  if (task_name.empty()) {
+    sim->agent.gui_task_id = task_id;
+  } else {
+    sim->agent.gui_task_id = sim->agent.GetTaskIdByName(task_name);
+    if (sim->agent.gui_task_id == -1) {
+      std::cerr << "Invalid --task flag: '" << task_name
+                << "'. Valid values:\n";
+      std::cerr << sim->agent.GetTaskNames();
       mju_error("Invalid --task flag.");
     }
   }
 
-  sim->filename = sim->tasks[sim->agent.task().id].xml_path;
+  sim->filename = sim->agent.GetTaskXmlPath(sim->agent.gui_task_id);
   m = LoadModel(sim->filename, *sim);
   if (m) d = mj_makeData(m);
+    // set initial qpos via keyframe
+  double* key_qpos = mjpc::KeyQPosByName(m, d, "home");
+  if (key_qpos) {
+    mju_copy(d->qpos, key_qpos, m->nq);
+  }
+  // set initial qvel via keyframe
+  double* key_qvel = mjpc::KeyQVelByName(m, d, "home");
+  if (key_qvel) {
+    mju_copy(d->qvel, key_qvel, m->nv);
+  }
+
   sim->mnew = m;
   sim->dnew = d;
 
@@ -416,34 +397,13 @@ void StartApp(std::vector<mjpc::TaskDefinition<>> tasks) {
   ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
   mju_zero(ctrlnoise, m->nu);
 
-  // agent
-  {
-    std::ostringstream concatenated_task_names;
-    for (const auto& task : sim->tasks) {
-      concatenated_task_names << task.name << '\n';
-    }
-    const auto& task = sim->tasks[sim->agent.task().id];
-    sim->agent.Initialize(m, concatenated_task_names.str(),
-                          mjpc::kPlannerNames, task.residual,
-                          task.transition);
-  }
+  sim->agent.Initialize(m);
   sim->agent.Allocate();
   sim->agent.Reset();
   sim->agent.PlotInitialize();
 
   // planning threads
   printf("Agent threads: %i\n", sim->agent.max_threads());
-
-  // set initial qpos via keyframe
-  double* key_qpos = mjpc::KeyQPosByName(sim->mnew, sim->dnew, "home");
-  if (key_qpos) {
-    mju_copy(sim->dnew->qpos, key_qpos, sim->mnew->nq);
-  }
-  // set initial qvel via keyframe
-  double* key_qvel = mjpc::KeyQVelByName(sim->mnew, sim->dnew, "home");
-  if (key_qvel) {
-    mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
-  }
 
   // set control callback
   mjcb_control = controller;

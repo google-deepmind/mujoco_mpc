@@ -442,7 +442,7 @@ void GradientPlanner::Traces(mjvScene* scn) {
   for (int k = 0; k < num_trajectory; k++) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
-      if (scn->ngeom >= scn->maxgeom) continue;
+      if (scn->ngeom + task->num_trace > scn->maxgeom) break;
       for (int j = 0; j < task->num_trace; j++) {
         // initialize geometry
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,

@@ -22,7 +22,7 @@
 namespace mjpc {
 namespace humanoid {
 
-class Stand : public mjpc::Task {
+class Stand : public Task {
  public:
   // ------------------ Residuals for humanoid stand task ------------
   //   Number of residuals: 6

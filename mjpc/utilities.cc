@@ -199,7 +199,7 @@ double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   return *reinterpret_cast<const double*>(&value);
 }
 
-int CostTermByName(const mjModel* m, const mjData* d, const std::string& name) {
+int CostTermByName(const mjModel* m, const std::string& name) {
   int id = mj_name2id(m, mjOBJ_SENSOR, name.c_str());
   if (id == -1 || m->sensor_type[id] != mjSENS_USER) {
     std::cerr << "cost term \"" << name << "\" not found.\n";

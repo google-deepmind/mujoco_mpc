@@ -234,7 +234,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // compute spline mapping linear operator
     mappings[policy.representation]->Compute(
-        candidate_policy[0].times.data(), candidate_policy[0].num_spline_points,
+        candidate_policy[0].times, candidate_policy[0].num_spline_points,
         trajectory[0].times.data(), trajectory[0].horizon - 1);
 
     // compute total derivatives
@@ -263,7 +263,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes
-    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
+    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
+             num_trajectory - 1);
     linesearch_steps[num_trajectory - 1] = 0.0;
 
     // rollouts (parallel)

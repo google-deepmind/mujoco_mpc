@@ -15,6 +15,7 @@
 #include "mjpc/planners/gradient/spline_mapping.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "mjpc/trajectory.h"
 
@@ -31,8 +32,9 @@ void ZeroSplineMapping::Allocate(int dim) {
 }
 
 // compute zero-order-hold mapping
-void ZeroSplineMapping::Compute(const double* input_times, int num_input,
-                                const double* output_times, int num_output) {
+void ZeroSplineMapping::Compute(const std::vector<double>& input_times,
+                                int num_input, const double* output_times,
+                                int num_output) {
   // set zeros
   std::fill(mapping.begin(),
             mapping.begin() + (dim * num_output) * (dim * num_input), 0.0);
@@ -42,6 +44,7 @@ void ZeroSplineMapping::Compute(const double* input_times, int num_input,
   int bounds[2];
   for (int i = 0; i < num_output; i++) {
     FindInterval(bounds, input_times, output_times[i], num_input);
+
     for (int j = 0; j < dim; j++) {
       // p0
       row = dim * num_input * (dim * i + j);
@@ -62,8 +65,9 @@ void LinearSplineMapping::Allocate(int dim) {
 }
 
 // compute linear-interpolation mapping
-void LinearSplineMapping::Compute(const double* input_times, int num_input,
-                                  const double* output_times, int num_output) {
+void LinearSplineMapping::Compute(const std::vector<double>& input_times,
+                                  int num_input, const double* output_times,
+                                  int num_output) {
   // set zeros
   std::fill(mapping.begin(),
             mapping.begin() + (dim * num_output) * (dim * num_input), 0.0);
@@ -112,8 +116,9 @@ void CubicSplineMapping::Allocate(int dim) {
 }
 
 // compute cubic-interpolation mapping
-void CubicSplineMapping::Compute(const double* input_times, int num_input,
-                                 const double* output_times, int num_output) {
+void CubicSplineMapping::Compute(const std::vector<double>& input_times,
+                                 int num_input, const double* output_times,
+                                 int num_output) {
   // FiniteDifferenceSlope matrix
   std::fill(
       point_slope_mapping.begin(),

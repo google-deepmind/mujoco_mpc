@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+
+#include <vector>
+
+#include "gtest/gtest.h"
 #include "mjpc/planners/gradient/spline_mapping.h"
 #include "mjpc/utilities.h"
 
@@ -26,7 +29,7 @@ TEST(GradientTest, LinearTest) {
   const int S = 6;
 
   // domain
-  double x[S] = {0.1, 0.3, 0.7, 1.2, 1.21, 1.6};
+  std::vector<double> x{0.1, 0.3, 0.7, 1.2, 1.21, 1.6};
 
   // values
   const int n = 2;

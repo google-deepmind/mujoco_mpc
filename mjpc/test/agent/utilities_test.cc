@@ -14,13 +14,15 @@
 
 #include "mjpc/utilities.h"
 
+#include <mujoco/mujoco.h>
+
 #include <atomic>
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include <mujoco/mujoco.h>
 #include "mjpc/test/load.h"
 #include "mjpc/threadpool.h"
 
@@ -91,8 +93,8 @@ TEST(UtilitiesTest, CustomNumeric) {
     EXPECT_NEAR(x, 0.1, 1.0e-5);
   }
   {
-    const auto x = GetNumberOrDefault(
-        std::numeric_limits<double>::quiet_NaN(), model, "test_double");
+    const auto x = GetNumberOrDefault(std::numeric_limits<double>::quiet_NaN(),
+                                      model, "test_double");
     static_assert(std::is_same_v<decltype(x), const double>);
     EXPECT_NEAR(x, 0.1, 1.0e-5);
   }
@@ -241,7 +243,7 @@ TEST(UtilitiesTest, PowerSequence) {
 
 TEST(UtilitiesTest, FindInterval) {
   // sequence
-  double sequence[4] = {-1.0, 0.0, 1.0, 2.0};
+  std::vector<double> sequence{-1.0, 0.0, 1.0, 2.0};
   int length = 4;
 
   // bounds
@@ -268,7 +270,7 @@ TEST(UtilitiesTest, FindInterval) {
 
 TEST(UtilitiesTest, LinearInterpolation) {
   // x
-  double x[2] = {1.0, 2.0};
+  std::vector<double> x{1.0, 2.0};
   double y[2] = {1.0, 2.0};
 
   // inside
@@ -294,9 +296,7 @@ TEST(UtilitiesTest, IncrementAtomic) {
   {
     mjpc::ThreadPool pool(kN);
     for (int i = 0; i < kN; ++i) {
-      pool.Schedule([&v]() {
-        IncrementAtomic(v, 10);
-      });
+      pool.Schedule([&v]() { IncrementAtomic(v, 10); });
     }
   }
   EXPECT_EQ(v.load(), kInitial + 10 * kN);

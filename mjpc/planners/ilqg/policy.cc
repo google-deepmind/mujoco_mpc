@@ -14,9 +14,10 @@
 
 #include "mjpc/planners/ilqg/policy.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
@@ -88,58 +89,54 @@ void iLQGPolicy::Action(double* action, const double* state,
 
   // find times bounds
   int bounds[2];
-  FindInterval(bounds, trajectory.times.data(), time, trajectory.horizon);
+  FindInterval(bounds, trajectory.times, time, trajectory.horizon);
 
   // interpolate
   if (bounds[0] == bounds[1] || representation == 0) {
     // action reference
-    ZeroInterpolation(action, time, trajectory.times.data(),
-                      trajectory.actions.data(), model->nu,
-                      trajectory.horizon - 1);
+    ZeroInterpolation(action, time, trajectory.times, trajectory.actions.data(),
+                      model->nu, trajectory.horizon - 1);
 
     // state reference
-    ZeroInterpolation(state_interp.data(), time, trajectory.times.data(),
+    ZeroInterpolation(state_interp.data(), time, trajectory.times,
                       trajectory.states.data(), dim_state, trajectory.horizon);
 
     // gains
-    ZeroInterpolation(feedback_gain_scratch.data(), time,
-                      trajectory.times.data(), feedback_gain.data(),
-                      dim_action * dim_state_derivative,
+    ZeroInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                      feedback_gain.data(), dim_action * dim_state_derivative,
                       trajectory.horizon - 1);
   } else if (representation == 1) {
     // action
-    LinearInterpolation(action, time, trajectory.times.data(),
+    LinearInterpolation(action, time, trajectory.times,
                         trajectory.actions.data(), model->nu,
                         trajectory.horizon - 1);
 
     // state
-    LinearInterpolation(state_interp.data(), time, trajectory.times.data(),
+    LinearInterpolation(state_interp.data(), time, trajectory.times,
                         trajectory.states.data(), dim_state,
                         trajectory.horizon);
 
     // normalize quaternions
     mj_normalizeQuat(model, state_interp.data());
 
-    LinearInterpolation(feedback_gain_scratch.data(), time,
-                        trajectory.times.data(), feedback_gain.data(),
-                        dim_action * dim_state_derivative,
+    LinearInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                        feedback_gain.data(), dim_action * dim_state_derivative,
                         trajectory.horizon - 1);
   } else if (representation == 2) {
     // action
-    CubicInterpolation(action, time, trajectory.times.data(),
+    CubicInterpolation(action, time, trajectory.times,
                        trajectory.actions.data(), model->nu,
                        trajectory.horizon - 1);
 
     // state
-    CubicInterpolation(state_interp.data(), time, trajectory.times.data(),
+    CubicInterpolation(state_interp.data(), time, trajectory.times,
                        trajectory.states.data(), dim_state, trajectory.horizon);
 
     // normalize quaternions
     mj_normalizeQuat(model, state_interp.data());
 
-    CubicInterpolation(feedback_gain_scratch.data(), time,
-                       trajectory.times.data(), feedback_gain.data(),
-                       dim_action * dim_state_derivative,
+    CubicInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                       feedback_gain.data(), dim_action * dim_state_derivative,
                        trajectory.horizon - 1);
   }
 

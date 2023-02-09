@@ -15,6 +15,9 @@
 #ifndef MJPC_UTILITIES_H_
 #define MJPC_UTILITIES_H_
 
+#include <absl/container/flat_hash_map.h>
+#include <mujoco/mujoco.h>
+
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -22,9 +25,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-
-#include <absl/container/flat_hash_map.h>
-#include <mujoco/mujoco.h>
+#include <vector>
 
 namespace mjpc {
 
@@ -110,26 +111,28 @@ void PowerSequence(double* t, double t_step, double t1, double t2, double p,
                    double N);
 
 // find interval in monotonic sequence containing value
-void FindInterval(int* bounds, const double* sequence, double value,
-                  int length);
+void FindInterval(int* bounds, const std::vector<double>& sequence,
+                   double value, int length);
 
 // zero-order interpolation
-void ZeroInterpolation(double* output, double x, const double* xs,
+void ZeroInterpolation(double* output, double x, const std::vector<double>& xs,
                        const double* ys, int dim, int length);
 
 // linear interpolation
-void LinearInterpolation(double* output, double x, const double* xs,
-                         const double* ys, int dim, int length);
+void LinearInterpolation(double* output, double x,
+                         const std::vector<double>& xs, const double* ys,
+                         int dim, int length);
 
 // coefficients for cubic interpolation
-void CubicCoefficients(double* coefficients, double x, const double* xs, int T);
+void CubicCoefficients(double* coefficients, double x,
+                       const std::vector<double>&, int T);
 
 // finite-difference vector
-double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
-                             int dim, int length, int i);
+double FiniteDifferenceSlope(double x, const std::vector<double>& xs,
+                             const double* ys, int dim, int length, int i);
 
 // cubic polynomial interpolation
-void CubicInterpolation(double* output, double x, const double* xs,
+void CubicInterpolation(double* output, double x, const std::vector<double>& xs,
                         const double* ys, int dim, int length);
 
 // returns the path to the directory containing the current executable
@@ -150,9 +153,9 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]);
 
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
-               const double body[3],
-               const double foot0[3], const double foot1[3],
-               const double foot2[3], const double foot3[3]);
+               const double body[3], const double foot0[3],
+               const double foot1[3], const double foot2[3],
+               const double foot3[3]);
 
 // default cost colors
 extern const float CostColors[20][3];
@@ -201,7 +204,8 @@ inline T* DataAt(std::vector<T>& vec, typename std::vector<T>::size_type elem) {
 // in C++20 atomic::operator+= is built-in for floating point numbers, but this
 // function works in C++11
 inline void IncrementAtomic(std::atomic<double>& v, double a) {
-  for (double t = v.load(); !v.compare_exchange_weak(t, t + a);) {}
+  for (double t = v.load(); !v.compare_exchange_weak(t, t + a);) {
+  }
 }
 
 // get a pointer to a specific element of a vector, or nullptr if out of bounds
@@ -217,10 +221,9 @@ inline UniqueMjData MakeUniqueMjData(mjData* d) {
   return UniqueMjData(d, mj_deleteData);
 }
 
-
 // returns point in 2D convex hull that is nearest to query
-void NearestInHull(mjtNum res[2], const mjtNum query[2],
-                   const mjtNum* points, const int* hull, int num_hull);
+void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
+                   const int* hull, int num_hull);
 
 // find the convex hull of a set of 2D points
 int Hull2D(int* hull, int num_points, const mjtNum* points);

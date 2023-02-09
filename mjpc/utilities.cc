@@ -14,6 +14,7 @@
 
 #include "mjpc/utilities.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -25,6 +26,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 // DEEPMIND INTERNAL IMPORT
 #include <absl/container/flat_hash_map.h>
@@ -33,6 +35,7 @@
 #include <absl/strings/str_split.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
@@ -165,8 +168,8 @@ double* SensorByName(const mjModel* m, const mjData* d,
 
 // get default residual parameter data using string
 double DefaultParameterValue(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
     return 0;
@@ -176,8 +179,8 @@ double DefaultParameterValue(const mjModel* model, std::string_view name) {
 
 // get index to residual parameter data using string
 int ParameterIndex(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
 
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
@@ -267,38 +270,29 @@ void PowerSequence(double* t, double t_step, double t1, double t2, double p,
 }
 
 // find interval in monotonic sequence containing value
-void FindInterval(int* bounds, const double* sequence, double value,
-                  int length) {
-  // final index
-  int T = length - 1;
+void FindInterval(int* bounds, const std::vector<double>& sequence,
+                   double value, int length) {
+  // get bounds
+  auto it =
+      std::upper_bound(sequence.begin(), sequence.begin() + length, value);
+  int upper_bound = it - sequence.begin();
+  int lower_bound = upper_bound - 1;
 
   // set bounds
-  bounds[0] = 0;
-  bounds[1] = T;
-
-  // index evaluation
-  int middle;
-
-  if (sequence[0] <= value) {
-    if (sequence[T] > value) {
-      while (bounds[0] < bounds[1] - 1) {
-        middle = std::ceil((bounds[0] + bounds[1]) / 2.0 - 1e-10);
-        if (sequence[middle] <= value) {
-          bounds[0] = middle;
-        } else {
-          bounds[1] = middle;
-        }
-      }
-    } else {
-      bounds[0] = bounds[1];
-    }
+  if (lower_bound < 0) {
+    bounds[0] = 0;
+    bounds[1] = 0;
+  } else if (lower_bound > length - 1) {
+    bounds[0] = length - 1;
+    bounds[1] = length - 1;
   } else {
-    bounds[1] = bounds[0];
+    bounds[0] = std::max(lower_bound, 0);
+    bounds[1] = std::min(upper_bound, length - 1);
   }
 }
 
 // zero-order interpolation
-void ZeroInterpolation(double* output, double x, const double* xs,
+void ZeroInterpolation(double* output, double x, const std::vector<double>& xs,
                        const double* ys, int dim, int length) {
   // bounds
   int bounds[2];
@@ -309,8 +303,9 @@ void ZeroInterpolation(double* output, double x, const double* xs,
 }
 
 // linear interpolation
-void LinearInterpolation(double* output, double x, const double* xs,
-                         const double* ys, int dim, int length) {
+void LinearInterpolation(double* output, double x,
+                         const std::vector<double>& xs, const double* ys,
+                         int dim, int length) {
   // bounds
   int bounds[2];
   FindInterval(bounds, xs, x, length);
@@ -330,8 +325,8 @@ void LinearInterpolation(double* output, double x, const double* xs,
 }
 
 // coefficients for cubic interpolation
-void CubicCoefficients(double* coefficients, double x, const double* xs,
-                       int T) {
+void CubicCoefficients(double* coefficients, double x,
+                       const std::vector<double>& xs, int T) {
   // find interval
   int bounds[2];
   FindInterval(bounds, xs, x, T);
@@ -356,8 +351,8 @@ void CubicCoefficients(double* coefficients, double x, const double* xs,
 }
 
 // finite-difference vector
-double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
-                             int dim, int length, int i) {
+double FiniteDifferenceSlope(double x, const std::vector<double>& xs,
+                             const double* ys, int dim, int length, int i) {
   // find interval
   int bounds[2];
   FindInterval(bounds, xs, x, length);
@@ -391,7 +386,7 @@ double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
 }
 
 // cubic polynominal interpolation
-void CubicInterpolation(double* output, double x, const double* xs,
+void CubicInterpolation(double* output, double x, const std::vector<double>& xs,
                         const double* ys, int dim, int length) {
   // find interval
   int bounds[2];
@@ -550,41 +545,41 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
 
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
-               const double body[3],
-               const double foot0[3], const double foot1[3],
-               const double foot2[3], const double foot3[3]) {
-    // average foot pos
-    double pos[3];
-    for (int i = 0; i < 3; i++) {
-      pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
-    }
+               const double body[3], const double foot0[3],
+               const double foot1[3], const double foot2[3],
+               const double foot3[3]) {
+  // average foot pos
+  double pos[3];
+  for (int i = 0; i < 3; i++) {
+    pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
+  }
 
-    // compute feet covariance
-    double cov[9] = {0};
-    for (const double* foot : {foot0, foot1, foot2, foot3}) {
-      double dif[3], difTdif[9];
-      mju_sub3(dif, foot, pos);
-      mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
-      mju_addTo(cov, difTdif, 9);
-    }
+  // compute feet covariance
+  double cov[9] = {0};
+  for (const double* foot : {foot0, foot1, foot2, foot3}) {
+    double dif[3], difTdif[9];
+    mju_sub3(dif, foot, pos);
+    mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
+    mju_addTo(cov, difTdif, 9);
+  }
 
-    // eigendecompose
-    double eigval[3], quat[4], mat[9];
-    mju_eig3(eigval, mat, quat, cov);
+  // eigendecompose
+  double eigval[3], quat[4], mat[9];
+  mju_eig3(eigval, mat, quat, cov);
 
-    // make sure foot-plane normal (z axis) points to body
-    double zaxis[3] = {mat[2], mat[5], mat[8]};
-    double to_body[3];
-    mju_sub3(to_body, body, pos);
-    if (mju_dot3(zaxis, to_body) < 0) {
-      // flip both z and y (rotate around x), to maintain frame handedness
-      for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
-    }
+  // make sure foot-plane normal (z axis) points to body
+  double zaxis[3] = {mat[2], mat[5], mat[8]};
+  double to_body[3];
+  mju_sub3(to_body, body, pos);
+  if (mju_dot3(zaxis, to_body) < 0) {
+    // flip both z and y (rotate around x), to maintain frame handedness
+    for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
+  }
 
-    // copy outputs
-    if (feet_pos) mju_copy3(feet_pos, pos);
-    if (feet_mat) mju_copy(feet_mat, mat, 9);
-    if (feet_quat) mju_mat2Quat(feet_quat, mat);
+  // copy outputs
+  if (feet_pos) mju_copy3(feet_pos, pos);
+  if (feet_mat) mju_copy(feet_mat, mat, 9);
+  if (feet_quat) mju_mat2Quat(feet_quat, mat);
 }
 
 // set x to be the point on the segment [p0 p1] that is nearest to x
@@ -615,10 +610,9 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]) {
 const float CostColors[20][3]{
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 1.0, 0.0},
     {0.0, 1.0, 1.0}, {0.5, 0.0, 0.0}, {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5},
-    {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5},
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 1.0, 0.0},
-    {0.0, 1.0, 1.0}, {0.5, 0.0, 0.0}, {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5},
-    {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5},
+    {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0}, {1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.5, 0.0, 0.0},
+    {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5}, {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5},
 };
 
 // plots - vertical line
@@ -774,12 +768,12 @@ namespace {  // private functions in an anonymous namespace
 
 // 2d vector dot-product
 mjtNum mju_dot2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  return vec1[0]*vec2[0] + vec1[1]*vec2[1];
+  return vec1[0] * vec2[0] + vec1[1] * vec2[1];
 }
 
 // 2d vector squared distance
 mjtNum mju_sqrdist2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  const mjtNum diff[2] = {vec1[0]-vec2[0], vec1[1]-vec2[1]};
+  const mjtNum diff[2] = {vec1[0] - vec2[0], vec1[1] - vec2[1]};
   return mju_dot2(diff, diff);
 }
 
@@ -813,24 +807,24 @@ void ProjectToSegment2D(mjtNum res[2], const mjtNum query[2],
   mjtNum length = mju_sqrt(mju_dot2(axis, axis));
   axis[0] /= length;
   axis[1] /= length;
-  mjtNum center[2] = {0.5*(v1[0] + v0[0]), 0.5*(v1[1] + v0[1])};
+  mjtNum center[2] = {0.5 * (v1[0] + v0[0]), 0.5 * (v1[1] + v0[1])};
   mjtNum t = mju_dot2(query, axis) - mju_dot2(center, axis);
-  t = mju_clip(t, -length/2, length/2);
-  res[0] = center[0] + t*axis[0];
-  res[1] = center[1] + t*axis[1];
+  t = mju_clip(t, -length / 2, length / 2);
+  res[0] = center[0] + t * axis[0];
+  res[1] = center[1] + t * axis[1];
 }
 
 }  // namespace
 
 // returns point in 2D convex hull that is nearest to query
-void NearestInHull(mjtNum res[2], const mjtNum query[2],
-                   const mjtNum* points, const int* hull, int num_hull) {
+void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
+                   const int* hull, int num_hull) {
   int outside = 0;      // assume query point is inside the hull
   mjtNum best_sqrdist;  // smallest squared distance so far
   for (int i = 0; i < num_hull; i++) {
     int j = hull[i];
-    const mjtNum* v0 = points + 2*j;
-    const mjtNum* v1 = points + 2*((j + 1) % num_hull);
+    const mjtNum* v0 = points + 2 * j;
+    const mjtNum* v1 = points + 2 * ((j + 1) % num_hull);
 
     // edge from v0 to v1
     mjtNum e01[2] = {v1[0] - v0[0], v1[1] - v0[1]};
@@ -876,8 +870,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
   mjtNum best_x = points[0];
   mjtNum best_y = points[1];
   for (int i = 1; i < num_points; i++) {
-    mjtNum x = points[2*i];
-    mjtNum y = points[2*i + 1];
+    mjtNum x = points[2 * i];
+    mjtNum y = points[2 * i + 1];
 
     // accept if larger, use y value to tie-break exact equality
     if (x > best_x || (x == best_x && y > best_y)) {
@@ -895,9 +889,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
     int next = -1;
     for (int candidate = 0; candidate < num_points; candidate++) {
       if ((next == -1) ||
-          IsEdgeOutside(points + 2*hull[num_hull - 1],
-                        points + 2*next,
-                        points + 2*candidate)) {
+          IsEdgeOutside(points + 2 * hull[num_hull - 1], points + 2 * next,
+                        points + 2 * candidate)) {
         next = candidate;
       }
     }

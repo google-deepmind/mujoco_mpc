@@ -20,7 +20,7 @@
 #include <absl/random/distributions.h>
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-#include "planners/policy.h"
+#include "mjpc/planners/policy.h"
 
 namespace mjpc {
 

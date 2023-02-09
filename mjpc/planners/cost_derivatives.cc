@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/cost_derivatives.h"
+#include "mjpc/planners/cost_derivatives.h"
 
 #include <algorithm>
 
 #include <mujoco/mujoco.h>
-#include "norm.h"
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/norm.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

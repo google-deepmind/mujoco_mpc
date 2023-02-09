@@ -19,8 +19,8 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "threadpool.h"
-#include "utilities.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

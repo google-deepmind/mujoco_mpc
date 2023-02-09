@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 #include <cerrno>
 #include <cmath>
@@ -33,7 +33,7 @@
 #include <absl/strings/str_split.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
-#include "array_safety.h"
+#include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
 #include <thread>
@@ -121,7 +121,7 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
     if (list_name == &m->names[m->name_textadr[i]]) {
       // get the nth element in the list of options (without constructing a
       // vector<string>)
-      std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+      std::string_view options(m->text_data + m->text_adr[i]);
       for (std::string_view value : absl::StrSplit(options, '|')) {
         if (list_index == 0) return std::string(value);
         list_index--;
@@ -199,7 +199,7 @@ double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   return *reinterpret_cast<const double*>(&value);
 }
 
-int CostTermByName(const mjModel* m, const mjData* d, const std::string& name) {
+int CostTermByName(const mjModel* m, const std::string& name) {
   int id = mj_name2id(m, mjOBJ_SENSOR, name.c_str());
   if (id == -1 || m->sensor_type[id] != mjSENS_USER) {
     std::cerr << "cost term \"" << name << "\" not found.\n";

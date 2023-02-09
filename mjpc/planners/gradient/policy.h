@@ -17,8 +17,8 @@
 
 #include <vector>
 
-#include "planners/policy.h"
-#include "trajectory.h"
+#include "mjpc/planners/policy.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

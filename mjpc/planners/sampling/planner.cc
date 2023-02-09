@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/sampling/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 
 #include <absl/random/random.h>
 
@@ -22,11 +22,11 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "array_safety.h"
-#include "planners/sampling/policy.h"
-#include "states/state.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 
@@ -349,7 +349,7 @@ void SamplingPlanner::Traces(mjvScene* scn) {
 
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
-      if (scn->ngeom >= scn->maxgeom) continue;
+      if (scn->ngeom + task->num_trace > scn->maxgeom) break;
       for (int j = 0; j < task->num_trace; j++) {
         // initialize geometry
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,

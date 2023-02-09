@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "states/include.h"
+#include "mjpc/states/include.h"
 
 #include <memory>
 #include <vector>
 
-#include "states/state.h"
+#include "mjpc/states/state.h"
 
 namespace mjpc {
 

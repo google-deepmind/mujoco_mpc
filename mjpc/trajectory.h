@@ -19,7 +19,7 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
 

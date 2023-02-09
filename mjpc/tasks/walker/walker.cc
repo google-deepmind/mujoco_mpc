@@ -12,12 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/walker/walker.h"
+#include "mjpc/tasks/walker/walker.h"
+
+#include <string>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string Walker::XmlPath() const {
+  return GetModelPath("walker/task.xml");
+}
+std::string Walker::Name() const { return "Walker"; }
 // --------- Residuals for walker task --------
 //   Number of residuals: 4
 //     Residual (0): control
@@ -28,8 +35,8 @@ namespace mjpc {
 //     Parameter (0): height_goal
 //     Parameter (1): speed_goal
 // --------------------------------------------
-void Walker::Residual(const double* parameters, const mjModel* model,
-                      const mjData* data, double* residual) {
+void Walker::Residual(const mjModel* model, const mjData* data,
+                      double* residual) const {
   int counter = 0;
   // ---------- Residual (0) ----------
   mju_copy(&residual[counter], data->ctrl, model->nu);

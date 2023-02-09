@@ -12,30 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "task.h"
+#include "mjpc/task.h"
 
 #include <cstring>
 
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 
-// initialize task from model
-void Task::Set(const mjModel* model, ResidualFunction* residual,
-               TransitionFunction* transition) {
-  // get information from model
-  this->GetFrom(model);
-
-  // set residual function
-  this->residual_ = residual;
-
-  // set transition function
-  this->transition_ = transition;
-}
-
-void Task::GetFrom(const mjModel* model) {
+// called at: construction, load, and GUI reset
+void Task::Reset(const mjModel* model) {
   // ----- defaults ----- //
 
   // transition
@@ -162,15 +150,6 @@ double Task::CostValue(const double* residual) const {
   }
 }
 
-void Task::Residuals(const mjModel* m, const mjData* d,
-                     double* residuals) const {
-  residual_(parameters.data(), m, d, residuals);
-}
-
-void Task::Transition(const mjModel* m, mjData* d) {
-  transition_(m, d, this);
-}
-
 // initial residual parameters from model
 void Task::SetFeatureParameters(const mjModel* model) {
   // set counter
@@ -203,7 +182,4 @@ void Task::SetFeatureParameters(const mjModel* model) {
     }
   }
 }
-
-void NullTransition(const mjModel* model, mjData* data, Task* task) {}
-
 }  // namespace mjpc

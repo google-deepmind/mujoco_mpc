@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/include.h"
+#include "mjpc/planners/include.h"
 
 #include <memory>
 #include <vector>
 
-#include "planners/gradient/planner.h"
-#include "planners/ilqg/planner.h"
-#include "planners/ilqs/planner.h"
-#include "planners/planner.h"
-#include "planners/sampling/planner.h"
+#include "mjpc/planners/gradient/planner.h"
+#include "mjpc/planners/ilqg/planner.h"
+#include "mjpc/planners/ilqs/planner.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 
 namespace mjpc {
 const char kPlannerNames[] =

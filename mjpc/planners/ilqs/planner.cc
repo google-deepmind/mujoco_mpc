@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/ilqs/planner.h"
+#include "mjpc/planners/ilqs/planner.h"
 
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 
-#include "array_safety.h"
-#include "planners/ilqg/planner.h"
-#include "planners/linear_solve.h"
-#include "planners/planner.h"
-#include "planners/sampling/planner.h"
-#include "states/state.h"
-#include "trajectory.h"
-#include "utilities.h"
+#include "mjpc/array_safety.h"
+#include "mjpc/planners/ilqg/planner.h"
+#include "mjpc/planners/linear_solve.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;

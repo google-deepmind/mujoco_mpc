@@ -16,13 +16,15 @@
 #define MJPC_TASKS_HUMANOID_TRACKING_TASK_H_
 
 #include <mujoco/mujoco.h>
-#include "../../../task.h"
+#include "mjpc/task.h"
 
 namespace mjpc {
 namespace humanoid {
 
-struct Tracking {
-
+class Tracking : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
   // ------------- Residuals for humanoid tracking task -------------
   //   Number of residuals:
   //     Residual (0): Joint vel: minimise joint velocity
@@ -33,16 +35,15 @@ struct Tracking {
   //         for {root, head, toe, heel, knee, hand, elbow, shoulder, hip}.
   //   Number of parameters: 0
   // ----------------------------------------------------------------
-  static void Residual(const double* parameters, const mjModel* model,
-                       const mjData* data, double* residual);
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
 
   // --------------------- Transition for humanoid task -------------------------
   //   Set `data->mocap_pos` based on `data->time` to move the mocap sites.
   //   Linearly interpolate between two consecutive key frames in order to
   //   smooth the transitions between keyframes.
   // ----------------------------------------------------------------------------
-  static void Transition(const mjModel* model, mjData* data, Task* task);
-
+  void Transition(const mjModel* model, mjData* data) override;
 };
 
 }  // namespace humanoid

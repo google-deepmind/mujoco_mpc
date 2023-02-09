@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "task.h"
+#include "mjpc/task.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "test/load.h"
+#include "mjpc/test/load.h"
 
 namespace mjpc {
 namespace {
+
+struct TestTask : public Task {
+  std::string Name() const override {return ""; }
+  std::string XmlPath() const override { return ""; }
+  void Residual(const mjModel*, const mjData*, double*) const override {};
+};
 
 // test task construction
 TEST(TasksTest, Task) {
@@ -27,12 +33,8 @@ TEST(TasksTest, Task) {
   mjModel* model = LoadTestModel("particle_task.xml");
 
   // task
-  Task task;
-
-  // set task
-  ResidualFunction* residual_func = [](const double*, const mjModel*,
-                                       const mjData*, double*) {};
-  task.Set(model, residual_func, mjpc::NullTransition);
+  TestTask task;
+  task.Reset(model);
 
   // test task
   EXPECT_NEAR(task.risk, 1.0, 1.0e-5);

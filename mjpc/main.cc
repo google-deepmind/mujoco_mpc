@@ -19,10 +19,10 @@
 #include <vector>
 #include <absl/flags/parse.h>
 
-#include "app.h"
-#include "task.h"
-#include "utilities.h"
-#include "tasks/tasks.h"
+#include "mjpc/app.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
+#include "mjpc/tasks/tasks.h"
 
 
 // machinery for replacing command line error by a macOS dialog box
@@ -48,16 +48,6 @@ int main(int argc, char** argv) {
 
   absl::ParseCommandLine(argc, argv);
 
-  std::vector<mjpc::TaskDefinition<>> tasks;
-  for (auto& task : mjpc::kTasks) {
-    mjpc::TaskDefinition<> task_copy = {
-      .name = task.name,
-      .xml_path = mjpc::GetModelPath(task.xml_path),
-      .residual = task.residual,
-      .transition = task.transition,
-    };
-    tasks.push_back(task_copy);
-  }
-  mjpc::StartApp(std::move(tasks));
+  mjpc::StartApp(mjpc::GetTasks(), 3);  // start with humanoid stand
   return 0;
 }

@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/quadrotor/quadrotor.h"
+#include "mjpc/tasks/quadrotor/quadrotor.h"
+
+#include <string>
 
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
+std::string Quadrotor::XmlPath() const {
+  return GetModelPath("quadrotor/task.xml");
+}
+std::string Quadrotor::Name() const { return "Quadrotor"; }
 
 // --------------- Residuals for quadrotor task ---------------
 //   Number of residuals: 5
@@ -29,8 +35,8 @@ namespace mjpc {
 //     Residual (4): control
 //   Number of parameters: 6
 // ------------------------------------------------------------
-void Quadrotor::Residual(const double* parameters, const mjModel* model,
-                         const mjData* data, double* residuals) {
+void Quadrotor::Residual(const mjModel* model, const mjData* data,
+                         double* residuals) const {
   // ---------- Residual (0) ----------
   double* position = SensorByName(model, data, "position");
   mju_sub(residuals, position, data->mocap_pos, 3);
@@ -47,21 +53,21 @@ void Quadrotor::Residual(const double* parameters, const mjModel* model,
 
   // ---------- Residual (2) ----------
   double* linear_velocity = SensorByName(model, data, "linear_velocity");
-  mju_sub(residuals + 12, linear_velocity, parameters, 3);
+  mju_sub(residuals + 12, linear_velocity, parameters.data(), 3);
 
   // ---------- Residual (3) ----------
   double* angular_velocity = SensorByName(model, data, "angular_velocity");
-  mju_sub(residuals + 15, angular_velocity, parameters + 3, 3);
+  mju_sub(residuals + 15, angular_velocity, parameters.data() + 3, 3);
 
   // ---------- Residual (4) ----------
   mju_copy(residuals + 18, data->ctrl, model->nu);
 }
 
 // ----- Transition for quadrotor task -----
-void Quadrotor::Transition(const mjModel* model, mjData* data, Task* task) {
+void Quadrotor::Transition(const mjModel* model, mjData* data) {
   // set stage to GUI selection
-  if (task->stage > 0) {
-    data->userdata[0] = task->stage - 1;
+  if (stage > 0) {
+    data->userdata[0] = stage - 1;
   } else {
     // goal position
     const double* goal_position = data->mocap_pos;

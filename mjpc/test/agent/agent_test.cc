@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "task.h"
-#include "test/load.h"
-#include "test/testdata/particle_residual.h"
-#include "threadpool.h"
+#include "mjpc/task.h"
+#include "mjpc/test/load.h"
+#include "mjpc/test/testdata/particle_residual.h"
+#include "mjpc/threadpool.h"
 
 namespace mjpc {
 namespace {
@@ -33,7 +34,12 @@ Agent* agent = nullptr;
 
 class AgentTest : public ::testing::Test {
  protected:
-  void SetUp() override { agent = new Agent; }
+  void SetUp() override {
+    agent = new Agent;
+    std::vector<std::unique_ptr<Task>> tasks;
+    tasks.push_back(std::make_unique<ParticleTestTask>());
+    agent->SetTaskList(std::move(tasks));
+  }
   void TearDown() override {
     delete agent;
     agent = nullptr;
@@ -42,7 +48,7 @@ class AgentTest : public ::testing::Test {
 
   static void SensorCallback(const mjModel* model, mjData* data, int stage) {
     if (stage == mjSTAGE_ACC) {
-      agent->task_.Residuals(model, data, data->sensordata);
+      agent->ActiveTask()->Residual(model, data, data->sensordata);
     }
   }
 
@@ -54,14 +60,11 @@ class AgentTest : public ::testing::Test {
     // create data
     mjData* data = mj_makeData(model);
 
+    // ----- initialize agent ----- //
+    agent->Initialize(model);
+
     // sensor callback
     mjcb_sensor = &SensorCallback;
-
-    // ----- initialize agent ----- //
-    const char task_str[] = "";
-    const char planners_str[] = "";
-    agent->Initialize(model, task_str, planners_str, particle_residual,
-                    mjpc::NullTransition);
 
     // test
     EXPECT_EQ(agent->integrator_, 0);
@@ -100,12 +103,9 @@ class AgentTest : public ::testing::Test {
     mjcb_sensor = &SensorCallback;
 
     // ----- initialize agent ----- //
-    const char task_str[] = "";
-    const char planners_str[] = "";
-    agent->Initialize(model, task_str, planners_str, particle_residual,
-                    mjpc::NullTransition);
-  agent->Allocate();
-  agent->Reset();
+    agent->Initialize(model);
+    agent->Allocate();
+    agent->Reset();
 
     // pool
     ThreadPool plan_pool(1);

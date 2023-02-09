@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "planners/ilqg/backward_pass.h"
+#include "mjpc/planners/ilqg/backward_pass.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "planners/cost_derivatives.h"
-#include "planners/model_derivatives.h"
-#include "test/lqr.h"
-#include "utilities.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/test/lqr.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

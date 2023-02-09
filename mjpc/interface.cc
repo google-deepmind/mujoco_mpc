@@ -15,11 +15,11 @@
 #include <memory>
 #include <string>
 #include <mujoco/mujoco.h>
-#include "agent.h"
-#include "task.h"
-#include "tasks/tasks.h"
-#include "threadpool.h"
-#include "utilities.h"
+#include "mjpc/agent.h"
+#include "mjpc/task.h"
+#include "mjpc/tasks/tasks.h"
+#include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 
 namespace mjpc {
@@ -30,16 +30,16 @@ class AgentRunner{
   void Step(mjData* data);
   void Residuals(const mjModel* model, mjData* data);
  private:
-  mjpc::Agent agent_;
-  mjpc::ThreadPool agent_plan_pool_;
+  Agent agent_;
+  ThreadPool agent_plan_pool_;
   std::atomic_bool exit_request_ = false;
   std::atomic_int ui_load_request_ = 0;
 };
 
 AgentRunner::AgentRunner(mjModel* model) : agent_plan_pool_(1) {
-  int task_index = GetNumberOrDefault(0, model, "interface_task_index");
-  auto task = mjpc::kTasks[task_index];
-  agent_.Initialize(model, "", "", task.residual, task.transition);
+  agent_.SetTaskList(GetTasks());
+  agent_.gui_task_id = GetNumberOrDefault(0, model, "interface_task_index");
+  agent_.Initialize(model);
   agent_.Allocate();
   agent_.Reset();
   agent_.plan_enabled = true;
@@ -63,7 +63,7 @@ void AgentRunner::Step(mjData* data) {
 }
 
 void AgentRunner::Residuals(const mjModel* model, mjData* data) {
-  agent_.task().Residuals(model, data, data->sensordata);
+  agent_.ActiveTask()->Residual(model, data, data->sensordata);
 }
 }  // namespace mjpc
 

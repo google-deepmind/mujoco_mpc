@@ -15,19 +15,24 @@
 #ifndef MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 #define MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 
+#include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
-void cartpole_residual(double* residual, const double* residual_parameters,
-                       const mjModel* model, const mjData* data) {
-  // goal position
-  mju_copy(residual, data->qpos, model->nq);
-  residual[1] -= 3.141592;
+class CartpoleTestTask : public mjpc::Task {
+  std::string Name() const override {return ""; }
+  std::string XmlPath() const override { return ""; }
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override {
+    // goal position
+    mju_copy(residual, data->qpos, model->nq);
+    residual[1] -= 3.141592;
 
-  // goal velocity
-  mju_copy(residual + 2, data->qvel, model->nv);
+    // goal velocity
+    mju_copy(residual + 2, data->qvel, model->nv);
 
-  // action
-  mju_copy(residual + 4, data->ctrl, model->nu);
-}
+    // action
+    mju_copy(residual + 4, data->ctrl, model->nu);
+  }
+};
 
 #endif  // MJPC_TASKS_CARTPOLE_RESIDUAL_H_

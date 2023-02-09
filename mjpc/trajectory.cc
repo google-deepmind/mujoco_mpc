@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "trajectory.h"
+#include "mjpc/trajectory.h"
 
 #include <algorithm>
 #include <functional>
 #include <iostream>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

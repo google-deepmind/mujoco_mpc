@@ -26,7 +26,7 @@
 
 #include <mujoco/mujoco.h>
 #include <platform_ui_adapter.h>
-#include "agent.h"
+#include "mjpc/agent.h"
 
 #ifdef MJSIMULATE_STATIC
   // static library
@@ -77,8 +77,6 @@ class MJSIMULATEAPI Simulate {
   // loop to render the UI (must be called from main thread because of MacOS)
   void renderloop();
 
-  int TaskIdByName(std::string_view name);
-
   static constexpr int kMaxFilenameLength = 1000;
 
   // model and data to be visualized
@@ -90,8 +88,6 @@ class MJSIMULATEAPI Simulate {
   mjData* d = nullptr;
   std::mutex mtx;
   std::condition_variable cond_loadrequest;
-
-  std::vector<mjpc::TaskDefinition<>> tasks;
 
   // options
   int spacing = 0;

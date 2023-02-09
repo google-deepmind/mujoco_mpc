@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "test/finite_difference.h"
+#include "mjpc/test/finite_difference.h"
 
 #include <functional>
 

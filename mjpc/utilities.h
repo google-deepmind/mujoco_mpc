@@ -91,7 +91,7 @@ double DefaultParameterValue(const mjModel* model, std::string_view name);
 
 int ParameterIndex(const mjModel* model, std::string_view name);
 
-int CostTermByName(const mjModel* m, const mjData* d, const std::string& name);
+int CostTermByName(const mjModel* m, const std::string& name);
 
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d,

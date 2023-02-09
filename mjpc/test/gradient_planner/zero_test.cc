@@ -14,8 +14,8 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
-#include "planners/gradient/spline_mapping.h"
-#include "utilities.h"
+#include "mjpc/planners/gradient/spline_mapping.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

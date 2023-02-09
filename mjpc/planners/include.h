@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-#include "planners/planner.h"
+#include "mjpc/planners/planner.h"
 
 namespace mjpc {
 

@@ -12,15 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/stand/task.h"
+#include "mjpc/tasks/humanoid/stand/stand.h"
 
 #include <iostream>
+#include <string>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 
 namespace mjpc {
+
+std::string humanoid::Stand::XmlPath() const {
+  return GetModelPath("humanoid/stand/task.xml");
+}
+std::string humanoid::Stand::Name() const { return "Humanoid Stand"; }
 
 // ------------------ Residuals for humanoid stand task ------------
 //   Number of residuals: 6
@@ -32,8 +39,8 @@ namespace mjpc {
 //   Number of parameters: 1
 //     Parameter (0): height_goal
 // ----------------------------------------------------------------
-void humanoid::Stand::Residual(const double* parameters, const mjModel* model,
-                               const mjData* data, double* residual) {
+void humanoid::Stand::Residual(const mjModel* model,
+                               const mjData* data, double* residual) const {
   int counter = 0;
 
   // ----- Height: head feet vertical error ----- //

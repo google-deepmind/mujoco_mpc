@@ -68,13 +68,13 @@ findorfetch(
   EXCLUDE_FROM_ALL
 )
 
-set(MJPC_DEP_VERSION_abseil
-    8c0b94e793a66495e0b1f34a5eb26bd7dc672db0 # LTS 20220623.1
+set(MUJOCO_DEP_VERSION_abseil
+    78be63686ba732b25052be15f8d6dee891c05749 # LTS 20230125.0
     CACHE STRING "Version of `abseil` to be fetched."
 )
 
-set(MUJOCO_DEP_VERSION_glfw
-    7d5a16ce714f0b5f4efa3262de22e4d948851525 # 3.3.6
+set(MUJOCO_DEP_VERSION_glfw3
+    7482de6071d21db77a7236155da44c172a7f6c9e # 3.3.8
     CACHE STRING "Version of `glfw` to be fetched."
 )
 
@@ -140,7 +140,7 @@ findorfetch(
   GIT_REPO
   https://github.com/glfw/glfw.git
   GIT_TAG
-  ${MUJOCO_DEP_VERSION_glfw}
+  ${MUJOCO_DEP_VERSION_glfw3}
   TARGETS
   glfw
   EXCLUDE_FROM_ALL
@@ -209,6 +209,7 @@ target_link_libraries(
   threadpool
   absl::base
 )
+target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_library(
   libmjpc STATIC
@@ -230,12 +231,12 @@ add_library(
   tasks/cartpole/cartpole.h
   tasks/hand/hand.cc
   tasks/hand/hand.h
-  tasks/humanoid/stand/task.cc
-  tasks/humanoid/stand/task.h
-  tasks/humanoid/tracking/task.cc
-  tasks/humanoid/tracking/task.h
-  tasks/humanoid/walk/task.cc
-  tasks/humanoid/walk/task.h
+  tasks/humanoid/stand/stand.cc
+  tasks/humanoid/stand/stand.h
+  tasks/humanoid/tracking/tracking.cc
+  tasks/humanoid/tracking/tracking.h
+  tasks/humanoid/walk/walk.cc
+  tasks/humanoid/walk/walk.h
   tasks/panda/panda.cc
   tasks/panda/panda.h
   tasks/particle/particle.cc
@@ -297,7 +298,7 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(
   mjpc
@@ -322,7 +323,7 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(mjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(mjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(mjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
 target_link_options(mjpc PRIVATE ${MJPC_LINK_OPTIONS})
 target_compile_definitions(mjpc PRIVATE MJSIMULATE_STATIC)

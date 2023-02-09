@@ -18,7 +18,7 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 

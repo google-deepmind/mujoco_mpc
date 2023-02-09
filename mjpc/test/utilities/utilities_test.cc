@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "utilities.h"
+#include "mjpc/utilities.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>

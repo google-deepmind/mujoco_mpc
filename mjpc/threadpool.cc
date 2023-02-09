@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "threadpool.h"
+#include "mjpc/threadpool.h"
 
 #include <condition_variable>
 #include <functional>

@@ -21,15 +21,15 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-#include "planners/cost_derivatives.h"
-#include "planners/gradient/gradient.h"
-#include "planners/gradient/policy.h"
-#include "planners/gradient/settings.h"
-#include "planners/gradient/spline_mapping.h"
-#include "planners/model_derivatives.h"
-#include "planners/planner.h"
-#include "states/state.h"
-#include "trajectory.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/gradient/gradient.h"
+#include "mjpc/planners/gradient/policy.h"
+#include "mjpc/planners/gradient/settings.h"
+#include "mjpc/planners/gradient/spline_mapping.h"
+#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 

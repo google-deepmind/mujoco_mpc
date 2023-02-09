@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "threadpool.h"
+#include "mjpc/threadpool.h"
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>

@@ -17,11 +17,13 @@
 #ifndef MJPC_TASKS_TASKS_H_
 #define MJPC_TASKS_TASKS_H_
 
-#include "task.h"
+#include "mjpc/task.h"
+
+#include <memory>
+#include <vector>
 
 namespace mjpc {
-inline constexpr int kNumTasks = 13;
-extern const TaskDefinition<const char*> (&kTasks)[kNumTasks];
+std::vector<std::unique_ptr<Task>> GetTasks();
 }  // namespace mjpc
 
 #endif  // MJPC_TASKS_TASKS_H_

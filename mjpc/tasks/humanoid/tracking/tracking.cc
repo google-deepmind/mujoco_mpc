@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tasks/humanoid/tracking/task.h"
+#include "mjpc/tasks/humanoid/tracking/tracking.h"
 
 #include <mujoco/mujoco.h>
 
@@ -23,9 +23,11 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <string>
 
-#include "task.h"
-#include "utilities.h"
+#include <mujoco/mujoco.h>
+#include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace {
 // compute interpolation between mocap frames
@@ -97,6 +99,11 @@ const std::array<std::string, 16> body_names = {
 
 namespace mjpc {
 
+std::string humanoid::Tracking::XmlPath() const {
+  return GetModelPath("humanoid/tracking/task.xml");
+}
+std::string humanoid::Tracking::Name() const { return "Humanoid Track"; }
+
 // ------------- Residuals for humanoid tracking task -------------
 //   Number of residuals:
 //     Residual (0): Joint vel: minimise joint velocity
@@ -107,9 +114,8 @@ namespace mjpc {
 //         for {root, head, toe, heel, knee, hand, elbow, shoulder, hip}.
 //   Number of parameters: 0
 // ----------------------------------------------------------------
-void humanoid::Tracking::Residual(const double *parameters,
-                                  const mjModel *model, const mjData *data,
-                                  double *residual) {
+void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
+                                  double *residual) const {
   // ----- get mocap frames ----- //
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
@@ -244,9 +250,8 @@ void humanoid::Tracking::Residual(const double *parameters,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
-                                    Task *task) {
-  // hardcoded constant matching keyframes from CMU mocap dataset.
+void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
+  // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
 
   // get motion trajectory length

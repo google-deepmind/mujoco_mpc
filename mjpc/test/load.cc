@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "test/load.h"
+#include "mjpc/test/load.h"
 
 #include <iostream>
 #include <string>
@@ -21,7 +21,7 @@
 // DEEPMIND INTERNAL IMPORT
 #include <absl/strings/str_cat.h>
 #include <mujoco/mujoco.h>
-#include "array_safety.h"
+#include "mjpc/array_safety.h"
 
 namespace mjpc {
 

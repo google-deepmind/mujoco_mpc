@@ -17,11 +17,11 @@
 
 #include <vector>
 
-#include "planners/cost_derivatives.h"
-#include "planners/ilqg/boxqp.h"
-#include "planners/ilqg/policy.h"
-#include "planners/ilqg/settings.h"
-#include "planners/model_derivatives.h"
+#include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/ilqg/boxqp.h"
+#include "mjpc/planners/ilqg/policy.h"
+#include "mjpc/planners/ilqg/settings.h"
+#include "mjpc/planners/model_derivatives.h"
 
 namespace mjpc {
 

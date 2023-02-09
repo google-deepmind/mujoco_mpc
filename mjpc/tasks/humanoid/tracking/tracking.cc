@@ -119,9 +119,9 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
   // ----- get mocap frames ----- //
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
-  int start = MotionStartIndex(data->userdata[0]);
-  int length = TrajectoryLength(data->userdata[0]);
-  double current_index = (data->time - data->userdata[1]) * fps + start;
+  int start = MotionStartIndex(current_stage);
+  int length = TrajectoryLength(current_stage);
+  double current_index = (data->time - reference_time) * fps + start;
   int last_key_index = start + length;
 
   // Positions:
@@ -255,15 +255,15 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   float fps = 30.0;
 
   // get motion trajectory length
-  int length = TrajectoryLength(task->stage);
+  int length = TrajectoryLength(stage);
 
   // get motion start index
-  int start = MotionStartIndex(task->stage);
+  int start = MotionStartIndex(stage);
 
   // check for motion switch
-  if ((int)d->userdata[0] != task->stage || d->time == 0.0) {
-    d->userdata[0] = task->stage;  // set motion id
-    d->userdata[1] = d->time;      // set reference time
+  if (current_stage != stage || d->time == 0.0) {
+    current_stage = stage;        // set motion id
+    reference_time = d->time;      // set reference time
 
     // set initial state
     mju_copy(d->qpos, model->key_qpos + model->nq * start, model->nq);
@@ -271,7 +271,7 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   }
 
   // indices
-  double current_index = (d->time - d->userdata[1]) * fps + start;
+  double current_index = (d->time - reference_time) * fps + start;
   int last_key_index = start + length - 1;
 
   // Positions:

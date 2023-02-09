@@ -94,6 +94,14 @@ void Clamp(double* x, const double* bounds, int n) {
   }
 }
 
+int ReinterpretAsInt(double value) {
+  return *reinterpret_cast<const int*>(&value);
+}
+
+double ReinterpretAsDouble(int64_t value) {
+  return *reinterpret_cast<const double*>(&value);
+}
+
 absl::flat_hash_map<std::string, std::vector<std::string>>
 ResidualSelectionLists(const mjModel* m) {
   absl::flat_hash_map<std::string, std::vector<std::string>> result;
@@ -115,7 +123,7 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
   std::string list_name = absl::StrCat("residual_list_", name);
 
   // we're using a double field to store an integer - reinterpret as an int
-  int list_index = *reinterpret_cast<const int*>(&residual_parameter);
+  int list_index = ReinterpretAsInt(residual_parameter);
 
   for (int i = 0; i < m->ntext; i++) {
     if (list_name == &m->names[m->name_textadr[i]]) {
@@ -142,7 +150,7 @@ double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
       std::vector<std::string> values = absl::StrSplit(options, '|');
       for (std::string_view v : absl::StrSplit(options, '|')) {
         if (v == value) {
-          return *reinterpret_cast<const double*>(&list_index);
+          return ReinterpretAsDouble(list_index);
         }
         list_index++;
       }

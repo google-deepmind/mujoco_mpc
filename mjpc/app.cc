@@ -191,17 +191,10 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        // set initial qpos via keyframe
-        double* key_qpos = mjpc::KeyQPosByName(mnew, dnew, "home");
-        if (key_qpos) {
-          mju_copy(dnew->qpos, key_qpos, mnew->nq);
-        }
+        // set home keyframe
+        int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
+        if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
 
-        // set initial qvel via keyframe
-        double* key_qvel = mjpc::KeyQVelByName(mnew, dnew, "home");
-        if (key_qvel) {
-          mju_copy(dnew->qvel, key_qvel, mnew->nv);
-        }
         sim.load(sim.filename, mnew, dnew, true);
         m = mnew;
         d = dnew;
@@ -375,16 +368,10 @@ void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id) {
   sim->filename = sim->agent.GetTaskXmlPath(sim->agent.gui_task_id);
   m = LoadModel(sim->filename, *sim);
   if (m) d = mj_makeData(m);
-    // set initial qpos via keyframe
-  double* key_qpos = mjpc::KeyQPosByName(m, d, "home");
-  if (key_qpos) {
-    mju_copy(d->qpos, key_qpos, m->nq);
-  }
-  // set initial qvel via keyframe
-  double* key_qvel = mjpc::KeyQVelByName(m, d, "home");
-  if (key_qvel) {
-    mju_copy(d->qvel, key_qvel, m->nv);
-  }
+
+  // set home keyframe
+  int home_id = mj_name2id(m, mjOBJ_KEY, "home");
+  if (home_id >= 0) mj_resetDataKeyframe(m, d, home_id);
 
   sim->mnew = m;
   sim->dnew = d;

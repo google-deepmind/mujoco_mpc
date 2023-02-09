@@ -828,9 +828,8 @@ void NearestInHull(mjtNum res[2], const mjtNum query[2],
   int outside = 0;      // assume query point is inside the hull
   mjtNum best_sqrdist;  // smallest squared distance so far
   for (int i = 0; i < num_hull; i++) {
-    int j = hull[i];
-    const mjtNum* v0 = points + 2*j;
-    const mjtNum* v1 = points + 2*((j + 1) % num_hull);
+    const mjtNum* v0 = points + 2 * hull[i];
+    const mjtNum* v1 = points + 2 * hull[(i + 1) % num_hull];
 
     // edge from v0 to v1
     mjtNum e01[2] = {v1[0] - v0[0], v1[1] - v0[1]};

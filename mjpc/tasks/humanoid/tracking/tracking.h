@@ -44,6 +44,9 @@ class Tracking : public Task {
   //   smooth the transitions between keyframes.
   // ----------------------------------------------------------------------------
   void Transition(const mjModel* model, mjData* data) override;
+
+  int current_stage;
+  double reference_time;
 };
 
 }  // namespace humanoid

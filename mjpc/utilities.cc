@@ -111,7 +111,7 @@ ResidualSelectionLists(const mjModel* m) {
       continue;
     }
     std::string name = &m->names[m->name_textadr[i]];
-    std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+    std::string_view options(m->text_data + m->text_adr[i]);
     result[absl::StripPrefix(name, "residual_list_")] =
         absl::StrSplit(options, '|');
   }

@@ -28,7 +28,6 @@
 #include "mjpc/utilities.h"
 
 namespace {
-// compute interpolation between mocap frames
 std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
                                                                 int max_index) {
   int index_0 = std::floor(std::clamp(index, 0.0, (double)max_index));
@@ -39,7 +38,6 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 
   return {index_0, index_1, weight_0, weight_1};
 }
-
 }  // namespace
 
 namespace mjpc {

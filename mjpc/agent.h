@@ -53,7 +53,7 @@ class Agent {
   // ----- methods ----- //
 
   // initialize data, settings, planners, states
-  void Initialize(mjModel* model);
+  void Initialize(const mjModel* model);
 
   // allocate memory
   void Allocate();
@@ -94,7 +94,7 @@ class Agent {
 
   // returns all task names, joined with '\n' characters
   std::string GetTaskNames() const { return task_names_; }
-  void SetTaskList(std::vector<std::unique_ptr<Task>> tasks);
+  void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
   void SetState(const mjData* data);
   int GetTaskIdByName(std::string_view name) const;
   void SetTaskByIndex(int id) { active_task_id_ = id; }
@@ -129,7 +129,7 @@ class Agent {
   // time step
   double timestep_;
 
-  std::vector<std::unique_ptr<Task>> tasks_;
+  std::vector<std::shared_ptr<Task>> tasks_;
   int active_task_id_ = 0;
 
   // planners

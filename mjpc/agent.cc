@@ -53,7 +53,7 @@ const int kMaxActionPlots = 25;
 }  // namespace
 
 // initialize data, settings, planners, states
-void Agent::Initialize(mjModel* model) {
+void Agent::Initialize(const mjModel* model) {
   // ----- model ----- //
   if (model_) mj_deleteModel(model_);
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
@@ -162,7 +162,7 @@ int Agent::GetTaskIdByName(std::string_view name) const {
   return -1;
 }
 
-void Agent::SetTaskList(std::vector<std::unique_ptr<Task>> tasks) {
+void Agent::SetTaskList(std::vector<std::shared_ptr<Task>> tasks) {
   tasks_ = std::move(tasks);
   std::ostringstream concatenated_task_names;
   for (const auto& task : tasks_) {

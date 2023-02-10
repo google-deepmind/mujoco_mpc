@@ -39,22 +39,22 @@
 
 namespace mjpc {
 
-std::vector<std::unique_ptr<Task>> GetTasks() {
-  std::vector<std::unique_ptr<Task>> taskVector;
-  taskVector.push_back(std::make_unique<Acrobot>());
-  taskVector.push_back(std::make_unique<Cartpole>());
-  taskVector.push_back(std::make_unique<Hand>());
-  taskVector.push_back(std::make_unique<humanoid::Stand>());
-  taskVector.push_back(std::make_unique<humanoid::Tracking>());
-  taskVector.push_back(std::make_unique<humanoid::Walk>());
+std::vector<std::shared_ptr<Task>> GetTasks() {
+  std::vector<std::shared_ptr<Task>> taskVector;
+  taskVector.push_back(std::make_shared<Acrobot>());
+  taskVector.push_back(std::make_shared<Cartpole>());
+  taskVector.push_back(std::make_shared<Hand>());
+  taskVector.push_back(std::make_shared<humanoid::Stand>());
+  taskVector.push_back(std::make_shared<humanoid::Tracking>());
+  taskVector.push_back(std::make_shared<humanoid::Walk>());
 // DEEPMIND INTERNAL TASKS
-  taskVector.push_back(std::make_unique<Panda>());
-  taskVector.push_back(std::make_unique<Particle>());
-  taskVector.push_back(std::make_unique<Quadrotor>());
-  taskVector.push_back(std::make_unique<QuadrupedFlat>());
-  taskVector.push_back(std::make_unique<QuadrupedHill>());
-  taskVector.push_back(std::make_unique<Swimmer>());
-  taskVector.push_back(std::make_unique<Walker>());
+  taskVector.push_back(std::make_shared<Panda>());
+  taskVector.push_back(std::make_shared<Particle>());
+  taskVector.push_back(std::make_shared<Quadrotor>());
+  taskVector.push_back(std::make_shared<QuadrupedFlat>());
+  taskVector.push_back(std::make_shared<QuadrupedHill>());
+  taskVector.push_back(std::make_shared<Swimmer>());
+  taskVector.push_back(std::make_shared<Walker>());
   return taskVector;
 }
 }  // namespace mjpc

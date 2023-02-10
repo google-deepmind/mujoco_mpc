@@ -23,7 +23,7 @@
 #include <vector>
 
 namespace mjpc {
-std::vector<std::unique_ptr<Task>> GetTasks();
+std::vector<std::shared_ptr<Task>> GetTasks();
 }  // namespace mjpc
 
 #endif  // MJPC_TASKS_TASKS_H_

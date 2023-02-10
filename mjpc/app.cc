@@ -191,6 +191,10 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
+        sim.agent.Initialize(mnew);
+        sim.agent.Allocate();
+        sim.agent.Reset();
+        sim.agent.PlotInitialize();
         // set home keyframe
         int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
@@ -205,11 +209,6 @@ void PhysicsLoop(mj::Simulate& sim) {
         ctrlnoise = static_cast<mjtNum*>(malloc(sizeof(mjtNum) * m->nu));
         mju_zero(ctrlnoise, m->nu);
       }
-
-      sim.agent.Initialize(m);
-      sim.agent.Allocate();
-      sim.agent.Reset();
-      sim.agent.PlotInitialize();
 
       // decrement counter
       sim.uiloadrequest.fetch_sub(1);
@@ -376,9 +375,6 @@ void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id) {
   sim->mnew = m;
   sim->dnew = d;
 
-  sim->delete_old_m_d = true;
-  sim->loadrequest = 2;
-
   // control noise
   free(ctrlnoise);
   ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
@@ -388,6 +384,9 @@ void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id) {
   sim->agent.Allocate();
   sim->agent.Reset();
   sim->agent.PlotInitialize();
+
+  sim->delete_old_m_d = true;
+  sim->loadrequest = 2;
 
   // planning threads
   printf("Agent threads: %i\n", sim->agent.max_threads());

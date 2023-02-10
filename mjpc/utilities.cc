@@ -25,6 +25,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 // DEEPMIND INTERNAL IMPORT
 #include <absl/container/flat_hash_map.h>
@@ -267,38 +268,29 @@ void PowerSequence(double* t, double t_step, double t1, double t2, double p,
 }
 
 // find interval in monotonic sequence containing value
-void FindInterval(int* bounds, const double* sequence, double value,
-                  int length) {
-  // final index
-  int T = length - 1;
+void FindInterval(int* bounds, const std::vector<double>& sequence,
+                  double value, int length) {
+  // get bounds
+  auto it =
+      std::upper_bound(sequence.begin(), sequence.begin() + length, value);
+  int upper_bound = it - sequence.begin();
+  int lower_bound = upper_bound - 1;
 
   // set bounds
-  bounds[0] = 0;
-  bounds[1] = T;
-
-  // index evaluation
-  int middle;
-
-  if (sequence[0] <= value) {
-    if (sequence[T] > value) {
-      while (bounds[0] < bounds[1] - 1) {
-        middle = std::ceil((bounds[0] + bounds[1]) / 2.0 - 1e-10);
-        if (sequence[middle] <= value) {
-          bounds[0] = middle;
-        } else {
-          bounds[1] = middle;
-        }
-      }
-    } else {
-      bounds[0] = bounds[1];
-    }
+  if (lower_bound < 0) {
+    bounds[0] = 0;
+    bounds[1] = 0;
+  } else if (lower_bound > length - 1) {
+    bounds[0] = length - 1;
+    bounds[1] = length - 1;
   } else {
-    bounds[1] = bounds[0];
+    bounds[0] = mju_max(lower_bound, 0);
+    bounds[1] = mju_min(upper_bound, length - 1);
   }
 }
 
 // zero-order interpolation
-void ZeroInterpolation(double* output, double x, const double* xs,
+void ZeroInterpolation(double* output, double x, const std::vector<double>& xs,
                        const double* ys, int dim, int length) {
   // bounds
   int bounds[2];
@@ -309,8 +301,9 @@ void ZeroInterpolation(double* output, double x, const double* xs,
 }
 
 // linear interpolation
-void LinearInterpolation(double* output, double x, const double* xs,
-                         const double* ys, int dim, int length) {
+void LinearInterpolation(double* output, double x,
+                         const std::vector<double>& xs, const double* ys,
+                         int dim, int length) {
   // bounds
   int bounds[2];
   FindInterval(bounds, xs, x, length);
@@ -330,8 +323,8 @@ void LinearInterpolation(double* output, double x, const double* xs,
 }
 
 // coefficients for cubic interpolation
-void CubicCoefficients(double* coefficients, double x, const double* xs,
-                       int T) {
+void CubicCoefficients(double* coefficients, double x,
+                       const std::vector<double>& xs, int T) {
   // find interval
   int bounds[2];
   FindInterval(bounds, xs, x, T);
@@ -356,8 +349,8 @@ void CubicCoefficients(double* coefficients, double x, const double* xs,
 }
 
 // finite-difference vector
-double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
-                             int dim, int length, int i) {
+double FiniteDifferenceSlope(double x, const std::vector<double>& xs,
+                             const double* ys, int dim, int length, int i) {
   // find interval
   int bounds[2];
   FindInterval(bounds, xs, x, length);
@@ -391,7 +384,7 @@ double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
 }
 
 // cubic polynominal interpolation
-void CubicInterpolation(double* output, double x, const double* xs,
+void CubicInterpolation(double* output, double x, const std::vector<double>& xs,
                         const double* ys, int dim, int length) {
   // find interval
   int bounds[2];

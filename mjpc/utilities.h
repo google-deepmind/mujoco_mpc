@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 #include <absl/container/flat_hash_map.h>
 #include <mujoco/mujoco.h>
@@ -110,26 +111,28 @@ void PowerSequence(double* t, double t_step, double t1, double t2, double p,
                    double N);
 
 // find interval in monotonic sequence containing value
-void FindInterval(int* bounds, const double* sequence, double value,
-                  int length);
+void FindInterval(int* bounds, const std::vector<double>& sequence,
+                  double value, int length);
 
 // zero-order interpolation
-void ZeroInterpolation(double* output, double x, const double* xs,
+void ZeroInterpolation(double* output, double x, const std::vector<double>& xs,
                        const double* ys, int dim, int length);
 
 // linear interpolation
-void LinearInterpolation(double* output, double x, const double* xs,
-                         const double* ys, int dim, int length);
+void LinearInterpolation(double* output, double x,
+                         const std::vector<double>& xs, const double* ys,
+                         int dim, int length);
 
 // coefficients for cubic interpolation
-void CubicCoefficients(double* coefficients, double x, const double* xs, int T);
+void CubicCoefficients(double* coefficients, double x,
+                       const std::vector<double>& xs, int T);
 
 // finite-difference vector
-double FiniteDifferenceSlope(double x, const double* xs, const double* ys,
-                             int dim, int length, int i);
+double FiniteDifferenceSlope(double x, const std::vector<double>& xs,
+                             const double* ys, int dim, int length, int i);
 
 // cubic polynomial interpolation
-void CubicInterpolation(double* output, double x, const double* xs,
+void CubicInterpolation(double* output, double x, const std::vector<double>& xs,
                         const double* ys, int dim, int length);
 
 // returns the path to the directory containing the current executable

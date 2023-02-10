@@ -94,6 +94,14 @@ void Clamp(double* x, const double* bounds, int n) {
   }
 }
 
+int ReinterpretAsInt(double value) {
+  return *reinterpret_cast<const int*>(&value);
+}
+
+double ReinterpretAsDouble(int64_t value) {
+  return *reinterpret_cast<const double*>(&value);
+}
+
 absl::flat_hash_map<std::string, std::vector<std::string>>
 ResidualSelectionLists(const mjModel* m) {
   absl::flat_hash_map<std::string, std::vector<std::string>> result;
@@ -103,7 +111,7 @@ ResidualSelectionLists(const mjModel* m) {
       continue;
     }
     std::string name = &m->names[m->name_textadr[i]];
-    std::string_view options(m->text_data + m->text_adr[i], m->text_size[i]);
+    std::string_view options(m->text_data + m->text_adr[i]);
     result[absl::StripPrefix(name, "residual_list_")] =
         absl::StrSplit(options, '|');
   }
@@ -115,7 +123,7 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
   std::string list_name = absl::StrCat("residual_list_", name);
 
   // we're using a double field to store an integer - reinterpret as an int
-  int list_index = *reinterpret_cast<const int*>(&residual_parameter);
+  int list_index = ReinterpretAsInt(residual_parameter);
 
   for (int i = 0; i < m->ntext; i++) {
     if (list_name == &m->names[m->name_textadr[i]]) {
@@ -142,7 +150,7 @@ double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
       std::vector<std::string> values = absl::StrSplit(options, '|');
       for (std::string_view v : absl::StrSplit(options, '|')) {
         if (v == value) {
-          return *reinterpret_cast<const double*>(&list_index);
+          return ReinterpretAsDouble(list_index);
         }
         list_index++;
       }
@@ -613,12 +621,12 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]) {
 
 // default cost colors
 const float CostColors[20][3]{
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 1.0, 0.0},
-    {0.0, 1.0, 1.0}, {0.5, 0.0, 0.0}, {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5},
-    {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5},
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 1.0, 0.0},
-    {0.0, 1.0, 1.0}, {0.5, 0.0, 0.0}, {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5},
-    {0.5, 0.5, 0.0}, {0.0, 0.5, 0.5},
+    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
+    {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
+    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
+    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
+    {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
+    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
 };
 
 // plots - vertical line
@@ -828,9 +836,8 @@ void NearestInHull(mjtNum res[2], const mjtNum query[2],
   int outside = 0;      // assume query point is inside the hull
   mjtNum best_sqrdist;  // smallest squared distance so far
   for (int i = 0; i < num_hull; i++) {
-    int j = hull[i];
-    const mjtNum* v0 = points + 2*j;
-    const mjtNum* v1 = points + 2*((j + 1) % num_hull);
+    const mjtNum* v0 = points + 2 * hull[i];
+    const mjtNum* v1 = points + 2 * hull[(i + 1) % num_hull];
 
     // edge from v0 to v1
     mjtNum e01[2] = {v1[0] - v0[0], v1[1] - v0[1]};

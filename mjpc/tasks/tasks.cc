@@ -31,6 +31,7 @@
 #include "mjpc/tasks/humanoid/walk/walk.h"
 #include "mjpc/tasks/panda/panda.h"
 // DEEPMIND INTERNAL IMPORT
+#include "mjpc/tasks/mts/parameterized.h"
 #include "mjpc/tasks/particle/particle.h"
 #include "mjpc/tasks/quadrotor/quadrotor.h"
 #include "mjpc/tasks/quadruped/quadruped.h"

@@ -44,10 +44,11 @@ class Agent {
 
   // constructor
   Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()) {}
+  explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
   ~Agent() {
-    if (model_) mj_deleteModel(model_);
+    if (model_) mj_deleteModel(model_);  // we made a copy in Initialize
   }
 
   // ----- methods ----- //
@@ -94,14 +95,18 @@ class Agent {
 
   // returns all task names, joined with '\n' characters
   std::string GetTaskNames() const { return task_names_; }
-  void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
-  void SetState(const mjData* data);
   int GetTaskIdByName(std::string_view name) const;
-  void SetTaskByIndex(int id) { active_task_id_ = id; }
   std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
+
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
+  int GetActionDim() { return model_->nu; }
+  mjModel* GetModel() { return model_; }
+
+  void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
+  void SetState(const mjData* data);
+  void SetTaskByIndex(int id) { active_task_id_ = id; }
 
   int max_threads() const { return max_threads_;}
 

@@ -52,6 +52,14 @@ const int kMaxActionPlots = 25;
 
 }  // namespace
 
+Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
+    : Agent::Agent() {
+  SetTaskList({std::move(task)});
+  Initialize(model);
+  Allocate();
+  Reset();
+}
+
 // initialize data, settings, planners, states
 void Agent::Initialize(const mjModel* model) {
   // ----- model ----- //

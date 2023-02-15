@@ -32,7 +32,7 @@ class Particle : public Task {
 // --------------------------------------------
   void Residual(const mjModel* model, const mjData* data,
                 double* residual) const override;
-  void Transition(const mjModel* model, mjData* data) override;
+  void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
 };
 }  // namespace mjpc
 

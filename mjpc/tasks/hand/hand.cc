@@ -74,7 +74,7 @@ void Hand::Residual(const mjModel* model, const mjData* data,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-void Hand::Transition(const mjModel* model, mjData* data) {
+void Hand::Transition(const mjModel* model, mjData* data, mjvScene* scene) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");

@@ -235,7 +235,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
       if (m) {  // run only if model is present
-        sim.agent.ActiveTask()->Transition(m, d);
+        sim.agent.ActiveTask()->Transition(m, d, &sim.scn);
 
         // running
         if (sim.run) {

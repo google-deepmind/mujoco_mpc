@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
     std::exit(1);
   }
 #endif
-
   absl::ParseCommandLine(argc, argv);
 
   mjpc::StartApp(mjpc::GetTasks(), 3);  // start with humanoid stand

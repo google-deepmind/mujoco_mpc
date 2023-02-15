@@ -54,6 +54,11 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
+  if (num_trajectory_ > kMaxTrajectory) {
+    mju_error_i("Too many trajectories, %d is the maximum allowed.",
+                kMaxTrajectory);
+  }
+
   winner = 0;
 }
 

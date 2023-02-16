@@ -98,6 +98,9 @@ int ParameterIndex(const mjModel* model, std::string_view name);
 
 int CostTermByName(const mjModel* m, const std::string& name);
 
+// sanity check that residual size equals total user-sensor dimension
+void CheckSensorDim(const mjModel* model, int residual_size);
+
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d,
                int num_trace);

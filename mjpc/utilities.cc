@@ -217,6 +217,28 @@ int CostTermByName(const mjModel* m, const std::string& name) {
   }
 }
 
+void CheckSensorDim(const mjModel* model, int residual_size) {
+  int user_sensor_dim = 0;
+  bool encountered_nonuser_sensor = false;
+  for (int i=0; i < model->nsensor; i++) {
+    if (model->sensor_type[i] == mjSENS_USER) {
+      user_sensor_dim += model->sensor_dim[i];
+      if (encountered_nonuser_sensor) {
+        mju_error("user type sensors must come before other sensor types");
+      }
+    } else {
+      encountered_nonuser_sensor = true;
+    }
+  }
+  if (user_sensor_dim != residual_size) {
+    char msg[1024];
+    snprintf(msg, sizeof(msg),
+             "mismatch between total user-sensor dimension %d "
+             "and residual size %d", user_sensor_dim, residual_size);
+    mju_error(msg);
+  }
+}
+
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d,
                int num_trace) {

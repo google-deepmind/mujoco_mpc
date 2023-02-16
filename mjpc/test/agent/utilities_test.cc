@@ -17,6 +17,7 @@
 #include <atomic>
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -241,7 +242,7 @@ TEST(UtilitiesTest, PowerSequence) {
 
 TEST(UtilitiesTest, FindInterval) {
   // sequence
-  double sequence[4] = {-1.0, 0.0, 1.0, 2.0};
+  std::vector<double> sequence{-1.0, 0.0, 1.0, 2.0};
   int length = 4;
 
   // bounds
@@ -268,7 +269,7 @@ TEST(UtilitiesTest, FindInterval) {
 
 TEST(UtilitiesTest, LinearInterpolation) {
   // x
-  double x[2] = {1.0, 2.0};
+  std::vector<double> x{1.0, 2.0};
   double y[2] = {1.0, 2.0};
 
   // inside

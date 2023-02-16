@@ -111,15 +111,12 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // linear system solve
     if (solver.dim_row != sampling.model->nu * (horizon - 1) &&
-        solver.dim_col !=
-            sampling.model->nu * num_spline_points) {
+        solver.dim_col != sampling.model->nu * num_spline_points) {
       mappings[sampling.policy.representation]->Compute(
-          sampling.policy.times.data(),
-          num_spline_points,
+          sampling.policy.times, num_spline_points,
           ilqg.candidate_policy[0].trajectory.times.data(), horizon - 1);
-      solver.Initialize(
-          sampling.model->nu * (horizon - 1),
-          sampling.model->nu * num_spline_points);
+      solver.Initialize(sampling.model->nu * (horizon - 1),
+                        sampling.model->nu * num_spline_points);
     }
 
     // TODO(taylorhowell): cheap version that reuses factorization if mapping hasn't changed

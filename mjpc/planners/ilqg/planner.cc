@@ -302,13 +302,13 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,
-                 1.0e-3 * model_derivative_compute_time * planning,
-                 1 + timer_shift, 10, 0, 1, -100);
+                 1.0e-3 * model_derivative_compute_time * planning, 100,
+                 1 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[2 + timer_shift][0] + 1,
-                 1.0e-3 * cost_derivative_compute_time * planning,
-                 2 + timer_shift, 11, 0, 1, -100);
+                 1.0e-3 * cost_derivative_compute_time * planning, 100,
+                 2 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[3 + timer_shift][0] + 1,

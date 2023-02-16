@@ -44,8 +44,8 @@ class SplineMapping {
   virtual void Allocate(int dim) = 0;
 
   // compute mapping
-  virtual void Compute(const double* input_times, int num_input, const double* output_times,
-                       int num_output) = 0;
+  virtual void Compute(const std::vector<double>& input_times, int num_input,
+                       const double* output_times, int num_output) = 0;
 
   // return mapping
   virtual double* Get() = 0;
@@ -65,8 +65,8 @@ class ZeroSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times,
-               int num_output);
+  void Compute(const std::vector<double>& input_times, int num_input,
+               const double* output_times, int num_output);
 
   // return mapping
   double* Get() { return mapping.data(); }
@@ -91,8 +91,8 @@ class LinearSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times,
-               int num_output);
+  void Compute(const std::vector<double>& input_times, int num_input,
+               const double* output_times, int num_output);
 
   // return mapping
   double* Get() { return mapping.data(); }
@@ -117,8 +117,8 @@ class CubicSplineMapping : public SplineMapping {
   void Allocate(int dim);
 
   // compute mapping
-  void Compute(const double* input_times, int num_input, const double* output_times,
-               int num_output);
+  void Compute(const std::vector<double>& input_times, int num_input,
+               const double* output_times, int num_output);
 
   // return mapping
   double* Get() { return mapping.data(); }

@@ -92,7 +92,7 @@ void QuadrupedHill::Transition(const mjModel* model, mjData* data,
                                mjvScene* scene) {
   // set stage to GUI selection
   if (stage > 0) {
-    data->userdata[0] = stage - 1;
+    current_stage = stage - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position
@@ -120,16 +120,16 @@ void QuadrupedHill::Transition(const mjModel* model, mjData* data,
     double tolerance = 1.5e-1;
     if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
       // update task state
-      data->userdata[0] += 1;
-      if (data->userdata[0] == model->nkey) {
-        data->userdata[0] = 0;
+      current_stage += 1;
+      if (current_stage == model->nkey) {
+        current_stage = 0;
       }
     }
   }
 
   // ---------- Set goal ----------
-  mju_copy3(data->mocap_pos, model->key_mpos + 3 * (int)data->userdata[0]);
-  mju_copy4(data->mocap_quat, model->key_mquat + 4 * (int)data->userdata[0]);
+  mju_copy3(data->mocap_pos, model->key_mpos + 3 * current_stage);
+  mju_copy4(data->mocap_quat, model->key_mquat + 4 * current_stage);
 }
 
 void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,

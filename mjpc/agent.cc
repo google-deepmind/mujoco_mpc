@@ -785,26 +785,28 @@ void Agent::Plots(const mjData* data, int shift) {
   // ranges
   plots_.planner.range[0][0] = -100;
   plots_.planner.range[0][1] = 0;
-  plots_.planner.range[1][0] = 0.0;
-  plots_.planner.range[1][1] = 1.0;
+  plots_.planner.range[1][0] = -6.0;
+  plots_.planner.range[1][1] = 6.0;
+  plots_.timer.range[0][0] = -100;
+  plots_.timer.range[0][1] = 0;
+  plots_.timer.range[1][0] = 0.0;
 
-  // ----- compute timers ----- //
-  double compute_bounds[2] = {0.0, 1.0};
+  // skip if planning off
+  if (!plan_enabled) return;
 
+  // planner-specific plotting
   ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled);
 
-  // history agent compute time
-  PlotUpdateData(&plots_.timer, compute_bounds, plots_.timer.linedata[0][0] + 1,
-                 1.0e-3 * agent_compute_time_, 100, 0, 0, 1, -100);
+  // total (agent) compute time
+  double timer_bounds[2] = {0.0, 1.0};
+  PlotUpdateData(&plots_.timer, timer_bounds, plots_.timer.linedata[0][0] + 1,
+                1.0e-3 * agent_compute_time_, 100, 0, 0, 1, -100);
 
   // legend
   mju::strcpy_arr(plots_.timer.linename[0], "Total");
 
-  // ranges
-  plots_.timer.range[0][0] = -100;
-  plots_.timer.range[0][1] = 0;
-  plots_.timer.range[1][0] = 0.0;
-  plots_.timer.range[1][1] = compute_bounds[1];
+  // update timer range
+  plots_.timer.range[1][1] = timer_bounds[1];
 }
 
 // render plots

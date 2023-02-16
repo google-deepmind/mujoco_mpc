@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "third_party/mujoco_mpc/mjpc/interface.h"
+
 #include <memory>
 #include <string>
+#include <vector>
 #include <mujoco/mujoco.h>
 #include "mjpc/agent.h"
 #include "mjpc/task.h"
@@ -23,22 +26,10 @@
 
 
 namespace mjpc {
-class AgentRunner{
- public:
-  ~AgentRunner();
-  explicit AgentRunner(mjModel* model);
-  void Step(mjData* data);
-  void Residuals(const mjModel* model, mjData* data);
- private:
-  Agent agent_;
-  ThreadPool agent_plan_pool_;
-  std::atomic_bool exit_request_ = false;
-  std::atomic_int ui_load_request_ = 0;
-};
-
-AgentRunner::AgentRunner(mjModel* model) : agent_plan_pool_(1) {
-  agent_.SetTaskList(GetTasks());
-  agent_.gui_task_id = GetNumberOrDefault(0, model, "interface_task_index");
+AgentRunner::AgentRunner(const mjModel* model, std::shared_ptr<Task> task)
+    : agent_plan_pool_(1) {
+  std::vector<std::shared_ptr<Task>> task_v = {task};
+  agent_.SetTaskList(std::move(task_v));
   agent_.Initialize(model);
   agent_.Allocate();
   agent_.Reset();
@@ -62,7 +53,7 @@ void AgentRunner::Step(mjData* data) {
     data->ctrl, &agent_.ActiveState().state()[0], agent_.ActiveState().time());
 }
 
-void AgentRunner::Residuals(const mjModel* model, mjData* data) {
+void AgentRunner::Residual(const mjModel* model, mjData* data) {
   agent_.ActiveTask()->Residual(model, data, data->sensordata);
 }
 }  // namespace mjpc
@@ -71,10 +62,10 @@ namespace {
 mjpc::AgentRunner* runner = nullptr;
 
 // not exposed to Unity, "extern C" is for MuJoco's callback assignment:
-extern "C" void residuals_sensor_callback(const mjModel* model, mjData* data,
+extern "C" void residual_sensor_callback(const mjModel* model, mjData* data,
                                           int stage) {
   if (stage == mjSTAGE_ACC) {
-    runner->Residuals(model, data);
+    runner->Residual(model, data);
   }
 }
 }  // namespace
@@ -87,12 +78,18 @@ extern "C" void destroy_policy() {
   }
 }
 
-extern "C" void create_policy(mjModel* model) {
+extern "C" void create_policy_from_task_id(const mjModel* model, int task_id) {
+  auto tasks = mjpc::GetTasks();
+  create_policy(model, std::move(tasks[task_id]));
+}
+
+extern "C" void create_policy(const mjModel* model,
+                              std::shared_ptr<mjpc::Task> task) {
   if (!mjcb_sensor) {
-    mjcb_sensor = residuals_sensor_callback;
+    mjcb_sensor = residual_sensor_callback;
   }
   destroy_policy();
-  runner = new mjpc::AgentRunner(model);
+  runner = new mjpc::AgentRunner(model, task);
 }
 
 extern "C" void step_policy(mjData* data) {

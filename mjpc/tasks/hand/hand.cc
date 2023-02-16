@@ -67,24 +67,14 @@ void Hand::Residual(const mjModel* model, const mjData* data,
   counter += 3;
 
   // sensor dim sanity check
-  // TODO: use this pattern everywhere and make this a utility function
-  int user_sensor_dim = 0;
-  for (int i=0; i < model->nsensor; i++) {
-    if (model->sensor_type[i] == mjSENS_USER) {
-      user_sensor_dim += model->sensor_dim[i];
-    }
-  }
-  if (user_sensor_dim != counter) {
-    mju_error_i("mismatch between total user-sensor dimension "
-                "and actual length of residual %d", counter);
-  }
+  CheckSensorDim(model, counter);
 }
 
 // ----- Transition for in-hand manipulation task -----
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-void Hand::Transition(const mjModel* model, mjData* data) {
+void Hand::Transition(const mjModel* model, mjData* data, mjvScene* scene) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");

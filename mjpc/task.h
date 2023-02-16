@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/norm.h"
 
@@ -39,7 +40,9 @@ class Task {
 
   virtual void Residual(const mjModel* model, const mjData* data,
                         double* residual) const = 0;
-  virtual void Transition(const mjModel* model, mjData* data) {}
+  // scene is optional and may be passed as nullptr (e.g., in library mode):
+  virtual void Transition(
+    const mjModel* model, mjData* data, mjvScene* scene) {}
 
   // get information from model
   virtual void Reset(const mjModel* model);

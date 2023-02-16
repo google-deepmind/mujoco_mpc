@@ -235,7 +235,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
       if (m) {  // run only if model is present
-        sim.agent.ActiveTask()->Transition(m, d);
+        sim.agent.ActiveTask()->Transition(m, d, &sim.scn);
 
         // running
         if (sim.run) {
@@ -338,7 +338,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 // run event loop
-void StartApp(std::vector<std::unique_ptr<mjpc::Task>> tasks, int task_id) {
+void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");

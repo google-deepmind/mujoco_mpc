@@ -71,7 +71,7 @@ void Panda::Residual(const mjModel* model, const mjData* data,
   }
 }
 
-void Panda::Transition(const mjModel* model, mjData* data) {
+void Panda::Transition(const mjModel* model, mjData* data, mjvScene* scene) {
   double residuals[100];
   double terms[10];
   Residual(model, data, residuals);

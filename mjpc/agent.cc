@@ -808,7 +808,7 @@ void Agent::Plots(const mjData* data, int shift) {
   // total (agent) compute time
   double timer_bounds[2] = {0.0, 1.0};
   PlotUpdateData(&plots_.timer, timer_bounds, plots_.timer.linedata[0][0] + 1,
-                1.0e-3 * agent_compute_time_, 100, 0, 0, 1, -100);
+                 1.0e-3 * agent_compute_time_, 100, 0, 0, 1, -100);
 
   // legend
   mju::strcpy_arr(plots_.timer.linename[0], "Total");

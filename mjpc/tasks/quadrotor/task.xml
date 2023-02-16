@@ -2,7 +2,7 @@
   <include file="../common.xml"/>
   <include file="quadrotor.xml" />
 
-  <size memory="100K" nuserdata="1"/>
+  <size memory="100K"/>
 
   <statistic extent="2" center="0.0 0.0 0.0"/>
 

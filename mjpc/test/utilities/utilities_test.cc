@@ -47,15 +47,35 @@ static void TestNearest(int num_points, mjtNum *points, mjtNum *query,
 
 TEST(ConvexHull2d, Nearest) {
   // A point in the interior of the square is unchanged
-  mjtNum points[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+  // clockwise points
+  mjtNum points1[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
   mjtNum query1[2] = {0.5, 0.5};
   mjtNum nearest1[2] = {0.5, 0.5};
-  TestNearest(4, (mjtNum *)points, query1, nearest1);
+  TestNearest(4, (mjtNum *)points1, query1, nearest1);
+
+  // A point in the interior of the square is unchanged
+  // counter-clockwise points
+  mjtNum points2[4][2] = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+  mjtNum query2[2] = {0.5, 0.5};
+  mjtNum nearest2[2] = {0.5, 0.5};
+  TestNearest(4, (mjtNum *)points2, query2, nearest2);
+
+  // A point in the interior of the square is unchanged
+  // clockwise points, not all on hull
+  mjtNum points3[5][2] = {{0, 0}, {0.5, 0.1}, {0, 1}, {1, 1}, {1, 0}};
+  mjtNum query3[2] = {0.5, 0.5};
+  mjtNum nearest3[2] = {0.5, 0.5};
+  TestNearest(5, (mjtNum *)points3, query3, nearest3);
 
   // A point outside is projected into the middle of an edge
-  mjtNum query2[2] = {1.5, 0.5};
-  mjtNum nearest2[2] = {1.0, 0.5};
-  TestNearest(4, (mjtNum *)points, query2, nearest2);
+  mjtNum query4[2] = {1.5, 0.5};
+  mjtNum nearest4[2] = {1.0, 0.5};
+  TestNearest(5, (mjtNum *)points3, query4, nearest4);
+
+  // A point outside is projected into the middle of an edge
+  mjtNum query5[2] = {0.5, -0.5};
+  mjtNum nearest5[2] = {0.5, 0.0};
+  TestNearest(5, (mjtNum *)points3, query5, nearest5);
 }
 
 #define ARRAY(arr, n) (mjtNum[n][2] arr)

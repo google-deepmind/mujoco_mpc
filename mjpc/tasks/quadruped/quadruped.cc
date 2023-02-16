@@ -88,7 +88,8 @@ void QuadrupedHill::Residual(const mjModel* model, const mjData* data,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-void QuadrupedHill::Transition(const mjModel* model, mjData* data) {
+void QuadrupedHill::Transition(const mjModel* model, mjData* data,
+                               mjvScene* scene) {
   // set stage to GUI selection
   if (stage > 0) {
     current_stage = stage - 1;

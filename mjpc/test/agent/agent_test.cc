@@ -36,7 +36,7 @@ class AgentTest : public ::testing::Test {
  protected:
   void SetUp() override {
     agent = new Agent;
-    std::vector<std::unique_ptr<Task>> tasks;
+    std::vector<std::shared_ptr<Task>> tasks;
     tasks.push_back(std::make_unique<ParticleTestTask>());
     agent->SetTaskList(std::move(tasks));
   }

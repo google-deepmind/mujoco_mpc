@@ -61,6 +61,12 @@ T GetNumberOrDefault(T default_value, const mjModel* m, std::string_view name) {
   return GetNumber<T>(m, name).value_or(default_value);
 }
 
+// reinterpret double as int
+int ReinterpretAsInt(double value);
+
+// reinterpret int64_t as double
+double ReinterpretAsDouble(int64_t value);
+
 // returns a map from custom field name to the list of valid values for that
 // field
 absl::flat_hash_map<std::string, std::vector<std::string>>
@@ -70,7 +76,6 @@ ResidualSelectionLists(const mjModel* m);
 // in the residual parameters vector
 std::string ResidualSelection(const mjModel* m, std::string_view name,
                               double residual_parameter);
-
 // returns a value for residual parameters that fits the given text value
 // in the given list
 double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
@@ -92,6 +97,9 @@ double DefaultParameterValue(const mjModel* model, std::string_view name);
 int ParameterIndex(const mjModel* model, std::string_view name);
 
 int CostTermByName(const mjModel* m, const std::string& name);
+
+// sanity check that residual size equals total user-sensor dimension
+void CheckSensorDim(const mjModel* model, int residual_size);
 
 // get traces from sensors
 void GetTraces(double* traces, const mjModel* m, const mjData* d,

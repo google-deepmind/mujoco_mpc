@@ -1,7 +1,7 @@
 <mujoco model="Humanoid Track">
   <include file="../../common.xml"/>
   <include file="../humanoid.xml" />
-  <size memory="400K" nuserdata="2"/> <!-- userdata: [motion id, reference time]-->
+  <size memory="400K"/>
 
   <custom>
     <text name="task_transition" data="Jump|Kick Spin|Spin Kick|Cartwheel (1)|Crouch Flip|Cartwheel (2)|Monkey Flip|Dance|Run|Walk" />

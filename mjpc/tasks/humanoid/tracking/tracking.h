@@ -45,8 +45,8 @@ class Tracking : public Task {
   // ---------------------------------------------------------------------------
   void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
 
-  int current_stage;
-  double reference_time;
+  int current_stage_;
+  double reference_time_;
 };
 
 }  // namespace humanoid

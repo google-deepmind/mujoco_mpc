@@ -122,7 +122,7 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
   int start = MotionStartIndex(current_stage);
   int length = TrajectoryLength(current_stage);
   double current_index = (data->time - reference_time) * fps + start;
-  int last_key_index = start + length;
+  int last_key_index = start + length - 1;
 
   // Positions:
   // We interpolate linearly between two consecutive key frames in order to

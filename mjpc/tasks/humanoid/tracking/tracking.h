@@ -38,13 +38,13 @@ class Tracking : public Task {
   void Residual(const mjModel* model, const mjData* data,
                 double* residual) const override;
 
-  // --------------------- Transition for humanoid task -------------------------
+  // --------------------- Transition for humanoid task ------------------------
   //   Set `data->mocap_pos` based on `data->time` to move the mocap sites.
   //   Linearly interpolate between two consecutive key frames in order to
   //   smooth the transitions between keyframes.
-  // ----------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
-  
+
   int current_stage;
   double reference_time;
 };

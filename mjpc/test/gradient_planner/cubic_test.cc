@@ -28,7 +28,7 @@ TEST(GradientTest, CubicTest) {
   const int S = 6;
 
   // domain
-  std::vector<double> x{0.1, 0.3, 0.7, 1.2, 1.21, 1.6};
+  std::vector<double> x = {0.1, 0.3, 0.7, 1.2, 1.21, 1.6};
 
   // values
   const int n = 2;

@@ -35,7 +35,7 @@ class Quadrotor : public Task {
 // ------------------------------------------------------------
   void Residual(const mjModel* model, const mjData* data,
                 double* residual) const override;
-  void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
+  void Transition(const mjModel* model, mjData* data) override;
 
   int current_stage;
 };

@@ -250,8 +250,7 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-void humanoid::Tracking::Transition(const mjModel *model, mjData *d,
-                                    mjvScene *scene) {
+void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
 

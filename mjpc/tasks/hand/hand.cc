@@ -31,7 +31,7 @@ std::string Hand::Name() const { return "Hand"; }
 //     Residual (0): cube_position - palm_position
 //     Residual (1): cube_orientation - cube_goal_orientation
 //     Residual (2): cube linear velocity
-//     Residual (4): control
+//     Residual (3): control
 // ------------------------------------------------------------
 void Hand::Residual(const mjModel* model, const mjData* data,
                     double* residual) const {

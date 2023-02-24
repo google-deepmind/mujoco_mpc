@@ -189,6 +189,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // set new active policy 
     active_policy = kSampling;
+
+    // best rollout is from sampling, terminate early
     return;
   } else {
     // set iLQG nominal trajectory

@@ -39,7 +39,7 @@
     <user name="In Hand" dim="3" user="1 20 0 100 0.02 2"/>
     <user name="Orientation" dim="3" user="0 3 0 10" />
     <user name="Cube Vel." dim="3" user="0 10 0 20" />
-    <user name="Actuator" dim="20" user="0 1.0e-1 0.0 1.0" />
+    <user name="Actuator" dim="20" user="0 0.1 0.0 1.0" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>

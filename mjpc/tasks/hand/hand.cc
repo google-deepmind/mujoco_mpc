@@ -27,12 +27,11 @@ std::string Hand::XmlPath() const {
 std::string Hand::Name() const { return "Hand"; }
 
 // ---------- Residuals for in-hand manipulation task ---------
-//   Number of residuals: 5
+//   Number of residuals: 4
 //     Residual (0): cube_position - palm_position
 //     Residual (1): cube_orientation - cube_goal_orientation
 //     Residual (2): cube linear velocity
-//     Residual (3): cube angular velocity
-//     Residual (4): control
+//     Residual (3): control
 // ------------------------------------------------------------
 void Hand::Residual(const mjModel* model, const mjData* data,
                     double* residual) const {
@@ -65,6 +64,10 @@ void Hand::Residual(const mjModel* model, const mjData* data,
       SensorByName(model, data, "cube_linear_velocity");
   mju_copy(residual + counter, cube_linear_velocity, 3);
   counter += 3;
+
+  // ---------- Residual (3) ----------
+  mju_copy(residual + counter, data->actuator_force, model->nu);
+  counter += model->nu;
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);

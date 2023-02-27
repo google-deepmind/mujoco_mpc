@@ -58,6 +58,8 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
   Initialize(model);
   Allocate();
   Reset();
+  PlotInitialize();
+  PlotReset();
 }
 
 // initialize data, settings, planners, states

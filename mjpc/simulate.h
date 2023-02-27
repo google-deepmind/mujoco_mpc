@@ -52,7 +52,8 @@ class MJSIMULATEAPI Simulate {
   static_assert(std::ratio_less_equal_v<Clock::period, std::milli>);
 
   // create object and initialize the simulate ui
-  Simulate(std::unique_ptr<PlatformUIAdapter> platform_ui);
+  Simulate(std::unique_ptr<PlatformUIAdapter> platform_ui,
+           std::shared_ptr<mjpc::Agent> agent);
 
   // Apply UI pose perturbations to model and data
   void applyposepertubations(int flg_paused);
@@ -68,11 +69,14 @@ class MJSIMULATEAPI Simulate {
   // load mjb or xml model that has been requested by load()
   void loadmodel();
 
-  // prepare to render
+  // prepare to render the next frame
   void prepare();
 
   // render the ui to the window
   void render();
+
+  // one-off preparation before starting to render (e.g., memory allocation)
+  void prepare_renderloop();
 
   // loop to render the UI (must be called from main thread because of MacOS)
   void renderloop();
@@ -174,7 +178,7 @@ class MJSIMULATEAPI Simulate {
   mjuiState& uistate;
 
   // agent
-  mjpc::Agent agent;
+  std::shared_ptr<mjpc::Agent> agent;
 
   // Constant arrays needed for the option section of UI and the UI interface
   const mjuiDef defOption[14] = {

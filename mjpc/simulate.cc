@@ -163,7 +163,7 @@ void profilerinit(mj::Simulate* sim) {
   mju::strcpy_arr(sim->figsize.xlabel, "Video frame");
   mju::strcpy_arr(sim->figtimer.xlabel, "Video frame");
 
-  // y-tick nubmer formats
+  // y-tick number formats
   mju::strcpy_arr(sim->figconstraint.yformat, "%.0f");
   mju::strcpy_arr(sim->figcost.yformat, "%.1f");
   mju::strcpy_arr(sim->figsize.yformat, "%.0f");
@@ -1821,8 +1821,13 @@ void Simulate::render() {
     return;
   }
 
-  // agent traces
+  // visualization
   if (this->uiloadrequest.load() == 0) {
+    // task-specific
+    if (this->agent->ActiveTask()->visualize) {
+      this->agent->ActiveTask()->ModifyScene(this->m, this->d, &this->scn);
+    }
+    // common to all tasks
     this->agent->ModifyScene(&this->scn);
   }
 

@@ -62,6 +62,7 @@ class Agent {
   // reset data, settings, planners, states
   void Reset();
 
+  // single planner iteration
   void PlanIteration(ThreadPool* pool);
 
   // call planner to update nominal policy
@@ -89,6 +90,9 @@ class Agent {
 
   // plot current information
   void Plots(const mjData* data, int shift);
+
+  // return horizon (continuous time)
+  double Horizon() const;
 
   // render plots
   void PlotShow(mjrRect* rect, mjrContext* con);

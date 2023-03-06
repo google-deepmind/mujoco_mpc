@@ -4,18 +4,34 @@
   <size memory="1M"/>
 
   <custom>
-    <numeric name="agent_planner" data="2" />
-    <numeric name="agent_horizon" data="0.3" />
-    <numeric name="agent_timestep" data="0.015" />
+    <text name="task_transition" data="Quadruped|Biped|Walk|Scramble|Flip" />
+    <numeric name="agent_planner" data="2 " />
+    <numeric name="agent_horizon" data="0.35" />
+    <numeric name="agent_timestep" data="0.01" />
     <numeric name="sampling_spline_points" data="3" />
-    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="sampling_trajectories" data="60"/>
+    <numeric name="sampling_exploration" data="0.04" />
     <numeric name="gradient_spline_points" data="5" />
-    <numeric name="residual_Speed" data="0 -1 1" />
+
+    <numeric name="residual_select_Gait" data="0"/>
+    <text name="residual_list_Gait" data="Stand|Walk|Trot|Canter|Gallop"/>
+    <numeric name="residual_select_Gait switch" data="1"/>
+    <text name="residual_list_Gait switch" data="Manual|Automatic"/>
+    <numeric name="residual_Cadence" data="2 0 4" />
+    <numeric name="residual_Amplitude" data=".06 0 0.2" />
+    <numeric name="residual_Duty ratio" data="0 0 1"/>
+    <numeric name="residual_Walk speed" data="0 0 4"/>
+    <numeric name="residual_Walk turn" data="0 -2 2"/>
+    <numeric name="residual_select_Flip dir" data="0"/>
+    <text name="residual_list_Flip dir" data="Back Flip|Front Flip"/>
+    <numeric name="residual_select_Biped type" data="0"/>
+    <text name="residual_list_Biped type" data="Foot Stand|Hand Stand"/>
     <numeric name="residual_Heading" data="0 -3.14 3.14" />
   </custom>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6"  ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <global azimuth="-90"/>
   </visual>
 
   <statistic extent="1" center="0 0 .3"/>
@@ -23,8 +39,35 @@
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3"
       directional="true" castshadow="false"/>
-    <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/>
+    <geom name="floor" size="0 0 0.1" pos="0 0 -0.01" type="plane" material="blue_grid"/>
+     <body name="goal" mocap="true" pos=".3 0 0.26">
+        <geom size="0.12" contype="0" conaffinity="0" rgba="0 1 0 .5" group="2"/>
+      </body>
+
+      <body name="box" mocap="true" pos="-2.5 0 0">
+        <geom name="box" class="prop" size="1 1 0.3"/>
+      </body>
+      <geom name="ramp" class="prop" pos="3.13 2.5 -.18" size="1.6 1 .5" euler="0 -0.2 0"/>
+      <geom name="hill" class="prop" pos="6 6 -5.5" size="6" type="sphere"/>
   </worldbody>
+
+  <default>
+    <default class="torque">
+      <general gainprm="40" ctrllimited="true" ctrlrange="-1 1"/>
+    </default>
+    <default class="task">
+      <site rgba="1 0 0 1" size=".02" group="5"/>
+      <default class="flight">
+        <site rgba="1 .3 .3 1" size="0.019" group="5"/>
+      </default>
+      <default class="stance">
+        <site rgba=".3 1 .3 1" size=".018" group="4"/>
+      </default>
+    </default>
+    <default class="prop">
+      <geom type="box" rgba="0 0.4 1 1"/>
+    </default>
+  </default>
 
   <include file="a1.xml" />
 
@@ -44,35 +87,36 @@
   </actuator>
 
   <sensor>
-    <user name="Height" dim="1" user="6 3 0 10 0.05" />
-    <user name="Upright" dim="3" user="6 1 0 10 0.05" />
-    <user name="Velocity" dim="3" user="6 .1 0 1 .2" />
-    <user name="Heading" dim="2" user="0 .1 0 1" />
-    <user name="Control" dim="12" user="0 0.02 0.0 0.1" />
-    <user name="Posture" dim="12" user="0 0.1 0.0 1" />
-    <user name="Trot" dim="4" user="6 1 0 5 .02" />
-    <framepos      name="trace0" objtype="body" objname="trunk"/>
+    <user name="Upright" dim="3" user="6 1 0 3 0.05" />
+    <user name="Height" dim="1" user="6 1 0 3 0.04" />
+    <user name="Position" dim="3" user="2 0.2 0 0.5 0.1" />
+    <user name="Gait" dim="4" user="6 2 0 10 0.03" />
+    <user name="Balance" dim="2" user="2 0.2 0 0.3 0.1" />
+    <user name="Effort" dim="12" user="0 0.03 0.0 0.1" />
+    <user name="Posture" dim="12" user="0 0.02 0.0 0.1" />
+    <user name="Orientation" dim="2" user="0 0 0 .03" />
+    <user name="Angmom" dim="3" user="0 0 0 .03" />
+    <framepos      name="trace0" objtype="site" objname="head"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
-    <framezaxis    name="torso_up" objtype="xbody" objname="trunk"/>
-    <framexaxis    name="torso_forward" objtype="xbody" objname="trunk"/>
-    <framepos      name="position" objtype="body" objname="trunk"/>
-    <gyro          name="gyro" site="torso"/>
-    <framepos      name="FR" objtype="site" objname="FR"/>
-    <framepos      name="FL" objtype="site" objname="FL"/>
-    <framepos      name="RR" objtype="site" objname="RR"/>
-    <framepos      name="RL" objtype="site" objname="RL"/>
-    <framelinvel   name="FRvel" objtype="site" objname="FR"/>
-    <framelinvel   name="FLvel" objtype="site" objname="FL"/>
-    <framelinvel   name="RRvel" objtype="site" objname="RR"/>
-    <framelinvel   name="RLvel" objtype="site" objname="RL"/>
-    <framepos      name="FRshoulder" objtype="xbody" objname="FR_thigh"/>
-    <framepos      name="FLshoulder" objtype="xbody" objname="FL_thigh"/>
-    <framepos      name="RRshoulder" objtype="xbody" objname="RR_thigh"/>
-    <framepos      name="RLshoulder" objtype="xbody" objname="RL_thigh"/>
+    <subtreelinvel name="torso_angmom" body="trunk"/>
   </sensor>
 
   <keyframe>
-    <key name="home" qpos="0 0 0.3 0.999944 -0.000299272 -0.0101993 0.00264232 -0.000341931 0.0181576 -0.0268335 0.00160968 0.0247957 -0.0270045 0.00191398 -0.033048 -0.0675298 -0.00199489 -0.0374747 -0.0681862"/>
+    <key name="home"
+         qpos="0 0 0.26
+               1 0 0 0
+               -0.000341931 0.0181576 -0.0268335
+               0.00160968 0.0247957 -0.0270045
+               0.00191398 -0.033048 -0.0675298
+               -0.00199489 -0.0374747 -0.0681862"/>
+    <key name="crouch"
+         qpos="-0.0501827 0.00107117 0.143925
+               1 0 0 0
+                -0.00124707 -0.00239562 -0.571211
+                0.00165776 -0.000488603 -0.580829
+                -0.00138585 -0.00284369 -0.565235
+                0.00259434 -0.000979891 -0.574498"/>
+
   </keyframe>
 </mujoco>

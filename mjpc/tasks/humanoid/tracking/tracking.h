@@ -43,10 +43,10 @@ class Tracking : public Task {
   //   Linearly interpolate between two consecutive key frames in order to
   //   smooth the transitions between keyframes.
   // ---------------------------------------------------------------------------
-  void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
+  void Transition(const mjModel* model, mjData* data) override;
 
-  int current_stage;
-  double reference_time;
+  int current_stage_;
+  double reference_time_;
 };
 
 }  // namespace humanoid

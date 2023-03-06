@@ -79,13 +79,13 @@ void controller(const mjModel* m, mjData* data) {
     return;
   }
   // if simulation:
-  if (sim->agent.action_enabled) {
-    sim->agent.ActivePlanner().ActionFromPolicy(
-        data->ctrl, &sim->agent.ActiveState().state()[0],
-        sim->agent.ActiveState().time());
+  if (sim->agent->action_enabled) {
+    sim->agent->ActivePlanner().ActionFromPolicy(
+        data->ctrl, &sim->agent->ActiveState().state()[0],
+        sim->agent->ActiveState().time());
   }
   // if noise
-  if (!sim->agent.allocate_enabled && sim->uiloadrequest.load() == 0 &&
+  if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0 &&
       sim->ctrlnoisestd) {
     for (int j = 0; j < sim->m->nu; j++) {
       data->ctrl[j] += ctrlnoise[j];
@@ -101,9 +101,9 @@ void sensor(const mjModel* m, mjData* d, int stage);
 // sensor callback
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
-    if (!sim->agent.allocate_enabled && sim->uiloadrequest.load() == 0) {
+    if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0) {
       // users sensors must be ordered first and sequentially
-      sim->agent.ActiveTask()->Residual(model, data, data->sensordata);
+      sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
     }
   }
 }
@@ -185,16 +185,16 @@ void PhysicsLoop(mj::Simulate& sim) {
     // ----- task reload ----- //
     if (sim.uiloadrequest.load() == 1) {
       // get new model + task
-      sim.filename = sim.agent.GetTaskXmlPath(sim.agent.gui_task_id);
+      sim.filename = sim.agent->GetTaskXmlPath(sim.agent->gui_task_id);
 
       mjModel* mnew = LoadModel(sim.filename, sim);
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        sim.agent.Initialize(mnew);
-        sim.agent.Allocate();
-        sim.agent.Reset();
-        sim.agent.PlotInitialize();
+        sim.agent->Initialize(mnew);
+        sim.agent->Allocate();
+        sim.agent->Reset();
+        sim.agent->PlotInitialize();
         // set home keyframe
         int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
@@ -235,7 +235,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
 
       if (m) {  // run only if model is present
-        sim.agent.ActiveTask()->Transition(m, d, &sim.scn);
+        sim.agent->ActiveTask()->Transition(m, d);
 
         // running
         if (sim.run) {
@@ -327,7 +327,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      sim.agent.ActiveState().Set(m, d);
+      sim.agent->ActiveState().Set(m, d);
     }
   }
 }
@@ -348,23 +348,24 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
 
   sim = std::make_unique<mj::Simulate>(
-      std::make_unique<mujoco::GlfwAdapter>());
+      std::make_unique<mujoco::GlfwAdapter>(),
+      std::make_shared<Agent>());
 
-  sim->agent.SetTaskList(std::move(tasks));
+  sim->agent->SetTaskList(std::move(tasks));
   std::string task_name = absl::GetFlag(FLAGS_task);
   if (task_name.empty()) {
-    sim->agent.gui_task_id = task_id;
+    sim->agent->gui_task_id = task_id;
   } else {
-    sim->agent.gui_task_id = sim->agent.GetTaskIdByName(task_name);
-    if (sim->agent.gui_task_id == -1) {
+    sim->agent->gui_task_id = sim->agent->GetTaskIdByName(task_name);
+    if (sim->agent->gui_task_id == -1) {
       std::cerr << "Invalid --task flag: '" << task_name
                 << "'. Valid values:\n";
-      std::cerr << sim->agent.GetTaskNames();
+      std::cerr << sim->agent->GetTaskNames();
       mju_error("Invalid --task flag.");
     }
   }
 
-  sim->filename = sim->agent.GetTaskXmlPath(sim->agent.gui_task_id);
+  sim->filename = sim->agent->GetTaskXmlPath(sim->agent->gui_task_id);
   m = LoadModel(sim->filename, *sim);
   if (m) d = mj_makeData(m);
 
@@ -380,16 +381,16 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
   mju_zero(ctrlnoise, m->nu);
 
-  sim->agent.Initialize(m);
-  sim->agent.Allocate();
-  sim->agent.Reset();
-  sim->agent.PlotInitialize();
+  sim->agent->Initialize(m);
+  sim->agent->Allocate();
+  sim->agent->Reset();
+  sim->agent->PlotInitialize();
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;
 
   // planning threads
-  printf("Agent threads: %i\n", sim->agent.max_threads());
+  printf("Agent threads: %i\n", sim->agent->max_threads());
 
   // set control callback
   mjcb_control = controller;
@@ -405,8 +406,12 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
     // start plan thread
     mjpc::ThreadPool plan_pool(1);
     plan_pool.Schedule(
-        []() { sim->agent.Plan(sim->exitrequest, sim->uiloadrequest); });
+        []() { sim->agent->Plan(sim->exitrequest, sim->uiloadrequest); });
 
+    // now that planning was forked, the main thread can render
+
+    // one-off preparation:
+    sim->prepare_renderloop();
     // start simulation UI loop (blocking call)
     sim->renderloop();
   }

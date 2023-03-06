@@ -156,6 +156,9 @@ void Diff(mjtNum* dx, const mjtNum* x1, const mjtNum* x2, mjtNum h, int n);
 void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
                mjtNum h);
 
+// return global height of nearest group 0 geom under given position
+mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]);
+
 // set x to be the point on the segment [p0 p1] that is nearest to x
 void ProjectToSegment(double x[3], const double p0[3], const double p1[3]);
 
@@ -188,6 +191,17 @@ void PlotHorizontal(mjvFigure* fig, const double* xs, double y, int length,
 void PlotData(mjvFigure* fig, double* bounds, const double* xs,
               const double* ys, int dim, int dim_limit, int length,
               int start_index, double x_bound_lower);
+
+// add geom to scene
+void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
+              const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]);
+
+
+// add connector geom to scene
+void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
+                  const mjtNum from[3], const mjtNum to[3],
+                  const float rgba[4]);
+
 
 // number of available hardware threads
 int NumAvailableHardwareThreads();

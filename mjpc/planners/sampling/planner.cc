@@ -286,6 +286,8 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
   // reset noise compute time
   noise_compute_time = 0.0;
 
+  policy.num_parameters = model->nu * policy.num_spline_points;
+
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
@@ -296,7 +298,6 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
       // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
-        s.policy.num_parameters = model->nu * s.policy.num_spline_points;  // set
         s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
         s.candidate_policy[i].representation = s.policy.representation;
       }

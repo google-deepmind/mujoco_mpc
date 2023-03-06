@@ -20,7 +20,7 @@
 
   <default>
     <default class="mocap_site">
-      <site type="sphere" size="0.027" rgba="0 0 1 1" group="2" material="target"/>
+      <site type="sphere" size="0.027" rgba="0 0 1 1" group="3" material="target"/>
     </default>
   </default>
 
@@ -81,13 +81,14 @@
     <user name="Joint Vel." dim="21" user="0 0.001 0.0 0.01" />
     <user name="Control" dim="21" user="3 0.1 0 1.0 0.3" />
 
-    <user name="Pos[root]" dim="3" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Pos[avg]" dim="3" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Pos[pelvis]" dim="3" user="6 30.0 0.0 100.0 0.1" />
     <user name="Pos[head]" dim="3" user="6 0.0 0.0 100.0 0.1" />
-    <user name="Pos[toe]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="Pos[heel]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[toe]" dim="6" user="7 30.0 0.0 100.0 0.2 4" />
+    <user name="Pos[heel]" dim="6" user="7 30.0 0.0 100.0 0.2 4" />
     <user name="Pos[knee]" dim="6" user="6 30.0 0.0 100.0 0.1" />
     <user name="Pos[hand]" dim="6" user="6 30.0 0.0 100.0 0.1" />
-    <user name="Pos[elbow]" dim="6" user="6 30.0 0.0 100.0 0.1" />
+    <user name="Pos[elbow]" dim="6" user="7 30.0 0.0 100.0 0.2 4" />
     <user name="Pos[shoulder]" dim="6" user="6 30.0 0.0 100.0 0.1" />
     <user name="Pos[hip]" dim="6" user="6 30.0 0.0 100.0 0.1" />
 

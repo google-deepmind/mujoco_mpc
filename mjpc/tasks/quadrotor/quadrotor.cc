@@ -64,8 +64,7 @@ void Quadrotor::Residual(const mjModel* model, const mjData* data,
 }
 
 // ----- Transition for quadrotor task -----
-void Quadrotor::Transition(const mjModel* model, mjData* data,
-                           mjvScene* scene) {
+void Quadrotor::Transition(const mjModel* model, mjData* data) {
   // set stage to GUI selection
   if (stage > 0) {
     current_stage = stage - 1;

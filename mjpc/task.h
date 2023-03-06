@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/norm.h"
 
@@ -40,12 +39,14 @@ class Task {
 
   virtual void Residual(const mjModel* model, const mjData* data,
                         double* residual) const = 0;
-  // scene is optional and may be passed as nullptr (e.g., in library mode):
-  virtual void Transition(
-    const mjModel* model, mjData* data, mjvScene* scene) {}
+
+  virtual void Transition(const mjModel* model, mjData* data) {}
 
   // get information from model
   virtual void Reset(const mjModel* model);
+
+  virtual void ModifyScene(const mjModel* model, const mjData* data,
+                           mjvScene* scene) const {}
 
   // compute cost terms
   void CostTerms(double* terms, const double* residual,
@@ -57,7 +58,12 @@ class Task {
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
 
-  int stage;              // stage
+  // stage
+  int stage;
+
+  // GUI toggles
+  int reset = 0;
+  int visualize = 0;
 
   // cost parameters
   int num_residual;

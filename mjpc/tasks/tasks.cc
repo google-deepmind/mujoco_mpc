@@ -14,13 +14,7 @@
 
 #include "mjpc/tasks/tasks.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
 #include <memory>
-#include <string>
-#include <sstream>
 #include <vector>
 
 #include "mjpc/tasks/acrobot/acrobot.h"
@@ -40,21 +34,21 @@
 namespace mjpc {
 
 std::vector<std::shared_ptr<Task>> GetTasks() {
-  std::vector<std::shared_ptr<Task>> taskVector;
-  taskVector.push_back(std::make_shared<Acrobot>());
-  taskVector.push_back(std::make_shared<Cartpole>());
-  taskVector.push_back(std::make_shared<Hand>());
-  taskVector.push_back(std::make_shared<humanoid::Stand>());
-  taskVector.push_back(std::make_shared<humanoid::Tracking>());
-  taskVector.push_back(std::make_shared<humanoid::Walk>());
-// DEEPMIND INTERNAL TASKS
-  taskVector.push_back(std::make_shared<Panda>());
-  taskVector.push_back(std::make_shared<Particle>());
-  taskVector.push_back(std::make_shared<Quadrotor>());
-  taskVector.push_back(std::make_shared<QuadrupedFlat>());
-  taskVector.push_back(std::make_shared<QuadrupedHill>());
-  taskVector.push_back(std::make_shared<Swimmer>());
-  taskVector.push_back(std::make_shared<Walker>());
-  return taskVector;
+  return {
+    std::make_shared<Acrobot>(),
+    std::make_shared<Cartpole>(),
+    std::make_shared<Hand>(),
+    std::make_shared<humanoid::Stand>(),
+    std::make_shared<humanoid::Tracking>(),
+    std::make_shared<humanoid::Walk>(),
+    // DEEPMIND INTERNAL TASKS
+    std::make_shared<Panda>(),
+    std::make_shared<Particle>(),
+    std::make_shared<Quadrotor>(),
+    std::make_shared<QuadrupedFlat>(),
+    std::make_shared<QuadrupedHill>(),
+    std::make_shared<Swimmer>(),
+    std::make_shared<Walker>(),
+  };
 }
 }  // namespace mjpc

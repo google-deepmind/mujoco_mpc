@@ -38,7 +38,7 @@ class Hand : public Task {
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-  void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

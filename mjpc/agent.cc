@@ -58,6 +58,8 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
   Initialize(model);
   Allocate();
   Reset();
+  PlotInitialize();
+  PlotReset();
 }
 
 // initialize data, settings, planners, states
@@ -315,14 +317,15 @@ void Agent::GUI(mjUI& ui) {
   // ----- task ------ //
   mjuiDef defTask[] = {
       {mjITEM_SECTION, "Task", 1, nullptr, "AP"},
-      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+      {mjITEM_CHECKINT, "Reset", 2, &ActiveTask()->reset, " #459"},
+      {mjITEM_CHECKINT, "Visualize", 2, &ActiveTask()->visualize, ""},
       {mjITEM_SELECT, "Model", 1, &gui_task_id, ""},
       {mjITEM_SLIDERNUM, "Risk", 1, &ActiveTask()->risk, "-1 1"},
-      {mjITEM_SEPARATOR, "Cost Weights", 1},
+      {mjITEM_SEPARATOR, "Weights", 1},
       {mjITEM_END}};
 
   // task names
-  mju::strcpy_arr(defTask[2].other, task_names_);
+  mju::strcpy_arr(defTask[3].other, task_names_);
   mjui_add(&ui, defTask);
 
   // norm weights
@@ -470,14 +473,17 @@ void Agent::TaskEvent(mjuiItem* it, mjData* data,
   switch (it->itemid) {
     case 0:  // task reset
       ActiveTask()->Reset(model_);
+      ActiveTask()->reset = 0;
       break;
-    case 1:  // task switch
+    case 2:  // task switch
       // the GUI changed the value of gui_task_id, but it's unsafe to switch
       // tasks now.
       // turn off agent and traces
       plan_enabled = false;
       action_enabled = false;
       visualize_enabled = false;
+      ActiveTask()->visualize = 0;
+      ActiveTask()->reset = 0;
       allocate_enabled = true;
       // request model loading
       uiloadrequest.fetch_add(1);
@@ -666,6 +672,11 @@ void Agent::PlotReset() {
       plots_.timer.linedata[k][2 * i] = (float)-i;
     }
   }
+}
+
+// return horizon (continuous time)
+double Agent::Horizon() const {
+  return horizon_;
 }
 
 // plot current information

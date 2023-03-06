@@ -49,7 +49,7 @@ void Particle::Residual(const mjModel* model, const mjData* data,
   mju_copy(residual + 4, data->ctrl, model->nu);
 }
 
-void Particle::Transition(const mjModel* model, mjData* data, mjvScene* scene) {
+void Particle::Transition(const mjModel* model, mjData* data) {
   // some Lissajous curve
   double goal[2]{0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
 

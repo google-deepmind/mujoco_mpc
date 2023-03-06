@@ -36,7 +36,7 @@ std::string Cartpole::Name() const { return "Cartpole"; }
 void Cartpole::Residual(const mjModel* model, const mjData* data,
                         double* residual) const {
   // ---------- Vertical ----------
-  residual[0] = std::cos(data->qpos[1]) + 1;
+  residual[0] = std::cos(data->qpos[1]) - 1;
 
   // ---------- Centered ----------
   residual[1] = data->qpos[0] - parameters[0];

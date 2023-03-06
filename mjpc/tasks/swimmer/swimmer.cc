@@ -48,7 +48,7 @@ void Swimmer::Residual(const mjModel* model, const mjData* data,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-void Swimmer::Transition(const mjModel* model, mjData* data, mjvScene* scene) {
+void Swimmer::Transition(const mjModel* model, mjData* data) {
   double* target = SensorByName(model, data, "target");
   double* nose = SensorByName(model, data, "nose");
   double nose_to_target[2];

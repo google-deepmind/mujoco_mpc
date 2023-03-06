@@ -571,6 +571,27 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
   }
 }
 
+
+// return global height of nearest group 0 geom under given position
+mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
+  const mjtByte geomgroup[6] = {1, 0, 0, 0, 0, 0};  // only detect group 0
+  mjtNum down[3] = {0, 0, -1};      // aim ray straight down
+  const mjtNum height_offset = .5;  // add some height in case of penetration
+  const mjtByte flg_static = 1;     // include static geoms
+  const int bodyexclude = -1;       // don't exclude any bodies
+  int geomid;                       // id of intersecting geom
+  mjtNum query[3] = {pos[0], pos[1], pos[2] + height_offset};
+  mjtNum dist = mj_ray(model, data, query, down, geomgroup, flg_static,
+                       bodyexclude, &geomid);
+
+  if (dist < 0) {  // SHOULD NOT OCCUR
+    mju_error("no group 0 geom detected by raycast");
+  }
+
+  return pos[2] + height_offset - dist;
+}
+
+
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
                const double body[3],
@@ -740,6 +761,42 @@ void PlotData(mjvFigure* fig, double* bounds, const double* xs,
     fig->linepnt[start_index + j] = length;
   }
 }
+
+// add geom to scene
+void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
+              const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]) {
+  // if no available geoms, return
+  if (scene->ngeom >= scene->maxgeom) return;
+
+  // add geom
+  mjtNum mat_world[9] = {1, 0, 0,  0, 1, 0,  0, 0, 1};
+  mjv_initGeom(&scene->geoms[scene->ngeom], type, size, pos,
+               mat ? mat : mat_world, rgba);
+  scene->geoms[scene->ngeom].category = mjCAT_DECOR;
+
+  // increment ngeom
+  scene->ngeom += 1;
+}
+
+
+// add connector geom to scene
+void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
+                  const mjtNum from[3], const mjtNum to[3],
+                  const float rgba[4]) {
+  // if no available geoms, return
+  if (scene->ngeom >= scene->maxgeom) return;
+
+  // make connector geom
+  mjv_initGeom(&scene->geoms[scene->ngeom], type,
+               /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, rgba);
+  scene->geoms[scene->ngeom].category = mjCAT_DECOR;
+  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width,
+                    from[0], from[1], from[2], to[0], to[1], to[2]);
+
+  // increment ngeom
+  scene->ngeom += 1;
+}
+
 
 // number of available hardware threads
 #if defined(__APPLE__) || defined(_WIN32)

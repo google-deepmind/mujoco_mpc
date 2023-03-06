@@ -4,9 +4,6 @@
   <option cone="elliptic" impratio="10"/>
 
   <default>
-    <default class="torque">
-      <general gainprm="33" ctrllimited="true" ctrlrange="-1 1"/>
-    </default>
     <default class="a1">
       <geom friction="0.6" margin="0.001" condim="1"/>
       <joint axis="0 1 0" damping="2" armature="0.01" frictionloss="0.2" limited="true"/>
@@ -70,9 +67,10 @@
   </asset>
 
   <worldbody>
-    <light pos="0 0 2" mode="trackcom" diffuse="0.8 0.8 0.8"/>
     <body name="trunk" pos="0.0 0.0 0.5" quat="1 0 0 0" childclass="a1">
+      <light pos="0 0 5" mode="trackcom" diffuse="0.8 0.8 0.8"/>
       <site name="torso"/>
+      <site name="head" class="task" pos=".3 0 0"/>
       <freejoint/>
       <inertial mass="4.713" pos="0 0.0041 -0.0005"
           fullinertia="0.0158533 0.0377999 0.0456542 -3.66e-05 -6.11e-05 -2.75e-05"/>
@@ -109,8 +107,8 @@
             <geom class="visual" mesh="calf"/>
             <geom class="calf1"/>
             <geom class="calf2"/>
-            <geom class="foot"/>
-              <site name="FR" pos="0 0 -0.2" type="sphere" size=".015"/>
+            <geom name="FR" class="foot"/>
+            <site name="FR" pos="0 0 -0.2" type="sphere" size=".015"/>
           </body>
         </body>
       </body>
@@ -139,12 +137,12 @@
             <geom class="visual" mesh="calf"/>
             <geom class="calf1"/>
             <geom class="calf2"/>
-            <geom class="foot"/>
-              <site name="FL" pos="0 0 -0.2" type="sphere" size=".015"/>
+            <geom name="FL" class="foot"/>
+            <site name="FL" pos="0 0 -0.2" type="sphere" size=".015"/>
           </body>
         </body>
       </body>
-      <body name="RR_hip" pos="-0.183 -0.047 0">
+      <body name="HR_hip" pos="-0.183 -0.047 0">
         <inertial mass="0.696" pos="0.003311 -0.000635 3.1e-05"
             quat="0.491507 0.494499 0.507528 0.506268"
             diaginertia="0.000807752 0.00055293 0.000468983"/>
@@ -168,12 +166,12 @@
             <geom class="visual" mesh="calf"/>
             <geom class="calf1"/>
             <geom class="calf2"/>
-            <geom class="foot"/>
-              <site name="RR" pos="0 0 -0.2" type="sphere" size=".015"/>
+            <geom name="HR" class="foot"/>
+            <site name="RR" pos="0 0 -0.2" type="sphere" size=".015"/>
           </body>
         </body>
       </body>
-      <body name="RL_hip" pos="-0.183 0.047 0">
+      <body name="HL_hip" pos="-0.183 0.047 0">
         <inertial mass="0.696" pos="0.003311 0.000635 3.1e-05"
             quat="0.506268 0.507528 0.494499 0.491507"
             diaginertia="0.000807752 0.00055293 0.000468983"/>
@@ -197,8 +195,8 @@
             <geom class="visual" mesh="calf"/>
             <geom class="calf1"/>
             <geom class="calf2"/>
-            <geom class="foot"/>
-              <site name="RL" pos="0 0 -0.2" type="sphere" size=".015"/>
+            <geom name="HL" class="foot"/>
+            <site name="RL" pos="0 0 -0.2" type="sphere" size=".015"/>
           </body>
         </body>
       </body>

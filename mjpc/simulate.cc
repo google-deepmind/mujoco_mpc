@@ -163,7 +163,7 @@ void profilerinit(mj::Simulate* sim) {
   mju::strcpy_arr(sim->figsize.xlabel, "Video frame");
   mju::strcpy_arr(sim->figtimer.xlabel, "Video frame");
 
-  // y-tick nubmer formats
+  // y-tick number formats
   mju::strcpy_arr(sim->figconstraint.yformat, "%.0f");
   mju::strcpy_arr(sim->figcost.yformat, "%.1f");
   mju::strcpy_arr(sim->figsize.yformat, "%.0f");
@@ -483,7 +483,7 @@ void infotext(mj::Simulate* sim,
   mju::strcpy_arr(title, "Objective\nDoFs\nControls\nTime\nMemory");
   mju::sprintf_arr(content,
                    "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
-                   sim->agent.ActivePlanner().BestTrajectory()->total_return,
+                   sim->agent->ActivePlanner().BestTrajectory()->total_return,
                    m->nv,
                    m->nu,
                    d->time,
@@ -900,7 +900,7 @@ void makesections(mj::Simulate* sim) {
   sim->ui1.nsect = 0;
 
   // make
-  sim->agent.GUI(sim->ui0);
+  sim->agent->GUI(sim->ui0);
   makephysics(sim, oldstate0[SECT_PHYSICS]);
   makerendering(sim, oldstate0[SECT_RENDERING]);
   makegroup(sim, oldstate0[SECT_GROUP]);
@@ -1187,7 +1187,7 @@ void uiEvent(mjuiState* state) {
             mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
           }
 
-          sim->agent.PlotReset();
+          sim->agent->PlotReset();
         }
         break;
 
@@ -1235,12 +1235,12 @@ void uiEvent(mjuiState* state) {
 
     // task section
     else if (it && it->sectionid == SECT_TASK) {
-      sim->agent.TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
+      sim->agent->TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
     // agent section
     else if (it && it->sectionid == SECT_AGENT) {
-      sim->agent.AgentEvent(it, sim->d, sim->uiloadrequest, sim->run);
+      sim->agent->AgentEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
     // physics section
@@ -1434,15 +1434,15 @@ void uiEvent(mjuiState* state) {
 
     // agent keys
     case mjKEY_ENTER:
-      sim->agent.plan_enabled = !sim->agent.plan_enabled;
+      sim->agent->plan_enabled = !sim->agent->plan_enabled;
       break;
 
     case '\\':
-      sim->agent.action_enabled = !sim->agent.action_enabled;
+      sim->agent->action_enabled = !sim->agent->action_enabled;
       break;
 
     case '9':
-      sim->agent.visualize_enabled = !sim->agent.visualize_enabled;
+      sim->agent->visualize_enabled = !sim->agent->visualize_enabled;
       break;
     }
 
@@ -1593,9 +1593,11 @@ void uiEvent(mjuiState* state) {
 namespace mujoco {
 namespace mju = ::mujoco::util_mjpc;
 
-Simulate::Simulate(std::unique_ptr<PlatformUIAdapter> platform_ui)
+Simulate::Simulate(std::unique_ptr<PlatformUIAdapter> platform_ui,
+                   std::shared_ptr<mjpc::Agent> a)
     : platform_ui(std::move(platform_ui)),
-      uistate(this->platform_ui->state()) {}
+      uistate(this->platform_ui->state()),
+      agent(std::move(a)) {}
 
 //------------------------------------ apply pose perturbations ------------------------------------
 void Simulate::applyposepertubations(int flg_paused) {
@@ -1749,7 +1751,7 @@ void Simulate::prepare() {
 
   // update task
   if (this->ui0_enable && this->ui0.sect[SECT_TASK].state) {
-    if (!this->agent.allocate_enabled && this->uiloadrequest.load() == 0) {
+    if (!this->agent->allocate_enabled && this->uiloadrequest.load() == 0) {
       mjui_update(SECT_TASK, -1, &this->ui0, &this->uistate, &this->platform_ui->mjr_context());
     }
   }
@@ -1760,8 +1762,8 @@ void Simulate::prepare() {
   }
 
   // update agent profiler
-  if (this->agent.plot_enabled && this->uiloadrequest.load() == 0) {
-    this->agent.Plots(this->d, this->run);
+  if (this->agent->plot_enabled && this->uiloadrequest.load() == 0) {
+    this->agent->Plots(this->d, this->run);
   }
 
   // clear timers once profiler info has been copied
@@ -1819,9 +1821,14 @@ void Simulate::render() {
     return;
   }
 
-  // agent traces
+  // visualization
   if (this->uiloadrequest.load() == 0) {
-    this->agent.ModifyScene(&this->scn);
+    // task-specific
+    if (this->agent->ActiveTask()->visualize) {
+      this->agent->ActiveTask()->ModifyScene(this->m, this->d, &this->scn);
+    }
+    // common to all tasks
+    this->agent->ModifyScene(&this->scn);
   }
 
   // render scene
@@ -1902,8 +1909,8 @@ void Simulate::render() {
   }
 
   // show agent plots
-  if (this->agent.plot_enabled && this->uiloadrequest.load() == 0) {
-    this->agent.PlotShow(&smallrect, &this->platform_ui->mjr_context());
+  if (this->agent->plot_enabled && this->uiloadrequest.load() == 0) {
+    this->agent->PlotShow(&smallrect, &this->platform_ui->mjr_context());
   }
 
   // take screenshot, save to file
@@ -1938,8 +1945,7 @@ void Simulate::render() {
   this->platform_ui->SwapBuffers();
 }
 
-
-void Simulate::renderloop() {
+void Simulate::prepare_renderloop() {
   // Set timer callback (milliseconds)
   mjcb_time = timer;
 
@@ -1999,7 +2005,9 @@ void Simulate::renderloop() {
   mjui_add(&this->ui0, this->defWatch);
   uiModify(&this->ui0, &this->uistate, &this->platform_ui->mjr_context());
   uiModify(&this->ui1, &this->uistate, &this->platform_ui->mjr_context());
+}
 
+void Simulate::renderloop() {
   // run event loop
   while (!this->platform_ui->ShouldCloseWindow()  && !this->exitrequest.load()) {
     {

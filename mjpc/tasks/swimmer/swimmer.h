@@ -35,7 +35,7 @@ class Swimmer : public Task {
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-  void Transition(const mjModel* model, mjData* data, mjvScene* scene) override;
+  void Transition(const mjModel* model, mjData* data) override;
 };
 }  // namespace mjpc
 

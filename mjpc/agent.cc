@@ -234,6 +234,23 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
   }  // exitrequest sent -- stop planning
 }
 
+int Agent::SetParamByName(std::string_view name, double value) {
+  int shift = 0;
+  for (int i = 0; i < model_->nnumeric; i++) {
+    std::string_view numeric_name(model_->names + model_->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_")) {
+      if (absl::EqualsIgnoreCase(absl::StripPrefix(numeric_name, "residual_"),
+                                 name)) {
+        ActiveTask()->parameters[shift] = value;
+        return i;
+      } else {
+        shift++;
+      }
+    }
+  }
+  return -1;
+}
+
 // visualize traces in GUI
 void Agent::ModifyScene(mjvScene* scn) {
   // if acting is off make all geom colors grayscale

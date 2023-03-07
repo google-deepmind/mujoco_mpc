@@ -111,6 +111,8 @@ class Agent {
   void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
   void SetState(const mjData* data);
   void SetTaskByIndex(int id) { active_task_id_ = id; }
+  // returns param index, or -1 if not found.
+  int SetParamByName(std::string_view name, double value);
 
   int max_threads() const { return max_threads_;}
 

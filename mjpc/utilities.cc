@@ -232,11 +232,8 @@ void CheckSensorDim(const mjModel* model, int residual_size) {
     }
   }
   if (user_sensor_dim != residual_size) {
-    char msg[1024];
-    snprintf(msg, sizeof(msg),
-             "mismatch between total user-sensor dimension %d "
-             "and residual size %d", user_sensor_dim, residual_size);
-    mju_error(msg);
+    mju_error("mismatch between total user-sensor dimension %d "
+              "and residual size %d", user_sensor_dim, residual_size);
   }
 }
 

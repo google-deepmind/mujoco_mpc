@@ -171,14 +171,10 @@ void Task::SetFeatureParameters(const mjModel* model) {
   for (int i = 0; i < model->nnumeric; i++) {
     if (absl::StartsWith(model->names + model->name_numericadr[i],
                          "residual_select_")) {
-      parameters[shift] = DefaultResidualSelection(model, i);
-      shift++;
+      parameters[shift++] = DefaultResidualSelection(model, i);
     } else if (absl::StartsWith(model->names + model->name_numericadr[i],
                                 "residual_")) {
-      int dim = 1;  // model->numeric_size[i];
-      double* params = model->numeric_data + model->numeric_adr[i];
-      mju_copy(DataAt(parameters, shift), params, dim);
-      shift += dim;
+      parameters[shift++] = model->numeric_data[model->numeric_adr[i]];
     }
   }
 }

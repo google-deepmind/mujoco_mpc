@@ -47,6 +47,6 @@ int main(int argc, char** argv) {
 #endif
   absl::ParseCommandLine(argc, argv);
 
-  mjpc::StartApp(mjpc::GetTasks(), 3);  // start with humanoid stand
+  mjpc::StartApp(mjpc::GetTasks(), 6);  // start with manipiulation bring
   return 0;
 }

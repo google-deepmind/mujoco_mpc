@@ -31,13 +31,6 @@ close_worldbody_index = robotiq.index('</worldbody>', worldbody_index)
 robotiq_body = robotiq[worldbody_index:close_worldbody_index]
 panda = panda.replace('<site name="attachment_site"/>', robotiq_body)
 
-# actuators
-actuator_begin_index = robotiq.index('<actuator>') + len('<actuator>')
-actuator_close_index = robotiq.index(
-    '</actuator>', actuator_begin_index) + len('</actuator>')
-actuators = robotiq[actuator_begin_index:actuator_close_index]
-panda = panda.replace('</actuator>', actuators)
-
 # insert bottom: contact, tendon, equality
 contact_begin_index = robotiq.index('</worldbody>')  # include closing tag
 equality_close_index = robotiq.index(
@@ -54,6 +47,24 @@ panda = panda.replace('priority="1"',
 panda = panda.replace(
     '<geom type="mesh" group="3"/>',
     '<geom type="mesh" group="3" contype="2" conaffinity="1"/>')
+
+# add cartesian actuators
+cartesian_actuators = '''
+  <actuator>
+    <general  name="x" site="pinch" refsite="pedestal" ctrlrange="-.5 .5" ctrllimited="true" gainprm="1000" biasprm="0 -1000 -200" biastype="affine" gear="1 0 0 0 0 0"/>
+    <general  name="y" site="pinch" refsite="pedestal" ctrlrange="-.5 .5" ctrllimited="true" gainprm="1000" biasprm="0 -1000 -200" biastype="affine" gear="0 1 0 0 0 0"/>
+    <general  name="z" site="pinch" refsite="pedestal" ctrlrange="-.5 .5" ctrllimited="true" gainprm="1000" biasprm="300 -1000 -200" biastype="affine" gear="0 0 1 0 0 0"/>
+    <general name="rx" site="pinch" refsite="world"    ctrlrange="-.5 .5" ctrllimited="true" gainprm="100" biasprm="0 -100 -20" biastype="affine"  gear="0 0 0 1 0 0"/>
+    <general name="ry" site="pinch" refsite="world"    ctrlrange="-.5 .5" ctrllimited="true" gainprm="100" biasprm="0 -100 -20" biastype="affine"  gear="0 0 0 0 1 0"/>
+    <general name="rz" site="pinch" refsite="world"    ctrlrange="-1.5 1.5" ctrllimited="true" gainprm="10" biasprm="0 -10 -2" biastype="affine"  gear="0 0 0 0 0 1"/>
+    <position name="fingers" ctrllimited="true" forcelimited="true" ctrlrange="0 1" forcerange="-5 5" kp="40" tendon="split"/>
+  </actuator>
+'''
+actuator_begin_index = panda.index('<actuator>')
+actuator_close_index = panda.index(
+    '</actuator>', actuator_begin_index) + len('</actuator>')
+actuators = panda[actuator_begin_index:actuator_close_index]
+panda = panda.replace(actuators, cartesian_actuators)
 
 # remove panda keyframe
 keyframe_begin_index = panda.index('<keyframe>')  # keep tag (for removal)

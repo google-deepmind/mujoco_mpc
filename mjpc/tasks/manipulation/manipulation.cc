@@ -83,19 +83,10 @@ void manipulation::Bring::Transition(const mjModel* model, mjData* data) {
     weight[0] = 1;  // enable reach
     weight[3] = 0;  // disable away
 
-    // initialise object:
     absl::BitGen gen_;
-    data->qpos[0] = absl::Uniform<double>(gen_, .4, .7);
-    data->qpos[1] = absl::Uniform<double>(gen_, -.15, .15);
-    data->qpos[2] = 0.2;
-    data->qpos[3] = absl::Uniform<double>(gen_, -1, 1);
-    data->qpos[4] = absl::Uniform<double>(gen_, -1, 1);
-    data->qpos[5] = absl::Uniform<double>(gen_, -1, 1);
-    data->qpos[6] = absl::Uniform<double>(gen_, -1, 1);
-    mju_normalize4(data->qpos + 3);
 
     // initialise target:
-    data->qpos[7+0] = 0.6;
+    data->qpos[7+0] = 0.5;
     data->qpos[7+1] = 0;
     data->qpos[7+2] = 0.15;
     data->qpos[7+3] = absl::Uniform<double>(gen_, -1, 1);

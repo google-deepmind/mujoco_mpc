@@ -21,7 +21,13 @@
   </custom>
 
   <keyframe>
-    <key name="home" qpos="0.712639 0.152204 0.0872751 0.0747279 0.691609 -0.36265 0.620144 0.530228 -0.0789289 0.0670311 -0.033621 0.706272 0.0335937 0.706344 0.000302694 0.000281474 0.000377627 -0.0708626 0.000552267 0.275015 -0.0942014 0.00129982 0.00201141 0.00417223 -0.00817256 0.00129982 0.00200828 0.00417081 -0.00817298"/>
+    <key name="home" qpos="
+    0.712639 0.152204 0.0872751
+    0.0747279 0.691609 -0.36265 0.620144
+    0.530228 -0.0789289 0.0670311
+    -0.033621 0.706272 0.0335937 0.706344
+    0.01 0.01 0.01 -0.5 0.01 0.275015 -0.0942014
+    0.00129982 0.00201141 0.00417223 -0.00817256 0.00129982 0.00200828 0.00417081 -0.00817298"/>
   </keyframe>
 
   <statistic extent="0.7" center="0.7 0 0.2"/>
@@ -59,11 +65,13 @@
   </default>
 
   <worldbody>
+    <site name="world" xyaxes="-1 0 0 0  1 0" group="5"/>
     <light pos="0   -1 1.5" dir=".5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
     <light pos="1.2 -1 1.5" dir="-.5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
     <geom name="floor" pos="0 0 0" size="0 0 0.05" type="plane" material="blue_grid"/>
-    <site name="reset" pos="0.2 0 0.8"/>
-    <geom name="pedestal" pos="0.6 0 0.07" type="cylinder" size=".03 .04" class="red_rgb_object/collision"/>
+    <site name="reset" pos="0.2 0 0.5"/>
+    <site name="pedestal" pos="0.5 0 0"/>
+    <geom name="pedestal" pos="0.5 0 0.05" type="cylinder" size=".03 .05" class="red_rgb_object/collision"/>
     <body name="object">
       <freejoint name="red_rgb_object/"/>
       <geom name="red_rgb_object/red_rgb_object_00_collision" class="red_rgb_object/collision" rgba="1 0 0 1" type="box" size="0.011 0.0151 0.021" pos="0 0 0"/>

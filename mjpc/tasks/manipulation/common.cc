@@ -89,11 +89,8 @@ double GripperCost(const mjModel* m, const mjData* d,
 
 ModelValues ModelValues::FromModel(const mjModel* model) {
   ModelValues values;
-  values.robot_body_id = mj_name2id(model, mjOBJ_BODY, "panda/");
-  if (values.robot_body_id == -1) {
-    values.robot_body_id = mj_name2id(model, mjOBJ_BODY, "iiwa14/");
-  }
-  values.gripper_site_id = mj_name2id(model, mjOBJ_SITE, "eeff");
+  values.robot_body_id = mj_name2id(model, mjOBJ_BODY, "link0");
+  values.gripper_site_id = mj_name2id(model, mjOBJ_SITE, "pinch");
 
   for (const char* name :
        {"right_pad1", "right_pad2", "left_pad1", "left_pad2"}) {

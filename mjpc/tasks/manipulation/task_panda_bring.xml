@@ -1,0 +1,133 @@
+<mujoco model="Panda Bring">
+  <include file="../common.xml"/>
+
+  <option timestep="0.001" cone="elliptic" integrator="implicit">
+    <flag multiccd="enable"/>
+  </option>
+  <size memory="1M" nuserdata="1"/>
+
+  <custom>
+    <numeric name="task_transition" data="1" />
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.6" />
+    <numeric name="agent_integrator" data="2" />
+    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="agent_sample_width" data="0.0025" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_trajectories" data="60"/>
+    <numeric name="sampling_spline_points" data="5" />
+    <numeric name="sampling_exploration" data="0.04" />
+    <numeric name="gradient_spline_points" data="6" />
+  </custom>
+
+  <keyframe>
+    <key name="home" qpos="
+    0.612639 0.152204 0.0872751
+    0.0747279 0.691609 -0.36265 0.620144
+    0.530228 -0.0789289 0.0670311
+    -0.033621 0.706272 0.0335937 0.706344
+    0.01 0.01 0.01 -0.5 0.01 0.275015 -0.0942014
+    0.00129982 0.00201141 0.00417223 -0.00817256 0.00129982 0.00200828 0.00417081 -0.00817298"/>
+  </keyframe>
+
+  <statistic extent="0.7" center="0.7 0 0.2"/>
+
+  <visual>
+    <quality shadowsize="8192"/>
+    <global azimuth="90" elevation="-30"/>
+  </visual>
+
+  <default>
+    <default class="red_rgb_object/">
+      <default class="red_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 0 0 1" mass="0.001"/>
+      </default>
+      <default class="red_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+    <default class="green_rgb_object/">
+      <default class="green_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="0 1 0 1" mass="0.001"/>
+      </default>
+      <default class="green_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+    <default class="blue_rgb_object/">
+      <default class="blue_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="0 0 1 1" mass="0.001"/>
+      </default>
+      <default class="blue_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" mass="0.20000000000000001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <site name="world" xyaxes="-1 0 0 0  1 0" group="5"/>
+    <light pos="0   -1 1.5" dir=".5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
+    <light pos="1.2 -1 1.5" dir="-.5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
+    <geom name="floor" pos="0 0 0" size="0 0 0.05" type="plane" material="blue_grid"/>
+    <site name="reset" pos="0.2 0 0.3"/>
+    <site name="pedestal" pos="0.45 0 0"/>
+    <geom name="pedestal" pos="0.45 0 0.005" type="cylinder" size=".025 .005" class="red_rgb_object/collision"/>
+    <body name="object">
+      <freejoint name="red_rgb_object/"/>
+      <geom name="red_rgb_object/red_rgb_object_00_collision" class="red_rgb_object/collision" rgba="1 0 0 1" type="box" size="0.011 0.0151 0.021" pos="0 0 0"/>
+      <site name="0" pos="0.04 0.04 0.04" group="5"/>
+      <site name="1" pos="-.04 0.04 0.04" group="5"/>
+      <site name="2" pos="0.04 -.04 0.04" group="5"/>
+      <site name="3" pos="-.04 -.04 0.04" group="5"/>
+      <site name="4" pos="0.04 0.04 -.04" group="5"/>
+      <site name="5" pos="-.04 0.04 -.04" group="5"/>
+      <site name="6" pos="0.04 -.04 -.04" group="5"/>
+      <site name="7" pos="-.04 -.04 -.04" group="5"/>
+    </body>
+    <body name="target">
+      <freejoint/>
+      <geom name="target/target_00_collision" rgba=".5 .5 .7 1" class="red_rgb_object/collision" type="box" size="0.01 0.015 0.02" contype="2" conaffinity="1"/>
+      <site name="0t" pos="0.04 0.04 0.04" group="5"/>
+      <site name="1t" pos="-.04 0.04 0.04" group="5"/>
+      <site name="2t" pos="0.04 -.04 0.04" group="5"/>
+      <site name="3t" pos="-.04 -.04 0.04" group="5"/>
+      <site name="4t" pos="0.04 0.04 -.04" group="5"/>
+      <site name="5t" pos="-.04 0.04 -.04" group="5"/>
+      <site name="6t" pos="0.04 -.04 -.04" group="5"/>
+      <site name="7t" pos="-.04 -.04 -.04" group="5"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <exclude body1="object" body2="target"/>
+  </contact>
+
+  <sensor>
+    <user name="Reach" dim="3" user="2 1 0 5 0.005"/>
+    <user name="Bring" dim="8" user="6 .2 0 1 0.01"/>
+    <user name="Careful" dim="1" user="6 .2 0 1 0.01"/>
+    <user name="Away" dim="1" user="6 0 0 1 0.01"/>
+    <framepos name="hand" objtype="site" objname="pinch"/>
+    <framepos name="object" objtype="body" objname="object"/>
+    <framepos name="0" objtype="site" objname="0"/>
+    <framepos name="1" objtype="site" objname="1"/>
+    <framepos name="2" objtype="site" objname="2"/>
+    <framepos name="3" objtype="site" objname="3"/>
+    <framepos name="4" objtype="site" objname="4"/>
+    <framepos name="5" objtype="site" objname="5"/>
+    <framepos name="6" objtype="site" objname="6"/>
+    <framepos name="7" objtype="site" objname="7"/>
+    <framepos name="0t" objtype="site" objname="0t"/>
+    <framepos name="1t" objtype="site" objname="1t"/>
+    <framepos name="2t" objtype="site" objname="2t"/>
+    <framepos name="3t" objtype="site" objname="3t"/>
+    <framepos name="4t" objtype="site" objname="4t"/>
+    <framepos name="5t" objtype="site" objname="5t"/>
+    <framepos name="6t" objtype="site" objname="6t"/>
+    <framepos name="7t" objtype="site" objname="7t"/>
+  </sensor>
+
+  <include file="panda_robotiq.xml"/>
+</mujoco>
+
+

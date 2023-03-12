@@ -71,7 +71,7 @@ void manipulation::Bring::Transition(const mjModel* model, mjData* data) {
   CostTerms(terms, residuals, /*weighted=*/false);
 
   // bring is solved:
-  if (data->time > 0 && data->userdata[0] == 0 && terms[1] < 0.01) {
+  if (data->time > 0 && data->userdata[0] == 0 && terms[1] < 0.04) {
     weight[0] = 0;  // disable reach
     weight[3] = 1;  // enable away
 
@@ -86,7 +86,7 @@ void manipulation::Bring::Transition(const mjModel* model, mjData* data) {
     absl::BitGen gen_;
 
     // initialise target:
-    data->qpos[7+0] = 0.5;
+    data->qpos[7+0] = 0.45;
     data->qpos[7+1] = 0;
     data->qpos[7+2] = 0.15;
     data->qpos[7+3] = absl::Uniform<double>(gen_, -1, 1);

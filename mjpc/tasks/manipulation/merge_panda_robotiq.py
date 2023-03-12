@@ -5,9 +5,9 @@ import sys
 
 merge_filename = sys.argv[1]
 panda_filename = merge_filename.replace('panda_robotiq.xml',
-                                        'assets/panda_nohand.xml')
+                                        'panda_nohand.xml')
 robotiq_filename = merge_filename.replace('panda_robotiq.xml',
-                                          'assets/2f85.xml')
+                                          '2f85.xml')
 with open(panda_filename) as panda_file:
   panda = panda_file.read()
 with open(robotiq_filename) as robotiq_file:

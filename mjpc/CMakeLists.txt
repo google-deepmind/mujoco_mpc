@@ -44,6 +44,7 @@ option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
 
 include(FindOrFetch)
 
+find_package(Python)
 find_package(Threads REQUIRED)
 
 set(MUJOCO_BUILD_EXAMPLES OFF)
@@ -174,6 +175,15 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/unitree_a1/assets
           ${CMAKE_CURRENT_BINARY_DIR}/tasks/quadruped/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/franka_emika_panda
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/robotiq_2f85
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation
+  COMMAND ${Python_EXECUTABLE}
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation/merge_panda_robotiq.py
+          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation/panda_robotiq.xml
   COMMENT "Copying menagerie assets into binary directory")
 
 if(NOT TARGET lodepng)
@@ -237,6 +247,10 @@ add_library(
   tasks/humanoid/tracking/tracking.h
   tasks/humanoid/walk/walk.cc
   tasks/humanoid/walk/walk.h
+  tasks/manipulation/common.cc
+  tasks/manipulation/common.h
+  tasks/manipulation/manipulation.cc
+  tasks/manipulation/manipulation.h
   tasks/panda/panda.cc
   tasks/panda/panda.h
   tasks/particle/particle.cc

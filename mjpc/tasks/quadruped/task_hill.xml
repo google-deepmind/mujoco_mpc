@@ -8,15 +8,11 @@
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
-    <numeric name="sampling_spline_points" data="3" />
-    <numeric name="sampling_exploration" data="0.15" />
+    <numeric name="sampling_spline_points" data="5" />
+    <numeric name="sampling_exploration" data="0.3" />
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Height Goal" data="0.25" />
   </custom>
-
-  <asset>
-    <mesh name="inflated_trunk" scale="1.2 1.2 1.2" file="trunk.obj"/>
-  </asset>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
@@ -29,6 +25,22 @@
 
   <include file="a1.xml" />
 
+  <default>
+    <default class="task">
+      <site rgba="1 0 0 1" size=".02" group="5"/>
+      <default class="flight">
+        <site rgba="1 .3 .3 1" size="0.019" group="5"/>
+      </default>
+      <default class="stance">
+        <site rgba=".3 1 .3 1" size=".018" group="4"/>
+      </default>
+    </default>
+    <default class="prop">
+      <geom type="box" rgba="0 0.4 1 1"/>
+    </default>
+  </default>
+  
+  <!-- position actuators -->
   <actuator>
     <position class="abduction" name="FR_hip" joint="FR_hip_joint"/>
     <position class="hip" name="FR_thigh" joint="FR_thigh_joint"/>

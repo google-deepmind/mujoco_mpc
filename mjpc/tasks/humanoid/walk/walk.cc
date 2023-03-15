@@ -28,26 +28,26 @@ std::string humanoid::Walk::XmlPath() const {
 }
 std::string humanoid::Walk::Name() const { return "Humanoid Walk"; }
 
-// ------------------ Residuals for humanoid gait task ------------
-  //   Number of residuals: 11
-  //     Residual (0): torso height
-  //     Residual (1): actuation
-  //     Residual (2): balance
-  //     Residual (3): upright
-  //     Residual (4): posture
-  //     Residual (5): goal-position error
-  //     Residual (6): goal-direction error
-  //     Residual (7): feet velocity
-  //     Residual (8): body velocity
-  //     Residual (9): gait feet height
-  //     Residual (10): center-of-mass xy velocity
-  //   Number of parameters: 5
-  //     Parameter (0): torso height 
-  //     Parameter (1): walking speed
-  //     Parameter (2): walking cadence
-  //     Parameter (3): walking gait feet amplitude
-  //     Parameter (4): walking gait cadence
-  // ----------------------------------------------------------------
+// ------------------ Residuals for humanoid walk task ------------
+//   Number of residuals: 11
+//     Residual (0): torso height
+//     Residual (1): actuation
+//     Residual (2): balance
+//     Residual (3): upright
+//     Residual (4): posture
+//     Residual (5): goal-position error
+//     Residual (6): goal-direction error
+//     Residual (7): feet velocity
+//     Residual (8): body velocity
+//     Residual (9): gait feet height
+//     Residual (10): center-of-mass xy velocity
+//   Number of parameters: 5
+//     Parameter (0): torso height
+//     Parameter (1): walking speed
+//     Parameter (2): walking cadence
+//     Parameter (3): walking gait feet amplitude
+//     Parameter (4): walking gait cadence
+// ----------------------------------------------------------------
 void humanoid::Walk::Residual(const mjModel* model, const mjData* data,
                               double* residual) const {
   int counter = 0;
@@ -72,7 +72,7 @@ void humanoid::Walk::Residual(const mjModel* model, const mjData* data,
   double foot_height_avg = 0.5 * (foot_right[2] + foot_left[2]);
 
   residual[counter++] =
-    (torso_height - foot_height_avg) - parameters[torso_height_param_id_];
+      (torso_height - foot_height_avg) - parameters[torso_height_param_id_];
 
   // ----- actuation ----- //
   mju_copy(&residual[counter], data->actuator_force, model->nu);
@@ -122,23 +122,22 @@ void humanoid::Walk::Residual(const mjModel* model, const mjData* data,
   double* foot_right_up = SensorByName(model, data, "foot_right_up");
   double* foot_left_up = SensorByName(model, data, "foot_left_up");
 
-    // torso
-    residual[counter++] = torso_up[2] - 1.0;
+  // torso
+  residual[counter++] = torso_up[2] - 1.0;
 
-    // pelvis
-    residual[counter++] = 0.3 * (pelvis_up[2] - 1.0);
+  // pelvis
+  residual[counter++] = 0.3 * (pelvis_up[2] - 1.0);
 
-    double z_ref[3] = {0.0, 0.0, 1.0};
+  double z_ref[3] = {0.0, 0.0, 1.0};
 
-    // right foot
-    mju_sub3(&residual[counter], foot_right_up, z_ref);
-    mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
-    counter += 3;
+  // right foot
+  mju_sub3(&residual[counter], foot_right_up, z_ref);
+  mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
+  counter += 3;
 
-    mju_sub3(&residual[counter], foot_left_up, z_ref);
-    mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
-    counter += 3;
-
+  mju_sub3(&residual[counter], foot_left_up, z_ref);
+  mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
+  counter += 3;
 
   // ----- posture ----- //
   mju_sub(&residual[counter], data->qpos + 7,
@@ -274,8 +273,8 @@ void humanoid::Walk::Transition(const mjModel* model, mjData* data) {
       angvel_ = angvel;
 
       // compute and save rotation axis / walk origin
-      double axis[2] = {data->xpos[3*torso_body_id_],
-                        data->xpos[3*torso_body_id_+1]};
+      double axis[2] = {data->xpos[3 * torso_body_id_],
+                        data->xpos[3 * torso_body_id_ + 1]};
       if (mju_abs(angvel) > kMinAngvel) {
         // don't allow turning with very small angvel
         double d = speed / angvel;
@@ -401,13 +400,13 @@ void humanoid::Walk::WalkPosition(double pos[2], double time) const {
     // no rotation, go in straight line
     double forward[2] = {heading_[0], heading_[1]};
     mju_normalize(forward, 2);
-    pos[0] = position_[0] + heading_[0] + time*speed_*forward[0];
-    pos[1] = position_[1] + heading_[1] + time*speed_*forward[1];
+    pos[0] = position_[0] + heading_[0] + time * speed_ * forward[0];
+    pos[1] = position_[1] + heading_[1] + time * speed_ * forward[1];
   } else {
     // walk on a circle
     double angle = time * angvel_;
-    double mat[4] = {mju_cos(angle), -mju_sin(angle),
-                     mju_sin(angle),  mju_cos(angle)};
+    double mat[4] = {mju_cos(angle), -mju_sin(angle), mju_sin(angle),
+                     mju_cos(angle)};
     mju_mulMatVec(pos, mat, heading_, 2, 2);
     pos[0] += position_[0];
     pos[1] += position_[1];

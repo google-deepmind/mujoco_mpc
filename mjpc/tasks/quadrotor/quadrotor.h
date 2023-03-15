@@ -37,7 +37,7 @@ class Quadrotor : public Task {
                 double* residual) const override;
   void Transition(const mjModel* model, mjData* data) override;
 
-  int current_stage;
+  int current_mode_;
 };
 }  // namespace mjpc
 

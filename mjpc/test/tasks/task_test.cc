@@ -38,7 +38,7 @@ TEST(TasksTest, Task) {
 
   // test task
   EXPECT_NEAR(task.risk, 1.0, 1.0e-5);
-  EXPECT_EQ(task.stage, 0);
+  EXPECT_EQ(task.mode, 0);
   EXPECT_EQ(task.parameters.size(), 2);
   EXPECT_NEAR(task.parameters[0], 0.05, 1.0e-5);
   EXPECT_NEAR(task.parameters[1], -0.1, 1.0e-5);

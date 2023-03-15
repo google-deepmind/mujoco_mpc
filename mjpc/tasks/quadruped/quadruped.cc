@@ -55,8 +55,8 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
 
 
   // ---------- Upright ----------
-  if (current_stage_ != kStageFlip) {
-    if (current_stage_ == kStageBiped) {
+  if (current_mode_ != kModeFlip) {
+    if (current_mode_ == kModeBiped) {
       double biped_type = parameters[biped_type_param_id_];
       int handstand = ReinterpretAsInt(biped_type) ? -1 : 1;
       residual[counter++] = torso_xmat[6] - handstand;
@@ -67,7 +67,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
     residual[counter++] = 0;
   } else {
     // special handling of flip orientation
-    double flip_time = data->time - stage_start_time_;
+    double flip_time = data->time - mode_start_time_;
     double quat[4];
     FlipQuat(quat, flip_time);
     double* torso_xquat = data->xquat + 4*torso_body_id_;
@@ -79,14 +79,14 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
   // ---------- Height ----------
   // quadrupedal or bipedal height of torso over feet
   double* torso_pos = data->xipos + 3*torso_body_id_;
-  bool is_biped = current_stage_ == kStageBiped;
+  bool is_biped = current_mode_ == kModeBiped;
   double height_goal = is_biped ? kHeightBiped : kHeightQuadruped;
-  if (current_stage_ == kStageScramble) {
+  if (current_mode_ == kModeScramble) {
     // disable height term in Scramble
     residual[counter++] = 0;
-  } else if (current_stage_ == kStageFlip) {
+  } else if (current_mode_ == kModeFlip) {
     // height target for Backflip
-    double flip_time = data->time - stage_start_time_;
+    double flip_time = data->time - mode_start_time_;
     residual[counter++] = torso_pos[2] - FlipHeight(flip_time);
   } else {
     residual[counter++] = (torso_pos[2] - avg_foot_pos[2]) - height_goal;
@@ -96,10 +96,10 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
   // ---------- Position ----------
   double* head = data->site_xpos + 3*head_site_id_;
   double target[3];
-  if (stage == kStageWalk) {
+  if (mode == kModeWalk) {
     // follow prescribed Walk trajectory
-    double stage_time = data->time - stage_start_time_;
-    Walk(target, stage_time);
+    double mode_time = data->time - mode_start_time_;
+    Walk(target, mode_time);
   } else {
     // go to the goal mocap body
     target[0] = goal_pos[0];
@@ -108,7 +108,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
   }
   residual[counter++] = head[0] - target[0];
   residual[counter++] = head[1] - target[1];
-  residual[counter++] = stage == kStageScramble ? 2*(head[2] - target[2]) : 0;
+  residual[counter++] = mode == kModeScramble ? 2*(head[2] - target[2]) : 0;
 
 
   // ---------- Gait ----------
@@ -128,7 +128,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
     }
     double query[3] = {foot_pos[foot][0], foot_pos[foot][1], foot_pos[foot][2]};
 
-    if (current_stage_ == kStageScramble) {
+    if (current_mode_ == kModeScramble) {
       double torso_to_goal[3];
       double* goal = data->mocap_pos + 3*goal_mocap_id_;
       mju_sub3(torso_to_goal, goal, torso_pos);
@@ -142,7 +142,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
     double ground_height = Ground(model, data, query);
     double height_target = ground_height + kFootRadius + step[foot];
     double height_difference = foot_pos[foot][2] - height_target;
-    if (current_stage_ == kStageScramble) {
+    if (current_mode_ == kModeScramble) {
       // in Scramble, foot higher than target is not penalized
       height_difference = mju_min(0, height_difference);
     }
@@ -167,8 +167,8 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
   // ---------- Posture ----------
   double* home = KeyQPosByName(model, data, "home");
   mju_sub(residual + counter, data->qpos + 7, home + 7, model->nu);
-  if (current_stage_ == kStageFlip) {
-    double flip_time = data->time - stage_start_time_;
+  if (current_mode_ == kModeFlip) {
+    double flip_time = data->time - mode_start_time_;
     if (flip_time < crouch_time_) {
       double* crouch = KeyQPosByName(model, data, "crouch");
       mju_sub(residual + counter, data->qpos + 7, crouch + 7, model->nu);
@@ -183,7 +183,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
       residual[counter + 3*foot + joint] *= kJointPostureGain[joint];
     }
   }
-  if (current_stage_ == kStageBiped) {
+  if (current_mode_ == kModeBiped) {
     // loosen the "hands" in Biped mode
     bool handstand = ReinterpretAsInt(parameters[biped_type_param_id_]);
     if (handstand) {
@@ -203,7 +203,7 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
 
   // ---------- Yaw ----------
   double torso_heading[2] = {torso_xmat[0], torso_xmat[3]};
-  if (current_stage_ == kStageBiped) {
+  if (current_mode_ == kModeBiped) {
     int handstand = ReinterpretAsInt(parameters[biped_type_param_id_]) ? 1 : -1;
     torso_heading[0] = handstand * torso_xmat[2];
     torso_heading[1] = handstand * torso_xmat[5];
@@ -228,19 +228,19 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
 void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
   // ---------- handle mjData reset ----------
   if (data->time < last_transition_time_ || last_transition_time_ == -1) {
-    if (stage != kStageQuadruped && stage != kStageBiped) {
-      stage = kStageQuadruped;  // stage is stateful, switch to Quadruped
+    if (mode != kModeQuadruped && mode != kModeBiped) {
+      mode = kModeQuadruped;  // mode is stateful, switch to Quadruped
     }
     last_transition_time_ = phase_start_time_ = phase_start_ = data->time;
   }
 
 
-  // ---------- prevent forbidden stage transitions ----------
-  // switching stage, not from quadruped
-  if (stage != current_stage_ && current_stage_ != kStageQuadruped) {
-    // switch into stateful stage only allowed from Quadruped
-    if (stage == kStageWalk || stage == kStageFlip) {
-      stage = kStageQuadruped;
+  // ---------- prevent forbidden mode transitions ----------
+  // switching mode, not from quadruped
+  if (mode != current_mode_ && current_mode_ != kModeQuadruped) {
+    // switch into stateful mode only allowed from Quadruped
+    if (mode == kModeWalk || mode == kModeFlip) {
+      mode = kModeQuadruped;
     }
   }
 
@@ -261,14 +261,14 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
   com_vel_[1] = beta * com_vel_[1] + (1 - beta) * comvel[1];
   // TODO(b/268398978): remove reinterpret, int64_t business
   int auto_switch = ReinterpretAsInt(parameters[gait_switch_param_id_]);
-  if (stage == kStageBiped) {
+  if (mode == kModeBiped) {
     // biped always trots
     parameters[gait_param_id_] = ReinterpretAsDouble(kGaitTrot);
   } else if (auto_switch) {
     double com_speed = mju_norm(com_vel_, 2);
     for (int64_t gait : kGaitAll) {
       // scramble requires a non-static gait
-      if (stage == kStageScramble && gait == kGaitStand) continue;
+      if (mode == kModeScramble && gait == kGaitStand) continue;
       bool lower = com_speed > kGaitAuto[gait];
       bool upper = gait == kGaitGallop || com_speed <= kGaitAuto[gait+1];
       bool wait = mju_abs(gait_switch_time_ - data->time) > kAutoGaitMinTime;
@@ -296,7 +296,7 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
 
   // ---------- Walk ----------
   double* goal_pos = data->mocap_pos + 3*goal_mocap_id_;
-  if (stage == kStageWalk) {
+  if (mode == kModeWalk) {
     double angvel = parameters[ParameterIndex(model, "Walk turn")];
     double speed = parameters[ParameterIndex(model, "Walk speed")];
 
@@ -307,9 +307,9 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
     double leftward[2] = {-forward[1], forward[0]};
 
     // switching into Walk or parameters changed, reset task state
-    if (stage != current_stage_ || angvel_ != angvel || speed_ != speed) {
+    if (mode != current_mode_ || angvel_ != angvel || speed_ != speed) {
       // save time
-      stage_start_time_ = data->time;
+      mode_start_time_ = data->time;
 
       // save current speed and angvel
       speed_ = speed;
@@ -333,18 +333,18 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
     }
 
     // move goal
-    double time = data->time - stage_start_time_;
+    double time = data->time - mode_start_time_;
     Walk(goal_pos, time);
   }
 
 
   // ---------- Flip ----------
   double* compos = SensorByName(model, data, "torso_subtreecom");
-  if (stage == kStageFlip) {
+  if (mode == kModeFlip) {
     // switching into Flip, reset task state
-    if (stage != current_stage_) {
+    if (mode != current_mode_) {
       // save time
-      stage_start_time_ = data->time;
+      mode_start_time_ = data->time;
 
       // save body orientation, ground height
       mju_copy4(orientation_, data->xquat + 4*torso_body_id_);
@@ -366,11 +366,11 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
     }
 
     // time from start of Flip
-    double flip_time = data->time - stage_start_time_;
+    double flip_time = data->time - mode_start_time_;
 
     if (flip_time >= jump_time_ + flight_time_ + land_time_) {
       // Flip ended, back to Quadruped, restore values
-      stage = kStageQuadruped;
+      mode = kModeQuadruped;
       weight = save_weight_;
       parameters[gait_switch_param_id_] = save_gait_switch_;
       goal_pos[0] = data->site_xpos[3*head_site_id_ + 0];
@@ -378,8 +378,8 @@ void QuadrupedFlat::Transition(const mjModel* model, mjData* data) {
     }
   }
 
-  // save stage
-  current_stage_ = static_cast<A1Stage>(stage);
+  // save mode
+  current_mode_ = static_cast<A1Mode>(mode);
   last_transition_time_ = data->time;
 }
 
@@ -394,8 +394,8 @@ constexpr float kPcpRgba[4] = {0.5, 0.5, 0.2, 1};   // projected capture point
 void QuadrupedFlat::ModifyScene(const mjModel* model, const mjData* data,
                            mjvScene* scene) const {
   // flip target pose
-  if (current_stage_ == kStageFlip) {
-    double flip_time = data->time - stage_start_time_;
+  if (current_mode_ == kModeFlip) {
+    double flip_time = data->time - mode_start_time_;
     double* torso_pos = data->xpos + 3*torso_body_id_;
     double pos[3] = {torso_pos[0], torso_pos[1], FlipHeight(flip_time)};
     double quat[4];
@@ -437,7 +437,7 @@ void QuadrupedFlat::ModifyScene(const mjModel* model, const mjData* data,
   // draw step height
   for (A1Foot foot : kFootAll) {
     stance_pos[foot][2] = kFootRadius + ground[foot];
-    if (current_stage_ == kStageBiped) {
+    if (current_mode_ == kModeBiped) {
       // skip "hands" in biped mode
       bool handstand = ReinterpretAsInt(parameters[biped_type_param_id_]);
       bool front_hand = !handstand && (foot == kFootFL || foot == kFootFR);
@@ -466,7 +466,7 @@ void QuadrupedFlat::ModifyScene(const mjModel* model, const mjData* data,
   }
 
   // capture point
-  bool is_biped = current_stage_ == kStageBiped;
+  bool is_biped = current_mode_ == kModeBiped;
   double height_goal = is_biped ? kHeightBiped : kHeightQuadruped;
   double fall_time = mju_sqrt(2*height_goal / gravity_);
   double capture[3];
@@ -581,7 +581,7 @@ void QuadrupedFlat::Reset(const mjModel* model) {
 // compute average foot position, depending on mode
 void QuadrupedFlat::AverageFootPos(double avg_foot_pos[3],
                               double* foot_pos[kNumFoot]) const {
-  if (current_stage_ == kStageBiped) {
+  if (current_mode_ == kModeBiped) {
     int handstand = ReinterpretAsInt(parameters[biped_type_param_id_]);
     if (handstand) {
       mju_add3(avg_foot_pos, foot_pos[kFootFL], foot_pos[kFootFR]);
@@ -623,7 +623,7 @@ void QuadrupedFlat::Walk(double pos[2], double time) const {
 
 // get gait
 QuadrupedFlat::A1Gait QuadrupedFlat::GetGait() const {
-  if (current_stage_ == kStageBiped)
+  if (current_mode_ == kModeBiped)
     return kGaitTrot;
   return static_cast<A1Gait>(ReinterpretAsInt(parameters[gait_param_id_]));
 }
@@ -752,9 +752,9 @@ void QuadrupedHill::Residual(const mjModel* model, const mjData* data,
 //   set goal to next from keyframes.
 // -----------------------------------------------
 void QuadrupedHill::Transition(const mjModel* model, mjData* data) {
-  // set stage to GUI selection
-  if (stage > 0) {
-    current_stage = stage - 1;
+  // set mode to GUI selection
+  if (mode > 0) {
+    current_mode = mode - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position
@@ -782,16 +782,16 @@ void QuadrupedHill::Transition(const mjModel* model, mjData* data) {
     double tolerance = 1.5e-1;
     if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
       // update task state
-      current_stage += 1;
-      if (current_stage == model->nkey) {
-        current_stage = 0;
+      current_mode += 1;
+      if (current_mode == model->nkey) {
+        current_mode = 0;
       }
     }
   }
 
   // ---------- Set goal ----------
-  mju_copy3(data->mocap_pos, model->key_mpos + 3 * current_stage);
-  mju_copy4(data->mocap_quat, model->key_mquat + 4 * current_stage);
+  mju_copy3(data->mocap_pos, model->key_mpos + 3 * current_mode);
+  mju_copy4(data->mocap_quat, model->key_mquat + 4 * current_mode);
 }
 
 }  // namespace mjpc

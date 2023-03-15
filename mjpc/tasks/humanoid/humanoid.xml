@@ -8,7 +8,7 @@
     <default class="body">
 
       <!-- geoms -->
-      <geom type="capsule" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="self"/>
+      <geom type="capsule" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="self" group="2"/>
       <default class="thigh">
         <geom size=".06"/>
       </default>

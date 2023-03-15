@@ -582,7 +582,8 @@ mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
                        bodyexclude, &geomid);
 
   if (dist < 0) {  // SHOULD NOT OCCUR
-    mju_error("no group 0 geom detected by raycast");
+    return 0.0;
+    // mju_error("no group 0 geom detected by raycast");
   }
 
   return pos[2] + height_offset - dist;

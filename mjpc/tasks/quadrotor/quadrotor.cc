@@ -65,9 +65,9 @@ void Quadrotor::Residual(const mjModel* model, const mjData* data,
 
 // ----- Transition for quadrotor task -----
 void Quadrotor::Transition(const mjModel* model, mjData* data) {
-  // set stage to GUI selection
-  if (stage > 0) {
-    current_stage = stage - 1;
+  // set mode to GUI selection
+  if (mode > 0) {
+    current_mode_ = mode - 1;
   } else {
     // goal position
     const double* goal_position = data->mocap_pos;
@@ -93,16 +93,16 @@ void Quadrotor::Transition(const mjModel* model, mjData* data) {
     double tolerance = 5.0e-1;
     if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
       // update task state
-      current_stage += 1;
-      if (current_stage == model->nkey) {
-        current_stage = 0;
+      current_mode_ += 1;
+      if (current_mode_ == model->nkey) {
+        current_mode_ = 0;
       }
     }
   }
 
   // set goal
-  mju_copy3(data->mocap_pos, model->key_mpos + 3 * current_stage);
-  mju_copy4(data->mocap_quat, model->key_mquat + 4 * current_stage);
+  mju_copy3(data->mocap_pos, model->key_mpos + 3 * current_mode_);
+  mju_copy4(data->mocap_quat, model->key_mquat + 4 * current_mode_);
 }
 
 }  // namespace mjpc

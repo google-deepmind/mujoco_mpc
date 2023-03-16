@@ -26,8 +26,8 @@ namespace mjpc {
 void Task::Reset(const mjModel* model) {
   // ----- defaults ----- //
 
-  // transition
-  stage = 0;
+  // mode
+  mode = 0;
 
   // risk value
   risk = GetNumberOrDefault(0.0, model, "task_risk");

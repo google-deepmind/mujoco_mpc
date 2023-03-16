@@ -45,7 +45,7 @@ class Tracking : public Task {
   // ---------------------------------------------------------------------------
   void Transition(const mjModel* model, mjData* data) override;
 
-  int current_stage_;
+  int current_mode_;
   double reference_time_;
 };
 

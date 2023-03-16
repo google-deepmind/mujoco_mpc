@@ -58,8 +58,8 @@ class Task {
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
 
-  // stage
-  int stage;
+  // mode
+  int mode;
 
   // GUI toggles
   int reset = 0;

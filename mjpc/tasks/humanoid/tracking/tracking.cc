@@ -43,7 +43,7 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 }
 
 // return length of motion trajectory
-int TrajectoryLength(int id) {
+int MotionLength(int id) {
   // Jump - CMU-CMU-02-02_04
   if (id == 0) {
     return 121;
@@ -83,7 +83,7 @@ int TrajectoryLength(int id) {
 int MotionStartIndex(int id) {
   int start = 0;
   for (int i = 0; i < id; i++) {
-    start += TrajectoryLength(i);
+    start += MotionLength(i);
   }
   return start;
 }
@@ -120,7 +120,7 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
   // Hardcoded constant matching keyframes from CMU mocap dataset.
   float fps = 30.0;
   int start = MotionStartIndex(current_mode_);
-  int length = TrajectoryLength(current_mode_);
+  int length = MotionLength(current_mode_);
   double current_index = (data->time - reference_time_) * fps + start;
   int last_key_index = start + length - 1;
 
@@ -248,7 +248,7 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   float fps = 30.0;
 
   // get motion trajectory length
-  int length = TrajectoryLength(mode);
+  int length = MotionLength(mode);
 
   // get motion start index
   int start = MotionStartIndex(mode);

@@ -45,41 +45,22 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 // Hardcoded constant matching keyframes from CMU mocap dataset.
 const float fps = 30.0;
 
+float motion_lengths_s[10] = {
+    4.033333333333333,   // Jump - CMU-CMU-02-02_04
+    5.133333333333334,   // Kick Spin - CMU-CMU-87-87_01
+    3.8333333333333335,  // Spin Kick - CMU-CMU-88-88_06
+    2.6,                 // Cartwheel (1) - CMU-CMU-88-88_07
+    4.833333333333333,   // Crouch Flip - CMU-CMU-88-88_08
+    6.266666666666667,   // Cartwheel (2) - CMU-CMU-88-88_09
+    8.666666666666666,   // Monkey Flip - CMU-CMU-90-90_19
+    9.3,                 // Dance - CMU-CMU-103-103_08
+    1.3,                 // Run - CMU-CMU-108-108_13
+    17.0,                // Walk - CMU-CMU-137-137_40
+};
+
 // return length of motion trajectory
 int MotionLength(int id) {
-  // Jump - CMU-CMU-02-02_04
-  if (id == 0) {
-    return 121;
-    // Kick Spin - CMU-CMU-87-87_01
-  } else if (id == 1) {
-    return 154;
-    // Spin Kick - CMU-CMU-88-88_06
-  } else if (id == 2) {
-    return 115;
-    // Cartwheel (1) - CMU-CMU-88-88_07
-  } else if (id == 3) {
-    return 78;
-    // Crouch Flip - CMU-CMU-88-88_08
-  } else if (id == 4) {
-    return 145;
-    // Cartwheel (2) - CMU-CMU-88-88_09
-  } else if (id == 5) {
-    return 188;
-    // Monkey Flip - CMU-CMU-90-90_19
-  } else if (id == 6) {
-    return 260;
-    // Dance - CMU-CMU-103-103_08
-  } else if (id == 7) {
-    return 279;
-    // Run - CMU-CMU-108-108_13
-  } else if (id == 8) {
-    return 39;
-    // Walk - CMU-CMU-137-137_40
-  } else if (id == 9) {
-    return 510;
-  }
-  // TODO(taylor): Loop
-  return 121 + 154 + 115 + 78 + 145 + 188 + 260 + 279 + 39 + 510;
+  return motion_lengths_s[id] * fps;
 }
 
 // return starting keyframe index for motion

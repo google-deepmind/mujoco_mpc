@@ -2005,6 +2005,9 @@ void Simulate::prepare_renderloop() {
   mjui_add(&this->ui0, this->defWatch);
   uiModify(&this->ui0, &this->uistate, &this->platform_ui->mjr_context());
   uiModify(&this->ui1, &this->uistate, &this->platform_ui->mjr_context());
+
+  // set VSync to initial value
+  this->platform_ui->SetVSync(this->vsync);
 }
 
 void Simulate::renderloop() {

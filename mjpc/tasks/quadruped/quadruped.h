@@ -38,14 +38,14 @@ class QuadrupedFlat : public Task {
 
  private:
   //  ============  enums  ============
-  // stages
-  enum A1Stage {
-    kStageQuadruped = 0,
-    kStageBiped,
-    kStageWalk,
-    kStageScramble,
-    kStageFlip,
-    kNumStage
+  // modes
+  enum A1Mode {
+    kModeQuadruped = 0,
+    kModeBiped,
+    kModeWalk,
+    kModeScramble,
+    kModeFlip,
+    kNumMode
   };
 
   // feet
@@ -168,11 +168,11 @@ class QuadrupedFlat : public Task {
   void FlipQuat(double quat[4], double time) const;
 
   //  ============  task state variables, managed by Transition  ============
-  A1Stage current_stage_       = kStageQuadruped;
+  A1Mode current_mode_       = kModeQuadruped;
   double last_transition_time_ = -1;
 
-  // common stage states
-  double stage_start_time_  = 0;
+  // common mode states
+  double mode_start_time_  = 0;
   double position_[3]       = {0};
 
   // walk states
@@ -247,7 +247,7 @@ class QuadrupedHill : public Task {
                 double* residual) const override;
   void Transition(const mjModel* model, mjData* data) override;
 
-  int current_stage;
+  int current_mode;
 };
 
 }  // namespace mjpc

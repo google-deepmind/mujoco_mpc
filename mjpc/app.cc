@@ -417,6 +417,6 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   }
 
   // destroy the Simulate instance
-  sim.release();
+  sim.reset();
 }
 }  // namespace mjpc

@@ -429,8 +429,8 @@ void GradientPlanner::Traces(mjvScene* scn) {
   color[2] = 1.0;
   color[3] = 1.0;
 
-  // sample width
-  double width = GetNumberOrDefault(0.01, model, "agent_sample_width");
+  // width of a sample trace, in pixels
+  double width = GetNumberOrDefault(3, model, "agent_sample_width");
 
   // scratch
   double zero3[3] = {0};

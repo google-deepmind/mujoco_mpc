@@ -8,7 +8,6 @@
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="1.0" />
     <numeric name="agent_timestep" data="0.1" />
-    <numeric name="agent_sample_width" data="0.001" />
     <numeric name="agent_policy_width" data="0.0015" />
     <numeric name="sampling_spline_points" data="11" />
     <numeric name="sampling_exploration" data="0.01" />

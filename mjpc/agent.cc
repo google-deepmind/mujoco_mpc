@@ -426,8 +426,8 @@ void Agent::GUI(mjUI& ui) {
 
   if (names) {
     mjuiDef defTransition[] = {
-        {mjITEM_SEPARATOR, "Stages", 1},
-        {mjITEM_RADIO, "", 1, &ActiveTask()->stage, ""},
+        {mjITEM_SEPARATOR, "Modes", 1},
+        {mjITEM_RADIO, "", 1, &ActiveTask()->mode, ""},
         {mjITEM_END},
     };
 

@@ -42,6 +42,9 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
   return {index_0, index_1, weight_0, weight_1};
 }
 
+// Hardcoded constant matching keyframes from CMU mocap dataset.
+const float fps = 30.0;
+
 // return length of motion trajectory
 int MotionLength(int id) {
   // Jump - CMU-CMU-02-02_04
@@ -117,9 +120,9 @@ std::string humanoid::Tracking::Name() const { return "Humanoid Track"; }
 void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
                                   double *residual) const {
   // ----- get mocap frames ----- //
-  // Hardcoded constant matching keyframes from CMU mocap dataset.
-  float fps = 30.0;
+  // get motion start index
   int start = MotionStartIndex(current_mode_);
+  // get motion trajectory length
   int length = MotionLength(current_mode_);
   double current_index = (data->time - reference_time_) * fps + start;
   int last_key_index = start + length - 1;
@@ -244,14 +247,10 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
 void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
-  // Hardcoded constant matching keyframes from CMU mocap dataset.
-  float fps = 30.0;
-
-  // get motion trajectory length
-  int length = MotionLength(mode);
-
   // get motion start index
   int start = MotionStartIndex(mode);
+  // get motion trajectory length
+  int length = MotionLength(mode);
 
   // check for motion switch
   if (current_mode_ != mode || d->time == 0.0) {

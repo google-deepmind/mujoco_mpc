@@ -22,6 +22,14 @@
 
 namespace mjpc {
 
+namespace {
+void MissingParameterError(const mjModel* m, int sensorid) {
+  mju_error(
+      "Cost construction from XML: Missing parameter value."
+      " sensor ID = %d (%s)",
+      sensorid, m->names + m->name_sensoradr[sensorid]);
+}
+}
 // called at: construction, load, and GUI reset
 void Task::Reset(const mjModel* model) {
   // ----- defaults ----- //
@@ -77,19 +85,27 @@ void Task::Reset(const mjModel* model) {
       double* s = model->sensor_user + i * model->nuser_sensor;
 
       // check number of parameters
-      for (int j = 0; j < NormParameterDimension(s[0]); j++) {
-        if (s[4 + j] > 0.0) continue;
-        mju_error("Cost construction from XML: Missing parameter value\n");
+      int norm_parameter_dimension = NormParameterDimension(s[0]);
+      if (4 + norm_parameter_dimension > model->nuser_sensor) {
+        MissingParameterError(model, i);
+        return;
+      }
+      for (int j = 0; j < norm_parameter_dimension; j++) {
+        if (s[4 + j] <= 0.0) {
+          MissingParameterError(model, i);
+          return;
+        }
       }
       norm[num_term] = (NormType)s[0];
 
       // check Null norm
       if (norm[num_term] == -1 && dim_norm_residual[num_term] != 1) {
-        mju_error("Cost construction from XML: Missing parameter value\n");
+        MissingParameterError(model, i);
+        return;
       }
 
       weight[num_term] = s[1];
-      num_norm_parameter[num_term] = NormParameterDimension(s[0]);
+      num_norm_parameter[num_term] = norm_parameter_dimension;
       mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
                num_norm_parameter[num_term]);
       parameter_shift += num_norm_parameter[num_term];

@@ -586,15 +586,16 @@ void Agent::PlotInitialize() {
   plots_.cost.linergb[3][2] = 1.0f;
   int num_term = ActiveTask()->num_term;
   for (int i = 0; i < num_term; i++) {
+    int nclr = kNCostColors;
     // history
-    plots_.cost.linergb[4 + i][0] = CostColors[i][0];
-    plots_.cost.linergb[4 + i][1] = CostColors[i][1];
-    plots_.cost.linergb[4 + i][2] = CostColors[i][2];
+    plots_.cost.linergb[4 + i][0] = CostColors[i % nclr][0];
+    plots_.cost.linergb[4 + i][1] = CostColors[i % nclr][1];
+    plots_.cost.linergb[4 + i][2] = CostColors[i % nclr][2];
 
     // prediction
-    plots_.cost.linergb[4 + num_term + i][0] = 0.9 * CostColors[i][0];
-    plots_.cost.linergb[4 + num_term + i][1] = 0.9 * CostColors[i][1];
-    plots_.cost.linergb[4 + num_term + i][2] = 0.9 * CostColors[i][2];
+    plots_.cost.linergb[4 + num_term + i][0] = 0.9 * CostColors[i % nclr][0];
+    plots_.cost.linergb[4 + num_term + i][1] = 0.9 * CostColors[i % nclr][1];
+    plots_.cost.linergb[4 + num_term + i][2] = 0.9 * CostColors[i % nclr][2];
   }
 
   // history of control

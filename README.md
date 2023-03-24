@@ -62,7 +62,9 @@ sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-de
 ```
 
 ### Build Issues
-If you encounter build issues, please see the [Github Actions](https://github.com/deepmind/mujoco_mpc/.github/workflows/build.yaml). Note, we are using `clang-14`.
+If you encounter build issues, please see the
+[Github Actions configuration](https://github.com/deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml).
+Note, we are using `clang-14`.
 
 ## Predictive Control
 

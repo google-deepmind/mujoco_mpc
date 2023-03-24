@@ -100,6 +100,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang
                               -Wno-maybe-uninitialized
     )
   endif()
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
+    set(EXTRA_COMPILE_OPTIONS ${EXTRA_COMPILE_OPTIONS} -Wgnu-empty-initializer)
+  endif()
 endif()
 
 if(WIN32)

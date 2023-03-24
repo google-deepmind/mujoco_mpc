@@ -39,7 +39,7 @@
       <geom type="box" rgba="0 0.4 1 1"/>
     </default>
   </default>
-  
+
   <!-- position actuators -->
   <actuator>
     <position class="abduction" name="FR_hip" joint="FR_hip_joint"/>

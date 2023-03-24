@@ -118,7 +118,7 @@ class QuadrupedFlat : public Task {
   constexpr static double kAutoGaitMinTime = 1;     // second
 
   // target torso height over feet when quadrupedal
-  constexpr static double kHeightQuadruped = 0.27;  // meter
+  constexpr static double kHeightQuadruped = 0.25;  // meter
 
   // target torso height over feet when bipedal
   constexpr static double kHeightBiped = 0.6;       // meter
@@ -133,13 +133,13 @@ class QuadrupedFlat : public Task {
   constexpr static double kJointPostureGain[3] = {2, 1, 1};  // unitless
 
   // flip: crouching height, from which leap is initiated
-  constexpr static double kCrouchHeight = 0.13;     // meter
+  constexpr static double kCrouchHeight = 0.15;     // meter
 
   // flip: leap height, beginning of flight phase
-  constexpr static double kLeapHeight = 0.6;        // meter
+  constexpr static double kLeapHeight = 0.5;        // meter
 
   // flip: maximum height of flight phase
-  constexpr static double kMaxHeight = 0.9;         // meter
+  constexpr static double kMaxHeight = 0.8;         // meter
 
   //  ============  methods  ============
   // return internal phase clock

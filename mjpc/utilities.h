@@ -170,6 +170,7 @@ void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
 
 // default cost colors
 extern const float CostColors[20][3];
+constexpr int kNCostColors = sizeof(CostColors) / (sizeof(float)*3);
 
 // plots - vertical line
 void PlotVertical(mjvFigure* fig, double time, double min_value,

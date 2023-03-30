@@ -46,6 +46,9 @@ include(FindOrFetch)
 
 find_package(Python)
 find_package(Threads REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 set(MUJOCO_BUILD_EXAMPLES OFF)
 set(MUJOCO_BUILD_SIMULATE ON)
@@ -223,6 +226,7 @@ target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_library(
   libmjpc STATIC
+  common/EigenTypes.h
   states/state.cc
   states/state.h
   states/include.cc
@@ -255,6 +259,8 @@ add_library(
   tasks/panda/panda.h
   tasks/particle/particle.cc
   tasks/particle/particle.h
+  tasks/planar_pusher/planar_pusher.cc
+  tasks/planar_pusher/planar_pusher.h
   tasks/quadrotor/quadrotor.cc
   tasks/quadrotor/quadrotor.h
   tasks/quadruped/quadruped.cc

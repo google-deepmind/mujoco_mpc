@@ -1,0 +1,51 @@
+<mujoco model="reacher">
+    <compiler angle="radian" inertiafromgeom="true"/>
+    <default>
+        <!-- <joint armature="1" damping="1" limited="true"/> -->
+        <!-- <geom contype="0" friction="1 0.1 0.1" rgba="0.7 0.7 0 1"/> -->
+    </default>
+<!--    <option gravity="0 0 -9.81" integrator="RK4" timestep="0.01"/>-->
+    <worldbody>
+        <light name="light" pos="0 0 6"/>
+    
+        <!-- Shelf -->
+        <geom name="s1" size="0.2 1 0.05" pos="0 0.5 -0.7" type="box" friction="0.01 0.005 0.0001" rgba="0.7 0.7 0.0 1" contype="3" conaffinity="3"/>
+        <geom name="s2" size="0.2 0.05 0.7" pos="0 -0.2 0" type="box" friction="0.01 0.005 0.0001" rgba="0.7 0.7 0.0 1" contype="3" conaffinity="3"/>
+
+        <!-- Arm -->
+        <body name="base" euler="0 1.57 0">
+            <geom fromto="0 0 -0.05 0 0 0.05" name="base" rgba="0.9 0.4 0.6 1" size=".05" type="cylinder" contype="1" conaffinity="0"/>
+            <body name="body0" pos="0 0 0">
+                <joint axis="0 0 1" limited="false" name="joint0" pos="0 0 0" type="hinge"/>
+                <geom fromto="0 0 0 0.400 0 0" name="link0" rgba="0.0 0.4 0.6 1" size=".02" type="capsule" contype="0" conaffinity="1"/>
+                <body name="body1" pos="0.400 0 0">
+                    <joint axis="0 0 1" limited="true" name="joint1" pos="0 0 0" range="-3.0 3.0" type="hinge"/>
+                    <geom fromto="0 0 0 0.400 0 0" name="link1" rgba="0.0 0.4 0.6 1" size=".02" type="capsule" contype="1" conaffinity="0"/>
+                    <body name="body2" pos="0.400 0 0">
+                        <joint axis="0 0 1" limited="true" name="joint2" pos="0 0 0" range="-3.0 3.0" type="hinge"/>
+                        <geom fromto="0 0 0 0.400 0 0" name="link2" rgba="0.0 0.4 0.6 1" size=".02" type="capsule" contype="0" conaffinity="1"/>
+                        <body name="body3" pos="0.450 0 0">
+                            <joint axis="0 0 1" limited="true" name="joint3" pos="0 0 0" range="-3.0 3.0" type="hinge"/>
+                            <geom name="link3" rgba="0.9 0.0 0.0 1" size="0.05 0.05 0.05" type="box" contype="1" conaffinity="0"/>
+                            <site name="load" pos="0 0 0"/>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+
+    <actuator>
+<!--        <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint0"/>-->
+<!--        <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint1"/>-->
+        <motor name="motor0" joint="joint0" ctrlrange="-2 2" ctrllimited="true"/>
+        <motor name="motor1" joint="joint1" ctrlrange="-2 2" ctrllimited="true"/>
+        <motor name="motor2" joint="joint2" ctrlrange="-2 2" ctrllimited="true"/>
+        <motor name="motor3" joint="joint3" ctrlrange="-0.1 0.1" ctrllimited="true"/>
+    </actuator>
+
+    <keyframe>
+        <key name="home" qpos="0.0785739 0.875724 0.683122 -0.0665835"/>
+    </keyframe>
+</mujoco>

@@ -20,6 +20,7 @@
     <numeric name="test_doubles" data="0.2 0.3" />
     <numeric name="residual_x goal" data="0.05" />
     <numeric name="residual_y goal" data="-0.1" />
+    <text name="custom_text" data="falafel" />
   </custom>
 
   <sensor>

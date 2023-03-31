@@ -79,7 +79,7 @@ double* GetCustomNumericData(const mjModel* m, std::string_view name) {
 
 // get text data from custom using string
 char* GetCustomTextData(const mjModel* m, std::string_view name) {
-  for (int i = 0; i < m->ntextdata; i++) {
+  for (int i = 0; i < m->ntext; i++) {
     if (std::string_view(m->names + m->name_textadr[i]) == name) {
       return m->text_data + m->text_adr[i];
     }

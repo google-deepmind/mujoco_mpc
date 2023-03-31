@@ -150,6 +150,19 @@ TEST(UtilitiesTest, CustomNumeric) {
   mj_deleteModel(model);
 }
 
+TEST(UtilitiesTest, CustomText) {
+  mjModel* model = LoadTestModel("particle_task.xml");
+
+  // lookup a nonexistent custom text field
+  EXPECT_THAT(GetCustomTextData(model, "invalid"), IsNull());
+
+  // read a defined custom text field
+  EXPECT_EQ(std::string_view(GetCustomTextData(model, "custom_text")),
+            "falafel");
+
+  mj_deleteModel(model);
+}
+
 TEST(UtilitiesTest, ByName) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");

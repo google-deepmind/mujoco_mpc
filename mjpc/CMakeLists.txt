@@ -15,8 +15,8 @@
 add_library(threadpool STATIC)
 target_sources(
   threadpool
-  PUBLIC threadpool.h
-  PRIVATE threadpool.cc
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/threadpool.h
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/threadpool.cc
 )
 target_link_libraries(
   threadpool
@@ -26,85 +26,86 @@ target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_library(
   libmjpc STATIC
-  states/state.cc
-  states/state.h
-  states/include.cc
-  states/include.h
-  agent.cc
-  agent.h
-  trajectory.cc
-  trajectory.h
-  utilities.cc
-  utilities.h
-  tasks/tasks.cc
-  tasks/tasks.h
-  tasks/acrobot/acrobot.cc
-  tasks/acrobot/acrobot.h
-  tasks/cartpole/cartpole.cc
-  tasks/cartpole/cartpole.h
-  tasks/hand/hand.cc
-  tasks/hand/hand.h
-  tasks/humanoid/stand/stand.cc
-  tasks/humanoid/stand/stand.h
-  tasks/humanoid/tracking/tracking.cc
-  tasks/humanoid/tracking/tracking.h
-  tasks/humanoid/walk/walk.cc
-  tasks/humanoid/walk/walk.h
-  tasks/manipulation/common.cc
-  tasks/manipulation/common.h
-  tasks/manipulation/manipulation.cc
-  tasks/manipulation/manipulation.h
-  tasks/panda/panda.cc
-  tasks/panda/panda.h
-  tasks/particle/particle.cc
-  tasks/particle/particle.h
-  tasks/quadrotor/quadrotor.cc
-  tasks/quadrotor/quadrotor.h
-  tasks/quadruped/quadruped.cc
-  tasks/quadruped/quadruped.h
-  tasks/swimmer/swimmer.cc
-  tasks/swimmer/swimmer.h
-  tasks/walker/walker.cc
-  tasks/walker/walker.h
-  planners/planner.cc
-  planners/planner.h
-  planners/policy.h
-  planners/include.cc
-  planners/include.h
-  planners/cost_derivatives.cc
-  planners/cost_derivatives.h
-  planners/linear_solve.cc
-  planners/linear_solve.h
-  planners/model_derivatives.cc
-  planners/model_derivatives.h
-  planners/sampling/planner.cc
-  planners/sampling/planner.h
-  planners/sampling/policy.cc
-  planners/sampling/policy.h
-  planners/gradient/gradient.cc
-  planners/gradient/gradient.h
-  planners/gradient/planner.cc
-  planners/gradient/planner.h
-  planners/gradient/policy.cc
-  planners/gradient/policy.h
-  planners/gradient/settings.h
-  planners/gradient/spline_mapping.cc
-  planners/gradient/spline_mapping.h
-  planners/ilqg/backward_pass.cc
-  planners/ilqg/backward_pass.h
-  planners/ilqg/boxqp.h
-  planners/ilqg/planner.cc
-  planners/ilqg/planner.h
-  planners/ilqg/policy.cc
-  planners/ilqg/policy.h
-  planners/ilqg/settings.h
-  planners/ilqs/planner.cc
-  planners/ilqs/planner.h
-  norm.cc
-  norm.h
-  task.cc
-  task.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/states/state.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/states/state.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/states/include.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/states/include.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/agent.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/agent.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/trajectory.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/trajectory.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/utilities.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/utilities.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/tasks.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/tasks.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/acrobot/acrobot.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/acrobot/acrobot.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/cartpole/cartpole.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/cartpole/cartpole.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/hand/hand.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/hand/hand.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/stand/stand.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/stand/stand.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/tracking/tracking.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/tracking/tracking.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/walk/walk.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/humanoid/walk/walk.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/manipulation/common.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/manipulation/common.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/manipulation/manipulation.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/manipulation/manipulation.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/panda/panda.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/panda/panda.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/particle/particle.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/particle/particle.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/quadrotor/quadrotor.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/quadrotor/quadrotor.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/quadruped/quadruped.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/quadruped/quadruped.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/swimmer/swimmer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/swimmer/swimmer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/walker/walker.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/tasks/walker/walker.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/planner.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/planner.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/policy.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/include.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/include.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/cost_derivatives.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/cost_derivatives.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/linear_solve.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/linear_solve.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/model_derivatives.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/model_derivatives.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/sampling/planner.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/sampling/planner.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/sampling/policy.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/sampling/policy.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/gradient.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/gradient.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/planner.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/planner.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/policy.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/policy.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/settings.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/spline_mapping.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/gradient/spline_mapping.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/backward_pass.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/backward_pass.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/boxqp.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/planner.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/planner.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/policy.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/policy.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqg/settings.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqs/planner.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/planners/ilqs/planner.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/norm.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/norm.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/task.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/task.h
 )
+
 set_target_properties(libmjpc PROPERTIES OUTPUT_NAME mjpc)
 target_compile_options(libmjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
 target_link_libraries(
@@ -119,11 +120,11 @@ target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(
   mjpc
-  app.cc
-  app.h
-  main.cc
-  simulate.cc
-  simulate.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/app.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/app.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/main.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/simulate.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/simulate.h
   $<TARGET_OBJECTS:mujoco::platform_ui_adapter>
 )
 target_link_libraries(

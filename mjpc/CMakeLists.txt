@@ -164,28 +164,6 @@ if(NOT menagerie_POPULATED)
   FetchContent_Populate(menagerie)
 endif()
 
-add_custom_target(
-  copy_menagerie_resources ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/shadow_hand/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/hand/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/panda/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/unitree_a1/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/quadruped/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/franka_emika_panda
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/robotiq_2f85
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation
-  COMMAND ${Python_EXECUTABLE}
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation/merge_panda_robotiq.py
-          ${CMAKE_CURRENT_BINARY_DIR}/tasks/manipulation/panda_robotiq.xml
-  COMMENT "Copying menagerie assets into binary directory")
-
 if(NOT TARGET lodepng)
   FetchContent_Declare(
     lodepng

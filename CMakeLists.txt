@@ -155,6 +155,17 @@ set(BUILD_SHARED_LIBS
 )
 unset(BUILD_SHARED_LIBS_OLD)
 
+FetchContent_Declare(
+  menagerie
+  GIT_REPOSITORY https://github.com/deepmind/mujoco_menagerie.git
+  GIT_TAG main
+)
+
+FetchContent_GetProperties(menagerie)
+if(NOT menagerie_POPULATED)
+  FetchContent_Populate(menagerie)
+endif()
+
 if(NOT TARGET lodepng)
   FetchContent_Declare(
     lodepng

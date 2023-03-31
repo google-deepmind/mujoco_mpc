@@ -15,17 +15,6 @@
 # Copy the model files to the binary directory to make them available to the
 # built binary.
 
-FetchContent_Declare(
-  menagerie
-  GIT_REPOSITORY https://github.com/deepmind/mujoco_menagerie.git
-  GIT_TAG main
-)
-
-FetchContent_GetProperties(menagerie)
-if(NOT menagerie_POPULATED)
-  FetchContent_Populate(menagerie)
-endif()
-
 add_custom_target(
   copy_menagerie_resources ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory

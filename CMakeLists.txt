@@ -68,7 +68,6 @@ findorfetch(
   TARGETS
   mujoco::mujoco
   mujoco::platform_ui_adapter
-  EXCLUDE_FROM_ALL
 )
 
 set(MUJOCO_DEP_VERSION_abseil

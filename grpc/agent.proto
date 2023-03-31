@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package agent;
+
+service Agent {
+  // Initialize MJPC Agent.
+  rpc Init(InitRequest) returns (InitResponse);
+  // Set state of the MJPC Agent.
+  rpc SetState(SetStateRequest) returns (SetStateResponse);
+  // Get the current action from the Agent.
+  rpc GetAction(GetActionRequest) returns (GetActionResponse);
+  // Compute one plan step.
+  rpc PlannerStep(PlannerStepRequest) returns (PlannerStepResponse);
+  // Reset the Agent.
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // Set a task parameter.
+  rpc SetTaskParameter(SetTaskParameterRequest)
+      returns (SetTaskParameterResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional string task_id = 1;
+  optional MjModel model = 2;
+}
+message InitResponse {}
+
+message State {
+  optional double time = 1;
+  repeated double qpos = 2 [packed = true];
+  repeated double qvel = 3 [packed = true];
+  repeated double act = 4 [packed = true];
+  repeated double mocap_pos = 5 [packed = true];
+  repeated double mocap_quat = 6 [packed = true];
+  repeated double userdata = 7 [packed = true];
+}
+
+message SetStateRequest {
+  State state = 1;
+}
+message SetStateResponse {}
+
+message GetActionRequest {
+  optional float time = 1;
+}
+
+message GetActionResponse {
+  repeated float action = 1 [packed = true];
+}
+
+message PlannerStepRequest {}
+message PlannerStepResponse {}
+
+message ResetRequest {}
+message ResetResponse {}
+
+message SetTaskParameterRequest {
+  string name = 1;
+  double value = 2;
+}
+message SetTaskParameterResponse {}

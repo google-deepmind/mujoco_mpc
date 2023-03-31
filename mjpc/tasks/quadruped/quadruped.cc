@@ -41,10 +41,6 @@ void QuadrupedFlat::Residual(const mjModel* model, const mjData* data,
   for (A1Foot foot : kFootAll)
     foot_pos[foot] = data->geom_xpos + 3 * foot_geom_id_[foot];
 
-  double* shoulder_pos[kNumFoot];
-  for (A1Foot foot : kFootAll)
-    shoulder_pos[foot] = data->xpos + 3 * shoulder_body_id_[foot];
-
   // average foot position
   double avg_foot_pos[3];
   AverageFootPos(avg_foot_pos, foot_pos);

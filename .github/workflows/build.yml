@@ -59,7 +59,7 @@ jobs:
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
       working-directory: build
-      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }}
+      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_service agent_test cost_derivatives_test linear_solve_test norm_test rollout_test threadpool_test trajectory_test utilities_test
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .

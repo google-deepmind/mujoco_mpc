@@ -48,6 +48,9 @@ jobs:
     - name: Prepare macOS
       if: ${{ runner.os == 'macOS' }}
       run: brew install ninja
+    - name: Prepare Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: choco install nasm
     - name: Configure MuJoCo MPC
       run: >
         mkdir build &&

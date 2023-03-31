@@ -155,39 +155,6 @@ set(BUILD_SHARED_LIBS
 )
 unset(BUILD_SHARED_LIBS_OLD)
 
-FetchContent_Declare(
-  menagerie
-  GIT_REPOSITORY https://github.com/deepmind/mujoco_menagerie.git
-  GIT_TAG main
-)
-
-FetchContent_GetProperties(menagerie)
-if(NOT menagerie_POPULATED)
-  FetchContent_Populate(menagerie)
-endif()
-
-add_custom_target(
-  copy_menagerie_resources ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/shadow_hand/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/hand/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/panda/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/unitree_a1/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/quadruped/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/franka_emika_panda
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/manipulation
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/robotiq_2f85
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/manipulation
-  COMMAND ${Python_EXECUTABLE}
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/manipulation/merge_panda_robotiq.py
-          ${CMAKE_CURRENT_BINARY_DIR}/mjpc/tasks/manipulation/panda_robotiq.xml
-  COMMENT "Copying menagerie assets into binary directory")
-
 if(NOT TARGET lodepng)
   FetchContent_Declare(
     lodepng

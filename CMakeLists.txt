@@ -70,6 +70,8 @@ findorfetch(
   mujoco::platform_ui_adapter
 )
 
+FetchContent_MakeAvailable($<TARGET_OBJECTS:mujoco::mujoco> $<TARGET_OBJECTS:mujoco::platform_ui_adapter>)
+
 set(MUJOCO_DEP_VERSION_abseil
     c8a2f92586fe9b4e1aff049108f5db8064924d8e # LTS 20230125.1
     CACHE STRING "Version of `abseil` to be fetched."

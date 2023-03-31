@@ -118,6 +118,7 @@ target_link_libraries(
 )
 target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(FindOrFetch)
 FetchContent_MakeAvailable($<TARGET_OBJECTS:mujoco::mujoco> $<TARGET_OBJECTS:mujoco::platform_ui_adapter>)
 

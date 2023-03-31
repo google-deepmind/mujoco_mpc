@@ -36,7 +36,7 @@ if(APPLE)
   enable_language(OBJCXX)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/mjpc/cmake")
 include(MpcOptions)
 include(MujocoMacOS)
 

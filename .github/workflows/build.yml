@@ -49,15 +49,14 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: brew install ninja
     - name: Configure MuJoCo MPC
-      working-directory: mjpc
       run: >
         mkdir build &&
         cd build &&
         cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
-      working-directory: mjpc/build
+      working-directory: build
       run: cmake --build . --config=Release ${{ matrix.cmake_build_args }}
     - name: Test MuJoCo MPC
-      working-directory: mjpc/build
+      working-directory: build
       run: ctest -C Release --output-on-failure .

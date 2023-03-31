@@ -37,9 +37,7 @@ findorfetch(
 
 
 find_package(ZLIB REQUIRED)
-find_package(absl REQUIRED)
 set(gRPC_ZLIB_PROVIDER "package" CACHE INTERNAL "")
-set(gRPC_ABSL_PROVIDER "package" CACHE INTERNAL "")
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)

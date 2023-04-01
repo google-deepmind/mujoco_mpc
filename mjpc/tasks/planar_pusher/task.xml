@@ -13,19 +13,27 @@
         <numeric name="sampling_spline_points" data="10" />
         <numeric name="sampling_exploration" data="0.5" />
         <numeric name="gradient_spline_points" data="10" />
-        <numeric name="residual_Goal" data="0.8 0.0 1.5" />
+        <numeric name="residual_Goal" data="0.8 -1.5 1.5" />
     </custom>
 
+    <contact>
+        <exclude body1="base" body2="body0"/>
+    </contact>
+
+    <keyframe>
+<!--        <key name="home" qpos="0.0785739 0.875724 0.683122 -0.0665835"/>-->
+        <key name="home" qpos="0.0785739 0.875724 0.683122"/>
+    </keyframe>
+
     <sensor>
-        <user name="load_horz" dim="1" user="2 5.0 0 10.0 0.01"/>
+        <user name="load_horz" dim="1" user="2 5.0 0 100.0 0.01"/>
         <user name="load_vert" dim="1" user="2 5.0 0 10.0 0.01"/>
         <user name="load_ori" dim="4" user="2 5.0 0 10.0 0.01"/>
+        <user name="load_vel" dim="3" user="2 5.0 0 10.0 0.01"/>
+<!--        <user name="acc" dim="4" user="2 5.0 0 10.0 0.01"/>-->
         <framepos name="trace0" objtype="site" objname="load"/>
         <framepos name="position" objtype="site" objname="load"/>
         <framelinvel name="velocity" objtype="site" objname="load"/>
     </sensor>
 
-<!--    <keyframe>-->
-<!--        <key name="home" qpos="0.0785739 0.875724 0.683122 -0.0665835"/>-->
-<!--    </keyframe>-->
 </mujoco>

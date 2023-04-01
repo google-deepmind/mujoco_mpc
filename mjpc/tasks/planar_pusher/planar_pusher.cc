@@ -32,12 +32,14 @@ namespace mjpc {
 // ------------------------------------------
   void PlanarPusher::Residual(const mjModel* model, const mjData* data,
                           double* residual) const {
+    int idx = 0;
+
     // ---------- load_horz ----------
     auto ee_pos = getEEPosition(model, data);
-    residual[0] = ee_pos(1) - parameters[0];
+    residual[idx++] = ee_pos(1) - parameters[0];
 
     // ---------- load_vert ----------
-    residual[1] = ee_pos(2) + 0.6;
+    residual[idx++] = ee_pos(2) + 0.6;
 
     // ---------- load_ori ----------
     VecDf des_ee_rot(4);
@@ -46,10 +48,49 @@ namespace mjpc {
 
     VecDf ee_rot(4);
     mju_copy(ee_rot.data(), data->xquat + 4 * (model->nbody - 1), 4);
-    residual[2] = ee_rot(0) - des_ee_rot(0);
-    residual[3] = ee_rot(1) - des_ee_rot(1);
-    residual[4] = ee_rot(2) - des_ee_rot(2);
-    residual[5] = ee_rot(3) - des_ee_rot(3);
+    residual[idx++] = ee_rot(0) - des_ee_rot(0);
+    residual[idx++] = ee_rot(1) - des_ee_rot(1);
+    residual[idx++] = ee_rot(2) - des_ee_rot(2);
+    residual[idx++] = ee_rot(3) - des_ee_rot(3);
+
+    // ---------- load_vel ----------
+    for (int i=0; i<model->nv; ++i)
+    {
+      residual[idx++] = data->qvel[i];
+    }
+
+    // ---------- acc ----------
+//    for (int i=0; i<model->nv; ++i)
+//    {
+////      residual[6+i] = data->qacc[i];
+//      residual[6+i] = data->qfrc_smooth[i] + data->qfrc_constraint[i];
+//    }
+
+//    static int skip=0;
+//    ++skip;
+//    if (skip%10000 == 0)
+//    {
+//      std::cout << skip << " " << "frc residue: ";
+//      for (int i=0; i<model->nv; ++i)
+//      {
+//        std::cout << (int)residual[6+i] << "\t";
+//      }
+//      std::cout << std::endl;
+
+//      std::cout << skip << " " << "qfrc_smooth: ";
+//      for (int i=0; i<model->nv; ++i)
+//      {
+//        std::cout << (int)data->qfrc_smooth[i] << "\t";
+//      }
+//      std::cout << "qfrc_constraint: ";
+//      for (int i=0; i<model->nv; ++i)
+//      {
+//        std::cout << (int)data->qfrc_constraint[i] << "\t";
+//      }
+//      std::cout << std::endl;
+//    }
+
+
   }
 
   Vec3f PlanarPusher::getEEPosition(const mjModel *model, const mjData *data) const

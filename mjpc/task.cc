@@ -62,6 +62,18 @@ void Task::Reset(const mjModel* model) {
         "specified first and sequentially\n");
   }
 
+  for (int i = 1; true; i++) {
+    if (i == model->nsensor || model->sensor_type[i] != mjSENS_USER) {
+      num_term = i;
+      break;
+    }
+  }
+  if (num_term > kMaxCostTerms) {
+    mju_error(
+            "Number of cost terms exceeds maximum. Either: 1) reduce number of "
+            "terms 2) increase kMaxCostTerms");
+  }
+
   // get number of traces
   for (int i = 0; i < model->nsensor; i++) {
     if (std::strncmp(model->names + model->name_sensoradr[i], "trace",
@@ -75,49 +87,39 @@ void Task::Reset(const mjModel* model) {
 
   // loop over sensors
   int parameter_shift = 0;
-  for (int i = 0; i < model->nsensor; i++) {
-    if (model->sensor_type[i] == mjSENS_USER) {
-      // residual dimension
-      num_residual += model->sensor_dim[i];
-      dim_norm_residual[num_term] = (int)model->sensor_dim[i];
+  for (int i = 0; i < num_term; i++) {
+    // residual dimension
+    num_residual += model->sensor_dim[i];
+    dim_norm_residual[i] = (int)model->sensor_dim[i];
 
-      // user data: [norm, weight, weight_lower, weight_upper, parameters...]
-      double* s = model->sensor_user + i * model->nuser_sensor;
+    // user data: [norm, weight, weight_lower, weight_upper, parameters...]
+    double* s = model->sensor_user + i * model->nuser_sensor;
 
-      // check number of parameters
-      int norm_parameter_dimension = NormParameterDimension(s[0]);
-      if (4 + norm_parameter_dimension > model->nuser_sensor) {
+    // check number of parameters
+    int norm_parameter_dimension = NormParameterDimension(s[0]);
+    if (4 + norm_parameter_dimension > model->nuser_sensor) {
+      MissingParameterError(model, i);
+      return;
+    }
+    for (int j = 0; j < norm_parameter_dimension; j++) {
+      if (s[4 + j] <= 0.0) {
         MissingParameterError(model, i);
         return;
-      }
-      for (int j = 0; j < norm_parameter_dimension; j++) {
-        if (s[4 + j] <= 0.0) {
-          MissingParameterError(model, i);
-          return;
-        }
-      }
-      norm[num_term] = (NormType)s[0];
-
-      // check Null norm
-      if (norm[num_term] == -1 && dim_norm_residual[num_term] != 1) {
-        MissingParameterError(model, i);
-        return;
-      }
-
-      weight[num_term] = s[1];
-      num_norm_parameter[num_term] = norm_parameter_dimension;
-      mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
-               num_norm_parameter[num_term]);
-      parameter_shift += num_norm_parameter[num_term];
-      num_term += 1;
-
-      // check for max norms
-      if (num_term > kMaxCostTerms) {
-        mju_error(
-            "Number of cost terms exceeds maximum. Either: 1) reduce number of "
-            "terms 2) increase kMaxCostTerms");
       }
     }
+    norm[i] = (NormType)s[0];
+
+    // check Null norm
+    if (norm[i] == -1 && dim_norm_residual[i] != 1) {
+      MissingParameterError(model, i);
+      return;
+    }
+
+    weight[i] = s[1];
+    num_norm_parameter[i] = norm_parameter_dimension;
+    mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
+             num_norm_parameter[i]);
+    parameter_shift += num_norm_parameter[i];
   }
 
   // set residual parameters

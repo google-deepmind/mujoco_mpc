@@ -354,6 +354,21 @@ endif()
 
 add_subdirectory(tasks)
 
+
+#enable_testing()
+#add_subdirectory(insat)
+add_executable(opt_test
+        insat/opt_test.cc
+        )
+target_link_libraries(opt_test
+        libmjpc
+        )
+target_include_directories(opt_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_options(opt_test PUBLIC ${MJPC_COMPILE_OPTIONS})
+#target_link_options(opt_test PRIVATE ${MJPC_LINK_OPTIONS})
+#target_compile_definitions(mjpc PRIVATE MJSIMULATE_STATIC)
+#set_target_properties(opt_test PROPERTIES BUILD_RPATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
 if(BUILD_TESTING AND MJPC_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)

@@ -15,59 +15,69 @@
 """Install script for MuJoCo MPC."""
 
 import pathlib
+import setuptools
+from setuptools.command import build_py
 import shutil
 
-import grpc_tools.protoc
-import pkg_resources
-import setuptools
-from setuptools.command.develop import develop
-from setuptools.command.install import install
+
+Path = pathlib.Path
 
 
-class CompileProtoGrpcCommand(setuptools.Command):
+class GenerateProtoGrpcCommand(setuptools.Command):
   """Specialized setup command to handle agent proto compilation.
 
-  Compiles the `agent_pb2{_grpc}.py` files from `agent_proto`. Assumes that
+  Generates the `agent_pb2{_grpc}.py` files from `agent_proto`. Assumes that
   `grpc_tools.protoc` is installed.
   """
 
-  description = "Compile `.proto` files to Python protobuf and gRPC files."
+  description = "Generate `.proto` files to Python protobuf and gRPC files."
   user_options = []
 
   def initialize_options(self):
-    ...
+    self.build_lib = None
 
   def finalize_options(self):
-    ...
+    self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    """Compile `agent.proto` into `agent_pb2{_grpc}.py`.
+    """Generate `agent.proto` into `agent_pb2{_grpc}.py`.
 
     This function looks more complicated than what it has to be because the
-    `protoc` compiler is very particular in the way it generates the imports for
-    the generated `agent_pb2_grpc.py` file. The final argument of the `protoc`
-    call has to be "mujoco_mpc/agent.proto" in order for the import to become
-    `from mujoco_mpc import [agent_pb2_proto_import]` instead of just
+    `protoc` generator is very particular in the way it generates the imports
+    for the generated `agent_pb2_grpc.py` file. The final argument of the
+    `protoc` call has to be "mujoco_mpc/agent.proto" in order for the import to
+    become `from mujoco_mpc import [agent_pb2_proto_import]` instead of just
     `import [agent_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
     agent_proto_filename = "agent.proto"
-    agent_proto_source_path = pathlib.Path(
-        "../grpc", agent_proto_filename
-    ).resolve()
-    agent_proto_destination_path = pathlib.Path(
-        pkg_resources.resource_filename("mujoco_mpc", agent_proto_filename)
-    ).resolve()
+    agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
+    assert self.build_lib is not None
+    build_lib_path = Path(self.build_lib).resolve()
+    proto_module_relative_path = Path(
+      "mujoco_mpc", "proto", agent_proto_filename)
+    agent_proto_destination_path = Path(
+        build_lib_path, proto_module_relative_path
+    )
+    agent_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
     # Copy `agent_proto_filename` into current source.
     shutil.copy(agent_proto_source_path, agent_proto_destination_path)
 
-    # Compile with `protoc`, explicitly defining a relative target to get the
-    # import correct.
-    grpc_tools.protoc.main([
-        f"-I{agent_proto_destination_path.parent.parent}",
-        f"--python_out={agent_proto_destination_path.parent.parent}",
-        f"--grpc_python_out={agent_proto_destination_path.parent.parent}",
-        f"mujoco_mpc/{agent_proto_filename}",
+    protoc_command_parts = [
+        f"-I{build_lib_path}",
+        f"--python_out={build_lib_path}",
+        f"--grpc_python_out={build_lib_path}",
+        agent_proto_destination_path
+    ]
+    # Instead of `self.spawn`, this should be runnable directly as
+    # `grpc_tools.protoc.main(protoc_command_parts)`, but that seems to fail
+    # on MacOS for some reason, most likely because of the lack of explicit
+    # `protoc.py` included by the script-version of `protoc`.
+    self.spawn([
+      "python", "-m", "grpc_tools.protoc", *protoc_command_parts
+    ])
+    self.spawn([
+      "touch", str(agent_proto_destination_path.parent / "__init__.py")
     ])
 
 
@@ -82,20 +92,22 @@ class CopyAgentServiceBinaryCommand(setuptools.Command):
   user_options = []
 
   def initialize_options(self):
-    ...
+    self.build_lib = None
 
   def finalize_options(self):
-    ...
+    self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    source_path = pathlib.Path("../build/bin/agent_service")
+    source_path = Path("../build/bin/agent_service")
     if not source_path.exists():
       raise ValueError(
           f"Cannot find `agent_service` binary from {source_path}. Please build"
           " the `agent_service` C++ gRPC service."
       )
-    destination_path = pathlib.Path(
-        pkg_resources.resource_filename("mujoco_mpc", "mjpc/agent_service")
+    assert self.build_lib is not None
+    build_lib_path = Path(self.build_lib).resolve()
+    destination_path = Path(
+      build_lib_path, "mujoco_mpc", "mjpc", "agent_service"
     )
 
     self.announce(f"{source_path.resolve()=}")
@@ -119,26 +131,23 @@ class CopyTaskAssetsCommand(setuptools.Command):
   user_options = []
 
   def initialize_options(self):
-    ...
+    self.build_lib = None
 
   def finalize_options(self):
-    ...
+    self.set_undefined_options("build_ext", ("build_lib", "build_lib"))
 
   def run(self):
-    mjpc_tasks_path = pathlib.Path(__file__).parent.parent / "mjpc" / "tasks"
+    mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
     source_paths = tuple(mjpc_tasks_path.rglob("*.xml"))
     relative_source_paths = tuple(
         p.relative_to(mjpc_tasks_path) for p in source_paths
     )
-    destination_dir_path = pathlib.Path(
-        pkg_resources.resource_filename("mujoco_mpc", "mjpc/tasks")
-    )
-    print(f"{mjpc_tasks_path=}")
-    print(f"{relative_source_paths=}")
-    print(f"{destination_dir_path=}")
+    assert self.build_lib is not None
+    build_lib_path = Path(self.build_lib).resolve()
+    destination_dir_path = Path(build_lib_path, "mujoco_mpc", "mjpc", "tasks")
     self.announce(
         f"Copying assets {relative_source_paths} from"
-        f" {mjpc_tasks_path} over to {destination_dir_path}"
+        f" {mjpc_tasks_path} over to {destination_dir_path}."
     )
 
     for source_path, relative_source_path in zip(
@@ -149,35 +158,20 @@ class CopyTaskAssetsCommand(setuptools.Command):
       shutil.copy(source_path, destination_path)
 
 
-class InstallCommand(install):
+class BuildPyCommand(build_py.build_py):
   """Specialized Python builder to handle agent service dependencies.
 
-  During installation, this will comile the `agent_pb2{_grpc}.py` files and copy
+  During build, this will generate the `agent_pb2{_grpc}.py` files and copy
   `agent_service` binary next to `agent.py`.
   """
 
-  user_options = install.user_options
+  user_options = build_py.build_py.user_options
 
   def run(self):
-    self.run_command("compile_proto_grpc")
+    self.run_command("generate_proto_grpc")
     self.run_command("copy_agent_service_binary")
     self.run_command("copy_task_assets")
-    install.run(self)
-
-
-class DevelopCommand(develop):
-  """Specialized Python builder to handle agent service dependencies.
-
-  During installation, this will comile the `agent_pb2{_grpc,}.py` files and
-  copy `agent_service` binary next to `agent.py`.
-  """
-
-  user_options = develop.user_options
-
-  def run(self):
-    self.run_command("compile_proto_grpc")
-    self.run_command("copy_agent_service_binary")
-    install.run(self)
+    super().run()
 
 
 setuptools.setup(
@@ -189,7 +183,6 @@ setuptools.setup(
     url="https://github.com/deepmind/mujoco_mpc",
     license="MIT",
     classifiers=[
-        # TODO(khartikainen): Check these
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
@@ -212,9 +205,8 @@ setuptools.setup(
         ],
     },
     cmdclass={
-        "develop": DevelopCommand,
-        "install": InstallCommand,
-        "compile_proto_grpc": CompileProtoGrpcCommand,
+        "build_py": BuildPyCommand,
+        "generate_proto_grpc": GenerateProtoGrpcCommand,
         "copy_agent_service_binary": CopyAgentServiceBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },

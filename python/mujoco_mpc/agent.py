@@ -27,9 +27,9 @@ import mujoco
 import numpy as np
 from numpy import typing as npt
 
-# INTERNAL IMPORT
-from mujoco_mpc import agent_pb2
-from mujoco_mpc import agent_pb2_grpc
+import pathlib
+from mujoco_mpc.proto import agent_pb2
+from mujoco_mpc.proto import agent_pb2_grpc
 
 
 def find_free_port() -> int:

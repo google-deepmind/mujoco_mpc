@@ -14,8 +14,6 @@
 
 #include "mjpc/tasks/humanoid/tracking/tracking.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -26,7 +24,6 @@
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace {
@@ -43,7 +40,7 @@ std::tuple<int, int, double, double> ComputeInterpolationValues(double index,
 }
 
 // Hardcoded constant matching keyframes from CMU mocap dataset.
-constexpr double fps = 30.0;
+constexpr double kFps = 30.0;
 
 constexpr int kMotionLengths[] = {
     121,  // Jump - CMU-CMU-02-02_04
@@ -103,7 +100,7 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
   int start = MotionStartIndex(current_mode_);
   // get motion trajectory length
   int length = MotionLength(current_mode_);
-  double current_index = (data->time - reference_time_) * fps + start;
+  double current_index = (data->time - reference_time_) * kFps + start;
   int last_key_index = start + length - 1;
 
   // Positions:
@@ -206,7 +203,7 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
     mju_subFrom3(
         &residual[counter],
         model->key_mpos + model->nmocap * 3 * key_index_0 + 3 * body_mocapid);
-    mju_scl3(&residual[counter], &residual[counter], fps);
+    mju_scl3(&residual[counter], &residual[counter], kFps);
 
     // subtract current velocity
     double *sensor_linvel =
@@ -242,7 +239,7 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   }
 
   // indices
-  double current_index = (d->time - reference_time_) * fps + start;
+  double current_index = (d->time - reference_time_) * kFps + start;
   int last_key_index = start + length - 1;
 
   // Positions:

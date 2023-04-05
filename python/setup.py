@@ -14,10 +14,14 @@
 # ==============================================================================
 """Install script for MuJoCo MPC."""
 
+import os
 import pathlib
+import platform
 import setuptools
 from setuptools.command import build_py
+from setuptools.command import build_ext
 import shutil
+import subprocess
 
 
 Path = pathlib.Path
@@ -169,9 +173,70 @@ class BuildPyCommand(build_py.build_py):
 
   def run(self):
     self.run_command("generate_proto_grpc")
-    self.run_command("copy_agent_service_binary")
     self.run_command("copy_task_assets")
     super().run()
+
+
+class CMakeExtension(setuptools.Extension):
+  """A Python extension that has been prebuilt by CMake.
+
+  We do not want distutils to handle the build process for our extensions, so
+  so we pass an empty list to the super constructor.
+  """
+
+  def __init__(self, name):
+    super().__init__(name, sources=[])
+
+
+class BuildCMakeExtension(build_ext.build_ext):
+  """Uses CMake to build extensions."""
+
+  def run(self):
+    self._configure_and_build_agent_service()
+    self.run_command("copy_agent_service_binary")
+
+  def _configure_and_build_agent_service(self):
+    """Check for CMake."""
+    cmake_command = "cmake"
+    build_cfg = "Debug"
+    mujoco_mpc_root = Path(__file__).parent.parent
+    mujoco_mpc_build_dir = mujoco_mpc_root / "build"
+    cmake_configure_args = [
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
+      f"-DCMAKE_BUILD_TYPE:STRING={build_cfg}",
+      "-DBUILD_TESTING:BOOL=OFF"
+    ]
+
+    if platform.system() == "Darwin" and "ARCHFLAGS" in os.environ:
+      osx_archs = []
+      if "-arch x86_64" in os.environ["ARCHFLAGS"]:
+        osx_archs.append("x86_64")
+      if "-arch arm64" in os.environ["ARCHFLAGS"]:
+        osx_archs.append("arm64")
+      cmake_configure_args.append(
+        f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}")
+
+    print("Configuring CMake with the following arguments:")
+    for arg in cmake_configure_args:
+      print(f"  {arg}")
+    subprocess.check_call([
+      cmake_command,
+      *cmake_configure_args,
+      f"-S{mujoco_mpc_root.resolve()}",
+      f"-B{mujoco_mpc_build_dir.resolve()}",
+    ], cwd=mujoco_mpc_root)
+
+    print("Building `agent_service` with CMake")
+    subprocess.check_call([
+      cmake_command,
+      "--build",
+      mujoco_mpc_build_dir.resolve(),
+      "--target",
+      "agent_service",
+      f"-j{os.cpu_count()}",
+      "--config",
+      build_cfg,
+    ], cwd=mujoco_mpc_root)
 
 
 setuptools.setup(
@@ -204,8 +269,10 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
+    ext_modules=[CMakeExtension("agent_service")],
     cmdclass={
         "build_py": BuildPyCommand,
+        "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
         "copy_agent_service_binary": CopyAgentServiceBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,

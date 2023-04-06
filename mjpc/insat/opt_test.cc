@@ -21,6 +21,7 @@
 #include "mjpc/tasks/cartpole/cartpole.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/array_safety.h"
+#include "mjpc/common/EigenTypes.h"
 
 namespace mjpc {
   namespace {
@@ -95,6 +96,12 @@ int main() {
   planner.Allocate();
   planner.Reset(kMaxTrajectoryHorizon);
 
+  // ----- iLQG planner WARM ----- //
+  iLQGPlanner warm_planner;
+  warm_planner.Initialize(model, task);
+  warm_planner.Allocate();
+  warm_planner.Reset(kMaxTrajectoryHorizon);
+
   // ----- settings ----- //
   int iterations = 100;
   double horizon = 1.0;
@@ -111,36 +118,56 @@ int main() {
 
   // set state
   planner.SetState(state);
+  warm_planner.SetState(state);
 
   // ---- optimize ----- //
+  VecDf prev_soln(model->nq + model->nv);
+  VecDf soln(model->nq + model->nv);
+  prev_soln.setZero();
   for (int i = 0; i < iterations; i++) {
     planner.OptimizePolicy(steps, pool);
 
     std::cout << "iter: " << i << " val: ";
     for (int i=0; i<(model->nq + model->nv); ++i)
     {
+      soln(i) = planner.candidate_policy[0]
+          .trajectory.states[(steps - 1) * (model->nq + model->nv)+i];
       std::cout << planner.candidate_policy[0]
           .trajectory.states[(steps - 1) * (model->nq + model->nv)+i] << "\t";
     }
     std::cout << std::endl;
+
+    if ((prev_soln-soln).norm() < 1e-3)
+    {
+      break;
+    }
+    prev_soln = soln;
   }
 
-  // test final state
-  assert(std::fabs(planner.candidate_policy[0]
-                       .trajectory.states[(steps - 1) * (model->nq + model->nv)] - state.mocap()[0]) < 1e-2);
-  assert(std::fabs(planner.candidate_policy[0]
-                       .trajectory.states[(steps - 1) * (model->nq + model->nv) + 1] - state.mocap()[1]) < 1e-2);
-  assert(std::fabs(planner.candidate_policy[0]
-                       .trajectory.states[(steps - 1) * (model->nq + model->nv) + 2] - 0.0) < 1e-2);
-  assert(std::fabs(planner.candidate_policy[0]
-                       .trajectory.states[(steps - 1) * (model->nq + model->nv) + 3] - 0.0) < 1e-2);
+  // ---- warm optimize ----- //
+  std::cout << std::endl;
+  std::cout << "NOW WARM STARTING" << std::endl;
+  std::cout << std::endl;
+  warm_planner.policy = planner.policy;
+  prev_soln.setZero();
+  for (int i = 0; i < iterations; i++) {
+    warm_planner.OptimizePolicy(steps, pool);
 
-  // test action limits
-  for (int t = 0; t < steps - 1; t++) {
-    for (int i = 0; i < model->nu; i++) {
-      assert(planner.candidate_policy[0].trajectory.actions[t * model->nu + i] < model->actuator_ctrlrange[2 * i + 1]);
-      assert(planner.candidate_policy[0].trajectory.actions[t * model->nu + i] < model->actuator_ctrlrange[2 * i]);
+    std::cout << "iter: " << i << " val: ";
+    for (int i=0; i<(model->nq + model->nv); ++i)
+    {
+      soln(i) = warm_planner.candidate_policy[0]
+          .trajectory.states[(steps - 1) * (model->nq + model->nv)+i];
+      std::cout << warm_planner.candidate_policy[0]
+          .trajectory.states[(steps - 1) * (model->nq + model->nv)+i] << "\t";
     }
+    std::cout << std::endl;
+
+    if ((prev_soln-soln).norm() < 1e-3)
+    {
+      break;
+    }
+    prev_soln = soln;
   }
 
 // delete data

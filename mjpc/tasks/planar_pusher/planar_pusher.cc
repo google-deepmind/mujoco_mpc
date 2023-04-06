@@ -59,6 +59,12 @@ namespace mjpc {
       residual[idx++] = data->qvel[i];
     }
 
+    // ---------- frc_con ----------
+//    for (int i=0; i<model->nv; ++i)
+//    {
+//      residual[idx++] = 1.0/data->qfrc_constraint[i];
+//    }
+
     // ---------- acc ----------
 //    for (int i=0; i<model->nv; ++i)
 //    {

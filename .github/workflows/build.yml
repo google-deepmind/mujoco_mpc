@@ -18,10 +18,12 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang-14
               -DCMAKE_CXX_COMPILER:STRING=clang++-14
+            additional_targets: "agent_service"
             tmpdir: "/tmp"
           - os: macos-12
             cmake_args: >-
               -G Ninja
+            additional_targets: "agent_service"
             tmpdir: "/tmp"
           - os: windows-2022
             cmake_args: >-
@@ -48,16 +50,18 @@ jobs:
     - name: Prepare macOS
       if: ${{ runner.os == 'macOS' }}
       run: brew install ninja
+    - name: Prepare Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: choco install nasm
     - name: Configure MuJoCo MPC
-      working-directory: mjpc
       run: >
         mkdir build &&
         cd build &&
         cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
-      working-directory: mjpc/build
-      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }}
+      working-directory: build
+      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test linear_solve_test norm_test rollout_test threadpool_test trajectory_test utilities_test ${{ matrix.additional_targets }}
     - name: Test MuJoCo MPC
-      working-directory: mjpc/build
+      working-directory: build
       run: ctest -C Release --output-on-failure .

@@ -41,6 +41,8 @@
 #include "mjpc/utilities.h"
 
 ABSL_FLAG(std::string, task, "", "Which model to load on startup.");
+ABSL_FLAG(bool, planner_enabled, false,
+          "If true, the planner will run on startup");
 
 namespace {
 namespace mj = ::mujoco;
@@ -385,6 +387,8 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   sim->agent->Allocate();
   sim->agent->Reset();
   sim->agent->PlotInitialize();
+
+  sim->agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;

@@ -14,6 +14,7 @@
 
 #include "mjpc/app.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -43,6 +44,8 @@
 ABSL_FLAG(std::string, task, "", "Which model to load on startup.");
 ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
+ABSL_FLAG(float, sim_percent_realtime, 100,
+          "The realtime percentage at which the simulation will be launched.");
 
 namespace {
 namespace mj = ::mujoco;
@@ -389,6 +392,15 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   sim->agent->PlotInitialize();
 
   sim->agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
+
+  // Get the index of the closest sim percentage to the input.
+  float desired_percent = absl::GetFlag(FLAGS_sim_percent_realtime);
+  auto closest = std::min_element(
+      std::begin(sim->percentRealTime), std::end(sim->percentRealTime),
+      [&](float a, float b) {
+        return std::abs(a - desired_percent) < std::abs(b - desired_percent);
+      });
+  sim->realTimeIndex = std::distance(std::begin(sim->percentRealTime), closest);
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;

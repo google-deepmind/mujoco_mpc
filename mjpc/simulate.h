@@ -56,30 +56,31 @@ class MJSIMULATEAPI Simulate {
            std::shared_ptr<mjpc::Agent> agent);
 
   // Apply UI pose perturbations to model and data
-  void applyposepertubations(int flg_paused);
+  void ApplyPosePerturbations(int flg_paused);
 
   // Apply UI force perturbations to model and data
-  void applyforceperturbations();
+  void ApplyForcePerturbations();
 
   // Request that the Simulate UI thread render a new model
   // optionally delete the old model and data when done
-  void load(std::string file, mjModel* m, mjData* d, bool delete_old_m_d);
+  void Load(mjModel* m, mjData* d,
+            std::string displayed_filename, bool delete_old_m_d);
 
   // functions below are used by the renderthread
   // load mjb or xml model that has been requested by load()
-  void loadmodel();
+  void LoadOnRenderThread();
 
   // prepare to render the next frame
-  void prepare();
+  void PrepareScene();
 
   // render the ui to the window
-  void render();
+  void Render();
 
   // one-off preparation before starting to render (e.g., memory allocation)
-  void prepare_renderloop();
+  void InitializeRenderLoop();
 
   // loop to render the UI (must be called from main thread because of MacOS)
-  void renderloop();
+  void RenderLoop();
 
   static constexpr int kMaxFilenameLength = 1000;
 
@@ -125,15 +126,15 @@ class MJSIMULATEAPI Simulate {
   //   0: model loaded or no load requested.
   int loadrequest = 0;
 
-  char loadError[kMaxFilenameLength] = "";
+  char load_error[kMaxFilenameLength] = "";
   std::string dropfilename;
   std::string filename;
   std::string previous_filename;
 
   // time synchronization
-  int realTimeIndex = 0;
-  bool speedChanged = true;
-  float measuredSlowdown = 1.0;
+  int real_time_index = 0;
+  bool speed_changed = true;
+  float measured_slowdown = 1.0;
   // logarithmically spaced realtime slow-down coefficients (percent)
   static constexpr float percentRealTime[] = {
       100, 80, 66,  50,  40, 33,  25,  20, 16,  13,
@@ -143,8 +144,8 @@ class MJSIMULATEAPI Simulate {
   };
 
   // control noise
-  double ctrlnoisestd = 0.0;
-  double ctrlnoiserate = 0.0;
+  double ctrl_noise_std = 0.0;
+  double ctrl_noise_rate = 0.0;
 
   // watch
   char field[mjMAXUITEXT] = "qpos";
@@ -160,7 +161,7 @@ class MJSIMULATEAPI Simulate {
   // abstract visualization
   mjvScene scn = {};
   mjvCamera cam = {};
-  mjvOption vopt = {};
+  mjvOption opt = {};
   mjvPerturb pert = {};
   mjvFigure figconstraint = {};
   mjvFigure figcost = {};
@@ -169,9 +170,9 @@ class MJSIMULATEAPI Simulate {
   mjvFigure figsensor = {};
 
   // OpenGL rendering and UI
-  int refreshRate = 60;
-  int windowpos[2] = {0};
-  int windowsize[2] = {0};
+  int refresh_rate = 60;
+  int window_pos[2] = {0};
+  int window_size[2] = {0};
   mjUI ui0 = {};
   mjUI ui1 = {};
   std::unique_ptr<PlatformUIAdapter> platform_ui;
@@ -181,7 +182,7 @@ class MJSIMULATEAPI Simulate {
   std::shared_ptr<mjpc::Agent> agent;
 
   // Constant arrays needed for the option section of UI and the UI interface
-  const mjuiDef defOption[14] = {
+  const mjuiDef def_option[14] = {
     {mjITEM_SECTION,  "Option",        0, nullptr,           "AO"},
     {mjITEM_SELECT,   "Spacing",       1, &this->spacing,    "Tight\nWide"},
     {mjITEM_SELECT,   "Color",         1, &this->color,      "Default\nOrange\nWhite\nBlack"},
@@ -204,7 +205,7 @@ class MJSIMULATEAPI Simulate {
 
 
   // simulation section of UI
-  const mjuiDef defSimulation[12] = {
+  const mjuiDef def_simulation[12] = {
     {mjITEM_SECTION,   "Simulation",    0, nullptr,              "AS"},
     {mjITEM_RADIO,     "",              2, &this->run,           "Pause\nRun"},
     {mjITEM_BUTTON,    "Reset",         2, nullptr,              " #259"},
@@ -214,14 +215,14 @@ class MJSIMULATEAPI Simulate {
     {mjITEM_SLIDERINT, "Key",           3, &this->key,           "0 0"},
     {mjITEM_BUTTON,    "Load key",      3},
     {mjITEM_BUTTON,    "Save key",      3},
-    {mjITEM_SLIDERNUM, "Noise scale",   2, &this->ctrlnoisestd,  "0 2"},
-    {mjITEM_SLIDERNUM, "Noise rate",    2, &this->ctrlnoiserate, "0 2"},
+    {mjITEM_SLIDERNUM, "Noise scale",   2, &this->ctrl_noise_std,  "0 2"},
+    {mjITEM_SLIDERNUM, "Noise rate",    2, &this->ctrl_noise_rate, "0 2"},
     {mjITEM_END}
   };
 
 
   // watch section of UI
-  const mjuiDef defWatch[5] = {
+  const mjuiDef def_watch[5] = {
     {mjITEM_SECTION,   "Watch",         0, nullptr,              "AW"},
     {mjITEM_EDITTXT,   "Field",         2, this->field,          "qpos"},
     {mjITEM_EDITINT,   "Index",         2, &this->index,         "1"},

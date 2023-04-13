@@ -91,7 +91,7 @@ void controller(const mjModel* m, mjData* data) {
   }
   // if noise
   if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0 &&
-      sim->ctrlnoisestd) {
+      sim->ctrl_noise_std) {
     for (int j = 0; j < sim->m->nu; j++) {
       data->ctrl[j] += ctrlnoise[j];
     }
@@ -141,7 +141,7 @@ mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
     }
   }
 
-  mju::strcpy_arr(sim.loadError, loadError);
+  mju::strcpy_arr(sim.load_error, loadError);
 
   if (!mnew) {
     std::printf("%s\n", loadError);
@@ -174,7 +174,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        sim.load(sim.dropfilename.c_str(), mnew, dnew, true);
+        sim.Load(mnew, dnew, sim.dropfilename.c_str(), true);
 
         m = mnew;
         d = dnew;
@@ -204,7 +204,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
 
-        sim.load(sim.filename, mnew, dnew, true);
+        sim.Load(mnew, dnew, sim.filename, true);
         m = mnew;
         d = dnew;
         mj_forward(m, d);
@@ -221,7 +221,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // reload GUI
     if (sim.uiloadrequest.load() == -1) {
-      sim.load(sim.filename.c_str(), sim.m, sim.d, false);
+      sim.Load(sim.m, sim.d, sim.filename.c_str(), false);
       sim.uiloadrequest.fetch_add(1);
     }
     // ----------------------- //
@@ -252,10 +252,10 @@ void PhysicsLoop(mj::Simulate& sim) {
           double elapsedSim = d->time - syncSim;
 
           // inject noise
-          if (sim.ctrlnoisestd) {
+          if (sim.ctrl_noise_std) {
             // convert rate and scale to discrete time (Ornstein–Uhlenbeck)
-            mjtNum rate = mju_exp(-m->opt.timestep / sim.ctrlnoiserate);
-            mjtNum scale = sim.ctrlnoisestd * mju_sqrt(1 - rate * rate);
+            mjtNum rate = mju_exp(-m->opt.timestep / sim.ctrl_noise_rate);
+            mjtNum scale = sim.ctrl_noise_std * mju_sqrt(1 - rate * rate);
 
             for (int i = 0; i < m->nu; i++) {
               // update noise
@@ -269,7 +269,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           }
 
           // requested slow-down factor
-          double slowdown = 100 / sim.percentRealTime[sim.realTimeIndex];
+          double slowdown = 100 / sim.percentRealTime[sim.real_time_index];
 
           // misalignment condition: distance from target sim time is bigger
           // than syncmisalign
@@ -278,38 +278,38 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // out-of-sync (for any reason): reset sync times, step
           if (elapsedSim < 0 || elapsedCPU.count() < 0 || syncCPU.time_since_epoch().count() == 0 ||
-              misaligned || sim.speedChanged) {
+              misaligned || sim.speed_changed) {
             // re-sync
             syncCPU = startCPU;
             syncSim = d->time;
-            sim.speedChanged = false;
+            sim.speed_changed = false;
 
             // clear old perturbations, apply new
             mju_zero(d->xfrc_applied, 6 * m->nbody);
-            sim.applyposepertubations(0);  // move mocap bodies only
-            sim.applyforceperturbations();
+            sim.ApplyPosePerturbations(0);  // move mocap bodies only
+            sim.ApplyForcePerturbations();
 
             // run single step, let next iteration deal with timing
             mj_step(m, d);
           } else {  // in-sync: step until ahead of cpu
             bool measured = false;
             mjtNum prevSim = d->time;
-            double refreshTime = simRefreshFraction / sim.refreshRate;
+            double refreshTime = simRefreshFraction / sim.refresh_rate;
 
             // step while sim lags behind cpu and within refreshTime
             while (Seconds((d->time - syncSim)*slowdown) < mj::Simulate::Clock::now() - syncCPU &&
                    mj::Simulate::Clock::now() - startCPU < Seconds(refreshTime)) {
               // measure slowdown before first step
               if (!measured && elapsedSim) {
-                sim.measuredSlowdown =
+                sim.measured_slowdown =
                     std::chrono::duration<double>(elapsedCPU).count() / elapsedSim;
                 measured = true;
               }
 
               // clear old perturbations, apply new
               mju_zero(d->xfrc_applied, 6 * m->nbody);
-              sim.applyposepertubations(0);  // move mocap bodies only
-              sim.applyforceperturbations();
+              sim.ApplyPosePerturbations(0);  // move mocap bodies only
+              sim.ApplyForcePerturbations();
 
               // call mj_step
               mj_step(m, d);
@@ -322,7 +322,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           }
         } else {  // paused
           // apply pose perturbation
-          sim.applyposepertubations(1);  // move mocap and dynamic bodies
+          sim.ApplyPosePerturbations(1);  // move mocap and dynamic bodies
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
@@ -400,7 +400,7 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       [&](float a, float b) {
         return std::abs(a - desired_percent) < std::abs(b - desired_percent);
       });
-  sim->realTimeIndex = std::distance(std::begin(sim->percentRealTime), closest);
+  sim->real_time_index = std::distance(std::begin(sim->percentRealTime), closest);
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;
@@ -427,9 +427,9 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
     // now that planning was forked, the main thread can render
 
     // one-off preparation:
-    sim->prepare_renderloop();
+    sim->InitializeRenderLoop();
     // start simulation UI loop (blocking call)
-    sim->renderloop();
+    sim->RenderLoop();
   }
 
   // destroy the Simulate instance

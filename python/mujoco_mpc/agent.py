@@ -27,7 +27,7 @@ import mujoco
 import numpy as np
 from numpy import typing as npt
 
-import pathlib
+# INTERNAL IMPORT
 from mujoco_mpc import agent_pb2
 from mujoco_mpc import agent_pb2_grpc
 
@@ -93,7 +93,7 @@ class Agent:
       model: optional `MjModel` instance, which, if provided, will be used as
         the underlying model for planning. If not provided, the default MJPC
         task xml will be used.
-      send_as: The serialization format to send the model over gRPC as. Either
+      send_as: The serialization format for sending the model over gRPC. Either
         "mjb" or "xml".
     """
 

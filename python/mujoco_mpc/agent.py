@@ -27,7 +27,7 @@ import mujoco
 import numpy as np
 from numpy import typing as npt
 
-import pathlib
+# INTERNAL IMPORT
 from mujoco_mpc.proto import agent_pb2
 from mujoco_mpc.proto import agent_pb2_grpc
 

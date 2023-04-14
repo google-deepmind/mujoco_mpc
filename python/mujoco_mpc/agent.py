@@ -83,7 +83,7 @@ class Agent:
       self,
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
-      send_as: Literal["mjb", "xml"] = "mjb",
+      send_as: Literal["mjb", "xml"] = "xml",
   ):
     """Initialize the agent for task `task_id`.
 

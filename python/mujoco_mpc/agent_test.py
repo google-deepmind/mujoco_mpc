@@ -16,7 +16,7 @@
 from absl.testing import absltest
 import mujoco
 
-from mujoco_mpc.proto import agent as agent_lib
+from mujoco_mpc import agent as agent_lib
 import numpy as np
 
 import pathlib

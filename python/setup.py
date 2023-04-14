@@ -216,6 +216,9 @@ class BuildCMakeExtension(build_ext.build_ext):
       cmake_configure_args.append(
         f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}")
 
+    # TODO(hartikainen): We currently configure the builds into
+    # `mujoco_mpc/build`. This should use `self.build_{temp,lib}` instead, to
+    # isolate the Python builds from the C++ builds.
     print("Configuring CMake with the following arguments:")
     for arg in cmake_configure_args:
       print(f"  {arg}")

@@ -34,6 +34,8 @@ service Agent {
   // Set a task parameter.
   rpc SetTaskParameter(SetTaskParameterRequest)
       returns (SetTaskParameterResponse);
+  // Set cost weights.
+  rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
 }
 
 message MjModel {
@@ -89,7 +91,15 @@ message ResetRequest {}
 message ResetResponse {}
 
 message SetTaskParameterRequest {
+  // TODO(nimrod): Make this a bulk request like SetCostWeights
+  // TODO(nimrod): Support string task parameters
   string name = 1;
   double value = 2;
 }
 message SetTaskParameterResponse {}
+
+message SetCostWeightsRequest {
+  // cost weights by name
+  map<string, double> cost_weights = 1;
+}
+message SetCostWeightsResponse {}

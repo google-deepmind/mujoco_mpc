@@ -43,6 +43,8 @@ using ::agent::PlannerStepRequest;
 using ::agent::PlannerStepResponse;
 using ::agent::ResetRequest;
 using ::agent::ResetResponse;
+using ::agent::SetCostWeightsRequest;
+using ::agent::SetCostWeightsResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
 using ::agent::SetTaskParameterRequest;
@@ -314,6 +316,29 @@ grpc::Status AgentServiceImpl::SetTaskParameter(
       }
     }
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string.str());
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentServiceImpl::SetCostWeights(
+    grpc::ServerContext* context, const SetCostWeightsRequest* request,
+    SetCostWeightsResponse* response) {
+  for (const auto& [name, weight] : request->cost_weights()) {
+    if (agent_.SetWeightByName(name, weight) == -1) {
+      std::ostringstream error_string;
+      error_string << "Weight '" << name
+                   << "' not found in task. Available names are:\n";
+      auto agent_model = agent_.GetModel();
+      for (int i = 0; i < agent_model->nsensor &&
+                      agent_model->sensor_type[i] == mjSENS_USER;
+           i++) {
+        std::string_view sensor_name(agent_model->names +
+                                     agent_model->name_sensoradr[i]);
+        error_string << "  " << sensor_name << "\n";
+      }
+      return {grpc::StatusCode::INVALID_ARGUMENT, error_string.str()};
+    }
   }
 
   return grpc::Status::OK;

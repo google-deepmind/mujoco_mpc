@@ -196,3 +196,12 @@ class Agent:
         name=name, value=value
     )
     self.stub.SetTaskParameter(set_task_parameter_request)
+
+  def set_cost_weights(self, weights: dict[str, float]):
+    """Sets the agent's cost weights by name.
+
+    Args:
+      weights: a map for cost term name to weight value
+    """
+    request = agent_pb2.SetCostWeightsRequest(cost_weights=weights)
+    self.stub.SetCostWeights(request)

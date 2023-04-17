@@ -28,6 +28,7 @@
 #include <absl/strings/match.h>
 #include <absl/strings/str_join.h>
 #include <absl/strings/strip.h>
+#include <mujoco/mjmodel.h>
 #include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
@@ -246,6 +247,18 @@ int Agent::SetParamByName(std::string_view name, double value) {
       } else {
         shift++;
       }
+    }
+  }
+  return -1;
+}
+
+int Agent::SetWeightByName(std::string_view name, double value) {
+  for (int i = 0; i < model_->nsensor && model_->sensor_type[i] == mjSENS_USER;
+       i++) {
+    std::string_view sensor_name(model_->names + model_->name_sensoradr[i]);
+    if (absl::EqualsIgnoreCase(sensor_name, name)) {
+      ActiveTask()->weight[i] = value;
+      return i;
     }
   }
   return -1;

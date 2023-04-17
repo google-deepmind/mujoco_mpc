@@ -113,6 +113,33 @@ class AgentTest(absltest.TestCase):
     observations = np.array(observations)
     self.assertFalse((observations == 0).all())
 
+  def test_set_cost_weights(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc"
+        / "tasks"
+        / "cartpole"
+        / "task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+
+    # by default, planner would produce a non-zero action
+    agent.set_task_parameter("Goal", -1.0)
+    agent.planner_step()
+    action = agent.get_action()
+    self.assertFalse(np.allclose(action, 0))
+
+    # setting all costs to 0 apart from control should end up with a zero action
+    agent.reset()
+    agent.set_task_parameter("Goal", -1.0)
+    agent.set_cost_weights(
+        {"Vertical": 0, "Velocity": 0, "Centered": 0, "Control": 1}
+    )
+    agent.planner_step()
+    action = agent.get_action()
+    np.testing.assert_allclose(action, 0)
+
 
 if __name__ == "__main__":
   absltest.main()

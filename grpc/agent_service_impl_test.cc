@@ -223,4 +223,34 @@ TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {
   EXPECT_TRUE(set_task_parameter_status.ok());
 }
 
+TEST_F(AgentServiceImplTest, SetCostWeights_Works) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  grpc::ClientContext context;
+
+  agent::SetCostWeightsRequest request;
+  (*request.mutable_cost_weights())["Vertical"] = 99;
+  (*request.mutable_cost_weights())["Velocity"] = 3;
+  agent::SetCostWeightsResponse response;
+  grpc::Status status = stub->SetCostWeights(&context, request, &response);
+
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(AgentServiceImplTest, SetCostWeights_RejectsInvalidName) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  grpc::ClientContext context;
+
+  agent::SetCostWeightsRequest request;
+  (*request.mutable_cost_weights())["Vertically"] = 99;
+  agent::SetCostWeightsResponse response;
+  grpc::Status status = stub->SetCostWeights(&context, request, &response);
+
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), testing::ContainsRegex("Velocity"))
+      << "Error message should contain the list of cost term names.";
+}
+
 }  // namespace agent_grpc

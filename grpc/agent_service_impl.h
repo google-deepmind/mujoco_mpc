@@ -65,6 +65,11 @@ class AgentServiceImpl final : public agent::Agent::Service {
       const agent::SetTaskParameterRequest* request,
       agent::SetTaskParameterResponse* response) override;
 
+  grpc::Status SetCostWeights(
+      grpc::ServerContext* context,
+      const agent::SetCostWeightsRequest* request,
+      agent::SetCostWeightsResponse* response) override;
+
  private:
   mjpc::ThreadPool thread_pool_;
   mjpc::Agent agent_;

@@ -155,6 +155,9 @@ class Agent:
     set_state_request = agent_pb2.SetStateRequest(state=state)
     self.stub.SetState(set_state_request)
 
+  def get_state(self) -> agent_pb2.State:
+    return self.stub.GetState(agent_pb2.GetStateRequest()).state
+
   def get_action(self, time: Optional[float] = None) -> np.ndarray:
     """Return latest `action` from the `Agent`'s planner.
 
@@ -172,6 +175,10 @@ class Agent:
     """Send a planner request."""
     planner_step_request = agent_pb2.PlannerStepRequest()
     self.stub.PlannerStep(planner_step_request)
+
+  def step(self):
+    """Step the physics on the agent side."""
+    self.stub.Step(agent_pb2.StepRequest())
 
   def reset(self):
     """Reset the `Agent`'s data, settings, planner, and states."""

@@ -49,6 +49,7 @@ class State {
 
   // copy into destination
   void CopyTo(double* dst_state, double* dst_mocap, double* dst_userdata, double* time) const;
+  void CopyTo(const mjModel* model, mjData* data) const;
 
   const std::vector<double>& state() const { return state_; }
   const std::vector<double>& mocap() const { return mocap_; }

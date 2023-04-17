@@ -76,4 +76,25 @@ void State::CopyTo(double* dst_state, double* dst_mocap,
   mju_copy(dst_userdata, this->userdata_.data(), this->userdata_.size());
 }
 
+void State::CopyTo(const mjModel* model, mjData* data) const {
+  const std::shared_lock<std::shared_mutex> lock(mtx_);
+
+    // state
+    mju_copy(data->qpos, state_.data(), model->nq);
+    mju_copy(data->qvel, DataAt(state_, model->nq), model->nv);
+    mju_copy(data->act, DataAt(state_, model->nq + model->nv), model->na);
+
+    // mocap
+    for (int i = 0; i < model->nmocap; i++) {
+      mju_copy(data->mocap_pos + 3 * i, DataAt(mocap_, 7 * i), 3);
+      mju_copy(data->mocap_quat + 4 * i, DataAt(mocap_, 7 * i + 3), 4);
+    }
+
+    // userdata
+    mju_copy(data->userdata, userdata_.data(), model->nuserdata);
+
+    // time
+    data->time = time_;
+}
+
 }  // namespace mjpc

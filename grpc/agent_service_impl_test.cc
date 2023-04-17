@@ -19,6 +19,7 @@
 #include <memory>
 #include <string_view>
 
+#include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>
@@ -30,6 +31,7 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
+#include "third_party/mujoco_mpc/grpc/agent.proto.h"
 
 namespace agent_grpc {
 
@@ -152,6 +154,57 @@ TEST_F(AgentServiceImplTest, PlannerStep_ProducesNonzeroAction) {
   EXPECT_TRUE(get_action_status.ok()) << get_action_status.error_message();
   EXPECT_EQ(get_action_response.action().size(), 1);
   EXPECT_TRUE(get_action_response.action()[0] != 0.0);
+}
+
+TEST_F(AgentServiceImplTest, Step_AdvancesTime) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  agent::State initial_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    EXPECT_TRUE(stub->GetState(&context, request, &response).ok());
+    initial_state = response.state();
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::SetTaskParameterRequest request;
+    request.set_name("Goal");
+    request.set_value(-1.0);
+    agent::SetTaskParameterResponse response;
+    EXPECT_TRUE(stub->SetTaskParameter(&context, request, &response).ok());
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::PlannerStepRequest request;
+    agent::PlannerStepResponse response;
+    grpc::Status status = stub->PlannerStep(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::StepRequest request;
+    agent::StepResponse response;
+    grpc::Status status = stub->Step(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  agent::State final_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    final_state = response.state();
+  }
+  EXPECT_GT(final_state.time(), initial_state.time());
 }
 
 TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {

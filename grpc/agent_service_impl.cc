@@ -35,6 +35,8 @@ namespace agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetStateRequest;
+using ::agent::GetStateResponse;
 using ::agent::InitRequest;
 using ::agent::InitResponse;
 using ::agent::PlannerStepRequest;
@@ -45,6 +47,8 @@ using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
 using ::agent::SetTaskParameterRequest;
 using ::agent::SetTaskParameterResponse;
+using ::agent::StepRequest;
+using ::agent::StepResponse;
 
 mjpc::Task* task = nullptr;
 mjModel* model = nullptr;
@@ -156,6 +160,35 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
   return absl::OkStatus();
 }
 
+grpc::Status AgentServiceImpl::GetState(grpc::ServerContext* context,
+                                        const GetStateRequest* request,
+                                        GetStateResponse* response) {
+  agent_.ActiveState().CopyTo(model, data_);
+  agent::State* output_state = response->mutable_state();
+
+  output_state->set_time(data_->time);
+  for (int i = 0; i < model->nq; i++) {
+    output_state->add_qpos(data_->qpos[i]);
+  }
+  for (int i = 0; i < model->nv; i++) {
+    output_state->add_qvel(data_->qvel[i]);
+  }
+  for (int i = 0; i < model->na; i++) {
+    output_state->add_act(data_->act[i]);
+  }
+  for (int i = 0; i < model->nmocap * 3; i++) {
+    output_state->add_mocap_pos(data_->mocap_pos[i]);
+  }
+  for (int i = 0; i < model->nmocap * 4; i++) {
+    output_state->add_mocap_quat(data_->mocap_quat[i]);
+  }
+  for (int i = 0; i < model->nuserdata; i++) {
+    output_state->add_userdata(data_->userdata[i]);
+  }
+
+  return grpc::Status::OK;
+}
+
 #define CHECK_SIZE(name, n1, n2) \
 { \
   auto expr = (CheckSize(name, n1, n2)); \
@@ -236,6 +269,22 @@ grpc::Status AgentServiceImpl::PlannerStep(grpc::ServerContext* context,
   agent_.plan_enabled = true;
   agent_.PlanIteration(&thread_pool_);
 
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentServiceImpl::Step(grpc::ServerContext* context,
+                                     const StepRequest* request,
+                                     StepResponse* response) {
+  mjpc::State& state = agent_.ActiveState();
+  state.CopyTo(model, data_);
+  if (request->use_previous_policy()) {
+    return {grpc::StatusCode::UNIMPLEMENTED,
+            "use_previous_policy not implemented."};
+  }
+  agent_.ActivePlanner().ActionFromPolicy(data_->ctrl, state.state().data(),
+                                          state.time());
+  mj_step(model, data_);
+  state.Set(model, data_);
   return grpc::Status::OK;
 }
 

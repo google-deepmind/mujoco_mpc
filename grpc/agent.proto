@@ -19,12 +19,16 @@ package agent;
 service Agent {
   // Initialize MJPC Agent.
   rpc Init(InitRequest) returns (InitResponse);
+  // Get the simulation state.
+  rpc GetState(GetStateRequest) returns (GetStateResponse);
   // Set state of the MJPC Agent.
   rpc SetState(SetStateRequest) returns (SetStateResponse);
   // Get the current action from the Agent.
   rpc GetAction(GetActionRequest) returns (GetActionResponse);
   // Compute one plan step.
   rpc PlannerStep(PlannerStepRequest) returns (PlannerStepResponse);
+  // Step physics once, using actions from the planner.
+  rpc Step(StepRequest) returns (StepResponse);
   // Reset the Agent.
   rpc Reset(ResetRequest) returns (ResetResponse);
   // Set a task parameter.
@@ -53,6 +57,11 @@ message State {
   repeated double userdata = 7 [packed = true];
 }
 
+message GetStateRequest {}
+message GetStateResponse {
+  State state = 1;
+}
+
 message SetStateRequest {
   State state = 1;
 }
@@ -68,6 +77,13 @@ message GetActionResponse {
 
 message PlannerStepRequest {}
 message PlannerStepResponse {}
+
+message StepRequest {
+  // if true, the policy from before the last call to PlanIteration will be
+  // used. This is useful for simulating planning delay.
+  bool use_previous_policy = 1;
+}
+message StepResponse {}
 
 message ResetRequest {}
 message ResetResponse {}

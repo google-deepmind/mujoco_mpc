@@ -36,6 +36,10 @@ class AgentServiceImpl final : public agent::Agent::Service {
                     const agent::InitRequest* request,
                     agent::InitResponse* response) override;
 
+  grpc::Status GetState(grpc::ServerContext* context,
+                        const agent::GetStateRequest* request,
+                        agent::GetStateResponse* response) override;
+
   grpc::Status SetState(grpc::ServerContext* context,
                         const agent::SetStateRequest* request,
                         agent::SetStateResponse* response) override;
@@ -47,6 +51,10 @@ class AgentServiceImpl final : public agent::Agent::Service {
   grpc::Status PlannerStep(grpc::ServerContext* context,
                            const agent::PlannerStepRequest* request,
                            agent::PlannerStepResponse* response) override;
+
+  grpc::Status Step(grpc::ServerContext* context,
+                    const agent::StepRequest* request,
+                    agent::StepResponse* response) override;
 
   grpc::Status Reset(grpc::ServerContext* context,
                      const agent::ResetRequest* request,

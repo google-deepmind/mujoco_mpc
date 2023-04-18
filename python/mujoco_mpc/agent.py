@@ -65,7 +65,7 @@ class Agent:
     self.task_id = task_id
     self.model = model
 
-    binary_name = "agent_service"
+    binary_name = "agent_server"
     server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(

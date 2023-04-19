@@ -84,17 +84,17 @@ add_custom_command(
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 add_executable(
-  agent_service
-  agent_service.cc
+  agent_server
+  agent_server.cc
   ${agent_service_grpc_srcs}
   ${agent_service_grpc_hdrs}
   ${agent_service_proto_srcs}
   ${agent_service_proto_hdrs}
-  agent_service_impl.h
-  agent_service_impl.cc)
+  agent_service.h
+  agent_service.cc)
 
 target_link_libraries(
-  agent_service
+  agent_server
   # agent_service_grpc_proto
   absl::random_random
   absl::status
@@ -108,7 +108,7 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
-target_include_directories(agent_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(MJPC_COMPILE_OPTIONS=${MJPC_COMPILE_OPTIONS})
-target_compile_options(agent_service PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
-target_link_options(agent_service PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
+target_compile_options(agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
+target_link_options(agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})

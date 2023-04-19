@@ -18,12 +18,12 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang-14
               -DCMAKE_CXX_COMPILER:STRING=clang++-14
-            additional_targets: "agent_service"
+            additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: macos-12
             cmake_args: >-
               -G Ninja
-            additional_targets: "agent_service"
+            additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: windows-2022
             cmake_args: >-

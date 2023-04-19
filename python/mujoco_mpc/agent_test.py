@@ -40,7 +40,7 @@ def environment_reset(model, data):
 
 class AgentTest(absltest.TestCase):
 
-  def test_step_with_planner(self):
+  def test_step_env_with_planner(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
         / "mjpc"
@@ -77,6 +77,68 @@ class AgentTest(absltest.TestCase):
 
     self.assertFalse((observations == 0).all())
     self.assertFalse((actions == 0).all())
+
+  def test_stepping_on_agent_side(self):
+    """Test an alternative way of stepping the physics, on the agent side."""
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc"
+        / "tasks"
+        / "cartpole"
+        / "task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    agent.set_task_parameter("Goal", -1.0)
+
+    num_steps = 10
+    observations = []
+    for _ in range(num_steps):
+      agent.planner_step()
+      agent.step()
+      state = agent.get_state()
+      data.time = state.time
+      data.qpos = state.qpos
+      data.qvel = state.qvel
+      data.act = state.act
+      data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
+      data.mocap_quat = np.array(state.mocap_quat).reshape(
+          data.mocap_quat.shape
+      )
+      data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
+      observations.append(get_observation(model, data))
+
+    self.assertNotEqual(agent.get_state().time, 0)
+    observations = np.array(observations)
+    self.assertFalse((observations == 0).all())
+
+  def test_set_cost_weights(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc"
+        / "tasks"
+        / "cartpole"
+        / "task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+
+    # by default, planner would produce a non-zero action
+    agent.set_task_parameter("Goal", -1.0)
+    agent.planner_step()
+    action = agent.get_action()
+    self.assertFalse(np.allclose(action, 0))
+
+    # setting all costs to 0 apart from control should end up with a zero action
+    agent.reset()
+    agent.set_task_parameter("Goal", -1.0)
+    agent.set_cost_weights(
+        {"Vertical": 0, "Velocity": 0, "Centered": 0, "Control": 1}
+    )
+    agent.planner_step()
+    action = agent.get_action()
+    np.testing.assert_allclose(action, 0)
 
 
 if __name__ == "__main__":

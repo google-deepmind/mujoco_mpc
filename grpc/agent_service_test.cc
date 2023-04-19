@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Unit tests for the `AgentServiceImpl` class.
+// Unit tests for the `AgentService` class.
 
-#include "grpc/agent_service_impl.h"
+#include "grpc/agent_service.h"
 
 #include <memory>
 #include <string_view>
 
+#include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>
@@ -30,17 +31,19 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
+#include "third_party/mujoco_mpc/grpc/agent.proto.h"
+#include "mjpc/tasks/tasks.h"
 
 namespace agent_grpc {
 
 using agent::grpc_gen::Agent;
 
-class AgentServiceImplTest : public ::testing::Test {
+class AgentServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    agent_service_impl = std::make_unique<AgentServiceImpl>();
+    agent_service = std::make_unique<AgentService>(mjpc::GetTasks());
     grpc::ServerBuilder builder;
-    builder.RegisterService(agent_service_impl.get());
+    builder.RegisterService(agent_service.get());
     server = builder.BuildAndStart();
     std::shared_ptr<grpc::Channel> channel =
         server->InProcessChannel(grpc::ChannelArguments());
@@ -70,20 +73,20 @@ class AgentServiceImplTest : public ::testing::Test {
     EXPECT_TRUE(init_status.ok()) << init_status.error_message();
   }
 
-  std::unique_ptr<AgentServiceImpl> agent_service_impl;
+  std::unique_ptr<AgentService> agent_service;
   std::unique_ptr<Agent::Stub> stub;
   std::unique_ptr<grpc::Server> server;
 };
 
-TEST_F(AgentServiceImplTest, Init_WithoutModel) {
+TEST_F(AgentServiceTest, Init_WithoutModel) {
   RunAndCheckInit("Cartpole", NULL);
 }
 
-TEST_F(AgentServiceImplTest, Init_WithModel) {
+TEST_F(AgentServiceTest, Init_WithModel) {
   // TODO(khartikainen)
 }
 
-TEST_F(AgentServiceImplTest, SetState_Works) {
+TEST_F(AgentServiceTest, SetState_Works) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_state_context;
@@ -99,7 +102,7 @@ TEST_F(AgentServiceImplTest, SetState_Works) {
   EXPECT_TRUE(set_state_status.ok()) << set_state_status.error_message();
 }
 
-TEST_F(AgentServiceImplTest, SetState_WrongSize) {
+TEST_F(AgentServiceTest, SetState_WrongSize) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_state_context;
@@ -118,7 +121,7 @@ TEST_F(AgentServiceImplTest, SetState_WrongSize) {
   EXPECT_FALSE(set_state_status.ok());
 }
 
-TEST_F(AgentServiceImplTest, PlannerStep_ProducesNonzeroAction) {
+TEST_F(AgentServiceTest, PlannerStep_ProducesNonzeroAction) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_task_parameter_context;
@@ -154,7 +157,58 @@ TEST_F(AgentServiceImplTest, PlannerStep_ProducesNonzeroAction) {
   EXPECT_TRUE(get_action_response.action()[0] != 0.0);
 }
 
-TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {
+TEST_F(AgentServiceTest, Step_AdvancesTime) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  agent::State initial_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    EXPECT_TRUE(stub->GetState(&context, request, &response).ok());
+    initial_state = response.state();
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::SetTaskParameterRequest request;
+    request.set_name("Goal");
+    request.set_value(-1.0);
+    agent::SetTaskParameterResponse response;
+    EXPECT_TRUE(stub->SetTaskParameter(&context, request, &response).ok());
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::PlannerStepRequest request;
+    agent::PlannerStepResponse response;
+    grpc::Status status = stub->PlannerStep(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::StepRequest request;
+    agent::StepResponse response;
+    grpc::Status status = stub->Step(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  agent::State final_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    final_state = response.state();
+  }
+  EXPECT_GT(final_state.time(), initial_state.time());
+}
+
+TEST_F(AgentServiceTest, SetTaskParameter_Works) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_task_parameter_context;
@@ -168,6 +222,36 @@ TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {
       &set_task_parameter_response);
 
   EXPECT_TRUE(set_task_parameter_status.ok());
+}
+
+TEST_F(AgentServiceTest, SetCostWeights_Works) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  grpc::ClientContext context;
+
+  agent::SetCostWeightsRequest request;
+  (*request.mutable_cost_weights())["Vertical"] = 99;
+  (*request.mutable_cost_weights())["Velocity"] = 3;
+  agent::SetCostWeightsResponse response;
+  grpc::Status status = stub->SetCostWeights(&context, request, &response);
+
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(AgentServiceTest, SetCostWeights_RejectsInvalidName) {
+  RunAndCheckInit("Cartpole", NULL);
+
+  grpc::ClientContext context;
+
+  agent::SetCostWeightsRequest request;
+  (*request.mutable_cost_weights())["Vertically"] = 99;
+  agent::SetCostWeightsResponse response;
+  grpc::Status status = stub->SetCostWeights(&context, request, &response);
+
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+  EXPECT_THAT(status.error_message(), testing::ContainsRegex("Velocity"))
+      << "Error message should contain the list of cost term names.";
 }
 
 }  // namespace agent_grpc

@@ -17,10 +17,10 @@
 import os
 import pathlib
 import platform
-import setuptools
-from setuptools.command import build_py
-from setuptools.command import build_ext
 import shutil
+import setuptools
+from setuptools.command import build_ext
+from setuptools.command import build_py
 import subprocess
 
 
@@ -59,7 +59,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     proto_module_relative_path = Path(
-      "mujoco_mpc", "proto", agent_proto_filename)
+        "mujoco_mpc", "proto", agent_proto_filename)
     agent_proto_destination_path = Path(
         build_lib_path, proto_module_relative_path
     )
@@ -78,21 +78,21 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     # on MacOS for some reason, most likely because of the lack of explicit
     # `protoc.py` included by the script-version of `protoc`.
     self.spawn([
-      "python", "-m", "grpc_tools.protoc", *protoc_command_parts
+        "python", "-m", "grpc_tools.protoc", *protoc_command_parts
     ])
     self.spawn([
-      "touch", str(agent_proto_destination_path.parent / "__init__.py")
+        "touch", str(agent_proto_destination_path.parent / "__init__.py")
     ])
 
 
-class CopyAgentServiceBinaryCommand(setuptools.Command):
-  """Specialized setup command to copy `agent_service` next to `agent.py`.
+class CopyAgentServerBinaryCommand(setuptools.Command):
+  """Specialized setup command to copy `agent_server` next to `agent.py`.
 
-  Assumes that the C++ gRPC `agent_service` binary has been manually built and
+  Assumes that the C++ gRPC `agent_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
-  description = "Copy `agent_service` next to `agent.py`."
+  description = "Copy `agent_server` next to `agent.py`."
   user_options = []
 
   def initialize_options(self):
@@ -102,16 +102,16 @@ class CopyAgentServiceBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    source_path = Path("../build/bin/agent_service")
+    source_path = Path("../build/bin/agent_server")
     if not source_path.exists():
       raise ValueError(
-          f"Cannot find `agent_service` binary from {source_path}. Please build"
-          " the `agent_service` C++ gRPC service."
+          f"Cannot find `agent_server` binary from {source_path}. Please build"
+          " the `agent_server` C++ gRPC service."
       )
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     destination_path = Path(
-      build_lib_path, "mujoco_mpc", "mjpc", "agent_service"
+        build_lib_path, "mujoco_mpc", "mjpc", "agent_server"
     )
 
     self.announce(f"{source_path.resolve()=}")
@@ -122,9 +122,9 @@ class CopyAgentServiceBinaryCommand(setuptools.Command):
 
 
 class CopyTaskAssetsCommand(setuptools.Command):
-  """Specialized setup command to copy `agent_service` next to `agent.py`.
+  """Specialized setup command to copy `agent_server` next to `agent.py`.
 
-  Assumes that the C++ gRPC `agent_service` binary has been manually built and
+  Assumes that the C++ gRPC `agent_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
@@ -166,7 +166,7 @@ class BuildPyCommand(build_py.build_py):
   """Specialized Python builder to handle agent service dependencies.
 
   During build, this will generate the `agent_pb2{_grpc}.py` files and copy
-  `agent_service` binary next to `agent.py`.
+  `agent_server` binary next to `agent.py`.
   """
 
   user_options = build_py.build_py.user_options
@@ -192,19 +192,19 @@ class BuildCMakeExtension(build_ext.build_ext):
   """Uses CMake to build extensions."""
 
   def run(self):
-    self._configure_and_build_agent_service()
-    self.run_command("copy_agent_service_binary")
+    self._configure_and_build_agent_server()
+    self.run_command("copy_agent_server_binary")
 
-  def _configure_and_build_agent_service(self):
+  def _configure_and_build_agent_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
     build_cfg = "Debug"
     mujoco_mpc_root = Path(__file__).parent.parent
     mujoco_mpc_build_dir = mujoco_mpc_root / "build"
     cmake_configure_args = [
-      "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
-      f"-DCMAKE_BUILD_TYPE:STRING={build_cfg}",
-      "-DBUILD_TESTING:BOOL=OFF"
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
+        f"-DCMAKE_BUILD_TYPE:STRING={build_cfg}",
+        "-DBUILD_TESTING:BOOL=OFF"
     ]
 
     if platform.system() == "Darwin" and "ARCHFLAGS" in os.environ:
@@ -214,7 +214,7 @@ class BuildCMakeExtension(build_ext.build_ext):
       if "-arch arm64" in os.environ["ARCHFLAGS"]:
         osx_archs.append("arm64")
       cmake_configure_args.append(
-        f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}")
+          f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}")
 
     # TODO(hartikainen): We currently configure the builds into
     # `mujoco_mpc/build`. This should use `self.build_{temp,lib}` instead, to
@@ -223,22 +223,22 @@ class BuildCMakeExtension(build_ext.build_ext):
     for arg in cmake_configure_args:
       print(f"  {arg}")
     subprocess.check_call([
-      cmake_command,
-      *cmake_configure_args,
-      f"-S{mujoco_mpc_root.resolve()}",
-      f"-B{mujoco_mpc_build_dir.resolve()}",
+        cmake_command,
+        *cmake_configure_args,
+        f"-S{mujoco_mpc_root.resolve()}",
+        f"-B{mujoco_mpc_build_dir.resolve()}",
     ], cwd=mujoco_mpc_root)
 
-    print("Building `agent_service` with CMake")
+    print("Building `agent_server` with CMake")
     subprocess.check_call([
-      cmake_command,
-      "--build",
-      mujoco_mpc_build_dir.resolve(),
-      "--target",
-      "agent_service",
-      f"-j{os.cpu_count()}",
-      "--config",
-      build_cfg,
+        cmake_command,
+        "--build",
+        mujoco_mpc_build_dir.resolve(),
+        "--target",
+        "agent_server",
+        f"-j{os.cpu_count()}",
+        "--config",
+        build_cfg,
     ], cwd=mujoco_mpc_root)
 
 
@@ -272,15 +272,15 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
-    ext_modules=[CMakeExtension("agent_service")],
+    ext_modules=[CMakeExtension("agent_server")],
     cmdclass={
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
-        "copy_agent_service_binary": CopyAgentServiceBinaryCommand,
+        "copy_agent_server_binary": CopyAgentServerBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={
-        "": ["mjpc/agent_service", "mjpc/tasks/**/*.xml"],
+        "": ["mjpc/agent_server", "mjpc/tasks/**/*.xml"],
     },
 )

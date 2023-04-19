@@ -65,7 +65,7 @@ class Agent:
     self.task_id = task_id
     self.model = model
 
-    binary_name = "agent_service"
+    binary_name = "agent_server"
     server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
@@ -155,6 +155,9 @@ class Agent:
     set_state_request = agent_pb2.SetStateRequest(state=state)
     self.stub.SetState(set_state_request)
 
+  def get_state(self) -> agent_pb2.State:
+    return self.stub.GetState(agent_pb2.GetStateRequest()).state
+
   def get_action(self, time: Optional[float] = None) -> np.ndarray:
     """Return latest `action` from the `Agent`'s planner.
 
@@ -173,6 +176,10 @@ class Agent:
     planner_step_request = agent_pb2.PlannerStepRequest()
     self.stub.PlannerStep(planner_step_request)
 
+  def step(self):
+    """Step the physics on the agent side."""
+    self.stub.Step(agent_pb2.StepRequest())
+
   def reset(self):
     """Reset the `Agent`'s data, settings, planner, and states."""
     reset_request = agent_pb2.ResetRequest()
@@ -189,3 +196,12 @@ class Agent:
         name=name, value=value
     )
     self.stub.SetTaskParameter(set_task_parameter_request)
+
+  def set_cost_weights(self, weights: dict[str, float]):
+    """Sets the agent's cost weights by name.
+
+    Args:
+      weights: a map for cost term name to weight value
+    """
+    request = agent_pb2.SetCostWeightsRequest(cost_weights=weights)
+    self.stub.SetCostWeights(request)

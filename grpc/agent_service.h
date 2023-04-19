@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// A simple `Agent` server using the gRPC.
+// An implementation of the `Agent` gRPC service.
 
-#ifndef GRPC_AGENT_SERVICE_IMPL_H
-#define GRPC_AGENT_SERVICE_IMPL_H
+#ifndef GRPC_AGENT_SERVICE_H
+#define GRPC_AGENT_SERVICE_H
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
@@ -23,18 +23,25 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
+#include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace agent_grpc {
 
-class AgentServiceImpl final : public agent::Agent::Service {
+class AgentService final : public agent::Agent::Service {
  public:
-  AgentServiceImpl() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
-  ~AgentServiceImpl();
+  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks)
+      : thread_pool_(mjpc::NumAvailableHardwareThreads()),
+        tasks_(std::move(tasks)) {}
+  ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
                     agent::InitResponse* response) override;
+
+  grpc::Status GetState(grpc::ServerContext* context,
+                        const agent::GetStateRequest* request,
+                        agent::GetStateResponse* response) override;
 
   grpc::Status SetState(grpc::ServerContext* context,
                         const agent::SetStateRequest* request,
@@ -48,6 +55,10 @@ class AgentServiceImpl final : public agent::Agent::Service {
                            const agent::PlannerStepRequest* request,
                            agent::PlannerStepResponse* response) override;
 
+  grpc::Status Step(grpc::ServerContext* context,
+                    const agent::StepRequest* request,
+                    agent::StepResponse* response) override;
+
   grpc::Status Reset(grpc::ServerContext* context,
                      const agent::ResetRequest* request,
                      agent::ResetResponse* response) override;
@@ -57,12 +68,18 @@ class AgentServiceImpl final : public agent::Agent::Service {
       const agent::SetTaskParameterRequest* request,
       agent::SetTaskParameterResponse* response) override;
 
+  grpc::Status SetCostWeights(
+      grpc::ServerContext* context,
+      const agent::SetCostWeightsRequest* request,
+      agent::SetCostWeightsResponse* response) override;
+
  private:
   mjpc::ThreadPool thread_pool_;
   mjpc::Agent agent_;
+  std::vector<std::shared_ptr<mjpc::Task>> tasks_;
   mjData* data_ = nullptr;
 };
 
 }  // namespace agent_grpc
 
-#endif  // GRPC_AGENT_SERVICE_IMPL_H
+#endif  // GRPC_AGENT_SERVICE_H

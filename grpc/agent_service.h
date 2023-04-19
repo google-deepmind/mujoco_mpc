@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// A simple `Agent` server using the gRPC.
+// An implementation of the `Agent` gRPC service.
 
-#ifndef GRPC_AGENT_SERVICE_IMPL_H
-#define GRPC_AGENT_SERVICE_IMPL_H
+#ifndef GRPC_AGENT_SERVICE_H
+#define GRPC_AGENT_SERVICE_H
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
@@ -28,10 +28,10 @@
 
 namespace agent_grpc {
 
-class AgentServiceImpl final : public agent::Agent::Service {
+class AgentService final : public agent::Agent::Service {
  public:
-  AgentServiceImpl() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
-  ~AgentServiceImpl();
+  AgentService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
                     agent::InitResponse* response) override;
@@ -78,4 +78,4 @@ class AgentServiceImpl final : public agent::Agent::Service {
 
 }  // namespace agent_grpc
 
-#endif  // GRPC_AGENT_SERVICE_IMPL_H
+#endif  // GRPC_AGENT_SERVICE_H

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/agent_service_impl.h"
+#include "grpc/agent_service.h"
 
 #include <cstring>
 #include <memory>
@@ -91,9 +91,9 @@ mjModel* LoadModelFromBytes(std::string_view mjb) {
   return m;
 }
 
-grpc::Status AgentServiceImpl::Init(grpc::ServerContext* context,
-                                    const InitRequest* request,
-                                    InitResponse* response) {
+grpc::Status AgentService::Init(grpc::ServerContext* context,
+                                const InitRequest* request,
+                                InitResponse* response) {
   std::string_view task_id = request->task_id();
   agent_.SetTaskList(mjpc::GetTasks());
   int task_index = agent_.GetTaskIdByName(task_id);
@@ -144,7 +144,7 @@ grpc::Status AgentServiceImpl::Init(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-AgentServiceImpl::~AgentServiceImpl() {
+AgentService::~AgentService() {
   if (data_) mj_deleteData(data_);
   // no need to delete model and task, since they're owned by agent_.
   model = nullptr;
@@ -162,9 +162,9 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
   return absl::OkStatus();
 }
 
-grpc::Status AgentServiceImpl::GetState(grpc::ServerContext* context,
-                                        const GetStateRequest* request,
-                                        GetStateResponse* response) {
+grpc::Status AgentService::GetState(grpc::ServerContext* context,
+                                    const GetStateRequest* request,
+                                    GetStateResponse* response) {
   agent_.ActiveState().CopyTo(model, data_);
   agent::State* output_state = response->mutable_state();
 
@@ -199,11 +199,11 @@ if (!(expr).ok()) { \
     grpc::StatusCode::INVALID_ARGUMENT, \
     (expr).ToString()); \
   } \
-} \
+}
 
-grpc::Status AgentServiceImpl::SetState(grpc::ServerContext* context,
-                                        const SetStateRequest* request,
-                                        SetStateResponse* response) {
+grpc::Status AgentService::SetState(grpc::ServerContext* context,
+                                    const SetStateRequest* request,
+                                    SetStateResponse* response) {
   agent::State state = request->state();
 
   if (state.has_time()) data_->time = state.time();
@@ -248,9 +248,9 @@ grpc::Status AgentServiceImpl::SetState(grpc::ServerContext* context,
 
 #undef CHECK_SIZE
 
-grpc::Status AgentServiceImpl::GetAction(grpc::ServerContext* context,
-                                         const GetActionRequest* request,
-                                         GetActionResponse* response) {
+grpc::Status AgentService::GetAction(grpc::ServerContext* context,
+                                     const GetActionRequest* request,
+                                     GetActionResponse* response) {
   int nu = agent_.GetActionDim();
   std::vector<double> ret = std::vector<double>(nu);
 
@@ -265,18 +265,18 @@ grpc::Status AgentServiceImpl::GetAction(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status AgentServiceImpl::PlannerStep(grpc::ServerContext* context,
-                                           const PlannerStepRequest* request,
-                                           PlannerStepResponse* response) {
+grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,
+                                       const PlannerStepRequest* request,
+                                       PlannerStepResponse* response) {
   agent_.plan_enabled = true;
   agent_.PlanIteration(&thread_pool_);
 
   return grpc::Status::OK;
 }
 
-grpc::Status AgentServiceImpl::Step(grpc::ServerContext* context,
-                                     const StepRequest* request,
-                                     StepResponse* response) {
+grpc::Status AgentService::Step(grpc::ServerContext* context,
+                                const StepRequest* request,
+                                StepResponse* response) {
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
   if (request->use_previous_policy()) {
@@ -290,14 +290,14 @@ grpc::Status AgentServiceImpl::Step(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status AgentServiceImpl::Reset(grpc::ServerContext* context,
-                                     const ResetRequest* request,
-                                     ResetResponse* response) {
+grpc::Status AgentService::Reset(grpc::ServerContext* context,
+                                 const ResetRequest* request,
+                                 ResetResponse* response) {
   agent_.Reset();
   return grpc::Status::OK;
 }
 
-grpc::Status AgentServiceImpl::SetTaskParameter(
+grpc::Status AgentService::SetTaskParameter(
     grpc::ServerContext* context, const SetTaskParameterRequest* request,
     SetTaskParameterResponse* response) {
   std::string_view name = request->name();
@@ -321,7 +321,7 @@ grpc::Status AgentServiceImpl::SetTaskParameter(
   return grpc::Status::OK;
 }
 
-grpc::Status AgentServiceImpl::SetCostWeights(
+grpc::Status AgentService::SetCostWeights(
     grpc::ServerContext* context, const SetCostWeightsRequest* request,
     SetCostWeightsResponse* response) {
   for (const auto& [name, weight] : request->cost_weights()) {

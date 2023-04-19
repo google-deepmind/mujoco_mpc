@@ -90,8 +90,8 @@ add_executable(
   ${agent_service_grpc_hdrs}
   ${agent_service_proto_srcs}
   ${agent_service_proto_hdrs}
-  agent_service_impl.h
-  agent_service_impl.cc)
+  agent_service.h
+  agent_service.cc)
 
 target_link_libraries(
   agent_server

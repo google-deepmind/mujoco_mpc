@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Unit tests for the `AgentServiceImpl` class.
+// Unit tests for the `AgentService` class.
 
-#include "grpc/agent_service_impl.h"
+#include "grpc/agent_service.h"
 
 #include <memory>
 #include <string_view>
@@ -37,12 +37,12 @@ namespace agent_grpc {
 
 using agent::grpc_gen::Agent;
 
-class AgentServiceImplTest : public ::testing::Test {
+class AgentServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    agent_service_impl = std::make_unique<AgentServiceImpl>();
+    agent_service = std::make_unique<AgentService>();
     grpc::ServerBuilder builder;
-    builder.RegisterService(agent_service_impl.get());
+    builder.RegisterService(agent_service.get());
     server = builder.BuildAndStart();
     std::shared_ptr<grpc::Channel> channel =
         server->InProcessChannel(grpc::ChannelArguments());
@@ -72,20 +72,20 @@ class AgentServiceImplTest : public ::testing::Test {
     EXPECT_TRUE(init_status.ok()) << init_status.error_message();
   }
 
-  std::unique_ptr<AgentServiceImpl> agent_service_impl;
+  std::unique_ptr<AgentService> agent_service;
   std::unique_ptr<Agent::Stub> stub;
   std::unique_ptr<grpc::Server> server;
 };
 
-TEST_F(AgentServiceImplTest, Init_WithoutModel) {
+TEST_F(AgentServiceTest, Init_WithoutModel) {
   RunAndCheckInit("Cartpole", NULL);
 }
 
-TEST_F(AgentServiceImplTest, Init_WithModel) {
+TEST_F(AgentServiceTest, Init_WithModel) {
   // TODO(khartikainen)
 }
 
-TEST_F(AgentServiceImplTest, SetState_Works) {
+TEST_F(AgentServiceTest, SetState_Works) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_state_context;
@@ -101,7 +101,7 @@ TEST_F(AgentServiceImplTest, SetState_Works) {
   EXPECT_TRUE(set_state_status.ok()) << set_state_status.error_message();
 }
 
-TEST_F(AgentServiceImplTest, SetState_WrongSize) {
+TEST_F(AgentServiceTest, SetState_WrongSize) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_state_context;
@@ -120,7 +120,7 @@ TEST_F(AgentServiceImplTest, SetState_WrongSize) {
   EXPECT_FALSE(set_state_status.ok());
 }
 
-TEST_F(AgentServiceImplTest, PlannerStep_ProducesNonzeroAction) {
+TEST_F(AgentServiceTest, PlannerStep_ProducesNonzeroAction) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_task_parameter_context;
@@ -156,7 +156,7 @@ TEST_F(AgentServiceImplTest, PlannerStep_ProducesNonzeroAction) {
   EXPECT_TRUE(get_action_response.action()[0] != 0.0);
 }
 
-TEST_F(AgentServiceImplTest, Step_AdvancesTime) {
+TEST_F(AgentServiceTest, Step_AdvancesTime) {
   RunAndCheckInit("Cartpole", NULL);
 
   agent::State initial_state;
@@ -207,7 +207,7 @@ TEST_F(AgentServiceImplTest, Step_AdvancesTime) {
   EXPECT_GT(final_state.time(), initial_state.time());
 }
 
-TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {
+TEST_F(AgentServiceTest, SetTaskParameter_Works) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext set_task_parameter_context;
@@ -223,7 +223,7 @@ TEST_F(AgentServiceImplTest, SetTaskParameter_Works) {
   EXPECT_TRUE(set_task_parameter_status.ok());
 }
 
-TEST_F(AgentServiceImplTest, SetCostWeights_Works) {
+TEST_F(AgentServiceTest, SetCostWeights_Works) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext context;
@@ -237,7 +237,7 @@ TEST_F(AgentServiceImplTest, SetCostWeights_Works) {
   EXPECT_TRUE(status.ok());
 }
 
-TEST_F(AgentServiceImplTest, SetCostWeights_RejectsInvalidName) {
+TEST_F(AgentServiceTest, SetCostWeights_RejectsInvalidName) {
   RunAndCheckInit("Cartpole", NULL);
 
   grpc::ClientContext context;

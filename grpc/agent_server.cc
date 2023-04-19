@@ -25,7 +25,7 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-#include "grpc/agent_service_impl.h"
+#include "grpc/agent_service.h"
 
 ABSL_FLAG(int32_t, port, 10000, "port to listen on");
 
@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  agent_grpc::AgentServiceImpl service;
+  agent_grpc::AgentService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

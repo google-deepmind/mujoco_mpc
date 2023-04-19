@@ -29,7 +29,6 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
 #include "mjpc/task.h"
-#include "mjpc/tasks/tasks.h"
 
 namespace agent_grpc {
 
@@ -95,7 +94,7 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
                                 const InitRequest* request,
                                 InitResponse* response) {
   std::string_view task_id = request->task_id();
-  agent_.SetTaskList(mjpc::GetTasks());
+  agent_.SetTaskList(tasks_);
   int task_index = agent_.GetTaskIdByName(task_id);
   if (task_index == -1) {
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,

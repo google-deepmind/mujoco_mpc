@@ -23,6 +23,7 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
+#include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
@@ -30,7 +31,9 @@ namespace agent_grpc {
 
 class AgentService final : public agent::Agent::Service {
  public:
-  AgentService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks)
+      : thread_pool_(mjpc::NumAvailableHardwareThreads()),
+        tasks_(std::move(tasks)) {}
   ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
@@ -73,6 +76,7 @@ class AgentService final : public agent::Agent::Service {
  private:
   mjpc::ThreadPool thread_pool_;
   mjpc::Agent agent_;
+  std::vector<std::shared_ptr<mjpc::Task>> tasks_;
   mjData* data_ = nullptr;
 };
 

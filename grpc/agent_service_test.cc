@@ -32,6 +32,7 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "third_party/mujoco_mpc/grpc/agent.proto.h"
+#include "mjpc/tasks/tasks.h"
 
 namespace agent_grpc {
 
@@ -40,7 +41,7 @@ using agent::grpc_gen::Agent;
 class AgentServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    agent_service = std::make_unique<AgentService>();
+    agent_service = std::make_unique<AgentService>(mjpc::GetTasks());
     grpc::ServerBuilder builder;
     builder.RegisterService(agent_service.get());
     server = builder.BuildAndStart();

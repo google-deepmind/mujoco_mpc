@@ -15,6 +15,9 @@
 test(agent_test)
 target_link_libraries(agent_test load gmock)
 
+test(agent_utilities_test)
+target_link_libraries(agent_utilities_test load threadpool gmock)
+
 test(cost_derivatives_test)
 target_link_libraries(cost_derivatives_test finite_difference gmock)
 
@@ -33,5 +36,3 @@ target_link_libraries(threadpool_test threadpool gmock)
 test(trajectory_test)
 target_link_libraries(trajectory_test gmock)
 
-test(utilities_test)
-target_link_libraries(utilities_test load threadpool gmock)

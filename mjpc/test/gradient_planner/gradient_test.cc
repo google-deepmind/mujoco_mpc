@@ -18,7 +18,6 @@
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/model_derivatives.h"
-#include "mjpc/test/finite_difference.h"
 #include "mjpc/test/lqr.h"
 #include "mjpc/utilities.h"
 
@@ -83,41 +82,39 @@ TEST(GradientTest, Gradient) {
   // ----- finite difference ----- //
 
   // evaluation function
-  auto eval_action = [&x, &x0](const double* a, int b) {
+  auto eval_action = [&x, &x0](const double* a) {
     return RolloutReturn(x, a, x0, T);
   };
 
   // set up finite difference
   const int dim_action = (T - 1) * m;
-  FiniteDifferenceGradient fd_action;
-  fd_action.Allocate(eval_action, dim_action, 1.0e-6);
+  FiniteDifferenceGradient fd_action(dim_action);
 
   // gradient
-  fd_action.Gradient(u);
+  fd_action.Compute(eval_action, u, dim_action);
 
   // test gradient
   for (int i = 0; i < dim_action; i++) {
-    EXPECT_NEAR(fd_action.gradient[i], gd.Qu[i], 1.0e-3);
+    EXPECT_NEAR(fd_action.gradient_[i], gd.Qu[i], 1.0e-3);
   }
 
   // ----- finite difference ----- //
 
   // evaluation function
-  auto eval_initial_state = [&x, &u](const double* a, int b) {
+  auto eval_initial_state = [&x, &u](const double* a) {
     return RolloutReturn(x, u, a, T);
   };
 
   // set up finite difference
   const int dim_initial_state = n;
-  FiniteDifferenceGradient fd_initial_state;
-  fd_initial_state.Allocate(eval_initial_state, dim_initial_state, 1.0e-6);
+  FiniteDifferenceGradient fd_initial_state(dim_initial_state);
 
   // gradient
-  fd_initial_state.Gradient(x0);
+  fd_initial_state.Compute(eval_initial_state, x0, dim_initial_state);
 
   // test gradient
   for (int i = 0; i < dim_initial_state; i++) {
-    EXPECT_NEAR(fd_initial_state.gradient[i], gd.Vx[i], 1.0e-3);
+    EXPECT_NEAR(fd_initial_state.gradient_[i], gd.Vx[i], 1.0e-3);
   }
 }
 

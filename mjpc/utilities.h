@@ -256,8 +256,8 @@ class FiniteDifferenceGradient {
   FiniteDifferenceGradient(int dim);
 
   // compute gradient
-  double* Compute(std::function<double(double* x)> func, double* input,
-                  int dim);
+  double* Compute(std::function<double(const double* x)> func,
+                  const double* input, int dim);
 
   // members
   std::vector<double> gradient_;
@@ -273,7 +273,7 @@ class FiniteDifferenceJacobian {
 
   // compute Jacobian
   double* Compute(std::function<void(double* output, const double* input)> func,
-                  double* input, int num_output, int num_input);
+                  const double* input, int num_output, int num_input);
 
   // members
   std::vector<double> jacobian_;
@@ -291,8 +291,8 @@ class FiniteDifferenceHessian {
   FiniteDifferenceHessian(int dim);
 
   // compute
-  double* Compute(std::function<double(double* x)> func, double* input,
-                  int dim);
+  double* Compute(std::function<double(const double* x)> func,
+                  const double* input, int dim);
 
   // members
   std::vector<double> hessian_;

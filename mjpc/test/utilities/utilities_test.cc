@@ -150,7 +150,7 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
 const double FD_TOLERANCE = 1.0e-3;
 
-TEST(FiniteDifferenceTest, Quadratic) {
+TEST(FiniteDifference, Quadratic) {
   // quadratic
   auto quadratic = [](double* x) { return 0.5 * (x[0] * x[0] + x[1] * x[1]); };
   const int n = 2;
@@ -174,7 +174,7 @@ TEST(FiniteDifferenceTest, Quadratic) {
   EXPECT_NEAR(hess[3], 1.0, FD_TOLERANCE);
 }
 
-TEST(FiniteDifferenceTest, Jacobian) {
+TEST(FiniteDifference, Jacobian) {
   // set up
   const int num_output = 2;
   const int num_input = 2;

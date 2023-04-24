@@ -994,8 +994,8 @@ FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) {
 }
 
 // compute finite-difference gradient
-double* FiniteDifferenceGradient::Compute(std::function<double(double* x)> func,
-                                          double* input, int dim) {
+double* FiniteDifferenceGradient::Compute(
+    std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
   if (dim != gradient_.size()) gradient_.resize(dim);
   if (dim != workspace_.size()) workspace_.resize(dim);
@@ -1004,17 +1004,18 @@ double* FiniteDifferenceGradient::Compute(std::function<double(double* x)> func,
   // set workspace
   mju_copy(workspace_.data(), input, dim);
 
-  // nominal evaluation
-  double f = func(input);
-
   // finite difference
   for (int i = 0; i < dim; i++) {
     // positive perturbation
-    workspace_[i] += epsilon_;
+    workspace_[i] += 0.5 * epsilon_;
     double fp = func(workspace_.data());
 
+    // negative 
+    workspace_[i] -= 1.0 * epsilon_;
+    double fn = func(workspace_.data());
+
     // gradient
-    gradient_[i] = (fp - f) / epsilon_;
+    gradient_[i] = (fp - fn) / epsilon_;
 
     // reset
     workspace_[i] = input[i];
@@ -1035,7 +1036,7 @@ FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
 // compute Jacobian
 double* FiniteDifferenceJacobian::Compute(
     std::function<void(double* output, const double* input)> func,
-    double* input, int num_output, int num_input) {
+    const double* input, int num_output, int num_input) {
   // resize
   if (jacobian_.size() != num_output * num_input)
     jacobian_.resize(num_output * num_input);
@@ -1085,8 +1086,8 @@ FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
 }
 
 // compute finite-difference Hessian
-double* FiniteDifferenceHessian::Compute(std::function<double(double* x)> func,
-                                         double* input, int dim) {
+double* FiniteDifferenceHessian::Compute(
+    std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
   if (dim * dim != hessian_.size()) hessian_.resize(dim * dim);
   if (dim != workspace1_.size()) workspace1_.resize(dim);
@@ -1135,6 +1136,7 @@ double* FiniteDifferenceHessian::Compute(std::function<double(double* x)> func,
       workspace3_[j] = input[j];
     }
   }
+
   return hessian_.data();
 }
 

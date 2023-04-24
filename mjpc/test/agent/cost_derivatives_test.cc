@@ -13,36 +13,9 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
-#include "mjpc/test/finite_difference.h"
 
 namespace mjpc {
 namespace {
-
-double quadratic(const double* x, int n) {
-  double c = 0.0;
-  for (int i = 0; i < n; i++) {
-    c += 0.5 * 0.1 * x[i] * x[i];
-  }
-  return c;
-}
-
-TEST(FiniteDifferenceHessianTest, Quadratic) {
-  // Hessian
-  FiniteDifferenceHessian fd;
-
-  // allocate
-  fd.Allocate(quadratic, 2, 1.0e-6);
-
-  // evaluate
-  double x[2] = {0.0, 0.0};
-  fd.Hessian(x);
-
-  // test Hessian
-  EXPECT_NEAR(fd.hessian[0], 0.1, 1.0e-4);
-  EXPECT_NEAR(fd.hessian[1], 0.0, 1.0e-4);
-  EXPECT_NEAR(fd.hessian[2], 0.0, 1.0e-4);
-  EXPECT_NEAR(fd.hessian[3], 0.1, 1.0e-4);
-}
 
 // void R(double* r, const double* x, const double* u) {
 //   r[0] = 0.1 * x[0];

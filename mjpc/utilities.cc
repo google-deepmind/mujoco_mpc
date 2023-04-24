@@ -33,6 +33,7 @@
 #include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
@@ -173,8 +174,8 @@ double* SensorByName(const mjModel* m, const mjData* d,
 
 // get default residual parameter data using string
 double DefaultParameterValue(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
     return 0;
@@ -184,8 +185,8 @@ double DefaultParameterValue(const mjModel* model, std::string_view name) {
 
 // get index to residual parameter data using string
 int ParameterIndex(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
 
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
@@ -220,7 +221,7 @@ int CostTermByName(const mjModel* m, const std::string& name) {
 void CheckSensorDim(const mjModel* model, int residual_size) {
   int user_sensor_dim = 0;
   bool encountered_nonuser_sensor = false;
-  for (int i=0; i < model->nsensor; i++) {
+  for (int i = 0; i < model->nsensor; i++) {
     if (model->sensor_type[i] == mjSENS_USER) {
       user_sensor_dim += model->sensor_dim[i];
       if (encountered_nonuser_sensor) {
@@ -231,8 +232,10 @@ void CheckSensorDim(const mjModel* model, int residual_size) {
     }
   }
   if (user_sensor_dim != residual_size) {
-    mju_error("mismatch between total user-sensor dimension %d "
-              "and residual size %d", user_sensor_dim, residual_size);
+    mju_error(
+        "mismatch between total user-sensor dimension %d "
+        "and residual size %d",
+        user_sensor_dim, residual_size);
   }
 }
 
@@ -567,11 +570,10 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
   }
 }
 
-
 // return global height of nearest group 0 geom under given position
 mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
   const mjtByte geomgroup[6] = {1, 0, 0, 0, 0, 0};  // only detect group 0
-  mjtNum down[3] = {0, 0, -1};      // aim ray straight down
+  mjtNum down[3] = {0, 0, -1};                      // aim ray straight down
   const mjtNum height_offset = .5;  // add some height in case of penetration
   const mjtByte flg_static = 1;     // include static geoms
   const int bodyexclude = -1;       // don't exclude any bodies
@@ -587,44 +589,43 @@ mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
   return pos[2] + height_offset - dist;
 }
 
-
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
-               const double body[3],
-               const double foot0[3], const double foot1[3],
-               const double foot2[3], const double foot3[3]) {
-    // average foot pos
-    double pos[3];
-    for (int i = 0; i < 3; i++) {
-      pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
-    }
+               const double body[3], const double foot0[3],
+               const double foot1[3], const double foot2[3],
+               const double foot3[3]) {
+  // average foot pos
+  double pos[3];
+  for (int i = 0; i < 3; i++) {
+    pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
+  }
 
-    // compute feet covariance
-    double cov[9] = {0};
-    for (const double* foot : {foot0, foot1, foot2, foot3}) {
-      double dif[3], difTdif[9];
-      mju_sub3(dif, foot, pos);
-      mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
-      mju_addTo(cov, difTdif, 9);
-    }
+  // compute feet covariance
+  double cov[9] = {0};
+  for (const double* foot : {foot0, foot1, foot2, foot3}) {
+    double dif[3], difTdif[9];
+    mju_sub3(dif, foot, pos);
+    mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
+    mju_addTo(cov, difTdif, 9);
+  }
 
-    // eigendecompose
-    double eigval[3], quat[4], mat[9];
-    mju_eig3(eigval, mat, quat, cov);
+  // eigendecompose
+  double eigval[3], quat[4], mat[9];
+  mju_eig3(eigval, mat, quat, cov);
 
-    // make sure foot-plane normal (z axis) points to body
-    double zaxis[3] = {mat[2], mat[5], mat[8]};
-    double to_body[3];
-    mju_sub3(to_body, body, pos);
-    if (mju_dot3(zaxis, to_body) < 0) {
-      // flip both z and y (rotate around x), to maintain frame handedness
-      for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
-    }
+  // make sure foot-plane normal (z axis) points to body
+  double zaxis[3] = {mat[2], mat[5], mat[8]};
+  double to_body[3];
+  mju_sub3(to_body, body, pos);
+  if (mju_dot3(zaxis, to_body) < 0) {
+    // flip both z and y (rotate around x), to maintain frame handedness
+    for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
+  }
 
-    // copy outputs
-    if (feet_pos) mju_copy3(feet_pos, pos);
-    if (feet_mat) mju_copy(feet_mat, mat, 9);
-    if (feet_quat) mju_mat2Quat(feet_quat, mat);
+  // copy outputs
+  if (feet_pos) mju_copy3(feet_pos, pos);
+  if (feet_mat) mju_copy(feet_mat, mat, 9);
+  if (feet_quat) mju_mat2Quat(feet_quat, mat);
 }
 
 // set x to be the point on the segment [p0 p1] that is nearest to x
@@ -655,10 +656,9 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]) {
 const float CostColors[20][3]{
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
     {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
-    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
-    {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
-    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
+    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+    {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5},
+    {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0}, {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
 };
 
 // plots - vertical line
@@ -760,12 +760,12 @@ void PlotData(mjvFigure* fig, double* bounds, const double* xs,
 
 // add geom to scene
 void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
-              const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]) {
+             const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]) {
   // if no available geoms, return
   if (scene->ngeom >= scene->maxgeom) return;
 
   // add geom
-  mjtNum mat_world[9] = {1, 0, 0,  0, 1, 0,  0, 0, 1};
+  mjtNum mat_world[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
   mjv_initGeom(&scene->geoms[scene->ngeom], type, size, pos,
                mat ? mat : mat_world, rgba);
   scene->geoms[scene->ngeom].category = mjCAT_DECOR;
@@ -773,7 +773,6 @@ void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
   // increment ngeom
   scene->ngeom += 1;
 }
-
 
 // add connector geom to scene
 void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
@@ -786,13 +785,12 @@ void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
   mjv_initGeom(&scene->geoms[scene->ngeom], type,
                /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, rgba);
   scene->geoms[scene->ngeom].category = mjCAT_DECOR;
-  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width,
-                    from[0], from[1], from[2], to[0], to[1], to[2]);
+  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width, from[0], from[1],
+                    from[2], to[0], to[1], to[2]);
 
   // increment ngeom
   scene->ngeom += 1;
 }
-
 
 // number of available hardware threads
 #if defined(__APPLE__) || defined(_WIN32)
@@ -850,12 +848,12 @@ namespace {  // private functions in an anonymous namespace
 
 // 2d vector dot-product
 mjtNum mju_dot2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  return vec1[0]*vec2[0] + vec1[1]*vec2[1];
+  return vec1[0] * vec2[0] + vec1[1] * vec2[1];
 }
 
 // 2d vector squared distance
 mjtNum mju_sqrdist2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  const mjtNum diff[2] = {vec1[0]-vec2[0], vec1[1]-vec2[1]};
+  const mjtNum diff[2] = {vec1[0] - vec2[0], vec1[1] - vec2[1]};
   return mju_dot2(diff, diff);
 }
 
@@ -889,18 +887,18 @@ void ProjectToSegment2D(mjtNum res[2], const mjtNum query[2],
   mjtNum length = mju_sqrt(mju_dot2(axis, axis));
   axis[0] /= length;
   axis[1] /= length;
-  mjtNum center[2] = {0.5*(v1[0] + v0[0]), 0.5*(v1[1] + v0[1])};
+  mjtNum center[2] = {0.5 * (v1[0] + v0[0]), 0.5 * (v1[1] + v0[1])};
   mjtNum t = mju_dot2(query, axis) - mju_dot2(center, axis);
-  t = mju_clip(t, -length/2, length/2);
-  res[0] = center[0] + t*axis[0];
-  res[1] = center[1] + t*axis[1];
+  t = mju_clip(t, -length / 2, length / 2);
+  res[0] = center[0] + t * axis[0];
+  res[1] = center[1] + t * axis[1];
 }
 
 }  // namespace
 
 // returns point in 2D convex hull that is nearest to query
-void NearestInHull(mjtNum res[2], const mjtNum query[2],
-                   const mjtNum* points, const int* hull, int num_hull) {
+void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
+                   const int* hull, int num_hull) {
   int outside = 0;      // assume query point is inside the hull
   mjtNum best_sqrdist;  // smallest squared distance so far
   for (int i = 0; i < num_hull; i++) {
@@ -951,8 +949,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
   mjtNum best_x = points[0];
   mjtNum best_y = points[1];
   for (int i = 1; i < num_points; i++) {
-    mjtNum x = points[2*i];
-    mjtNum y = points[2*i + 1];
+    mjtNum x = points[2 * i];
+    mjtNum y = points[2 * i + 1];
 
     // accept if larger, use y value to tie-break exact equality
     if (x > best_x || (x == best_x && y > best_y)) {
@@ -970,9 +968,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
     int next = -1;
     for (int candidate = 0; candidate < num_points; candidate++) {
       if ((next == -1) ||
-          IsEdgeOutside(points + 2*hull[num_hull - 1],
-                        points + 2*next,
-                        points + 2*candidate)) {
+          IsEdgeOutside(points + 2 * hull[num_hull - 1], points + 2 * next,
+                        points + 2 * candidate)) {
         next = candidate;
       }
     }
@@ -987,6 +984,158 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
   }
 
   return num_hull;
+}
+
+// finite-difference gradient constructor
+FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) {
+  // allocate memory
+  gradient_.resize(dim);
+  workspace_.resize(dim);
+}
+
+// compute finite-difference gradient
+double* FiniteDifferenceGradient::Compute(std::function<double(double* x)> func,
+                                          double* input, int dim) {
+  // resize
+  if (dim != gradient_.size()) gradient_.resize(dim);
+  if (dim != workspace_.size()) workspace_.resize(dim);
+
+  // ----- compute ----- //
+  // set workspace
+  mju_copy(workspace_.data(), input, dim);
+
+  // nominal evaluation
+  double f = func(input);
+
+  // finite difference
+  for (int i = 0; i < dim; i++) {
+    // positive perturbation
+    workspace_[i] += epsilon_;
+    double fp = func(workspace_.data());
+
+    // gradient
+    gradient_[i] = (fp - f) / epsilon_;
+
+    // reset
+    workspace_[i] = input[i];
+  }
+  return gradient_.data();
+}
+
+// finite-difference Jacobian constructor
+FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
+                                                   int num_input) {
+  jacobian_.resize(num_output * num_input);
+  jacobian_transpose_.resize(num_input * num_output);
+  output_.resize(num_output);
+  output_nominal_.resize(num_output);
+  workspace_.resize(num_input);
+}
+
+// compute Jacobian
+double* FiniteDifferenceJacobian::Compute(
+    std::function<void(double* output, const double* input)> func,
+    double* input, int num_output, int num_input) {
+  // resize
+  if (jacobian_.size() != num_output * num_input)
+    jacobian_.resize(num_output * num_input);
+  if (jacobian_transpose_.size() != num_output * num_input)
+    jacobian_transpose_.resize(num_output * num_input);
+  if (output_.size() != num_output) output_.resize(num_output);
+  if (output_nominal_.size() != num_output) output_nominal_.resize(num_output);
+  if (workspace_.size() != num_input) workspace_.resize(num_input);
+
+  // copy workspace
+  mju_copy(workspace_.data(), input, num_input);
+
+  // nominal evaluation
+  mju_zero(output_nominal_.data(), num_output);
+  func(output_nominal_.data(), workspace_.data());
+
+  for (int i = 0; i < num_input; i++) {
+    // perturb input
+    workspace_[i] += epsilon_;
+
+    // evaluate
+    mju_zero(output_.data(), num_output);
+    func(output_.data(), workspace_.data());
+
+    // Jacobian
+    double* JT = jacobian_transpose_.data() + i * num_output;
+    mju_sub(JT, output_.data(), output_nominal_.data(), num_output);
+    mju_scl(JT, JT, 1.0 / epsilon_, num_output);
+
+    // reset workspace
+    workspace_[i] = input[i];
+  }
+
+  // transpose
+  mju_transpose(jacobian_.data(), jacobian_transpose_.data(), num_output,
+                num_input);
+
+  return jacobian_.data();
+}
+
+// finite-difference Hessian constructor
+FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
+  hessian_.resize(dim * dim);
+  workspace1_.resize(dim);
+  workspace2_.resize(dim);
+  workspace3_.resize(dim);
+}
+
+// compute finite-difference Hessian
+double* FiniteDifferenceHessian::Compute(std::function<double(double* x)> func,
+                                         double* input, int dim) {
+  // resize
+  if (dim * dim != hessian_.size()) hessian_.resize(dim * dim);
+  if (dim != workspace1_.size()) workspace1_.resize(dim);
+  if (dim != workspace2_.size()) workspace2_.resize(dim);
+  if (dim != workspace3_.size()) workspace3_.resize(dim);
+
+  // set workspace
+  mju_copy(workspace1_.data(), input, dim);
+  mju_copy(workspace2_.data(), input, dim);
+  mju_copy(workspace3_.data(), input, dim);
+
+  // evaluate at candidate
+  double f = func(input);
+
+  // centered finite difference
+  for (int i = 0; i < dim; i++) {
+    for (int j = 0; j < dim; j++) {
+      if (i > j) continue;  // skip bottom triangle
+      // workspace 1
+      workspace1_[i] += epsilon_;
+      workspace1_[j] += epsilon_;
+
+      double fij = func(workspace1_.data());
+
+      // workspace 2
+      workspace2_[i] += epsilon_;
+      double fi = func(workspace2_.data());
+
+      // workspace 3
+      workspace3_[j] += epsilon_;
+      double fj = func(workspace3_.data());
+
+      // Hessian value
+      double H = (fij - fi - fj + f) / (epsilon_ * epsilon_);
+      hessian_[i * dim + j] = H;
+      hessian_[j * dim + i] = H;
+
+      // reset workspace 1
+      workspace1_[i] = input[i];
+      workspace1_[j] = input[j];
+
+      // reset workspace 2
+      workspace2_[i] = input[i];
+
+      // reset workspace 3
+      workspace3_[j] = input[j];
+    }
+  }
+  return hessian_.data();
 }
 
 }  // namespace mjpc

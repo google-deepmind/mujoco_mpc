@@ -148,5 +148,52 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
            3, (int[]){1, 0, 2});
 }
 
+const double FD_TOLERANCE = 1.0e-3;
+
+TEST(FiniteDifferenceTest, Quadratic) {
+  // quadratic
+  auto quadratic = [](double* x) { return 0.5 * (x[0] * x[0] + x[1] * x[1]); };
+  const int n = 2;
+  double input[n] = {1.0, 1.0};
+
+  // gradient
+  FiniteDifferenceGradient fdg(2);
+  double* grad = fdg.Compute(quadratic, input, n);
+
+  EXPECT_NEAR(grad[0], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(grad[1], 1.0, FD_TOLERANCE);
+
+  // Hessian
+  FiniteDifferenceHessian fdh(2);
+  double* hess = fdh.Compute(quadratic, input, n);
+
+  // test
+  EXPECT_NEAR(hess[0], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(hess[1], 0.0, FD_TOLERANCE);
+  EXPECT_NEAR(hess[2], 0.0, FD_TOLERANCE);
+  EXPECT_NEAR(hess[3], 1.0, FD_TOLERANCE);
+}
+
+TEST(FiniteDifferenceTest, Jacobian) {
+  // set up
+  const int num_output = 2;
+  const int num_input = 2;
+  double A[num_output * num_input] = {1.0, 2.0, 3.0, 4.0};
+  auto f = [&A](double* output, const double* input) {
+    mju_mulMatVec(output, A, input, num_output, num_input);
+  };
+  double input[2] = {1.0, 1.0};
+
+  // Jacobian
+  FiniteDifferenceJacobian fdj(num_output, num_input);
+  double* jac = fdj.Compute(f, input, num_output, num_input);
+
+  // test
+  EXPECT_NEAR(jac[0], A[0], FD_TOLERANCE);
+  EXPECT_NEAR(jac[1], A[1], FD_TOLERANCE);
+  EXPECT_NEAR(jac[2], A[2], FD_TOLERANCE);
+  EXPECT_NEAR(jac[3], A[3], FD_TOLERANCE);
+}
+
 }  // namespace
 }  // namespace mjpc

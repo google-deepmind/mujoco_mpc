@@ -15,8 +15,8 @@
 test(configuration_to_state_test)
 target_link_libraries(configuration_to_state_test load gmock)
 
-test(derivatives_test)
-target_link_libraries(derivatives_test load gmock)
+# test(derivatives_test)
+# target_link_libraries(derivatives_test load gmock)
 
 test(subquat_jacobian_test)
 target_link_libraries(subquat_jacobian_test gmock)

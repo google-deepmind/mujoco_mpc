@@ -64,9 +64,10 @@ target_include_directories(lqr PRIVATE ${mujoco_SOURCE_DIR}/include gmock)
 
 enable_testing()
 
-add_subdirectory(sampling_planner)
+add_subdirectory(agent)
+add_subdirectory(batch_estimator)
 add_subdirectory(gradient_planner)
 add_subdirectory(ilqg_planner)
-add_subdirectory(tasks)
+add_subdirectory(sampling_planner)
 add_subdirectory(state)
-add_subdirectory(agent)
+add_subdirectory(tasks)

@@ -45,6 +45,7 @@ option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
 
 include(FindOrFetch)
+# set(FETCHCONTENT_FULLY_DISCONNECTED ON)
 
 find_package(Python)
 find_package(Threads REQUIRED)
@@ -190,4 +191,4 @@ set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
-add_subdirectory(grpc)
+# add_subdirectory(grpc)

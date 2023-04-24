@@ -195,5 +195,49 @@ TEST(FiniteDifference, Jacobian) {
   EXPECT_NEAR(jac[3], A[3], FD_TOLERANCE);
 }
 
+TEST(MatrixInMatrix, Set) {
+  // set matrices within large matrix 
+  const int q = 8;
+  std::vector<double> W(q * q);
+  mju_zero(W.data(), q * q);
+
+  std::vector<double> W1{1.0, 2.0, 3.0, 4.0};
+  std::vector<double> W2{5.0, 6.0, 7.0, 8.0};
+  std::vector<double> W3{9.0, 10.0, 11.0, 12.0};
+  std::vector<double> W4{13.0, 14.0, 15.0, 16.0};
+  
+  // set W1 
+  mjpc::SetMatrixInMatrix(W.data(), W1.data(), 1.0, q, q, 2, 2, 0, 0);
+
+  // set W2
+  mjpc::SetMatrixInMatrix(W.data(), W2.data(), 1.0, q, q, 2, 2, 0, 4);
+
+  // set W3
+  mjpc::SetMatrixInMatrix(W.data(), W3.data(), 1.0, q, q, 2, 2, 4, 0);
+
+  // set W4
+  mjpc::SetMatrixInMatrix(W.data(), W4.data(), 1.0, q, q, 2, 2, 4, 4);
+
+  std::vector<double> solution = {
+      1.00000000,  2.00000000,  0.00000000,  0.00000000,  5.00000000,
+      6.00000000,  0.00000000,  0.00000000,  3.00000000,  4.00000000,
+      0.00000000,  0.00000000,  7.00000000,  8.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  9.00000000,  10.00000000, 0.00000000,
+      0.00000000,  13.00000000, 14.00000000, 0.00000000,  0.00000000,
+      11.00000000, 12.00000000, 0.00000000,  0.00000000,  15.00000000,
+      16.00000000, 0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000,  0.00000000,
+      0.00000000,  0.00000000,  0.00000000,  0.00000000};
+  
+  std::vector<double> error(q * q); 
+  mju_sub(error.data(), solution.data(), W.data(), q * q);
+
+  EXPECT_NEAR(mju_norm(error.data(), q * q) / error.size(), 0.0, 1.0e-5);
+}
+
 }  // namespace
 }  // namespace mjpc

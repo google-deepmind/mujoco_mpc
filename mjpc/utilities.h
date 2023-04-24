@@ -302,6 +302,10 @@ class FiniteDifferenceHessian {
   double epsilon_ = 1.0e-6;
 };
 
+// set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
+void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
+                       int r2, int c2, int ri, int ci);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

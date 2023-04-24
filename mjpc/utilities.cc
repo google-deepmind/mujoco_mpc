@@ -1140,4 +1140,16 @@ double* FiniteDifferenceHessian::Compute(
   return hessian_.data();
 }
 
+// set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
+void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
+                       int r2, int c2, int ri, int ci) {
+  // loop over A2 rows
+  for (int i = 0; i < r2; i++) {
+    // loop over A2 columns
+    for (int j = 0; j < c2; j++) {
+      A1[(ri + i) * c1 + ci + j] = s * A2[i * c2 + j];
+    }
+  }
+}
+
 }  // namespace mjpc

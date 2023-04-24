@@ -13,9 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 
+import contextlib
+
 from absl.testing import absltest
 import mujoco
-
 from mujoco_mpc import agent as agent_lib
 import numpy as np
 
@@ -52,25 +53,26 @@ class AgentTest(absltest.TestCase):
     data = mujoco.MjData(model)
     agent = agent_lib.Agent(task_id="Cartpole", model=model)
 
-    actions = []
-    observations = [environment_reset(model, data)]
+    with contextlib.closing(agent):
+      actions = []
+      observations = [environment_reset(model, data)]
 
-    agent.set_task_parameter("Goal", -1.0)
+      agent.set_task_parameter("Goal", -1.0)
 
-    num_steps = 10
-    for _ in range(num_steps):
-      agent.set_state(
-          time=data.time,
-          qpos=data.qpos,
-          qvel=data.qvel,
-          act=data.act,
-          mocap_pos=data.mocap_pos,
-          mocap_quat=data.mocap_quat,
-          userdata=data.userdata,
-      )
-      agent.planner_step()
-      actions.append(agent.get_action())
-      observations.append(environment_step(model, data, actions[-1]))
+      num_steps = 10
+      for _ in range(num_steps):
+        agent.set_state(
+            time=data.time,
+            qpos=data.qpos,
+            qvel=data.qvel,
+            act=data.act,
+            mocap_pos=data.mocap_pos,
+            mocap_quat=data.mocap_quat,
+            userdata=data.userdata,
+        )
+        agent.planner_step()
+        actions.append(agent.get_action())
+        observations.append(environment_step(model, data, actions[-1]))
 
     observations = np.array(observations)
     actions = np.array(actions)
@@ -90,26 +92,28 @@ class AgentTest(absltest.TestCase):
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
     agent = agent_lib.Agent(task_id="Cartpole", model=model)
-    agent.set_task_parameter("Goal", -1.0)
+    with contextlib.closing(agent):
+      agent.set_task_parameter("Goal", -1.0)
 
-    num_steps = 10
-    observations = []
-    for _ in range(num_steps):
-      agent.planner_step()
-      agent.step()
-      state = agent.get_state()
-      data.time = state.time
-      data.qpos = state.qpos
-      data.qvel = state.qvel
-      data.act = state.act
-      data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-      data.mocap_quat = np.array(state.mocap_quat).reshape(
-          data.mocap_quat.shape
-      )
-      data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
-      observations.append(get_observation(model, data))
+      num_steps = 10
+      observations = []
+      for _ in range(num_steps):
+        agent.planner_step()
+        agent.step()
+        state = agent.get_state()
+        data.time = state.time
+        data.qpos = state.qpos
+        data.qvel = state.qvel
+        data.act = state.act
+        data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
+        data.mocap_quat = np.array(state.mocap_quat).reshape(
+            data.mocap_quat.shape
+        )
+        data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
+        observations.append(get_observation(model, data))
 
-    self.assertNotEqual(agent.get_state().time, 0)
+      self.assertNotEqual(agent.get_state().time, 0)
+
     observations = np.array(observations)
     self.assertFalse((observations == 0).all())
 
@@ -125,19 +129,21 @@ class AgentTest(absltest.TestCase):
     agent = agent_lib.Agent(task_id="Cartpole", model=model)
 
     # by default, planner would produce a non-zero action
-    agent.set_task_parameter("Goal", -1.0)
-    agent.planner_step()
-    action = agent.get_action()
-    self.assertFalse(np.allclose(action, 0))
+    with contextlib.closing(agent):
+      agent.set_task_parameter("Goal", -1.0)
+      agent.planner_step()
+      action = agent.get_action()
+      self.assertFalse(np.allclose(action, 0))
 
-    # setting all costs to 0 apart from control should end up with a zero action
-    agent.reset()
-    agent.set_task_parameter("Goal", -1.0)
-    agent.set_cost_weights(
-        {"Vertical": 0, "Velocity": 0, "Centered": 0, "Control": 1}
-    )
-    agent.planner_step()
-    action = agent.get_action()
+      # setting all costs to 0 apart from control should end up with a zero
+      # action
+      agent.reset()
+      agent.set_task_parameter("Goal", -1.0)
+      agent.set_cost_weights(
+          {"Vertical": 0, "Velocity": 0, "Centered": 0, "Control": 1}
+      )
+      agent.planner_step()
+      action = agent.get_action()
     np.testing.assert_allclose(action, 0)
 
 

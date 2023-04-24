@@ -215,32 +215,32 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
 
   if (state.has_time()) data_->time = state.time();
 
-  if (0 < state.qpos_size()) {
+  if (state.qpos_size() > 0) {
     CHECK_SIZE("qpos", model->nq, state.qpos_size());
     mju_copy(data_->qpos, state.qpos().data(), model->nq);
   }
 
-  if (0 < state.qvel_size()) {
+  if (state.qvel_size() > 0) {
     CHECK_SIZE("qvel", model->nv, state.qvel_size());
     mju_copy(data_->qvel, state.qvel().data(), model->nv);
   }
 
-  if (0 < state.act_size()) {
+  if (state.act_size() > 0) {
     CHECK_SIZE("act", model->na, state.act_size());
     mju_copy(data_->act, state.act().data(), model->na);
   }
 
-  if (0 < state.mocap_pos_size()) {
+  if (state.mocap_pos_size() > 0) {
     CHECK_SIZE("mocap_pos", model->nmocap * 3, state.mocap_pos_size());
     mju_copy(data_->mocap_pos, state.mocap_pos().data(), model->nmocap * 3);
   }
 
-  if (0 < state.mocap_quat_size()) {
+  if (state.mocap_quat_size() > 0) {
     CHECK_SIZE("mocap_quat", model->nmocap * 4, state.mocap_quat_size());
     mju_copy(data_->mocap_quat, state.mocap_quat().data(), model->nmocap * 4);
   }
 
-  if (0 < state.userdata_size()) {
+  if (state.userdata_size() > 0) {
     CHECK_SIZE("userdata", model->nuserdata, state.userdata_size());
     mju_copy(data_->userdata, state.userdata().data(), model->nuserdata);
   }
@@ -313,6 +313,14 @@ grpc::Status AgentService::Reset(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   agent_.Reset();
+  // TODO(nimrod): This should be in the agent, no?
+  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+  if (home_id >= 0) {
+    mj_resetDataKeyframe(model, data_, home_id);
+  } else {
+    mj_resetData(model, data_);
+  }
+  agent_.SetState(data_);
   return grpc::Status::OK;
 }
 
@@ -348,6 +356,9 @@ grpc::Status AgentService::SetCostWeights(
     SetCostWeightsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  if (request->reset_to_defaults()) {
+    agent_.ActiveTask()->Reset(model);
   }
   for (const auto& [name, weight] : request->cost_weights()) {
     if (agent_.SetWeightByName(name, weight) == -1) {

@@ -99,7 +99,8 @@ message SetTaskParameterRequest {
 message SetTaskParameterResponse {}
 
 message SetCostWeightsRequest {
+  bool reset_to_defaults = 1;
   // cost weights by name
-  map<string, double> cost_weights = 1;
+  map<string, double> cost_weights = 2;
 }
 message SetCostWeightsResponse {}

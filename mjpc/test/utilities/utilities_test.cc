@@ -152,7 +152,7 @@ const double FD_TOLERANCE = 1.0e-3;
 
 TEST(FiniteDifference, Quadratic) {
   // quadratic
-  auto quadratic = [](double* x) { return 0.5 * (x[0] * x[0] + x[1] * x[1]); };
+  auto quadratic = [](const double* x) { return 0.5 * (x[0] * x[0] + x[1] * x[1]); };
   const int n = 2;
   double input[n] = {1.0, 1.0};
 

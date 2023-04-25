@@ -156,8 +156,8 @@ class Agent:
         qpos=qpos if qpos is not None else [],
         qvel=qvel if qvel is not None else [],
         act=act if act is not None else [],
-        mocap_pos=mocap_pos if mocap_pos is not None else [],
-        mocap_quat=mocap_quat if mocap_quat is not None else [],
+        mocap_pos=mocap_pos.flatten() if mocap_pos is not None else [],
+        mocap_quat=mocap_quat.flatten() if mocap_quat is not None else [],
         userdata=userdata if userdata is not None else [],
     )
 

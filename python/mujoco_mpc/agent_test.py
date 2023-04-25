@@ -46,18 +46,16 @@ class AgentTest(absltest.TestCase):
         pathlib.Path(__file__).parent.parent.parent
         / "mjpc"
         / "tasks"
-        / "cartpole"
-        / "task.xml"
+        / "particle"
+        / "task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    agent = agent_lib.Agent(task_id="Particle", model=model)
 
     with contextlib.closing(agent):
       actions = []
       observations = [environment_reset(model, data)]
-
-      agent.set_task_parameter("Goal", -1.0)
 
       num_steps = 10
       for _ in range(num_steps):

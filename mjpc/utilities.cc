@@ -1071,8 +1071,8 @@ double* FiniteDifferenceJacobian::Compute(
   }
 
   // transpose
-  mju_transpose(jacobian_.data(), jacobian_transpose_.data(), num_output,
-                num_input);
+  mju_transpose(jacobian_.data(), jacobian_transpose_.data(), num_input,
+                num_output);
 
   return jacobian_.data();
 }

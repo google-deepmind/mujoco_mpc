@@ -177,12 +177,12 @@ TEST(FiniteDifference, Quadratic) {
 TEST(FiniteDifference, Jacobian) {
   // set up
   const int num_output = 2;
-  const int num_input = 2;
-  double A[num_output * num_input] = {1.0, 2.0, 3.0, 4.0};
+  const int num_input = 3;
+  double A[num_output * num_input] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
   auto f = [&A](double* output, const double* input) {
     mju_mulMatVec(output, A, input, num_output, num_input);
   };
-  double input[2] = {1.0, 1.0};
+  double input[3] = {1.0, 1.0, 1.0};
 
   // Jacobian
   FiniteDifferenceJacobian fdj(num_output, num_input);
@@ -193,6 +193,8 @@ TEST(FiniteDifference, Jacobian) {
   EXPECT_NEAR(jac[1], A[1], FD_TOLERANCE);
   EXPECT_NEAR(jac[2], A[2], FD_TOLERANCE);
   EXPECT_NEAR(jac[3], A[3], FD_TOLERANCE);
+  EXPECT_NEAR(jac[4], A[4], FD_TOLERANCE);
+  EXPECT_NEAR(jac[5], A[5], FD_TOLERANCE);
 }
 
 TEST(MatrixInMatrix, Set) {

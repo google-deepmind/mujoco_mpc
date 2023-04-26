@@ -87,7 +87,7 @@ TEST(InverseDynamicsResidual, Qpos) {
 
     // compute acceleration 
     mju_sub(A1, V2, V1, model->nv);
-    mju_scl(A1, A1, 1.0 / (model->opt.timestep * model->opt.timestep), model->nv);
+    mju_scl(A1, A1, 1.0 / model->opt.timestep, model->nv);
 
     // set configuration, velocity, acceleration 
     mju_copy(data->qpos, q1, model->nq);

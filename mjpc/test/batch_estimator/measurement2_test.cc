@@ -22,15 +22,39 @@
 namespace mjpc {
 namespace {
 
-TEST(MeasurementResidual, Qpos) {
+// load model
+mjModel* model;
+
+// sensor
+extern "C" {
+void sensor(const mjModel* m, mjData* d, int stage);
+}
+
+// sensor callback
+void sensor(const mjModel* model, mjData* data, int stage) {
+  // double A[9] = {1.0, 0.0, 0.0, 
+  //                0.0, 2.0, 0.0, 
+  //                0.0, 0.0, 3.0};
+  if (stage == mjSTAGE_ACC) {
+    // mju_mulMatVec(data->sensordata, A, data->qvel, 3, 3);
+    mju_copy(data->sensordata, data->qvel, 6);
+  }
+}
+
+TEST(MeasurementResidual, Velocity) {
   // load model
-  mjModel* model = LoadTestModel("box.xml");
+  model = LoadTestModel("box2.xml");
   mjData* data = mj_makeData(model);
+
+  // sensor callback
+  mjcb_sensor = sensor;
+
 
   printf("sensor measurements: \n");
   mju_printMat(data->sensordata, 1, model->nsensordata);
 
-  // random configurations 
+
+  // random configurations
   double z0[model->nq];
   double z1[model->nq];
   double z2[model->nq];
@@ -50,7 +74,7 @@ TEST(MeasurementResidual, Qpos) {
 
   printf("z1: \n");
   mju_printMat(z1, 1, model->nq);
-  
+
   printf("z2: \n");
   mju_printMat(z2, 1, model->nq);
 
@@ -61,7 +85,8 @@ TEST(MeasurementResidual, Qpos) {
   mju_copy(Qr + 2 * model->nq, z2, model->nq);
 
   // measurement residual
-  auto measurement_residual = [&Qr, &model, &data](double* residual, const double* dQ) {
+  auto measurement_residual = [&Qr, &model = model, &data = data](
+                                  double* residual, const double* dQ) {
     double Q[21];
     double V1[6];
     double V2[6];
@@ -81,15 +106,15 @@ TEST(MeasurementResidual, Qpos) {
     double* q1 = Q + 1 * model->nq;
     double* q2 = Q + 2 * model->nq;
 
-    // compute velocity 
+    // compute velocity
     mj_differentiatePos(model, V1, model->opt.timestep, q0, q1);
     mj_differentiatePos(model, V2, model->opt.timestep, q1, q2);
 
-    // compute acceleration 
+    // compute acceleration
     mju_sub(A1, V2, V1, model->nv);
     mju_scl(A1, A1, 1.0 / model->opt.timestep, model->nv);
 
-    // set configuration, velocity, acceleration 
+    // set configuration, velocity, acceleration
     mju_copy(data->qpos, q1, model->nq);
     mju_copy(data->qvel, V1, model->nv);
     mju_copy(data->qacc, A1, model->nv);
@@ -112,7 +137,7 @@ TEST(MeasurementResidual, Qpos) {
     mju_copy(residual, data->sensordata, model->nsensordata);
   };
 
-  const int num_sensor = 19;
+  const int num_sensor = 6;
   double residual[num_sensor];
   double dQ[18] = {0.0};
   measurement_residual(residual, dQ);
@@ -123,7 +148,7 @@ TEST(MeasurementResidual, Qpos) {
   printf("Jacobian:\n");
   FiniteDifferenceJacobian fdj(num_sensor, 18);
   fdj.Compute(measurement_residual, dQ, num_sensor, 18);
-  mju_printMat(fdj.jacobian_.data(), num_sensor, 18);  
+  mju_printMat(fdj.jacobian_.data(), num_sensor, 18);
 }
 
 }  // namespace

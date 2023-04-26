@@ -21,6 +21,9 @@ target_link_libraries(inverse_dynamics_test load gmock)
 test(measurement_test)
 target_link_libraries(measurement_test load gmock)
 
+test(measurement2_test)
+target_link_libraries(measurement2_test load gmock)
+
 test(prior_test)
 target_link_libraries(prior_test load gmock)
 

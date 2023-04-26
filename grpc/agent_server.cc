@@ -14,6 +14,7 @@
 
 // Startup code for `Agent` server.
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -28,11 +29,11 @@
 #include "grpc/agent_service.h"
 #include "mjpc/tasks/tasks.h"
 
-ABSL_FLAG(int32_t, port, 10000, "port to listen on");
+ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
-  int port = absl::GetFlag(FLAGS_port);
+  int port = absl::GetFlag(FLAGS_mjpc_port);
 
   std::string server_address = absl::StrCat("[::]:", port);
 

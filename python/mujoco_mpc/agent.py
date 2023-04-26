@@ -73,7 +73,7 @@ class Agent:
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--port={self.port}"]
+        [str(server_binary_path), f"--mjpc_port={self.port}"]
     )
     atexit.register(self.server_process.terminate)
 
@@ -81,7 +81,7 @@ class Agent:
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(task_id, model)
+    self.init(task_id, model, send_as="mjb")
 
   def close(self):
     self.channel.close()

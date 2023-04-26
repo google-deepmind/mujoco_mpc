@@ -60,24 +60,33 @@ class Agent:
   """
 
   def __init__(
-      self, task_id: str, model: Optional[mujoco.MjModel] = None
-  ) -> None:
+      self,
+      task_id: str,
+      model: Optional[mujoco.MjModel] = None,
+      server_binary_path: Optional[str] = None,
+  ):
     self.task_id = task_id
     self.model = model
 
-    binary_name = "agent_server"
-    server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
+    if server_binary_path is None:
+      binary_name = "agent_server"
+      server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--port={self.port}"]
+        [str(server_binary_path), f"--mjpc_port={self.port}"]
     )
-    atexit.register(self.server_process.terminate)
+    atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(task_id, model)
+    self.init(task_id, model, send_as="mjb")
+
+  def close(self):
+    self.channel.close()
+    self.server_process.kill()
+    self.server_process.wait()
 
   def init(
       self,
@@ -142,6 +151,12 @@ class Agent:
       mocap_quat: `data.mocap_quat`.
       userdata: `data.userdata`.
     """
+    # if mocap_pos is an ndarray rather than a list, flatten it
+    if hasattr(mocap_pos, "flatten"):
+      mocap_pos = mocap_pos.flatten()
+    if hasattr(mocap_quat, "flatten"):
+      mocap_quat = mocap_quat.flatten()
+
     state = agent_pb2.State(
         time=time if time is not None else None,
         qpos=qpos if qpos is not None else [],
@@ -197,11 +212,17 @@ class Agent:
     )
     self.stub.SetTaskParameter(set_task_parameter_request)
 
-  def set_cost_weights(self, weights: dict[str, float]):
+  def set_cost_weights(
+      self, weights: dict[str, float], reset_to_defaults: bool = False
+  ):
     """Sets the agent's cost weights by name.
 
     Args:
       weights: a map for cost term name to weight value
+      reset_to_defaults: if true, cost weights will be reset before applying the
+        map
     """
-    request = agent_pb2.SetCostWeightsRequest(cost_weights=weights)
+    request = agent_pb2.SetCostWeightsRequest(
+        cost_weights=weights, reset_to_defaults=reset_to_defaults
+    )
     self.stub.SetCostWeights(request)

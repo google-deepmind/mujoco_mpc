@@ -75,7 +75,7 @@ class Agent:
     self.server_process = subprocess.Popen(
         [str(server_binary_path), f"--mjpc_port={self.port}"]
     )
-    atexit.register(self.server_process.terminate)
+    atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
@@ -151,13 +151,19 @@ class Agent:
       mocap_quat: `data.mocap_quat`.
       userdata: `data.userdata`.
     """
+    # if mocap_pos is an ndarray rather than a list, flatten it
+    if hasattr(mocap_pos, "flatten"):
+      mocap_pos = mocap_pos.flatten()
+    if hasattr(mocap_quat, "flatten"):
+      mocap_quat = mocap_quat.flatten()
+
     state = agent_pb2.State(
         time=time if time is not None else None,
         qpos=qpos if qpos is not None else [],
         qvel=qvel if qvel is not None else [],
         act=act if act is not None else [],
-        mocap_pos=mocap_pos.flatten() if mocap_pos is not None else [],
-        mocap_quat=mocap_quat.flatten() if mocap_quat is not None else [],
+        mocap_pos=mocap_pos if mocap_pos is not None else [],
+        mocap_quat=mocap_quat if mocap_quat is not None else [],
         userdata=userdata if userdata is not None else [],
     )
 

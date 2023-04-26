@@ -144,6 +144,33 @@ class AgentTest(absltest.TestCase):
       action = agent.get_action()
     np.testing.assert_allclose(action, 0)
 
+  def test_set_state_with_lists(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc"
+        / "tasks"
+        / "particle"
+        / "task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+    agent = agent_lib.Agent(task_id="Particle", model=model)
+
+    with contextlib.closing(agent):
+      actions = []
+      observations = [environment_reset(model, data)]
+
+      agent.set_state(
+          time=data.time,
+          qpos=list(data.qpos),
+          qvel=list(data.qvel),
+          act=list(data.act),
+          mocap_pos=list(data.mocap_pos.flatten()),
+          mocap_quat=list(data.mocap_quat.flatten()),
+          userdata=list(data.userdata),
+      )
+      agent.planner_step()
+
 
 if __name__ == "__main__":
   absltest.main()

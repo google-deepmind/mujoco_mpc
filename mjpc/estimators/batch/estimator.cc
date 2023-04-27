@@ -462,6 +462,95 @@ void Estimator::JacobianMeasurement() {
   }
 }
 
+// measurement Jacobian blocks 
+void Estimator::JacobianMeasurementBlocks() {
+  // finite-difference Jacobian 
+  FiniteDifferenceJacobian fd(dim_measurement_, model_->nv);
+
+  // loop over measurements
+  for (int t = 0; t < configuration_length_ - 2; t++) {
+    // unpack 
+    double* q = configuration_.data() + (t + 1) * model_->nq;
+    double* v = velocity_.data() + t * model_->nv;
+    double* a = acceleration_.data() + t * model_->nv;
+
+    // ----- dy/dq ----- //
+    double* yq = jacobian_block_measurement_configuration_.data() + t * dim_measurement_ * model_->nv;
+
+    auto measurement_configuration = [&q, &v, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // configuration copy 
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q, model->nq);
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // set data 
+      mju_copy(data->qpos, q_copy.data(), model->nq);
+      mju_copy(data->qvel, v, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->sensordata, model->nsensordata);
+    };
+
+    // perturbation
+    std::vector<double> dq(model_->nv);
+    mju_zero(dq.data(), model_->nv);
+
+    // finite-difference Jacobian
+    fd.Compute(measurement_configuration, dq.data(), dim_measurement_, model_->nv);
+
+    // copy result
+    mju_copy(yq, fd.jacobian_.data(), dim_measurement_ * model_->nv);
+
+    // ----- dy/dv ------ // 
+    double* yv = jacobian_block_measurement_velocity_.data() + t * dim_measurement_ * model_->nv;
+
+    auto measurement_velocity = [&q, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // set data 
+      mju_copy(data->qpos, q, model->nq);
+      mju_copy(data->qvel, input, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->sensordata, model->nsensordata);
+    };
+
+    // finite-difference Jacobian
+    fd.Compute(measurement_velocity, v, dim_measurement_, model_->nv);
+
+    // copy result 
+    mju_copy(yv, fd.jacobian_.data(), dim_measurement_ * model_->nv);
+
+    // ------ dy/da ----- //
+    double* ya = jacobian_block_measurement_configuration_.data() + t * dim_measurement_ * model_->nv;
+
+    auto measurement_acceleration = [&q, &v, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // set data 
+      mju_copy(data->qpos, q, model->nq);
+      mju_copy(data->qvel, v, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->sensordata, model->nsensordata);
+    };
+
+    // finite-difference Jacobian 
+    fd.Compute(measurement_acceleration, a, dim_measurement_, model_->nv);
+
+    // copy result 
+    mju_copy(ya, fd.jacobian_.data(), dim_measurement_ * model_->nv);
+  }
+}
+
 // compute measurements
 void Estimator::ComputeMeasurements() {
   for (int t = 0; t < configuration_length_ - 2; t++) {
@@ -647,6 +736,95 @@ void Estimator::JacobianInverseDynamics() {
   }
 }
 
+// inverse dynamics Jacobian block s
+void Estimator::JacobianInverseDynamicsBlocks() {
+  // finite-difference Jacobian 
+  FiniteDifferenceJacobian fd(model_->nv, model_->nv);
+
+  // loop over qfrc
+  for (int t = 0; t < configuration_length_ - 2; t++) {
+    // unpack 
+    double* q = configuration_.data() + (t + 1) * model_->nq;
+    double* v = velocity_.data() + t * model_->nv;
+    double* a = acceleration_.data() + t * model_->nv;
+
+    // ----- dy/dq ----- //
+    double* yq = jacobian_block_inverse_dynamics_configuration_.data() + t * model_->nv * model_->nv;
+
+    auto inverse_dynamics_configuration = [&q, &v, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // configuration copy 
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q, model->nq);
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // set data 
+      mju_copy(data->qpos, q_copy.data(), model->nq);
+      mju_copy(data->qvel, v, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->qfrc_inverse, model->nv);
+    };
+
+    // perturbation
+    std::vector<double> dq(model_->nv);
+    mju_zero(dq.data(), model_->nv);
+
+    // finite-difference Jacobian
+    fd.Compute(inverse_dynamics_configuration, dq.data(), model_->nv, model_->nv);
+
+    // copy result
+    mju_copy(yq, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // ----- dy/dv ------ // 
+    double* yv = jacobian_block_inverse_dynamics_velocity_.data() + t * model_->nv * model_->nv;
+
+    auto inverse_dynamics_velocity = [&q, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // set data 
+      mju_copy(data->qpos, q, model->nq);
+      mju_copy(data->qvel, input, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->qfrc_inverse, model->nv);
+    };
+
+    // finite-difference Jacobian
+    fd.Compute(inverse_dynamics_velocity, v, model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(yv, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // ------ dy/da ----- //
+    double* ya = jacobian_block_inverse_dynamics_configuration_.data() + t * model_->nv * model_->nv;
+
+    auto inverse_dynamics_acceleration = [&q, &v, &a, &model = model_, &data = data_](double* output, const double* input) {
+      // set data 
+      mju_copy(data->qpos, q, model->nq);
+      mju_copy(data->qvel, v, model->nv);
+      mju_copy(data->qacc, a, model->nv);
+
+      // inverse dynamics 
+      mj_inverse(model, data);
+
+      // sensors 
+      mju_copy(output, data->qfrc_inverse, model->nv);
+    };
+
+    // finite-difference Jacobian 
+    fd.Compute(inverse_dynamics_acceleration, a, model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(ya, fd.jacobian_.data(), model_->nv * model_->nv);
+  }
+}
+
 // compute inverse dynamics
 void Estimator::ComputeInverseDynamics() {
   for (int t = 0; t < configuration_length_ - 2; t++) {
@@ -703,6 +881,180 @@ void Estimator::UpdateTrajectory(double* configuration, const double* update) {
 
   // compute model qfrc
   ComputeInverseDynamics();
+}
+
+// velocity Jacobian blocks
+void Estimator::VelocityJacobianBlocks() {
+  // finite-difference 
+  FiniteDifferenceJacobian fd(model_->nv, model_->nv);
+
+  // loop over configurations 
+  for (int t = 0; t < configuration_length_ - 1; t++) {
+    // unpack 
+    double* q0 = configuration_.data() + t * model_->nq;
+    double* q1 = configuration_.data() + (t + 1) * model_->nq;
+    double* dvdq0 = jacobian_block_velocity_previous_configuration_.data() + t * model_->nv * model_->nv;
+    double* dvdq1 = jacobian_block_velocity_current_configuration_.data() + t * model_->nv * model_->nv;
+
+    // ----- dvdq0 ----- //
+    auto velocity_previous_configuration = [&q0, &q1, &model = model_](double* output, const double* input) {
+      // copy previous configuration
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q0, model->nq);
+
+      // perturb 
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // compute velocity
+      mj_differentiatePos(model, output, model->opt.timestep, q_copy.data(), q1);
+    };
+
+    // update 
+    std::vector<double> dq0(model_->nv);
+    mju_zero(dq0.data(), model_->nv);
+
+    // compute Jacobian 
+    fd.Compute(velocity_previous_configuration, dq0.data(), model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(dvdq0, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // ----- dvdq1 ----- //
+    auto velocity_current_configuration = [&q0, &q1, &model = model_](double* output, const double* input) {
+      // copy current configuration 
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q1, model->nq);
+
+      // perturb 
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // compute velocity
+      mj_differentiatePos(model, output, model->opt.timestep, q0, q_copy.data());
+    };
+
+    // update 
+    std::vector<double> dq1(model_->nv);
+    mju_zero(dq1.data(), model_->nv);
+
+    // compute Jacobian 
+    fd.Compute(velocity_current_configuration, dq1.data(), model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(dvdq1, fd.jacobian_.data(), model_->nv * model_->nv);
+  }
+}
+
+// acceleration Jacobian blocks 
+void Estimator::AccelerationJacobianBlocks() {
+  // finite-difference 
+  FiniteDifferenceJacobian fd(model_->nv, model_->nv);
+
+  // loop over configurations 
+  for (int t = 0; t < configuration_length_ - 2; t++) {
+    // unpack 
+    double* q0 = configuration_.data() + t * model_->nq;
+    double* q1 = configuration_.data() + (t + 1) * model_->nq;
+    double* q2 = configuration_.data() + (t + 2) * model_->nq;
+    double* dadq0 = jacobian_block_acceleration_previous_configuration_.data() + t * model_->nv * model_->nv;
+    double* dadq1 = jacobian_block_acceleration_current_configuration_.data() + t * model_->nv * model_->nv;
+    double* dadq2 = jacobian_block_acceleration_next_configuration_.data() + t * model_->nv * model_->nv;
+
+    // ----- dadq0 ----- //
+    auto acceleration_previous_configuration = [&q0, &q1, &q2, &model = model_](double* output, const double* input) {
+      // copy previous configuration
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q0, model->nq);
+
+      // perturb 
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // compute velocity 1
+      std::vector<double> v1(model->nv);
+      mj_differentiatePos(model, v1.data(), model->opt.timestep, q_copy.data(), q1);
+
+      // compute velocity 2 
+      std::vector<double> v2(model->nv);
+      mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
+
+      // compute acceleration 1
+      mju_sub(output, v2.data(), v1.data(), model->nv);
+      mju_scl(output, output, 1.0 / model->opt.timestep, model->nv);
+    };
+
+    // update 
+    std::vector<double> dq0(model_->nv);
+    mju_zero(dq0.data(), model_->nv);
+
+    // compute Jacobian 
+    fd.Compute(acceleration_previous_configuration, dq0.data(), model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(dadq0, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // ----- dadq1 ----- //
+    auto acceleration_current_configuration = [&q0, &q1, &q2, &model = model_](double* output, const double* input) {
+      // copy current configuration
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q1, model->nq);
+
+      // perturb 
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // compute velocity 1
+      std::vector<double> v1(model->nv);
+      mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q_copy.data());
+
+      // compute velocity 2 
+      std::vector<double> v2(model->nv);
+      mj_differentiatePos(model, v2.data(), model->opt.timestep, q_copy.data(), q2);
+
+      // compute acceleration 1
+      mju_sub(output, v2.data(), v1.data(), model->nv);
+      mju_scl(output, output, 1.0 / model->opt.timestep, model->nv);
+    };
+
+    // update 
+    std::vector<double> dq1(model_->nv);
+    mju_zero(dq1.data(), model_->nv);
+
+    // compute Jacobian 
+    fd.Compute(acceleration_current_configuration, dq1.data(), model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(dadq1, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // ----- dadq2 ----- //
+    auto acceleration_next_configuration = [&q0, &q1, &q2, &model = model_](double* output, const double* input) {
+      // copy next configuration
+      std::vector<double> q_copy(model->nq);
+      mju_copy(q_copy.data(), q2, model->nq);
+
+      // perturb 
+      mj_integratePos(model, q_copy.data(), input, 1.0);
+
+      // compute velocity 1
+      std::vector<double> v1(model->nv);
+      mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
+
+      // compute velocity 2 
+      std::vector<double> v2(model->nv);
+      mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q_copy.data());
+
+      // compute acceleration 1
+      mju_sub(output, v2.data(), v1.data(), model->nv);
+      mju_scl(output, output, 1.0 / model->opt.timestep, model->nv);
+    };
+
+    // update 
+    std::vector<double> dq2(model_->nv);
+    mju_zero(dq2.data(), model_->nv);
+
+    // compute Jacobian 
+    fd.Compute(acceleration_next_configuration, dq2.data(), model_->nv, model_->nv);
+
+    // copy result 
+    mju_copy(dadq2, fd.jacobian_.data(), model_->nv * model_->nv);
+  }
 }
 
 }  // namespace mjpc

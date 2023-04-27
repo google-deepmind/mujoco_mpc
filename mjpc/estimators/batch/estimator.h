@@ -54,6 +54,9 @@ class Estimator {
   // prior Jacobian
   void JacobianPrior();
 
+  // prior Jacobian blocks 
+  void JacobianPriorBlocks();
+
   // measurement cost
   double CostMeasurement(double* gradient, double* hessian);
 
@@ -62,6 +65,9 @@ class Estimator {
 
   // measurement Jacobian
   void JacobianMeasurement();
+
+  // measurement Jacobian blocks 
+  void JacobianMeasurementBlocks();
 
   // compute measurements
   void ComputeMeasurements();
@@ -75,6 +81,9 @@ class Estimator {
   // inverse dynamics Jacobian
   void JacobianInverseDynamics();
 
+  // inverse dynamics Jacobian blocks 
+  void JacobianInverseDynamicsBlocks();
+
   // compute inverse dynamics
   void ComputeInverseDynamics();
 
@@ -83,6 +92,12 @@ class Estimator {
 
   // update configuration, velocity, acceleration, measurement, and qfrc trajectories
   void UpdateTrajectory(double* configuration, const double* update);
+
+  // velocity Jacobian blocks
+  void VelocityJacobianBlocks();
+
+  // acceleration Jacobian blocks 
+  void AccelerationJacobianBlocks();
 
   // model
   mjModel* model_;
@@ -117,6 +132,30 @@ class Estimator {
   std::vector<double> jacobian_measurement_;
   std::vector<double> jacobian_inverse_dynamics_;
 
+  // prior Jacobian block 
+  std::vector<double> jacobian_block_prior_configuration_;
+
+  // measurement Jacobian blocks
+  std::vector<double> jacobian_block_measurement_configuration_;
+  std::vector<double> jacobian_block_measurement_velocity_;
+  std::vector<double> jacobian_block_measurement_acceleration_;
+  std::vector<double> jacobian_block_measurement_scratch_;
+
+  // inverse dynamics Jacobian blocks 
+  std::vector<double> jacobian_block_inverse_dynamics_configuration_;
+  std::vector<double> jacobian_block_inverse_dynamics_velocity_;
+  std::vector<double> jacobian_block_inverse_dynamics_acceleration_;
+  std::vector<double> jacobian_block_inverse_dynamics_scratch_;
+
+  // velocity Jacobian blocks 
+  std::vector<double> jacobian_block_velocity_previous_configuration_;
+  std::vector<double> jacobian_block_velocity_current_configuration_;
+
+  // acceleration Jacobian blocks 
+  std::vector<double> jacobian_block_acceleration_previous_configuration_;
+  std::vector<double> jacobian_block_acceleration_current_configuration_;
+  std::vector<double> jacobian_block_acceleration_next_configuration_;
+
   // cost gradient
   std::vector<double> cost_gradient_prior_;
   std::vector<double> cost_gradient_measurement_;
@@ -129,10 +168,10 @@ class Estimator {
   std::vector<double> cost_hessian_inverse_dynamics_;
   std::vector<double> cost_hessian_total_;
 
-  // scratch 
-  std::vector<double> scratch_prior_;
-  std::vector<double> scratch_measurement_;
-  std::vector<double> scratch_inverse_dynamics_;
+  // cost scratch 
+  std::vector<double> cost_scratch_prior_;
+  std::vector<double> cost_scratch_measurement_;
+  std::vector<double> cost_scratch_inverse_dynamics_;
 
   // weight TODO(taylor): matrices
   double weight_prior_;

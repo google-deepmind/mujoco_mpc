@@ -13,14 +13,15 @@
 // limitations under the License.
 
 #include "mjpc/estimators/batch/estimator.h"
+
+#include "mjpc/norm.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
 
 // convert sequence of configurations to velocities
 void ConfigurationToVelocity(double* velocity, const double* configuration,
-                             int configuration_length,
-                             const mjModel* model) {
+                             int configuration_length, const mjModel* model) {
   // loop over configuration trajectory
   for (int t = 0; t < configuration_length - 1; t++) {
     // previous and current configurations
@@ -35,8 +36,7 @@ void ConfigurationToVelocity(double* velocity, const double* configuration,
 
 // convert sequence of configurations to velocities
 void VelocityToAcceleration(double* acceleration, const double* velocity,
-                             int velocity_length,
-                             const mjModel* model) {
+                            int velocity_length, const mjModel* model) {
   // loop over velocity trajectory
   for (int t = 0; t < velocity_length - 1; t++) {
     // previous and current configurations
@@ -81,12 +81,47 @@ void Estimator::Initialize(mjModel* model) {
   residual_inverse_dynamics_.resize(model->nv * MAX_HISTORY);
 
   // Jacobian
-  jacobian_prior_.resize((model->nv * MAX_HISTORY) *
-                          (model->nv * MAX_HISTORY));
+  jacobian_prior_.resize((model->nv * MAX_HISTORY) * (model->nv * MAX_HISTORY));
   jacobian_measurement_.resize((dim_measurement_ * MAX_HISTORY) *
-                                (model->nv * MAX_HISTORY));
+                               (model->nv * MAX_HISTORY));
   jacobian_inverse_dynamics_.resize((model->nv * MAX_HISTORY) *
                                     (model->nv * MAX_HISTORY));
+
+  // prior Jacobian block
+  jacobian_block_prior_configuration_.resize((model->nv * model->nv) *
+                                             MAX_HISTORY);
+
+  // measurement Jacobian blocks
+  jacobian_block_measurement_configuration_.resize(
+      (dim_measurement_ * model->nv) * MAX_HISTORY);
+  jacobian_block_measurement_velocity_.resize((dim_measurement_ * model->nv) *
+                                              MAX_HISTORY);
+  jacobian_block_measurement_acceleration_.resize(
+      (dim_measurement_ * model->nv) * MAX_HISTORY);
+  jacobian_block_measurement_scratch_.resize((dim_measurement_ * model->nv));
+
+  // inverse dynamics Jacobian blocks
+  jacobian_block_inverse_dynamics_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
+  jacobian_block_inverse_dynamics_velocity_.resize((model->nv * model->nv) *
+                                                   MAX_HISTORY);
+  jacobian_block_inverse_dynamics_acceleration_.resize((model->nv * model->nv) *
+                                                       MAX_HISTORY);
+  jacobian_block_inverse_dynamics_scratch_.resize((model->nv * model->nv));
+
+  // velocity Jacobian blocks
+  jacobian_block_velocity_previous_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
+  jacobian_block_velocity_current_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
+
+  // acceleration Jacobian blocks
+  jacobian_block_acceleration_previous_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
+  jacobian_block_acceleration_current_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
+  jacobian_block_acceleration_next_configuration_.resize(
+      (model->nv * model->nv) * MAX_HISTORY);
 
   // cost gradient
   cost_gradient_prior_.resize(model->nv * MAX_HISTORY);
@@ -96,13 +131,13 @@ void Estimator::Initialize(mjModel* model) {
 
   // cost Hessian
   cost_hessian_prior_.resize((model->nv * MAX_HISTORY) *
-                              (model->nv * MAX_HISTORY));
+                             (model->nv * MAX_HISTORY));
   cost_hessian_measurement_.resize((model->nv * MAX_HISTORY) *
-                                    (model->nv * MAX_HISTORY));
+                                   (model->nv * MAX_HISTORY));
   cost_hessian_inverse_dynamics_.resize((model->nv * MAX_HISTORY) *
                                         (model->nv * MAX_HISTORY));
   cost_hessian_total_.resize((model->nv * MAX_HISTORY) *
-                              (model->nv * MAX_HISTORY));
+                             (model->nv * MAX_HISTORY));
 
   // weight TODO(taylor): matrices
   weight_prior_ = GetNumberOrDefault(1.0, model, "batch_weight_prior");
@@ -130,16 +165,19 @@ void Estimator::Initialize(mjModel* model) {
 
   // norm Hessian
   norm_hessian_prior_.resize((model->nv * MAX_HISTORY) *
-                              (model->nv * MAX_HISTORY));
+                             (model->nv * MAX_HISTORY));
   norm_hessian_measurement_.resize((dim_measurement_ * MAX_HISTORY) *
-                                    (dim_measurement_ * MAX_HISTORY));
+                                   (dim_measurement_ * MAX_HISTORY));
   norm_hessian_inverse_dynamics_.resize((model->nv * MAX_HISTORY) *
                                         (model->nv * MAX_HISTORY));
 
-  // scratch 
-  scratch_prior_.resize((model->nv * MAX_HISTORY) * (model->nv * MAX_HISTORY));
-  scratch_measurement_.resize((dim_measurement_ * MAX_HISTORY) * (model->nv * MAX_HISTORY));
-  scratch_inverse_dynamics_.resize((model->nv * MAX_HISTORY) * (model->nv * MAX_HISTORY));
+  // cost scratch
+  cost_scratch_prior_.resize((model->nv * MAX_HISTORY) *
+                             (model->nv * MAX_HISTORY));
+  cost_scratch_measurement_.resize((dim_measurement_ * MAX_HISTORY) *
+                                   (model->nv * MAX_HISTORY));
+  cost_scratch_inverse_dynamics_.resize((model->nv * MAX_HISTORY) *
+                                        (model->nv * MAX_HISTORY));
 
   // update
   update_.resize(model->nv * MAX_HISTORY);
@@ -151,37 +189,45 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int dim = model_->nv * configuration_length_;
 
   // compute cost
-  double cost = Norm(gradient ? norm_gradient_prior_.data() : NULL,
-                      hessian ? norm_hessian_prior_.data() : NULL,
-                      residual_prior_.data(), norm_parameters_prior_.data(),
-                      dim, norm_prior_);
+  double cost =
+      Norm(gradient ? norm_gradient_prior_.data() : NULL,
+           hessian ? norm_hessian_prior_.data() : NULL, residual_prior_.data(),
+           norm_parameters_prior_.data(), dim, norm_prior_);
 
   // compute cost gradient wrt update
   if (gradient) {
     // scale gradient by weight
-    mju_scl(norm_gradient_prior_.data(), norm_gradient_prior_.data(), weight_prior_, dim);
+    mju_scl(norm_gradient_prior_.data(), norm_gradient_prior_.data(),
+            weight_prior_, dim);
 
-    // compute total gradient wrt update: [d (residual) / d (update)]^T * d (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_prior_.data(), jacobian_prior_.data(), norm_gradient_prior_.data(), dim, dim);
+    // compute total gradient wrt update: [d (residual) / d (update)]^T * d
+    // (norm) / d (residual)
+    mju_mulMatTVec(cost_gradient_prior_.data(), jacobian_prior_.data(),
+                   norm_gradient_prior_.data(), dim, dim);
   }
 
   // compute cost Hessian wrt update
   if (hessian) {
     // scale Hessian by weight
-    mju_scl(norm_hessian_prior_.data(), norm_hessian_prior_.data(), weight_prior_, dim * dim);
+    mju_scl(norm_hessian_prior_.data(), norm_hessian_prior_.data(),
+            weight_prior_, dim * dim);
 
-    // compute total Hessian (Gauss-Newton approximation): 
-    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
+    // compute total Hessian (Gauss-Newton approximation):
+    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d
+    // (residual) / d (update)]
 
-    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
-    mju_mulMatMat(scratch_prior_.data(), norm_hessian_prior_.data(), jacobian_prior_.data(), dim, dim, dim);
+    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d
+    // (update)]
+    mju_mulMatMat(cost_scratch_prior_.data(), norm_hessian_prior_.data(),
+                  jacobian_prior_.data(), dim, dim, dim);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(cost_hessian_prior_.data(), jacobian_prior_.data(), scratch_prior_.data(), dim, dim, dim);
+    mju_mulMatTMat(cost_hessian_prior_.data(), jacobian_prior_.data(),
+                   cost_scratch_prior_.data(), dim, dim, dim);
   }
 
   // return weighted cost
-  return weight_prior_ * cost; // TODO(taylor): weight -> matrix
+  return weight_prior_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // prior residual
@@ -207,8 +253,53 @@ void Estimator::JacobianPrior() {
 
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
-    // finite-difference
-    
+    double* block = jacobian_block_prior_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, model_->nv,
+                      model_->nv, t * model_->nv, t * model_->nv);
+  }
+}
+
+// prior Jacobian blocks
+void Estimator::JacobianPriorBlocks() {
+  // finite-difference Jacobian
+  FiniteDifferenceJacobian fd(model_->nv, model_->nv);
+
+  // update
+  std::vector<double> update(model_->nv);
+
+  // copy of configuration for finite-difference perturbation
+  std::vector<double> configuration_copy(model_->nq);
+
+  // loop over configurations
+  for (int t = 0; t < configuration_length_; t++) {
+    // configuration difference
+    auto configuration_difference = [&configuration = configuration_,
+                                     &prior = configuration_prior_,
+                                     &configuration_copy, &model = model_,
+                                     &t](double* output, const double* input) {
+      // unpack
+      double* qt = configuration_copy.data();
+      double* qt_prior = prior.data() + t * model->nq;
+
+      // copy
+      mju_copy(qt, configuration.data() + t * model->nq, model->nq);
+
+      // integrate
+      mj_integratePos(model, qt, input, 1.0);
+
+      // difference
+      mj_differentiatePos(model, output, 1.0, qt_prior, qt);
+    };
+
+    // compute Jacobian
+    mju_zero(update.data(), model_->nv);
+    fd.Compute(configuration_difference, update.data(), model_->nv, model_->nv);
+
+    // copy result into Jacobian block
+    double* block = jacobian_block_prior_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_copy(block, fd.jacobian_.data(), model_->nv * model_->nv);
   }
 }
 
@@ -223,35 +314,47 @@ double Estimator::CostMeasurement(double* gradient, double* hessian) {
   // compute cost
   double cost =
       Norm(gradient ? norm_gradient_measurement_.data() : NULL,
-            hessian ? norm_hessian_measurement_.data() : NULL,
-            residual_measurement_.data(), norm_parameters_measurement_.data(),
-            dim_residual, norm_measurement_);
+           hessian ? norm_hessian_measurement_.data() : NULL,
+           residual_measurement_.data(), norm_parameters_measurement_.data(),
+           dim_residual, norm_measurement_);
 
   // compute cost gradient wrt update
   if (gradient) {
     // scale gradient by weight
-    mju_scl(norm_gradient_measurement_.data(), norm_gradient_measurement_.data(), weight_measurement_, dim_residual);
+    mju_scl(norm_gradient_measurement_.data(),
+            norm_gradient_measurement_.data(), weight_measurement_,
+            dim_residual);
 
-    // compute total gradient wrt update: [d (residual) / d (update)]^T * d (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_measurement_.data(), jacobian_measurement_.data(), norm_gradient_measurement_.data(), dim_residual, dim_update);
+    // compute total gradient wrt update: [d (residual) / d (update)]^T * d
+    // (norm) / d (residual)
+    mju_mulMatTVec(cost_gradient_measurement_.data(),
+                   jacobian_measurement_.data(),
+                   norm_gradient_measurement_.data(), dim_residual, dim_update);
   }
 
   // compute cost Hessian wrt update
   if (hessian) {
     // scale Hessian by weight
-    mju_scl(norm_hessian_measurement_.data(), norm_hessian_measurement_.data(), weight_measurement_, dim_residual * dim_residual);
+    mju_scl(norm_hessian_measurement_.data(), norm_hessian_measurement_.data(),
+            weight_measurement_, dim_residual * dim_residual);
 
-    // compute total Hessian (Gauss-Newton approximation): 
-    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
+    // compute total Hessian (Gauss-Newton approximation):
+    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d
+    // (residual) / d (update)]
 
-    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
-    mju_mulMatMat(scratch_measurement_.data(), norm_hessian_measurement_.data(), jacobian_measurement_.data(), dim_residual, dim_residual, dim_update);
+    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d
+    // (update)]
+    mju_mulMatMat(
+        cost_scratch_measurement_.data(), norm_hessian_measurement_.data(),
+        jacobian_measurement_.data(), dim_residual, dim_residual, dim_update);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(cost_hessian_measurement_.data(), jacobian_measurement_.data(), scratch_measurement_.data(), dim_residual, dim_update, dim_update);
+    mju_mulMatTMat(
+        cost_hessian_measurement_.data(), jacobian_measurement_.data(),
+        cost_scratch_measurement_.data(), dim_residual, dim_update, dim_update);
   }
 
-  return weight_measurement_ * cost; // TODO(taylor): weight -> matrix
+  return weight_measurement_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // measurement residual
@@ -269,7 +372,7 @@ void Estimator::ResidualMeasurement() {
 
 // measurement Jacobian
 void Estimator::JacobianMeasurement() {
-  // residual dimension 
+  // residual dimension
   int dim_residual = dim_measurement_ * (configuration_length_ - 2);
 
   // update dimension
@@ -280,7 +383,82 @@ void Estimator::JacobianMeasurement() {
 
   // loop over measurements
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // finite-difference
+    // d (measurement) / d (configuration)
+    double* yq = jacobian_block_measurement_configuration_.data() +
+                 t * dim_measurement_ * model_->nv;
+
+    // d (measurement) / d (velocity)
+    double* yv = jacobian_block_measurement_velocity_.data() +
+                 t * dim_measurement_ * model_->nv;
+
+    // d (measurement) / d (acceleration)
+    double* ya = jacobian_block_measurement_acceleration_.data() +
+                 t * dim_measurement_ * model_->nv;
+
+    // indices
+    int row = t * dim_measurement_;
+    int col_previous = t * model_->nv;
+    int col_current = (t + 1) * model_->nv;
+    int col_next = (t + 2) * model_->nv;
+
+    // ----- configuration previous ----- //
+    // dy/dv * dv / dq0
+    double* dvdq0 = jacobian_block_velocity_previous_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_measurement_scratch_.data(), yv, dvdq0,
+                  dim_measurement_, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_measurement_.data(),
+                      jacobian_block_measurement_scratch_.data(), 1.0,
+                      dim_residual, dim_update, dim_measurement_, model_->nv,
+                      row, col_previous);
+
+    // dy/da * da/dq0
+    double* dadq0 = jacobian_block_acceleration_previous_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_measurement_scratch_.data(), ya, dadq0,
+                  dim_measurement_, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_measurement_.data(),
+                      jacobian_block_measurement_scratch_.data(), 1.0,
+                      dim_residual, dim_update, dim_measurement_, model_->nv,
+                      row, col_previous);
+
+    // ----- configuration current ----- //
+    // dy/dq
+    SetMatrixInMatrix(jacobian_measurement_.data(), yq, 1.0, dim_residual,
+                      dim_update, dim_measurement_, model_->nv, row,
+                      col_current);
+
+    // dy/dv * dv/dq1
+    double* dvdq1 = jacobian_block_velocity_current_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_measurement_scratch_.data(), yv, dvdq1,
+                  dim_measurement_, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_measurement_.data(),
+                      jacobian_block_measurement_scratch_.data(), 1.0,
+                      dim_residual, dim_update, dim_measurement_, model_->nv,
+                      row, col_current);
+
+    // dy/da * da/dq1
+    double* dadq1 = jacobian_block_acceleration_current_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_measurement_scratch_.data(), ya, dadq1,
+                  dim_measurement_, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_measurement_.data(),
+                      jacobian_block_measurement_scratch_.data(), 1.0,
+                      dim_residual, dim_update, dim_measurement_, model_->nv,
+                      row, col_current);
+
+    // ----- configuration next ----- //
+
+    // dy/da * da/dq2
+    double* dadq2 = jacobian_block_acceleration_next_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_measurement_scratch_.data(), ya, dadq2,
+                  dim_measurement_, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_measurement_.data(),
+                      jacobian_block_measurement_scratch_.data(), 1.0,
+                      dim_residual, dim_update, dim_measurement_, model_->nv,
+                      row, col_next);
   }
 }
 
@@ -311,41 +489,57 @@ double Estimator::CostInverseDynamics(double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = model_->nv * (configuration_length_ - 2);
 
-  // update dimension 
+  // update dimension
   int dim_update = model_->nv * configuration_length_;
 
   // compute cost
   double cost = Norm(gradient ? norm_gradient_inverse_dynamics_.data() : NULL,
-                      hessian ? norm_hessian_inverse_dynamics_.data() : NULL,
-                      residual_inverse_dynamics_.data(),
-                      norm_parameters_inverse_dynamics_.data(), dim_residual,
-                      norm_inverse_dynamics_);
+                     hessian ? norm_hessian_inverse_dynamics_.data() : NULL,
+                     residual_inverse_dynamics_.data(),
+                     norm_parameters_inverse_dynamics_.data(), dim_residual,
+                     norm_inverse_dynamics_);
 
   // compute cost gradient wrt update
   if (gradient) {
     // scale gradient by weight
-    mju_scl(norm_gradient_inverse_dynamics_.data(), norm_gradient_inverse_dynamics_.data(), weight_inverse_dynamics_, dim_residual);
+    mju_scl(norm_gradient_inverse_dynamics_.data(),
+            norm_gradient_inverse_dynamics_.data(), weight_inverse_dynamics_,
+            dim_residual);
 
-    // compute total gradient wrt update: [d (residual) / d (update)]^T * d (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_inverse_dynamics_.data(), jacobian_inverse_dynamics_.data(), norm_gradient_inverse_dynamics_.data(), dim_residual, dim_update);
+    // compute total gradient wrt update: [d (residual) / d (update)]^T * d
+    // (norm) / d (residual)
+    mju_mulMatTVec(cost_gradient_inverse_dynamics_.data(),
+                   jacobian_inverse_dynamics_.data(),
+                   norm_gradient_inverse_dynamics_.data(), dim_residual,
+                   dim_update);
   }
 
   // compute cost Hessian wrt update
   if (hessian) {
     // scale Hessian by weight
-    mju_scl(norm_hessian_inverse_dynamics_.data(), norm_hessian_inverse_dynamics_.data(), weight_inverse_dynamics_, dim_residual * dim_residual);
+    mju_scl(norm_hessian_inverse_dynamics_.data(),
+            norm_hessian_inverse_dynamics_.data(), weight_inverse_dynamics_,
+            dim_residual * dim_residual);
 
-    // compute total Hessian (Gauss-Newton approximation): 
-    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
+    // compute total Hessian (Gauss-Newton approximation):
+    // [d (residual) / d (update)]^T * d^2 (norm) / d (residual)^2 * [d
+    // (residual) / d (update)]
 
-    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d (update)]
-    mju_mulMatMat(scratch_inverse_dynamics_.data(), norm_hessian_inverse_dynamics_.data(), jacobian_inverse_dynamics_.data(), dim_residual, dim_residual, dim_update);
+    // step 1: scratch = d^2 (norm) / d (residual)^2 * [d (residual) / d
+    // (update)]
+    mju_mulMatMat(cost_scratch_inverse_dynamics_.data(),
+                  norm_hessian_inverse_dynamics_.data(),
+                  jacobian_inverse_dynamics_.data(), dim_residual, dim_residual,
+                  dim_update);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(cost_hessian_inverse_dynamics_.data(), jacobian_inverse_dynamics_.data(), scratch_inverse_dynamics_.data(), dim_residual, dim_update, dim_update);
+    mju_mulMatTMat(cost_hessian_inverse_dynamics_.data(),
+                   jacobian_inverse_dynamics_.data(),
+                   cost_scratch_inverse_dynamics_.data(), dim_residual,
+                   dim_update, dim_update);
   }
 
-  return weight_inverse_dynamics_ * cost; // TODO(taylor): weight -> matrix
+  return weight_inverse_dynamics_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // inverse dynamics residual
@@ -363,7 +557,7 @@ void Estimator::ResidualInverseDynamics() {
 
 // inverse dynamics Jacobian
 void Estimator::JacobianInverseDynamics() {
-  // residual dimension 
+  // residual dimension
   int dim_residual = model_->nv * (configuration_length_ - 2);
 
   // update dimension
@@ -372,9 +566,84 @@ void Estimator::JacobianInverseDynamics() {
   // reset Jacobian to zero
   mju_zero(jacobian_inverse_dynamics_.data(), dim_residual * dim_update);
 
-  // loop over measurements
+  // loop over qfrc
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // finite-difference
+    // d (inverse dynamics) / d (configuration)
+    double* yq = jacobian_block_inverse_dynamics_configuration_.data() +
+                 t * model_->nv * model_->nv;
+
+    // d (inverse dynamics) / d (velocity)
+    double* yv = jacobian_block_inverse_dynamics_velocity_.data() +
+                 t * model_->nv * model_->nv;
+
+    // d (inverse dynamics) / d (acceleration)
+    double* ya = jacobian_block_inverse_dynamics_acceleration_.data() +
+                 t * model_->nv * model_->nv;
+
+    // indices
+    int row = t * model_->nv;
+    int col_previous = t * model_->nv;
+    int col_current = (t + 1) * model_->nv;
+    int col_next = (t + 2) * model_->nv;
+
+    // ----- configuration previous ----- //
+    // dy/dv * dv / dq0
+    double* dvdq0 = jacobian_block_velocity_previous_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_inverse_dynamics_scratch_.data(), yv, dvdq0,
+                  model_->nv, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
+                      jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
+                      dim_residual, dim_update, model_->nv, model_->nv,
+                      row, col_previous);
+
+    // dy/da * da/dq0
+    double* dadq0 = jacobian_block_acceleration_previous_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_inverse_dynamics_scratch_.data(), ya, dadq0,
+                  model_->nv, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
+                      jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
+                      dim_residual, dim_update, model_->nv, model_->nv,
+                      row, col_previous);
+
+    // ----- configuration current ----- //
+    // dy/dq
+    SetMatrixInMatrix(jacobian_inverse_dynamics_.data(), yq, 1.0, dim_residual,
+                      dim_update, model_->nv, model_->nv, row,
+                      col_current);
+
+    // dy/dv * dv/dq1
+    double* dvdq1 = jacobian_block_velocity_current_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_inverse_dynamics_scratch_.data(), yv, dvdq1,
+                  model_->nv, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
+                      jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
+                      dim_residual, dim_update, model_->nv, model_->nv,
+                      row, col_current);
+
+    // dy/da * da/dq1
+    double* dadq1 = jacobian_block_acceleration_current_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_inverse_dynamics_scratch_.data(), ya, dadq1,
+                  model_->nv, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
+                      jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
+                      dim_residual, dim_update, model_->nv, model_->nv,
+                      row, col_current);
+
+    // ----- configuration next ----- //
+
+    // dy/da * da/dq2
+    double* dadq2 = jacobian_block_acceleration_next_configuration_.data() +
+                    t * model_->nv * model_->nv;
+    mju_mulMatMat(jacobian_block_inverse_dynamics_scratch_.data(), ya, dadq2,
+                  model_->nv, model_->nv, model_->nv);
+    AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
+                      jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
+                      dim_residual, dim_update, model_->nv, model_->nv,
+                      row, col_next);
   }
 }
 
@@ -401,7 +670,8 @@ void Estimator::ComputeInverseDynamics() {
 }
 
 // update configuration trajectory
-void Estimator::UpdateConfiguration(double* configuration, const double* update) {
+void Estimator::UpdateConfiguration(double* configuration,
+                                    const double* update) {
   for (int t = 0; t < configuration_length_; t++) {
     // configuration
     double* q = configuration + t * model_->nq;
@@ -414,9 +684,9 @@ void Estimator::UpdateConfiguration(double* configuration, const double* update)
   }
 }
 
-// update configuration, velocity, acceleration, measurement, and qfrc trajectories
-void Estimator::UpdateTrajectory(double* configuration,
-                                  const double* update) {
+// update configuration, velocity, acceleration, measurement, and qfrc
+// trajectories
+void Estimator::UpdateTrajectory(double* configuration, const double* update) {
   // update configuration trajectory using
   UpdateConfiguration(configuration, update);
 
@@ -426,7 +696,7 @@ void Estimator::UpdateTrajectory(double* configuration,
 
   // finite-difference accelerations
   VelocityToAcceleration(acceleration_.data(), velocity_.data(),
-                          configuration_length_ - 1, model_);
+                         configuration_length_ - 1, model_);
 
   // compute model measurements
   ComputeMeasurements();

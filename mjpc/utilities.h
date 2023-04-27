@@ -255,6 +255,9 @@ class FiniteDifferenceGradient {
   // constructor
   FiniteDifferenceGradient(int dim);
 
+  // resize memory 
+  void Resize(int dim);
+
   // compute gradient
   double* Compute(std::function<double(const double* x)> func,
                   const double* input, int dim);
@@ -270,6 +273,9 @@ class FiniteDifferenceJacobian {
  public:
   // constructor
   FiniteDifferenceJacobian(int num_output, int num_input);
+
+  // resize memory 
+  void Resize(int num_ouput, int num_input);
 
   // compute Jacobian
   double* Compute(std::function<void(double* output, const double* input)> func,
@@ -290,6 +296,9 @@ class FiniteDifferenceHessian {
   // constructor
   FiniteDifferenceHessian(int dim);
 
+  // resize memory 
+  void Resize(int dim);
+
   // compute
   double* Compute(std::function<double(const double* x)> func,
                   const double* input, int dim);
@@ -304,6 +313,10 @@ class FiniteDifferenceHessian {
 
 // set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
 void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
+                       int r2, int c2, int ri, int ci);
+
+// add scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
+void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
                        int r2, int c2, int ri, int ci);
 
 }  // namespace mjpc

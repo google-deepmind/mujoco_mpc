@@ -988,17 +988,21 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
 
 // finite-difference gradient constructor
 FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) {
+  Resize(dim);
+}
+
+// finite-difference gradient resize memory 
+void FiniteDifferenceGradient::Resize(int dim) {
   // allocate memory
-  gradient_.resize(dim);
-  workspace_.resize(dim);
+  if (dim != gradient_.size()) gradient_.resize(dim);
+  if (dim != workspace_.size()) workspace_.resize(dim);
 }
 
 // compute finite-difference gradient
 double* FiniteDifferenceGradient::Compute(
     std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
-  if (dim != gradient_.size()) gradient_.resize(dim);
-  if (dim != workspace_.size()) workspace_.resize(dim);
+  Resize(dim);
 
   // ----- compute ----- //
   // set workspace
@@ -1026,17 +1030,12 @@ double* FiniteDifferenceGradient::Compute(
 // finite-difference Jacobian constructor
 FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
                                                    int num_input) {
-  jacobian_.resize(num_output * num_input);
-  jacobian_transpose_.resize(num_input * num_output);
-  output_.resize(num_output);
-  output_nominal_.resize(num_output);
-  workspace_.resize(num_input);
+  // resize 
+  Resize(num_output, num_input);
 }
 
-// compute Jacobian
-double* FiniteDifferenceJacobian::Compute(
-    std::function<void(double* output, const double* input)> func,
-    const double* input, int num_output, int num_input) {
+// finite-difference Jacobian memory resize
+void FiniteDifferenceJacobian::Resize(int num_output, int num_input) {
   // resize
   if (jacobian_.size() != num_output * num_input)
     jacobian_.resize(num_output * num_input);
@@ -1045,6 +1044,14 @@ double* FiniteDifferenceJacobian::Compute(
   if (output_.size() != num_output) output_.resize(num_output);
   if (output_nominal_.size() != num_output) output_nominal_.resize(num_output);
   if (workspace_.size() != num_input) workspace_.resize(num_input);
+}
+
+// compute Jacobian
+double* FiniteDifferenceJacobian::Compute(
+    std::function<void(double* output, const double* input)> func,
+    const double* input, int num_output, int num_input) {
+  // resize 
+  Resize(num_output, num_input);
 
   // copy workspace
   mju_copy(workspace_.data(), input, num_input);
@@ -1079,20 +1086,24 @@ double* FiniteDifferenceJacobian::Compute(
 
 // finite-difference Hessian constructor
 FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
-  hessian_.resize(dim * dim);
-  workspace1_.resize(dim);
-  workspace2_.resize(dim);
-  workspace3_.resize(dim);
+  // resize memory 
+  Resize(dim);
+}
+
+// finite-difference Hessian memory resize
+void FiniteDifferenceHessian::Resize(int dim) {
+  // resize
+  if (dim * dim != hessian_.size()) hessian_.resize(dim * dim);
+  if (dim != workspace1_.size()) workspace1_.resize(dim);
+  if (dim != workspace2_.size()) workspace2_.resize(dim);
+  if (dim != workspace3_.size()) workspace3_.resize(dim);
 }
 
 // compute finite-difference Hessian
 double* FiniteDifferenceHessian::Compute(
     std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
-  if (dim * dim != hessian_.size()) hessian_.resize(dim * dim);
-  if (dim != workspace1_.size()) workspace1_.resize(dim);
-  if (dim != workspace2_.size()) workspace2_.resize(dim);
-  if (dim != workspace3_.size()) workspace3_.resize(dim);
+  Resize(dim);
 
   // set workspace
   mju_copy(workspace1_.data(), input, dim);
@@ -1102,7 +1113,7 @@ double* FiniteDifferenceHessian::Compute(
   // evaluate at candidate
   double f = func(input);
 
-  // centered finite difference
+  // centered finite-difference
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
       if (i > j) continue;  // skip bottom triangle
@@ -1148,6 +1159,18 @@ void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
     // loop over A2 columns
     for (int j = 0; j < c2; j++) {
       A1[(ri + i) * c1 + ci + j] = s * A2[i * c2 + j];
+    }
+  }
+}
+
+// add scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
+void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
+                       int r2, int c2, int ri, int ci) {
+  // loop over A2 rows
+  for (int i = 0; i < r2; i++) {
+    // loop over A2 columns
+    for (int j = 0; j < c2; j++) {
+      A1[(ri + i) * c1 + ci + j] += s * A2[i * c2 + j];
     }
   }
 }

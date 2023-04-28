@@ -63,10 +63,10 @@ class AgentService final : public agent::Agent::Service {
                      const agent::ResetRequest* request,
                      agent::ResetResponse* response) override;
 
-  grpc::Status SetTaskParameter(
+  grpc::Status SetTaskParameters(
       grpc::ServerContext* context,
-      const agent::SetTaskParameterRequest* request,
-      agent::SetTaskParameterResponse* response) override;
+      const agent::SetTaskParametersRequest* request,
+      agent::SetTaskParametersResponse* response) override;
 
   grpc::Status SetCostWeights(
       grpc::ServerContext* context,

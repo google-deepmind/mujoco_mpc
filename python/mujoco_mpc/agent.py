@@ -207,10 +207,23 @@ class Agent:
       name: the name to identify the parameter.
       value: value to to set the parameter to.
     """
-    set_task_parameter_request = agent_pb2.SetTaskParameterRequest(
-        name=name, value=value
-    )
-    self.stub.SetTaskParameter(set_task_parameter_request)
+    self.set_task_parameters({name: value})
+
+  def set_task_parameters(self, parameters: dict[str, float | str]):
+    """Sets the `Agent`'s task parameters.
+
+    Args:
+      parameters: a map from parameter name to value. string values will be
+          treated as "selection" values, i.e. parameters with names that start
+          with "residual_select_" in the XML.
+    """
+    request = agent_pb2.SetTaskParametersRequest()
+    for (name, value) in parameters.items():
+      if isinstance(value, str):
+        request.parameters[name].selection = value
+      else:
+        request.parameters[name].numeric = value
+    self.stub.SetTaskParameters(request)
 
   def set_cost_weights(
       self, weights: dict[str, float], reset_to_defaults: bool = False

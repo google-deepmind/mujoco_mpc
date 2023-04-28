@@ -28,6 +28,7 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
+#include "third_party/mujoco_mpc/grpc/agent.proto.h"
 #include "mjpc/task.h"
 
 namespace agent_grpc {
@@ -46,8 +47,8 @@ using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
-using ::agent::SetTaskParameterRequest;
-using ::agent::SetTaskParameterResponse;
+using ::agent::SetTaskParametersRequest;
+using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
 
@@ -324,28 +325,56 @@ grpc::Status AgentService::Reset(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status AgentService::SetTaskParameter(
-    grpc::ServerContext* context, const SetTaskParameterRequest* request,
-    SetTaskParameterResponse* response) {
+grpc::Status AgentService::SetTaskParameters(
+    grpc::ServerContext* context, const SetTaskParametersRequest* request,
+    SetTaskParametersResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  std::string_view name = request->name();
-  double value = request->value();
-
-  if (agent_.SetParamByName(name, value) == -1) {
-    std::ostringstream error_string;
-    error_string << "Parameter " << name
-                 << " not found in task.  Available names are:\n";
-    auto agent_model = agent_.GetModel();
-    for (int i = 0; i < agent_model->nnumeric; i++) {
-      std::string_view numeric_name(agent_model->names +
-                                    agent_model->name_numericadr[i]);
-      if (absl::StartsWith(numeric_name, "residual_")) {
-        error_string << absl::StripPrefix(numeric_name, "residual_") << "\n";
-      }
+  for (const auto& [name, value] : request->parameters()) {
+    switch (value.value_case()) {
+      case agent::TaskParameterValue::kNumeric:
+        if (agent_.SetParamByName(name, value.numeric()) == -1) {
+          std::ostringstream error_string;
+          error_string << "Parameter " << name
+                       << " not found in task.  Available names are:\n";
+          auto agent_model = agent_.GetModel();
+          for (int i = 0; i < agent_model->nnumeric; i++) {
+            std::string_view numeric_name(agent_model->names +
+                                          agent_model->name_numericadr[i]);
+            if (absl::StartsWith(numeric_name, "residual_") &&
+                !absl::StartsWith(numeric_name, "residual_select_")) {
+              error_string << absl::StripPrefix(numeric_name, "residual_")
+                           << "\n";
+            }
+          }
+          return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                              error_string.str());
+        }
+        break;
+      case agent::TaskParameterValue::kSelection:
+        if (agent_.SetSelectionParamByName(name, value.selection()) == -1) {
+          std::ostringstream error_string;
+          error_string << "Parameter " << name
+                       << " not found in task.  Available names are:\n";
+          auto agent_model = agent_.GetModel();
+          for (int i = 0; i < agent_model->nnumeric; i++) {
+            std::string_view numeric_name(agent_model->names +
+                                          agent_model->name_numericadr[i]);
+            if (absl::StartsWith(numeric_name, "residual_select_")) {
+              error_string << absl::StripPrefix(numeric_name,
+                                                "residual_select_")
+                           << "\n";
+            }
+          }
+          return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                              error_string.str());
+        }
+        break;
+      default:
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                            absl::StrCat("Missing value for parameter ", name));
     }
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string.str());
   }
 
   return grpc::Status::OK;

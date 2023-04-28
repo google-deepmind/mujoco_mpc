@@ -236,6 +236,15 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
 }
 
 int Agent::SetParamByName(std::string_view name, double value) {
+  if (absl::StartsWith(name, "residual_")) {
+    name = absl::StripPrefix(name, "residual_");
+  }
+  if (absl::StartsWith(name, "selection_")) {
+    mju_warning(
+        "SetParamByName should not be used with selection_ parameters. Use "
+        "SetSelectionParamByName.");
+    return -1;
+  }
   int shift = 0;
   for (int i = 0; i < model_->nnumeric; i++) {
     std::string_view numeric_name(model_->names + model_->name_numericadr[i]);
@@ -243,6 +252,31 @@ int Agent::SetParamByName(std::string_view name, double value) {
       if (absl::EqualsIgnoreCase(absl::StripPrefix(numeric_name, "residual_"),
                                  name)) {
         ActiveTask()->parameters[shift] = value;
+        return i;
+      } else {
+        shift++;
+      }
+    }
+  }
+  return -1;
+}
+
+int Agent::SetSelectionParamByName(std::string_view name,
+                                   std::string_view value) {
+  if (absl::StartsWith(name, "residual_select_")) {
+    name = absl::StripPrefix(name, "residual_select_");
+  }
+  if (absl::StartsWith(name, "selection_")) {
+    name = absl::StripPrefix(name, "selection_");
+  }
+  int shift = 0;
+  for (int i = 0; i < model_->nnumeric; i++) {
+    std::string_view numeric_name(model_->names + model_->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_select_")) {
+      if (absl::EqualsIgnoreCase(
+              absl::StripPrefix(numeric_name, "residual_select_"), name)) {
+        ActiveTask()->parameters[shift] =
+            ResidualParameterFromSelection(model_, name, value);
         return i;
       } else {
         shift++;

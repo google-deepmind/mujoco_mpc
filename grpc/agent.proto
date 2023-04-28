@@ -31,9 +31,9 @@ service Agent {
   rpc Step(StepRequest) returns (StepResponse);
   // Reset the Agent.
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Set a task parameter.
-  rpc SetTaskParameter(SetTaskParameterRequest)
-      returns (SetTaskParameterResponse);
+  // Set a task parameters.
+  rpc SetTaskParameters(SetTaskParametersRequest)
+      returns (SetTaskParametersResponse);
   // Set cost weights.
   rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
 }
@@ -90,13 +90,20 @@ message StepResponse {}
 message ResetRequest {}
 message ResetResponse {}
 
-message SetTaskParameterRequest {
-  // TODO(nimrod): Make this a bulk request like SetCostWeights
-  // TODO(nimrod): Support string task parameters
-  string name = 1;
-  double value = 2;
+message TaskParameterValue {
+  oneof value {
+    // used for normal numeric task parameters
+    double numeric = 1;
+    // used for values that come from drop down selections
+    string selection = 2;
+  }
 }
-message SetTaskParameterResponse {}
+
+message SetTaskParametersRequest {
+  // map from parameter name to desired value
+  map<string, TaskParameterValue> parameters = 1;
+}
+message SetTaskParametersResponse {}
 
 message SetCostWeightsRequest {
   bool reset_to_defaults = 1;

@@ -18,6 +18,9 @@ target_link_libraries(configuration_to_state_test load gmock)
 test(inverse_dynamics_test)
 target_link_libraries(inverse_dynamics_test load gmock)
 
+test(particle2D_test)
+target_link_libraries(particle2D_test load gmock)
+
 test(measurement_test)
 target_link_libraries(measurement_test load gmock)
 

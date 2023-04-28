@@ -151,19 +151,12 @@ AgentService::~AgentService() {
   mjcb_sensor = nullptr;
 }
 
-absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
-  std::ostringstream error_string;
-  if (model_size != vector_size) {
-    error_string << "expected " << name << " size " << model_size << ", got "
-                 << vector_size;
-    return absl::InvalidArgumentError(error_string.str());
-  }
-  return absl::OkStatus();
-}
-
 grpc::Status AgentService::GetState(grpc::ServerContext* context,
                                     const GetStateRequest* request,
                                     GetStateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent_.ActiveState().CopyTo(model, data_);
   agent::State* output_state = response->mutable_state();
 
@@ -190,6 +183,18 @@ grpc::Status AgentService::GetState(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
+namespace {
+absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
+  std::ostringstream error_string;
+  if (model_size != vector_size) {
+    error_string << "expected " << name << " size " << model_size << ", got "
+                 << vector_size;
+    return absl::InvalidArgumentError(error_string.str());
+  }
+  return absl::OkStatus();
+}
+}  // namespace
+
 #define CHECK_SIZE(name, n1, n2) \
 { \
   auto expr = (CheckSize(name, n1, n2)); \
@@ -203,36 +208,39 @@ if (!(expr).ok()) { \
 grpc::Status AgentService::SetState(grpc::ServerContext* context,
                                     const SetStateRequest* request,
                                     SetStateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent::State state = request->state();
 
   if (state.has_time()) data_->time = state.time();
 
-  if (0 < state.qpos_size()) {
+  if (state.qpos_size() > 0) {
     CHECK_SIZE("qpos", model->nq, state.qpos_size());
     mju_copy(data_->qpos, state.qpos().data(), model->nq);
   }
 
-  if (0 < state.qvel_size()) {
+  if (state.qvel_size() > 0) {
     CHECK_SIZE("qvel", model->nv, state.qvel_size());
     mju_copy(data_->qvel, state.qvel().data(), model->nv);
   }
 
-  if (0 < state.act_size()) {
+  if (state.act_size() > 0) {
     CHECK_SIZE("act", model->na, state.act_size());
     mju_copy(data_->act, state.act().data(), model->na);
   }
 
-  if (0 < state.mocap_pos_size()) {
+  if (state.mocap_pos_size() > 0) {
     CHECK_SIZE("mocap_pos", model->nmocap * 3, state.mocap_pos_size());
     mju_copy(data_->mocap_pos, state.mocap_pos().data(), model->nmocap * 3);
   }
 
-  if (0 < state.mocap_quat_size()) {
+  if (state.mocap_quat_size() > 0) {
     CHECK_SIZE("mocap_quat", model->nmocap * 4, state.mocap_quat_size());
     mju_copy(data_->mocap_quat, state.mocap_quat().data(), model->nmocap * 4);
   }
 
-  if (0 < state.userdata_size()) {
+  if (state.userdata_size() > 0) {
     CHECK_SIZE("userdata", model->nuserdata, state.userdata_size());
     mju_copy(data_->userdata, state.userdata().data(), model->nuserdata);
   }
@@ -250,6 +258,9 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
 grpc::Status AgentService::GetAction(grpc::ServerContext* context,
                                      const GetActionRequest* request,
                                      GetActionResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   int nu = agent_.GetActionDim();
   std::vector<double> ret = std::vector<double>(nu);
 
@@ -267,6 +278,9 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
 grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,
                                        const PlannerStepRequest* request,
                                        PlannerStepResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent_.plan_enabled = true;
   agent_.PlanIteration(&thread_pool_);
 
@@ -276,6 +290,9 @@ grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,
 grpc::Status AgentService::Step(grpc::ServerContext* context,
                                 const StepRequest* request,
                                 StepResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
   if (request->use_previous_policy()) {
@@ -292,13 +309,27 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
 grpc::Status AgentService::Reset(grpc::ServerContext* context,
                                  const ResetRequest* request,
                                  ResetResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent_.Reset();
+  // TODO(nimrod): This should be in the agent, no?
+  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+  if (home_id >= 0) {
+    mj_resetDataKeyframe(model, data_, home_id);
+  } else {
+    mj_resetData(model, data_);
+  }
+  agent_.SetState(data_);
   return grpc::Status::OK;
 }
 
 grpc::Status AgentService::SetTaskParameter(
     grpc::ServerContext* context, const SetTaskParameterRequest* request,
     SetTaskParameterResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   std::string_view name = request->name();
   double value = request->value();
 
@@ -323,6 +354,12 @@ grpc::Status AgentService::SetTaskParameter(
 grpc::Status AgentService::SetCostWeights(
     grpc::ServerContext* context, const SetCostWeightsRequest* request,
     SetCostWeightsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  if (request->reset_to_defaults()) {
+    agent_.ActiveTask()->Reset(model);
+  }
   for (const auto& [name, weight] : request->cost_weights()) {
     if (agent_.SetWeightByName(name, weight) == -1) {
       std::ostringstream error_string;

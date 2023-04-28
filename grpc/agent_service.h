@@ -74,6 +74,8 @@ class AgentService final : public agent::Agent::Service {
       agent::SetCostWeightsResponse* response) override;
 
  private:
+  bool Initialized() const { return data_ != nullptr; }
+
   mjpc::ThreadPool thread_pool_;
   mjpc::Agent agent_;
   std::vector<std::shared_ptr<mjpc::Task>> tasks_;

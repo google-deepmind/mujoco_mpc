@@ -32,8 +32,8 @@
   </option>
 
   <default>
-    <joint type="hinge" axis="0 0 1" limited="true" range="-.29 .29" damping="0"/>
-    <motor gear=".1" ctrlrange="-1 1" ctrllimited="true"/>
+    <!-- <joint type="hinge" axis="0 0 1" limited="true" range="-.29 .29" damping="0"/>
+    <motor gear=".1" ctrlrange="-1 1" ctrllimited="true"/> -->
   </default>
 
   <worldbody>
@@ -49,7 +49,7 @@
       <camera name="cam0" pos="0 -0.3 0.3" xyaxes="1 0 0 0 0.7 0.7"/>
       <joint name="root_x" type="slide"  pos="0 0 0" axis="1 0 0" />
       <joint name="root_y" type="slide"  pos="0 0 0" axis="0 1 0" />
-      <geom name="pointmass" type="sphere" size=".01" material="self" mass=".3"/>
+      <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
       <site name="tip" pos="0 0 0" size="0.01"/>
     </body>
   </worldbody>

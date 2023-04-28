@@ -39,7 +39,7 @@ TEST(Particle2DTest, BatchEstimator) {
   printf("ny: %i\n", model->nsensordata);
 
   // ----- simulate ----- //
-
+  
   // controller
   auto controller = [](double* ctrl, double time) {
     ctrl[0] = mju_sin(time);
@@ -74,12 +74,13 @@ TEST(Particle2DTest, BatchEstimator) {
     // cache 
     mju_copy(qpos.data() + (t + 1) * model->nq, data->qpos, model->nq);
     mju_copy(qvel.data() + (t + 1) * model->nv, data->qvel, model->nv);
-    mju_copy(qvel.data() + (t + 1) * model->nv, data->qvel, model->nv);
+    mju_copy(qacc.data() + (t + 1) * model->nv, data->qacc, model->nv);
     mju_copy(ctrl.data() + t * model->nu, data->ctrl, model->nu);
     mju_copy(qfrc_actuator.data() + t * model->nv, data->qfrc_actuator, model->nv);
     mju_copy(sensordata.data() + t * model->nsensordata, data->sensordata, model->nsensordata);
   }
 
+  // forward to evaluate sensors
   mj_forward(model, data);
   mju_copy(sensordata.data() + history * model->nsensor, data->sensordata, model->nsensordata);
 
@@ -103,17 +104,53 @@ TEST(Particle2DTest, BatchEstimator) {
   mju_printMat(sensordata.data(), history + 1, model->nsensordata);
 
   // finite-difference estimates
-  std::vector<double> velocity(model->nv * (history - 1));
-  // std::vector<double> acceleration(model->nv * (history - 2));
+  std::vector<double> velocity(model->nv * history);
+  std::vector<double> acceleration(model->nv * (history - 1));
 
-  ConfigurationToVelocity(velocity.data(), qpos.data(), history, model);
-  // VelocityToAcceleration(acceleration.data(), velocity.data(), history - 1, model);
+  ConfigurationToVelocity(velocity.data(), qpos.data(), history + 1, model);
+  VelocityToAcceleration(acceleration.data(), velocity.data(), history, model);
 
-  // printf("velocity:\n");
-  // mju_printMat(velocity.data(), history - 1, model->nv);
+  printf("velocity:\n");
+  mju_printMat(velocity.data(), history, model->nv);
 
-  // printf("acceleration:\n");
-  // mju_printMat(acceleration.data(), history - 2, model->nv);
+  // velocity error 
+  std::vector<double> velocity_error(model->nv * history);
+  mju_sub(velocity_error.data(), velocity.data(), qvel.data() + model->nv, model->nv * history);
+  // printf("velocity error: %f\n", mju_norm(velocity_error.data(), model->nv * history) / (model->nv * history));
+  EXPECT_NEAR(mju_norm(velocity_error.data(), model->nv * history) / (model->nv * history), 0.0, 1.0e-3);
+
+  printf("acceleration:\n");
+  mju_printMat(acceleration.data(), history - 1, model->nv);
+
+  // acceleration error 
+  std::vector<double> acceleration_error(model->nv * history);
+  mju_sub(acceleration_error.data(), acceleration.data(), qacc.data() + 2 * model->nv, model->nv * (history - 2));
+  // printf("acceleration error: %f\n", mju_norm(acceleration_error.data(), model->nv * (history - 1)) / (model->nv * (history - 1)));
+  EXPECT_NEAR(mju_norm(acceleration_error.data(), model->nv * (history - 1)) / (model->nv * (history - 1)), 0.0, 1.0e-3);
+
+  // std::vector<double> a1(model->nv);
+  // mju_sub(a1.data(), velocity.data() + model->nv, velocity.data(), model->nv);
+  // mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+
+  // printf("a1: \n");
+  // mju_printMat(a1.data(), 1, model->nv);
+
+  // std::vector<double> v1(model->nv);
+  // std::vector<double> v2(model->nv);
+
+  // // v1
+  // mj_differentiatePos(model, v1.data(), model->opt.timestep, qpos.data(), qpos.data() + model->nq);
+
+  // // v2
+  // mj_differentiatePos(model, v2.data(), model->opt.timestep, qpos.data() + model->nv, qpos.data() + 2 * model->nv);
+
+  // // a1_ 
+  // std::vector<double> a1_(model->nv);
+  // mju_sub(a1_.data(), v2.data(), v1.data(), model->nv);
+  // mju_scl(a1_.data(), a1_.data(), 1.0 / model->opt.timestep, model->nv);
+
+  // printf("a1_: \n");
+  // mju_printMat(a1_.data(), 1, model->nv);
 
   // qfrc_inverse 
   // std::vector<double> qfrc_inverse(model->nv * (history - 2));

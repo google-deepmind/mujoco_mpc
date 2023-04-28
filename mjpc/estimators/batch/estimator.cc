@@ -30,7 +30,7 @@ void ConfigurationToVelocity(double* velocity, const double* configuration,
 
     // compute velocity
     double* v1 = velocity + t * model->nv;
-    StateDiff(model, v1, q0, q1, model->opt.timestep);
+    mj_differentiatePos(model, v1, model->opt.timestep, q0, q1);
   }
 }
 

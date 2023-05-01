@@ -319,6 +319,18 @@ void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
 void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
                        int r2, int c2, int ri, int ci);
 
+// differentiate 3D velocity wrt quaternion difference
+void DifferentiateQuat2Vel(double* J, const double* quat, double dt);
+
+// quaternion difference 
+void QuatDiff(double qdif[4], const mjtNum qa[4], const mjtNum qb[4]);
+
+// differentiate quaternion difference
+void DifferentiateQuatDiff(double* Ja, double* Jb, const double* qa, const double* qb);
+
+// differentiate mju_subQuat wrt qa, qb
+void DifferentiateSubQuat(double* Ja, double* Jb, const double* qa, const double* qb, double dt);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

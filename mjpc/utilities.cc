@@ -1175,4 +1175,114 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
   }
 }
 
+// differentiate 3D velocity wrt to quaternion difference
+void DifferentiateQuat2Vel(double* J, const double* quat, double dt) {  
+  double dt_inv = 1.0 / dt;
+
+  double axis[3] = {quat[1], quat[2], quat[3]};
+  double sin_a_2 = mju_normalize3(axis);
+  double at2 = 2.0 * mju_atan2(sin_a_2, quat[0]);
+  
+  // when axis-angle is larger than pi, rotation is in the opposite direction
+  double speed = at2;
+  if (speed > mjPI) {
+    speed -= 2.0 * mjPI;
+  }
+  speed /= dt;
+
+  // temporary variables 
+  double tmp0 = dt_inv * (1.0 / (quat[0] * quat[0] + sin_a_2 * sin_a_2));
+  double tmp1 = dt_inv * (speed + at2);
+  double tmp2 = dt_inv / (sin_a_2 * sin_a_2) * (1.0 / (quat[0] * quat[0] + sin_a_2 * sin_a_2));
+
+  // Jacobian
+  J[0] = -2 * quat[1] * tmp0;  
+  J[1] = -2 * quat[2] * tmp0;  
+  J[2] = -2 * quat[3] * tmp0;  
+  J[3] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[1] * quat[1] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[1] * tmp2;  
+  J[4] = -1 * quat[1] * quat[2] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[2] * tmp2;  
+  J[5] = -1 * quat[1] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[3] * tmp2;  
+  J[6] = -1 * quat[1] * quat[2] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[2] * tmp2;  
+  J[7] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[2] * quat[2] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[2] * tmp2;  
+  J[8] = -1 * quat[2] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[3] * tmp2;  
+  J[9] = -1 * quat[1] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[3] * tmp2;  
+  J[10] = -1 * quat[2] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[3] * tmp2;  
+  J[11] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[3] * quat[3] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[3] * quat[3] * tmp2;
+}
+
+// quaternion difference 
+void QuatDiff(double qdif[4], const mjtNum qa[4], const mjtNum qb[4]) {
+  // qdif = neg(qb)*qa
+  double qneg[4];
+  mju_negQuat(qneg, qb);
+  mju_mulQuat(qdif, qneg, qa);
+}
+
+// differentiate quaternion difference
+void DifferentiateQuatDiff(double* Ja, double* Jb, const double* qa, const double* qb) {  
+  // d (quaternion difference) / d (qa)
+  if (Ja) {
+    Ja[0] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
+    Ja[1] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);  
+    Ja[2] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
+    Ja[3] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
+    Ja[4] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
+    Ja[5] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
+    Ja[6] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);  
+    Ja[7] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
+    Ja[8] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
+    Ja[9] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
+    Ja[10] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
+    Ja[11] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);
+  }
+
+  // d (quaternion difference) / d (qb)
+  if (Jb) {
+    Jb[0] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
+    Jb[1] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);  
+    Jb[2] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
+    Jb[3] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
+    Jb[4] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
+    Jb[5] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
+    Jb[6] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);  
+    Jb[7] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
+    Jb[8] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
+    Jb[9] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
+    Jb[10] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
+    Jb[11] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);
+  }
+}
+
+// differentiate mju_subQuat wrt qa, qb
+void DifferentiateSubQuat(double* Ja, double* Jb, const double* qa, const double* qb, double dt) {
+  // quaternion differnece: qdif = neg(qb)*qa
+  mjtNum qneg[4], qdif[4];
+  mju_negQuat(qneg, qb);
+  mju_mulQuat(qdif, qneg, qa);
+
+  // differentiate 3D velocity wrt quaternion difference
+  double dvdq[12];
+  DifferentiateQuat2Vel(dvdq, qdif, dt);
+
+  // compute total derivative wrt qa
+  if (Ja) {
+    // differentiate quaternion difference wrt qa
+    double dqdqa[12];
+    DifferentiateQuatDiff(dqdqa, NULL, qa, qb);
+
+    // total 
+    mju_mulMatMat(Ja, dvdq, dqdqa, 3, 4, 3);
+  }
+
+  // compute total derivative wrt qb
+  if (Jb) {
+    // differentiate quaternion difference wrt qa
+    double dqdqb[12];
+    DifferentiateQuatDiff(NULL, dqdqb, qa, qb);
+
+    // total 
+    mju_mulMatMat(Jb, dvdq, dqdqb, 3, 4, 3);
+  }
+}
+
 }  // namespace mjpc

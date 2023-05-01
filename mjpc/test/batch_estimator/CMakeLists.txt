@@ -15,6 +15,9 @@
 test(configuration_to_state_test)
 target_link_libraries(configuration_to_state_test load gmock)
 
+test(differentiate_quaternion_test)
+target_link_libraries(differentiate_quaternion_test load gmock)
+
 test(inverse_dynamics_test)
 target_link_libraries(inverse_dynamics_test load gmock)
 

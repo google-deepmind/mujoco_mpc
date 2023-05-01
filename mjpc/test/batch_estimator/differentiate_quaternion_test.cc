@@ -21,18 +21,8 @@
 namespace mjpc {
 namespace {
 
-// # void mju_subQuat(mjtNum res[3], const mjtNum qa[4], const mjtNum qb[4]) {
-// #   // qdif = neg(qb)*qa
-// #   mjtNum qneg[4], qdif[4];
-// #   mju_negQuat(qneg, qb);
-// #   mju_mulQuat(qdif, qneg, qa);
-
-// #   // convert to 3D velocity
-// #   mju_quat2Vel(res, qdif, 1);
-// # }
-
 TEST(DifferentiateQuaternionTest, QuaternionDifference) {
-  // random quaternions
+  // ----- random quaternions ----- //
   double qa[4];
   double qb[4];
 
@@ -44,22 +34,12 @@ TEST(DifferentiateQuaternionTest, QuaternionDifference) {
   mju_normalize4(qa);
   mju_normalize4(qb);
 
-  printf("qa:\n");
-  mju_printMat(qa, 1, 4);
-
-  printf("qb:\n");
-  mju_printMat(qb, 1, 4);
-
   // ----- finite difference ----- //
   // quaternion difference 
   double qdif[4];
   QuatDiff(qdif, qa, qb);
 
-  printf("qdif:\n");
-  mju_printMat(qdif, 1, 4);
-
   double eps = 1.0e-6;
-
   double Ja[12];     // quaternion difference Jacobian wrt to qa
   double Jb[12];     // quaternion difference Jacobian wrt to qb
   double JaT[12];    // quaternion difference Jacobian wrt to qa transposed
@@ -92,25 +72,157 @@ TEST(DifferentiateQuaternionTest, QuaternionDifference) {
   }
 
   // transpose result
-  mju_transpose(Ja, JaT, 4, 3);
-  mju_transpose(Jb, JbT, 4, 3);
-
-  printf("Ja: \n");
-  mju_printMat(Ja, 3, 4);
-
-  printf("Jb: \n");
-  mju_printMat(Jb, 3, 4);
+  mju_transpose(Ja, JaT, 3, 4);
+  mju_transpose(Jb, JbT, 3, 4);
 
   // ----- utilities ----- //
-  // double Ga[9];      // quaternion difference Jacobian wrt to qa
-  // double Gb[9];      // quaternion difference Jacobian wrt to qb
-  // DifferentiateSubQuat(Ga, Gb, qa, qb, 1.0);
-  
-  // printf("Ga: \n");
-  // mju_printMat(Ga, 3, 3);
+  double Ga[12];      // quaternion difference Jacobian wrt to qa
+  double Gb[12];      // quaternion difference Jacobian wrt to qb
 
-  // printf("Gb: \n");
-  // mju_printMat(Gb, 3, 3);
+  // compute Jacobians
+  DifferentiateQuatDiff(Ga, Gb, qa, qb);
+
+  // ----- error ----- //
+  double error_a[12];
+  double error_b[12];
+  mju_sub(error_a, Ja, Ga, 12);
+  mju_sub(error_b, Jb, Gb, 12);
+
+  // ----- test ----- //
+  EXPECT_NEAR(mju_norm(error_a, 12) / 12, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(error_b, 12) / 12, 0.0, 1.0e-3);
+}
+
+TEST(DifferentiateQuaternionTest, Quat2Vel) {
+  // random quaternions
+  double qa[4];
+  double qb[4];
+
+  for (int i = 0; i < 4; i++) {
+    absl::BitGen gen_;
+    qa[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    qb[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_normalize4(qa);
+  mju_normalize4(qb);
+
+  // ----- finite difference ----- //
+  // quaternion difference 
+  double qdif[4];
+  QuatDiff(qdif, qa, qb);
+
+  // quaternion to 3D velocity 
+  double vel[3];
+  mju_quat2Vel(vel, qdif, 1.0);
+
+  double eps = 1.0e-6;
+  double J[12];     // quaternion difference Jacobian wrt to qa
+  double JT[12];    // quaternion difference Jacobian wrt to qa transposed
+  double dv[3];      // quaternion perturbation
+  double qdif_copy[4];
+
+  for (int i = 0; i < 4; i++) {
+    // perturbation 
+    mju_copy4(qdif_copy, qdif);
+    qdif_copy[i] += eps;
+
+    // Jacobian qa
+    mju_zero(dv, 3);
+    mju_quat2Vel(dv, qdif_copy, 1.0);
+
+    mju_sub(JT + i * 3, dv, vel, 3);
+    mju_scl(JT + i * 3, JT + i * 3, 1.0 / eps, 3);
+  }
+
+  // transpose result
+  mju_transpose(J, JT, 4, 3);
+
+  // ----- utilities ----- //
+  double G[12];      // quaternion to 3D velocity Jacobian wrt to quaternion difference
+
+  // compute Jacobian
+  DifferentiateQuat2Vel(G, qdif, 1.0);
+
+  // ----- error ----- //
+  double error_a[12];
+  double error_b[12];
+  mju_sub(error_a, J, G, 12);
+  mju_sub(error_b, J, G, 12);
+
+  // ----- test ----- //
+  EXPECT_NEAR(mju_norm(error_a, 12) / 12, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(error_b, 12) / 12, 0.0, 1.0e-3);
+}
+
+TEST(DifferentiateQuaternionTest, TotalDerivative) {
+    // random quaternions
+  double qa[4];
+  double qb[4];
+
+  for (int i = 0; i < 4; i++) {
+    absl::BitGen gen_;
+    qa[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    qb[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_normalize4(qa);
+  mju_normalize4(qb);
+
+  // subQuat 
+  double y[3];
+  mju_subQuat(y, qa, qb);
+
+  double eps = 1.0e-6;
+  double Ja[9];      // quaternion difference Jacobian wrt to qa
+  double Jb[9];      // quaternion difference Jacobian wrt to qb
+  double JaT[9];     // quaternion difference Jacobian wrt to qa transposed
+  double JbT[9];     // quaternion difference Jacobian wrt to qb transposed
+  double dy[3];      // quaternion difference perturbation
+  double dq[3];      // quaternion perturbation
+  double qa_copy[4]; // qa copy 
+  double qb_copy[4]; // qb copy
+
+  for (int i = 0; i < 3; i++) {
+    // perturbation 
+    mju_zero3(dq);
+    dq[i] = 1.0;
+
+    // Jacobian qa
+    mju_copy4(qa_copy, qa);
+    mju_quatIntegrate(qa_copy, dq, eps);
+    mju_subQuat(dy, qa_copy, qb);
+
+    mju_sub3(JaT + i * 3, dy, y);
+    mju_scl3(JaT + i * 3, JaT + i * 3, 1.0 / eps);
+
+    // Jacobian qb 
+    mju_copy4(qb_copy, qb);
+    mju_quatIntegrate(qb_copy, dq, eps);
+    mju_subQuat(dy, qa, qb_copy);
+
+    mju_sub3(JbT + i * 3, dy, y);
+    mju_scl3(JbT + i * 3, JbT + i * 3, 1.0 / eps);
+  }
+
+  // transpose result
+  mju_transpose(Ja, JaT, 3, 3);
+  mju_transpose(Jb, JbT, 3, 3);
+
+  // ----- utilities ----- //
+  double Ga[9];      // quaternion to 3D velocity Jacobian wrt to qa
+  double Gb[9];      // quaternion to 3D velocity Jacobian wrt to qa
+
+  // compute Jacobians
+  DifferentiateSubQuat(Ga, Gb, qa, qb, 1.0);
+
+  // ----- error ----- //
+  double error_a[9];
+  double error_b[9];
+  mju_sub(error_a, Ja, Ga, 9);
+  mju_sub(error_b, Jb, Gb, 9);
+
+  // ----- test ----- //
+  EXPECT_NEAR(mju_norm(error_a, 9) / 9, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(error_b, 9) / 9, 0.0, 1.0e-3);
 }
 
 }  // namespace

@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test(configuration_to_state_test)
-target_link_libraries(configuration_to_state_test load gmock)
-
 test(differentiate_quaternion_test)
 target_link_libraries(differentiate_quaternion_test load gmock)
 
@@ -32,9 +29,3 @@ target_link_libraries(measurement2_test load gmock)
 
 test(prior_test)
 target_link_libraries(prior_test load gmock)
-
-test(state_differentiate_test)
-target_link_libraries(state_differentiate_test load gmock)
-
-test(subquat_jacobian_test)
-target_link_libraries(subquat_jacobian_test gmock)

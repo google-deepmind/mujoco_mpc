@@ -186,7 +186,7 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
     EXPECT_TRUE(status.ok()) << status.error_message();
   }
 
-  {
+  for (int i = 0; i < 3; i++) {
     grpc::ClientContext context;
     agent::StepRequest request;
     agent::StepResponse response;
@@ -204,7 +204,9 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
     EXPECT_TRUE(status.ok()) << status.error_message();
     final_state = response.state();
   }
-  EXPECT_GT(final_state.time(), initial_state.time());
+  double cartpole_timestep = 0.001;
+  EXPECT_DOUBLE_EQ(final_state.time() - initial_state.time(),
+                   3 * cartpole_timestep);
 }
 
 TEST_F(AgentServiceTest, SetTaskParameters_Numeric) {

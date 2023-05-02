@@ -53,11 +53,14 @@ using ::agent::StepRequest;
 using ::agent::StepResponse;
 
 mjpc::Task* task = nullptr;
+// model used for physics
 mjModel* model = nullptr;
+// model used for planning, owned by the Agent instance.
+mjModel* agent_model = nullptr;
 
 void residual_sensor_callback(const mjModel* m, mjData* d, int stage) {
   // with the `m == model` guard in place, no need to clear the callback.
-  if (m == model) {
+  if (m == agent_model || m == model) {
     if (stage == mjSTAGE_ACC) {
       task->Residual(m, d, d->sensordata);
     }
@@ -132,7 +135,13 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
   agent_.Reset();
 
   task = agent_.ActiveTask();
-  model = agent_.GetModel();
+  CHECK_EQ(agent_model, nullptr)
+      << "Multiple instances of AgentService detected.";
+  agent_model = agent_.GetModel();
+  // copy the model before agent model's timestep and integrator are updated
+  CHECK_EQ(model, nullptr)
+      << "Multiple instances of AgentService detected.";
+  model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
   mjcb_sensor = residual_sensor_callback;
 
@@ -146,8 +155,10 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
 
 AgentService::~AgentService() {
   if (data_) mj_deleteData(data_);
-  // no need to delete model and task, since they're owned by agent_.
+  if (model) mj_deleteModel(model);
   model = nullptr;
+  // no need to delete agent_model and task, since they're owned by agent_.
+  agent_model = nullptr;
   task = nullptr;
   mjcb_sensor = nullptr;
 }
@@ -338,7 +349,7 @@ grpc::Status AgentService::SetTaskParameters(
           std::ostringstream error_string;
           error_string << "Parameter " << name
                        << " not found in task.  Available names are:\n";
-          auto agent_model = agent_.GetModel();
+          auto* agent_model = agent_.GetModel();
           for (int i = 0; i < agent_model->nnumeric; i++) {
             std::string_view numeric_name(agent_model->names +
                                           agent_model->name_numericadr[i]);
@@ -394,7 +405,7 @@ grpc::Status AgentService::SetCostWeights(
       std::ostringstream error_string;
       error_string << "Weight '" << name
                    << "' not found in task. Available names are:\n";
-      auto agent_model = agent_.GetModel();
+      auto* agent_model = agent_.GetModel();
       for (int i = 0; i < agent_model->nsensor &&
                       agent_model->sensor_type[i] == mjSENS_USER;
            i++) {

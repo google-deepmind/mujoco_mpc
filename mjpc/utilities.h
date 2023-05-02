@@ -331,6 +331,11 @@ void DifferentiateQuatDiff(double* jaca, double* jacb, const double* qa, const d
 // differentiate mju_subQuat wrt qa, qb
 void DifferentiateSubQuat(double* jaca, double* jacb, const double* qa, const double* qb, double dt);
 
+// differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
+void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
+                                   mjtNum* qvel, mjtNum dt, const mjtNum* qpos1,
+                                   const mjtNum* qpos2);
+                                   
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

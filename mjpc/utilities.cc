@@ -1285,4 +1285,68 @@ void DifferentiateSubQuat(double* jaca, double* jacb, const double* qa, const do
   }
 }
 
+// differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
+void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
+                                   mjtNum* qvel, mjtNum dt, const mjtNum* qpos1,
+                                   const mjtNum* qpos2) {
+  int padr, vadr;
+  // mjtNum neg[4], dif[4];
+
+  // zero Jacobians 
+  if (jac1) mju_zero(jac1, m->nv * m->nv);
+  if (jac2) mju_zero(jac1, m->nv * m->nv);
+
+  // loop over joints
+  for (int j = 0; j < m->njnt; j++) {
+    // get addresses in qpos and qvel
+    padr = m->jnt_qposadr[j];
+    vadr = m->jnt_dofadr[j];
+
+    switch (m->jnt_type[j]) {
+      case mjJNT_FREE:
+        for (int i = 0; i < 3; i++) {
+          // qvel[vadr + i] = (qpos2[padr + i] - qpos1[padr + i]) / dt;
+          if (jac1) jac1[(vadr + i) * m->nv + vadr + i] = -1.0 / dt;
+          if (jac2) jac2[(vadr + i) * m->nv + vadr + i] = 1.0 / dt;
+        }
+        vadr += 3;
+        padr += 3;
+
+        // continute with rotations
+        [[fallthrough]];
+
+      case mjJNT_BALL:
+        // mju_negQuat(neg, qpos1 + padr);  // solve:  qpos1 * dif = qpos2
+        // mju_mulQuat(dif, neg, qpos2 + padr);
+        // mju_quat2Vel(qvel + vadr, dif, dt);
+
+        if (jac1) {
+          // compute subQuat Jacobian block
+          double jac1_blk[9];
+          DifferentiateSubQuat(jac1_blk, NULL, qpos1 + padr, qpos2 + padr, dt);
+
+          // set block in Jacobian 
+          SetMatrixInMatrix(jac1, jac1_blk, 1.0, m->nv, m->nv, 3, 3, vadr, vadr);
+        }
+
+        if (jac2) {
+          // compute subQuat Jacobian block
+          double jac2_blk[9];
+          DifferentiateSubQuat(NULL, jac2_blk, qpos1 + padr, qpos2 + padr, dt);
+
+          // set block in Jacobian 
+          SetMatrixInMatrix(jac2, jac2_blk, 1.0, m->nv, m->nv, 3, 3, vadr, vadr);
+        }
+
+        break;
+
+      case mjJNT_HINGE:
+      case mjJNT_SLIDE:
+        // qvel[vadr] = (qpos2[padr] - qpos1[padr]) / dt;
+        if (jac1) jac1[vadr * m->nv + vadr] = -1.0 / dt;
+        if (jac2) jac2[vadr * m->nv + vadr] = 1.0 / dt;
+    }
+  }
+}
+
 }  // namespace mjpc

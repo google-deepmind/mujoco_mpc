@@ -1176,7 +1176,7 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
 }
 
 // differentiate 3D velocity wrt to quaternion difference
-void DifferentiateQuat2Vel(double* jac, const double* quat, double dt) {  
+void DifferentiateQuat2Vel(double jac[12], const double quat[4], double dt) {  
   double dt_inv = 1.0 / dt;
 
   double axis[3] = {quat[1], quat[2], quat[3]};
@@ -1211,7 +1211,7 @@ void DifferentiateQuat2Vel(double* jac, const double* quat, double dt) {
 
 
 // quaternion difference 
-void QuatDiff(double qdif[4], const mjtNum qa[4], const mjtNum qb[4]) {
+void QuatDiff(double qdif[4], const double qa[4], const double qb[4]) {
   // qdif = neg(qb)*qa
   double qneg[4];
   mju_negQuat(qneg, qb);
@@ -1219,7 +1219,7 @@ void QuatDiff(double qdif[4], const mjtNum qa[4], const mjtNum qb[4]) {
 }
 
 // differentiate quaternion difference
-void DifferentiateQuatDiff(double* jaca, double* jacb, const double* qa, const double* qb) {  
+void DifferentiateQuatDiff(double jaca[12], double jacb[12], const double qa[4], const double qb[4]) {  
   // d (quaternion difference) / d (qa)
   if (jaca) {
     jaca[0] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
@@ -1254,7 +1254,7 @@ void DifferentiateQuatDiff(double* jaca, double* jacb, const double* qa, const d
 }
 
 // differentiate mju_subQuat wrt qa, qb
-void DifferentiateSubQuat(double* jaca, double* jacb, const double* qa, const double* qb, double dt) {
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4], const double qb[4], double dt) {
   // quaternion differnece: qdif = neg(qb)*qa
   mjtNum qneg[4], qdif[4];
   mju_negQuat(qneg, qb);
@@ -1286,28 +1286,29 @@ void DifferentiateSubQuat(double* jaca, double* jacb, const double* qa, const do
 }
 
 // differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
-void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
-                                   mjtNum* qvel, mjtNum dt, const mjtNum* qpos1,
-                                   const mjtNum* qpos2) {
+void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* model,
+                                   double dt, const double* qpos1,
+                                   const double* qpos2) {
+
   int padr, vadr;
   // mjtNum neg[4], dif[4];
 
   // zero Jacobians 
-  if (jac1) mju_zero(jac1, m->nv * m->nv);
-  if (jac2) mju_zero(jac1, m->nv * m->nv);
+  if (jac1) mju_zero(jac1, model->nv * model->nv);
+  if (jac2) mju_zero(jac2, model->nv * model->nv);
 
   // loop over joints
-  for (int j = 0; j < m->njnt; j++) {
+  for (int j = 0; j < model->njnt; j++) {
     // get addresses in qpos and qvel
-    padr = m->jnt_qposadr[j];
-    vadr = m->jnt_dofadr[j];
+    padr = model->jnt_qposadr[j];
+    vadr = model->jnt_dofadr[j];
 
-    switch (m->jnt_type[j]) {
+    switch (model->jnt_type[j]) {
       case mjJNT_FREE:
         for (int i = 0; i < 3; i++) {
           // qvel[vadr + i] = (qpos2[padr + i] - qpos1[padr + i]) / dt;
-          if (jac1) jac1[(vadr + i) * m->nv + vadr + i] = -1.0 / dt;
-          if (jac2) jac2[(vadr + i) * m->nv + vadr + i] = 1.0 / dt;
+          if (jac1) jac1[(vadr + i) * model->nv + vadr + i] = -1.0 / dt;
+          if (jac2) jac2[(vadr + i) * model->nv + vadr + i] = 1.0 / dt;
         }
         vadr += 3;
         padr += 3;
@@ -1320,22 +1321,23 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
         // mju_mulQuat(dif, neg, qpos2 + padr);
         // mju_quat2Vel(qvel + vadr, dif, dt);
 
+        // NOTE: order swap for qpos1, qpos2
         if (jac1) {
           // compute subQuat Jacobian block
           double jac1_blk[9];
-          DifferentiateSubQuat(jac1_blk, NULL, qpos1 + padr, qpos2 + padr, dt);
+          DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr, dt);
 
           // set block in Jacobian 
-          SetMatrixInMatrix(jac1, jac1_blk, 1.0, m->nv, m->nv, 3, 3, vadr, vadr);
+          SetMatrixInMatrix(jac1, jac1_blk, 1.0, model->nv, model->nv, 3, 3, vadr, vadr);
         }
 
         if (jac2) {
           // compute subQuat Jacobian block
           double jac2_blk[9];
-          DifferentiateSubQuat(NULL, jac2_blk, qpos1 + padr, qpos2 + padr, dt);
+          DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr, dt);
 
           // set block in Jacobian 
-          SetMatrixInMatrix(jac2, jac2_blk, 1.0, m->nv, m->nv, 3, 3, vadr, vadr);
+          SetMatrixInMatrix(jac2, jac2_blk, 1.0, model->nv, model->nv, 3, 3, vadr, vadr);
         }
 
         break;
@@ -1343,8 +1345,8 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
       case mjJNT_HINGE:
       case mjJNT_SLIDE:
         // qvel[vadr] = (qpos2[padr] - qpos1[padr]) / dt;
-        if (jac1) jac1[vadr * m->nv + vadr] = -1.0 / dt;
-        if (jac2) jac2[vadr * m->nv + vadr] = 1.0 / dt;
+        if (jac1) jac1[vadr * model->nv + vadr] = -1.0 / dt;
+        if (jac2) jac2[vadr * model->nv + vadr] = 1.0 / dt;
     }
   }
 }

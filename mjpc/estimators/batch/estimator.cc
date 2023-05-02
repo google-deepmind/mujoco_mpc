@@ -253,8 +253,11 @@ void Estimator::JacobianPrior() {
 
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
+    // unpack
     double* block = jacobian_block_prior_configuration_.data() +
                     t * model_->nv * model_->nv;
+
+    // set block in matrix
     SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, model_->nv,
                       model_->nv, t * model_->nv, t * model_->nv);
   }
@@ -262,44 +265,16 @@ void Estimator::JacobianPrior() {
 
 // prior Jacobian blocks
 void Estimator::JacobianPriorBlocks() {
-  // finite-difference Jacobian
-  FiniteDifferenceJacobian fd(model_->nv, model_->nv);
-
-  // update
-  std::vector<double> update(model_->nv);
-
-  // copy of configuration for finite-difference perturbation
-  std::vector<double> configuration_copy(model_->nq);
-
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
-    // configuration difference
-    auto configuration_difference = [&configuration = configuration_,
-                                     &prior = configuration_prior_,
-                                     &configuration_copy, &model = model_,
-                                     &t](double* output, const double* input) {
-      // unpack
-      double* qt = configuration_copy.data();
-      double* qt_prior = prior.data() + t * model->nq;
-
-      // copy
-      mju_copy(qt, configuration.data() + t * model->nq, model->nq);
-
-      // integrate
-      mj_integratePos(model, qt, input, 1.0);
-
-      // difference
-      mj_differentiatePos(model, output, 1.0, qt_prior, qt);
-    };
-
-    // compute Jacobian
-    mju_zero(update.data(), model_->nv);
-    fd.Compute(configuration_difference, update.data(), model_->nv, model_->nv);
-
-    // copy result into Jacobian block
+    // unpack 
+    double* qt = configuration_.data() + t * model_->nq;
+    double* qt_prior = configuration_prior_.data() + t * model_->nq;
     double* block = jacobian_block_prior_configuration_.data() +
                     t * model_->nv * model_->nv;
-    mju_copy(block, fd.jacobian_.data(), model_->nv * model_->nv);
+
+    // compute Jacobian
+    DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
   }
 }
 

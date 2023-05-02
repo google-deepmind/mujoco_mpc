@@ -320,22 +320,22 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
                        int r2, int c2, int ri, int ci);
 
 // differentiate 3D velocity wrt quaternion difference
-void DifferentiateQuat2Vel(double* jac, const double* quat, double dt);
+void DifferentiateQuat2Vel(double jac[12], const double quat[4], double dt);
 
 // quaternion difference 
-void QuatDiff(double qdif[4], const mjtNum qa[4], const mjtNum qb[4]);
+void QuatDiff(double qdif[4], const double qa[4], const double qb[4]);
 
 // differentiate quaternion difference
-void DifferentiateQuatDiff(double* jaca, double* jacb, const double* qa, const double* qb);
+void DifferentiateQuatDiff(double jaca[12], double jacb[12], const double qa[4], const double qb[4]);
 
 // differentiate mju_subQuat wrt qa, qb
-void DifferentiateSubQuat(double* jaca, double* jacb, const double* qa, const double* qb, double dt);
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4], const double qb[4], double dt);
 
 // differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
-void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* m,
-                                   mjtNum* qvel, mjtNum dt, const mjtNum* qpos1,
-                                   const mjtNum* qpos2);
-                                   
+void DifferentiateDifferentiatePos(double* jac1, double* jac2,
+                                   const mjModel* model, double dt,
+                                   const double* qpos1, const double* qpos2);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

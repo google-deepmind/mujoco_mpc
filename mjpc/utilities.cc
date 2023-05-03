@@ -1188,36 +1188,28 @@ void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
   double c0 = th2;
   double c1 = 1.0 - (mju_abs(th2) < 6e-8 ? 1.0 : th2 / mju_tan(th2));
 
+  // compute Jacobian 
+  double jac[9];
+  jac[0] = 1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]);
+  jac[1] = c1 * axis[0] * axis[1] - c0 * axis[2];
+  jac[2] = c0 * axis[1] + c1 * axis[0] * axis[2];
+  jac[3] = c0 * axis[2] + c1 * axis[0] * axis[1];
+  jac[4] = 1.0 + c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
+  jac[5] = c1 * axis[1] * axis[2] - c0 * axis[0];
+  jac[6] = c1 * axis[0] * axis[2] - c0 * axis[1];
+  jac[7] = c0 * axis[0] + c1 * axis[1] * axis[2];
+  jac[8] = 1.0 + c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
+
   // Jacobian wrt qa
   if (jaca) {
-    jaca[0] = 1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]);
-    jaca[1] = c1 * axis[0] * axis[1] - c0 * axis[2];
-    jaca[2] = c0 * axis[1] + c1 * axis[0] * axis[2];
-    jaca[3] = c0 * axis[2] + c1 * axis[0] * axis[1];
-    jaca[4] = 1.0 + c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
-    jaca[5] = c1 * axis[1] * axis[2] - c0 * axis[0];
-    jaca[6] = c1 * axis[0] * axis[2] - c0 * axis[1];
-    jaca[7] = c0 * axis[0] + c1 * axis[1] * axis[2];
-    jaca[8] = 1.0 + c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
+    mju_copy(jaca, jac, 9);
   }
 
   // Jacobian wrt qb
   if (jacb) {
-    if (!jaca) {
-      jacb[0] = -(1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]));
-      jacb[3] = -c1 * axis[0] * axis[1] + c0 * axis[2];
-      jacb[6] = -c0 * axis[1] - c1 * axis[0] * axis[2];
-      jacb[1] = -c0 * axis[2] - c1 * axis[0] * axis[1];
-      jacb[4] = -1.0 - c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
-      jacb[7] = -c1 * axis[1] * axis[2] + c0 * axis[0];
-      jacb[2] = -c1 * axis[0] * axis[2] + c0 * axis[1];
-      jacb[5] = -c0 * axis[0] - c1 * axis[1] * axis[2];
-      jacb[8] = -1.0 - c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
-    } else {
-      // jacb = -jaca^T
-      mju_transpose(jacb, jaca, 3, 3);
-      mju_scl(jacb, jacb, -1.0, 9);
-    }
+    // jacb = -jaca^T
+    mju_transpose(jacb, jac, 3, 3);
+    mju_scl(jacb, jacb, -1.0, 9);
   }
 }
 

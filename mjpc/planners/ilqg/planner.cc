@@ -202,9 +202,13 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
 // set action from policy
 void iLQGPlanner::ActionFromPolicy(double* action, const double* state,
-                                   double time) {
+                                   double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
-  policy.Action(action, state, time);
+  if (use_previous) {
+    previous_policy.Action(action, state, time);
+  } else {
+    policy.Action(action, state, time);
+  }
 }
 
 // return trajectory with best total return
@@ -575,6 +579,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     // improvement
+    previous_policy = policy;
     policy.CopyFrom(candidate_policy[winner], horizon);
 
     // feedback scaling

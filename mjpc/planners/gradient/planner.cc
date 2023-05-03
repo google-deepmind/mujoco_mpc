@@ -309,6 +309,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
+    previous_policy = policy;
     policy.CopyParametersFrom(candidate_policy[winner].parameters,
                               candidate_policy[winner].times);
   }
@@ -344,9 +345,13 @@ void GradientPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
 // compute action from policy
 void GradientPlanner::ActionFromPolicy(double* action, const double* state,
-                                       double time) {
+                                       double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
-  policy.Action(action, state, time);
+  if (use_previous) {
+    previous_policy.Action(action, state, time);
+  } else {
+    policy.Action(action, state, time);
+  }
 }
 
 // update policy for current time

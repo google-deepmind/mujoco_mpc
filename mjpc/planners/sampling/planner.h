@@ -66,7 +66,7 @@ class SamplingPlanner : public Planner {
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
-                        double time) override;
+                        double time, bool use_previous = false) override;
 
   // resample nominal policy
   void UpdateNominalPolicy(int horizon);
@@ -103,6 +103,7 @@ class SamplingPlanner : public Planner {
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
   SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy previous_policy;
 
   // scratch
   std::vector<double> parameters_scratch;

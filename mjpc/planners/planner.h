@@ -53,7 +53,7 @@ class Planner {
 
   // set action from policy
   virtual void ActionFromPolicy(double* action, const double* state,
-                                double time) = 0;
+                                double time, bool use_previous = false) = 0;
 
   // return trajectory with best total return
   virtual const Trajectory* BestTrajectory() = 0;

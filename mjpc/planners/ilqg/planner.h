@@ -54,7 +54,7 @@ class iLQGPlanner : public Planner {
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
-                        double time) override;
+                        double time, bool use_previous = false) override;
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -95,6 +95,7 @@ class iLQGPlanner : public Planner {
 
   // policy
   iLQGPolicy policy;
+  iLQGPolicy previous_policy;
   iLQGPolicy candidate_policy[kMaxTrajectory];
 
   // dimensions

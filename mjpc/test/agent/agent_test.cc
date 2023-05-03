@@ -21,6 +21,8 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+#include "mjpc/planners/ilqs/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/task.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/testdata/particle_residual.h"
@@ -71,8 +73,8 @@ class AgentTest : public ::testing::Test {
     EXPECT_NEAR(agent->timestep_, 0.1, 1.0e-5);
     EXPECT_EQ(agent->planner_, 0);
     EXPECT_EQ(agent->state_, 0);
-    EXPECT_NEAR(agent->horizon_, 1.0, 1.0e-5);
-    EXPECT_EQ(agent->steps_, 11);
+    EXPECT_NEAR(agent->horizon_, 0.5, 1.0e-5);
+    EXPECT_EQ(agent->steps_, 6);
     EXPECT_FALSE(agent->plan_enabled);
     EXPECT_TRUE(agent->action_enabled);
     EXPECT_FALSE(agent->visualize_enabled);
@@ -199,10 +201,201 @@ class AgentTest : public ::testing::Test {
     // delete model
     mj_deleteModel(model);
   }
+
+  void TestPreviousSamplingPolicy() {
+    model = LoadTestModel("particle_task.xml");
+    mjData* data = mj_makeData(model);
+    mjcb_sensor = &SensorCallback;
+
+    ThreadPool plan_pool(128);
+
+    // ----- initialize agent ----- //
+    agent->Initialize(model);
+    agent->Allocate();
+    agent->Reset();
+    agent->plan_enabled = true;
+
+    bool success = false;
+    agent->planner_ = 0;  // sampling
+    reinterpret_cast<SamplingPlanner*>(&agent->ActivePlanner())
+        ->num_trajectory_ = 128;
+    for (int i = 0; i < 5; i++) {
+      agent->Reset();
+      data->qpos[0] = 0;
+      data->qpos[1] = 0;
+      data->qvel[0] = 0;
+      data->qvel[1] = 0;
+      data->mocap_pos[0] = 1;
+      data->mocap_pos[1] = 1;
+      agent->SetState(data);
+
+      agent->PlanIteration(&plan_pool);
+      double action_sample_time = 0.15;
+      double orig_action[2];
+      agent->ActivePlanner().ActionFromPolicy(orig_action, NULL,
+                                              action_sample_time, false);
+      // change target
+      data->mocap_pos[0] = -1;
+      data->mocap_pos[1] = -1;
+      agent->SetState(data);
+      agent->PlanIteration(&plan_pool);
+      double updated_action[2];
+      agent->ActivePlanner().ActionFromPolicy(updated_action, NULL,
+                                              action_sample_time, false);
+      double prev_action[2];
+      agent->ActivePlanner().ActionFromPolicy(prev_action, NULL,
+                                              action_sample_time, true);
+      EXPECT_EQ(orig_action[0], prev_action[0]);
+      EXPECT_EQ(orig_action[1], prev_action[1]);
+      // since the target is lower, the new action should be meaningfully lower
+      if (orig_action[0] - 1e-3 > updated_action[0] &&
+          orig_action[1] - 1e-3 > updated_action[1]) {
+        success = true;
+        break;
+      }
+    }
+    EXPECT_TRUE(success);
+
+    mj_deleteData(data);
+    mj_deleteModel(model);
+  }
+
+  void TestPreviousILQGPolicy() {
+    model = LoadTestModel("particle_task.xml");
+    mjData* data = mj_makeData(model);
+    mjcb_sensor = &SensorCallback;
+
+    ThreadPool plan_pool(128);
+
+    // ----- initialize agent ----- //
+    agent->Initialize(model);
+    agent->Allocate();
+    agent->Reset();
+    agent->plan_enabled = true;
+
+    agent->planner_ = 2;  // iLQG
+
+    agent->Reset();
+    data->qpos[0] = 0;
+    data->qpos[1] = 0;
+    data->qvel[0] = 0;
+    data->qvel[1] = 0;
+    data->mocap_pos[0] = 1;
+    data->mocap_pos[1] = 1;
+    agent->SetState(data);
+
+    agent->PlanIteration(&plan_pool);
+    double action_sample_time = 0.1;
+    double orig_action[2];
+    agent->ActivePlanner().ActionFromPolicy(orig_action, NULL,
+                                            action_sample_time, false);
+    // change target
+    data->mocap_pos[0] = -1;
+    data->mocap_pos[1] = -1;
+    agent->SetState(data);
+    agent->PlanIteration(&plan_pool);
+    double updated_action[2];
+    agent->ActivePlanner().ActionFromPolicy(updated_action, NULL,
+                                            action_sample_time, false);
+    double prev_action[2];
+    agent->ActivePlanner().ActionFromPolicy(prev_action, NULL,
+                                            action_sample_time, true);
+    EXPECT_EQ(orig_action[0], prev_action[0]);
+    EXPECT_EQ(orig_action[1], prev_action[1]);
+    // since the target is lower, the new action should be meaningfully lower
+    EXPECT_GT(orig_action[0] - 1e-3, updated_action[0]);
+    EXPECT_GT(orig_action[1] - 1e-3, updated_action[1]);
+
+    mj_deleteData(data);
+    mj_deleteModel(model);
+  }
+
+  void TestPreviousILQSPolicy() {
+    model = LoadTestModel("particle_task.xml");
+    mjData* data = mj_makeData(model);
+    mjcb_sensor = &SensorCallback;
+
+    ThreadPool plan_pool(128);
+
+    // ----- initialize agent ----- //
+    agent->Initialize(model);
+    agent->Allocate();
+    agent->Reset();
+    agent->plan_enabled = true;
+
+    agent->planner_ = 3;  // iLQS
+    iLQSPlanner* planner =
+        reinterpret_cast<iLQSPlanner*>(&agent->ActivePlanner());
+    bool case_tested[4];
+    for (int i = 0; i < 4; ++i) {
+      case_tested[i] = false;
+    }
+    int repeats = 5;
+    // Changing the number of sampling trajectories changes the chances that the
+    // sampling planner will succeed.  We try all 4 combinations, but we need to
+    // repeat due to stochasticity:
+    for (int i = 0; i < repeats * 4; ++i) {
+      planner->sampling.num_trajectory_ = i & 1 ? 128 : 1;
+
+      agent->Reset();
+      data->qpos[0] = 0;
+      data->qpos[1] = 0;
+      data->qvel[0] = 0;
+      data->qvel[1] = 0;
+      data->mocap_pos[0] = 1;
+      data->mocap_pos[1] = 1;
+      agent->SetState(data);
+
+      agent->PlanIteration(&plan_pool);
+      auto orig_policy_type = planner->active_policy;
+      double action_sample_time = 0.15;
+      double orig_action[2];
+      agent->ActivePlanner().ActionFromPolicy(orig_action, NULL,
+                                              action_sample_time, false);
+      // change target
+      data->mocap_pos[0] = -1;
+      data->mocap_pos[1] = -1;
+      agent->SetState(data);
+
+      planner->sampling.num_trajectory_ = i & 2 ? 128 : 1;
+      agent->PlanIteration(&plan_pool);
+      auto second_policy_type = planner->active_policy;
+      EXPECT_EQ(planner->previous_active_policy, orig_policy_type);
+      double updated_action[2];
+      agent->ActivePlanner().ActionFromPolicy(updated_action, NULL,
+                                              action_sample_time, false);
+      double prev_action[2];
+      agent->ActivePlanner().ActionFromPolicy(prev_action, NULL,
+                                              action_sample_time, true);
+      EXPECT_EQ(orig_action[0], prev_action[0]);
+      EXPECT_EQ(orig_action[1], prev_action[1]);
+      // since the target is lower, the new action should be meaningfully lower
+      if (orig_action[0] - 1e-3 > updated_action[0] &&
+          orig_action[1] - 1e-3 > updated_action[1]) {
+        // record which case was hit:
+        case_tested[orig_policy_type * 2 + second_policy_type] = true;
+      }
+      if (case_tested[0] && case_tested[1] && case_tested[2] &&
+          case_tested[3]) {  // we've hit all branches successfully
+        break;
+      }
+    }
+    for (int i = 0; i < 4; ++i) {
+      EXPECT_TRUE(case_tested[i])
+          << "One of the iLQS combinations didn't occur, try to increase the "
+             "number of repeats.";
+    }
+    mj_deleteData(data);
+    mj_deleteModel(model);
+  }
 };
 
 TEST_F(AgentTest, Initialization) { TestInitialization(); }
 
 TEST_F(AgentTest, Plan) { TestPlan(); }
+
+TEST_F(AgentTest, PreviousSamplingPolicy) { TestPreviousSamplingPolicy(); }
+TEST_F(AgentTest, PreviousILQGPolicy) { TestPreviousILQGPolicy(); }
+TEST_F(AgentTest, PreviousILQSPolicy) { TestPreviousILQSPolicy(); }
 
 }  // namespace mjpc

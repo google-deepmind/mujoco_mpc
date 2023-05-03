@@ -65,7 +65,7 @@ class GradientPlanner : public Planner {
 
   // compute action from policy
   void ActionFromPolicy(double* action, const double* state,
-                        double time) override;
+                        double time, bool use_previous = false) override;
 
   // resample nominal policy for current time
   void ResamplePolicy(int horizon);
@@ -98,6 +98,7 @@ class GradientPlanner : public Planner {
 
   // policy
   GradientPolicy policy;
+  GradientPolicy previous_policy;
   GradientPolicy candidate_policy[kMaxTrajectory];
 
   // scratch

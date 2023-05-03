@@ -30,6 +30,11 @@
 
 namespace mjpc {
 
+enum iLQSPlanners : int {
+  kSampling = 0,
+  kiLQG,
+};
+
 // planner for iLQS
 class iLQSPlanner : public Planner {
  public:
@@ -61,7 +66,7 @@ class iLQSPlanner : public Planner {
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
-                        double time) override;
+                        double time, bool use_previous = false) override;
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -95,6 +100,7 @@ class iLQSPlanner : public Planner {
 
   // online policy for returning actions
   int active_policy;
+  int previous_active_policy;
 };
 
 }  // namespace mjpc

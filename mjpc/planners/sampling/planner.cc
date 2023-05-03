@@ -177,6 +177,11 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
 
+  {
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
+    previous_policy = policy;
+  }
+
   // update
   this->UpdateNominalPolicy(horizon);
 
@@ -206,9 +211,13 @@ void SamplingPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
 // set action from policy
 void SamplingPlanner::ActionFromPolicy(double* action, const double* state,
-                                       double time) {
+                                       double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
-  policy.Action(action, state, time);
+  if (use_previous) {
+    previous_policy.Action(action, state, time);
+  } else {
+    policy.Action(action, state, time);
+  }
 }
 
 // update policy via resampling

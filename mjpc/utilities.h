@@ -319,15 +319,6 @@ void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
 void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
                        int r2, int c2, int ri, int ci);
 
-// differentiate 3D velocity wrt quaternion difference
-void DifferentiateQuat2Vel(double jac[12], const double quat[4], double dt);
-
-// quaternion difference 
-void QuatDiff(double qdif[4], const double qa[4], const double qb[4]);
-
-// differentiate quaternion difference
-void DifferentiateQuatDiff(double jaca[12], double jacb[12], const double qa[4], const double qb[4]);
-
 // differentiate mju_subQuat wrt qa, qb
 void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4], const double qb[4], double dt);
 

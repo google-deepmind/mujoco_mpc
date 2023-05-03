@@ -987,11 +987,9 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
 }
 
 // finite-difference gradient constructor
-FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) {
-  Resize(dim);
-}
+FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) { Resize(dim); }
 
-// finite-difference gradient resize memory 
+// finite-difference gradient resize memory
 void FiniteDifferenceGradient::Resize(int dim) {
   // allocate memory
   if (dim != gradient_.size()) gradient_.resize(dim);
@@ -1014,7 +1012,7 @@ double* FiniteDifferenceGradient::Compute(
     workspace_[i] += 0.5 * epsilon_;
     double fp = func(workspace_.data());
 
-    // negative 
+    // negative
     workspace_[i] -= 1.0 * epsilon_;
     double fn = func(workspace_.data());
 
@@ -1030,7 +1028,7 @@ double* FiniteDifferenceGradient::Compute(
 // finite-difference Jacobian constructor
 FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
                                                    int num_input) {
-  // resize 
+  // resize
   Resize(num_output, num_input);
 }
 
@@ -1050,7 +1048,7 @@ void FiniteDifferenceJacobian::Resize(int num_output, int num_input) {
 double* FiniteDifferenceJacobian::Compute(
     std::function<void(double* output, const double* input)> func,
     const double* input, int num_output, int num_input) {
-  // resize 
+  // resize
   Resize(num_output, num_input);
 
   // copy workspace
@@ -1086,7 +1084,7 @@ double* FiniteDifferenceJacobian::Compute(
 
 // finite-difference Hessian constructor
 FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
-  // resize memory 
+  // resize memory
   Resize(dim);
 }
 
@@ -1175,125 +1173,63 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
   }
 }
 
-// differentiate 3D velocity wrt to quaternion difference
-void DifferentiateQuat2Vel(double jac[12], const double quat[4], double dt) {  
-  double dt_inv = 1.0 / dt;
-
-  double axis[3] = {quat[1], quat[2], quat[3]};
-  double sin_a_2 = mju_normalize3(axis);
-  double at2 = 2.0 * mju_atan2(sin_a_2, quat[0]);
-  
-  // when axis-angle is larger than pi, rotation is in the opposite direction
-  double speed = 0.0;
-  if (at2 > mjPI) {
-    speed = -2.0 * mjPI;
-  }
-
-  // temporary variables 
-  double tmp0 = dt_inv * (1.0 / (quat[0] * quat[0] + sin_a_2 * sin_a_2));
-  double tmp1 = dt_inv * (speed + at2);
-  double tmp2 = dt_inv / (sin_a_2 * sin_a_2) * (1.0 / (quat[0] * quat[0] + sin_a_2 * sin_a_2));
-
-  // Jacobian
-  jac[0] = -2 * quat[1] * tmp0; 
-  jac[1] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[1] * quat[1] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[1] * tmp2;  
-  jac[2] = -1 * quat[1] * quat[2] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[2] * tmp2;  
-  jac[3] = -1 * quat[1] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[3] * tmp2;  
-  jac[4] = -2 * quat[2] * tmp0;
-  jac[5] = -1 * quat[1] * quat[2] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[2] * tmp2;  
-  jac[6] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[2] * quat[2] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[2] * tmp2;    
-  jac[7] = -1 * quat[2] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[3] * tmp2;  
-  jac[8] = -2 * quat[3] * tmp0;  
-  jac[9] = -1 * quat[1] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[1] * quat[3] * tmp2;  
-  jac[10] = -1 * quat[2] * quat[3] * tmp1 / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[2] * quat[3] * tmp2;  
-  jac[11] = tmp1 * (1.0 / sin_a_2) + -1 * tmp1 * quat[3] * quat[3] / (sin_a_2 * sin_a_2 * sin_a_2) + 2 * quat[0] * quat[3] * quat[3] * tmp2;
-}
-
-
-// quaternion difference 
-void QuatDiff(double qdif[4], const double qa[4], const double qb[4]) {
-  // qdif = neg(qb)*qa
-  double qneg[4];
-  mju_negQuat(qneg, qb);
-  mju_mulQuat(qdif, qneg, qa);
-}
-
-// differentiate quaternion difference
-void DifferentiateQuatDiff(double jaca[12], double jacb[12], const double qa[4], const double qb[4]) {  
-  // d (quaternion difference) / d (qa)
-  if (jaca) {
-    jaca[0] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
-    jaca[1] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
-    jaca[2] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
-    jaca[3] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);  
-    jaca[4] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
-    jaca[5] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
-    jaca[6] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
-    jaca[7] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);  
-    jaca[8] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
-    jaca[9] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
-    jaca[10] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
-    jaca[11] = 0.5 * (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);
-  }
-
-  // d (quaternion difference) / d (qb)
-  if (jacb) {
-    jacb[0] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
-    jacb[1] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
-    jacb[2] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
-    jacb[3] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);  
-    jacb[4] = 0.5 * (qa[0] * qb[3] + qa[2] * qb[1] + -1 * qa[1] * qb[2] + -1 * qa[3] * qb[0]);  
-    jacb[5] = 0.5 * (qa[2] * qb[0] + qa[3] * qb[1] + -1 * qa[0] * qb[2] + -1 * qa[1] * qb[3]);  
-    jacb[6] = 0.5 * (qa[1] * qb[2] + qa[3] * qb[0] + -1 * qa[0] * qb[3] + -1 * qa[2] * qb[1]);  
-    jacb[7] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);  
-    jacb[8] = 0.5 * (qa[0] * qb[1] + qa[3] * qb[2] + -1 * qa[1] * qb[0] + -1 * qa[2] * qb[3]);  
-    jacb[9] = 0.5 * (qa[0] * qb[2] + qa[1] * qb[3] + -1 * qa[2] * qb[0] + -1 * qa[3] * qb[1]);  
-    jacb[10] = 0.5 * (qa[1] * qb[0] + qa[2] * qb[3] + -1 * qa[0] * qb[1] + -1 * qa[3] * qb[2]);  
-    jacb[11] = 0.5 * (-1 * qa[0] * qb[0] + -1 * qa[1] * qb[1] + -1 * qa[2] * qb[2] + -1 * qa[3] * qb[3]);
-  }
-}
-
 // differentiate mju_subQuat wrt qa, qb
-void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4], const double qb[4], double dt) {
-  // quaternion differnece: qdif = neg(qb)*qa
-  mjtNum qneg[4], qdif[4];
-  mju_negQuat(qneg, qb);
-  mju_mulQuat(qdif, qneg, qa);
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
+                          const double qb[4], double dt) {
+  // compute 3D velocity
+  double axis[3];
+  mju_subQuat(axis, qa, qb);
 
-  // differentiate 3D velocity wrt quaternion difference
-  double dvdq[12];
-  DifferentiateQuat2Vel(dvdq, qdif, dt);
+  // angle + normalize axis
+  double angle = mju_normalize3(axis);
+  double th2 = 0.5 * angle;
 
-  // compute total derivative wrt qa
+  // coefficients
+  double c0 = th2;
+  double c1 = 1.0 - (mju_abs(th2) < 6e-8 ? 1.0 : th2 / mju_tan(th2));
+
+  // Jacobian wrt qa
   if (jaca) {
-    // differentiate quaternion difference wrt qa
-    double dqdqa[12];
-    DifferentiateQuatDiff(dqdqa, NULL, qa, qb);
-
-    // total 
-    mju_mulMatMat(jaca, dvdq, dqdqa, 3, 4, 3);
+    jaca[0] = 1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]);
+    jaca[1] = c1 * axis[0] * axis[1] - c0 * axis[2];
+    jaca[2] = c0 * axis[1] + c1 * axis[0] * axis[2];
+    jaca[3] = c0 * axis[2] + c1 * axis[0] * axis[1];
+    jaca[4] = 1.0 + c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
+    jaca[5] = c1 * axis[1] * axis[2] - c0 * axis[0];
+    jaca[6] = c1 * axis[0] * axis[2] - c0 * axis[1];
+    jaca[7] = c0 * axis[0] + c1 * axis[1] * axis[2];
+    jaca[8] = 1.0 + c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
   }
 
-  // compute total derivative wrt qb
+  // Jacobian wrt qb
   if (jacb) {
-    // differentiate quaternion difference wrt qa
-    double dqdqb[12];
-    DifferentiateQuatDiff(NULL, dqdqb, qa, qb);
-
-    // total 
-    mju_mulMatMat(jacb, dvdq, dqdqb, 3, 4, 3);
+    if (!jaca) {
+      jacb[0] = -(1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]));
+      jacb[3] = -c1 * axis[0] * axis[1] + c0 * axis[2];
+      jacb[6] = -c0 * axis[1] - c1 * axis[0] * axis[2];
+      jacb[1] = -c0 * axis[2] - c1 * axis[0] * axis[1];
+      jacb[4] = -1.0 - c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
+      jacb[7] = -c1 * axis[1] * axis[2] + c0 * axis[0];
+      jacb[2] = -c1 * axis[0] * axis[2] + c0 * axis[1];
+      jacb[5] = -c0 * axis[0] - c1 * axis[1] * axis[2];
+      jacb[8] = -1.0 - c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
+    } else {
+      // jacb = -jaca^T
+      mju_transpose(jacb, jaca, 3, 3);
+      mju_scl(jacb, jacb, -1.0, 9);
+    }
   }
 }
 
-// differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
-void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* model,
-                                   double dt, const double* qpos1,
-                                   const double* qpos2) {
-
+// differentiate velocity by finite-differencing two positions wrt to qpos1,
+// qpos2
+void DifferentiateDifferentiatePos(double* jac1, double* jac2,
+                                   const mjModel* model, double dt,
+                                   const double* qpos1, const double* qpos2) {
   int padr, vadr;
   // mjtNum neg[4], dif[4];
 
-  // zero Jacobians 
+  // zero Jacobians
   if (jac1) mju_zero(jac1, model->nv * model->nv);
   if (jac2) mju_zero(jac2, model->nv * model->nv);
 
@@ -1327,8 +1263,9 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* mo
           double jac1_blk[9];
           DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr, dt);
 
-          // set block in Jacobian 
-          SetMatrixInMatrix(jac1, jac1_blk, 1.0, model->nv, model->nv, 3, 3, vadr, vadr);
+          // set block in Jacobian
+          SetMatrixInMatrix(jac1, jac1_blk, 1.0, model->nv, model->nv, 3, 3,
+                            vadr, vadr);
         }
 
         if (jac2) {
@@ -1336,8 +1273,9 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2, const mjModel* mo
           double jac2_blk[9];
           DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr, dt);
 
-          // set block in Jacobian 
-          SetMatrixInMatrix(jac2, jac2_blk, 1.0, model->nv, model->nv, 3, 3, vadr, vadr);
+          // set block in Jacobian
+          SetMatrixInMatrix(jac2, jac2_blk, 1.0, model->nv, model->nv, 3, 3,
+                            vadr, vadr);
         }
 
         break;

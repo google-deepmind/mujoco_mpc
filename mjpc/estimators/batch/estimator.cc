@@ -530,8 +530,8 @@ void Estimator::JacobianMeasurementBlocks() {
 void Estimator::ComputeMeasurements() {
   for (int t = 0; t < configuration_length_ - 2; t++) {
     // terms
-    double* qt = configuration_.data() + (t + 2) * model_->nq;
-    double* vt = velocity_.data() + (t + 1) * model_->nv;
+    double* qt = configuration_.data() + (t + 1) * model_->nq;
+    double* vt = velocity_.data() + t * model_->nv;
     double* at = acceleration_.data() + t * model_->nv;
 
     // set qt, vt, at
@@ -804,8 +804,8 @@ void Estimator::JacobianInverseDynamicsBlocks() {
 void Estimator::ComputeInverseDynamics() {
   for (int t = 0; t < configuration_length_ - 2; t++) {
     // terms
-    double* qt = configuration_.data() + (t + 2) * model_->nq;
-    double* vt = velocity_.data() + (t + 1) * model_->nv;
+    double* qt = configuration_.data() + (t + 1) * model_->nq;
+    double* vt = velocity_.data() + t * model_->nv;
     double* at = acceleration_.data() + t * model_->nv;
 
     // set qt, vt, at

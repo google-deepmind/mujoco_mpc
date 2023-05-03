@@ -1175,7 +1175,7 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
 
 // differentiate mju_subQuat wrt qa, qb
 void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
-                          const double qb[4], double dt) {
+                          const double qb[4]) {
   // compute 3D velocity
   double axis[3];
   mju_subQuat(axis, qa, qb);
@@ -1253,20 +1253,20 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
         if (jac1) {
           // compute subQuat Jacobian block
           double jac1_blk[9];
-          DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr, dt);
+          DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr);
 
           // set block in Jacobian
-          SetMatrixInMatrix(jac1, jac1_blk, 1.0, model->nv, model->nv, 3, 3,
+          SetMatrixInMatrix(jac1, jac1_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
                             vadr, vadr);
         }
 
         if (jac2) {
           // compute subQuat Jacobian block
           double jac2_blk[9];
-          DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr, dt);
+          DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr);
 
           // set block in Jacobian
-          SetMatrixInMatrix(jac2, jac2_blk, 1.0, model->nv, model->nv, 3, 3,
+          SetMatrixInMatrix(jac2, jac2_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
                             vadr, vadr);
         }
 

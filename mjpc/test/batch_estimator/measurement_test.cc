@@ -36,7 +36,6 @@ TEST(MeasurementResidual, Particle) {
   int dim_res = model->nsensordata * (history - 2);
 
   std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization 
@@ -44,7 +43,6 @@ TEST(MeasurementResidual, Particle) {
     for (int i = 0; i < model->nq; i++) {
       absl::BitGen gen_;
       configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
     for (int i = 0; i < model->nsensordata; i++) {
@@ -58,9 +56,8 @@ TEST(MeasurementResidual, Particle) {
   estimator.Initialize(model);
   estimator.configuration_length_ = history;
 
-  // copy configuration, prior, measurement
+  // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
   mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //
@@ -173,7 +170,6 @@ TEST(MeasurementResidual, Box) {
   int dim_res = model->nsensordata * (history - 2);
 
   std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization 
@@ -181,11 +177,9 @@ TEST(MeasurementResidual, Box) {
     for (int i = 0; i < model->nq; i++) {
       absl::BitGen gen_;
       configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // normalize quaternion 
     mju_normalize4(configuration.data() + model->nq * t + 3);
-    mju_normalize4(prior.data() + model->nq * t + 3);
 
     for (int i = 0; i < model->nsensordata; i++) {
       absl::BitGen gen_;
@@ -198,9 +192,8 @@ TEST(MeasurementResidual, Box) {
   estimator.Initialize(model);
   estimator.configuration_length_ = history;
 
-  // copy configuration, prior, measurement
+  // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
   mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //

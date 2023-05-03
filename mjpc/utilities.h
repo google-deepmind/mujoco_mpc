@@ -255,7 +255,7 @@ class FiniteDifferenceGradient {
   // constructor
   FiniteDifferenceGradient(int dim);
 
-  // resize memory 
+  // resize memory
   void Resize(int dim);
 
   // compute gradient
@@ -274,7 +274,7 @@ class FiniteDifferenceJacobian {
   // constructor
   FiniteDifferenceJacobian(int num_output, int num_input);
 
-  // resize memory 
+  // resize memory
   void Resize(int num_ouput, int num_input);
 
   // compute Jacobian
@@ -296,7 +296,7 @@ class FiniteDifferenceHessian {
   // constructor
   FiniteDifferenceHessian(int dim);
 
-  // resize memory 
+  // resize memory
   void Resize(int dim);
 
   // compute
@@ -320,9 +320,11 @@ void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
                        int r2, int c2, int ri, int ci);
 
 // differentiate mju_subQuat wrt qa, qb
-void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4], const double qb[4], double dt);
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
+                          const double qb[4]);
 
-// differentiate velocity by finite-differencing two positions wrt to qpos1, qpos2
+// differentiate velocity by finite-differencing two positions wrt to qpos1,
+// qpos2
 void DifferentiateDifferentiatePos(double* jac1, double* jac2,
                                    const mjModel* model, double dt,
                                    const double* qpos1, const double* qpos2);

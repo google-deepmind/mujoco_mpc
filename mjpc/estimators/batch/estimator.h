@@ -66,9 +66,6 @@ class Estimator {
   // measurement Jacobian
   void JacobianMeasurement();
 
-  // measurement Jacobian blocks 
-  void JacobianMeasurementBlocks();
-
   // compute measurements
   void ComputeMeasurements();
 
@@ -81,11 +78,11 @@ class Estimator {
   // inverse dynamics Jacobian
   void JacobianInverseDynamics();
 
-  // inverse dynamics Jacobian blocks 
-  void JacobianInverseDynamicsBlocks();
-
   // compute inverse dynamics
   void ComputeInverseDynamics();
+
+  // compute model derivatives (via finite difference) 
+  void ModelDerivatives();
 
   // update configuration trajectory
   void UpdateConfiguration(double* configuration, const double* update);
@@ -135,13 +132,15 @@ class Estimator {
   // prior Jacobian block 
   std::vector<double> jacobian_block_prior_configuration_;
 
-  // measurement Jacobian blocks
+  // measurement Jacobian blocks (ds/dq', ds/dv', ds/da')
+  // note: these are transposed
   std::vector<double> jacobian_block_measurement_configuration_;
   std::vector<double> jacobian_block_measurement_velocity_;
   std::vector<double> jacobian_block_measurement_acceleration_;
   std::vector<double> jacobian_block_measurement_scratch_;
 
-  // inverse dynamics Jacobian blocks 
+  // inverse dynamics Jacobian blocks (df/dq', df/dv', df/da')
+  // note: these are transposed
   std::vector<double> jacobian_block_inverse_dynamics_configuration_;
   std::vector<double> jacobian_block_inverse_dynamics_velocity_;
   std::vector<double> jacobian_block_inverse_dynamics_acceleration_;
@@ -200,6 +199,9 @@ class Estimator {
 
   // update
   std::vector<double> update_;
+
+  // finite-difference tolerance 
+  double finite_difference_tolerance_ = 1.0e-6;
 };
 
 }  // namespace mjpc

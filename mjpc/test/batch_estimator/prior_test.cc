@@ -23,6 +23,92 @@
 namespace mjpc {
 namespace {
 
+TEST(PriorResidual, Particle) {
+  // load model
+  mjModel* model = LoadTestModel("particle2D.xml");
+  mjData* data = mj_makeData(model);
+
+  // ----- configurations ----- //
+  int history = 3;
+  int dim_pos = model->nq * history;
+  int dim_vel = model->nv * history;
+  std::vector<double> configuration(dim_pos);
+  std::vector<double> prior(dim_pos);
+
+  // random initialization 
+  for (int t = 0; t < history; t++) {
+    for (int i = 0; i < model->nq; i++) {
+      absl::BitGen gen_;
+      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // ----- estimator ----- //
+  Estimator estimator;
+  estimator.Initialize(model);
+  estimator.configuration_length_ = history;
+
+  // copy configuration, prior 
+  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+
+  // ----- residual ----- //
+  auto residual_prior = [&prior,
+                         &configuration_length = history,
+                         &model](double* residual, const double* update) {
+    // integrated quaternion
+    std::vector<double> qint(model->nq);
+
+    // loop over time
+    for (int t = 0; t < configuration_length; t++) {
+      // terms
+      double* rt = residual + t * model->nv;
+      double* qt_prior = prior.data() + t * model->nq;
+
+      // configuration difference
+      mj_differentiatePos(model, rt, 1.0, qt_prior, update + t * model->nq);
+    }
+  };
+
+  // initialize memory
+  std::vector<double> residual(dim_vel);
+  std::vector<double> update(dim_vel);
+  mju_copy(update.data(), configuration.data(), dim_pos);
+
+  // evaluate 
+  residual_prior(residual.data(), update.data());
+  estimator.ResidualPrior();
+
+  // error 
+  std::vector<double> residual_error(dim_vel);
+  mju_sub(residual_error.data(), estimator.residual_prior_.data(), residual.data(), dim_vel);
+
+  // test
+  EXPECT_NEAR(mju_norm(residual_error.data(), dim_vel) / (dim_vel), 0.0, 1.0e-5);
+
+  // ----- Jacobian ----- //
+
+  // finite-difference
+  FiniteDifferenceJacobian fd(dim_vel, dim_vel);
+  fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
+
+  // estimator
+  estimator.JacobianPriorBlocks();
+  estimator.JacobianPrior();
+
+  // error 
+  std::vector<double> jacobian_error(dim_vel * dim_vel);
+  mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(), fd.jacobian_.data(), dim_vel * dim_vel);
+
+  // test 
+  EXPECT_NEAR(mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel), 0.0, 1.0e-3);
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
 TEST(PriorResidual, Box) {
   // load model
   mjModel* model = LoadTestModel("box3D.xml");

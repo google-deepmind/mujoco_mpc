@@ -29,7 +29,7 @@ TEST(MeasurementResidual, Box) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 4;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   int dim_mea = model->nsensordata * history;
@@ -162,12 +162,14 @@ TEST(MeasurementResidual, Box) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.JacobianMeasurementBlocks();
+  estimator.ModelDerivatives();
   estimator.JacobianMeasurement();
 
-  // // error 
-  // std::vector<double> jacobian_error(dim_vel * dim_vel);
-  // mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(), fd.jacobian_.data(), dim_vel * dim_vel);
+  // error 
+  std::vector<double> jacobian_error(dim_res * dim_vel);
+  mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(), fd.jacobian_.data(), dim_res * dim_vel);
+
+  printf("norm: %f\n", mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res * dim_vel));
 
   printf("measurement Jacobian (finite-difference):\n");
   mju_printMat(fd.jacobian_.data(), dim_res, dim_vel);
@@ -175,8 +177,8 @@ TEST(MeasurementResidual, Box) {
   printf("measurement Jacobian (estimator):\n");
   mju_printMat(estimator.jacobian_measurement_.data(), dim_res, dim_vel);
 
-  printf("measurement Jacobian blocks configuration (estimator):\n");
-  mju_printMat(estimator.jacobian_block_measurement_configuration_.data(), estimator.dim_measurement_, model->nv);
+  // printf("measurement Jacobian blocks configuration (estimator):\n");
+  // mju_printMat(estimator.jacobian_block_measurement_configuration_.data(), estimator.dim_measurement_, model->nv);
 
 
   // // test 

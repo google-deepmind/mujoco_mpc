@@ -9,11 +9,11 @@
     </body>
   </worldbody>
   <sensor>
-    <!-- <!-- <framepos name="position" objtype="body" objname="root"/> -->
-    <framequat name="quat" objtype="body" objname="root"/> -->
+    <framepos name="position" objtype="body" objname="root"/>
+    <framequat name="quat" objtype="body" objname="root"/>
     <framelinvel name="linvel" objtype="body" objname="root"/>
-    <!-- <frameangvel name="angvel" objtype="body" objname="root"/> -->
-    <!-- <framelinacc name="linacc" objtype="body" objname="root"/>
-    <frameangacc name="angacc" objtype="body" objname="root"/> -->
+    <frameangvel name="angvel" objtype="body" objname="root"/>
+    <framelinacc name="linacc" objtype="body" objname="root"/>
+    <frameangacc name="angacc" objtype="body" objname="root"/>
   </sensor>
 </mujoco>

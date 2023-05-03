@@ -662,13 +662,13 @@ void Estimator::ModelDerivatives() {
                    t * dim_measurement_ * model_->nv;
     double* dvds = jacobian_block_measurement_velocity_.data() +
                    t * dim_measurement_ * model_->nv;
-    double* dads = jacobian_block_measurement_configuration_.data() +
+    double* dads = jacobian_block_measurement_acceleration_.data() +
                    t * dim_measurement_ * model_->nv;
     double* dqdf = jacobian_block_inverse_dynamics_configuration_.data() +
                    t * model_->nv * model_->nv;
     double* dvdf = jacobian_block_inverse_dynamics_velocity_.data() +
                    t * model_->nv * model_->nv;
-    double* dadf = jacobian_block_inverse_dynamics_configuration_.data() +
+    double* dadf = jacobian_block_inverse_dynamics_acceleration_.data() +
                    t * model_->nv * model_->nv;
 
     // set (state, acceleration)
@@ -677,7 +677,7 @@ void Estimator::ModelDerivatives() {
     mju_copy(data_->qacc, a, model_->nv);
 
     // finite-difference derivatives
-    mjd_inverseFD(model_, data_, finite_difference_tolerance_, false, dqdf,
+    mjd_inverseFD(model_, data_, finite_difference_tolerance_, 0, dqdf,
                   dvdf, dadf, dqds, dvds, dads, NULL);
   }
 }

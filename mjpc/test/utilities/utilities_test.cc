@@ -313,8 +313,8 @@ TEST(DifferentiateQuaternionTest, SubQuat) {
   mju_sub(error_b, Jb, Gb, 9);
 
   // ----- test ----- //
-  EXPECT_NEAR(mju_norm(error_a, 9) / 9, 0.0, 1.0e-3);
-  EXPECT_NEAR(mju_norm(error_b, 9) / 9, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(error_a, 9) / 9, 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(error_b, 9) / 9, 0.0, 1.0e-5);
 }
 
 TEST(DifferentiateQuaternionTest, DifferentiatePos) {
@@ -387,8 +387,8 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   mju_sub(error_b, Jb, Gb, 36);
 
   // ----- test ----- //
-  EXPECT_NEAR(mju_norm(error_a, 36) / 36, 0.0, 1.0e-3);
-  EXPECT_NEAR(mju_norm(error_b, 36) / 36, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(error_a, 36) / 36, 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(error_b, 36) / 36, 0.0, 1.0e-5);
 }
 
 }  // namespace

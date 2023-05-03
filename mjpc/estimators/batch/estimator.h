@@ -200,8 +200,9 @@ class Estimator {
   // update
   std::vector<double> update_;
 
-  // finite-difference tolerance 
+  // finite-difference settings 
   double finite_difference_tolerance_ = 1.0e-6;
+  bool finite_difference_flg_actuation_ = 0;
 };
 
 }  // namespace mjpc

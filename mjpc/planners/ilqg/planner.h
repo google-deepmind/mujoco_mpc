@@ -79,7 +79,9 @@ class iLQGPlanner : public Planner {
   void FeedbackRollouts(int horizon, ThreadPool& pool);
 
   // return index of trajectory with best rollout
-  int BestRollout(double previous_return, int num_trajectory);
+  int BestRollout();
+
+  void UpdateNumTrajectoriesFromGUI();
 
   //
 
@@ -107,7 +109,6 @@ class iLQGPlanner : public Planner {
 
   // candidate trajectories
   Trajectory trajectory[kMaxTrajectory];
-  int num_trajectory;
 
   // model derivatives
   ModelDerivatives model_derivative;
@@ -147,6 +148,9 @@ class iLQGPlanner : public Planner {
 
   // mutex
   mutable std::shared_mutex mtx_;
+ private:
+  int num_trajectory_;
+  int num_rollouts_gui_;
 };
 
 }  // namespace mjpc

@@ -89,6 +89,7 @@ void iLQSPlanner::SetState(State& state) {
 // optimize nominal policy using iLQS
 void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   previous_active_policy = active_policy;
+  ilqg.UpdateNumTrajectoriesFromGUI();
   if (previous_active_policy == kiLQG) {
     // In order to optimize via sampling, we first convert the traj-based policy
     // representation of iLQG (the previous winner) to a spline representation.

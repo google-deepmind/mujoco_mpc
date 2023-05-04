@@ -20,6 +20,7 @@
 #include <string_view>
 #include <vector>
 
+#include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
 #include <absl/strings/str_format.h>
@@ -28,7 +29,6 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
-#include "third_party/mujoco_mpc/grpc/agent.proto.h"
 #include "mjpc/task.h"
 
 namespace agent_grpc {

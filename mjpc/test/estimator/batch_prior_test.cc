@@ -16,7 +16,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch/estimator.h"
+#include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
 #include "mjpc/utilities.h"
 
@@ -28,45 +28,48 @@ TEST(PriorResidual, Particle) {
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
   std::vector<double> configuration(dim_pos);
   std::vector<double> prior(dim_pos);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
-  auto residual_prior = [&prior, &configuration_length = history, &model](
+  auto residual_prior = [&prior, &configuration_length = T, &model, nq, nv](
                             double* residual, const double* update) {
     // integrated quaternion
-    std::vector<double> qint(model->nq);
+    std::vector<double> qint(nq);
 
     // loop over time
     for (int t = 0; t < configuration_length; t++) {
       // terms
-      double* rt = residual + t * model->nv;
-      double* qt_prior = prior.data() + t * model->nq;
+      double* rt = residual + t * nv;
+      double* qt_prior = prior.data() + t * nq;
 
       // configuration difference
-      mj_differentiatePos(model, rt, 1.0, qt_prior, update + t * model->nq);
+      mj_differentiatePos(model, rt, 1.0, qt_prior, update + t * nq);
     }
   };
 
@@ -118,51 +121,54 @@ TEST(PriorResidual, Box) {
   mjModel* model = LoadTestModel("box3D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
   std::vector<double> configuration(dim_pos);
   std::vector<double> prior(dim_pos);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // normalize quaternion
-    mju_normalize4(configuration.data() + model->nq * t + 3);
-    mju_normalize4(prior.data() + model->nq * t + 3);
+    mju_normalize4(configuration.data() + nq * t + 3);
+    mju_normalize4(prior.data() + nq * t + 3);
   }
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
-  auto residual_prior = [&configuration, &prior,
-                         &configuration_length = history,
-                         &model](double* residual, const double* update) {
+  auto residual_prior = [&configuration, &prior, &configuration_length = T,
+                         &model, nq,
+                         nv](double* residual, const double* update) {
     // integrated quaternion
-    std::vector<double> qint(model->nq);
+    std::vector<double> qint(nq);
 
     // loop over time
     for (int t = 0; t < configuration_length; t++) {
       // terms
-      double* rt = residual + t * model->nv;
-      double* qt_prior = prior.data() + t * model->nq;
-      double* qt = configuration.data() + t * model->nq;
+      double* rt = residual + t * nv;
+      double* qt_prior = prior.data() + t * nq;
+      double* qt = configuration.data() + t * nq;
 
       // ----- integrate ----- //
-      mju_copy(qint.data(), qt, model->nq);
-      const double* dq = update + t * model->nv;
+      mju_copy(qint.data(), qt, nq);
+      const double* dq = update + t * nv;
       mj_integratePos(model, qint.data(), dq, 1.0);
 
       // configuration difference
@@ -220,26 +226,29 @@ TEST(PriorCost, Particle) {
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
   std::vector<double> configuration(dim_pos);
   std::vector<double> prior(dim_pos);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
   estimator.weight_prior_ = 7.3;
 
   // copy configuration, prior
@@ -247,11 +256,11 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- cost ----- //
-  auto cost_prior = [&prior, &configuration_length = history, &model,
-                     &weight =
-                         estimator.weight_prior_](const double* configuration) {
+  auto cost_prior = [&prior, &configuration_length = T,
+                     &weight = estimator.weight_prior_, nq,
+                     nv](const double* configuration) {
     // dimension
-    int dim_res = model->nv * configuration_length;
+    int dim_res = nv * configuration_length;
 
     // residual
     std::vector<double> residual(dim_res);
@@ -259,12 +268,12 @@ TEST(PriorCost, Particle) {
     // loop over time
     for (int t = 0; t < configuration_length; t++) {
       // terms
-      double* rt = residual.data() + t * model->nv;
-      double* qt_prior = prior.data() + t * model->nq;
-      const double* qt = configuration + t * model->nq;
+      double* rt = residual.data() + t * nv;
+      double* qt_prior = prior.data() + t * nq;
+      const double* qt = configuration + t * nq;
 
       // configuration difference
-      mju_sub(rt, qt, qt_prior, model->nv);
+      mju_sub(rt, qt, qt_prior, nv);
     }
 
     return 0.5 * weight * mju_dot(residual.data(), residual.data(), dim_res);
@@ -321,29 +330,32 @@ TEST(PriorCost, Box) {
   mjModel* model = LoadTestModel("box3D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
   std::vector<double> configuration(dim_pos);
   std::vector<double> prior(dim_pos);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // normalize quaternion
-    mju_normalize4(configuration.data() + model->nq * t + 3);
-    mju_normalize4(prior.data() + model->nq * t + 3);
+    mju_normalize4(configuration.data() + nq * t + 3);
+    mju_normalize4(prior.data() + nq * t + 3);
   }
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
   estimator.weight_prior_ = 7.3;
 
   // copy configuration, prior
@@ -351,26 +363,26 @@ TEST(PriorCost, Box) {
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- cost ----- //
-  auto cost_prior = [&configuration, &prior, &configuration_length = history,
-                     &model,
-                     &weight = estimator.weight_prior_](const double* update) {
+  auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
+                     &weight = estimator.weight_prior_, nq,
+                     nv](const double* update) {
     // residual
-    int dim_res = model->nv * configuration_length;
+    int dim_res = nv * configuration_length;
     std::vector<double> residual(dim_res);
 
     // integrated quaternion
-    std::vector<double> qint(model->nq);
+    std::vector<double> qint(nq);
 
     // loop over time
     for (int t = 0; t < configuration_length; t++) {
       // terms
-      double* rt = residual.data() + t * model->nv;
-      double* qt_prior = prior.data() + t * model->nq;
-      double* qt = configuration.data() + t * model->nq;
+      double* rt = residual.data() + t * nv;
+      double* qt_prior = prior.data() + t * nq;
+      double* qt = configuration.data() + t * nq;
 
       // ----- integrate ----- //
-      mju_copy(qint.data(), qt, model->nq);
-      const double* dq = update + t * model->nv;
+      mju_copy(qint.data(), qt, nq);
+      const double* dq = update + t * nv;
       mj_integratePos(model, qint.data(), dq, 1.0);
 
       // configuration difference

@@ -16,7 +16,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch/estimator.h"
+#include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
 #include "mjpc/utilities.h"
 
@@ -28,21 +28,24 @@ TEST(MeasurementResidual, Particle) {
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
-  int dim_mea = model->nsensordata * history;
-  int dim_res = model->nsensordata * (history - 2);
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  int dim_mea = model->nsensordata * T;
+  int dim_res = model->nsensordata * (T - 2);
 
   std::vector<double> configuration(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
     for (int i = 0; i < model->nsensordata; i++) {
@@ -55,30 +58,30 @@ TEST(MeasurementResidual, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //
-  auto residual_measurement = [&measurement, &configuration_length = history,
-                               &model,
-                               &data](double* residual, const double* update) {
+  auto residual_measurement = [&measurement, &configuration_length = T, &model,
+                               &data, nq,
+                               nv](double* residual, const double* update) {
     // velocity
-    std::vector<double> v1(model->nv);
-    std::vector<double> v2(model->nv);
+    std::vector<double> v1(nv);
+    std::vector<double> v2(nv);
 
     // acceleration
-    std::vector<double> a1(model->nv);
+    std::vector<double> a1(nv);
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
       // unpack
       double* rt = residual + t * model->nsensordata;
-      const double* q0 = update + t * model->nq;
-      const double* q1 = update + (t + 1) * model->nq;
-      const double* q2 = update + (t + 2) * model->nq;
+      const double* q0 = update + t * nq;
+      const double* q1 = update + (t + 1) * nq;
+      const double* q2 = update + (t + 2) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -86,13 +89,13 @@ TEST(MeasurementResidual, Particle) {
       mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
 
       // acceleration
-      mju_sub(a1.data(), v2.data(), v1.data(), model->nv);
-      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+      mju_sub(a1.data(), v2.data(), v1.data(), nv);
+      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
 
       // set state
-      mju_copy(data->qpos, q1, model->nq);
-      mju_copy(data->qvel, v1.data(), model->nv);
-      mju_copy(data->qacc, a1.data(), model->nv);
+      mju_copy(data->qpos, q1, nq);
+      mju_copy(data->qvel, v1.data(), nv);
+      mju_copy(data->qacc, a1.data(), nv);
 
       // inverse dynamics
       mj_inverse(model, data);
@@ -112,23 +115,13 @@ TEST(MeasurementResidual, Particle) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  // finite-difference velocities
-  ConfigurationToVelocity(estimator.velocity_.data(),
-                          estimator.configuration_.data(),
-                          estimator.configuration_length_, estimator.model_);
-
-  // finite-difference accelerations
-  VelocityToAcceleration(estimator.acceleration_.data(),
-                         estimator.velocity_.data(),
-                         estimator.configuration_length_ - 1, estimator.model_);
-
-  // compute model measurements
-  estimator.ComputeMeasurements();
-  estimator.ResidualMeasurement();
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ComputeSensor();
+  estimator.ResidualSensor();
 
   // error
   std::vector<double> residual_error(dim_mea);
-  mju_sub(residual_error.data(), estimator.residual_measurement_.data(),
+  mju_sub(residual_error.data(), estimator.residual_sensor_.data(),
           residual.data(), dim_res);
 
   // test
@@ -145,11 +138,11 @@ TEST(MeasurementResidual, Particle) {
   estimator.ModelDerivatives();
   estimator.VelocityJacobianBlocks();
   estimator.AccelerationJacobianBlocks();
-  estimator.JacobianMeasurement();
+  estimator.JacobianSensor();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
-  mju_sub(jacobian_error.data(), estimator.jacobian_measurement_.data(),
+  mju_sub(jacobian_error.data(), estimator.jacobian_sensor_.data(),
           fd.jacobian_.data(), dim_res * dim_vel);
 
   // test
@@ -167,24 +160,27 @@ TEST(MeasurementResidual, Box) {
   mjModel* model = LoadTestModel("box3D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
-  int dim_mea = model->nsensordata * history;
-  int dim_res = model->nsensordata * (history - 2);
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  int dim_mea = model->nsensordata * T;
+  int dim_res = model->nsensordata * (T - 2);
 
   std::vector<double> configuration(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // normalize quaternion
-    mju_normalize4(configuration.data() + model->nq * t + 3);
+    mju_normalize4(configuration.data() + nq * t + 3);
 
     for (int i = 0; i < model->nsensordata; i++) {
       absl::BitGen gen_;
@@ -196,42 +192,41 @@ TEST(MeasurementResidual, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
+  estimator.configuration_length_ = T;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //
   auto residual_measurement = [&configuration, &measurement,
-                               &configuration_length = history, &model,
-                               &data](double* residual, const double* update) {
+                               &configuration_length = T, &model, &data, nq,
+                               nv](double* residual, const double* update) {
     // ----- integrate quaternion ----- //
-    std::vector<double> qint(model->nq * configuration_length);
-    mju_copy(qint.data(), configuration.data(),
-             model->nq * configuration_length);
+    std::vector<double> qint(nq * configuration_length);
+    mju_copy(qint.data(), configuration.data(), nq * configuration_length);
 
     // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
-      double* q = qint.data() + t * model->nq;
-      const double* dq = update + t * model->nv;
+      double* q = qint.data() + t * nq;
+      const double* dq = update + t * nv;
       mj_integratePos(model, q, dq, 1.0);
     }
 
     // velocity
-    std::vector<double> v1(model->nv);
-    std::vector<double> v2(model->nv);
+    std::vector<double> v1(nv);
+    std::vector<double> v2(nv);
 
     // acceleration
-    std::vector<double> a1(model->nv);
+    std::vector<double> a1(nv);
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
       // unpack
       double* rt = residual + t * model->nsensordata;
-      double* q0 = qint.data() + t * model->nq;
-      double* q1 = qint.data() + (t + 1) * model->nq;
-      double* q2 = qint.data() + (t + 2) * model->nq;
+      double* q0 = qint.data() + t * nq;
+      double* q1 = qint.data() + (t + 1) * nq;
+      double* q2 = qint.data() + (t + 2) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -239,13 +234,13 @@ TEST(MeasurementResidual, Box) {
       mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
 
       // acceleration
-      mju_sub(a1.data(), v2.data(), v1.data(), model->nv);
-      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+      mju_sub(a1.data(), v2.data(), v1.data(), nv);
+      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
 
       // set state
-      mju_copy(data->qpos, q1, model->nq);
-      mju_copy(data->qvel, v1.data(), model->nv);
-      mju_copy(data->qacc, a1.data(), model->nv);
+      mju_copy(data->qpos, q1, nq);
+      mju_copy(data->qvel, v1.data(), nv);
+      mju_copy(data->qacc, a1.data(), nv);
 
       // inverse dynamics
       mj_inverse(model, data);
@@ -265,23 +260,13 @@ TEST(MeasurementResidual, Box) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  // finite-difference velocities
-  ConfigurationToVelocity(estimator.velocity_.data(),
-                          estimator.configuration_.data(),
-                          estimator.configuration_length_, estimator.model_);
-
-  // finite-difference accelerations
-  VelocityToAcceleration(estimator.acceleration_.data(),
-                         estimator.velocity_.data(),
-                         estimator.configuration_length_ - 1, estimator.model_);
-
-  // compute model measurements
-  estimator.ComputeMeasurements();
-  estimator.ResidualMeasurement();
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ComputeSensor();
+  estimator.ResidualSensor();
 
   // // error
   std::vector<double> residual_error(dim_mea);
-  mju_sub(residual_error.data(), estimator.residual_measurement_.data(),
+  mju_sub(residual_error.data(), estimator.residual_sensor_.data(),
           residual.data(), dim_res);
 
   // test
@@ -298,11 +283,11 @@ TEST(MeasurementResidual, Box) {
   estimator.ModelDerivatives();
   estimator.VelocityJacobianBlocks();
   estimator.AccelerationJacobianBlocks();
-  estimator.JacobianMeasurement();
+  estimator.JacobianSensor();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
-  mju_sub(jacobian_error.data(), estimator.jacobian_measurement_.data(),
+  mju_sub(jacobian_error.data(), estimator.jacobian_sensor_.data(),
           fd.jacobian_.data(), dim_res * dim_vel);
 
   // test
@@ -322,21 +307,24 @@ TEST(MeasurementCost, Particle) {
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
-  int dim_mea = model->nsensordata * history;
-  int dim_res = model->nsensordata * (history - 2);
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  int dim_mea = model->nsensordata * T;
+  int dim_res = model->nsensordata * (T - 2);
 
   std::vector<double> configuration(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    for (int i = 0; i < model->nq; i++) {
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
     for (int i = 0; i < model->nsensordata; i++) {
@@ -349,24 +337,23 @@ TEST(MeasurementCost, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
-  estimator.weight_inverse_dynamics_ = 0.025;
+  estimator.configuration_length_ = T;
+  estimator.weight_force_ = 0.025;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
 
   // ----- cost ----- //
-  auto cost_measurement = [&measurement, &configuration_length = history,
-                           &model, &data, &dim_res,
-                           &weight = estimator.weight_measurement_](
-                              const double* configuration) {
+  auto cost_measurement = [&measurement, &configuration_length = T, &model,
+                           &data, &dim_res, &weight = estimator.weight_sensor_,
+                           nq, nv](const double* configuration) {
     // velocity
-    std::vector<double> v1(model->nv);
-    std::vector<double> v2(model->nv);
+    std::vector<double> v1(nv);
+    std::vector<double> v2(nv);
 
     // acceleration
-    std::vector<double> a1(model->nv);
+    std::vector<double> a1(nv);
 
     // residual
     std::vector<double> residual(dim_res);
@@ -375,9 +362,9 @@ TEST(MeasurementCost, Particle) {
     for (int t = 0; t < configuration_length - 2; t++) {
       // unpack
       double* rt = residual.data() + t * model->nsensordata;
-      const double* q0 = configuration + t * model->nq;
-      const double* q1 = configuration + (t + 1) * model->nq;
-      const double* q2 = configuration + (t + 2) * model->nq;
+      const double* q0 = configuration + t * nq;
+      const double* q1 = configuration + (t + 1) * nq;
+      const double* q2 = configuration + (t + 2) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -385,13 +372,13 @@ TEST(MeasurementCost, Particle) {
       mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
 
       // acceleration
-      mju_sub(a1.data(), v2.data(), v1.data(), model->nv);
-      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+      mju_sub(a1.data(), v2.data(), v1.data(), nv);
+      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
 
       // set state
-      mju_copy(data->qpos, q1, model->nq);
-      mju_copy(data->qvel, v1.data(), model->nv);
-      mju_copy(data->qacc, a1.data(), model->nv);
+      mju_copy(data->qpos, q1, nq);
+      mju_copy(data->qvel, v1.data(), nv);
+      mju_copy(data->qacc, a1.data(), nv);
 
       // inverse dynamics
       mj_inverse(model, data);
@@ -418,28 +405,18 @@ TEST(MeasurementCost, Particle) {
   fdh.Compute(cost_measurement, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  // finite-difference velocities
-  ConfigurationToVelocity(estimator.velocity_.data(),
-                          estimator.configuration_.data(),
-                          estimator.configuration_length_, estimator.model_);
-
-  // finite-difference accelerations
-  VelocityToAcceleration(estimator.acceleration_.data(),
-                         estimator.velocity_.data(),
-                         estimator.configuration_length_ - 1, estimator.model_);
-
-  // compute intermediate terms
-  estimator.ComputeMeasurements();
-  estimator.ResidualMeasurement();
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ComputeSensor();
+  estimator.ResidualSensor();
   estimator.ModelDerivatives();
   estimator.VelocityJacobianBlocks();
   estimator.AccelerationJacobianBlocks();
-  estimator.JacobianMeasurement();
+  estimator.JacobianSensor();
 
   // cost
   double cost_estimator =
-      estimator.CostMeasurement(estimator.cost_gradient_measurement_.data(),
-                                estimator.cost_hessian_measurement_.data());
+      estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
+                           estimator.cost_hessian_sensor_.data());
 
   // ----- error ----- //
 
@@ -449,13 +426,13 @@ TEST(MeasurementCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(dim_vel);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_measurement_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
           fdg.gradient_.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(dim_vel * dim_vel);
-  mju_sub(hessian_error.data(), estimator.cost_hessian_measurement_.data(),
+  mju_sub(hessian_error.data(), estimator.cost_hessian_sensor_.data(),
           fdh.hessian_.data(), dim_vel * dim_vel);
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
@@ -472,29 +449,32 @@ TEST(MeasurementCost, Box) {
   model->opt.timestep = 0.05;
   mjData* data = mj_makeData(model);
 
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
   // configuration
   double qpos0[7] = {0.1, -0.2, 0.5, 0.0, 1.0, 0.0, 0.0};
 
   // ----- configurations ----- //
-  int history = 5;
-  int dim_pos = model->nq * history;
-  int dim_vel = model->nv * history;
-  int dim_mea = model->nsensordata * history;
-  int dim_res = model->nsensordata * (history - 2);
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  int dim_mea = model->nsensordata * T;
+  int dim_res = model->nsensordata * (T - 2);
 
   std::vector<double> configuration(dim_pos);
   std::vector<double> measurement(dim_mea);
 
   // random initialization
-  for (int t = 0; t < history; t++) {
-    mju_copy(configuration.data() + t * model->nq, qpos0, model->nq);
+  for (int t = 0; t < T; t++) {
+    mju_copy(configuration.data() + t * nq, qpos0, nq);
 
-    for (int i = 0; i < model->nq; i++) {
+    for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // normalize quaternion
-    mju_normalize4(configuration.data() + model->nq * t + 3);
+    mju_normalize4(configuration.data() + nq * t + 3);
 
     for (int i = 0; i < model->nsensordata; i++) {
       absl::BitGen gen_;
@@ -506,36 +486,35 @@ TEST(MeasurementCost, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = history;
-  estimator.weight_measurement_ = 1.0e-4;
+  estimator.configuration_length_ = T;
+  estimator.weight_sensor_ = 1.0e-4;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,
-                           &weight = estimator.weight_measurement_,
-                           &configuration_length = history, &model,
-                           &data](const double* update) {
+                           &weight = estimator.weight_sensor_,
+                           &configuration_length = T, &model, &data, nq,
+                           nv](const double* update) {
     // ----- integrate quaternion ----- //
-    std::vector<double> qint(model->nq * configuration_length);
-    mju_copy(qint.data(), configuration.data(),
-             model->nq * configuration_length);
+    std::vector<double> qint(nq * configuration_length);
+    mju_copy(qint.data(), configuration.data(), nq * configuration_length);
 
     // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
-      double* q = qint.data() + t * model->nq;
-      const double* dq = update + t * model->nv;
+      double* q = qint.data() + t * nq;
+      const double* dq = update + t * nv;
       mj_integratePos(model, q, dq, 1.0);
     }
 
     // velocity
-    std::vector<double> v1(model->nv);
-    std::vector<double> v2(model->nv);
+    std::vector<double> v1(nv);
+    std::vector<double> v2(nv);
 
     // acceleration
-    std::vector<double> a1(model->nv);
+    std::vector<double> a1(nv);
 
     // residual
     std::vector<double> residual(dim_res);
@@ -544,9 +523,9 @@ TEST(MeasurementCost, Box) {
     for (int t = 0; t < configuration_length - 2; t++) {
       // unpack
       double* rt = residual.data() + t * model->nsensordata;
-      double* q0 = qint.data() + t * model->nq;
-      double* q1 = qint.data() + (t + 1) * model->nq;
-      double* q2 = qint.data() + (t + 2) * model->nq;
+      double* q0 = qint.data() + t * nq;
+      double* q1 = qint.data() + (t + 1) * nq;
+      double* q2 = qint.data() + (t + 2) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -554,13 +533,13 @@ TEST(MeasurementCost, Box) {
       mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
 
       // acceleration
-      mju_sub(a1.data(), v2.data(), v1.data(), model->nv);
-      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+      mju_sub(a1.data(), v2.data(), v1.data(), nv);
+      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
 
       // set state
-      mju_copy(data->qpos, q1, model->nq);
-      mju_copy(data->qvel, v1.data(), model->nv);
-      mju_copy(data->qacc, a1.data(), model->nv);
+      mju_copy(data->qpos, q1, nq);
+      mju_copy(data->qvel, v1.data(), nv);
+      mju_copy(data->qacc, a1.data(), nv);
 
       // inverse dynamics
       mj_inverse(model, data);
@@ -572,7 +551,6 @@ TEST(MeasurementCost, Box) {
     // weighted cost
     return weight * 0.5 * mju_dot(residual.data(), residual.data(), dim_res);
   };
-
 
   // ----- lambda ----- //
 
@@ -586,28 +564,17 @@ TEST(MeasurementCost, Box) {
   fdg.Compute(cost_measurement, update.data(), dim_vel);
 
   // ----- estimator ----- //
-  // finite-difference velocities
-  ConfigurationToVelocity(estimator.velocity_.data(),
-                          estimator.configuration_.data(),
-                          estimator.configuration_length_, estimator.model_);
-
-  // finite-difference accelerations
-  VelocityToAcceleration(estimator.acceleration_.data(),
-                         estimator.velocity_.data(),
-                         estimator.configuration_length_ - 1, estimator.model_);
-
-  // compute intermediate terms
-  estimator.ComputeMeasurements();
-  estimator.ResidualMeasurement();
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ComputeSensor();
+  estimator.ResidualSensor();
   estimator.ModelDerivatives();
   estimator.VelocityJacobianBlocks();
   estimator.AccelerationJacobianBlocks();
-  estimator.JacobianMeasurement();
+  estimator.JacobianSensor();
 
   // cost
   double cost_estimator =
-      estimator.CostMeasurement(estimator.cost_gradient_measurement_.data(),
-                                NULL);
+      estimator.CostSensor(estimator.cost_gradient_sensor_.data(), NULL);
 
   // ----- error ----- //
 
@@ -617,7 +584,7 @@ TEST(MeasurementCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(dim_vel);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_measurement_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
           fdg.gradient_.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-2);
 

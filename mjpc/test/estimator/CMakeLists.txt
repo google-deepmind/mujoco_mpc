@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test(fd_vel_acc_test)
-target_link_libraries(fd_vel_acc_test load gmock)
+test(batch_force_test)
+target_link_libraries(batch_force_test load gmock)
 
-test(inverse_dynamics_test)
-target_link_libraries(inverse_dynamics_test load gmock)
+test(batch_prior_test)
+target_link_libraries(batch_prior_test load gmock)
 
-test(measurement_test)
-target_link_libraries(measurement_test load gmock)
+test(batch_sensor_test)
+target_link_libraries(batch_sensor_test load gmock)
 
-test(prior_test)
-target_link_libraries(prior_test load gmock)
+test(batch_utilities_test)
+target_link_libraries(batch_utilities_test load gmock)

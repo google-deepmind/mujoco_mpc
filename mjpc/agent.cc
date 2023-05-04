@@ -578,7 +578,7 @@ void Agent::PlotInitialize() {
 
   // ----- colors ----- //
 
-  // history costs
+  // T costs
   plots_.cost.linergb[0][0] = 1.0f;
   plots_.cost.linergb[0][1] = 1.0f;
   plots_.cost.linergb[0][2] = 1.0f;
@@ -600,7 +600,7 @@ void Agent::PlotInitialize() {
   int num_term = ActiveTask()->num_term;
   for (int i = 0; i < num_term; i++) {
     int nclr = kNCostColors;
-    // history
+    // T
     plots_.cost.linergb[4 + i][0] = CostColors[i % nclr][0];
     plots_.cost.linergb[4 + i][1] = CostColors[i % nclr][1];
     plots_.cost.linergb[4 + i][2] = CostColors[i % nclr][2];
@@ -611,7 +611,7 @@ void Agent::PlotInitialize() {
     plots_.cost.linergb[4 + num_term + i][2] = 0.9 * CostColors[i % nclr][2];
   }
 
-  // history of control
+  // T of control
   int dim_action = mju_min(model_->nu, kMaxActionPlots);
 
   for (int i = 0; i < dim_action; i++) {
@@ -637,7 +637,7 @@ void Agent::PlotInitialize() {
   plots_.action.linergb[2 * dim_action + 1][1] = 0.647f;
   plots_.action.linergb[2 * dim_action + 1][2] = 0.0f;
 
-  // history of agent compute time
+  // T of agent compute time
   plots_.timer.linergb[0][0] = 1.0f;
   plots_.timer.linergb[0][1] = 1.0f;
   plots_.timer.linergb[0][2] = 1.0f;
@@ -790,7 +790,7 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // shift data
   if (shift) {
-    // agent history
+    // agent T
     for (int j = 0; j < dim_action; j++) {
       PlotUpdateData(&plots_.action, action_bounds, data->time, data->ctrl[j],
                      1000, j, 1, 1, time_lower_bound);

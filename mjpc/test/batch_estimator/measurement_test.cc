@@ -323,7 +323,7 @@ TEST(MeasurementCost, Particle) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   int dim_mea = model->nsensordata * history;
@@ -336,7 +336,7 @@ TEST(MeasurementCost, Particle) {
   for (int t = 0; t < history; t++) {
     for (int i = 0; i < model->nq; i++) {
       absl::BitGen gen_;
-      configuration[model->nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      configuration[model->nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
     for (int i = 0; i < model->nsensordata; i++) {
@@ -350,7 +350,7 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = history;
-  estimator.weight_inverse_dynamics_ = 2.44;
+  estimator.weight_inverse_dynamics_ = 0.025;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -461,6 +461,166 @@ TEST(MeasurementCost, Particle) {
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
+TEST(MeasurementCost, Box) {
+  // load model
+  mjModel* model = LoadTestModel("box3D.xml");
+  model->opt.timestep = 0.05;
+  mjData* data = mj_makeData(model);
+
+  // configuration
+  double qpos0[7] = {0.1, -0.2, 0.5, 0.0, 1.0, 0.0, 0.0};
+
+  // ----- configurations ----- //
+  int history = 5;
+  int dim_pos = model->nq * history;
+  int dim_vel = model->nv * history;
+  int dim_mea = model->nsensordata * history;
+  int dim_res = model->nsensordata * (history - 2);
+
+  std::vector<double> configuration(dim_pos);
+  std::vector<double> measurement(dim_mea);
+
+  // random initialization
+  for (int t = 0; t < history; t++) {
+    mju_copy(configuration.data() + t * model->nq, qpos0, model->nq);
+
+    for (int i = 0; i < model->nq; i++) {
+      absl::BitGen gen_;
+      configuration[model->nq * t + i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+    // normalize quaternion
+    mju_normalize4(configuration.data() + model->nq * t + 3);
+
+    for (int i = 0; i < model->nsensordata; i++) {
+      absl::BitGen gen_;
+      measurement[model->nsensordata * t + i] =
+          absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // ----- estimator ----- //
+  Estimator estimator;
+  estimator.Initialize(model);
+  estimator.configuration_length_ = history;
+  estimator.weight_measurement_ = 1.0e-4;
+
+  // copy configuration, measurement
+  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.measurement_sensor_.data(), measurement.data(), dim_mea);
+
+  // ----- cost ----- //
+  auto cost_measurement = [&configuration, &measurement, &dim_res,
+                           &weight = estimator.weight_measurement_,
+                           &configuration_length = history, &model,
+                           &data](const double* update) {
+    // ----- integrate quaternion ----- //
+    std::vector<double> qint(model->nq * configuration_length);
+    mju_copy(qint.data(), configuration.data(),
+             model->nq * configuration_length);
+
+    // loop over configurations
+    for (int t = 0; t < configuration_length; t++) {
+      double* q = qint.data() + t * model->nq;
+      const double* dq = update + t * model->nv;
+      mj_integratePos(model, q, dq, 1.0);
+    }
+
+    // velocity
+    std::vector<double> v1(model->nv);
+    std::vector<double> v2(model->nv);
+
+    // acceleration
+    std::vector<double> a1(model->nv);
+
+    // residual
+    std::vector<double> residual(dim_res);
+
+    // loop over time
+    for (int t = 0; t < configuration_length - 2; t++) {
+      // unpack
+      double* rt = residual.data() + t * model->nsensordata;
+      double* q0 = qint.data() + t * model->nq;
+      double* q1 = qint.data() + (t + 1) * model->nq;
+      double* q2 = qint.data() + (t + 2) * model->nq;
+      double* y1 = measurement.data() + t * model->nsensordata;
+
+      // velocity
+      mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
+      mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
+
+      // acceleration
+      mju_sub(a1.data(), v2.data(), v1.data(), model->nv);
+      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, model->nv);
+
+      // set state
+      mju_copy(data->qpos, q1, model->nq);
+      mju_copy(data->qvel, v1.data(), model->nv);
+      mju_copy(data->qacc, a1.data(), model->nv);
+
+      // inverse dynamics
+      mj_inverse(model, data);
+
+      // measurement error
+      mju_sub(rt, data->sensordata, y1, model->nsensordata);
+    }
+
+    // weighted cost
+    return weight * 0.5 * mju_dot(residual.data(), residual.data(), dim_res);
+  };
+
+
+  // ----- lambda ----- //
+
+  // cost
+  std::vector<double> update(dim_vel);
+  mju_zero(update.data(), dim_vel);
+  double cost_lambda = cost_measurement(update.data());
+
+  // gradient
+  FiniteDifferenceGradient fdg(dim_vel);
+  fdg.Compute(cost_measurement, update.data(), dim_vel);
+
+  // ----- estimator ----- //
+  // finite-difference velocities
+  ConfigurationToVelocity(estimator.velocity_.data(),
+                          estimator.configuration_.data(),
+                          estimator.configuration_length_, estimator.model_);
+
+  // finite-difference accelerations
+  VelocityToAcceleration(estimator.acceleration_.data(),
+                         estimator.velocity_.data(),
+                         estimator.configuration_length_ - 1, estimator.model_);
+
+  // compute intermediate terms
+  estimator.ComputeMeasurements();
+  estimator.ResidualMeasurement();
+  estimator.ModelDerivatives();
+  estimator.VelocityJacobianBlocks();
+  estimator.AccelerationJacobianBlocks();
+  estimator.JacobianMeasurement();
+
+  // cost
+  double cost_estimator =
+      estimator.CostMeasurement(estimator.cost_gradient_measurement_.data(),
+                                NULL);
+
+  // ----- error ----- //
+
+  // cost
+  double cost_error = cost_estimator - cost_lambda;
+  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
+
+  // gradient
+  std::vector<double> gradient_error(dim_vel);
+  mju_sub(gradient_error.data(), estimator.cost_gradient_measurement_.data(),
+          fdg.gradient_.data(), dim_vel);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-2);
 
   // delete data + model
   mj_deleteData(data);

@@ -481,14 +481,14 @@ void UpdateInfoText(mj::Simulate* sim,
 
   // prepare info text
   mju::strcpy_arr(title, "Objective\nDoFs\nControls\nTime\nMemory");
-  mju::sprintf_arr(content,
-                   "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
-                   sim->agent->ActivePlanner().BestTrajectory()->total_return,
-                   m->nv,
-                   m->nu,
-                   d->time,
-                   d->maxuse_arena/(double)(d->nstack * sizeof(mjtNum)),
-                   mju_writeNumBytes(d->nstack * sizeof(mjtNum)));
+  const mjpc::Trajectory* best_trajectory =
+      sim->agent->ActivePlanner().BestTrajectory();
+  if (best_trajectory) {
+    mju::sprintf_arr(content, "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
+                     best_trajectory->total_return, m->nv, m->nu, d->time,
+                     d->maxuse_arena / (double)(d->nstack * sizeof(mjtNum)),
+                     mju_writeNumBytes(d->nstack * sizeof(mjtNum)));
+  }
 
   // add Energy if enabled
   {

@@ -55,7 +55,8 @@ class Planner {
   virtual void ActionFromPolicy(double* action, const double* state,
                                 double time, bool use_previous = false) = 0;
 
-  // return trajectory with best total return
+  // return trajectory with best total return, or nullptr if no planning
+  // iteration has completed
   virtual const Trajectory* BestTrajectory() = 0;
 
   // visualize planner-specific traces

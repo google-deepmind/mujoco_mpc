@@ -67,6 +67,7 @@ void GradientPlanner::Allocate() {
   userdata.resize(model->nuserdata);
 
   // candidate trajectories
+  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(dim_state, dim_action, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
@@ -422,7 +423,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
 
 // return trajectory with best total return
 const Trajectory* GradientPlanner::BestTrajectory() {
-  return &trajectory[winner];
+  return winner >= 0 ? &trajectory[winner] : nullptr;
 }
 
 // visualize candidate traces in GUI

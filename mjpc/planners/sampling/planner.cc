@@ -84,6 +84,7 @@ void SamplingPlanner::Allocate() {
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
 
   // trajectory and parameters
+  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
@@ -335,7 +336,7 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
 
 // return trajectory with best total return
 const Trajectory* SamplingPlanner::BestTrajectory() {
-  return &trajectory[winner];
+  return winner >= 0 ? &trajectory[winner] : nullptr;
 }
 
 // visualize planner-specific traces

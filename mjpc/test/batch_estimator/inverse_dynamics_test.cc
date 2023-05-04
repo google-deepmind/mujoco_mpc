@@ -29,7 +29,7 @@ TEST(InverseDynamicsResidual, Particle) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   int dim_id = model->nv * history;
@@ -166,7 +166,7 @@ TEST(InverseDynamicsResidual, Box) {
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   int dim_id = model->nv * history;

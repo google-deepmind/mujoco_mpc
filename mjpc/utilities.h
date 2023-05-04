@@ -265,7 +265,7 @@ class FiniteDifferenceGradient {
   // members
   std::vector<double> gradient_;
   std::vector<double> workspace_;
-  double epsilon_ = 1.0e-6;
+  double epsilon_ = 1.0e-5;
 };
 
 // finite-difference Jacobian
@@ -287,7 +287,7 @@ class FiniteDifferenceJacobian {
   std::vector<double> output_;
   std::vector<double> output_nominal_;
   std::vector<double> workspace_;
-  double epsilon_ = 1.0e-6;
+  double epsilon_ = 1.0e-5;
 };
 
 // finite-difference Hessian
@@ -308,7 +308,7 @@ class FiniteDifferenceHessian {
   std::vector<double> workspace1_;
   std::vector<double> workspace2_;
   std::vector<double> workspace3_;
-  double epsilon_ = 1.0e-6;
+  double epsilon_ = 1.0e-5;
 };
 
 // set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)

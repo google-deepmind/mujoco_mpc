@@ -29,7 +29,7 @@ TEST(PriorResidual, Particle) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   std::vector<double> configuration(dim_pos);
@@ -119,7 +119,7 @@ TEST(PriorResidual, Box) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   std::vector<double> configuration(dim_pos);
@@ -215,12 +215,13 @@ TEST(PriorResidual, Box) {
 
 TEST(PriorCost, Particle) {
   // load model
-  // note: needs to be a linear system to satisfy Gauss-Newton approximation
+  // note: needs to be a linear system to satisfy Gauss-Newton Hessian
+  // approximation
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   std::vector<double> configuration(dim_pos);
@@ -246,11 +247,13 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- cost ----- //
-  auto cost_prior = [&prior, &configuration_length = history,
-                     &model,
-                     &weight = estimator.weight_prior_](const double* configuration) {
-    // residual
+  auto cost_prior = [&prior, &configuration_length = history, &model,
+                     &weight =
+                         estimator.weight_prior_](const double* configuration) {
+    // dimension
     int dim_res = model->nv * configuration_length;
+
+    // residual
     std::vector<double> residual(dim_res);
 
     // loop over time
@@ -281,7 +284,7 @@ TEST(PriorCost, Particle) {
   fdh.epsilon_ = 1.0e-5;
   fdh.Compute(cost_prior, configuration.data(), dim_vel);
 
-  // evaluate (estimator)
+  // ----- estimator ----- //
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();
@@ -320,7 +323,7 @@ TEST(PriorCost, Box) {
   mjData* data = mj_makeData(model);
 
   // ----- configurations ----- //
-  int history = 3;
+  int history = 5;
   int dim_pos = model->nq * history;
   int dim_vel = model->nv * history;
   std::vector<double> configuration(dim_pos);
@@ -389,13 +392,12 @@ TEST(PriorCost, Box) {
   FiniteDifferenceGradient fdg(dim_vel);
   fdg.Compute(cost_prior, update.data(), dim_vel);
 
-  // evaluate (estimator)
+  // ----- estimator ----- //
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();
   double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                          NULL);
+      estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
 
   // ----- error ----- //
 

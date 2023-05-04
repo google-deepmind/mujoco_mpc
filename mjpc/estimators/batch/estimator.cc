@@ -149,9 +149,9 @@ void Estimator::Initialize(mjModel* model) {
   // cost norms
   norm_prior_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_prior");
   norm_measurement_ =
-      (NormType)GetNumberOrDefault(0, model, "batch_norm_prior");
+      (NormType)GetNumberOrDefault(0, model, "batch_norm_measurement");
   norm_inverse_dynamics_ =
-      (NormType)GetNumberOrDefault(1.0, model, "batch_norm_prior");
+      (NormType)GetNumberOrDefault(0, model, "batch_norm_inverse_dynamics");
 
   // cost norm parameters
   norm_parameters_prior_.resize(3);
@@ -202,7 +202,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
 
     // compute total gradient wrt update: [d (residual) / d (update)]^T * d
     // (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_prior_.data(), jacobian_prior_.data(),
+    mju_mulMatTVec(gradient, jacobian_prior_.data(),
                    norm_gradient_prior_.data(), dim, dim);
   }
 
@@ -222,8 +222,8 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
                   jacobian_prior_.data(), dim, dim, dim);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(cost_hessian_prior_.data(), jacobian_prior_.data(),
-                   cost_scratch_prior_.data(), dim, dim, dim);
+    mju_mulMatTMat(hessian, jacobian_prior_.data(), cost_scratch_prior_.data(),
+                   dim, dim, dim);
   }
 
   // return weighted cost
@@ -302,8 +302,7 @@ double Estimator::CostMeasurement(double* gradient, double* hessian) {
 
     // compute total gradient wrt update: [d (residual) / d (update)]^T * d
     // (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_measurement_.data(),
-                   jacobian_measurement_.data(),
+    mju_mulMatTVec(gradient, jacobian_measurement_.data(),
                    norm_gradient_measurement_.data(), dim_residual, dim_update);
   }
 
@@ -324,9 +323,9 @@ double Estimator::CostMeasurement(double* gradient, double* hessian) {
         jacobian_measurement_.data(), dim_residual, dim_residual, dim_update);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(
-        cost_hessian_measurement_.data(), jacobian_measurement_.data(),
-        cost_scratch_measurement_.data(), dim_residual, dim_update, dim_update);
+    mju_mulMatTMat(hessian, jacobian_measurement_.data(),
+                   cost_scratch_measurement_.data(), dim_residual, dim_update,
+                   dim_update);
   }
 
   return weight_measurement_ * cost;  // TODO(taylor): weight -> matrix
@@ -486,8 +485,7 @@ double Estimator::CostInverseDynamics(double* gradient, double* hessian) {
 
     // compute total gradient wrt update: [d (residual) / d (update)]^T * d
     // (norm) / d (residual)
-    mju_mulMatTVec(cost_gradient_inverse_dynamics_.data(),
-                   jacobian_inverse_dynamics_.data(),
+    mju_mulMatTVec(gradient, jacobian_inverse_dynamics_.data(),
                    norm_gradient_inverse_dynamics_.data(), dim_residual,
                    dim_update);
   }
@@ -511,8 +509,7 @@ double Estimator::CostInverseDynamics(double* gradient, double* hessian) {
                   dim_update);
 
     // step 2: hessian = [d (residual) / d (update)]^T * scratch
-    mju_mulMatTMat(cost_hessian_inverse_dynamics_.data(),
-                   jacobian_inverse_dynamics_.data(),
+    mju_mulMatTMat(hessian, jacobian_inverse_dynamics_.data(),
                    cost_scratch_inverse_dynamics_.data(), dim_residual,
                    dim_update, dim_update);
   }
@@ -572,8 +569,8 @@ void Estimator::JacobianInverseDynamics() {
                    model_->nv, model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_previous);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_previous);
 
     // dadf' * dadq0
     double* dadq0 = jacobian_block_acceleration_previous_configuration_.data() +
@@ -582,17 +579,17 @@ void Estimator::JacobianInverseDynamics() {
                    model_->nv, model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_previous);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_previous);
 
     // ----- configuration current ----- //
     // dqdf'
-    mju_transpose(jacobian_block_inverse_dynamics_scratch_.data(), dqdf, model_->nv,
-                  model_->nv);
+    mju_transpose(jacobian_block_inverse_dynamics_scratch_.data(), dqdf,
+                  model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_current);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_current);
 
     // dvdf' * dvdq1
     double* dvdq1 = jacobian_block_velocity_current_configuration_.data() +
@@ -601,8 +598,8 @@ void Estimator::JacobianInverseDynamics() {
                    model_->nv, model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_current);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_current);
 
     // dadf' * dadq1
     double* dadq1 = jacobian_block_acceleration_current_configuration_.data() +
@@ -611,8 +608,8 @@ void Estimator::JacobianInverseDynamics() {
                    model_->nv, model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_current);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_current);
 
     // ----- configuration next ----- //
 
@@ -623,8 +620,8 @@ void Estimator::JacobianInverseDynamics() {
                    model_->nv, model_->nv, model_->nv);
     AddMatrixInMatrix(jacobian_inverse_dynamics_.data(),
                       jacobian_block_inverse_dynamics_scratch_.data(), 1.0,
-                      dim_residual, dim_update, model_->nv, model_->nv,
-                      row, col_next);
+                      dim_residual, dim_update, model_->nv, model_->nv, row,
+                      col_next);
   }
 }
 
@@ -735,7 +732,8 @@ void Estimator::VelocityJacobianBlocks() {
                     t * model_->nv * model_->nv;
 
     // compute Jacobians
-    DifferentiateDifferentiatePos(dvdq0, dvdq1, model_, model_->opt.timestep, q0, q1);
+    DifferentiateDifferentiatePos(dvdq0, dvdq1, model_, model_->opt.timestep,
+                                  q0, q1);
   }
 }
 

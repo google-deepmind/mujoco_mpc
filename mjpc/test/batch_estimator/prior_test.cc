@@ -281,7 +281,6 @@ TEST(PriorCost, Particle) {
 
   // Hessian
   FiniteDifferenceHessian fdh(dim_vel);
-  fdh.epsilon_ = 1.0e-5;
   fdh.Compute(cost_prior, configuration.data(), dim_vel);
 
   // ----- estimator ----- //

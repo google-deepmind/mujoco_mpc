@@ -116,7 +116,7 @@ TEST(MeasurementResidual, Particle) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeSensor();
+  estimator.SensorPrediction();
   estimator.ResidualSensor();
 
   // error
@@ -261,7 +261,7 @@ TEST(MeasurementResidual, Box) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeSensor();
+  estimator.SensorPrediction();
   estimator.ResidualSensor();
 
   // // error
@@ -406,7 +406,7 @@ TEST(MeasurementCost, Particle) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeSensor();
+  estimator.SensorPrediction();
   estimator.ResidualSensor();
   estimator.ModelDerivatives();
   estimator.VelocityDerivatives();
@@ -565,7 +565,7 @@ TEST(MeasurementCost, Box) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeSensor();
+  estimator.SensorPrediction();
   estimator.ResidualSensor();
   estimator.ModelDerivatives();
   estimator.VelocityDerivatives();

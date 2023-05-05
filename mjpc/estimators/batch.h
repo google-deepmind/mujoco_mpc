@@ -49,7 +49,7 @@ class Estimator {
   void Reset();
 
   // prior cost
-  double CostPrior(double* gradient, double* hessian);
+  void CostPrior(double& cost, double* gradient, double* hessian);
 
   // prior residual
   void ResidualPrior();
@@ -61,7 +61,7 @@ class Estimator {
   void JacobianPriorBlocks();
 
   // sensor cost
-  double CostSensor(double* gradient, double* hessian);
+  void CostSensor(double& cost, double* gradient, double* hessian);
 
   // sensor residual
   void ResidualSensor();
@@ -70,10 +70,10 @@ class Estimator {
   void JacobianSensor();
 
   // compute sensor predictions
-  void ComputeSensor();
+  void SensorPrediction();
 
   // force cost
-  double CostForce(double* gradient, double* hessian);
+  void CostForce(double& cost, double* gradient, double* hessian);
 
   // force residual
   void ResidualForce();
@@ -82,7 +82,7 @@ class Estimator {
   void JacobianForce();
 
   // compute force predictions
-  void ComputeForce();
+  void ForcePrediction();
 
   // compute model derivatives (via finite difference)
   void ModelDerivatives();
@@ -100,8 +100,14 @@ class Estimator {
   // compute finite-difference acceleration derivatives
   void AccelerationDerivatives();
 
-  // iterations 
-  void Iteration();
+  // compute total cost 
+  double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
+
+  // compute total cost derivatives 
+  void CostDerivatives();
+
+  // optimize trajectory estimate 
+  void Optimize();
 
   // model
   mjModel* model_;
@@ -221,6 +227,8 @@ class Estimator {
 
   // settings 
   int max_line_search_ = 10;
+  int max_smoother_iterations_ = 5;
+  double gradient_tolerance_ = 1.0e-4;
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

@@ -115,7 +115,7 @@ TEST(ForceResidual, Particle) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeForce();
+  estimator.ForcePrediction();
   estimator.ResidualForce();
 
   // error
@@ -266,7 +266,7 @@ TEST(ForceResidual, Box) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeForce();
+  estimator.ForcePrediction();
   estimator.ResidualForce();
 
   // error
@@ -415,7 +415,7 @@ TEST(ForceCost, Particle) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeForce();
+  estimator.ForcePrediction();
   estimator.ResidualForce();
   estimator.ModelDerivatives();
   estimator.VelocityDerivatives();
@@ -577,7 +577,7 @@ TEST(ForceCost, Box) {
 
   // compute intermediate terms
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ComputeForce();
+  estimator.ForcePrediction();
   estimator.ResidualForce();
   estimator.ModelDerivatives();
   estimator.VelocityDerivatives();

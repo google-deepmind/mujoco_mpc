@@ -37,7 +37,7 @@ void Estimator::Initialize(mjModel* model) {
   acceleration_.resize(nv * MAX_HISTORY);
   time_.resize(MAX_HISTORY);
 
-  // prior 
+  // prior
   configuration_prior_.resize(nq * MAX_HISTORY);
 
   // sensor
@@ -126,7 +126,7 @@ void Estimator::Initialize(mjModel* model) {
   cost_scratch_sensor_.resize((dim_sensor_ * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_scratch_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
-  // candidate 
+  // candidate
   configuration_copy_.resize(nq * MAX_HISTORY);
 
   // search direction
@@ -144,7 +144,7 @@ void Estimator::Reset() {
   std::fill(acceleration_.begin(), acceleration_.end(), 0.0);
   std::fill(time_.begin(), time_.end(), 0.0);
 
-  // prior 
+  // prior
   std::fill(configuration_prior_.begin(), configuration_prior_.end(), 0.0);
 
   // sensor
@@ -232,7 +232,7 @@ void Estimator::Reset() {
   std::fill(cost_scratch_sensor_.begin(), cost_scratch_sensor_.end(), 0.0);
   std::fill(cost_scratch_force_.begin(), cost_scratch_force_.end(), 0.0);
 
-  // candidate 
+  // candidate
   std::fill(configuration_copy_.begin(), configuration_copy_.end(), 0.0);
 
   // search direction
@@ -240,15 +240,16 @@ void Estimator::Reset() {
 }
 
 // prior cost
-double Estimator::CostPrior(double* gradient, double* hessian) {
+void Estimator::CostPrior(double& cost, double* gradient, double* hessian) {
   // residual dimension
   int dim = model_->nv * configuration_length_;
 
   // compute cost
-  double cost =
+  cost =
       Norm(gradient ? norm_gradient_prior_.data() : NULL,
            hessian ? norm_hessian_prior_.data() : NULL, residual_prior_.data(),
            norm_parameters_prior_.data(), dim, norm_prior_);
+  cost *= weight_prior_;  // TODO(taylor): weight -> matrix
 
   // compute cost gradient wrt configuration
   if (gradient) {
@@ -267,8 +268,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     mju_scl(norm_hessian_prior_.data(), norm_hessian_prior_.data(),
             weight_prior_, dim * dim);
 
-    // compute total Hessian (Gauss-Newton approximation):
-    // hessian = drdq' * d2ndr2 * drdq
+    // compute Gauss-Newton Hessian: drdq' * d2ndr2 * drdq
 
     // step 1: scratch = d2ndr2 * drdq
     mju_mulMatMat(cost_scratch_prior_.data(), norm_hessian_prior_.data(),
@@ -278,9 +278,6 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     mju_mulMatTMat(hessian, jacobian_prior_.data(), cost_scratch_prior_.data(),
                    dim, dim, dim);
   }
-
-  // return weighted cost
-  return weight_prior_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // prior residual
@@ -337,7 +334,7 @@ void Estimator::JacobianPriorBlocks() {
 }
 
 // sensor cost
-double Estimator::CostSensor(double* gradient, double* hessian) {
+void Estimator::CostSensor(double& cost, double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = dim_sensor_ * (configuration_length_ - 2);
 
@@ -345,10 +342,11 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   int dim_update = model_->nv * configuration_length_;
 
   // compute cost
-  double cost = Norm(gradient ? norm_gradient_sensor_.data() : NULL,
-                     hessian ? norm_hessian_sensor_.data() : NULL,
-                     residual_sensor_.data(), norm_parameters_sensor_.data(),
-                     dim_residual, norm_sensor_);
+  cost = Norm(gradient ? norm_gradient_sensor_.data() : NULL,
+              hessian ? norm_hessian_sensor_.data() : NULL,
+              residual_sensor_.data(), norm_parameters_sensor_.data(),
+              dim_residual, norm_sensor_);
+  cost *= weight_sensor_;  // TODO(taylor): weight -> matrix
 
   // compute cost gradient wrt configuration
   if (gradient) {
@@ -367,8 +365,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
     mju_scl(norm_hessian_sensor_.data(), norm_hessian_sensor_.data(),
             weight_sensor_, dim_residual * dim_residual);
 
-    // compute total Hessian (Gauss-Newton approximation):
-    // hessian = drdq' * d2ndr2 * drdq
+    // compute Gauss-Newton Hessian: drdq' * d2ndr2 * drdq
 
     // step 1: scratch = d2ndr2 * drdq
     mju_mulMatMat(cost_scratch_sensor_.data(), norm_hessian_sensor_.data(),
@@ -380,8 +377,6 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                    cost_scratch_sensor_.data(), dim_residual, dim_update,
                    dim_update);
   }
-
-  return weight_sensor_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // sensor residual
@@ -483,7 +478,7 @@ void Estimator::JacobianSensor() {
 }
 
 // compute sensors
-void Estimator::ComputeSensor() {
+void Estimator::SensorPrediction() {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
@@ -509,7 +504,7 @@ void Estimator::ComputeSensor() {
 }
 
 // force cost
-double Estimator::CostForce(double* gradient, double* hessian) {
+void Estimator::CostForce(double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = model_->nv * (configuration_length_ - 2);
 
@@ -521,6 +516,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
       Norm(gradient ? norm_gradient_force_.data() : NULL,
            hessian ? norm_hessian_force_.data() : NULL, residual_force_.data(),
            norm_parameters_force_.data(), dim_residual, norm_force_);
+  cost *= weight_force_;  // TODO(taylor): weight -> matrix
 
   // compute cost gradient wrt configuration
   if (gradient) {
@@ -551,8 +547,6 @@ double Estimator::CostForce(double* gradient, double* hessian) {
     mju_mulMatTMat(hessian, jacobian_force_.data(), cost_scratch_force_.data(),
                    dim_residual, dim_update, dim_update);
   }
-
-  return weight_force_ * cost;  // TODO(taylor): weight -> matrix
 }
 
 // force residual
@@ -647,7 +641,7 @@ void Estimator::JacobianForce() {
 }
 
 // compute force
-void Estimator::ComputeForce() {
+void Estimator::ForcePrediction() {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
@@ -707,7 +701,7 @@ void Estimator::UpdateConfiguration(double* candidate,
                                     const double* configuration,
                                     const double* search_direction,
                                     double step_size) {
-  // dimension 
+  // dimension
   int nq = model_->nq, nv = model_->nv;
 
   // copy configuration to candidate
@@ -812,20 +806,39 @@ void Estimator::AccelerationDerivatives() {
   }
 }
 
-// iterations
-void Estimator::Iteration() {
+// compute total cost
+double Estimator::Cost(double& cost_prior, double& cost_sensor,
+                       double& cost_force) {
   // ----- trajectories ----- //
 
   // finite-difference velocities, accelerations
   ConfigurationToVelocityAcceleration();
 
   // compute model sensors
-  ComputeSensor();
+  SensorPrediction();
 
   // compute model force
-  ComputeForce();
+  ForcePrediction();
 
-  // ----- derivatives ----- //
+  // ----- residuals ----- //
+  ResidualPrior();
+  ResidualSensor();
+  ResidualForce();
+
+  // ----- costs ----- //
+  CostPrior(cost_prior, NULL, NULL);
+  CostSensor(cost_sensor, NULL, NULL);
+  CostForce(cost_force, NULL, NULL);
+
+  // total cost
+  return cost_prior + cost_sensor + cost_force;
+}
+
+// compute total cost derivatives
+// note: ResidualPrior, ResidualSensor, ResidualForce must be called
+void Estimator::CostDerivatives() {
+  // dimension
+  int dim_vel = model_->nv * configuration_length_;
 
   // compute model derivatives
   ModelDerivatives();
@@ -836,103 +849,114 @@ void Estimator::Iteration() {
   // compute acceleration derivatives
   AccelerationDerivatives();
 
-  // ----- residuals ----- //
-  ResidualPrior();
-  ResidualSensor();
-  ResidualForce();
-
   // ----- residual Jacobians ----- //
   JacobianPrior();
   JacobianSensor();
   JacobianForce();
 
-  // ----- costs ----- //
-  double cost_prior =
-      CostPrior(cost_gradient_prior_.data(), cost_hessian_prior_.data());
-  double cost_sensor =
-      CostSensor(cost_gradient_sensor_.data(), cost_hessian_sensor_.data());
-  double cost_force =
-      CostForce(cost_gradient_force_.data(), cost_hessian_force_.data());
-
-  // ----- total cost ----- //
-
-  // dimension
-  int dim = model_->nv * configuration_length_;
-
-  // cost
-  double cost = cost_prior + cost_sensor + cost_force;
+  // ----- cost derivatives ----- //
+  CostPrior(NULL, cost_gradient_prior_.data(), cost_hessian_prior_.data());
+  CostSensor(NULL, cost_gradient_sensor_.data(), cost_hessian_sensor_.data());
+  CostForce(NULL, cost_gradient_force_.data(), cost_hessian_force_.data());
 
   // gradient
   double* gradient = cost_gradient_.data();
-  mju_copy(gradient, cost_gradient_prior_.data(), dim);
-  mju_addTo(gradient, cost_gradient_sensor_.data(), dim);
-  mju_addTo(gradient, cost_gradient_force_.data(), dim);
+  mju_copy(gradient, cost_gradient_prior_.data(), dim_vel);
+  mju_addTo(gradient, cost_gradient_sensor_.data(), dim_vel);
+  mju_addTo(gradient, cost_gradient_force_.data(), dim_vel);
 
   // Hessian
   double* hessian = cost_hessian_.data();
-  mju_copy(hessian, cost_hessian_prior_.data(), dim * dim);
-  mju_addTo(hessian, cost_hessian_sensor_.data(), dim * dim);
-  mju_addTo(hessian, cost_hessian_force_.data(), dim * dim);
+  mju_copy(hessian, cost_hessian_prior_.data(), dim_vel * dim_vel);
+  mju_addTo(hessian, cost_hessian_sensor_.data(), dim_vel * dim_vel);
+  mju_addTo(hessian, cost_hessian_force_.data(), dim_vel * dim_vel);
+}
 
-  // ----- search direction ----- //
+// optimize trajectory estimate
+void Estimator::Optimize() {
+  // compute cost
+  double cost_prior = MAX_ESTIMATOR_COST;
+  double cost_sensor = MAX_ESTIMATOR_COST;
+  double cost_force = MAX_ESTIMATOR_COST;
+  double cost = Cost(cost_prior, cost_sensor, cost_force);
 
-  // unpack
-  double* dq = search_direction_.data();
+  // dimension
+  int dim_con = model_->nq * configuration_length_;
+  int dim_vel = model_->nv * configuration_length_;
 
-  if (solver == kBanded) {
-    
-  } else {    // dense solver
+  // smoother iterations
+  for (int i = 0; i < max_smoother_iterations_; i++) {
+    // cost derivatives
+    CostDerivatives();
 
-    // factorize
-    mju_cholFactor(hessian, dim, 0.0);
+    // gradient tolerance check
+    double gradient_tolerance = mju_norm(cost_gradient_.data(), dim_vel) / dim_vel;
+    if (gradient_tolerance < gradient_tolerance_) return;
 
-    // compute search direction
-    mju_cholSolve(dq, hessian, gradient, dim);
-  }
+    // ----- search direction ----- //
 
-  // ----- line search ----- //
-  
-  // copy configuration 
-  mju_copy(configuration_copy_.data(), configuration_.data(), model_->nq * configuration_length_);
-  
-  // initialize  
-  double cost_candidate = cost;
-  int iteration = 0;
-  double step_size = 2.0;
+    // unpack
+    double* dq = search_direction_.data();
 
-  // backtracking until cost decrease
-  while (cost_candidate >= cost) {
-    // check for max iterations
-    if (iteration > max_line_search_) {
-      mju_error("Batch Estimator: Line search failure\n");
+    if (solver == kBanded) {
+      // dense to banded
+
+      // factorize
+
+      // compute search direction
+
+    } else {  // dense solver
+      // factorize
+      mju_cholFactor(hessian, dim_vel, 0.0);
+
+      // compute search direction
+      mju_cholSolve(dq, hessian, gradient, dim_vel);
     }
 
-    // decrease cost 
-    step_size *= 0.5;
+    // ----- line search ----- //
 
-    // candidate
-    UpdateConfiguration(configuration_.data(), configuration_copy_.data(), dq,
-                        step_size);
+    // copy configuration
+    mju_copy(configuration_copy_.data(), configuration_.data(), dim_con);
 
-    // finite-difference velocities, accelerations
-    ConfigurationToVelocityAcceleration();
+    // initialize
+    double cost_candidate = cost;
+    int iteration = 0;
+    double step_size = 2.0;
 
-    // predictions
-    ComputeSensor();
-    ComputeForce();
+    // backtracking until cost decrease
+    while (cost_candidate >= cost) {
+      // check for max iterations
+      if (iteration > max_line_search_) {
+        // reset configuration
+        mju_copy(configuration_.data(), configuration_copy_.data(), dim_con);
 
-    // residuals
-    ResidualPrior();
-    ResidualSensor();
-    ResidualForce();
+        // return;
+        mju_error("Batch Estimator: Line search failure\n");
+      }
 
-    // cost
-    cost_candidate =
-        CostPrior(NULL, NULL) + CostSensor(NULL, NULL) + CostForce(NULL, NULL);
+      // decrease cost
+      step_size *= 0.5;  // TODO(taylor): log schedule
 
-    // update iteration 
-    iteration++;
-  } 
+      // candidate
+      UpdateConfiguration(configuration_.data(), configuration_copy_.data(), dq,
+                          step_size);
+
+      // cost
+      cost_candidate = Cost(cost_prior, cost_sensor, cost_force);
+
+      // update iteration
+      iteration++;
+    }
+
+    // update cost
+    cost = cost_candidate;
+  }
+
+  // update cost 
+  cost_ = cost;
+  cost_prior_ = cost_prior;
+  cost_sensor_ = cost_sensor;
+  cost_force_ = cost_force;
 }
 
 }  // namespace mjpc

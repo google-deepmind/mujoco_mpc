@@ -136,8 +136,8 @@ TEST(MeasurementResidual, Particle) {
 
   // estimator
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
 
   // error
@@ -281,8 +281,8 @@ TEST(MeasurementResidual, Box) {
 
   // estimator
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
 
   // error
@@ -409,8 +409,8 @@ TEST(MeasurementCost, Particle) {
   estimator.ComputeSensor();
   estimator.ResidualSensor();
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
 
   // cost
@@ -568,8 +568,8 @@ TEST(MeasurementCost, Box) {
   estimator.ComputeSensor();
   estimator.ResidualSensor();
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
 
   // cost

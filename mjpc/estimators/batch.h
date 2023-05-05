@@ -26,6 +26,12 @@ namespace mjpc {
 
 const int MAX_HISTORY = 32;  // maximum configuration trajectory length
 
+// linear system solver 
+enum BatchEstimatorSolver: int {
+  kCholeskyDense = 0,
+  kBanded, // TODO(taylor)
+};
+
 // batch estimator
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
 class Estimator {
@@ -38,6 +44,9 @@ class Estimator {
 
   // initialize
   void Initialize(mjModel* model);
+
+  // reset memory
+  void Reset();
 
   // prior cost
   double CostPrior(double* gradient, double* hessian);
@@ -79,19 +88,20 @@ class Estimator {
   void ModelDerivatives();
 
   // update configuration trajectory
-  void UpdateConfiguration();
-
-  // update configuration, velocity, acceleration, sensors, force
-  void UpdateTrajectory();
+  void UpdateConfiguration(double* candidate, const double* configuration,
+                           const double* search_direction, double step_size);
 
   // convert sequence of configurations to velocities, accelerations
   void ConfigurationToVelocityAcceleration();
 
-  // velocity Jacobian blocks
-  void VelocityJacobianBlocks();
+  // compute finite-difference velocity derivatives
+  void VelocityDerivatives();
 
-  // acceleration Jacobian blocks
-  void AccelerationJacobianBlocks();
+  // compute finite-difference acceleration derivatives
+  void AccelerationDerivatives();
+
+  // iterations 
+  void Iteration();
 
   // model
   mjModel* model_;
@@ -102,10 +112,12 @@ class Estimator {
   // trajectories
   int configuration_length_;                 // T
   std::vector<double> configuration_;        // nq x MAX_HISTORY
-  std::vector<double> configuration_prior_;  // nq x MAX_HISTORY
-  std::vector<double> configuration_copy_;   // nq x MAX_HISTORY
   std::vector<double> velocity_;             // nv x MAX_HISTORY
   std::vector<double> acceleration_;         // na x MAX_HISTORY
+  std::vector<double> time_;                 // 1  x MAX_HISTORY
+
+  // prior 
+  std::vector<double> configuration_prior_;  // nq x MAX_HISTORY
 
   // sensor
   int dim_sensor_;                           // ns
@@ -150,17 +162,23 @@ class Estimator {
   std::vector<double> block_acceleration_current_configuration_;  // (nv * nv) x MAX_HISTORY
   std::vector<double> block_acceleration_next_configuration_;     // (nv * nv) x MAX_HISTORY
 
+  // cost 
+  double cost_prior_;
+  double cost_sensor_;
+  double cost_force_; 
+  double cost_;
+
   // cost gradient
   std::vector<double> cost_gradient_prior_;    // nv * MAX_HISTORY
   std::vector<double> cost_gradient_sensor_;   // nv * MAX_HISTORY
   std::vector<double> cost_gradient_force_;    // nv * MAX_HISTORY
-  std::vector<double> cost_gradient_total_;    // nv * MAX_HISTORY
+  std::vector<double> cost_gradient_;          // nv * MAX_HISTORY
 
   // cost Hessian
   std::vector<double> cost_hessian_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_total_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // cost scratch
   std::vector<double> cost_scratch_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
@@ -192,8 +210,17 @@ class Estimator {
   std::vector<double> norm_hessian_sensor_;    // (ns * MAX_HISTORY) * (ns * MAX_HISTORY)
   std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
-  // update
-  std::vector<double> update_;                 // nv * MAX_HISTORY
+  // candidate
+  std::vector<double> configuration_copy_;     // nq x MAX_HISTORY
+
+  // search direction
+  std::vector<double> search_direction_;       // nv * MAX_HISTORY
+
+  // solver 
+  BatchEstimatorSolver solver = kCholeskyDense;
+
+  // settings 
+  int max_line_search_ = 10;
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

@@ -135,8 +135,8 @@ TEST(ForceResidual, Particle) {
 
   // estimator
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianForce();
 
   // error
@@ -286,8 +286,8 @@ TEST(ForceResidual, Box) {
 
   // estimator
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianForce();
 
   // error
@@ -418,8 +418,8 @@ TEST(ForceCost, Particle) {
   estimator.ComputeForce();
   estimator.ResidualForce();
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianForce();
 
   // cost
@@ -580,8 +580,8 @@ TEST(ForceCost, Box) {
   estimator.ComputeForce();
   estimator.ResidualForce();
   estimator.ModelDerivatives();
-  estimator.VelocityJacobianBlocks();
-  estimator.AccelerationJacobianBlocks();
+  estimator.VelocityDerivatives();
+  estimator.AccelerationDerivatives();
   estimator.JacobianForce();
 
   // cost

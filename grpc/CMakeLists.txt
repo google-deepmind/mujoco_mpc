@@ -96,11 +96,12 @@ add_executable(
 target_link_libraries(
   agent_server
   # agent_service_grpc_proto
-  absl::random_random
-  absl::status
+  absl::check
   absl::flags
   absl::flags_parse
   absl::log
+  absl::random_random
+  absl::status
   absl::strings
   ${_REFLECTION}
   ${_GRPC_GRPCPP}

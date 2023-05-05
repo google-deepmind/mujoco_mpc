@@ -50,7 +50,7 @@ class Estimator {
   void Reset();
 
   // prior cost
-  void CostPrior(double cost[1], double* gradient, double* hessian);
+  double CostPrior(double* gradient, double* hessian);
 
   // prior residual
   void ResidualPrior();
@@ -62,7 +62,7 @@ class Estimator {
   void JacobianPriorBlocks();
 
   // sensor cost
-  void CostSensor(double cost[1], double* gradient, double* hessian);
+  double CostSensor(double* gradient, double* hessian);
 
   // sensor residual
   void ResidualSensor();
@@ -74,7 +74,7 @@ class Estimator {
   void SensorPrediction();
 
   // force cost
-  void CostForce(double cost[1], double* gradient, double* hessian);
+  double CostForce(double* gradient, double* hessian);
 
   // force residual
   void ResidualForce();
@@ -229,7 +229,7 @@ class Estimator {
   // settings 
   int max_line_search_ = 10;
   int max_smoother_iterations_ = 5;
-  double gradient_tolerance_ = 1.0e-4;
+  double gradient_tolerance_ = 1.0e-3;
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

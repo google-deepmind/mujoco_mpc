@@ -414,14 +414,14 @@ TEST(MeasurementCost, Particle) {
   estimator.JacobianSensor();
 
   // cost
-  estimator.CostSensor(&estimator.cost_sensor_,
-                       estimator.cost_gradient_sensor_.data(),
-                       estimator.cost_hessian_sensor_.data());
+  double cost_estimator =
+      estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
+                           estimator.cost_hessian_sensor_.data());
 
   // ----- error ----- //
 
   // cost
-  double cost_error = estimator.cost_sensor_ - cost_lambda;
+  double cost_error = cost_estimator - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient
@@ -573,13 +573,13 @@ TEST(MeasurementCost, Box) {
   estimator.JacobianSensor();
 
   // cost
-  estimator.CostSensor(&estimator.cost_sensor_,
-                       estimator.cost_gradient_sensor_.data(), NULL);
+  double cost_estimator =
+      estimator.CostSensor(estimator.cost_gradient_sensor_.data(), NULL);
 
   // ----- error ----- //
 
   // cost
-  double cost_error = estimator.cost_sensor_ - cost_lambda;
+  double cost_error = cost_estimator - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient

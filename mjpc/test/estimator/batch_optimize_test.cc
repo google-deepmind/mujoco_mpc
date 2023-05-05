@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include <vector>
@@ -36,8 +37,8 @@ TEST(BatchOptimize, Particle2D) {
 
   // controller
   auto controller = [](double* ctrl, double time) {
-    ctrl[0] = mju_sin(10 * time);
-    ctrl[1] = mju_cos(10 * time);
+    ctrl[0] = mju_sin(100 * time);
+    ctrl[1] = mju_cos(100 * time);
   };
 
   // trajectories
@@ -84,102 +85,199 @@ TEST(BatchOptimize, Particle2D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv, nv * T);
-  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns, ns * T);
+  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv,
+           nv * T);
+  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
+           ns * T);
+  estimator.configuration_length_ = T;
 
-  
+  // set weights 
+  estimator.weight_prior_ = 0.1;
+  estimator.weight_sensor_ = 0.25;
+  estimator.weight_force_ = 0.0375;
+
+  // ----- random perturbation ----- //
+
+  // set configuration to nominal
+  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+
+    // configuration
+  printf("configuration (pre - nominal): \n");
+  mju_printMat(qpos.data(), T , nq);
+
+  // randomly perturb
+  for (int t = 0; t < T; t++) {
+    // unpack
+    double* q = estimator.configuration_.data() + t * nq;
+
+    // add noise
+    for (int i = 0; i < nq; i++) {
+      absl::BitGen gen_;
+      q[i] += 0.25 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // configuration
+  printf("configuration (pre - random): \n");
+  mju_printMat(estimator.configuration_.data(), T, nq);
+
+  // cost (pre)
+  double cost_pre_random = estimator.Cost(
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+  printf("cost (pre): %f\n", cost_pre_random);
+
+  // optimize
+  estimator.Optimize();
+
+  // cost (post)
+  printf("cost (post): %f\n", estimator.cost_);
+
+  // configuration
+  printf("configuration (post): \n");
+  mju_printMat(estimator.configuration_.data(), T, nq);
+
+  // error 
+  std::vector<double> configuration_error(nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);
+
+  // test 
+  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-3);
+
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);
 }
 
-// TEST(BatchOptimize, Box3D) {
-//   // load model
-//   mjModel* model = LoadTestModel("box3D.xml");
-//   mjData* data = mj_makeData(model);
+TEST(BatchOptimize, Box3D) {
+  // load model
+  mjModel* model = LoadTestModel("box3D.xml");
+  mjData* data = mj_makeData(model);
 
-//   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+  int nq = model->nq, nv = model->nv, nu = model->nu, ns =
+  model->nsensordata;
 
-//   // ----- simulate ----- //
-//   // trajectories
-//   int T = 5;
-//   std::vector<double> qpos(nq * (T + 1));
-//   std::vector<double> qvel(nv * (T + 1));
-//   std::vector<double> qacc(nv * T);
-//   std::vector<double> ctrl(nu * T);
-//   std::vector<double> qfrc_actuator(nv * T);
-//   std::vector<double> sensordata(ns * (T + 1));
+  // ----- simulate ----- //
+  // trajectories
+  int T = 5;
+  std::vector<double> qpos(nq * (T + 1));
+  std::vector<double> qvel(nv * (T + 1));
+  std::vector<double> qacc(nv * T);
+  std::vector<double> ctrl(nu * T);
+  std::vector<double> qfrc_actuator(nv * T);
+  std::vector<double> sensordata(ns * (T + 1));
 
-//   // reset
-//   mj_resetData(model, data);
+  // reset
+  mj_resetData(model, data);
 
-//   // initialize TODO(taylor): improve initialization
-//   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
-//   double qvel0[6] = {0.4, 0.05, -0.22, 0.01, -0.03, 0.24};
-//   mju_copy(data->qpos, qpos0, nq);
-//   mju_copy(data->qvel, qvel0, nv);
+  // initialize TODO(taylor): improve initialization
+  double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
+  double qvel0[6] = {0.4, 0.05, -0.22, 0.01, -0.03, 0.24};
+  mju_copy(data->qpos, qpos0, nq);
+  mju_copy(data->qvel, qvel0, nv);
 
-//   // rollout
-//   for (int t = 0; t < T; t++) {
-//     // set control
-//     mju_zero(data->ctrl, nu);
+  // rollout
+  for (int t = 0; t < T; t++) {
+    // set control
+    mju_zero(data->ctrl, nu);
 
-//     // forward computes instantaneous qacc
-//     mj_forward(model, data);
+    // forward computes instantaneous qacc
+    mj_forward(model, data);
 
-//     // cache
-//     mju_copy(qpos.data() + t * nq, data->qpos, nq);
-//     mju_copy(qvel.data() + t * nv, data->qvel, nv);
-//     mju_copy(qacc.data() + t * nv, data->qacc, nv);
-//     mju_copy(ctrl.data() + t * nu, data->ctrl, nu);
-//     mju_copy(qfrc_actuator.data() + t * nv, data->qfrc_actuator, nv);
-//     mju_copy(sensordata.data() + t * ns, data->sensordata, ns);
+    // cache
+    mju_copy(qpos.data() + t * nq, data->qpos, nq);
+    mju_copy(qvel.data() + t * nv, data->qvel, nv);
+    mju_copy(qacc.data() + t * nv, data->qacc, nv);
+    mju_copy(ctrl.data() + t * nu, data->ctrl, nu);
+    mju_copy(qfrc_actuator.data() + t * nv, data->qfrc_actuator, nv);
+    mju_copy(sensordata.data() + t * ns, data->sensordata, ns);
 
-//     // step using mj_Euler since mj_forward has been called
-//     // see mj_ step implementation here
-//     // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
-//     mj_Euler(model, data);
-//   }
+    // step using mj_Euler since mj_forward has been called
+    // see mj_ step implementation here
+    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    mj_Euler(model, data);
+  }
 
-//   // final cache
-//   mju_copy(qpos.data() + T * nq, data->qpos, nq);
-//   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-//   mju_copy(sensordata.data() + T * model->nsensor, data->sensordata, ns);
+  // final cache
+  mju_copy(qpos.data() + T * nq, data->qpos, nq);
+  mju_copy(qvel.data() + T * nv, data->qvel, nv);
+  mju_copy(sensordata.data() + T * model->nsensor, data->sensordata, ns);
 
-//   // ----- estimator ----- //
+  // ----- estimator ----- //
 
-//   // initialize
-//   Estimator estimator;
-//   estimator.Initialize(model);
-//   mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
+  // initialize
+  Estimator estimator;
+  estimator.Initialize(model);
+  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv,
+           nv * T);
+  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
+           ns * T);
+  estimator.configuration_length_ = T;
 
-//   // compute velocity, acceleration
-//   estimator.ConfigurationToVelocityAcceleration();
+  // set weights 
+  estimator.weight_prior_ = 1.0;
+  estimator.weight_sensor_ = 0.0;
+  estimator.weight_force_ = 0.0;
 
-//   // velocity error
-//   std::vector<double> velocity_error(nv * T);
-//   mju_sub(velocity_error.data(), estimator.velocity_.data(), qvel.data() + nv,
-//           nv * (T - 1));
+  // ----- random perturbation ----- //
 
-//   // velocity test
-//   EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)) / (nv * (T - 1)),
-//               0.0, 1.0e-3);
+  // set configuration to nominal
+  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
 
-//   // acceleration error
-//   std::vector<double> acceleration_error(nv * T);
-//   mju_sub(acceleration_error.data(), estimator.acceleration_.data(),
-//           qacc.data() + nv, nv * (T - 2));
+    // configuration
+  printf("configuration (pre - nominal): \n");
+  mju_printMat(qpos.data(), T , nq);
 
-//   // velocity test
-//   EXPECT_NEAR(
-//       mju_norm(acceleration_error.data(), nv * (T - 1)) / (nv * (T - 1)), 0.0,
-//       1.0e-3);
+  // randomly perturb
+  // for (int t = 0; t < T; t++) {
+  //   // unpack
+  //   double* q = estimator.configuration_.data() + t * nq;
 
-//   // delete data + model
-//   mj_deleteData(data);
-//   mj_deleteModel(model);
-// }
+  //   // add noise
+  //   for (int i = 0; i < nq; i++) {
+  //     absl::BitGen gen_;
+  //     q[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  //   }
+    
+  //   // normalize quaternion 
+  //   mju_normalize4(q + 3);
+  // }
+
+  // configuration
+  printf("configuration (pre - random): \n");
+  mju_printMat(estimator.configuration_.data(), T, nq);
+
+  // cost (pre)
+  double cost_pre_random = estimator.Cost(
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+  printf("cost (pre): %f\n", cost_pre_random);
+
+  // optimize
+  estimator.Optimize();
+
+  // cost (post)
+  printf("cost (post): %f\n", estimator.cost_);
+
+  // configuration
+  printf("configuration (post): \n");
+  mju_printMat(estimator.configuration_.data(), T, nq);
+
+  // error 
+  std::vector<double> configuration_error(nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);
+
+  // test 
+  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-3);
+
+ 
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
 
 }  // namespace
 }  // namespace mjpc

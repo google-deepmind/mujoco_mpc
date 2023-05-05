@@ -25,6 +25,7 @@
 namespace mjpc {
 
 const int MAX_HISTORY = 32;  // maximum configuration trajectory length
+const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 
 // linear system solver 
 enum BatchEstimatorSolver: int {
@@ -49,7 +50,7 @@ class Estimator {
   void Reset();
 
   // prior cost
-  void CostPrior(double& cost, double* gradient, double* hessian);
+  void CostPrior(double cost[1], double* gradient, double* hessian);
 
   // prior residual
   void ResidualPrior();
@@ -61,7 +62,7 @@ class Estimator {
   void JacobianPriorBlocks();
 
   // sensor cost
-  void CostSensor(double& cost, double* gradient, double* hessian);
+  void CostSensor(double cost[1], double* gradient, double* hessian);
 
   // sensor residual
   void ResidualSensor();
@@ -73,7 +74,7 @@ class Estimator {
   void SensorPrediction();
 
   // force cost
-  void CostForce(double& cost, double* gradient, double* hessian);
+  void CostForce(double cost[1], double* gradient, double* hessian);
 
   // force residual
   void ResidualForce();
@@ -100,7 +101,7 @@ class Estimator {
   // compute finite-difference acceleration derivatives
   void AccelerationDerivatives();
 
-  // compute total cost 
+  // compute total cost
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
 
   // compute total cost derivatives 

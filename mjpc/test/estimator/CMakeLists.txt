@@ -15,6 +15,9 @@
 test(batch_force_test)
 target_link_libraries(batch_force_test load gmock)
 
+test(batch_optimize_test)
+target_link_libraries(batch_optimize_test load gmock)
+
 test(batch_prior_test)
 target_link_libraries(batch_prior_test load gmock)
 

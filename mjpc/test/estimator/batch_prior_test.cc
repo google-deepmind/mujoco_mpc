@@ -296,14 +296,14 @@ TEST(PriorCost, Particle) {
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();
-  double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                          estimator.cost_hessian_prior_.data());
+  estimator.CostPrior(&estimator.cost_prior_,
+                      estimator.cost_gradient_prior_.data(),
+                      estimator.cost_hessian_prior_.data());
 
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = estimator.cost_prior_ - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient
@@ -407,13 +407,12 @@ TEST(PriorCost, Box) {
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();
-  double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
+  estimator.CostPrior(&estimator.cost_prior_, estimator.cost_gradient_prior_.data(), NULL);
 
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = estimator.cost_prior_ - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient

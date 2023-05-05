@@ -423,14 +423,14 @@ TEST(ForceCost, Particle) {
   estimator.JacobianForce();
 
   // cost
-  double cost_estimator =
-      estimator.CostForce(estimator.cost_gradient_force_.data(),
-                          estimator.cost_hessian_force_.data());
+  estimator.CostForce(&estimator.cost_force_,
+                      estimator.cost_gradient_force_.data(),
+                      estimator.cost_hessian_force_.data());
 
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = estimator.cost_force_ - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient
@@ -585,13 +585,13 @@ TEST(ForceCost, Box) {
   estimator.JacobianForce();
 
   // cost
-  double cost_estimator =
-      estimator.CostForce(estimator.cost_gradient_force_.data(), NULL);
+  estimator.CostForce(&estimator.cost_force_,
+                      estimator.cost_gradient_force_.data(), NULL);
 
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = estimator.cost_force_ - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient

@@ -141,9 +141,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // rollout
   for (int t = 0; t < T; t++) {
-    // set control
-    mju_zero(data->ctrl, nu);
-
+    // control 
+    mju_zero(data->ctrl, model->nu);
+    
     // forward computes instantaneous qacc
     mj_forward(model, data);
 
@@ -164,7 +164,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // final cache
   mju_copy(qpos.data() + T * nq, data->qpos, nq);
   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  mju_copy(sensordata.data() + T * model->nsensor, data->sensordata, ns);
+  
+  mj_forward(model, data);
+  mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
   // ----- estimator ----- //
 

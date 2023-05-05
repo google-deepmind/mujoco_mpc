@@ -228,8 +228,8 @@ class Estimator {
 
   // settings 
   int max_line_search_ = 10;
-  int max_smoother_iterations_ = 5;
-  double gradient_tolerance_ = 1.0e-3;
+  int max_smoother_iterations_ = 20;
+  double gradient_tolerance_ = 1.0e-5;
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

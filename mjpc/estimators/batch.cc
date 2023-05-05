@@ -239,7 +239,7 @@ void Estimator::Reset() {
   std::fill(search_direction_.begin(), search_direction_.end(), 0.0);
 }
 
-// prior cost
+// prior cost TODO(taylor): normalize by dimension
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // residual dimension
   int dim = model_->nv * configuration_length_;
@@ -302,7 +302,7 @@ void Estimator::ResidualPrior() {
 // prior Jacobian
 void Estimator::JacobianPrior() {
   // dimension
-  int nv = model_->nv, dim = nv * configuration_length_;
+  int nv = model_->nv, dim = model_->nv * configuration_length_;
 
   // reset Jacobian to zero
   mju_zero(jacobian_prior_.data(), dim * dim);
@@ -335,7 +335,7 @@ void Estimator::JacobianPriorBlocks() {
   }
 }
 
-// sensor cost
+// sensor cost TODO(taylor): normalize by dimension
 double Estimator::CostSensor(double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = dim_sensor_ * (configuration_length_ - 2);
@@ -507,7 +507,7 @@ void Estimator::SensorPrediction() {
   }
 }
 
-// force cost
+// force cost TODO(taylor): normalize by dimension
 double Estimator::CostForce(double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = model_->nv * (configuration_length_ - 2);
@@ -856,6 +856,7 @@ void Estimator::CostDerivatives() {
   AccelerationDerivatives();
 
   // ----- residual Jacobians ----- //
+  JacobianPriorBlocks();
   JacobianPrior();
   JacobianSensor();
   JacobianForce();
@@ -918,6 +919,12 @@ void Estimator::Optimize() {
 
       // hessian
       double* hessian = cost_hessian_.data();
+
+
+      // regularized (temp)
+      for (int j = 0; j < dim_vel; j++) {
+        hessian[j * dim_vel + j] += 1.0e-3;
+      }
 
       // factorize
       mju_cholFactor(hessian, dim_vel, 0.0);

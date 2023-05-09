@@ -60,7 +60,9 @@ TEST(SamplingPlannerTest, RandomSearch) {
   planner.Initialize(model, task);
   planner.Allocate();
   planner.Reset(kMaxTrajectoryHorizon);
-
+  // A larger value causes flakiness, because the final state isn't close enough
+  // to the goal.
+  planner.noise_exploration = 0.01;
   // ----- settings ----- //
   int iterations = 1000;
   double horizon = 2.5;

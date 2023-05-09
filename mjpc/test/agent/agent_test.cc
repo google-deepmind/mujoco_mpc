@@ -73,8 +73,8 @@ class AgentTest : public ::testing::Test {
     EXPECT_NEAR(agent->timestep_, 0.1, 1.0e-5);
     EXPECT_EQ(agent->planner_, 0);
     EXPECT_EQ(agent->state_, 0);
-    EXPECT_NEAR(agent->horizon_, 0.5, 1.0e-5);
-    EXPECT_EQ(agent->steps_, 6);
+    EXPECT_NEAR(agent->horizon_, 1, 1.0e-5);
+    EXPECT_EQ(agent->steps_, 11);
     EXPECT_FALSE(agent->plan_enabled);
     EXPECT_TRUE(agent->action_enabled);
     EXPECT_FALSE(agent->visualize_enabled);
@@ -219,7 +219,13 @@ class AgentTest : public ::testing::Test {
     agent->planner_ = 0;  // sampling
     reinterpret_cast<SamplingPlanner*>(&agent->ActivePlanner())
         ->num_trajectory_ = 128;
-    for (int i = 0; i < 5; i++) {
+
+    // A smaller value causes flakiness because the optimizer fails to find a
+    // better solution:
+    reinterpret_cast<SamplingPlanner*>(&agent->ActivePlanner())
+        ->noise_exploration = 0.2;
+    int repeats = 10;
+    for (int i = 0; i < repeats; i++) {
       agent->Reset();
       data->qpos[0] = 0;
       data->qpos[1] = 0;
@@ -326,11 +332,15 @@ class AgentTest : public ::testing::Test {
     agent->planner_ = 3;  // iLQS
     iLQSPlanner* planner =
         reinterpret_cast<iLQSPlanner*>(&agent->ActivePlanner());
+
+    // A smaller value causes flakiness because the optimizer fails to find a
+    // better solution.
+    planner->sampling.noise_exploration = 0.2;
     bool case_tested[4];
     for (int i = 0; i < 4; ++i) {
       case_tested[i] = false;
     }
-    int repeats = 5;
+    int repeats = 10;
     // Changing the number of sampling trajectories changes the chances that the
     // sampling planner will succeed.  We try all 4 combinations, but we need to
     // repeat due to stochasticity:

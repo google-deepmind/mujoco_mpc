@@ -64,6 +64,7 @@ class Agent:
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       server_binary_path: Optional[str] = None,
+      real_time_speed: float = 1.0,
   ):
     self.task_id = task_id
     self.model = model
@@ -81,7 +82,7 @@ class Agent:
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(task_id, model, send_as="mjb")
+    self.init(task_id, model, send_as="mjb", real_time_speed=real_time_speed)
 
   def close(self):
     self.channel.close()
@@ -93,6 +94,7 @@ class Agent:
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       send_as: Literal["mjb", "xml"] = "xml",
+      real_time_speed: float = 1.0,
   ):
     """Initialize the agent for task `task_id`.
 
@@ -104,6 +106,9 @@ class Agent:
         task xml will be used.
       send_as: The serialization format for sending the model over gRPC. Either
         "mjb" or "xml".
+      real_time_speed: ratio of running speed to wall clock, from 0 to 1. Only
+        affects async (UI) binaries, and not ones where planning is
+        synchronous.
     """
 
     def model_to_mjb(model: mujoco.MjModel) -> bytes:
@@ -127,7 +132,9 @@ class Agent:
     else:
       model_message = None
 
-    init_request = agent_pb2.InitRequest(task_id=task_id, model=model_message)
+    init_request = agent_pb2.InitRequest(
+        task_id=task_id, model=model_message, real_time_speed=real_time_speed
+    )
     self.stub.Init(init_request)
 
   def set_state(

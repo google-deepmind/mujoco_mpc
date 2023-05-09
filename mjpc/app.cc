@@ -19,25 +19,23 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <absl/flags/flag.h>
-#include <absl/flags/parse.h>
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <glfw_adapter.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/agent.h"
-#include "mjpc/planners/include.h"
 #include "mjpc/simulate.h"  // mjpc fork
+#include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
@@ -161,7 +159,7 @@ mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
 
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
-  // cpu-sim syncronization point
+  // cpu-sim synchronization point
   std::chrono::time_point<mj::Simulate::Clock> syncCPU;
   mjtNum syncSim = 0;
 
@@ -290,6 +288,7 @@ void PhysicsLoop(mj::Simulate& sim) {
             sim.ApplyForcePerturbations();
 
             // run single step, let next iteration deal with timing
+            sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
             mj_step(m, d);
           } else {  // in-sync: step until ahead of cpu
             bool measured = false;
@@ -312,6 +311,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               sim.ApplyForcePerturbations();
 
               // call mj_step
+              sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
               mj_step(m, d);
 
               // break if reset
@@ -323,6 +323,9 @@ void PhysicsLoop(mj::Simulate& sim) {
         } else {  // paused
           // apply pose perturbation
           sim.ApplyPosePerturbations(1);  // move mocap and dynamic bodies
+
+          // still accept jobs when simulation is paused
+          sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
@@ -342,8 +345,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
 namespace mjpc {
 
-// run event loop
-void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
@@ -352,6 +354,10 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   // threads
   printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
 
+  if (sim != nullptr) {
+    mju_error("Multiple instances of MjpcApp created.");
+    return;
+  }
   sim = std::make_unique<mj::Simulate>(
       std::make_unique<mujoco::GlfwAdapter>(),
       std::make_shared<Agent>());
@@ -400,11 +406,19 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       [&](float a, float b) {
         return std::abs(a - desired_percent) < std::abs(b - desired_percent);
       });
-  sim->real_time_index = std::distance(std::begin(sim->percentRealTime), closest);
+  sim->real_time_index =
+      std::distance(std::begin(sim->percentRealTime), closest);
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;
+}
 
+MjpcApp::~MjpcApp() {
+  sim.reset();
+}
+
+// run event loop
+void MjpcApp::Start() {
   // planning threads
   printf("Agent threads: %i\n", sim->agent->max_threads());
 
@@ -431,8 +445,14 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
     // start simulation UI loop (blocking call)
     sim->RenderLoop();
   }
+}
 
-  // destroy the Simulate instance
-  sim.reset();
+mj::Simulate* MjpcApp::Sim() {
+  return sim.get();
+}
+
+void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+  MjpcApp app(std::move(tasks), task_id);
+  app.Start();
 }
 }  // namespace mjpc

@@ -18,9 +18,22 @@
 #include <memory>
 #include <vector>
 
+#include "mjpc/simulate.h"  // mjpc fork
 #include "mjpc/task.h"
 
 namespace mjpc {
+class MjpcApp {
+ public:
+  MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id = 0);
+  MjpcApp(const MjpcApp&) = delete;
+  MjpcApp& operator=(const MjpcApp&) = delete;
+  ~MjpcApp();
+
+  void Start();
+
+  ::mujoco::Simulate* Sim();
+};
+
 void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id = 0);
 
 }  // namespace mjpc

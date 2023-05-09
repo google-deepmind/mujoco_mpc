@@ -18,9 +18,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <iostream>
+#include <mutex>
 #include <string>
 #include <sstream>
 
@@ -233,6 +232,28 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
       PlanIteration(&pool);
     }
   }  // exitrequest sent -- stop planning
+}
+
+void Agent::RunBeforeStep(StepJob job) {
+  std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+  step_jobs_.push_back(std::move(job));
+}
+
+void Agent::ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data) {
+  while (true) {
+      StepJob step_job;
+      {
+        // only hold the lock while reading from the queue and not while
+        // executing the jobs
+        std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+        if (step_jobs_.empty()) {
+          break;
+        }
+        step_job = std::move(step_jobs_.front());
+        step_jobs_.pop_front();
+      }
+      step_job(this, model, data);
+    }
 }
 
 int Agent::SetParamByName(std::string_view name, double value) {

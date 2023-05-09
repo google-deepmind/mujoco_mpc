@@ -21,6 +21,7 @@
 #include <string_view>
 #include <vector>
 
+#include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/include.h"
 #include "mjpc/states/include.h"
@@ -68,6 +69,16 @@ class Agent {
   // call planner to update nominal policy
   void Plan(std::atomic<bool>& exitrequest, std::atomic<int>& uiloadrequest);
 
+  using StepJob =
+      absl::AnyInvocable<void(Agent*, const mjModel*, mjData*)>;
+
+  // runs a callback before the next physics step, on the physics thread
+  void RunBeforeStep(StepJob job);
+
+  // executes all the callbacks added by RunBeforeStep. should be called on the
+  // physics thread
+  void ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data);
+
   // modify the scene, e.g. add trace visualization
   void ModifyScene(mjvScene* scn);
 
@@ -105,8 +116,9 @@ class Agent {
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
-  int GetActionDim() { return model_->nu; }
+  int GetActionDim() const { return model_->nu; }
   mjModel* GetModel() { return model_; }
+  const mjModel* GetModel() const { return model_; }
 
   void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
   void SetState(const mjData* data);
@@ -154,6 +166,10 @@ class Agent {
   // states
   std::vector<std::unique_ptr<mjpc::State>> states_;
   int state_;
+
+  // task queue for RunBeforeStep
+  std::mutex step_jobs_mutex_;
+  std::deque<StepJob> step_jobs_;
 
   // timing
   double agent_compute_time_;

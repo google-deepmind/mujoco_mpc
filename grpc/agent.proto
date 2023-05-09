@@ -46,6 +46,8 @@ message MjModel {
 message InitRequest {
   optional string task_id = 1;
   optional MjModel model = 2;
+  // only used on when there is asynchronous planning
+  optional float real_time_speed = 3;
 }
 message InitResponse {}
 

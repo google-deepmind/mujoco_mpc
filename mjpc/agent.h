@@ -116,6 +116,14 @@ class Agent {
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
+  // a residual function that can be used from trajectory rollouts. must only
+  // be used from trajectory rollout threads (no locking).
+  const ResidualFn* PlanningResidual() const {
+    return residual_fn_.get();
+  }
+  bool IsPlanningModel(const mjModel* model) const {
+    return model == model_;
+  }
   int GetActionDim() const { return model_->nu; }
   mjModel* GetModel() { return model_; }
   const mjModel* GetModel() const { return model_; }
@@ -158,6 +166,8 @@ class Agent {
 
   std::vector<std::shared_ptr<Task>> tasks_;
   int active_task_id_ = 0;
+  // residual function for the active task, updated once per planning iteration
+  std::unique_ptr<ResidualFn> residual_fn_;
 
   // planners
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;

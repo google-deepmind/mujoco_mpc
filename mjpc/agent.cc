@@ -198,6 +198,11 @@ void Agent::PlanIteration(ThreadPool* pool) {
     // set state
     ActivePlanner().SetState(ActiveState());
 
+    // copy the task's residual function parameters into a new object, which
+    // remains constant during planning and doesn't require locking from the
+    // rollout threads
+    residual_fn_ = ActiveTask()->Residual();
+
     if (plan_enabled) {
       // planner policy
       ActivePlanner().OptimizePolicy(steps_, *pool);
@@ -217,6 +222,9 @@ void Agent::PlanIteration(ThreadPool* pool) {
       // set timers
       agent_compute_time_ = 0.0;
     }
+
+    // release the planning residual function
+    residual_fn_.reset();
   }
 }
 

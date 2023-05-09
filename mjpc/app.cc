@@ -105,8 +105,17 @@ void sensor(const mjModel* m, mjData* d, int stage);
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
     if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0) {
-      // users sensors must be ordered first and sequentially
-      sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
+      if (sim->agent->IsPlanningModel(model)) {
+        // the planning thread and rollout threads don't need
+        // synchronization when using PlanningResidual.
+        const mjpc::ResidualFn* residual = sim->agent->PlanningResidual();
+        residual->Residual(model, data, data->sensordata);
+      } else {
+        // this residual is used by the physics thread and the UI thread (for
+        // plots), and is run with a shared lock, to safely run with changes to
+        // weights and parameters
+        sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
+      }
     }
   }
 }

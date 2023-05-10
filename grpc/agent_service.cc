@@ -215,12 +215,10 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
   }
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
-  if (request->use_previous_policy()) {
-    return {grpc::StatusCode::UNIMPLEMENTED,
-            "use_previous_policy not implemented."};
-  }
+  agent_.ActiveTask()->Transition(model, data_);
   agent_.ActivePlanner().ActionFromPolicy(data_->ctrl, state.state().data(),
-                                          state.time());
+                                          state.time(),
+                                          request->use_previous_policy());
   mj_step(model, data_);
   state.Set(model, data_);
   return grpc::Status::OK;

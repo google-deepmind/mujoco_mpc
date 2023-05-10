@@ -209,6 +209,44 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
                    3 * cartpole_timestep);
 }
 
+TEST_F(AgentServiceTest, Step_CallsTransition) {
+  // the goal position changes on every timestep in the Particle task, but only
+  // if Transition is called.
+
+  RunAndCheckInit("Particle", nullptr);
+
+  agent::State initial_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    initial_state = response.state();
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::StepRequest request;
+    agent::StepResponse response;
+    grpc::Status status = stub->Step(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  agent::State final_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    final_state = response.state();
+  }
+  EXPECT_NE(final_state.mocap_pos()[0], initial_state.mocap_pos()[0])
+      << "mocap_pos stayed constant. Was Transition called?";
+}
+
 TEST_F(AgentServiceTest, SetTaskParameters_Numeric) {
   RunAndCheckInit("Cartpole", nullptr);
 

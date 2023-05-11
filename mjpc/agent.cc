@@ -539,7 +539,7 @@ void Agent::GUI(mjUI& ui) {
       {mjITEM_SEPARATOR, "Agent Settings", 1},
       {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
       {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-      {mjITEM_SELECT, "Integrator", 2, &integrator_, "Euler\nRK4\nImplicit"},
+      {mjITEM_SELECT, "Integrator", 2, &integrator_, "Euler\nRK4\nImplicit\nFastImplicit"},
       {mjITEM_SEPARATOR, "Planner Settings", 1},
       {mjITEM_END}};
 

@@ -55,10 +55,8 @@ class BaseResidualFn : public ResidualFn {
   explicit BaseResidualFn(const Task* task);
   virtual ~BaseResidualFn() = default;
 
-  virtual void Residual(const mjModel* model, const mjData* data,
-                        double* residual) const = 0;
   void CostTerms(double* terms, const double* residual,
-                         bool weighted = true) const override;
+                 bool weighted = true) const override;
   double CostValue(const double* residual) const override;
   void Update() override;
 

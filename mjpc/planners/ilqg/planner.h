@@ -148,9 +148,10 @@ class iLQGPlanner : public Planner {
 
   // mutex
   mutable std::shared_mutex mtx_;
+
  private:
-  int num_trajectory_;
-  int num_rollouts_gui_;
+  int num_trajectory_ = 1;
+  int num_rollouts_gui_ = 1;
 };
 
 }  // namespace mjpc

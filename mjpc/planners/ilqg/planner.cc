@@ -155,6 +155,9 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
 // compute trajectory using nominal policy
 void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
+  if (num_trajectory_ == 0) {
+    return;
+  }
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 

@@ -44,7 +44,7 @@ class iLQGPlanner : public Planner {
   void Reset(int horizon) override;
 
   // set state
-  void SetState(State& state) override;
+  void SetState(const State& state) override;
 
   // optimize nominal policy using iLQG
   void OptimizePolicy(int horizon, ThreadPool& pool) override;

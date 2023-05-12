@@ -133,7 +133,7 @@ void iLQGPlanner::Reset(int horizon) {
 }
 
 // set state
-void iLQGPlanner::SetState(State& state) {
+void iLQGPlanner::SetState(const State& state) {
   state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
                &this->time);
 }

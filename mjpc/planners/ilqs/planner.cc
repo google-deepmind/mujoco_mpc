@@ -78,7 +78,7 @@ void iLQSPlanner::Reset(int horizon) {
 }
 
 // set state
-void iLQSPlanner::SetState(State& state) {
+void iLQSPlanner::SetState(const State& state) {
   // Sampling
   sampling.SetState(state);
 

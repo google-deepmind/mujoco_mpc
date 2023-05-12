@@ -56,7 +56,7 @@ class SamplingPlanner : public Planner {
   void Reset(int horizon) override;
 
   // set state
-  void SetState(State& state) override;
+  void SetState(const State& state) override;
 
   // optimize nominal policy using random sampling
   void OptimizePolicy(int horizon, ThreadPool& pool) override;

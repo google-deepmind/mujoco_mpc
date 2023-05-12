@@ -43,7 +43,7 @@ class Planner {
   virtual void Reset(int horizon) = 0;
 
   // set state
-  virtual void SetState(State& state) = 0;
+  virtual void SetState(const State& state) = 0;
 
   // optimize nominal policy
   virtual void OptimizePolicy(int horizon, ThreadPool& pool) = 0;

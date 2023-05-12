@@ -56,7 +56,7 @@ class iLQSPlanner : public Planner {
   void Reset(int horizon) override;
 
   // set state
-  void SetState(State& state) override;
+  void SetState(const State& state) override;
 
   // optimize nominal policy using iLQS
   void OptimizePolicy(int horizon, ThreadPool& pool) override;

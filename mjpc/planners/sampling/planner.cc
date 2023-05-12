@@ -135,7 +135,7 @@ void SamplingPlanner::Reset(int horizon) {
 }
 
 // set state
-void SamplingPlanner::SetState(State& state) {
+void SamplingPlanner::SetState(const State& state) {
   state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
                &this->time);
 }

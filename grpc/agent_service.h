@@ -17,6 +17,9 @@
 #ifndef GRPC_AGENT_SERVICE_H
 #define GRPC_AGENT_SERVICE_H
 
+#include <memory>
+#include <vector>
+
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>

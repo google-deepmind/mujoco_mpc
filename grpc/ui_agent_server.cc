@@ -19,12 +19,12 @@
 #include <string>
 
 #include <absl/flags/parse.h>
-// DEEPMIND INTERNAL IMPORT
 #include <absl/flags/flag.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
 #include <absl/time/clock.h>
 #include <absl/time/time.h>
+// DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>

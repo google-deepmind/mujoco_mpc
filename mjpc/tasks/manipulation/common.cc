@@ -43,9 +43,8 @@ GraspState GetGraspState(const mjModel* m, const mjData* d,
   mjtByte geomgroup[mjNGROUP] = {0};
   geomgroup[kGroupCollisionScene] = 1;
   int ray_geom_id;
-  // TODO(nimrod): avoid casting mjData
-  double ray_distance = mj_ray(m, (mjData*)d, right_finger, direction,
-                               geomgroup, 0, -1, &ray_geom_id);
+  double ray_distance =
+      mj_ray(m, d, right_finger, direction, geomgroup, 0, -1, &ray_geom_id);
 
   if (ray_distance == -1 || ray_distance > finger_distance) {
     // nothing in the gripper
@@ -60,9 +59,8 @@ GraspState GetGraspState(const mjModel* m, const mjData* d,
   // the right object is in the gripper. cast a ray going the opposite way,
   // to see if it's the only object
   mju_scl3(direction, direction, -1);
-  // TODO(nimrod): avoid casting mjData
-  double ray_distance2 = mj_ray(m, (mjData*)d, left_finger, direction,
-                                geomgroup, 0, -1, &ray_geom_id);
+  double ray_distance2 =
+      mj_ray(m, d, left_finger, direction, geomgroup, 0, -1, &ray_geom_id);
   ray_body_id = m->body_weldid[m->geom_bodyid[ray_geom_id]];
   if (ray_body_id != body_id) {
     // there's another object in the gripper
@@ -187,9 +185,8 @@ double BlockedCost(const mjModel* model, const mjData* data,
   geomgroup[kGroupCollisionScene] = 1;
 
   int ray_geom_id;
-  // TODO(nimrod): avoid casting mjData
-  double ray_distance = mj_ray(model, (mjData*)data, pos, direction, geomgroup,
-                               0, exclude_body_id, &ray_geom_id);
+  double ray_distance = mj_ray(model, data, pos, direction, geomgroup, 0,
+                               exclude_body_id, &ray_geom_id);
   // if there is something between the hand and the object, return 1.
   return ray_distance > -1 && ray_distance < distance;
 }

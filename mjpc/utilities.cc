@@ -577,7 +577,8 @@ mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
   const int bodyexclude = -1;       // don't exclude any bodies
   int geomid;                       // id of intersecting geom
   mjtNum query[3] = {pos[0], pos[1], pos[2] + height_offset};
-  mjtNum dist = mj_ray(model, data, query, down, geomgroup, flg_static,
+  // TODO(nimrod): avoid casting mjData
+  mjtNum dist = mj_ray(model, (mjData*)data, query, down, geomgroup, flg_static,
                        bodyexclude, &geomid);
 
   if (dist < 0) {  // SHOULD NOT OCCUR

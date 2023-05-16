@@ -73,6 +73,28 @@ class Planner {
   void ResizeMjData(const mjModel* model, int num_threads);
 };
 
+// additional optional interface for planners that can produce several policy
+// proposals
+class RankedPlanner : public Planner {
+ public:
+  virtual ~RankedPlanner() = default;
+  // optimizes policies, but rather than picking the best, generate up to
+  // ncandidates. returns number of candidates created. only called
+  // from the planning thread.
+  virtual int OptimizePolicyCandidates(int ncandidates, int horizon,
+                                        ThreadPool& pool) = 0;
+  // returns the total return for the nth candidate (or another score to
+  // minimize). only called from the planning thread.
+  virtual double CandidateScore(int candidate) const = 0;
+
+  // set action from candidate policy. only called from the planning thread.
+  virtual void ActionFromCandidatePolicy(double* action, int candidate,
+                                         const double* state, double time) = 0;
+
+  // sets the nth candidate to the active policy.
+  virtual void CopyCandidateToPolicy(int candidate) = 0;
+};
+
 }  // namespace mjpc
 
 #endif  // MJPC_PLANNERS_OPTIMIZER_H_

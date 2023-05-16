@@ -77,6 +77,8 @@ add_library(
   planners/linear_solve.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
+  planners/robust/robust_planner.cc
+  planners/robust/robust_planner.h
   planners/sampling/planner.cc
   planners/sampling/planner.h
   planners/sampling/policy.cc

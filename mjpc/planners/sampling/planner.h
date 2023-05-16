@@ -36,7 +36,7 @@ inline constexpr int MaxSamplingSplinePower = 5;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
 
-class SamplingPlanner : public Planner {
+class SamplingPlanner : public RankedPlanner {
  public:
   // constructor
   SamplingPlanner() = default;
@@ -90,6 +90,20 @@ class SamplingPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning) override;
 
+  // optimizes policies, but rather than picking the best, generate up to
+  // ncandidates. returns number of candidates created.
+  int OptimizePolicyCandidates(int ncandidates, int horizon,
+                               ThreadPool& pool) override;
+  // returns the total return for the nth candidate (or another score to
+  // minimize)
+  double CandidateScore(int candidate) const override;
+
+  // set action from candidate policy
+  void ActionFromCandidatePolicy(double* action, int candidate,
+                                 const double* state, double time) override;
+
+  void CopyCandidateToPolicy(int candidate) override;
+
   // ----- members ----- //
   mjModel* model;
   const Task* task;
@@ -111,6 +125,9 @@ class SamplingPlanner : public Planner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
+
+  // order of indices of rolled out trajectories, ordered by total return
+  std::vector<int> trajectory_order;
 
   // rollout parameters
   double timestep_power;

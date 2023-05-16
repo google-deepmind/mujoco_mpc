@@ -140,12 +140,13 @@ void SamplingPlanner::SetState(const State& state) {
                &this->time);
 }
 
-// optimize nominal policy using random sampling
-void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
+                                              ThreadPool& pool) {
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
   int num_trajectory = num_trajectory_;
+  ncandidates = std::min(ncandidates, num_trajectory);
   ResizeMjData(model, pool.NumThreads());
 
   // ----- rollout noisy policies ----- //
@@ -155,38 +156,44 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // simulate noisy policies
   this->Rollouts(num_trajectory, horizon, pool);
 
-  // ----- compare rollouts ----- //
-  int best_rollout = 0;
-  double best_return = trajectory[best_rollout].total_return;
-
-  // random search
-  for (int i = 1; i < num_trajectory; i++) {
-    if (trajectory[i].total_return < trajectory[best_rollout].total_return) {
-      best_rollout = i;
-    }
+  // sort candidate policies and trajectories by score
+  trajectory_order.clear();
+  trajectory_order.reserve(num_trajectory);
+  for (int i = 0; i < num_trajectory; i++) {
+    trajectory_order.push_back(i);
   }
 
-  // set winner
-  winner = best_rollout;
+  // sort so that the first ncandidates elements are the best candidates, and
+  // the rest are in an unspecified order
+  std::partial_sort(
+      trajectory_order.begin(), trajectory_order.begin() + ncandidates,
+      trajectory_order.end(), [trajectory = trajectory](int a, int b) {
+        return trajectory[a].total_return < trajectory[b].total_return;
+      });
 
   // stop timer
   rollouts_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
                        std::chrono::steady_clock::now() - rollouts_start)
                        .count();
 
+  return ncandidates;
+}
+
+// optimize nominal policy using random sampling
+void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+  // resample nominal policy to current time
+  this->UpdateNominalPolicy(horizon);
+
+  OptimizePolicyCandidates(1, horizon, pool);
+
   // ----- update policy ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
 
-  {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
-    previous_policy = policy;
-  }
+  CopyCandidateToPolicy(0);
 
-  // update
-  this->UpdateNominalPolicy(horizon);
-
-  // improvement
+  // improvement: compare nominal to winner
+  double best_return = trajectory[0].total_return;
   improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
 
   // stop timer
@@ -458,4 +465,25 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Policy Update");
 }
 
+double SamplingPlanner::CandidateScore(int candidate) const {
+  return trajectory[trajectory_order[candidate]].total_return;
+}
+
+// set action from candidate policy
+void SamplingPlanner::ActionFromCandidatePolicy(double* action, int candidate,
+                                                const double* state,
+                                                double time) {
+  candidate_policy[trajectory_order[candidate]].Action(action, state, time);
+}
+
+void SamplingPlanner::CopyCandidateToPolicy(int candidate) {
+  // set winner
+  winner = trajectory_order[candidate];
+
+  {
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
+    previous_policy = policy;
+    policy = candidate_policy[winner];
+  }
+}
 }  // namespace mjpc

@@ -24,6 +24,7 @@
 #include <absl/strings/str_format.h>
 #include <absl/strings/strip.h>
 #include <grpcpp/support/status.h>
+#include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
@@ -33,6 +34,9 @@ namespace grpc_agent_util {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetCostValuesAndWeightsRequest;
+using ::agent::GetCostValuesAndWeightsResponse;
+using ::agent::ValueAndWeight;
 using ::agent::GetStateResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetStateRequest;
@@ -143,6 +147,28 @@ grpc::Status GetAction(const GetActionRequest* request,
 
   response->mutable_action()->Assign(ret.begin(), ret.end());
 
+  return grpc::Status::OK;
+}
+
+grpc::Status GetCostValuesAndWeights(
+    const GetCostValuesAndWeightsRequest* request, const mjpc::Agent* agent,
+    const mjModel* model, mjData* data,
+    GetCostValuesAndWeightsResponse* response) {
+  const mjModel* agent_model = agent->GetModel();
+  const mjpc::Task* task = agent->ActiveTask();
+  std::vector<double> residuals(task->num_residual, 0);  // scratch space
+  double terms[mjpc::kMaxCostTerms];
+  task->Residual(model, data, residuals.data());
+  task->CostTerms(terms, residuals.data(), /*weighted=*/false);
+  for (int i = 0; i < task->num_term; i++) {
+    CHECK_EQ(agent_model->sensor_type[i], mjSENS_USER);
+    std::string_view sensor_name(agent_model->names +
+                                  agent_model->name_sensoradr[i]);
+    ValueAndWeight value_and_weight;
+    value_and_weight.set_value(terms[i]);
+    value_and_weight.set_weight(task->weight[i]);
+    (*response->mutable_values_weights())[sensor_name] = value_and_weight;
+  }
   return grpc::Status::OK;
 }
 

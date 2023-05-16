@@ -198,6 +198,24 @@ class Agent:
     get_action_response = self.stub.GetAction(get_action_request)
     return np.array(get_action_response.action)
 
+  def get_total_cost(self) -> float:
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    total_cost = 0
+    for _, value_weight in terms.values_weights.items():
+      total_cost += value_weight.weight * value_weight.value
+    return total_cost
+
+  def get_cost_term_values(self) -> dict[str, float]:
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    return {
+        name: value_weight.value
+        for name, value_weight in terms.values_weights.items()
+    }
+
   def planner_step(self):
     """Send a planner request."""
     planner_step_request = agent_pb2.PlannerStepRequest()

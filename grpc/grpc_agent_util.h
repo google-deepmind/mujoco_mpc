@@ -28,6 +28,10 @@ grpc::Status SetState(const agent::SetStateRequest* request, mjpc::Agent* agent,
 grpc::Status GetAction(const agent::GetActionRequest* request,
                        const mjpc::Agent* agent,
                        agent::GetActionResponse* response);
+grpc::Status GetCostValuesAndWeights(
+    const agent::GetCostValuesAndWeightsRequest* request,
+    const mjpc::Agent* agent, const mjModel* model, mjData* data,
+    agent::GetCostValuesAndWeightsResponse* response);
 grpc::Status Reset(mjpc::Agent* agent, const mjModel* model, mjData* data);
 grpc::Status SetTaskParameters(const agent::SetTaskParametersRequest* request,
                                mjpc::Agent* agent);

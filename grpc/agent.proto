@@ -36,6 +36,9 @@ service Agent {
       returns (SetTaskParametersResponse);
   // Set cost weights.
   rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
+  // Get cost term values.
+  rpc GetCostValuesAndWeights(GetCostValuesAndWeightsRequest)
+      returns (GetCostValuesAndWeightsResponse);
 }
 
 message MjModel {
@@ -77,6 +80,17 @@ message GetActionRequest {
 
 message GetActionResponse {
   repeated float action = 1 [packed = true];
+}
+
+message GetCostValuesAndWeightsRequest {}
+
+message ValueAndWeight {
+  double value = 1;
+  double weight = 2;
+}
+
+message GetCostValuesAndWeightsResponse {
+  map<string, ValueAndWeight> values_weights = 1;
 }
 
 message PlannerStepRequest {}

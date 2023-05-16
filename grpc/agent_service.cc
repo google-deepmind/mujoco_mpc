@@ -30,6 +30,8 @@ namespace agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetCostValuesAndWeightsRequest;
+using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::InitRequest;
@@ -146,6 +148,16 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::GetAction(request, &agent_, response);
+}
+
+grpc::Status AgentService::GetCostValuesAndWeights(
+    grpc::ServerContext* context, const GetCostValuesAndWeightsRequest* request,
+    GetCostValuesAndWeightsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetCostValuesAndWeights(request, &agent_, model,
+                                                  data_, response);
 }
 
 grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,

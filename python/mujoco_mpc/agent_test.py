@@ -135,6 +135,38 @@ class AgentTest(absltest.TestCase):
       action = agent.get_action()
     np.testing.assert_allclose(action, 0)
 
+  def test_get_cost_weights(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+
+    # by default, planner would produce a non-zero action
+    with contextlib.closing(agent):
+      agent.set_task_parameter("Goal", -1.0)
+      agent.planner_step()
+      cost = agent.get_total_cost()
+      self.assertNotEqual(cost, 0)
+
+      agent.reset()
+      agent.set_task_parameter("Goal", -1.0)
+      agent.set_cost_weights(
+          {"Vertical": 1, "Velocity": 0, "Centered": 1, "Control": 0}
+      )
+      for _ in range(10):
+        agent.planner_step()
+        agent.step()
+      agent.set_task_parameter("Goal", 1.0)
+      agent.set_cost_weights(
+          {"Vertical": 1, "Velocity": 1, "Centered": 1, "Control": 1}
+      )
+      agent.set_state(qpos=[0, 0.5], qvel=[1, 1])
+      terms_dict = agent.get_cost_term_values()
+      terms = list(terms_dict.values())
+      self.assertFalse(np.any(np.isclose(terms, 0, rtol=0, atol=1e-4)))
+
   def test_set_state_with_lists(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

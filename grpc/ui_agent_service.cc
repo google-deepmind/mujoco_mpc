@@ -36,6 +36,8 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
+using ::agent::GetCostValuesAndWeightsRequest;
+using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::InitRequest;
 using ::agent::InitResponse;
 using ::agent::PlannerStepRequest;
@@ -106,6 +108,17 @@ grpc::Status UiAgentService::GetAction(grpc::ServerContext* context,
       context, [request, response](mjpc::Agent* agent, const mjModel* model,
                                    mjData* data) {
         return grpc_agent_util::GetAction(request, agent, response);
+      });
+}
+
+grpc::Status UiAgentService::GetCostValuesAndWeights(
+    grpc::ServerContext* context, const GetCostValuesAndWeightsRequest* request,
+    GetCostValuesAndWeightsResponse* response) {
+  return RunBeforeStep(
+      context, [request, response](mjpc::Agent* agent, const mjModel* model,
+                                   mjData* data) {
+        return grpc_agent_util::GetCostValuesAndWeights(request, agent, model,
+                                                        data, response);
       });
 }
 

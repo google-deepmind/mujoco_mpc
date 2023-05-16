@@ -21,6 +21,7 @@
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
+#include <absl/strings/str_format.h>
 #include <absl/strings/strip.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
@@ -234,4 +235,57 @@ grpc::Status SetCostWeights(const SetCostWeightsRequest* request,
   return grpc::Status::OK;
 }
 
+namespace {
+mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
+                             int error_size) {
+  static constexpr char file[] = "temporary-filename.xml";
+  // mjVFS structs need to be allocated on the heap, because it's ~2MB
+  auto vfs = std::make_unique<mjVFS>();
+  mj_defaultVFS(vfs.get());
+  mj_makeEmptyFileVFS(vfs.get(), file, xml.size());
+  int file_idx = mj_findFileVFS(vfs.get(), file);
+  memcpy(vfs->filedata[file_idx], xml.data(), xml.size());
+  mjpc::UniqueMjModel m = {mj_loadXML(file, vfs.get(), error, error_size),
+                           mj_deleteModel};
+  mj_deleteFileVFS(vfs.get(), file);
+  return m;
+}
+
+mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
+  static constexpr char file[] = "temporary-filename.mjb";
+  // mjVFS structs need to be allocated on the heap, because it's ~2MB
+  auto vfs = std::make_unique<mjVFS>();
+  mj_defaultVFS(vfs.get());
+  mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
+  int file_idx = mj_findFileVFS(vfs.get(), file);
+  memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+  mjpc::UniqueMjModel m = {mj_loadModel(file, vfs.get()), mj_deleteModel};
+  mj_deleteFileVFS(vfs.get(), file);
+  return m;
+}
+}  // namespace
+
+grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request) {
+  std::string_view task_id = request->task_id();
+  int task_index = agent->GetTaskIdByName(task_id);
+  if (task_index == -1) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        absl::StrFormat("Invalid task_id: '%s'", task_id));
+  }
+  agent->gui_task_id = task_index;
+
+  mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
+  char load_error[1024] = "";
+
+  if (request->has_model() && request->model().has_mjb()) {
+    std::string_view model_mjb_bytes = request->model().mjb();
+    // TODO(khartikainen): Add error handling for mjb loading.
+    tmp_model = LoadModelFromBytes(model_mjb_bytes);
+  } else if (request->has_model() && request->model().has_xml()) {
+    std::string_view model_xml = request->model().xml();
+    tmp_model = LoadModelFromString(model_xml, load_error, sizeof(load_error));
+  }
+  agent->OverrideModel(std::move(tmp_model));
+  return grpc::Status::OK;
+}
 }  // namespace grpc_agent_util

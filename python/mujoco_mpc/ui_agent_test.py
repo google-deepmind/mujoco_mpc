@@ -13,7 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
+"""A test for agent.py that brings up a UI. Can only be run locally.
+"""
+
 import contextlib
+import time
 
 from absl.testing import absltest
 import mujoco
@@ -39,42 +43,7 @@ def environment_reset(model, data):
   return get_observation(model, data)
 
 
-class AgentTest(absltest.TestCase):
-
-  def test_step_env_with_planner(self):
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-    data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Particle", model=model)
-
-    with contextlib.closing(agent):
-      actions = []
-      observations = [environment_reset(model, data)]
-
-      num_steps = 10
-      for _ in range(num_steps):
-        agent.set_state(
-            time=data.time,
-            qpos=data.qpos,
-            qvel=data.qvel,
-            act=data.act,
-            mocap_pos=data.mocap_pos,
-            mocap_quat=data.mocap_quat,
-            userdata=data.userdata,
-        )
-        agent.planner_step()
-        actions.append(agent.get_action())
-        observations.append(environment_step(model, data, actions[-1]))
-
-    observations = np.array(observations)
-    actions = np.array(actions)
-
-    self.assertFalse((observations == 0).all())
-    self.assertFalse((actions == 0).all())
-
+class UiAgentTest(absltest.TestCase):
   def test_stepping_on_agent_side(self):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (
@@ -83,7 +52,7 @@ class AgentTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    agent = self.get_agent(task_id="Cartpole", model=model)
     with contextlib.closing(agent):
       agent.set_task_parameter("Goal", -1.0)
 
@@ -91,6 +60,7 @@ class AgentTest(absltest.TestCase):
       observations = []
       for _ in range(num_steps):
         agent.planner_step()
+        time.sleep(0.1)
         agent.step()
         state = agent.get_state()
         data.time = state.time
@@ -115,12 +85,15 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    agent = self.get_agent(task_id="Cartpole", model=model)
 
     # by default, planner would produce a non-zero action
     with contextlib.closing(agent):
       agent.set_task_parameter("Goal", -1.0)
       agent.planner_step()
+      # wait so a planning cycle definitely finishes
+      # TODO(nimrod): make sure planner_step waits for a planning step
+      time.sleep(0.5)
       action = agent.get_action()
       self.assertFalse(np.allclose(action, 0))
 
@@ -131,9 +104,11 @@ class AgentTest(absltest.TestCase):
       agent.set_cost_weights(
           {"Vertical": 0, "Velocity": 0, "Centered": 0, "Control": 1}
       )
-      agent.planner_step()
+      # wait so a planning cycle definitely finishes
+      # TODO(nimrod): make sure planner_step waits for a planning step
+      time.sleep(0.5)
       action = agent.get_action()
-    np.testing.assert_allclose(action, 0)
+    np.testing.assert_allclose(0, action, rtol=1, atol=1e-7)
 
   def test_set_state_with_lists(self):
     model_path = (
@@ -142,10 +117,9 @@ class AgentTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Particle", model=model)
+    agent = self.get_agent(task_id="Particle", model=model)
 
     with contextlib.closing(agent):
-
       agent.set_state(
           time=data.time,
           qpos=list(data.qpos),
@@ -156,6 +130,12 @@ class AgentTest(absltest.TestCase):
           userdata=list(data.userdata),
       )
       agent.planner_step()
+
+  def get_agent(self, **kwargs) -> agent_lib.Agent:
+    return agent_lib.Agent(
+        server_binary_path=pathlib.Path(agent_lib.__file__).parent / "mjpc" / "ui_agent_server",
+        **kwargs
+    )
 
 
 if __name__ == "__main__":

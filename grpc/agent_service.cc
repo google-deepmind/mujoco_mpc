@@ -14,8 +14,6 @@
 
 #include "grpc/agent_service.h"
 
-#include <cstring>
-#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -64,70 +62,25 @@ void residual_sensor_callback(const mjModel* m, mjData* d, int stage) {
   }
 }
 
-mjModel* LoadModelFromString(std::string_view xml, char* error,
-                             int error_size) {
-  static constexpr char file[] = "temporary-filename.xml";
-  // mjVFS structs need to be allocated on the heap, because it's ~2MB
-  auto vfs = std::make_unique<mjVFS>();
-  mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, xml.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  memcpy(vfs->filedata[file_idx], xml.data(), xml.size());
-  mjModel* m = mj_loadXML(file, vfs.get(), error, error_size);
-  mj_deleteFileVFS(vfs.get(), file);
-  return m;
-}
-
-mjModel* LoadModelFromBytes(std::string_view mjb) {
-  static constexpr char file[] = "temporary-filename.mjb";
-  // mjVFS structs need to be allocated on the heap, because it's ~2MB
-  auto vfs = std::make_unique<mjVFS>();
-  mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
-  mjModel* m = mj_loadModel(file, vfs.get());
-  mj_deleteFileVFS(vfs.get(), file);
-  return m;
-}
-
 grpc::Status AgentService::Init(grpc::ServerContext* context,
                                 const InitRequest* request,
                                 InitResponse* response) {
-  std::string_view task_id = request->task_id();
   agent_.SetTaskList(tasks_);
+  grpc::Status status = grpc_agent_util::InitAgent(&agent_, request);
+  if (!status.ok()) {
+    return status;
+  }
+  agent_.SetTaskList(tasks_);
+  std::string_view task_id = request->task_id();
   int task_index = agent_.GetTaskIdByName(task_id);
   if (task_index == -1) {
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         absl::StrFormat("Invalid task_id: '%s'", task_id));
   }
-
   agent_.SetTaskByIndex(task_index);
-  // TODO(khartikainen): is this needed?
-  agent_.gui_task_id = task_index;
 
-  mjModel* tmp_model;
-  char load_error[1024] = "";
-
-  if (request->has_model() && request->model().has_mjb()) {
-    std::string_view model_mjb_bytes = request->model().mjb();
-    // TODO(khartikainen): Add error handling for mjb loading.
-    tmp_model = LoadModelFromBytes(model_mjb_bytes);
-  } else if (request->has_model() && request->model().has_xml()) {
-    std::string_view model_xml = request->model().xml();
-    tmp_model = LoadModelFromString(model_xml, load_error, sizeof(load_error));
-  } else {
-    tmp_model = mj_loadXML(agent_.ActiveTask()->XmlPath().c_str(), nullptr,
-                           load_error, sizeof(load_error));
-  }
-
-  if (!tmp_model) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        absl::StrFormat("Model load error: '%s'", load_error));
-  }
-
-  agent_.Initialize(tmp_model);
-  mj_deleteModel(tmp_model);
+  auto load_model = agent_.LoadModel();
+  agent_.Initialize(load_model.model.get());
   agent_.Allocate();
   agent_.Reset();
 

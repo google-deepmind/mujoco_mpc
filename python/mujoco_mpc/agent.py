@@ -82,7 +82,12 @@ class Agent:
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(task_id, model, send_as="mjb", real_time_speed=real_time_speed)
+    self.init(
+        task_id,
+        model,
+        send_as="mjb",
+        real_time_speed=real_time_speed,
+    )
 
   def close(self):
     self.channel.close()

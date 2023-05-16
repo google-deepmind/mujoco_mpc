@@ -172,6 +172,47 @@ int Agent::GetTaskIdByName(std::string_view name) const {
   return -1;
 }
 
+Agent::LoadModelResult Agent::LoadModel() const {
+  // if user specified a custom model, use that.
+  mjModel* mnew = nullptr;
+  constexpr int kErrorLength = 1024;
+  char load_error[kErrorLength] = "";
+
+  if (model_override_) {
+    mnew = mj_copyModel(nullptr, model_override_.get());
+  } else {
+    // otherwise use the task's model
+    std::string filename = tasks_[gui_task_id]->XmlPath();
+    // make sure filename is not empty
+    if (filename.empty()) {
+      return {};
+    }
+
+    if (absl::StrContains(filename, ".mjb")) {
+      mnew = mj_loadModel(filename.c_str(), nullptr);
+      if (!mnew) {
+        mju::strcpy_arr(load_error, "could not load binary model");
+      }
+    } else {
+      mnew = mj_loadXML(filename.c_str(), nullptr, load_error,
+                        kErrorLength);
+      // remove trailing newline character from load_error
+      if (load_error[0]) {
+        int error_length = mju::strlen_arr(load_error);
+        if (load_error[error_length - 1] == '\n') {
+          load_error[error_length - 1] = '\0';
+        }
+      }
+    }
+  }
+  return {.model = {mnew, mj_deleteModel},
+          .error = load_error};
+}
+
+void Agent::OverrideModel(UniqueMjModel model) {
+  model_override_ = std::move(model);
+}
+
 void Agent::SetTaskList(std::vector<std::shared_ptr<Task>> tasks) {
   tasks_ = std::move(tasks);
   std::ostringstream concatenated_task_names;

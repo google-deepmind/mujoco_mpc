@@ -55,9 +55,6 @@ const double syncMisalign = 0.1;
 // fraction of refresh available for simulation
 const double simRefreshFraction = 0.7;
 
-// load error string length
-const int kErrorLength = 1024;
-
 // model and data
 mjModel* m = nullptr;
 mjData* d = nullptr;
@@ -122,43 +119,20 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 
 //--------------------------------- simulation ---------------------------------
 
-mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
-  // make sure filename is not empty
-  if (filename.empty()) {
-    return nullptr;
-  }
-
-  // load and compile
-  char loadError[kErrorLength] = "";
-  mjModel* mnew = 0;
-  if (absl::StrContains(filename, ".mjb")) {
-    mnew = mj_loadModel(filename.c_str(), nullptr);
-    if (!mnew) {
-      mju::strcpy_arr(loadError, "could not load binary model");
-    }
-  } else {
-    mnew = mj_loadXML(filename.c_str(), nullptr, loadError, kErrorLength);
-    // remove trailing newline character from loadError
-    if (loadError[0]) {
-      int error_length = mju::strlen_arr(loadError);
-      if (loadError[error_length - 1] == '\n') {
-        loadError[error_length - 1] = '\0';
-      }
-    }
-  }
-
-  mju::strcpy_arr(sim.load_error, loadError);
+mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
+  mjpc::Agent::LoadModelResult load_model = sim.agent->LoadModel();
+  mjModel* mnew = load_model.model.release();
+  mju::strcpy_arr(sim.load_error, load_model.error.c_str());
 
   if (!mnew) {
-    std::printf("%s\n", loadError);
+    std::cout << load_model.error << "\n";
     return nullptr;
   }
 
   // compiler warning: print and pause
-  if (loadError[0]) {
-    // mj_forward() below will print the warning message
-    std::printf("Model compiled, but simulation warning (paused):\n  %s\n",
-                loadError);
+  if (load_model.error.length()) {
+    std::cout << "Model compiled, but simulation warning (paused):\n  "
+              << load_model.error << "\n";
     sim.run = 0;
   }
 
@@ -174,23 +148,7 @@ void PhysicsLoop(mj::Simulate& sim) {
   // run until asked to exit
   while (!sim.exitrequest.load()) {
     if (sim.droploadrequest.load()) {
-      mjModel* mnew = LoadModel(sim.dropfilename, sim);
-      sim.droploadrequest.store(false);
-
-      mjData* dnew = nullptr;
-      if (mnew) dnew = mj_makeData(mnew);
-      if (dnew) {
-        sim.Load(mnew, dnew, sim.dropfilename.c_str(), true);
-
-        m = mnew;
-        d = dnew;
-        mj_forward(m, d);
-
-        // allocate ctrlnoise
-        free(ctrlnoise);
-        ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
-        mju_zero(ctrlnoise, m->nu);
-      }
+      // TODO(nimrod): Implement drag and drop support in MJPC
     }
 
     // ----- task reload ----- //
@@ -198,7 +156,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       // get new model + task
       sim.filename = sim.agent->GetTaskXmlPath(sim.agent->gui_task_id);
 
-      mjModel* mnew = LoadModel(sim.filename, sim);
+      mjModel* mnew = LoadModel(sim.agent.get(), sim);
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
@@ -385,7 +343,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   }
 
   sim->filename = sim->agent->GetTaskXmlPath(sim->agent->gui_task_id);
-  m = LoadModel(sim->filename, *sim);
+  m = LoadModel(sim->agent.get(), *sim);
   if (m) d = mj_makeData(m);
 
   // set home keyframe

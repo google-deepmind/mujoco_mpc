@@ -34,6 +34,9 @@ grpc::Status SetTaskParameters(const agent::SetTaskParametersRequest* request,
 grpc::Status SetCostWeights(const agent::SetCostWeightsRequest* request,
                             mjpc::Agent* agent);
 
+// set up the task and model on the agent so that the next call to
+// agent.LoadModel returns any custom model, or the relevant task model.
+grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request);
 }  // namespace grpc_agent_util
 
 #endif  // GRPC_GRPC_GRPC_AGENT_UTIL_H_

@@ -18,7 +18,6 @@
 #include <string_view>
 #include <vector>
 
-#include <absl/strings/str_format.h>
 #include <absl/synchronization/notification.h>
 #include <absl/time/time.h>
 #include <grpcpp/server_context.h>
@@ -29,6 +28,7 @@
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"
 #include "mjpc/agent.h"
+#include "mjpc/utilities.h"
 
 namespace agent_grpc {
 
@@ -50,21 +50,15 @@ using ::agent::SetTaskParametersRequest;
 using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
+using ::mjpc::UniqueMjModel;
 
 grpc::Status UiAgentService::Init(grpc::ServerContext* context,
                                   const InitRequest* request,
                                   InitResponse* response) {
-  if (request->has_model()) {
-    return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
-                        "passing a custom model is not supported.");
+  grpc::Status status = grpc_agent_util::InitAgent(sim_->agent.get(), request);
+  if (!status.ok()) {
+    return status;
   }
-  std::string_view task_id = request->task_id();
-  int task_index = sim_->agent->GetTaskIdByName(task_id);
-  if (task_index == -1) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        absl::StrFormat("Invalid task_id: '%s'", task_id));
-  }
-  sim_->agent->gui_task_id = task_index;
   // fake a UI event where the task changes
   // TODO(nimrod): get rid of this hack
   mjuiItem it = {0};

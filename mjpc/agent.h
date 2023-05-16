@@ -17,6 +17,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,6 +29,7 @@
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 
@@ -113,6 +115,18 @@ class Agent {
   int GetTaskIdByName(std::string_view name) const;
   std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
 
+  // load the latest task model, based on GUI settings
+  struct LoadModelResult {
+    UniqueMjModel model{nullptr, mj_deleteModel};
+    std::string error;
+  };
+  LoadModelResult LoadModel() const;
+
+  // Sets a custom model (not from the task), to be returned by the next
+  // call to LoadModel. Passing nullptr model clears the override and will
+  // return the normal task's model.
+  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
+
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
@@ -151,6 +165,8 @@ class Agent {
  private:
   // model
   mjModel* model_ = nullptr;
+
+  UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 
   // integrator
   int integrator_;

@@ -151,6 +151,11 @@ class Agent {
   int SetSelectionParamByName(std::string_view name, std::string_view value);
   // returns weight index, or -1 if not found.
   int SetWeightByName(std::string_view name, double value);
+  // returns mode index, or -1 if not found.
+  int SetModeByName(std::string_view name);
+
+  std::vector<std::string> GetAllModeNames() const;
+  std::string GetModeName() const;
 
   int max_threads() const { return max_threads_;}
 

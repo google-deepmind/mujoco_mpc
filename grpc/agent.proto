@@ -39,6 +39,10 @@ service Agent {
   // Get cost term values.
   rpc GetCostValuesAndWeights(GetCostValuesAndWeightsRequest)
       returns (GetCostValuesAndWeightsResponse);
+  // Set mode.
+  rpc SetMode(SetModeRequest) returns (SetModeResponse);
+  // Get mode.
+  rpc GetMode(GetModeRequest) returns (GetModeResponse);
 }
 
 message MjModel {
@@ -127,3 +131,14 @@ message SetCostWeightsRequest {
   map<string, double> cost_weights = 2;
 }
 message SetCostWeightsResponse {}
+
+message GetModeRequest {}
+
+message GetModeResponse {
+  string mode = 1;
+}
+
+message SetModeRequest {
+  string mode = 1;
+}
+message SetModeResponse {}

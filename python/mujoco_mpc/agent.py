@@ -269,3 +269,10 @@ class Agent:
         cost_weights=weights, reset_to_defaults=reset_to_defaults
     )
     self.stub.SetCostWeights(request)
+
+  def get_mode(self) -> str:
+    return self.stub.GetMode(agent_pb2.GetModeRequest()).mode
+
+  def set_mode(self, mode: str):
+    request = agent_pb2.SetModeRequest(mode=mode)
+    self.stub.SetMode(request)

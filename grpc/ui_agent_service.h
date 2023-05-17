@@ -72,6 +72,16 @@ class UiAgentService final : public agent::Agent::Service {
                               const agent::SetCostWeightsRequest* request,
                               agent::SetCostWeightsResponse* response) override;
 
+  grpc::Status SetMode(
+      grpc::ServerContext* context,
+      const agent::SetModeRequest* request,
+      agent::SetModeResponse* response) override;
+
+  grpc::Status GetMode(
+      grpc::ServerContext* context,
+      const agent::GetModeRequest* request,
+      agent::GetModeResponse* response) override;
+
  private:
   using StatusStepJob =
       absl::AnyInvocable<grpc::Status(mjpc::Agent*, const mjModel*, mjData*)>;

@@ -91,16 +91,19 @@ add_executable(
   ${agent_service_proto_srcs}
   ${agent_service_proto_hdrs}
   agent_service.h
-  agent_service.cc)
+  agent_service.cc
+  grpc_agent_util.h
+  grpc_agent_util.cc)
 
 target_link_libraries(
   agent_server
   # agent_service_grpc_proto
-  absl::random_random
-  absl::status
+  absl::check
   absl::flags
   absl::flags_parse
   absl::log
+  absl::random_random
+  absl::status
   absl::strings
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
@@ -109,6 +112,43 @@ target_link_libraries(
   libmjpc
 )
 target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-message(MJPC_COMPILE_OPTIONS=${MJPC_COMPILE_OPTIONS})
+message(AGENT_SERVICE_COMPILE_OPTIONS=${AGENT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
+
+add_executable(
+  ui_agent_server
+  ui_agent_server.cc
+  ${agent_service_grpc_srcs}
+  ${agent_service_grpc_hdrs}
+  ${agent_service_proto_srcs}
+  ${agent_service_proto_hdrs}
+  grpc_agent_util.h
+  grpc_agent_util.cc
+  ui_agent_service.h
+  ui_agent_service.cc)
+
+target_link_libraries(
+  ui_agent_server
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  ${_REFLECTION}
+  absl::check
+  absl::flags
+  absl::flags_parse
+  absl::log
+  absl::random_random
+  absl::status
+  absl::strings
+  glfw
+  libmjpc
+  lodepng
+  mujoco::mujoco
+  mujoco::platform_ui_adapter
+  threadpool
+  Threads::Threads
+)
+target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
+target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
+

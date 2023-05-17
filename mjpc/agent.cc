@@ -18,9 +18,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <iostream>
+#include <mutex>
 #include <string>
 #include <sstream>
 
@@ -173,6 +172,47 @@ int Agent::GetTaskIdByName(std::string_view name) const {
   return -1;
 }
 
+Agent::LoadModelResult Agent::LoadModel() const {
+  // if user specified a custom model, use that.
+  mjModel* mnew = nullptr;
+  constexpr int kErrorLength = 1024;
+  char load_error[kErrorLength] = "";
+
+  if (model_override_) {
+    mnew = mj_copyModel(nullptr, model_override_.get());
+  } else {
+    // otherwise use the task's model
+    std::string filename = tasks_[gui_task_id]->XmlPath();
+    // make sure filename is not empty
+    if (filename.empty()) {
+      return {};
+    }
+
+    if (absl::StrContains(filename, ".mjb")) {
+      mnew = mj_loadModel(filename.c_str(), nullptr);
+      if (!mnew) {
+        mju::strcpy_arr(load_error, "could not load binary model");
+      }
+    } else {
+      mnew = mj_loadXML(filename.c_str(), nullptr, load_error,
+                        kErrorLength);
+      // remove trailing newline character from load_error
+      if (load_error[0]) {
+        int error_length = mju::strlen_arr(load_error);
+        if (load_error[error_length - 1] == '\n') {
+          load_error[error_length - 1] = '\0';
+        }
+      }
+    }
+  }
+  return {.model = {mnew, mj_deleteModel},
+          .error = load_error};
+}
+
+void Agent::OverrideModel(UniqueMjModel model) {
+  model_override_ = std::move(model);
+}
+
 void Agent::SetTaskList(std::vector<std::shared_ptr<Task>> tasks) {
   tasks_ = std::move(tasks);
   std::ostringstream concatenated_task_names;
@@ -199,6 +239,11 @@ void Agent::PlanIteration(ThreadPool* pool) {
     // set state
     ActivePlanner().SetState(ActiveState());
 
+    // copy the task's residual function parameters into a new object, which
+    // remains constant during planning and doesn't require locking from the
+    // rollout threads
+    residual_fn_ = ActiveTask()->Residual();
+
     if (plan_enabled) {
       // planner policy
       ActivePlanner().OptimizePolicy(steps_, *pool);
@@ -218,6 +263,9 @@ void Agent::PlanIteration(ThreadPool* pool) {
       // set timers
       agent_compute_time_ = 0.0;
     }
+
+    // release the planning residual function
+    residual_fn_.reset();
   }
 }
 
@@ -235,7 +283,38 @@ void Agent::Plan(std::atomic<bool>& exitrequest,
   }  // exitrequest sent -- stop planning
 }
 
+void Agent::RunBeforeStep(StepJob job) {
+  std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+  step_jobs_.push_back(std::move(job));
+}
+
+void Agent::ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data) {
+  while (true) {
+      StepJob step_job;
+      {
+        // only hold the lock while reading from the queue and not while
+        // executing the jobs
+        std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+        if (step_jobs_.empty()) {
+          break;
+        }
+        step_job = std::move(step_jobs_.front());
+        step_jobs_.pop_front();
+      }
+      step_job(this, model, data);
+    }
+}
+
 int Agent::SetParamByName(std::string_view name, double value) {
+  if (absl::StartsWith(name, "residual_")) {
+    name = absl::StripPrefix(name, "residual_");
+  }
+  if (absl::StartsWith(name, "selection_")) {
+    mju_warning(
+        "SetParamByName should not be used with selection_ parameters. Use "
+        "SetSelectionParamByName.");
+    return -1;
+  }
   int shift = 0;
   for (int i = 0; i < model_->nnumeric; i++) {
     std::string_view numeric_name(model_->names + model_->name_numericadr[i]);
@@ -243,6 +322,31 @@ int Agent::SetParamByName(std::string_view name, double value) {
       if (absl::EqualsIgnoreCase(absl::StripPrefix(numeric_name, "residual_"),
                                  name)) {
         ActiveTask()->parameters[shift] = value;
+        return i;
+      } else {
+        shift++;
+      }
+    }
+  }
+  return -1;
+}
+
+int Agent::SetSelectionParamByName(std::string_view name,
+                                   std::string_view value) {
+  if (absl::StartsWith(name, "residual_select_")) {
+    name = absl::StripPrefix(name, "residual_select_");
+  }
+  if (absl::StartsWith(name, "selection_")) {
+    name = absl::StripPrefix(name, "selection_");
+  }
+  int shift = 0;
+  for (int i = 0; i < model_->nnumeric; i++) {
+    std::string_view numeric_name(model_->names + model_->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_select_")) {
+      if (absl::EqualsIgnoreCase(
+              absl::StripPrefix(numeric_name, "residual_select_"), name)) {
+        ActiveTask()->parameters[shift] =
+            ResidualParameterFromSelection(model_, name, value);
         return i;
       } else {
         shift++;

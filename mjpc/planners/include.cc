@@ -21,6 +21,7 @@
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/ilqs/planner.h"
 #include "mjpc/planners/planner.h"
+#include "mjpc/planners/robust/robust_planner.h"
 #include "mjpc/planners/sampling/planner.h"
 
 namespace mjpc {
@@ -28,7 +29,8 @@ const char kPlannerNames[] =
     "Sampling\n"
     "Gradient\n"
     "iLQG\n"
-    "iLQS";
+    "iLQS\n"
+    "Robust Sampling";
 
 // load all available planners
 std::vector<std::unique_ptr<mjpc::Planner>> LoadPlanners() {
@@ -39,6 +41,8 @@ std::vector<std::unique_ptr<mjpc::Planner>> LoadPlanners() {
   planners.emplace_back(new mjpc::GradientPlanner);
   planners.emplace_back(new mjpc::iLQGPlanner);
   planners.emplace_back(new mjpc::iLQSPlanner);
+  planners.emplace_back(
+      new RobustPlanner(std::make_unique<mjpc::SamplingPlanner>()));
   return planners;
 }
 

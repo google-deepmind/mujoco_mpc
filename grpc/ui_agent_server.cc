@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Startup code for `Agent` server.
+// A version of the MJPC UI that serves the AgentService API.
 
 #include <cstdint>
 #include <memory>
@@ -22,12 +22,15 @@
 #include <absl/flags/flag.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
+#include <absl/time/clock.h>
+#include <absl/time/time.h>
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-#include "grpc/agent_service.h"
+#include "mjpc/app.h"
 #include "mjpc/tasks/tasks.h"
+#include "grpc/ui_agent_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 
@@ -42,14 +45,16 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  agent_grpc::AgentService service(mjpc::GetTasks());
+  mjpc::MjpcApp app(mjpc::GetTasks());
+  agent_grpc::UiAgentService service(app.Sim());
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
   LOG(INFO) << "Server listening on " << server_address;
 
-  // Keep the program running until the server shuts down.
+  app.Start();
+  server->Shutdown(absl::ToChronoTime(absl::Now() + absl::Seconds(1)));
   server->Wait();
 
   return 0;

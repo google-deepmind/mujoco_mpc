@@ -19,25 +19,23 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <absl/flags/flag.h>
-#include <absl/flags/parse.h>
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <glfw_adapter.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/agent.h"
-#include "mjpc/planners/include.h"
 #include "mjpc/simulate.h"  // mjpc fork
+#include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
@@ -56,9 +54,6 @@ const double syncMisalign = 0.1;
 
 // fraction of refresh available for simulation
 const double simRefreshFraction = 0.7;
-
-// load error string length
-const int kErrorLength = 1024;
 
 // model and data
 mjModel* m = nullptr;
@@ -107,52 +102,37 @@ void sensor(const mjModel* m, mjData* d, int stage);
 void sensor(const mjModel* model, mjData* data, int stage) {
   if (stage == mjSTAGE_ACC) {
     if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0) {
-      // users sensors must be ordered first and sequentially
-      sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
+      if (sim->agent->IsPlanningModel(model)) {
+        // the planning thread and rollout threads don't need
+        // synchronization when using PlanningResidual.
+        const mjpc::ResidualFn* residual = sim->agent->PlanningResidual();
+        residual->Residual(model, data, data->sensordata);
+      } else {
+        // this residual is used by the physics thread and the UI thread (for
+        // plots), and is run with a shared lock, to safely run with changes to
+        // weights and parameters
+        sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
+      }
     }
   }
 }
 
 //--------------------------------- simulation ---------------------------------
 
-mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
-  // make sure filename is not empty
-  if (filename.empty()) {
-    return nullptr;
-  }
-
-  // load and compile
-  char loadError[kErrorLength] = "";
-  mjModel* mnew = 0;
-  if (absl::StrContains(filename, ".mjb")) {
-    mnew = mj_loadModel(filename.c_str(), nullptr);
-    if (!mnew) {
-      mju::strcpy_arr(loadError, "could not load binary model");
-    }
-  } else {
-    mnew = mj_loadXML(filename.c_str(), nullptr, loadError,
-                      mj::Simulate::kMaxFilenameLength);
-    // remove trailing newline character from loadError
-    if (loadError[0]) {
-      int error_length = mju::strlen_arr(loadError);
-      if (loadError[error_length - 1] == '\n') {
-        loadError[error_length - 1] = '\0';
-      }
-    }
-  }
-
-  mju::strcpy_arr(sim.load_error, loadError);
+mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
+  mjpc::Agent::LoadModelResult load_model = sim.agent->LoadModel();
+  mjModel* mnew = load_model.model.release();
+  mju::strcpy_arr(sim.load_error, load_model.error.c_str());
 
   if (!mnew) {
-    std::printf("%s\n", loadError);
+    std::cout << load_model.error << "\n";
     return nullptr;
   }
 
   // compiler warning: print and pause
-  if (loadError[0]) {
-    // mj_forward() below will print the warning message
-    std::printf("Model compiled, but simulation warning (paused):\n  %s\n",
-                loadError);
+  if (load_model.error.length()) {
+    std::cout << "Model compiled, but simulation warning (paused):\n  "
+              << load_model.error << "\n";
     sim.run = 0;
   }
 
@@ -161,30 +141,14 @@ mjModel* LoadModel(std::string filename, mj::Simulate& sim) {
 
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
-  // cpu-sim syncronization point
+  // cpu-sim synchronization point
   std::chrono::time_point<mj::Simulate::Clock> syncCPU;
   mjtNum syncSim = 0;
 
   // run until asked to exit
   while (!sim.exitrequest.load()) {
     if (sim.droploadrequest.load()) {
-      mjModel* mnew = LoadModel(sim.dropfilename, sim);
-      sim.droploadrequest.store(false);
-
-      mjData* dnew = nullptr;
-      if (mnew) dnew = mj_makeData(mnew);
-      if (dnew) {
-        sim.Load(mnew, dnew, sim.dropfilename.c_str(), true);
-
-        m = mnew;
-        d = dnew;
-        mj_forward(m, d);
-
-        // allocate ctrlnoise
-        free(ctrlnoise);
-        ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
-        mju_zero(ctrlnoise, m->nu);
-      }
+      // TODO(nimrod): Implement drag and drop support in MJPC
     }
 
     // ----- task reload ----- //
@@ -192,7 +156,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       // get new model + task
       sim.filename = sim.agent->GetTaskXmlPath(sim.agent->gui_task_id);
 
-      mjModel* mnew = LoadModel(sim.filename, sim);
+      mjModel* mnew = LoadModel(sim.agent.get(), sim);
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
@@ -290,6 +254,7 @@ void PhysicsLoop(mj::Simulate& sim) {
             sim.ApplyForcePerturbations();
 
             // run single step, let next iteration deal with timing
+            sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
             mj_step(m, d);
           } else {  // in-sync: step until ahead of cpu
             bool measured = false;
@@ -312,6 +277,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               sim.ApplyForcePerturbations();
 
               // call mj_step
+              sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
               mj_step(m, d);
 
               // break if reset
@@ -323,6 +289,9 @@ void PhysicsLoop(mj::Simulate& sim) {
         } else {  // paused
           // apply pose perturbation
           sim.ApplyPosePerturbations(1);  // move mocap and dynamic bodies
+
+          // still accept jobs when simulation is paused
+          sim.agent->ExecuteAllRunBeforeStepJobs(m, d);
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
@@ -342,8 +311,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
 namespace mjpc {
 
-// run event loop
-void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   std::printf("MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
@@ -352,6 +320,10 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   // threads
   printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
 
+  if (sim != nullptr) {
+    mju_error("Multiple instances of MjpcApp created.");
+    return;
+  }
   sim = std::make_unique<mj::Simulate>(
       std::make_unique<mujoco::GlfwAdapter>(),
       std::make_shared<Agent>());
@@ -371,7 +343,7 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   }
 
   sim->filename = sim->agent->GetTaskXmlPath(sim->agent->gui_task_id);
-  m = LoadModel(sim->filename, *sim);
+  m = LoadModel(sim->agent.get(), *sim);
   if (m) d = mj_makeData(m);
 
   // set home keyframe
@@ -400,11 +372,19 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       [&](float a, float b) {
         return std::abs(a - desired_percent) < std::abs(b - desired_percent);
       });
-  sim->real_time_index = std::distance(std::begin(sim->percentRealTime), closest);
+  sim->real_time_index =
+      std::distance(std::begin(sim->percentRealTime), closest);
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;
+}
 
+MjpcApp::~MjpcApp() {
+  sim.reset();
+}
+
+// run event loop
+void MjpcApp::Start() {
   // planning threads
   printf("Agent threads: %i\n", sim->agent->max_threads());
 
@@ -431,8 +411,14 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
     // start simulation UI loop (blocking call)
     sim->RenderLoop();
   }
+}
 
-  // destroy the Simulate instance
-  sim.reset();
+mj::Simulate* MjpcApp::Sim() {
+  return sim.get();
+}
+
+void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+  MjpcApp app(std::move(tasks), task_id);
+  app.Start();
 }
 }  // namespace mjpc

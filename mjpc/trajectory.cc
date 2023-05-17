@@ -18,6 +18,8 @@
 #include <functional>
 #include <iostream>
 
+#include <absl/random/distributions.h>
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
@@ -86,6 +88,15 @@ void Trajectory::Rollout(
         policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
     double time, const double* mocap, const double* userdata, int steps) {
+  NoisyRollout(policy, task, model, data, state, time, mocap, userdata,
+               /*xfrc_std=*/0, /*xfrc_rate=*/1, steps);
+}
+void Trajectory::NoisyRollout(
+    std::function<void(double* action, const double* state, double time)>
+        policy,
+    const Task* task, const mjModel* model, mjData* data, const double* state,
+    double time, const double* mocap, const double* userdata, double xfrc_std,
+    double xfrc_rate, int steps) {
   // reset failure flag
   failure = false;
 
@@ -119,10 +130,23 @@ void Trajectory::Rollout(
   times[0] = time;
   data->time = time;
 
+  absl::BitGen gen;
+
   for (int t = 0; t < horizon - 1; t++) {
     // set action
     policy(DataAt(actions, t * nu), DataAt(states, t * dim_state), data->time);
     mju_copy(data->ctrl, DataAt(actions, t * nu), nu);
+
+    // apply perturbation
+    if (xfrc_std > 0) {
+      // convert rate and scale to discrete time (Ornstein–Uhlenbeck)
+      mjtNum rate = mju_exp(-model->opt.timestep / xfrc_rate);
+      mjtNum scale = xfrc_std * mju_sqrt(1 - rate * rate);
+      for (int i = 0; i < 6*model->nbody; i++) {
+        data->xfrc_applied[i] = rate * data->xfrc_applied[i] +
+                                absl::Gaussian<mjtNum>(gen, 0, scale);
+      }
+    }
 
     // step
     mj_step(model, data);

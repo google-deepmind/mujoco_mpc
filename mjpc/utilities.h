@@ -243,6 +243,11 @@ inline UniqueMjData MakeUniqueMjData(mjData* d) {
   return UniqueMjData(d, mj_deleteData);
 }
 
+using UniqueMjModel = std::unique_ptr<mjModel, void (*)(mjModel*)>;
+
+inline UniqueMjModel MakeUniqueMjModel(mjModel* d) {
+  return UniqueMjModel(d, mj_deleteModel);
+}
 
 // returns point in 2D convex hull that is nearest to query
 void NearestInHull(mjtNum res[2], const mjtNum query[2],

@@ -79,7 +79,7 @@ class AgentServiceTest : public ::testing::Test {
 };
 
 TEST_F(AgentServiceTest, Init_WithoutModel) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 }
 
 TEST_F(AgentServiceTest, Init_WithModel) {
@@ -87,7 +87,7 @@ TEST_F(AgentServiceTest, Init_WithModel) {
 }
 
 TEST_F(AgentServiceTest, SetState_Works) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
   grpc::ClientContext set_state_context;
 
@@ -103,7 +103,7 @@ TEST_F(AgentServiceTest, SetState_Works) {
 }
 
 TEST_F(AgentServiceTest, SetState_WrongSize) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
   grpc::ClientContext set_state_context;
 
@@ -122,43 +122,43 @@ TEST_F(AgentServiceTest, SetState_WrongSize) {
 }
 
 TEST_F(AgentServiceTest, PlannerStep_ProducesNonzeroAction) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
-  grpc::ClientContext set_task_parameter_context;
+  {
+    grpc::ClientContext context;
+    agent::SetTaskParametersRequest request;
+    (*request.mutable_parameters())["Goal"].set_numeric(-1.0);
+    agent::SetTaskParametersResponse response;
+    grpc::Status status = stub->SetTaskParameters(&context, request, &response);
 
-  agent::SetTaskParameterRequest set_task_parameter_request;
-  set_task_parameter_request.set_name("Goal");
-  set_task_parameter_request.set_value(-1.0);
-  agent::SetTaskParameterResponse set_task_parameter_response;
-  grpc::Status set_task_parameter_status = stub->SetTaskParameter(
-      &set_task_parameter_context, set_task_parameter_request,
-      &set_task_parameter_response);
+    EXPECT_TRUE(status.ok());
+  }
 
-  EXPECT_TRUE(set_task_parameter_status.ok());
+  {
+    grpc::ClientContext context;
 
-  grpc::ClientContext planner_step_context;
+    agent::PlannerStepRequest request;
+    agent::PlannerStepResponse response;
+    grpc::Status status = stub->PlannerStep(&context, request, &response);
 
-  agent::PlannerStepRequest planner_step_request;
-  agent::PlannerStepResponse planner_step_response;
-  grpc::Status planner_step_status = stub->PlannerStep(
-      &planner_step_context, planner_step_request, &planner_step_response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
 
-  EXPECT_TRUE(planner_step_status.ok()) << planner_step_status.error_message();
+  {
+    grpc::ClientContext context;
 
-  grpc::ClientContext get_action_context;
+    agent::GetActionRequest request;
+    agent::GetActionResponse response;
+    grpc::Status status = stub->GetAction(&context, request, &response);
 
-  agent::GetActionRequest get_action_request;
-  agent::GetActionResponse get_action_response;
-  grpc::Status get_action_status = stub->GetAction(
-      &get_action_context, get_action_request, &get_action_response);
-
-  EXPECT_TRUE(get_action_status.ok()) << get_action_status.error_message();
-  EXPECT_EQ(get_action_response.action().size(), 1);
-  EXPECT_TRUE(get_action_response.action()[0] != 0.0);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    EXPECT_EQ(response.action().size(), 1);
+    EXPECT_TRUE(response.action()[0] != 0.0);
+  }
 }
 
 TEST_F(AgentServiceTest, Step_AdvancesTime) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
   agent::State initial_state;
   {
@@ -171,11 +171,10 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
 
   {
     grpc::ClientContext context;
-    agent::SetTaskParameterRequest request;
-    request.set_name("Goal");
-    request.set_value(-1.0);
-    agent::SetTaskParameterResponse response;
-    EXPECT_TRUE(stub->SetTaskParameter(&context, request, &response).ok());
+    agent::SetTaskParametersRequest request;
+    (*request.mutable_parameters())["Goal"].set_numeric(-1.0);
+    agent::SetTaskParametersResponse response;
+    EXPECT_TRUE(stub->SetTaskParameters(&context, request, &response).ok());
   }
 
   {
@@ -185,6 +184,45 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
     grpc::Status status = stub->PlannerStep(&context, request, &response);
 
     EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  for (int i = 0; i < 3; i++) {
+    grpc::ClientContext context;
+    agent::StepRequest request;
+    agent::StepResponse response;
+    grpc::Status status = stub->Step(&context, request, &response);
+
+    EXPECT_TRUE(status.ok()) << status.error_message();
+  }
+
+  agent::State final_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    final_state = response.state();
+  }
+  double cartpole_timestep = 0.001;
+  EXPECT_DOUBLE_EQ(final_state.time() - initial_state.time(),
+                   3 * cartpole_timestep);
+}
+
+TEST_F(AgentServiceTest, Step_CallsTransition) {
+  // the goal position changes on every timestep in the Particle task, but only
+  // if Transition is called.
+
+  RunAndCheckInit("Particle", nullptr);
+
+  agent::State initial_state;
+  {
+    grpc::ClientContext context;
+    agent::GetStateRequest request;
+    agent::GetStateResponse response;
+    grpc::Status status = stub->GetState(&context, request, &response);
+    EXPECT_TRUE(status.ok()) << status.error_message();
+    initial_state = response.state();
   }
 
   {
@@ -205,27 +243,38 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
     EXPECT_TRUE(status.ok()) << status.error_message();
     final_state = response.state();
   }
-  EXPECT_GT(final_state.time(), initial_state.time());
+  EXPECT_NE(final_state.mocap_pos()[0], initial_state.mocap_pos()[0])
+      << "mocap_pos stayed constant. Was Transition called?";
 }
 
-TEST_F(AgentServiceTest, SetTaskParameter_Works) {
-  RunAndCheckInit("Cartpole", NULL);
+TEST_F(AgentServiceTest, SetTaskParameters_Numeric) {
+  RunAndCheckInit("Cartpole", nullptr);
 
-  grpc::ClientContext set_task_parameter_context;
+  grpc::ClientContext context;
 
-  agent::SetTaskParameterRequest set_task_parameter_request;
-  set_task_parameter_request.set_name("Goal");
-  set_task_parameter_request.set_value(16.0);
-  agent::SetTaskParameterResponse set_task_parameter_response;
-  grpc::Status set_task_parameter_status = stub->SetTaskParameter(
-      &set_task_parameter_context, set_task_parameter_request,
-      &set_task_parameter_response);
+  agent::SetTaskParametersRequest request;
+  (*request.mutable_parameters())["Goal"].set_numeric(16.0);
+  agent::SetTaskParametersResponse response;
+  grpc::Status status = stub->SetTaskParameters(&context, request, &response);
 
-  EXPECT_TRUE(set_task_parameter_status.ok());
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(AgentServiceTest, SetTaskParameters_Select) {
+  RunAndCheckInit("Quadruped Flat", nullptr);
+
+  grpc::ClientContext context;
+
+  agent::SetTaskParametersRequest request;
+  (*request.mutable_parameters())["Gait"].set_selection("Trot");
+  agent::SetTaskParametersResponse response;
+  grpc::Status status = stub->SetTaskParameters(&context, request, &response);
+
+  EXPECT_TRUE(status.ok()) << status.error_message();
 }
 
 TEST_F(AgentServiceTest, SetCostWeights_Works) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
   grpc::ClientContext context;
 
@@ -239,7 +288,7 @@ TEST_F(AgentServiceTest, SetCostWeights_Works) {
 }
 
 TEST_F(AgentServiceTest, SetCostWeights_RejectsInvalidName) {
-  RunAndCheckInit("Cartpole", NULL);
+  RunAndCheckInit("Cartpole", nullptr);
 
   grpc::ClientContext context;
 

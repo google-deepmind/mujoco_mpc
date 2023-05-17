@@ -14,7 +14,6 @@
 
 #include "mjpc/tasks/humanoid/stand/stand.h"
 
-#include <iostream>
 #include <string>
 
 #include <mujoco/mujoco.h>
@@ -22,12 +21,14 @@
 #include "mjpc/utilities.h"
 
 
-namespace mjpc {
+namespace mjpc::humanoid {
 
-std::string humanoid::Stand::XmlPath() const {
+std::string Stand::XmlPath() const {
   return GetModelPath("humanoid/stand/task.xml");
 }
-std::string humanoid::Stand::Name() const { return "Humanoid Stand"; }
+std::string Stand::Name() const { return "Humanoid Stand"; }
+
+Stand::ResidualFn::ResidualFn(const Stand* task) : mjpc::BaseResidualFn(task) {}
 
 // ------------------ Residuals for humanoid stand task ------------
 //   Number of residuals: 6
@@ -39,8 +40,8 @@ std::string humanoid::Stand::Name() const { return "Humanoid Stand"; }
 //   Number of parameters: 1
 //     Parameter (0): height_goal
 // ----------------------------------------------------------------
-void humanoid::Stand::Residual(const mjModel* model,
-                               const mjData* data, double* residual) const {
+void Stand::ResidualFn::Residual(const mjModel* model, const mjData* data,
+                                 double* residual) const {
   int counter = 0;
 
   // ----- Height: head feet vertical error ----- //
@@ -54,7 +55,7 @@ void humanoid::Stand::Residual(const mjModel* model,
   double head_feet_error =
       head_position[2] - 0.25 * (f1_position[2] + f2_position[2] +
                                  f3_position[2] + f4_position[2]);
-  residual[counter++] = head_feet_error - parameters[0];
+  residual[counter++] = head_feet_error - parameters_[0];
 
   // ----- Balance: CoM-feet xy error ----- //
 
@@ -105,4 +106,4 @@ void humanoid::Stand::Residual(const mjModel* model,
   }
 }
 
-}  // namespace mjpc
+}  // namespace mjpc::humanoid

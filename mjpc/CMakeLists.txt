@@ -114,6 +114,7 @@ add_library(
 )
 set_target_properties(libmjpc PROPERTIES OUTPUT_NAME mjpc)
 target_compile_options(libmjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
+target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
   absl::any_invocable

@@ -54,6 +54,8 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     `import [agent_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
+    from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
+
     agent_proto_filename = "agent.proto"
     agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
     assert self.build_lib is not None
@@ -68,18 +70,21 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     shutil.copy(agent_proto_source_path, agent_proto_destination_path)
 
     protoc_command_parts = [
+        __file__,
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",
         f"--grpc_python_out={build_lib_path}",
-        agent_proto_destination_path
+        str(agent_proto_destination_path),
     ]
-    # Instead of `self.spawn`, this should be runnable directly as
-    # `grpc_tools.protoc.main(protoc_command_parts)`, but that seems to fail
-    # on MacOS for some reason, most likely because of the lack of explicit
-    # `protoc.py` included by the script-version of `protoc`.
-    self.spawn([
-        "python", "-m", "grpc_tools.protoc", *protoc_command_parts
-    ])
+
+    protoc_returncode = protoc.main(protoc_command_parts)
+
+    if protoc_returncode != 0:
+      raise subprocess.CalledProcessError(
+        returncode=protoc_returncode,
+        cmd=f"`protoc.main({protoc_command_parts})`",
+      )
+
     self.spawn([
         "touch", str(agent_proto_destination_path.parent / "__init__.py")
     ])
@@ -239,7 +244,7 @@ class BuildCMakeExtension(build_ext.build_ext):
         [
             cmake_command,
             "--build",
-            mujoco_mpc_build_dir.resolve(),
+            str(mujoco_mpc_build_dir.resolve()),
             "--target",
             "agent_server",
             "ui_agent_server",

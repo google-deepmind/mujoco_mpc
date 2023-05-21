@@ -33,7 +33,7 @@ TEST(ForceResidual, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // ----- configurations ----- //
   int T = 5;
@@ -166,7 +166,7 @@ TEST(ForceResidual, Box) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
@@ -319,7 +319,7 @@ TEST(ForceCost, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // initial configuration
   double qpos0[4] = {0.1, 0.3, -0.01, 0.25};
@@ -469,7 +469,7 @@ TEST(ForceCost, Box) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};

@@ -35,7 +35,7 @@ TEST(BatchOptimize, Particle2D) {
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
   // threadpool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // ----- simulate ----- //
 
@@ -162,7 +162,7 @@ TEST(BatchOptimize, Box3D) {
   int ns = model->nsensordata;
 
   // pool 
-  ThreadPool pool(1);
+  ThreadPool pool(2);
 
   // ----- simulate ----- //
   // trajectories

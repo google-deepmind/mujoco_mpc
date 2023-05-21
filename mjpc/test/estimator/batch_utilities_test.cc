@@ -19,6 +19,7 @@
 #include "gtest/gtest.h"
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -28,6 +29,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // load model
   mjModel* model = LoadTestModel("particle2D.xml");
   mjData* data = mj_makeData(model);
+
+  // threadpool 
+  ThreadPool pool(2);
 
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
@@ -118,6 +122,10 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mjModel* model = LoadTestModel("box3D.xml");
   mjData* data = mj_makeData(model);
 
+  // threadpool 
+  ThreadPool pool(2);
+
+  // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
   // ----- simulate ----- //

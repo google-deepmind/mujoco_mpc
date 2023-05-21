@@ -258,7 +258,7 @@ void Estimator::Reset() {
   timer_search_direction_ = 0.0;
   timer_line_search_ = 0.0;
 
-  // status 
+  // status
   iterations_smoother_ = 0;
   iterations_line_search_ = 0;
 }
@@ -879,7 +879,7 @@ void Estimator::Optimize() {
   double timer_cost_hessian = 0.0;
   double timer_cost_derivatives = 0.0;
   double timer_search_direction = 0.0;
-  double timer_line_search = 0.0;  
+  double timer_line_search = 0.0;
 
   // compute cost
   double cost_prior = MAX_ESTIMATOR_COST;
@@ -935,7 +935,7 @@ void Estimator::Optimize() {
             std::chrono::steady_clock::now() - jacobian_prior_start)
             .count();
 
-    // sensor cost Jacobian 
+    // sensor cost Jacobian
     auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
     JacobianSensor();
@@ -945,15 +945,15 @@ void Estimator::Optimize() {
             std::chrono::steady_clock::now() - jacobian_sensor_start)
             .count();
 
-    // force cost Jacobian 
+    // force cost Jacobian
     auto jacobian_force_start = std::chrono::steady_clock::now();
 
     JacobianForce();
 
-    timer_jacobian_sensor +=
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now() - jacobian_force_start)
-                .count();
+    timer_jacobian_force +=
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - jacobian_force_start)
+            .count();
 
     // prior cost derivatives
     auto cost_prior_start = std::chrono::steady_clock::now();
@@ -1023,7 +1023,7 @@ void Estimator::Optimize() {
 
     // ----- search direction ----- //
 
-    // start timer 
+    // start timer
     auto search_direction_start = std::chrono::steady_clock::now();
 
     // unpack
@@ -1066,7 +1066,7 @@ void Estimator::Optimize() {
 
     // ----- line search ----- //
 
-    // start timer 
+    // start timer
     auto line_search_start = std::chrono::steady_clock::now();
 
     // copy configuration
@@ -1102,7 +1102,7 @@ void Estimator::Optimize() {
       iteration_line_search++;
     }
 
-    // increment 
+    // increment
     iterations_line_search += iteration_line_search;
 
     // end timer
@@ -1136,48 +1136,47 @@ void Estimator::Optimize() {
   timer_search_direction_ = timer_search_direction;
   timer_line_search_ = timer_line_search;
 
-  // status 
+  // status
   iterations_line_search_ = iterations_line_search;
   iterations_smoother_ = iterations_smoother;
 
-  // status 
+  // status
   PrintStatus();
 }
 
-// print status 
+// print status
 void Estimator::PrintStatus() {
   if (!verbose_) return;
 
   // title
   printf("Batch Estimator Status:\n\n");
 
-  // timing 
+  // timing
   printf("Timing:\n");
-  printf("  model derivatives: %.5f\n", timer_model_derivatives_);
-  printf("  velacc derivatives: %.5f\n", timer_velacc_derivatives_);
-  printf("  jacobian prior: %.5f\n", timer_jacobian_prior_);
-  printf("  jacobian sensor: %.5f\n", timer_jacobian_sensor_);
-  printf("  jacobian force: %.5f\n", timer_jacobian_force_);
-  printf("  cost prior derivatives: %.5f\n", timer_cost_prior_derivatives_);
-  printf("  cost sensor derivatives: %.5f\n", timer_cost_sensor_derivatives_);
-  printf("  cost force derivatives: %.5f\n", timer_cost_force_derivatives_);
-  printf("  cost gradient: %.5f\n", timer_cost_gradient_);
-  printf("  cost hessian: %.5f\n", timer_cost_hessian_);
-  printf("  cost derivatives: %.5f\n", timer_cost_derivatives_);
-  
-  printf("  cost derivatives (TOTAL): %.5f\n",
-         timer_model_derivatives_ + timer_velacc_derivatives_ +
-             timer_jacobian_prior_ + timer_jacobian_sensor_ +
-             timer_jacobian_force_ + timer_cost_prior_derivatives_ +
-             timer_cost_sensor_derivatives_ + timer_cost_force_derivatives_ +
-             timer_cost_gradient_ + timer_cost_hessian_);
-
-  printf("  search direction: %.5f\n", timer_search_direction_);
-  printf("  line search: %.5f\n",      timer_line_search_);
-  printf("  TOTAL: %.5f\n",            (timer_cost_derivatives_ + timer_search_direction_ + timer_line_search_));
+  printf("  model derivatives: %.5f (ms) \n",
+         1.0e-3 * timer_model_derivatives_);
+  printf("  velacc derivatives: %.5f (ms) \n",
+         1.0e-3 * timer_velacc_derivatives_);
+  printf("  jacobian prior: %.5f (ms) \n", 1.0e-3 * timer_jacobian_prior_);
+  printf("  jacobian sensor: %.5f (ms) \n", 1.0e-3 * timer_jacobian_sensor_);
+  printf("  jacobian force: %.5f (ms) \n", 1.0e-3 * timer_jacobian_force_);
+  printf("  cost prior derivatives: %.5f (ms) \n",
+         1.0e-3 * timer_cost_prior_derivatives_);
+  printf("  cost sensor derivatives: %.5f (ms) \n",
+         1.0e-3 * timer_cost_sensor_derivatives_);
+  printf("  cost force derivatives: %.5f (ms) \n",
+         1.0e-3 * timer_cost_force_derivatives_);
+  printf("  cost gradient: %.5f (ms) \n", 1.0e-3 * timer_cost_gradient_);
+  printf("  cost hessian: %.5f (ms) \n", 1.0e-3 * timer_cost_hessian_);
+  printf("  cost derivatives: %.5f (ms) \n", 1.0e-3 * timer_cost_derivatives_);
+  printf("  search direction: %.5f (ms) \n", 1.0e-3 * timer_search_direction_);
+  printf("  line search: %.5f (ms) \n", 1.0e-3 * timer_line_search_);
+  printf("  TOTAL: %.5f (ms) \n",
+         1.0e-3 * (timer_cost_derivatives_ + timer_search_direction_ +
+                   timer_line_search_));
   printf("\n");
 
-  // status 
+  // status
   printf("Status:\n");
   printf("  iterations line search: %i\n", iterations_line_search_);
   printf("  iterations smoother: %i\n", iterations_smoother_);

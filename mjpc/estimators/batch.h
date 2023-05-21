@@ -24,7 +24,7 @@
 
 namespace mjpc {
 
-const int MAX_HISTORY = 32;  // maximum configuration trajectory length
+const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 
 // linear system solver 

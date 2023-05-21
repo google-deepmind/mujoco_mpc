@@ -31,7 +31,7 @@ void Estimator::Initialize(mjModel* model) {
   data_.clear();
 
   // allocate one mjData for nominal.
-  ResizeMjData(model_, 1);
+  ResizeMjData(model_, MAX_HISTORY); // TODO(taylor): set to 1, fix segfault...
 
   // dimension
   int nq = model->nq, nv = model->nv;
@@ -248,7 +248,7 @@ void Estimator::Reset() {
 
   // timing
   timer_total_ = 0.0;
-  timer_model_derivatives_ = 0.0;
+  timer_inverse_dynamics_derivatives_ = 0.0;
   timer_velacc_derivatives_ = 0.0;
   timer_jacobian_prior_ = 0.0;
   timer_jacobian_sensor_ = 0.0;
@@ -782,75 +782,65 @@ void Estimator::ConfigurationToVelocityAcceleration() {
     // compute velocity
     double* v1 = velocity_.data() + t * nv;
     mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
-  }
-
-  // accelerations: loop over velocity trajectory
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // previous and current configurations
-    const double* v0 = velocity_.data() + t * nv;
-    const double* v1 = velocity_.data() + (t + 1) * nv;
 
     // compute acceleration
-    double* a1 = acceleration_.data() + t * nv;
-    mju_sub(a1, v1, v0, nv);
-    mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
+    if (t > 0) {
+      // previous velocity
+      const double* v0 = velocity_.data() + (t - 1) * nv;
+
+      // compute acceleration
+      double* a1 = acceleration_.data() + (t - 1) * nv;
+      mju_sub(a1, v1, v0, nv);
+      mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
+    }
   }
 }
 
-// compute finite-difference velocity derivatives
-void Estimator::VelocityDerivatives() {
+// compute finite-difference velocity, acceleration derivatives
+void Estimator::VelocityAccelerationDerivatives() {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
+  // ----- velocity derivatives ----- //
+  
   // loop over configurations
   for (int t = 0; t < configuration_length_ - 1; t++) {
     // unpack
-    double* q0 = configuration_.data() + t * nq;
-    double* q1 = configuration_.data() + (t + 1) * nq;
-    double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
-    double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+    double* q1 = configuration_.data() + t * nq;
+    double* q2 = configuration_.data() + (t + 1) * nq;
+    double* dv2dq1 = block_velocity_previous_configuration_.data() + t * nv * nv;
+    double* dv2dq2 = block_velocity_current_configuration_.data() + t * nv * nv;
 
-    // compute Jacobians
-    DifferentiateDifferentiatePos(dvdq0, dvdq1, model_, model_->opt.timestep,
-                                  q0, q1);
-  }
-}
+    // compute velocity Jacobians
+    DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model_, model_->opt.timestep,
+                                  q1, q2);
 
-// compute finite-difference acceleration derivatives
-void Estimator::AccelerationDerivatives() {
-  // dimension
-  int nv = model_->nv;
+    // compute acceleration Jacobians 
+    if (t > 0) {
+      // unpack
+      double* dadq0 =
+          block_acceleration_previous_configuration_.data() + (t - 1) * nv * nv;
+      double* dadq1 =
+          block_acceleration_current_configuration_.data() + (t - 1) * nv * nv;
+      double* dadq2 = block_acceleration_next_configuration_.data() + (t - 1) * nv * nv;
 
-  // loop over configurations
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // unpack
-    double* dadq0 =
-        block_acceleration_previous_configuration_.data() + t * nv * nv;
-    double* dadq1 =
-        block_acceleration_current_configuration_.data() + t * nv * nv;
-    double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+      // previous velocity Jacobians
+      double* dv1dq0 =
+        block_velocity_previous_configuration_.data() + (t - 1) * nv * nv;
+      double* dv1dq1 = block_velocity_current_configuration_.data() + (t - 1) * nv * nv;
 
-    // note: velocity Jacobians need to be precomputed
-    double* dv1dq0 =
-        block_velocity_previous_configuration_.data() + t * nv * nv;
-    double* dv1dq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+      // dadq0 = -dv1dq0 / h
+      mju_copy(dadq0, dv1dq0, nv * nv);
+      mju_scl(dadq0, dadq0, -1.0 / model_->opt.timestep, nv * nv);
 
-    double* dv2dq1 =
-        block_velocity_previous_configuration_.data() + (t + 1) * nv * nv;
-    double* dv2dq2 =
-        block_velocity_current_configuration_.data() + (t + 1) * nv * nv;
+      // dadq1 = dv2dq1 / h - dv1dq1 / h = (dv2dq1 - dv1dq1) / h
+      mju_sub(dadq1, dv2dq1, dv1dq1, nv * nv);
+      mju_scl(dadq1, dadq1, 1.0 / model_->opt.timestep, nv * nv);
 
-    // dadq0 = -dv1dq0 / h
-    mju_copy(dadq0, dv1dq0, nv * nv);
-    mju_scl(dadq0, dadq0, -1.0 / model_->opt.timestep, nv * nv);
-
-    // dadq1 = dv2dq1 / h - dv1dq1 / h = (dv2dq1 - dv1dq1) / h
-    mju_sub(dadq1, dv2dq1, dv1dq1, nv * nv);
-    mju_scl(dadq1, dadq1, 1.0 / model_->opt.timestep, nv * nv);
-
-    // dadq2 = dv2dq2 / h
-    mju_copy(dadq2, dv2dq2, nv * nv);
-    mju_scl(dadq2, dadq2, 1.0 / model_->opt.timestep, nv * nv);
+      // dadq2 = dv2dq2 / h
+      mju_copy(dadq2, dv2dq2, nv * nv);
+      mju_scl(dadq2, dadq2, 1.0 / model_->opt.timestep, nv * nv);
+    }
   }
 }
 
@@ -859,21 +849,39 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
                        double& cost_force, ThreadPool& pool) {
   // ----- trajectories ----- //
 
+  // TODO schedule threadpool
   // finite-difference velocities, accelerations
   ConfigurationToVelocityAcceleration();
 
   // compute sensor and force predictions
   InverseDynamicsPrediction(pool);
 
-  // ----- residuals ----- //
-  ResidualPrior();
-  ResidualSensor();
-  ResidualForce();
+  // threadpool current count
+  int count_before = pool.GetCount();
 
-  // ----- costs ----- //
-  cost_prior = CostPrior(NULL, NULL);
-  cost_sensor = CostSensor(NULL, NULL);
-  cost_force = CostForce(NULL, NULL);
+  // prior
+  pool.Schedule([&cost_prior, &estimator = *this]() {
+    estimator.ResidualPrior();
+    cost_prior = estimator.CostPrior(NULL, NULL);
+  });
+
+  // sensor
+  pool.Schedule([&cost_sensor, &estimator = *this]() {
+    estimator.ResidualSensor();
+    cost_sensor = estimator.CostSensor(NULL, NULL);
+  });
+
+  // force 
+  pool.Schedule([&cost_force, &estimator = *this]() {
+    estimator.ResidualForce();
+    cost_force = estimator.CostForce(NULL, NULL);
+  });
+
+  // wait for individual cost computation
+  pool.WaitCount(count_before + 3);
+
+  // reset pool count
+  pool.ResetCount();
 
   // total cost
   return cost_prior + cost_sensor + cost_force;
@@ -919,117 +927,167 @@ void Estimator::Optimize(ThreadPool& pool) {
     // start timer (total cost derivatives)
     auto cost_derivatives_start = std::chrono::steady_clock::now();
 
-    // compute inverse dynamics derivatives
+    // -- compute inverse dynamics derivatives -- //
+
+    // start timer
     auto model_derivatives_start = std::chrono::steady_clock::now();
 
+    // compute derivatives
     InverseDynamicsDerivatives(pool);
 
+    // stop timer
     timer_model_derivatives +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - model_derivatives_start)
             .count();
 
-    // compute velocity derivatives
+    // -- compute velocity, acceleration derivatives -- //
+
+    // start timer
     auto velacc_derivatives_start = std::chrono::steady_clock::now();
 
-    VelocityDerivatives();
+    // compute derivatives
+    VelocityAccelerationDerivatives();
 
-    // compute acceleration derivatives
-    AccelerationDerivatives();
-
+    // stop timer
     timer_velacc_derivatives +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - velacc_derivatives_start)
             .count();
 
-    // prior cost Jacobian
-    auto jacobian_prior_start = std::chrono::steady_clock::now();
+    // -- threadpool current count -- //
+    int count_before = pool.GetCount();
 
-    JacobianPriorBlocks();
-    JacobianPrior();
+    // -- prior derivatives -- //
+    pool.Schedule([&estimator = *this, &timer_jacobian_prior,
+                   &timer_cost_prior_derivatives]() {
+      // start Jacobian timer
+      auto jacobian_prior_start = std::chrono::steady_clock::now();
 
-    timer_jacobian_prior +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - jacobian_prior_start)
-            .count();
+      // compute blocks
+      estimator.JacobianPriorBlocks();
 
-    // sensor cost Jacobian
-    auto jacobian_sensor_start = std::chrono::steady_clock::now();
+      // compute Jacobian
+      estimator.JacobianPrior();
 
-    JacobianSensor();
+      // stop Jacobian timer
+      timer_jacobian_prior +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - jacobian_prior_start)
+              .count();
 
-    timer_jacobian_sensor +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - jacobian_sensor_start)
-            .count();
+      // start derivative timer
+      auto cost_prior_start = std::chrono::steady_clock::now();
 
-    // force cost Jacobian
-    auto jacobian_force_start = std::chrono::steady_clock::now();
+      // compute derivatives
+      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
+                          estimator.cost_hessian_prior_.data());
 
-    JacobianForce();
+      // stop derivative timer
+      timer_cost_prior_derivatives +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - cost_prior_start)
+              .count();
+    });
 
-    timer_jacobian_force +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - jacobian_force_start)
-            .count();
+    // -- sensor derivatives -- //
+    pool.Schedule([&estimator = *this, &timer_jacobian_sensor,
+                   &timer_cost_sensor_derivatives]() {
+      // start Jacobian timer
+      auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
-    // prior cost derivatives
-    auto cost_prior_start = std::chrono::steady_clock::now();
+      // compute Jacobian
+      estimator.JacobianSensor();
 
-    CostPrior(cost_gradient_prior_.data(), cost_hessian_prior_.data());
+      // stop Jacobian timer
+      timer_jacobian_sensor +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - jacobian_sensor_start)
+              .count();
 
-    timer_cost_prior_derivatives +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - cost_prior_start)
-            .count();
+      // start derivative timer
+      auto cost_sensor_start = std::chrono::steady_clock::now();
 
-    // sensor cost derivatives
-    auto cost_sensor_start = std::chrono::steady_clock::now();
+      // compute derivatives
+      estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
+                           estimator.cost_hessian_sensor_.data());
 
-    CostSensor(cost_gradient_sensor_.data(), cost_hessian_sensor_.data());
+      // stop derivative timer
+      timer_cost_sensor_derivatives +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - cost_sensor_start)
+              .count();
+    });
 
-    timer_cost_sensor_derivatives +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - cost_sensor_start)
-            .count();
+    // -- force derivatives -- //
+    pool.Schedule([&estimator = *this, &timer_jacobian_force,
+                   &timer_cost_force_derivatives]() {
+      // start Jacobian timer
+      auto jacobian_force_start = std::chrono::steady_clock::now();
 
-    // force cost derivatives
-    auto cost_force_start = std::chrono::steady_clock::now();
+      // compute Jacobian
+      estimator.JacobianForce();
 
-    CostForce(cost_gradient_force_.data(), cost_hessian_force_.data());
+      // stop Jacobian timer
+      timer_jacobian_force +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - jacobian_force_start)
+              .count();
 
-    timer_cost_force_derivatives +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - cost_force_start)
-            .count();
+      // start derivative timer
+      auto cost_force_start = std::chrono::steady_clock::now();
 
-    // cumulative gradient
+      // compute derivatives
+      estimator.CostForce(estimator.cost_gradient_force_.data(), estimator.cost_hessian_force_.data());
+
+      // stop derivative timer
+      timer_cost_force_derivatives +=
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - cost_force_start)
+              .count();
+    });
+
+    // wait for individual cost computation
+    pool.WaitCount(count_before + 3);
+
+    // reset pool count
+    pool.ResetCount();
+
+    // -- cumulative gradient -- // 
+
+    // start gradient timer
     auto cost_gradient_start = std::chrono::steady_clock::now();
 
+    // add gradients
     double* gradient = cost_gradient_.data();
     mju_copy(gradient, cost_gradient_prior_.data(), dim_vel);
     mju_addTo(gradient, cost_gradient_sensor_.data(), dim_vel);
     mju_addTo(gradient, cost_gradient_force_.data(), dim_vel);
 
+    // stop gradient timer
     timer_cost_gradient +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - cost_gradient_start)
             .count();
 
-    // cumulative Hessian
+    // -- cumulative Hessian -- //
+
+    // start Hessian timer
     auto cost_hessian_start = std::chrono::steady_clock::now();
 
+    // add Hessians
     double* hessian = cost_hessian_.data();
     mju_copy(hessian, cost_hessian_prior_.data(), dim_vel * dim_vel);
     mju_addTo(hessian, cost_hessian_sensor_.data(), dim_vel * dim_vel);
     mju_addTo(hessian, cost_hessian_force_.data(), dim_vel * dim_vel);
 
+    // stop Hessian timer
     timer_cost_hessian +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - cost_hessian_start)
             .count();
 
-    // end timer,
+    // stop timer
     timer_cost_derivatives +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - cost_derivatives_start)
@@ -1053,7 +1111,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     }
 
     // linear system solver
-    if (solver_ == kBanded) {
+    if (solver_ == kBanded) { // band solver
       // dimensions
       int ntotal = model_->nv * configuration_length_;
       int nband = 3 * model_->nv;
@@ -1083,6 +1141,7 @@ void Estimator::Optimize(ThreadPool& pool) {
             .count();
 
     // ----- line search ----- //
+    // TODO(taylor): option for curve search
 
     // start timer
     auto line_search_start = std::chrono::steady_clock::now();
@@ -1096,6 +1155,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     double step_size = 2.0;
 
     // backtracking until cost decrease
+    // TODO(taylor): Armijo, Wolfe conditions
     while (cost_candidate >= cost) {
       // check for max iterations
       if (iteration_line_search > max_line_search_) {
@@ -1140,7 +1200,7 @@ void Estimator::Optimize(ThreadPool& pool) {
   cost_force_ = cost_force;
 
   // set timers
-  timer_model_derivatives_ = timer_model_derivatives;
+  timer_inverse_dynamics_derivatives_ = timer_model_derivatives;
   timer_velacc_derivatives_ = timer_velacc_derivatives;
   timer_jacobian_prior_ = timer_jacobian_prior;
   timer_jacobian_sensor_ = timer_jacobian_sensor;
@@ -1172,7 +1232,7 @@ void Estimator::PrintStatus() {
   // timing
   printf("Timing:\n");
   printf("  inverse dynamics derivatives: %.5f (ms) \n",
-         1.0e-3 * timer_model_derivatives_);
+         1.0e-3 * timer_inverse_dynamics_derivatives_);
   printf("  velacc derivatives: %.5f (ms) \n",
          1.0e-3 * timer_velacc_derivatives_);
   printf("  jacobian prior: %.5f (ms) \n", 1.0e-3 * timer_jacobian_prior_);
@@ -1186,7 +1246,6 @@ void Estimator::PrintStatus() {
          1.0e-3 * timer_cost_force_derivatives_);
   printf("  cost gradient: %.5f (ms) \n", 1.0e-3 * timer_cost_gradient_);
   printf("  cost hessian: %.5f (ms) \n", 1.0e-3 * timer_cost_hessian_);
-  printf("  cost derivatives: %.5f (ms) \n", 1.0e-3 * timer_cost_derivatives_);
   printf("  search direction: %.5f (ms) \n", 1.0e-3 * timer_search_direction_);
   printf("  line search: %.5f (ms) \n", 1.0e-3 * timer_line_search_);
   printf("  TOTAL: %.5f (ms) \n",

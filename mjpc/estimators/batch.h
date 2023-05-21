@@ -93,11 +93,8 @@ class Estimator {
   // convert sequence of configurations to velocities, accelerations
   void ConfigurationToVelocityAcceleration();
 
-  // compute finite-difference velocity derivatives
-  void VelocityDerivatives();
-
-  // compute finite-difference acceleration derivatives
-  void AccelerationDerivatives();
+  // compute finite-difference velocity, acceleration derivatives
+  void VelocityAccelerationDerivatives();
 
   // compute total cost
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force,
@@ -231,7 +228,7 @@ class Estimator {
 
   // timing
   double timer_total_;
-  double timer_model_derivatives_;
+  double timer_inverse_dynamics_derivatives_;
   double timer_velacc_derivatives_;
   double timer_jacobian_prior_;
   double timer_jacobian_sensor_;

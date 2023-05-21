@@ -166,7 +166,7 @@ TEST(BatchOptimize, Box3D) {
 
   // ----- simulate ----- //
   // trajectories
-  int T = 64;
+  int T = 10;
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);

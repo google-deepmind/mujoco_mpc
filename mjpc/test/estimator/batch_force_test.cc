@@ -139,8 +139,7 @@ TEST(ForceResidual, Particle) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityDerivatives();
-  estimator.AccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives();
   estimator.JacobianForce();
 
   // error
@@ -293,8 +292,7 @@ TEST(ForceResidual, Box) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityDerivatives();
-  estimator.AccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives();
   estimator.JacobianForce();
 
   // error
@@ -428,8 +426,7 @@ TEST(ForceCost, Particle) {
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityDerivatives();
-  estimator.AccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives();
   estimator.JacobianForce();
 
   // cost
@@ -593,8 +590,7 @@ TEST(ForceCost, Box) {
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityDerivatives();
-  estimator.AccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives();
   estimator.JacobianForce();
 
   // cost

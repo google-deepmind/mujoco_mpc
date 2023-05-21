@@ -20,10 +20,10 @@
 
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/cost_derivatives.h"
+#include "mjpc/planners/forward_dynamics_derivatives.h"
 #include "mjpc/planners/gradient/gradient.h"
 #include "mjpc/planners/gradient/policy.h"
 #include "mjpc/planners/gradient/settings.h"
-#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
@@ -74,9 +74,9 @@ void GradientPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
-  // model derivatives
-  model_derivative.Allocate(dim_state_derivative, dim_action, dim_sensor,
-                            kMaxTrajectoryHorizon);
+  // forward dynamics derivatives
+  forward_dynamics_derivatives.Allocate(dim_state_derivative, dim_action,
+                                        dim_sensor, kMaxTrajectoryHorizon);
 
   // costs derivatives
   cost_derivative.Allocate(dim_state_derivative, dim_action, task->num_residual,
@@ -109,8 +109,9 @@ void GradientPlanner::Reset(int horizon) {
   std::fill(userdata.begin(), userdata.end(), 0.0);
   time = 0.0;
 
-  // model derivatives
-  model_derivative.Reset(dim_state_derivative, dim_action, dim_sensor, horizon);
+  // forward dynamics derivatives
+  forward_dynamics_derivatives.Reset(dim_state_derivative, dim_action,
+                                     dim_sensor, horizon);
 
   // cost derivatives
   cost_derivative.Reset(dim_state_derivative, dim_action, task->num_residual,
@@ -152,7 +153,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   ResizeMjData(model, pool.NumThreads());
   // timers
   double nominal_time = 0.0;
-  double model_derivative_time = 0.0;
+  double forward_dynamics_derivative_time = 0.0;
   double cost_derivative_time = 0.0;
   double rollouts_time = 0.0;
   double gradient_time = 0.0;
@@ -189,20 +190,21 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // update policy
   double c_best = c_prev;
   for (int i = 0; i < settings.max_rollout; i++) {
-    // ----- model derivatives ----- //
+    // ----- forward dynamics derivatives ----- //
     // start timer
-    auto model_derivative_start = std::chrono::steady_clock::now();
+    auto forward_dynamics_derivative_start = std::chrono::steady_clock::now();
 
     // compute model and sensor Jacobians
-    model_derivative.Compute(
+    forward_dynamics_derivatives.Compute(
         model, data_, trajectory[0].states.data(), trajectory[0].actions.data(),
         trajectory[0].times.data(), dim_state, dim_state_derivative, dim_action,
         dim_sensor, horizon, settings.fd_tolerance, settings.fd_mode, pool);
 
     // stop timer
-    model_derivative_time +=
+    forward_dynamics_derivative_time +=
         std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - model_derivative_start)
+            std::chrono::steady_clock::now() -
+            forward_dynamics_derivative_start)
             .count();
 
     // -----cost derivatives ----- //
@@ -211,9 +213,9 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
     // compute cost derivatives
     cost_derivative.Compute(
-        trajectory[0].residual.data(), model_derivative.C.data(),
-        model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
-        dim_sensor, task->num_residual, task->dim_norm_residual.data(),
+        trajectory[0].residual.data(), forward_dynamics_derivatives.C.data(),
+        forward_dynamics_derivatives.D.data(), dim_state_derivative, dim_action,
+        dim_max, dim_sensor, task->num_residual, task->dim_norm_residual.data(),
         task->num_term, task->weight.data(), task->norm.data(),
         task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
         horizon, pool);
@@ -229,9 +231,9 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     auto gradient_start = std::chrono::steady_clock::now();
 
     // compute action derivatives
-    int gd_status = gradient.Compute(&candidate_policy[0], &model_derivative,
-                                     &cost_derivative, dim_state_derivative,
-                                     dim_action, horizon);
+    int gd_status = gradient.Compute(
+        &candidate_policy[0], &forward_dynamics_derivatives, &cost_derivative,
+        dim_state_derivative, dim_action, horizon);
 
     // compute spline mapping linear operator
     mappings[policy.representation]->Compute(
@@ -264,7 +266,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes
-    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
+    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
+             num_trajectory - 1);
     linesearch_steps[num_trajectory - 1] = 0.0;
 
     // rollouts (parallel)
@@ -323,7 +326,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // set timers
   nominal_compute_time = nominal_time;
-  model_derivative_compute_time = model_derivative_time;
+  forward_dynamics_derivative_compute_time = forward_dynamics_derivative_time;
   cost_derivative_compute_time = cost_derivative_time;
   rollouts_compute_time = rollouts_time;
   gradient_compute_time = gradient_time;
@@ -546,8 +549,8 @@ void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,
-                 1.0e-3 * model_derivative_compute_time * planning, 100,
-                 1 + timer_shift, 0, 1, -100);
+                 1.0e-3 * forward_dynamics_derivative_compute_time * planning,
+                 100, 1 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[2 + timer_shift][0] + 1,

@@ -21,7 +21,7 @@
 #include "mjpc/planners/ilqg/boxqp.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"
-#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/forward_dynamics_derivatives.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -250,7 +250,7 @@ int iLQGBackwardPass::RiccatiStep(
 }
 
 // compute backward pass using Riccati
-int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
+int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ForwardDynamicsDerivatives *fd,
                           const CostDerivatives *cd, int dim_dstate,
                           int dim_action, int T, double reg, BoxQP &boxqp,
                           const double *actions, const double *action_limits,
@@ -273,8 +273,8 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
       int status = this->RiccatiStep(
           dim_dstate, dim_action, reg, DataAt(Vx, t * dim_dstate),
           DataAt(Vxx, t * dim_dstate * dim_dstate),
-          DataAt(md->A, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(md->B, (t - 1) * dim_dstate * dim_action),
+          DataAt(fd->A, (t - 1) * dim_dstate * dim_dstate),
+          DataAt(fd->B, (t - 1) * dim_dstate * dim_action),
           DataAt(cd->cx, (t - 1) * dim_dstate),
           DataAt(cd->cu, (t - 1) * dim_action),
           DataAt(cd->cxx, (t - 1) * dim_dstate * dim_dstate),

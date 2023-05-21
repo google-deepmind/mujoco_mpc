@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/forward_dynamics_derivatives.h"
 
 #include <algorithm>
 
@@ -23,7 +23,7 @@
 namespace mjpc {
 
 // allocate memory
-void ModelDerivatives::Allocate(int dim_state_derivative, int dim_action,
+void ForwardDynamicsDerivatives::Allocate(int dim_state_derivative, int dim_action,
                                 int dim_sensor, int T) {
   A.resize(dim_state_derivative * dim_state_derivative * T);
   B.resize(dim_state_derivative * dim_action * T);
@@ -32,7 +32,7 @@ void ModelDerivatives::Allocate(int dim_state_derivative, int dim_action,
 }
 
 // reset memory to zeros
-void ModelDerivatives::Reset(int dim_state_derivative, int dim_action,
+void ForwardDynamicsDerivatives::Reset(int dim_state_derivative, int dim_action,
                              int dim_sensor, int T) {
   std::fill(A.begin(),
             A.begin() + T * dim_state_derivative * dim_state_derivative, 0.0);
@@ -42,7 +42,7 @@ void ModelDerivatives::Reset(int dim_state_derivative, int dim_action,
 }
 
 // compute derivatives at all time steps
-void ModelDerivatives::Compute(const mjModel* m,
+void ForwardDynamicsDerivatives::Compute(const mjModel* m,
                                const std::vector<UniqueMjData>& data,
                                const double* x, const double* u,
                                const double* h, int dim_state,

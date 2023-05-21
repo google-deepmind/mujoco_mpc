@@ -20,6 +20,7 @@
 #include "gtest/gtest.h"
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -32,6 +33,9 @@ TEST(BatchOptimize, Particle2D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+
+  // threadpool 
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -119,7 +123,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // cost
   double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
   // change solver 
   estimator.solver_ = kBanded;
@@ -128,7 +132,7 @@ TEST(BatchOptimize, Particle2D) {
   estimator.verbose_ = true;
 
   // optimize
-  estimator.Optimize();
+  estimator.Optimize(pool);
 
   // error 
   std::vector<double> configuration_error(nq * T);
@@ -153,12 +157,16 @@ TEST(BatchOptimize, Box3D) {
   mjModel* model = LoadTestModel("box3D_sensor.xml");
   mjData* data = mj_makeData(model);
 
+  // dimension
   int nq = model->nq, nv = model->nv, nu = model->nu;
   int ns = model->nsensordata;
 
+  // pool 
+  ThreadPool pool(1);
+
   // ----- simulate ----- //
   // trajectories
-  int T = 5;
+  int T = 64;
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -245,7 +253,7 @@ TEST(BatchOptimize, Box3D) {
 
   // cost (pre)
   double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
   // change solver 
   estimator.solver_ = kBanded;
@@ -254,7 +262,7 @@ TEST(BatchOptimize, Box3D) {
   estimator.verbose_ = true;
 
   // optimize
-  estimator.Optimize();
+  estimator.Optimize(pool);
 
   // error
   std::vector<double> configuration_error(nq * T);

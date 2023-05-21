@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "mjpc/norm.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -70,9 +71,6 @@ class Estimator {
   // sensor Jacobian
   void JacobianSensor();
 
-  // compute sensor predictions
-  void SensorPrediction();
-
   // force cost
   double CostForce(double* gradient, double* hessian);
 
@@ -82,11 +80,11 @@ class Estimator {
   // force Jacobian
   void JacobianForce();
 
-  // compute force predictions
-  void ForcePrediction();
+  // compute sensor and force predictions via inverse dynamics
+  void InverseDynamicsPrediction(ThreadPool& pool);
 
-  // compute model derivatives (via finite difference)
-  void ModelDerivatives();
+  // compute inverse dynamics derivatives (via finite difference)
+  void InverseDynamicsDerivatives(ThreadPool& pool);
 
   // update configuration trajectory
   void UpdateConfiguration(double* candidate, const double* configuration,
@@ -102,19 +100,23 @@ class Estimator {
   void AccelerationDerivatives();
 
   // compute total cost
-  double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
+  double Cost(double& cost_prior, double& cost_sensor, double& cost_force,
+              ThreadPool& pool);
 
   // optimize trajectory estimate 
-  void Optimize();
+  void Optimize(ThreadPool& pool);
 
   // print status 
   void PrintStatus();
+
+  // resize number of mjData
+  void ResizeMjData(const mjModel* model, int num_threads);
 
   // model
   mjModel* model_;
 
   // data
-  mjData* data_;
+  std::vector<UniqueMjData> data_;
 
   // trajectories
   int configuration_length_;                 // T

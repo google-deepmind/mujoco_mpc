@@ -12,26 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_MODEL_DERIVATIVES_H_
-#define MJPC_PLANNERS_MODEL_DERIVATIVES_H_
+#ifndef MJPC_PLANNERS_FORWARD_DYNAMICS_DERIVATIVES_H_
+#define MJPC_PLANNERS_FORWARD_DYNAMICS_DERIVATIVES_H_
+
+#include <mujoco/mujoco.h>
 
 #include <cstdlib>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
 
-// data and methods for model derivatives
-class ModelDerivatives {
+// data and methods for forward dynamics derivatives
+class ForwardDynamicsDerivatives {
  public:
   // constructor
-  ModelDerivatives() = default;
+  ForwardDynamicsDerivatives() = default;
 
   // destructor
-  ~ModelDerivatives() = default;
+  ~ForwardDynamicsDerivatives() = default;
 
   // allocate memory
   void Allocate(int dim_state_derivative, int dim_action, int dim_sensor,
@@ -59,4 +60,4 @@ class ModelDerivatives {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_MODEL_DERIVATIVES_H_
+#endif  // solverMJPC_PLANNERS_FORWARD_DYNAMICS_DERIVATIVES_H_

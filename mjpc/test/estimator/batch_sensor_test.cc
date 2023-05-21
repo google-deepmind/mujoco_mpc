@@ -31,6 +31,9 @@ TEST(MeasurementResidual, Particle) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
+  // threadpool
+  ThreadPool pool(1);
+
   // ----- configurations ----- //
   int T = 5;
   int dim_pos = nq * T;
@@ -116,7 +119,7 @@ TEST(MeasurementResidual, Particle) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.SensorPrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
 
   // error
@@ -135,7 +138,7 @@ TEST(MeasurementResidual, Particle) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
@@ -162,6 +165,9 @@ TEST(MeasurementResidual, Box) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool
+  ThreadPool pool(1);
 
   // ----- configurations ----- //
   int T = 5;
@@ -261,7 +267,7 @@ TEST(MeasurementResidual, Box) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.SensorPrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
 
   // // error
@@ -280,7 +286,7 @@ TEST(MeasurementResidual, Box) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
@@ -309,6 +315,9 @@ TEST(MeasurementCost, Particle) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool
+  ThreadPool pool(1);
 
   // ----- configurations ----- //
   int T = 5;
@@ -406,9 +415,9 @@ TEST(MeasurementCost, Particle) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.SensorPrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianSensor();
@@ -451,6 +460,9 @@ TEST(MeasurementCost, Box) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool
+  ThreadPool pool(1);
 
   // configuration
   double qpos0[7] = {0.1, -0.2, 0.5, 0.0, 1.0, 0.0, 0.0};
@@ -565,9 +577,9 @@ TEST(MeasurementCost, Box) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.SensorPrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianSensor();

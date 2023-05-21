@@ -14,12 +14,13 @@
 
 #include "mjpc/planners/ilqs/planner.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/linear_solve.h"
@@ -181,7 +182,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     if (active_policy == kSampling) {
       ilqg.nominal_compute_time = 0.0;
     }
-    ilqg.model_derivative_compute_time = 0.0;
+    ilqg.forward_dynamics_derivative_compute_time = 0.0;
     ilqg.cost_derivative_compute_time = 0.0;
     ilqg.backward_pass_compute_time = 0.0;
     ilqg.rollouts_compute_time = 0.0;

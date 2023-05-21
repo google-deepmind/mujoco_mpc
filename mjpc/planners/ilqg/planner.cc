@@ -73,9 +73,9 @@ void iLQGPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
-  // model derivatives
-  model_derivative.Allocate(dim_state_derivative, dim_action, dim_sensor,
-                            kMaxTrajectoryHorizon);
+  // forward dynamics derivatives
+  forward_dynamics_derivative.Allocate(dim_state_derivative, dim_action,
+                                       dim_sensor, kMaxTrajectoryHorizon);
 
   // costs derivatives
   cost_derivative.Allocate(dim_state_derivative, dim_action, task->num_residual,
@@ -103,8 +103,9 @@ void iLQGPlanner::Reset(int horizon) {
   std::fill(userdata.begin(), userdata.end(), 0.0);
   time = 0.0;
 
-  // model derivatives
-  model_derivative.Reset(dim_state_derivative, dim_action, dim_sensor, horizon);
+  // forward dynamics derivatives
+  forward_dynamics_derivative.Reset(dim_state_derivative, dim_action,
+                                    dim_sensor, horizon);
 
   // cost derivatives
   cost_derivative.Reset(dim_state_derivative, dim_action, task->num_residual,
@@ -207,8 +208,8 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
   // end timer
   nominal_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - nominal_start)
-                            .count();
+                             std::chrono::steady_clock::now() - nominal_start)
+                             .count();
 }
 
 // set action from policy
@@ -317,8 +318,8 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,
-                 1.0e-3 * model_derivative_compute_time * planning, 100,
-                 1 + timer_shift, 0, 1, -100);
+                 1.0e-3 * forward_dynamics_derivative_compute_time * planning,
+                 100, 1 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[2 + timer_shift][0] + 1,
@@ -363,18 +364,17 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 
-
   // step sizes (log scaling)
   LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
            num_trajectory_ - 1);
   linesearch_steps[num_trajectory_ - 1] = 0.0;
 
-  // ----- model derivatives ----- //
+  // ----- forward dynamics derivatives ----- //
   // start timer
-  auto model_derivative_start = std::chrono::steady_clock::now();
+  auto forward_dynamics_derivative_start = std::chrono::steady_clock::now();
 
   // compute model and sensor Jacobians
-  model_derivative.Compute(
+  forward_dynamics_derivative.Compute(
       model, data_, candidate_policy[0].trajectory.states.data(),
       candidate_policy[0].trajectory.actions.data(),
       candidate_policy[0].trajectory.times.data(), dim_state,
@@ -382,9 +382,9 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
       settings.fd_tolerance, settings.fd_mode, pool);
 
   // stop timer
-  double model_derivative_time =
+  double forward_dynamics_derivative_time =
       std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - model_derivative_start)
+          std::chrono::steady_clock::now() - forward_dynamics_derivative_start)
           .count();
 
   // ----- cost derivatives ----- //
@@ -393,9 +393,10 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
 
   // cost derivatives
   cost_derivative.Compute(
-      candidate_policy[0].trajectory.residual.data(), model_derivative.C.data(),
-      model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
-      dim_sensor, task->num_residual, task->dim_norm_residual.data(),
+      candidate_policy[0].trajectory.residual.data(),
+      forward_dynamics_derivative.C.data(),
+      forward_dynamics_derivative.D.data(), dim_state_derivative, dim_action,
+      dim_max, dim_sensor, task->num_residual, task->dim_norm_residual.data(),
       task->num_term, task->weight.data(), task->norm.data(),
       task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
       horizon, pool);
@@ -436,9 +437,10 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
           DataAt(backward_pass.Vx, (t + 1) * dim_state_derivative),
           DataAt(backward_pass.Vxx,
                  (t + 1) * dim_state_derivative * dim_state_derivative),
-          DataAt(model_derivative.A,
+          DataAt(forward_dynamics_derivative.A,
                  t * dim_state_derivative * dim_state_derivative),
-          DataAt(model_derivative.B, t * dim_state_derivative * dim_action),
+          DataAt(forward_dynamics_derivative.B,
+                 t * dim_state_derivative * dim_action),
           DataAt(cost_derivative.cx, t * dim_state_derivative),
           DataAt(cost_derivative.cu, t * dim_action),
           DataAt(cost_derivative.cxx,
@@ -516,7 +518,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // terminate early if backward pass failure
   if (backward_pass_status == 0) {
     // set timers
-    model_derivative_compute_time = model_derivative_time;
+    forward_dynamics_derivative_compute_time = forward_dynamics_derivative_time;
     cost_derivative_compute_time = cost_derivative_time;
     rollouts_compute_time = 0.0;
     backward_pass_compute_time = backward_pass_time;
@@ -603,7 +605,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
           .count();
 
   // set timers
-  model_derivative_compute_time = model_derivative_time;
+  forward_dynamics_derivative_compute_time = forward_dynamics_derivative_time;
   cost_derivative_compute_time = cost_derivative_time;
   rollouts_compute_time = rollouts_time;
   backward_pass_compute_time = backward_pass_time;
@@ -697,9 +699,9 @@ void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
           };
 
       // policy rollout
-      trajectory[i].Rollout(
-          feedback_policy, task, model, data[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon);
+      trajectory[i].Rollout(feedback_policy, task, model,
+                            data[ThreadPool::WorkerId()].get(), state.data(),
+                            time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory_);

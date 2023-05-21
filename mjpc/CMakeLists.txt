@@ -75,8 +75,8 @@ add_library(
   planners/cost_derivatives.h
   planners/linear_solve.cc
   planners/linear_solve.h
-  planners/model_derivatives.cc
-  planners/model_derivatives.h
+  planners/forward_dynamics_derivatives.cc
+  planners/forward_dynamics_derivatives.h
   planners/robust/robust_planner.cc
   planners/robust/robust_planner.h
   planners/sampling/planner.cc

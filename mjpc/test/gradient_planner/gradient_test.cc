@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
-#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/forward_dynamics_derivatives.h"
 #include "mjpc/test/lqr.h"
 #include "mjpc/utilities.h"
 
@@ -59,9 +59,9 @@ TEST(GradientTest, Gradient) {
   GradientPolicy p;
   p.k.resize(m * T);
 
-  // model derivatives
-  ModelDerivatives md;
-  md.Allocate(n, m, 0, T);
+  // forward dynamics derivatives
+  ForwardDynamicsDerivatives fd;
+  fd.Allocate(n, m, 0, T);
 
   // cost derivatives
   CostDerivatives cd;
@@ -72,12 +72,12 @@ TEST(GradientTest, Gradient) {
     cx(DataAt(cd.cx, t * n), x + t * n, (t == T - 1 ? nullptr : u + t * m));
     if (t == T - 1) continue;
     cu(DataAt(cd.cu, t * m), x + t * n, u + t * m);
-    fx(DataAt(md.A, t * n * n), x + t * n, u + t * m);
-    fu(DataAt(md.B, t * n * m), x + t * n, u + t * m);
+    fx(DataAt(fd.A, t * n * n), x + t * n, u + t * m);
+    fu(DataAt(fd.B, t * n * m), x + t * n, u + t * m);
   }
 
   // gradient descent
-  gd.Compute(&p, &md, &cd, n, m, T);
+  gd.Compute(&p, &fd, &cd, n, m, T);
 
   // ----- finite difference ----- //
 

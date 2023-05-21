@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -30,6 +31,9 @@ TEST(ForceResidual, Particle) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool 
+  ThreadPool pool(1);
 
   // ----- configurations ----- //
   int T = 5;
@@ -115,7 +119,7 @@ TEST(ForceResidual, Particle) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ForcePrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
 
   // error
@@ -134,7 +138,7 @@ TEST(ForceResidual, Particle) {
   fd.Compute(residual_inverse_dynamics, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianForce();
@@ -161,6 +165,9 @@ TEST(ForceResidual, Box) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool 
+  ThreadPool pool(1);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
@@ -266,7 +273,7 @@ TEST(ForceResidual, Box) {
 
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ForcePrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
 
   // error
@@ -285,7 +292,7 @@ TEST(ForceResidual, Box) {
   fd.Compute(residual_inverse_dynamics, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianForce();
@@ -312,6 +319,9 @@ TEST(ForceCost, Particle) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool 
+  ThreadPool pool(1);
 
   // initial configuration
   double qpos0[4] = {0.1, 0.3, -0.01, 0.25};
@@ -415,9 +425,9 @@ TEST(ForceCost, Particle) {
 
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ForcePrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianForce();
@@ -460,6 +470,9 @@ TEST(ForceCost, Box) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
+
+  // threadpool 
+  ThreadPool pool(1);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
@@ -577,9 +590,9 @@ TEST(ForceCost, Box) {
 
   // compute intermediate terms
   estimator.ConfigurationToVelocityAcceleration();
-  estimator.ForcePrediction();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
-  estimator.ModelDerivatives();
+  estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityDerivatives();
   estimator.AccelerationDerivatives();
   estimator.JacobianForce();

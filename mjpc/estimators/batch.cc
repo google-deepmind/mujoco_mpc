@@ -17,6 +17,7 @@
 #include <chrono>
 
 #include "mjpc/norm.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -26,8 +27,11 @@ void Estimator::Initialize(mjModel* model) {
   // model
   model_ = model;
 
-  // data
-  data_ = mj_makeData(model);
+  // delete mjData instances since model might have changed.
+  data_.clear();
+
+  // allocate one mjData for nominal.
+  ResizeMjData(model_, 1);
 
   // dimension
   int nq = model->nq, nv = model->nv;
@@ -505,32 +509,6 @@ void Estimator::JacobianSensor() {
   }
 }
 
-// compute sensors
-void Estimator::SensorPrediction() {
-  // dimension
-  int nq = model_->nq, nv = model_->nv;
-
-  // loop over sensor
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // terms
-    double* qt = configuration_.data() + (t + 1) * nq;
-    double* vt = velocity_.data() + t * nv;
-    double* at = acceleration_.data() + t * nv;
-
-    // set qt, vt, at
-    mju_copy(data_->qpos, qt, nq);
-    mju_copy(data_->qvel, vt, nv);
-    mju_copy(data_->qacc, at, nv);
-
-    // sensors
-    mj_inverse(model_, data_);
-
-    // copy sensor data
-    double* yt = sensor_prediction_.data() + t * dim_sensor_;
-    mju_copy(yt, data_->sensordata, dim_sensor_);
-  }
-}
-
 // force cost TODO(taylor): normalize by dimension
 double Estimator::CostForce(double* gradient, double* hessian) {
   // residual dimension
@@ -671,59 +649,99 @@ void Estimator::JacobianForce() {
 }
 
 // compute force
-void Estimator::ForcePrediction() {
+void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   // dimension
-  int nq = model_->nq, nv = model_->nv;
+  int nq = model_->nq, nv = model_->nv, ns = dim_sensor_;
 
-  // loop over force
+  // threadpool current count
+  int count_before = pool.GetCount();
+
+  // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // terms
-    double* qt = configuration_.data() + (t + 1) * nq;
-    double* vt = velocity_.data() + t * nv;
-    double* at = acceleration_.data() + t * nv;
+    pool.Schedule(
+        [nq, nv, ns, t, &configuration = this->configuration_,
+         &velocity = this->velocity_, &acceleration = this->acceleration_,
+         &sensor = this->sensor_prediction_, &force = this->force_prediction_,
+         &model = this->model_, &data = this->data_]() {
+          // terms
+          double* qt = configuration.data() + (t + 1) * nq;
+          double* vt = velocity.data() + t * nv;
+          double* at = acceleration.data() + t * nv;
 
-    // set qt, vt, at
-    mju_copy(data_->qpos, qt, nq);
-    mju_copy(data_->qvel, vt, nv);
-    mju_copy(data_->qacc, at, nv);
+          // data
+          mjData* d = data[ThreadPool::WorkerId()].get();
 
-    // force
-    mj_inverse(model_, data_);
+          // set qt, vt, at
+          mju_copy(d->qpos, qt, nq);
+          mju_copy(d->qvel, vt, nv);
+          mju_copy(d->qacc, at, nv);
 
-    // copy force
-    double* ft = force_prediction_.data() + t * nv;
-    mju_copy(ft, data_->qfrc_inverse, nv);
+          // inverse dynamics
+          mj_inverse(model, d);
+
+          // copy sensor
+          double* st = sensor.data() + t * ns;
+          mju_copy(st, d->sensordata, ns);
+
+          // copy force
+          double* ft = force.data() + t * nv;
+          mju_copy(ft, d->qfrc_inverse, nv);
+        });
   }
+  // wait for all time steps
+  pool.WaitCount(count_before + configuration_length_ - 2);
+
+  // reset pool count
+  pool.ResetCount();
 }
 
-// compute model derivatives (via finite difference)
-void Estimator::ModelDerivatives() {
+// compute inverse dynamics derivatives (via finite difference)
+void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   // dimension
   int nq = model_->nq, nv = model_->nv;
+
+  // threadpool current count
+  int count_before = pool.GetCount();
 
   // loop over (state, acceleration)
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // unpack
-    double* q = configuration_.data() + (t + 1) * nq;
-    double* v = velocity_.data() + t * nv;
-    double* a = acceleration_.data() + t * nv;
-    double* dqds = block_sensor_configuration_.data() + t * dim_sensor_ * nv;
-    double* dvds = block_sensor_velocity_.data() + t * dim_sensor_ * nv;
-    double* dads = block_sensor_acceleration_.data() + t * dim_sensor_ * nv;
-    double* dqdf = block_force_configuration_.data() + t * nv * nv;
-    double* dvdf = block_force_velocity_.data() + t * nv * nv;
-    double* dadf = block_force_acceleration_.data() + t * nv * nv;
+    pool.Schedule([nq, nv, &ns = this->dim_sensor_, t,
+                   &configuration = this->configuration_,
+                   &velocity = this->velocity_,
+                   &acceleration = this->acceleration_,
+                   &sq = this->block_sensor_configuration_,
+                   &sv = this->block_sensor_velocity_,
+                   &sa = this->block_sensor_acceleration_,
+                   &fq = this->block_force_configuration_,
+                   &fv = this->block_force_velocity_,
+                   &fa = this->block_force_acceleration_, &model = this->model_,
+                   &data = this->data_, &fd = this->finite_difference_]() {
+      // unpack
+      double* q = configuration.data() + (t + 1) * nq;
+      double* v = velocity.data() + t * nv;
+      double* a = acceleration.data() + t * nv;
+      double* dqds = sq.data() + t * ns * nv;
+      double* dvds = sv.data() + t * ns * nv;
+      double* dads = sa.data() + t * ns * nv;
+      double* dqdf = fq.data() + t * nv * nv;
+      double* dvdf = fv.data() + t * nv * nv;
+      double* dadf = fa.data() + t * nv * nv;
 
-    // set (state, acceleration)
-    mju_copy(data_->qpos, q, nq);
-    mju_copy(data_->qvel, v, nv);
-    mju_copy(data_->qacc, a, nv);
+      // set (state, acceleration)
+      mju_copy(data[ThreadPool::WorkerId()]->qpos, q, nq);
+      mju_copy(data[ThreadPool::WorkerId()]->qvel, v, nv);
+      mju_copy(data[ThreadPool::WorkerId()]->qacc, a, nv);
 
-    // finite-difference derivatives
-    mjd_inverseFD(model_, data_, finite_difference_.tolerance,
-                  finite_difference_.flg_actuation, dqdf, dvdf, dadf, dqds,
-                  dvds, dads, NULL);
+      // finite-difference derivatives
+      mjd_inverseFD(model, data[ThreadPool::WorkerId()].get(), fd.tolerance,
+                    fd.flg_actuation, dqdf, dvdf, dadf, dqds, dvds, dads, NULL);
+    });
   }
+  // wait for all time steps
+  pool.WaitCount(count_before + configuration_length_ - 2);
+
+  // reset pool count
+  pool.ResetCount();
 }
 
 // update configuration trajectory
@@ -838,17 +856,14 @@ void Estimator::AccelerationDerivatives() {
 
 // compute total cost
 double Estimator::Cost(double& cost_prior, double& cost_sensor,
-                       double& cost_force) {
+                       double& cost_force, ThreadPool& pool) {
   // ----- trajectories ----- //
 
   // finite-difference velocities, accelerations
   ConfigurationToVelocityAcceleration();
 
-  // compute model sensors
-  SensorPrediction();
-
-  // compute model force
-  ForcePrediction();
+  // compute sensor and force predictions
+  InverseDynamicsPrediction(pool);
 
   // ----- residuals ----- //
   ResidualPrior();
@@ -865,7 +880,10 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
 }
 
 // optimize trajectory estimate
-void Estimator::Optimize() {
+void Estimator::Optimize(ThreadPool& pool) {
+  // resize data
+  ResizeMjData(model_, pool.NumThreads());
+
   // timing
   double timer_model_derivatives = 0.0;
   double timer_velacc_derivatives = 0.0;
@@ -885,7 +903,7 @@ void Estimator::Optimize() {
   double cost_prior = MAX_ESTIMATOR_COST;
   double cost_sensor = MAX_ESTIMATOR_COST;
   double cost_force = MAX_ESTIMATOR_COST;
-  double cost = Cost(cost_prior, cost_sensor, cost_force);
+  double cost = Cost(cost_prior, cost_sensor, cost_force, pool);
 
   // dimension
   int dim_con = model_->nq * configuration_length_;
@@ -901,10 +919,10 @@ void Estimator::Optimize() {
     // start timer (total cost derivatives)
     auto cost_derivatives_start = std::chrono::steady_clock::now();
 
-    // compute model derivatives
+    // compute inverse dynamics derivatives
     auto model_derivatives_start = std::chrono::steady_clock::now();
 
-    ModelDerivatives();
+    InverseDynamicsDerivatives(pool);
 
     timer_model_derivatives +=
         std::chrono::duration_cast<std::chrono::microseconds>(
@@ -1096,7 +1114,7 @@ void Estimator::Optimize() {
                           -1.0 * step_size);
 
       // cost
-      cost_candidate = Cost(cost_prior, cost_sensor, cost_force);
+      cost_candidate = Cost(cost_prior, cost_sensor, cost_force, pool);
 
       // update iteration
       iteration_line_search++;
@@ -1153,7 +1171,7 @@ void Estimator::PrintStatus() {
 
   // timing
   printf("Timing:\n");
-  printf("  model derivatives: %.5f (ms) \n",
+  printf("  inverse dynamics derivatives: %.5f (ms) \n",
          1.0e-3 * timer_model_derivatives_);
   printf("  velacc derivatives: %.5f (ms) \n",
          1.0e-3 * timer_velacc_derivatives_);
@@ -1180,6 +1198,20 @@ void Estimator::PrintStatus() {
   printf("Status:\n");
   printf("  iterations line search: %i\n", iterations_line_search_);
   printf("  iterations smoother: %i\n", iterations_smoother_);
+}
+
+// resize number of mjData
+// TODO(taylor): one method for planner and estimator?
+void Estimator::ResizeMjData(const mjModel* model, int num_threads) {
+  int new_size = std::max(1, num_threads);
+  if (data_.size() > new_size) {
+    data_.erase(data_.begin() + new_size, data_.end());
+  } else {
+    data_.reserve(new_size);
+    while (data_.size() < new_size) {
+      data_.push_back(MakeUniqueMjData(mj_makeData(model)));
+    }
+  }
 }
 
 }  // namespace mjpc

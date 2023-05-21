@@ -19,7 +19,7 @@
 
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/gradient/policy.h"
-#include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/forward_dynamics_derivatives.h"
 
 namespace mjpc {
 
@@ -46,7 +46,7 @@ class Gradient {
                    double *Vx, double *du, double *Qx, double *Qu);
 
   // compute gradient for entire trajectory
-  int Compute(GradientPolicy *p, const ModelDerivatives *md,
+  int Compute(GradientPolicy *p, const ForwardDynamicsDerivatives *fd,
               const CostDerivatives *cd, int dim_state_derivative,
               int dim_action, int T);
 

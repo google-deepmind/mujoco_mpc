@@ -104,11 +104,11 @@ class Estimator {
   // compute total cost
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
 
-  // compute total cost derivatives 
-  void CostDerivatives();
-
   // optimize trajectory estimate 
   void Optimize();
+
+  // print status 
+  void PrintStatus();
 
   // model
   mjModel* model_;
@@ -186,6 +186,7 @@ class Estimator {
   std::vector<double> cost_hessian_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_band_;      // BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv)
 
   // cost scratch
   std::vector<double> cost_scratch_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
@@ -224,12 +225,33 @@ class Estimator {
   std::vector<double> search_direction_;       // nv * MAX_HISTORY
 
   // solver 
-  BatchEstimatorSolver solver = kCholeskyDense;
+  BatchEstimatorSolver solver_ = kCholeskyDense;
 
+  // timing
+  double timer_total_;
+  double timer_model_derivatives_;
+  double timer_velacc_derivatives_;
+  double timer_jacobian_prior_;
+  double timer_jacobian_sensor_;
+  double timer_jacobian_force_;
+  double timer_cost_prior_derivatives_;
+  double timer_cost_sensor_derivatives_;
+  double timer_cost_force_derivatives_;
+  double timer_cost_gradient_;
+  double timer_cost_hessian_;
+  double timer_cost_derivatives_;
+  double timer_search_direction_;
+  double timer_line_search_;
+
+  // status 
+  int iterations_smoother_;
+  int iterations_line_search_;
+  
   // settings 
   int max_line_search_ = 10;
   int max_smoother_iterations_ = 20;
   double gradient_tolerance_ = 1.0e-5;
+  bool verbose_ = false;
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

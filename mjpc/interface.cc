@@ -54,7 +54,12 @@ void AgentRunner::Step(mjData* data) {
 }
 
 void AgentRunner::Residual(const mjModel* model, mjData* data) {
-  agent_.ActiveTask()->Residual(model, data, data->sensordata);
+  if (agent_.IsPlanningModel(model)) {
+    const mjpc::ResidualFn* residual = agent_.PlanningResidual();
+    residual->Residual(model, data, data->sensordata);
+  } else {
+    agent_.ActiveTask()->Residual(model, data, data->sensordata);
+  }
 }
 }  // namespace mjpc
 

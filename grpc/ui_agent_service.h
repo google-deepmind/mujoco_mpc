@@ -12,32 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// An implementation of the `Agent` gRPC service.
-
-#ifndef GRPC_AGENT_SERVICE_H
-#define GRPC_AGENT_SERVICE_H
-
-#include <memory>
-#include <vector>
+#ifndef GRPC_GRPC_UI_AGENT_SERVICE_H_
+#define GRPC_GRPC_UI_AGENT_SERVICE_H_
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
-#include "mjpc/agent.h"
-#include "mjpc/task.h"
-#include "mjpc/threadpool.h"
-#include "mjpc/utilities.h"
+#include "mjpc/simulate.h"  // mjpc fork
 
 namespace agent_grpc {
 
-class AgentService final : public agent::Agent::Service {
+// An AgentService implementation that connects to a running instance of the
+// MJPC UI.
+class UiAgentService final : public agent::Agent::Service {
  public:
-  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks)
-      : thread_pool_(mjpc::NumAvailableHardwareThreads()),
-        tasks_(std::move(tasks)) {}
-  ~AgentService();
+  explicit UiAgentService(mujoco::Simulate* sim) : sim_(sim) {}
+
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
                     agent::InitResponse* response) override;
@@ -76,20 +68,22 @@ class AgentService final : public agent::Agent::Service {
       const agent::SetTaskParametersRequest* request,
       agent::SetTaskParametersResponse* response) override;
 
-  grpc::Status SetCostWeights(
-      grpc::ServerContext* context,
-      const agent::SetCostWeightsRequest* request,
-      agent::SetCostWeightsResponse* response) override;
+  grpc::Status SetCostWeights(grpc::ServerContext* context,
+                              const agent::SetCostWeightsRequest* request,
+                              agent::SetCostWeightsResponse* response) override;
 
  private:
-  bool Initialized() const { return data_ != nullptr; }
+  using StatusStepJob =
+      absl::AnyInvocable<grpc::Status(mjpc::Agent*, const mjModel*, mjData*)>;
+  // runs a task before the next physics step, on the physics thread, and waits
+  // for it to run, up to the deadline of the incoming RPC.
+  grpc::Status RunBeforeStep(const grpc::ServerContext* context,
+                             StatusStepJob job);
 
-  mjpc::ThreadPool thread_pool_;
-  mjpc::Agent agent_;
-  std::vector<std::shared_ptr<mjpc::Task>> tasks_;
-  mjData* data_ = nullptr;
+  // Simulate instance owned by the containing binary
+  mujoco::Simulate* sim_;
 };
 
 }  // namespace agent_grpc
 
-#endif  // GRPC_AGENT_SERVICE_H
+#endif  // GRPC_GRPC_UI_AGENT_SERVICE_H_

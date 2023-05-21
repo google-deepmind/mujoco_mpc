@@ -54,7 +54,7 @@ void iLQGPlanner::Initialize(mjModel* model, const Task& task) {
   dim_max =
       mju_max(mju_max(mju_max(dim_state, dim_state_derivative), dim_action),
               model->nuser_sensor);
-  num_trajectory = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
+  num_rollouts_gui_ = GetNumberOrDefault(10, model, "ilqg_num_rollouts");
   settings.regularization_type = GetNumberOrDefault(
       settings.regularization_type, model, "ilqg_regularization_type");
 }
@@ -133,13 +133,19 @@ void iLQGPlanner::Reset(int horizon) {
 }
 
 // set state
-void iLQGPlanner::SetState(State& state) {
+void iLQGPlanner::SetState(const State& state) {
   state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
                &this->time);
 }
 
+void iLQGPlanner::UpdateNumTrajectoriesFromGUI() {
+  num_trajectory_ = mju_min(num_rollouts_gui_, kMaxTrajectory);
+}
+
 // optimize nominal policy using iLQG
 void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+  // freeze the GUI value once per optimization step.
+  UpdateNumTrajectoriesFromGUI();
   // get nominal trajectory
   this->NominalTrajectory(horizon, pool);
 
@@ -149,36 +155,41 @@ void iLQGPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
 // compute trajectory using nominal policy
 void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
+  if (num_trajectory_ == 0) {
+    return;
+  }
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 
-  // maximum number of trajectories in linesearch
-  num_trajectory = mju_min(num_trajectory, kMaxTrajectory);
-
   // step sizes (log scaling)
-  LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
-  linesearch_steps[num_trajectory - 1] = 0.0;
+  LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
+           num_trajectory_ - 1);
+  linesearch_steps[num_trajectory_ - 1] = 0.0;
 
   // ----- nominal rollout ----- //
   // start timer
   auto nominal_start = std::chrono::steady_clock::now();
 
-  // copy policy
-  for (int i = 0; i < num_trajectory; i++) {
+  // no one else should be writing, but we lock just in case:
+  {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
-    candidate_policy[i].CopyFrom(policy, horizon);
-    candidate_policy[i].representation = policy.representation;
+    for (int i = 0; i < num_trajectory_; i++) {
+      candidate_policy[i].CopyFrom(policy, horizon);
+      candidate_policy[i].representation = policy.representation;
+    }
   }
 
   // feedback rollouts (parallel)
   this->FeedbackRollouts(horizon, pool);
 
   // evaluate rollouts
-  int best_nominal = this->BestRollout(1.0e6, num_trajectory);
+  int best_nominal = this->BestRollout();
 
   // check for all rollout failures
   if (best_nominal == -1) {
-    // set to policy
+    // The policy's traj's first state is not the correct initial state, but
+    // what alternative do we have, if all rollouts from the current initial
+    // state failed?
     {
       const std::shared_lock<std::shared_mutex> lock(mtx_);
       candidate_policy[0].trajectory = policy.trajectory;
@@ -202,9 +213,13 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
 // set action from policy
 void iLQGPlanner::ActionFromPolicy(double* action, const double* state,
-                                   double time) {
+                                   double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
-  policy.Action(action, state, time);
+  if (use_previous) {
+    previous_policy.Action(action, state, time);
+  } else {
+    policy.Action(action, state, time);
+  }
 }
 
 // return trajectory with best total return
@@ -219,7 +234,7 @@ void iLQGPlanner::Traces(mjvScene* scn) {}
 // planner-specific GUI elements
 void iLQGPlanner::GUI(mjUI& ui) {
   mjuiDef defiLQG[] = {
-      {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory, "0 1"},
+      {mjITEM_SLIDERINT, "Rollouts", 2, &num_rollouts_gui_, "0 1"},
       // {mjITEM_RADIO, "Action Lmt.", 2, &settings.action_limits, "Off\nOn"},
       {mjITEM_SELECT, "Policy Interp.", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
@@ -348,12 +363,11 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 
-  // maximum number of trajectories in linesearch
-  num_trajectory = mju_min(num_trajectory, kMaxTrajectory);
 
   // step sizes (log scaling)
-  LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
-  linesearch_steps[num_trajectory - 1] = 0.0;
+  LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
+           num_trajectory_ - 1);
+  linesearch_steps[num_trajectory_ - 1] = 0.0;
 
   // ----- model derivatives ----- //
   // start timer
@@ -514,7 +528,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // copy policy
-  for (int j = 1; j < num_trajectory; j++) {
+  for (int j = 1; j < num_trajectory_; j++) {
     candidate_policy[j].CopyFrom(candidate_policy[0], horizon);
     candidate_policy[j].representation = candidate_policy[0].representation;
   }
@@ -525,7 +539,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // ----- evaluate rollouts ----- //
 
   // get best rollout
-  int best_rollout = this->BestRollout(previous_return, num_trajectory);
+  int best_rollout = this->BestRollout();
   if (best_rollout == -1) {
     return;
   } else {
@@ -575,6 +589,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     // improvement
+    previous_policy = policy;
     policy.CopyFrom(candidate_policy[winner], horizon);
 
     // feedback scaling
@@ -598,12 +613,13 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
 // compute candidate trajectories
 void iLQGPlanner::ActionRollouts(int horizon, ThreadPool& pool) {
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < num_trajectory_; i++) {
     pool.Schedule([&data = data_, &trajectory = trajectory,
                    &candidate_policy = candidate_policy,
                    &linesearch_steps = linesearch_steps, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
-                   &mocap = this->mocap, horizon, &userdata = this->userdata, i]() {
+                   &mocap = this->mocap, horizon, &userdata = this->userdata,
+                   i]() {
       // scale improvement
       mju_addScl(candidate_policy[i].trajectory.actions.data(),
                  candidate_policy[i].trajectory.actions.data(),
@@ -649,12 +665,12 @@ void iLQGPlanner::ActionRollouts(int horizon, ThreadPool& pool) {
       };
 
       // policy rollout (discrete time)
-      trajectory[i].RolloutDiscrete(feedback_policy, task, model,
-                                    data[ThreadPool::WorkerId()].get(),
-                                    state.data(), time, mocap.data(), userdata.data(), horizon);
+      trajectory[i].RolloutDiscrete(
+          feedback_policy, task, model, data[ThreadPool::WorkerId()].get(),
+          state.data(), time, mocap.data(), userdata.data(), horizon);
     });
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_trajectory_);
 
   pool.ResetCount();
 }
@@ -662,23 +678,23 @@ void iLQGPlanner::ActionRollouts(int horizon, ThreadPool& pool) {
 // compute candidate trajectories searching over feedback scaling
 void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < num_trajectory_; i++) {
     pool.Schedule([&data = data_, &trajectory = trajectory,
                    &candidate_policy = candidate_policy,
                    &linesearch_steps = linesearch_steps, &model = this->model,
                    &task = this->task, &state = this->state, &time = this->time,
                    &mocap = this->mocap, horizon, &userdata = this->userdata,
                    &settings = this->settings, i]() {
-
       // feedback scaling
       candidate_policy[i].feedback_scaling = linesearch_steps[i];
 
       // policy
-      auto feedback_policy = [&candidate_policy = candidate_policy[i], &settings = settings](
-                                 double* action, const double* state,
-                                 double time) {
-        candidate_policy.Action(action, settings.nominal_feedback_scaling ? state : NULL, time);
-      };
+      auto feedback_policy =
+          [&candidate_policy = candidate_policy[i], &settings = settings](
+              double* action, const double* state, double time) {
+            candidate_policy.Action(
+                action, settings.nominal_feedback_scaling ? state : NULL, time);
+          };
 
       // policy rollout
       trajectory[i].Rollout(
@@ -686,39 +702,25 @@ void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
           state.data(), time, mocap.data(), userdata.data(), horizon);
     });
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_trajectory_);
 
   pool.ResetCount();
 }
 
 // return index of trajectory with best rollout
-int iLQGPlanner::BestRollout(double previous_return, int num_trajectory) {
-    // compare rollouts
-    double best_return = previous_return;
-    int best_rollout = num_trajectory - 1;
-    int failed = 0;
-    if (trajectory[num_trajectory - 1].failure) {
-      failed++;
-    }
-    for (int j = num_trajectory - 2; j >= 0; j--) {
-      if (trajectory[j].failure) {
-        failed++;
-        continue;
-      }
-      // compute cost
-      double rollout_return = trajectory[j].total_return;
+int iLQGPlanner::BestRollout() {
+  double best_return = 0;
+  int best_rollout = -1;
 
-      // compare cost
-      if (rollout_return < best_return) {
-        best_return = rollout_return;
-        best_rollout = j;
-      }
-    }
-    if (failed == num_trajectory) {
-      return -1;
-    } else {
-      return best_rollout;
+  for (int j = num_trajectory_ - 1; j >= 0; j--) {
+    if (trajectory[j].failure) continue;
+    double rollout_return = trajectory[j].total_return;
+    if (best_rollout == -1 || rollout_return < best_return) {
+      best_return = rollout_return;
+      best_rollout = j;
     }
   }
+  return best_rollout;
+}
 
 }  // namespace mjpc

@@ -31,11 +31,14 @@ service Agent {
   rpc Step(StepRequest) returns (StepResponse);
   // Reset the Agent.
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Set a task parameter.
-  rpc SetTaskParameter(SetTaskParameterRequest)
-      returns (SetTaskParameterResponse);
+  // Set a task parameters.
+  rpc SetTaskParameters(SetTaskParametersRequest)
+      returns (SetTaskParametersResponse);
   // Set cost weights.
   rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
+  // Get cost term values.
+  rpc GetCostValuesAndWeights(GetCostValuesAndWeightsRequest)
+      returns (GetCostValuesAndWeightsResponse);
 }
 
 message MjModel {
@@ -46,6 +49,8 @@ message MjModel {
 message InitRequest {
   optional string task_id = 1;
   optional MjModel model = 2;
+  // only used on when there is asynchronous planning
+  optional float real_time_speed = 3;
 }
 message InitResponse {}
 
@@ -77,6 +82,17 @@ message GetActionResponse {
   repeated float action = 1 [packed = true];
 }
 
+message GetCostValuesAndWeightsRequest {}
+
+message ValueAndWeight {
+  double value = 1;
+  double weight = 2;
+}
+
+message GetCostValuesAndWeightsResponse {
+  map<string, ValueAndWeight> values_weights = 1;
+}
+
 message PlannerStepRequest {}
 message PlannerStepResponse {}
 
@@ -90,16 +106,24 @@ message StepResponse {}
 message ResetRequest {}
 message ResetResponse {}
 
-message SetTaskParameterRequest {
-  // TODO(nimrod): Make this a bulk request like SetCostWeights
-  // TODO(nimrod): Support string task parameters
-  string name = 1;
-  double value = 2;
+message TaskParameterValue {
+  oneof value {
+    // used for normal numeric task parameters
+    double numeric = 1;
+    // used for values that come from drop down selections
+    string selection = 2;
+  }
 }
-message SetTaskParameterResponse {}
+
+message SetTaskParametersRequest {
+  // map from parameter name to desired value
+  map<string, TaskParameterValue> parameters = 1;
+}
+message SetTaskParametersResponse {}
 
 message SetCostWeightsRequest {
+  bool reset_to_defaults = 1;
   // cost weights by name
-  map<string, double> cost_weights = 1;
+  map<string, double> cost_weights = 2;
 }
 message SetCostWeightsResponse {}

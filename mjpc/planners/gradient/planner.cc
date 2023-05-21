@@ -67,6 +67,7 @@ void GradientPlanner::Allocate() {
   userdata.resize(model->nuserdata);
 
   // candidate trajectories
+  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(dim_state, dim_action, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
@@ -141,7 +142,7 @@ void GradientPlanner::Reset(int horizon) {
 }
 
 // set state
-void GradientPlanner::SetState(State& state) {
+void GradientPlanner::SetState(const State& state) {
   state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
                &this->time);
 }
@@ -309,6 +310,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
+    previous_policy = policy;
     policy.CopyParametersFrom(candidate_policy[winner].parameters,
                               candidate_policy[winner].times);
   }
@@ -344,9 +346,13 @@ void GradientPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
 // compute action from policy
 void GradientPlanner::ActionFromPolicy(double* action, const double* state,
-                                       double time) {
+                                       double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
-  policy.Action(action, state, time);
+  if (use_previous) {
+    previous_policy.Action(action, state, time);
+  } else {
+    policy.Action(action, state, time);
+  }
 }
 
 // update policy for current time
@@ -417,7 +423,7 @@ void GradientPlanner::Rollouts(int horizon, ThreadPool& pool) {
 
 // return trajectory with best total return
 const Trajectory* GradientPlanner::BestTrajectory() {
-  return &trajectory[winner];
+  return winner >= 0 ? &trajectory[winner] : nullptr;
 }
 
 // visualize candidate traces in GUI

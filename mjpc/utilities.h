@@ -242,6 +242,12 @@ inline UniqueMjData MakeUniqueMjData(mjData* d) {
   return UniqueMjData(d, mj_deleteData);
 }
 
+using UniqueMjModel = std::unique_ptr<mjModel, void (*)(mjModel*)>;
+
+inline UniqueMjModel MakeUniqueMjModel(mjModel* d) {
+  return UniqueMjModel(d, mj_deleteModel);
+}
+
 // returns point in 2D convex hull that is nearest to query
 void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
                    const int* hull, int num_hull);
@@ -328,6 +334,9 @@ void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
 void DifferentiateDifferentiatePos(double* jac1, double* jac2,
                                    const mjModel* model, double dt,
                                    const double* qpos1, const double* qpos2);
+
+// compute number of nonzeros in band matrix
+int BandMatrixNonZeros(int ntotal, int nband);
 
 }  // namespace mjpc
 

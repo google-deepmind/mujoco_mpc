@@ -1281,4 +1281,27 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
   }
 }
 
+// compute number of nonzeros in band matrix
+int BandMatrixNonZeros(int ntotal, int nband) {
+  // no band 
+  if (nband == 0) return 0;
+
+  // diagonal matrix 
+  if (nband == 1) return ntotal;
+
+  // initialize number of nonzeros 
+  int nnz = 0;
+
+  // diagonal
+  nnz += ntotal;
+
+  // off diagonals
+  for (int k = 1; k < nband; k++) {
+    nnz += 2 * (ntotal - k);
+  }
+
+  // total non-zeros
+  return nnz;
+}
+
 }  // namespace mjpc

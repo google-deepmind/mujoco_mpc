@@ -28,7 +28,7 @@ struct iLQGSettings {
   int max_regularization_iterations =
       5;  // maximum number of regularization updates per iteration
   int action_limits = 1;  // flag
-  int nominal_feedback_scaling = 1; // flag
+  int nominal_feedback_scaling = 1;  // flag
   int verbose = 0;        // print optimizer info
 };
 

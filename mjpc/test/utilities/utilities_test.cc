@@ -391,5 +391,19 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   EXPECT_NEAR(mju_norm(error_b, 36) / 36, 0.0, 1.0e-5);
 }
 
+TEST(BandedMatrix, NonZeros) {
+  EXPECT_EQ(BandMatrixNonZeros(2, 0), 0);
+  EXPECT_EQ(BandMatrixNonZeros(2, 1), 2);
+  EXPECT_EQ(BandMatrixNonZeros(3, 0), 0);
+  EXPECT_EQ(BandMatrixNonZeros(3, 1), 3);
+  EXPECT_EQ(BandMatrixNonZeros(3, 2), 7);
+  EXPECT_EQ(BandMatrixNonZeros(3, 3), 9);
+  EXPECT_EQ(BandMatrixNonZeros(4, 0), 0);
+  EXPECT_EQ(BandMatrixNonZeros(4, 1), 4);
+  EXPECT_EQ(BandMatrixNonZeros(4, 2), 10);
+  EXPECT_EQ(BandMatrixNonZeros(4, 3), 14);
+  EXPECT_EQ(BandMatrixNonZeros(4, 4), 16);
+}
+
 }  // namespace
 }  // namespace mjpc

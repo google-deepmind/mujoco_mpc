@@ -14,26 +14,24 @@
 
 #include "grpc/agent_service.h"
 
-#include <cstring>
-#include <memory>
-#include <sstream>
 #include <string_view>
 #include <vector>
 
-#include <absl/status/status.h>
-#include <absl/strings/match.h>
+#include <absl/log/check.h>
 #include <absl/strings/str_format.h>
-#include <absl/strings/strip.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
+#include "grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
 
 namespace agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetCostValuesAndWeightsRequest;
+using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::InitRequest;
@@ -46,92 +44,56 @@ using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
-using ::agent::SetTaskParameterRequest;
-using ::agent::SetTaskParameterResponse;
+using ::agent::SetTaskParametersRequest;
+using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
 
 mjpc::Task* task = nullptr;
+// model used for physics
 mjModel* model = nullptr;
+// model used for planning, owned by the Agent instance.
+mjModel* agent_model = nullptr;
 
 void residual_sensor_callback(const mjModel* m, mjData* d, int stage) {
   // with the `m == model` guard in place, no need to clear the callback.
-  if (m == model) {
+  if (m == agent_model || m == model) {
     if (stage == mjSTAGE_ACC) {
       task->Residual(m, d, d->sensordata);
     }
   }
 }
 
-mjModel* LoadModelFromString(std::string_view xml, char* error,
-                             int error_size) {
-  static constexpr char file[] = "temporary-filename.xml";
-  // mjVFS structs need to be allocated on the heap, because it's ~2MB
-  auto vfs = std::make_unique<mjVFS>();
-  mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, xml.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  memcpy(vfs->filedata[file_idx], xml.data(), xml.size());
-  mjModel* m = mj_loadXML(file, vfs.get(), error, error_size);
-  mj_deleteFileVFS(vfs.get(), file);
-  return m;
-}
-
-mjModel* LoadModelFromBytes(std::string_view mjb) {
-  static constexpr char file[] = "temporary-filename.mjb";
-  // mjVFS structs need to be allocated on the heap, because it's ~2MB
-  auto vfs = std::make_unique<mjVFS>();
-  mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
-  mjModel* m = mj_loadModel(file, vfs.get());
-  mj_deleteFileVFS(vfs.get(), file);
-  return m;
-}
-
 grpc::Status AgentService::Init(grpc::ServerContext* context,
                                 const InitRequest* request,
                                 InitResponse* response) {
-  std::string_view task_id = request->task_id();
   agent_.SetTaskList(tasks_);
+  grpc::Status status = grpc_agent_util::InitAgent(&agent_, request);
+  if (!status.ok()) {
+    return status;
+  }
+  agent_.SetTaskList(tasks_);
+  std::string_view task_id = request->task_id();
   int task_index = agent_.GetTaskIdByName(task_id);
   if (task_index == -1) {
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         absl::StrFormat("Invalid task_id: '%s'", task_id));
   }
-
   agent_.SetTaskByIndex(task_index);
-  // TODO(khartikainen): is this needed?
-  agent_.gui_task_id = task_index;
 
-  mjModel* tmp_model;
-  char load_error[1024] = "";
-
-  if (request->has_model() && request->model().has_mjb()) {
-    std::string_view model_mjb_bytes = request->model().mjb();
-    // TODO(khartikainen): Add error handling for mjb loading.
-    tmp_model = LoadModelFromBytes(model_mjb_bytes);
-  } else if (request->has_model() && request->model().has_xml()) {
-    std::string_view model_xml = request->model().xml();
-    tmp_model = LoadModelFromString(model_xml, load_error, sizeof(load_error));
-  } else {
-    tmp_model = mj_loadXML(agent_.ActiveTask()->XmlPath().c_str(), nullptr,
-                           load_error, sizeof(load_error));
-  }
-
-  if (!tmp_model) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        absl::StrFormat("Model load error: '%s'", load_error));
-  }
-
-  agent_.Initialize(tmp_model);
-  mj_deleteModel(tmp_model);
+  auto load_model = agent_.LoadModel();
+  agent_.Initialize(load_model.model.get());
   agent_.Allocate();
   agent_.Reset();
 
   task = agent_.ActiveTask();
-  model = agent_.GetModel();
+  CHECK_EQ(agent_model, nullptr)
+      << "Multiple instances of AgentService detected.";
+  agent_model = agent_.GetModel();
+  // copy the model before agent model's timestep and integrator are updated
+  CHECK_EQ(model, nullptr)
+      << "Multiple instances of AgentService detected.";
+  model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
   mjcb_sensor = residual_sensor_callback;
 
@@ -145,99 +107,33 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
 
 AgentService::~AgentService() {
   if (data_) mj_deleteData(data_);
-  // no need to delete model and task, since they're owned by agent_.
+  if (model) mj_deleteModel(model);
   model = nullptr;
+  // no need to delete agent_model and task, since they're owned by agent_.
+  agent_model = nullptr;
   task = nullptr;
   mjcb_sensor = nullptr;
-}
-
-absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
-  std::ostringstream error_string;
-  if (model_size != vector_size) {
-    error_string << "expected " << name << " size " << model_size << ", got "
-                 << vector_size;
-    return absl::InvalidArgumentError(error_string.str());
-  }
-  return absl::OkStatus();
 }
 
 grpc::Status AgentService::GetState(grpc::ServerContext* context,
                                     const GetStateRequest* request,
                                     GetStateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent_.ActiveState().CopyTo(model, data_);
-  agent::State* output_state = response->mutable_state();
-
-  output_state->set_time(data_->time);
-  for (int i = 0; i < model->nq; i++) {
-    output_state->add_qpos(data_->qpos[i]);
-  }
-  for (int i = 0; i < model->nv; i++) {
-    output_state->add_qvel(data_->qvel[i]);
-  }
-  for (int i = 0; i < model->na; i++) {
-    output_state->add_act(data_->act[i]);
-  }
-  for (int i = 0; i < model->nmocap * 3; i++) {
-    output_state->add_mocap_pos(data_->mocap_pos[i]);
-  }
-  for (int i = 0; i < model->nmocap * 4; i++) {
-    output_state->add_mocap_quat(data_->mocap_quat[i]);
-  }
-  for (int i = 0; i < model->nuserdata; i++) {
-    output_state->add_userdata(data_->userdata[i]);
-  }
-
-  return grpc::Status::OK;
-}
-
-#define CHECK_SIZE(name, n1, n2) \
-{ \
-  auto expr = (CheckSize(name, n1, n2)); \
-if (!(expr).ok()) { \
-  return grpc::Status( \
-    grpc::StatusCode::INVALID_ARGUMENT, \
-    (expr).ToString()); \
-  } \
+  return grpc_agent_util::GetState(model, data_, response);
 }
 
 grpc::Status AgentService::SetState(grpc::ServerContext* context,
                                     const SetStateRequest* request,
                                     SetStateResponse* response) {
-  agent::State state = request->state();
-
-  if (state.has_time()) data_->time = state.time();
-
-  if (0 < state.qpos_size()) {
-    CHECK_SIZE("qpos", model->nq, state.qpos_size());
-    mju_copy(data_->qpos, state.qpos().data(), model->nq);
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-
-  if (0 < state.qvel_size()) {
-    CHECK_SIZE("qvel", model->nv, state.qvel_size());
-    mju_copy(data_->qvel, state.qvel().data(), model->nv);
-  }
-
-  if (0 < state.act_size()) {
-    CHECK_SIZE("act", model->na, state.act_size());
-    mju_copy(data_->act, state.act().data(), model->na);
-  }
-
-  if (0 < state.mocap_pos_size()) {
-    CHECK_SIZE("mocap_pos", model->nmocap * 3, state.mocap_pos_size());
-    mju_copy(data_->mocap_pos, state.mocap_pos().data(), model->nmocap * 3);
-  }
-
-  if (0 < state.mocap_quat_size()) {
-    CHECK_SIZE("mocap_quat", model->nmocap * 4, state.mocap_quat_size());
-    mju_copy(data_->mocap_quat, state.mocap_quat().data(), model->nmocap * 4);
-  }
-
-  if (0 < state.userdata_size()) {
-    CHECK_SIZE("userdata", model->nuserdata, state.userdata_size());
-    mju_copy(data_->userdata, state.userdata().data(), model->nuserdata);
-  }
-
-  agent_.SetState(data_);
+  grpc::Status status =
+      grpc_agent_util::SetState(request, &agent_, model, data_);
+  if (!status.ok()) return status;
 
   mj_forward(model, data_);
   task->Transition(model, data_);
@@ -245,28 +141,31 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-#undef CHECK_SIZE
-
 grpc::Status AgentService::GetAction(grpc::ServerContext* context,
                                      const GetActionRequest* request,
                                      GetActionResponse* response) {
-  int nu = agent_.GetActionDim();
-  std::vector<double> ret = std::vector<double>(nu);
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetAction(request, &agent_, response);
+}
 
-  double time =
-      request->has_time() ? request->time() : agent_.ActiveState().time();
-
-  agent_.ActivePlanner().ActionFromPolicy(
-      ret.data(), &agent_.ActiveState().state()[0], time);
-
-  response->mutable_action()->Assign(ret.begin(), ret.end());
-
-  return grpc::Status::OK;
+grpc::Status AgentService::GetCostValuesAndWeights(
+    grpc::ServerContext* context, const GetCostValuesAndWeightsRequest* request,
+    GetCostValuesAndWeightsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetCostValuesAndWeights(request, &agent_, model,
+                                                  data_, response);
 }
 
 grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,
                                        const PlannerStepRequest* request,
                                        PlannerStepResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   agent_.plan_enabled = true;
   agent_.PlanIteration(&thread_pool_);
 
@@ -276,14 +175,15 @@ grpc::Status AgentService::PlannerStep(grpc::ServerContext* context,
 grpc::Status AgentService::Step(grpc::ServerContext* context,
                                 const StepRequest* request,
                                 StepResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
-  if (request->use_previous_policy()) {
-    return {grpc::StatusCode::UNIMPLEMENTED,
-            "use_previous_policy not implemented."};
-  }
+  agent_.ActiveTask()->Transition(model, data_);
   agent_.ActivePlanner().ActionFromPolicy(data_->ctrl, state.state().data(),
-                                          state.time());
+                                          state.time(),
+                                          request->use_previous_policy());
   mj_step(model, data_);
   state.Set(model, data_);
   return grpc::Status::OK;
@@ -292,55 +192,28 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
 grpc::Status AgentService::Reset(grpc::ServerContext* context,
                                  const ResetRequest* request,
                                  ResetResponse* response) {
-  agent_.Reset();
-  return grpc::Status::OK;
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::Reset(&agent_, agent_.GetModel(), data_);
 }
 
-grpc::Status AgentService::SetTaskParameter(
-    grpc::ServerContext* context, const SetTaskParameterRequest* request,
-    SetTaskParameterResponse* response) {
-  std::string_view name = request->name();
-  double value = request->value();
-
-  if (agent_.SetParamByName(name, value) == -1) {
-    std::ostringstream error_string;
-    error_string << "Parameter " << name
-                 << " not found in task.  Available names are:\n";
-    auto agent_model = agent_.GetModel();
-    for (int i = 0; i < agent_model->nnumeric; i++) {
-      std::string_view numeric_name(agent_model->names +
-                                    agent_model->name_numericadr[i]);
-      if (absl::StartsWith(numeric_name, "residual_")) {
-        error_string << absl::StripPrefix(numeric_name, "residual_") << "\n";
-      }
-    }
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string.str());
+grpc::Status AgentService::SetTaskParameters(
+    grpc::ServerContext* context, const SetTaskParametersRequest* request,
+    SetTaskParametersResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-
-  return grpc::Status::OK;
+  return grpc_agent_util::SetTaskParameters(request, &agent_);
 }
 
 grpc::Status AgentService::SetCostWeights(
     grpc::ServerContext* context, const SetCostWeightsRequest* request,
     SetCostWeightsResponse* response) {
-  for (const auto& [name, weight] : request->cost_weights()) {
-    if (agent_.SetWeightByName(name, weight) == -1) {
-      std::ostringstream error_string;
-      error_string << "Weight '" << name
-                   << "' not found in task. Available names are:\n";
-      auto agent_model = agent_.GetModel();
-      for (int i = 0; i < agent_model->nsensor &&
-                      agent_model->sensor_type[i] == mjSENS_USER;
-           i++) {
-        std::string_view sensor_name(agent_model->names +
-                                     agent_model->name_sensoradr[i]);
-        error_string << "  " << sensor_name << "\n";
-      }
-      return {grpc::StatusCode::INVALID_ARGUMENT, error_string.str()};
-    }
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-
-  return grpc::Status::OK;
+  return grpc_agent_util::SetCostWeights(request, &agent_);
 }
 
 }  // namespace agent_grpc

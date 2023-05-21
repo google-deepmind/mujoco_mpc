@@ -45,7 +45,6 @@ option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
 
 include(FindOrFetch)
-set(FETCHCONTENT_FULLY_DISCONNECTED ON)
 
 find_package(Python)
 find_package(Threads REQUIRED)

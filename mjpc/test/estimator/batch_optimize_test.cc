@@ -121,6 +121,12 @@ TEST(BatchOptimize, Particle2D) {
   double cost_random = estimator.Cost(
       estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
 
+  // change solver 
+  estimator.solver_ = kBanded;
+
+  // change verbosity 
+  estimator.verbose_ = true;
+
   // optimize
   estimator.Optimize();
 

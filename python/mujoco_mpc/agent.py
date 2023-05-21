@@ -60,30 +60,46 @@ class Agent:
   """
 
   def __init__(
-      self, task_id: str, model: Optional[mujoco.MjModel] = None
-  ) -> None:
+      self,
+      task_id: str,
+      model: Optional[mujoco.MjModel] = None,
+      server_binary_path: Optional[str] = None,
+      real_time_speed: float = 1.0,
+  ):
     self.task_id = task_id
     self.model = model
 
-    binary_name = "agent_server"
-    server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
+    if server_binary_path is None:
+      binary_name = "agent_server"
+      server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--port={self.port}"]
+        [str(server_binary_path), f"--mjpc_port={self.port}"]
     )
-    atexit.register(self.server_process.terminate)
+    atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(task_id, model)
+    self.init(
+        task_id,
+        model,
+        send_as="mjb",
+        real_time_speed=real_time_speed,
+    )
+
+  def close(self):
+    self.channel.close()
+    self.server_process.kill()
+    self.server_process.wait()
 
   def init(
       self,
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       send_as: Literal["mjb", "xml"] = "xml",
+      real_time_speed: float = 1.0,
   ):
     """Initialize the agent for task `task_id`.
 
@@ -95,6 +111,9 @@ class Agent:
         task xml will be used.
       send_as: The serialization format for sending the model over gRPC. Either
         "mjb" or "xml".
+      real_time_speed: ratio of running speed to wall clock, from 0 to 1. Only
+        affects async (UI) binaries, and not ones where planning is
+        synchronous.
     """
 
     def model_to_mjb(model: mujoco.MjModel) -> bytes:
@@ -118,7 +137,9 @@ class Agent:
     else:
       model_message = None
 
-    init_request = agent_pb2.InitRequest(task_id=task_id, model=model_message)
+    init_request = agent_pb2.InitRequest(
+        task_id=task_id, model=model_message, real_time_speed=real_time_speed
+    )
     self.stub.Init(init_request)
 
   def set_state(
@@ -142,6 +163,12 @@ class Agent:
       mocap_quat: `data.mocap_quat`.
       userdata: `data.userdata`.
     """
+    # if mocap_pos is an ndarray rather than a list, flatten it
+    if hasattr(mocap_pos, "flatten"):
+      mocap_pos = mocap_pos.flatten()
+    if hasattr(mocap_quat, "flatten"):
+      mocap_quat = mocap_quat.flatten()
+
     state = agent_pb2.State(
         time=time if time is not None else None,
         qpos=qpos if qpos is not None else [],
@@ -171,6 +198,24 @@ class Agent:
     get_action_response = self.stub.GetAction(get_action_request)
     return np.array(get_action_response.action)
 
+  def get_total_cost(self) -> float:
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    total_cost = 0
+    for _, value_weight in terms.values_weights.items():
+      total_cost += value_weight.weight * value_weight.value
+    return total_cost
+
+  def get_cost_term_values(self) -> dict[str, float]:
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    return {
+        name: value_weight.value
+        for name, value_weight in terms.values_weights.items()
+    }
+
   def planner_step(self):
     """Send a planner request."""
     planner_step_request = agent_pb2.PlannerStepRequest()
@@ -192,16 +237,35 @@ class Agent:
       name: the name to identify the parameter.
       value: value to to set the parameter to.
     """
-    set_task_parameter_request = agent_pb2.SetTaskParameterRequest(
-        name=name, value=value
-    )
-    self.stub.SetTaskParameter(set_task_parameter_request)
+    self.set_task_parameters({name: value})
 
-  def set_cost_weights(self, weights: dict[str, float]):
+  def set_task_parameters(self, parameters: dict[str, float | str]):
+    """Sets the `Agent`'s task parameters.
+
+    Args:
+      parameters: a map from parameter name to value. string values will be
+          treated as "selection" values, i.e. parameters with names that start
+          with "residual_select_" in the XML.
+    """
+    request = agent_pb2.SetTaskParametersRequest()
+    for (name, value) in parameters.items():
+      if isinstance(value, str):
+        request.parameters[name].selection = value
+      else:
+        request.parameters[name].numeric = value
+    self.stub.SetTaskParameters(request)
+
+  def set_cost_weights(
+      self, weights: dict[str, float], reset_to_defaults: bool = False
+  ):
     """Sets the agent's cost weights by name.
 
     Args:
       weights: a map for cost term name to weight value
+      reset_to_defaults: if true, cost weights will be reset before applying the
+        map
     """
-    request = agent_pb2.SetCostWeightsRequest(cost_weights=weights)
+    request = agent_pb2.SetCostWeightsRequest(
+        cost_weights=weights, reset_to_defaults=reset_to_defaults
+    )
     self.stub.SetCostWeights(request)

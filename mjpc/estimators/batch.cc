@@ -31,7 +31,7 @@ void Estimator::Initialize(mjModel* model) {
   data_.clear();
 
   // allocate one mjData for nominal.
-  ResizeMjData(model_, MAX_HISTORY); // TODO(taylor): set to 1, fix segfault...
+  ResizeMjData(model_, MAX_HISTORY);  // TODO(taylor): set to 1, fix segfault...
 
   // dimension
   int nq = model->nq, nv = model->nv;
@@ -769,79 +769,117 @@ void Estimator::UpdateConfiguration(double* candidate,
 }
 
 // convert sequence of configurations to velocities and accelerations
-void Estimator::ConfigurationToVelocityAcceleration() {
+void Estimator::ConfigurationToVelocityAcceleration(ThreadPool& pool) {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
-  // velocities: loop over configuration trajectory
+  // get pool count
+  int count_before = pool.GetCount();
+
+  // loop over configuration trajectory
   for (int t = 0; t < configuration_length_ - 1; t++) {
-    // previous and current configurations
-    const double* q0 = configuration_.data() + t * nq;
-    const double* q1 = configuration_.data() + (t + 1) * nq;
+    pool.Schedule([nq, nv, t, &configuration = this->configuration_,
+                   &velocity = this->velocity_,
+                   &acceleration = this->acceleration_,
+                   &model = this->model_]() {
+      // previous and current configurations
+      const double* q0 = configuration.data() + t * nq;
+      const double* q1 = configuration.data() + (t + 1) * nq;
 
-    // compute velocity
-    double* v1 = velocity_.data() + t * nv;
-    mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
-
-    // compute acceleration
-    if (t > 0) {
-      // previous velocity
-      const double* v0 = velocity_.data() + (t - 1) * nv;
+      // compute velocity
+      double* v1 = velocity.data() + t * nv;
+      mj_differentiatePos(model, v1, model->opt.timestep, q0, q1);
 
       // compute acceleration
-      double* a1 = acceleration_.data() + (t - 1) * nv;
-      mju_sub(a1, v1, v0, nv);
-      mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
-    }
+      if (t > 0) {
+        // previous velocity
+        const double* v0 = velocity.data() + (t - 1) * nv;
+
+        // compute acceleration
+        double* a1 = acceleration.data() + (t - 1) * nv;
+        mju_sub(a1, v1, v0, nv);
+        mju_scl(a1, a1, 1.0 / model->opt.timestep, nv);
+      }
+    });
   }
+
+  // wait
+  pool.WaitCount(count_before + configuration_length_ - 1);
+
+  // reset pool count
+  pool.ResetCount();
 }
 
 // compute finite-difference velocity, acceleration derivatives
-void Estimator::VelocityAccelerationDerivatives() {
+void Estimator::VelocityAccelerationDerivatives(ThreadPool& pool) {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
-  // ----- velocity derivatives ----- //
-  
+  // get pool count
+  int count_before = pool.GetCount();
+
   // loop over configurations
   for (int t = 0; t < configuration_length_ - 1; t++) {
-    // unpack
-    double* q1 = configuration_.data() + t * nq;
-    double* q2 = configuration_.data() + (t + 1) * nq;
-    double* dv2dq1 = block_velocity_previous_configuration_.data() + t * nv * nv;
-    double* dv2dq2 = block_velocity_current_configuration_.data() + t * nv * nv;
-
-    // compute velocity Jacobians
-    DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model_, model_->opt.timestep,
-                                  q1, q2);
-
-    // compute acceleration Jacobians 
-    if (t > 0) {
+    pool.Schedule([nq, nv, t, &configuration = this->configuration_,
+                   &block_velocity_previous_configuration =
+                       this->block_velocity_previous_configuration_,
+                   &block_velocity_current_configuration =
+                       this->block_velocity_current_configuration_,
+                   &block_acceleration_previous_configuration =
+                       this->block_acceleration_previous_configuration_,
+                   &block_acceleration_current_configuration =
+                       this->block_acceleration_current_configuration_,
+                   &block_acceleration_next_configuration =
+                       this->block_acceleration_next_configuration_,
+                   &model = this->model_]() {
       // unpack
-      double* dadq0 =
-          block_acceleration_previous_configuration_.data() + (t - 1) * nv * nv;
-      double* dadq1 =
-          block_acceleration_current_configuration_.data() + (t - 1) * nv * nv;
-      double* dadq2 = block_acceleration_next_configuration_.data() + (t - 1) * nv * nv;
+      double* q1 = configuration.data() + t * nq;
+      double* q2 = configuration.data() + (t + 1) * nq;
+      double* dv2dq1 =
+          block_velocity_previous_configuration.data() + t * nv * nv;
+      double* dv2dq2 =
+          block_velocity_current_configuration.data() + t * nv * nv;
 
-      // previous velocity Jacobians
-      double* dv1dq0 =
-        block_velocity_previous_configuration_.data() + (t - 1) * nv * nv;
-      double* dv1dq1 = block_velocity_current_configuration_.data() + (t - 1) * nv * nv;
+      // compute velocity Jacobians
+      DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model, model->opt.timestep,
+                                    q1, q2);
 
-      // dadq0 = -dv1dq0 / h
-      mju_copy(dadq0, dv1dq0, nv * nv);
-      mju_scl(dadq0, dadq0, -1.0 / model_->opt.timestep, nv * nv);
+      // compute acceleration Jacobians
+      if (t > 0) {
+        // unpack
+        double* dadq0 = block_acceleration_previous_configuration.data() +
+                        (t - 1) * nv * nv;
+        double* dadq1 =
+            block_acceleration_current_configuration.data() + (t - 1) * nv * nv;
+        double* dadq2 =
+            block_acceleration_next_configuration.data() + (t - 1) * nv * nv;
 
-      // dadq1 = dv2dq1 / h - dv1dq1 / h = (dv2dq1 - dv1dq1) / h
-      mju_sub(dadq1, dv2dq1, dv1dq1, nv * nv);
-      mju_scl(dadq1, dadq1, 1.0 / model_->opt.timestep, nv * nv);
+        // previous velocity Jacobians
+        double* dv1dq0 =
+            block_velocity_previous_configuration.data() + (t - 1) * nv * nv;
+        double* dv1dq1 =
+            block_velocity_current_configuration.data() + (t - 1) * nv * nv;
 
-      // dadq2 = dv2dq2 / h
-      mju_copy(dadq2, dv2dq2, nv * nv);
-      mju_scl(dadq2, dadq2, 1.0 / model_->opt.timestep, nv * nv);
-    }
+        // dadq0 = -dv1dq0 / h
+        mju_copy(dadq0, dv1dq0, nv * nv);
+        mju_scl(dadq0, dadq0, -1.0 / model->opt.timestep, nv * nv);
+
+        // dadq1 = dv2dq1 / h - dv1dq1 / h = (dv2dq1 - dv1dq1) / h
+        mju_sub(dadq1, dv2dq1, dv1dq1, nv * nv);
+        mju_scl(dadq1, dadq1, 1.0 / model->opt.timestep, nv * nv);
+
+        // dadq2 = dv2dq2 / h
+        mju_copy(dadq2, dv2dq2, nv * nv);
+        mju_scl(dadq2, dadq2, 1.0 / model->opt.timestep, nv * nv);
+      }
+    });
   }
+
+  // wait
+  pool.WaitCount(count_before + configuration_length_ - 1);
+
+  // reset pool count
+  pool.ResetCount();
 }
 
 // compute total cost
@@ -851,7 +889,7 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
 
   // TODO schedule threadpool
   // finite-difference velocities, accelerations
-  ConfigurationToVelocityAcceleration();
+  ConfigurationToVelocityAcceleration(pool);
 
   // compute sensor and force predictions
   InverseDynamicsPrediction(pool);
@@ -871,7 +909,7 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
     cost_sensor = estimator.CostSensor(NULL, NULL);
   });
 
-  // force 
+  // force
   pool.Schedule([&cost_force, &estimator = *this]() {
     estimator.ResidualForce();
     cost_force = estimator.CostForce(NULL, NULL);
@@ -947,7 +985,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     auto velacc_derivatives_start = std::chrono::steady_clock::now();
 
     // compute derivatives
-    VelocityAccelerationDerivatives();
+    VelocityAccelerationDerivatives(pool);
 
     // stop timer
     timer_velacc_derivatives +=
@@ -1038,7 +1076,8 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto cost_force_start = std::chrono::steady_clock::now();
 
       // compute derivatives
-      estimator.CostForce(estimator.cost_gradient_force_.data(), estimator.cost_hessian_force_.data());
+      estimator.CostForce(estimator.cost_gradient_force_.data(),
+                          estimator.cost_hessian_force_.data());
 
       // stop derivative timer
       timer_cost_force_derivatives +=
@@ -1053,7 +1092,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     // reset pool count
     pool.ResetCount();
 
-    // -- cumulative gradient -- // 
+    // -- cumulative gradient -- //
 
     // start gradient timer
     auto cost_gradient_start = std::chrono::steady_clock::now();
@@ -1111,7 +1150,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     }
 
     // linear system solver
-    if (solver_ == kBanded) { // band solver
+    if (solver_ == kBanded) {  // band solver
       // dimensions
       int ntotal = model_->nv * configuration_length_;
       int nband = 3 * model_->nv;

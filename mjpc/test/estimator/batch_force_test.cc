@@ -118,7 +118,7 @@ TEST(ForceResidual, Particle) {
   residual_inverse_dynamics(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
 
@@ -139,7 +139,7 @@ TEST(ForceResidual, Particle) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianForce();
 
   // error
@@ -271,7 +271,7 @@ TEST(ForceResidual, Box) {
   residual_inverse_dynamics(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
 
@@ -292,7 +292,7 @@ TEST(ForceResidual, Box) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianForce();
 
   // error
@@ -422,11 +422,11 @@ TEST(ForceCost, Particle) {
   fdh.Compute(cost_inverse_dynamics, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianForce();
 
   // cost
@@ -586,11 +586,11 @@ TEST(ForceCost, Box) {
   // ----- estimator ----- //
 
   // compute intermediate terms
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualForce();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianForce();
 
   // cost

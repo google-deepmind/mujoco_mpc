@@ -91,10 +91,10 @@ class Estimator {
                            const double* search_direction, double step_size);
 
   // convert sequence of configurations to velocities, accelerations
-  void ConfigurationToVelocityAcceleration();
+  void ConfigurationToVelocityAcceleration(ThreadPool& pool);
 
   // compute finite-difference velocity, acceleration derivatives
-  void VelocityAccelerationDerivatives();
+  void VelocityAccelerationDerivatives(ThreadPool& pool);
 
   // compute total cost
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force,

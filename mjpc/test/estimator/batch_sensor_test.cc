@@ -118,7 +118,7 @@ TEST(MeasurementResidual, Particle) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
 
@@ -139,7 +139,7 @@ TEST(MeasurementResidual, Particle) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianSensor();
 
   // error
@@ -265,7 +265,7 @@ TEST(MeasurementResidual, Box) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
 
@@ -286,7 +286,7 @@ TEST(MeasurementResidual, Box) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianSensor();
 
   // error
@@ -412,11 +412,11 @@ TEST(MeasurementCost, Particle) {
   fdh.Compute(cost_measurement, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianSensor();
 
   // cost
@@ -573,11 +573,11 @@ TEST(MeasurementCost, Box) {
   fdg.Compute(cost_measurement, update.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
   estimator.ResidualSensor();
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
+  estimator.VelocityAccelerationDerivatives(pool);
   estimator.JacobianSensor();
 
   // cost

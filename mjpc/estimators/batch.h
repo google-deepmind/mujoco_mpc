@@ -208,17 +208,14 @@ class Estimator {
   NormType norm_force_;
 
   // cost norm parameters
-  std::vector<double> norm_parameters_prior_;  
   std::vector<double> norm_parameters_sensor_;
   std::vector<double> norm_parameters_force_;
 
   // norm gradient
-  std::vector<double> norm_gradient_prior_;    // nv * MAX_HISTORY
   std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
   std::vector<double> norm_gradient_force_;    // nv * MAX_HISTORY
 
   // norm Hessian
-  std::vector<double> norm_hessian_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> norm_hessian_sensor_;    // (ns * MAX_HISTORY) * (ns * MAX_HISTORY)
   std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
@@ -251,6 +248,7 @@ class Estimator {
   // status 
   int iterations_smoother_;
   int iterations_line_search_;
+  bool prior_warm_start_ = false;
   
   // settings
   int max_line_search_ = 10;            // maximum number of line search iterations

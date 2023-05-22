@@ -115,17 +115,14 @@ void Estimator::Initialize(mjModel* model) {
   norm_force_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_force");
 
   // cost norm parameters
-  norm_parameters_prior_.resize(3);
   norm_parameters_sensor_.resize(3);
   norm_parameters_force_.resize(3);
 
   // norm gradient
-  norm_gradient_prior_.resize(nv * MAX_HISTORY);
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
   norm_gradient_force_.resize(nv * MAX_HISTORY);
 
   // norm Hessian
-  norm_hessian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   norm_hessian_sensor_.resize((dim_sensor_ * MAX_HISTORY) *
                               (dim_sensor_ * MAX_HISTORY));
   norm_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
@@ -140,6 +137,9 @@ void Estimator::Initialize(mjModel* model) {
 
   // search direction
   search_direction_.resize(nv * MAX_HISTORY);
+
+  // status 
+  prior_warm_start_ = false;
 
   // settings 
   band_covariance_ = (bool)GetNumberOrDefault(0, model, "batch_band_covariance");
@@ -235,12 +235,10 @@ void Estimator::Reset() {
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
 
   // norm gradient
-  std::fill(norm_gradient_prior_.begin(), norm_gradient_prior_.end(), 0.0);
   std::fill(norm_gradient_sensor_.begin(), norm_gradient_sensor_.end(), 0.0);
   std::fill(norm_gradient_force_.begin(), norm_gradient_force_.end(), 0.0);
 
   // norm Hessian
-  std::fill(norm_hessian_prior_.begin(), norm_hessian_prior_.end(), 0.0);
   std::fill(norm_hessian_sensor_.begin(), norm_hessian_sensor_.end(), 0.0);
   std::fill(norm_hessian_force_.begin(), norm_hessian_force_.end(), 0.0);
 
@@ -967,21 +965,23 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
 
 // compute covariance
 void Estimator::Covariance() {
-  // TODO(taylor): shift + utilize inverse Hessian
-
   // dimension 
   int dim = model_->nv * configuration_length_;
 
-  // set to identity 
-  mju_eye(weight_prior_dense_.data(), dim);
+  if (prior_warm_start_) {
+    // TODO(taylor): shift + utilize inverse Hessian
+  } else {
+    // set to identity 
+    mju_eye(weight_prior_dense_.data(), dim);
 
-  // approximate covariance
-  if (band_covariance_) {
-    int ntotal = dim;
-    int nband = 3 * model_->nv;
-    int ndense = 0;
-    mju_dense2Band(weight_prior_band_.data(), weight_prior_dense_.data(),
-                   ntotal, nband, ndense);
+    // approximate covariance
+    if (band_covariance_) {
+      int ntotal = dim;
+      int nband = 3 * model_->nv;
+      int ndense = 0;
+      mju_dense2Band(weight_prior_band_.data(), weight_prior_dense_.data(),
+                    ntotal, nband, ndense);
+    }
   }
 }
 
@@ -1187,6 +1187,10 @@ void Estimator::Optimize(ThreadPool& pool) {
             std::chrono::steady_clock::now() - cost_gradient_start)
             .count();
 
+    // gradient tolerance check
+    double gradient_norm = mju_norm(gradient, dim_vel) / dim_vel; // TODO(taylor):  normalization -> sqrt(dim_vel)?
+    if (gradient_norm < gradient_tolerance_) break;
+
     // -- cumulative Hessian -- //
 
     // start Hessian timer
@@ -1209,10 +1213,6 @@ void Estimator::Optimize(ThreadPool& pool) {
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - cost_derivatives_start)
             .count();
-
-    // gradient tolerance check
-    double gradient_norm = mju_norm(gradient, dim_vel) / dim_vel;
-    if (gradient_norm < gradient_tolerance_) break;
 
     // ----- search direction ----- //
 
@@ -1249,6 +1249,11 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // compute search direction
       mju_cholSolve(dq, hessian, gradient, dim_vel);
+    }
+
+    // set prior warm start flag
+    if (!prior_warm_start_) {
+      prior_warm_start_ = true;
     }
 
     // end timer
@@ -1349,6 +1354,7 @@ void Estimator::PrintStatus() {
 
   // timing
   printf("Timing:\n");
+  printf("  covariance: %.5f (ms) \n", 1.0e-3 * timer_covariance_);
   printf("  inverse dynamics derivatives: %.5f (ms) \n",
          1.0e-3 * timer_inverse_dynamics_derivatives_);
   printf("  velacc derivatives: %.5f (ms) \n",

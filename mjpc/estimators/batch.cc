@@ -104,11 +104,13 @@ void Estimator::Initialize(mjModel* model) {
 
   // weight TODO(taylor): matrices
   weight_prior_ = GetNumberOrDefault(1.0, model, "batch_weight_prior");
+  weight_prior_dense_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+
   weight_sensor_ = GetNumberOrDefault(1.0, model, "batch_weight_sensor");
   weight_force_ = GetNumberOrDefault(1.0, model, "batch_weight_force");
 
   // cost norms
-  norm_prior_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_prior");
   norm_sensor_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
   norm_force_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_force");
 
@@ -138,6 +140,9 @@ void Estimator::Initialize(mjModel* model) {
 
   // search direction
   search_direction_.resize(nv * MAX_HISTORY);
+
+  // settings 
+  band_covariance_ = (bool)GetNumberOrDefault(0, model, "batch_band_covariance");
 
   // reset
   Reset();
@@ -225,6 +230,10 @@ void Estimator::Reset() {
   std::fill(cost_hessian_.begin(), cost_hessian_.end(), 0.0);
   std::fill(cost_hessian_band_.begin(), cost_hessian_band_.end(), 0.0);
 
+  // weight
+  std::fill(weight_prior_dense_.begin(), weight_prior_dense_.end(), 0.0);
+  std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
+
   // norm gradient
   std::fill(norm_gradient_prior_.begin(), norm_gradient_prior_.end(), 0.0);
   std::fill(norm_gradient_sensor_.begin(), norm_gradient_sensor_.end(), 0.0);
@@ -248,6 +257,7 @@ void Estimator::Reset() {
 
   // timing
   timer_total_ = 0.0;
+  timer_covariance_ = 0.0;
   timer_inverse_dynamics_derivatives_ = 0.0;
   timer_velacc_derivatives_ = 0.0;
   timer_jacobian_prior_ = 0.0;
@@ -267,44 +277,74 @@ void Estimator::Reset() {
   iterations_line_search_ = 0;
 }
 
-// prior cost TODO(taylor): normalize by dimension
+// prior cost 
+// TODO(taylor): normalize by dimension (?)
+//             : exploit [P 0; 0 p * I] structure
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // residual dimension
   int dim = model_->nv * configuration_length_;
 
   // compute cost
-  double cost =
-      Norm(gradient ? norm_gradient_prior_.data() : NULL,
-           hessian ? norm_hessian_prior_.data() : NULL, residual_prior_.data(),
-           norm_parameters_prior_.data(), dim, norm_prior_);
-  cost *= weight_prior_;  // TODO(taylor): weight -> matrix
+  if (band_covariance_) { // approximate covariance
+    // dimensions
+    int ntotal = dim;
+    int nband = 3 * model_->nv;
+    int ndense = 0;
+
+    // multiply: scratch = P * r
+    mju_bandMulMatVec(cost_scratch_prior_.data(), weight_prior_band_.data(), residual_prior_.data(),
+                       ntotal, nband, ndense, 1, true);
+  } else { // exact covariance
+    // multiply: scratch = P * r
+    mju_mulMatVec(cost_scratch_prior_.data(), weight_prior_dense_.data(), residual_prior_.data(), dim, dim);
+  }
+
+  // weighted quadratic: 0.5 * w * r' * scratch
+  double cost = 0.5 * weight_prior_ * mju_dot(residual_prior_.data(), cost_scratch_prior_.data(), dim);
 
   // compute cost gradient wrt configuration
   if (gradient) {
-    // scale gradient by weight
-    mju_scl(norm_gradient_prior_.data(), norm_gradient_prior_.data(),
-            weight_prior_, dim);
+    // compute total gradient wrt configuration: drdq' * scratch
+    mju_mulMatTVec(gradient, jacobian_prior_.data(), cost_scratch_prior_.data(),
+                   dim, dim);
 
-    // compute total gradient wrt configuration: drdq' * dndr
-    mju_mulMatTVec(gradient, jacobian_prior_.data(),
-                   norm_gradient_prior_.data(), dim, dim);
+    // weighted gradient: w * drdq' * scratch 
+    mju_scl(gradient, gradient, weight_prior_, dim);
   }
 
   // compute cost Hessian wrt configuration
   if (hessian) {
-    // scale Hessian by weight
-    mju_scl(norm_hessian_prior_.data(), norm_hessian_prior_.data(),
-            weight_prior_, dim * dim);
+    // step 1: scratch = P * drdq
+    if (band_covariance_) { // approximate covariance
+      // dimensions
+      int ntotal = dim;
+      int nband = 3 * model_->nv;
+      int ndense = 0;
 
-    // compute Gauss-Newton Hessian: drdq' * d2ndr2 * drdq
+      // transpose TODO(taylor): remove allocations
+      std::vector<double> JT(dim * dim);
+      mju_transpose(JT.data(), jacobian_prior_.data(), dim, dim);
 
-    // step 1: scratch = d2ndr2 * drdq
-    mju_mulMatMat(cost_scratch_prior_.data(), norm_hessian_prior_.data(),
-                  jacobian_prior_.data(), dim, dim, dim);
+      // multiply: scratch = drdq' * P
+      mju_bandMulMatVec(cost_scratch_prior_.data(), weight_prior_band_.data(),
+                        JT.data(), ntotal, nband, ndense, 1, true);
 
-    // step 2: hessian = drdq' * scratch
-    mju_mulMatTMat(hessian, jacobian_prior_.data(), cost_scratch_prior_.data(),
-                   dim, dim, dim);
+      // step 2: hessian = scratch * drdq
+      mju_mulMatMat(hessian, cost_scratch_prior_.data(), jacobian_prior_.data(),
+                    dim, dim, dim);
+
+    } else { // exact covariance
+      // multiply: scratch = P * drdq
+      mju_mulMatMat(cost_scratch_prior_.data(), weight_prior_dense_.data(),
+                    jacobian_prior_.data(), dim, dim, dim);
+
+      // step 2: hessian = drdq' * scratch
+      mju_mulMatTMat(hessian, jacobian_prior_.data(), cost_scratch_prior_.data(),
+                    dim, dim, dim);
+    }
+
+    // step 3: scale
+    mju_scl(hessian, hessian, weight_prior_, dim * dim);
   }
 
   return cost;
@@ -925,13 +965,38 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
   return cost_prior + cost_sensor + cost_force;
 }
 
+// compute covariance
+void Estimator::Covariance() {
+  // TODO(taylor): shift + utilize inverse Hessian
+
+  // dimension 
+  int dim = model_->nv * configuration_length_;
+
+  // set to identity 
+  mju_eye(weight_prior_dense_.data(), dim);
+
+  // approximate covariance
+  if (band_covariance_) {
+    int ntotal = dim;
+    int nband = 3 * model_->nv;
+    int ndense = 0;
+    mju_dense2Band(weight_prior_band_.data(), weight_prior_dense_.data(),
+                   ntotal, nband, ndense);
+  }
+}
+
 // optimize trajectory estimate
 void Estimator::Optimize(ThreadPool& pool) {
   // resize data
   ResizeMjData(model_, pool.NumThreads());
 
+  // dimensions
+  int dim_con = model_->nq * configuration_length_;
+  int dim_vel = model_->nv * configuration_length_;
+
   // timing
-  double timer_model_derivatives = 0.0;
+  double timer_covariance = 0.0;
+  double timer_inverse_dynamics_derivatives = 0.0;
   double timer_velacc_derivatives = 0.0;
   double timer_jacobian_prior = 0.0;
   double timer_jacobian_sensor = 0.0;
@@ -945,17 +1010,30 @@ void Estimator::Optimize(ThreadPool& pool) {
   double timer_search_direction = 0.0;
   double timer_line_search = 0.0;
 
-  // compute cost
+  // ----- compute covariance ----- //
+
+  // start timer 
+  auto covariance_start = std::chrono::steady_clock::now();
+
+  // covariance 
+  Covariance();
+
+  // stop timer
+  timer_covariance = std::chrono::duration_cast<std::chrono::microseconds>(
+                         std::chrono::steady_clock::now() - covariance_start)
+                         .count();
+
+  // ----- compute cost ----- //
+
+  // initialize
   double cost_prior = MAX_ESTIMATOR_COST;
   double cost_sensor = MAX_ESTIMATOR_COST;
   double cost_force = MAX_ESTIMATOR_COST;
+
+  // compute
   double cost = Cost(cost_prior, cost_sensor, cost_force, pool);
 
-  // dimension
-  int dim_con = model_->nq * configuration_length_;
-  int dim_vel = model_->nv * configuration_length_;
-
-  // smoother iterations
+  // ----- smoother iterations ----- //
   int iterations_smoother = 0;
   int iterations_line_search = 0;
   for (; iterations_smoother < max_smoother_iterations_;
@@ -974,7 +1052,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     InverseDynamicsDerivatives(pool);
 
     // stop timer
-    timer_model_derivatives +=
+    timer_inverse_dynamics_derivatives +=
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - model_derivatives_start)
             .count();
@@ -1239,7 +1317,8 @@ void Estimator::Optimize(ThreadPool& pool) {
   cost_force_ = cost_force;
 
   // set timers
-  timer_inverse_dynamics_derivatives_ = timer_model_derivatives;
+  timer_covariance_ = timer_covariance;
+  timer_inverse_dynamics_derivatives_ = timer_inverse_dynamics_derivatives;
   timer_velacc_derivatives_ = timer_velacc_derivatives;
   timer_jacobian_prior_ = timer_jacobian_prior;
   timer_jacobian_sensor_ = timer_jacobian_sensor;

@@ -100,6 +100,9 @@ class Estimator {
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force,
               ThreadPool& pool);
 
+  // compute covariance  
+  void Covariance();
+
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);
 
@@ -194,11 +197,13 @@ class Estimator {
 
   // weight TODO(taylor): matrices
   double weight_prior_;
+  std::vector<double> weight_prior_dense_;
+  std::vector<double> weight_prior_band_;
+
   double weight_sensor_;
   double weight_force_;
 
   // cost norms
-  NormType norm_prior_;
   NormType norm_sensor_;
   NormType norm_force_;
 
@@ -228,6 +233,7 @@ class Estimator {
 
   // timing
   double timer_total_;
+  double timer_covariance_;
   double timer_inverse_dynamics_derivatives_;
   double timer_velacc_derivatives_;
   double timer_jacobian_prior_;
@@ -246,11 +252,12 @@ class Estimator {
   int iterations_smoother_;
   int iterations_line_search_;
   
-  // settings 
-  int max_line_search_ = 10;
-  int max_smoother_iterations_ = 20;
-  double gradient_tolerance_ = 1.0e-5;
-  bool verbose_ = false;
+  // settings
+  int max_line_search_ = 10;            // maximum number of line search iterations
+  int max_smoother_iterations_ = 20;    // maximum number of smoothing iterations
+  double gradient_tolerance_ = 1.0e-5;  // small gradient tolerance
+  bool verbose_ = false;                // flag for printing status
+  bool band_covariance_ = false;        // approximate covariance for prior
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

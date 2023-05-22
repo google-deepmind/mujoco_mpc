@@ -108,8 +108,8 @@ TEST(PriorResidual, Particle) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
+      dim_vel), 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -211,8 +211,8 @@ TEST(PriorResidual, Box) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
+      dim_vel), 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -237,9 +237,9 @@ TEST(PriorCost, Particle) {
   std::vector<double> prior(dim_pos);
 
   // random initialization
+  absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
     for (int i = 0; i < nq; i++) {
-      absl::BitGen gen_;
       configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
       prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
@@ -255,9 +255,19 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
+  // ----- random covariance ----- //
+  std::vector<double> P(dim_vel * dim_vel);
+  std::vector<double> F(dim_vel * dim_vel);
+
+  // P = F' F
+  for (int i = 0; i < dim_vel * dim_vel; i++) {
+    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+
   // ----- cost ----- //
   auto cost_prior = [&prior, &configuration_length = T,
-                     &weight = estimator.weight_prior_, nq,
+                     &weight = estimator.weight_prior_, nq, &P = P,
                      nv](const double* configuration) {
     // dimension
     int dim_res = nv * configuration_length;
@@ -276,7 +286,14 @@ TEST(PriorCost, Particle) {
       mju_sub(rt, qt, qt_prior, nv);
     }
 
-    return 0.5 * weight * mju_dot(residual.data(), residual.data(), dim_res);
+    // ----- 0.5 * w * r' * P * r ----- //
+
+    // scratch
+    std::vector<double> scratch(dim_res);
+    mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
+
+    // weighted cost
+    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //
@@ -293,6 +310,8 @@ TEST(PriorCost, Particle) {
   fdh.Compute(cost_prior, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
+           dim_vel * dim_vel);  // copy random covariance
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();
@@ -341,9 +360,9 @@ TEST(PriorCost, Box) {
   std::vector<double> prior(dim_pos);
 
   // random initialization
+  absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
     for (int i = 0; i < nq; i++) {
-      absl::BitGen gen_;
       configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
       prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
@@ -362,9 +381,19 @@ TEST(PriorCost, Box) {
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
+  // ----- random covariance ----- //
+  std::vector<double> P(dim_vel * dim_vel);
+  std::vector<double> F(dim_vel * dim_vel);
+
+  // P = F' F
+  for (int i = 0; i < dim_vel * dim_vel; i++) {
+    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+
   // ----- cost ----- //
   auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
-                     &weight = estimator.weight_prior_, nq,
+                     &weight = estimator.weight_prior_, nq, &P = P,
                      nv](const double* update) {
     // residual
     int dim_res = nv * configuration_length;
@@ -389,7 +418,14 @@ TEST(PriorCost, Box) {
       mj_differentiatePos(model, rt, 1.0, qt_prior, qint.data());
     }
 
-    return 0.5 * weight * mju_dot(residual.data(), residual.data(), dim_res);
+    // ----- 0.5 * w * r' * P * r ----- //
+
+    // scratch
+    std::vector<double> scratch(dim_res);
+    mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
+
+    // weighted cost
+    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //
@@ -404,6 +440,137 @@ TEST(PriorCost, Box) {
   fdg.Compute(cost_prior, update.data(), dim_vel);
 
   // ----- estimator ----- //
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
+           dim_vel * dim_vel);  // copy random covariance
+  estimator.ResidualPrior();
+  estimator.JacobianPriorBlocks();
+  estimator.JacobianPrior();
+  double cost_estimator =
+      estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
+
+  // ----- error ----- //
+
+  // cost
+  double cost_error = cost_estimator - cost_lambda;
+  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
+
+  // gradient
+  std::vector<double> gradient_error(dim_vel);
+  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+          fdg.gradient_.data(), dim_vel);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
+TEST(ApproximatePriorCost, Box) {
+  // load model
+  mjModel* model = LoadTestModel("box3D.xml");
+  mjData* data = mj_makeData(model);
+
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
+  // ----- configurations ----- //
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  std::vector<double> configuration(dim_pos);
+  std::vector<double> prior(dim_pos);
+
+  // random initialization
+  absl::BitGen gen_;
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+    // normalize quaternion
+    mju_normalize4(configuration.data() + nq * t + 3);
+    mju_normalize4(prior.data() + nq * t + 3);
+  }
+
+  // ----- estimator ----- //
+  Estimator estimator;
+  estimator.Initialize(model);
+  estimator.configuration_length_ = T;
+  estimator.weight_prior_ = 7.3;
+
+  // copy configuration, prior
+  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+
+  // ----- random covariance ----- //
+  std::vector<double> P(dim_vel * dim_vel);
+  std::vector<double> F(dim_vel * dim_vel);
+
+  // P = F' F
+  for (int i = 0; i < dim_vel * dim_vel; i++) {
+    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+
+  // convert to band 
+  // TODO(taylor): P_band nnz initialize (and copy below)
+  int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
+  std::vector<double> P_band(nnz);
+  mju_dense2Band(P_band.data(), P.data(), dim_vel, 3 * nv, 0);
+
+  // ----- cost ----- //
+  auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
+                     &weight = estimator.weight_prior_, nq, &P_band = P_band,
+                     nv](const double* update) {
+    // residual
+    int dim_res = nv * configuration_length;
+    std::vector<double> residual(dim_res);
+
+    // integrated quaternion
+    std::vector<double> qint(nq);
+
+    // loop over time
+    for (int t = 0; t < configuration_length; t++) {
+      // terms
+      double* rt = residual.data() + t * nv;
+      double* qt_prior = prior.data() + t * nq;
+      double* qt = configuration.data() + t * nq;
+
+      // ----- integrate ----- //
+      mju_copy(qint.data(), qt, nq);
+      const double* dq = update + t * nv;
+      mj_integratePos(model, qint.data(), dq, 1.0);
+
+      // configuration difference
+      mj_differentiatePos(model, rt, 1.0, qt_prior, qint.data());
+    }
+
+    // ----- 0.5 * w * r' * P * r ----- //
+
+    // scratch
+    std::vector<double> scratch(dim_res);
+    mju_bandMulMatVec(scratch.data(), P_band.data(), residual.data(), dim_res,
+                      3 * nv, 0, 1, true);
+
+    // weighted cost
+    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+  };
+
+  // ----- lambda ----- //
+
+  // cost
+  std::vector<double> update(dim_vel);
+  mju_zero(update.data(), dim_vel);
+  double cost_lambda = cost_prior(update.data());
+
+  // gradient
+  FiniteDifferenceGradient fdg(dim_vel);
+  fdg.Compute(cost_prior, update.data(), dim_vel);
+
+  // ----- estimator ----- //
+  estimator.band_covariance_ = true;  // used approximate covariance
+  mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
+           nnz);  // copy random covariance
   estimator.ResidualPrior();
   estimator.JacobianPriorBlocks();
   estimator.JacobianPrior();

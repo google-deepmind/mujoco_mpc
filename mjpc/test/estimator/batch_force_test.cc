@@ -354,7 +354,9 @@ TEST(ForceCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_[0] = 0.0035;
+  for (int i = 0; i < 4; i++) {
+    estimator.weight_force_[i] = 0.0035;
+  }
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -362,7 +364,9 @@ TEST(ForceCost, Particle) {
 
   // ----- cost ----- //
   auto cost_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
-                                &dim_res, &weight = estimator.weight_force_[0],
+                                &dim_res, &weight = estimator.weight_force_,
+                                &params = estimator.norm_parameters_force_,
+                                &norms = estimator.norm_force_,
                                 &model, &data, nq,
                                 nv](const double* configuration) {
     // velocity
@@ -374,6 +378,9 @@ TEST(ForceCost, Particle) {
 
     // residual
     std::vector<double> residual(dim_res);
+
+    // initialize 
+    double cost = 0.0;
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
@@ -402,10 +409,38 @@ TEST(ForceCost, Particle) {
 
       // inverse dynamics error
       mju_sub(rt, data->qfrc_inverse, f1, nv);
+
+      // loop over sensors
+      int shift = 0;
+
+      for (int i = 0; i < model->njnt; i++) {
+        // joint type 
+        int jnt_type = model->jnt_type[i];
+
+        // dof
+        int dof;
+        if (jnt_type == mjJNT_FREE) {
+          dof = 6;
+        } else if (jnt_type == mjJNT_BALL) {
+          dof = 3;
+        } else { // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
+          dof = 1;
+        }
+
+        // force residual
+        double* rti = rt + shift;
+
+        // add weighted norm
+        cost +=
+            weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+
+        // shift
+        shift += dof;
+      }
     }
 
     // weighted cost
-    return weight * 0.5 * mju_dot(residual.data(), residual.data(), dim_res);
+    return cost;
   };
 
   // ----- lambda ----- //
@@ -506,7 +541,10 @@ TEST(ForceCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_[0] = 0.00125;
+
+  for (int i = 0; i < 4; i++) {
+    estimator.weight_force_[i] = 0.00125;
+  }
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -516,7 +554,10 @@ TEST(ForceCost, Box) {
   auto cost_inverse_dynamics = [&configuration = estimator.configuration_,
                                 &qfrc_actuator = estimator.force_measurement_,
                                 &configuration_length = T, &model, &dim_res,
-                                &weight = estimator.weight_force_[0], &data, nq,
+                                &weight = estimator.weight_force_, 
+                                &params = estimator.norm_parameters_force_, 
+                                &norms = estimator.norm_force_, 
+                                &data, nq,
                                 nv](const double* update) {
     // ----- integrate quaternion ----- //
     std::vector<double> qint(nq * configuration_length);
@@ -538,6 +579,9 @@ TEST(ForceCost, Box) {
 
     // residual
     std::vector<double> residual(dim_res);
+
+    // initialize 
+    double cost = 0.0;
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
@@ -566,10 +610,37 @@ TEST(ForceCost, Box) {
 
       // inverse dynamics error
       mju_sub(rt, data->qfrc_inverse, f1, nv);
+
+      // loop over sensors
+      int shift = 0;
+
+      for (int i = 0; i < model->njnt; i++) {
+        // joint type 
+        int jnt_type = model->jnt_type[i];
+
+        // dof
+        int dof;
+        if (jnt_type == mjJNT_FREE) {
+          dof = 6;
+        } else if (jnt_type == mjJNT_BALL) {
+          dof = 3;
+        } else { // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
+          dof = 1;
+        }
+
+        // force residual
+        double* rti = rt + shift;
+
+        // add weighted norm
+        cost +=
+            weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+
+        // shift
+        shift += dof;
+      }
     }
 
-    // weighted cost
-    return weight * 0.5 * mju_dot(residual.data(), residual.data(), dim_res);
+    return cost;
   };
 
   // ----- lambda ----- //

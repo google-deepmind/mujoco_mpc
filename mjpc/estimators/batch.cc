@@ -423,6 +423,7 @@ void Estimator::JacobianPriorBlocks() {
 }
 
 // sensor cost TODO(taylor): normalize by dimension
+// TODO(taylor): norm gradient, Hessian shift for threadpool
 double Estimator::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
@@ -452,7 +453,6 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                    residual_sensor_.data() + shift,
                    norm_parameters_sensor_.data() + 3 * i, dim_sensori,
                    norm_sensor_[i]);
-
 
       // ----- gradient ----- //
       if (gradient) {
@@ -598,66 +598,81 @@ void Estimator::JacobianSensor() {
 
 // force cost TODO(taylor): normalize by dimension
 double Estimator::CostForce(double* gradient, double* hessian) {
-  // residual dimension
-  int dim_residual = model_->nv * (configuration_length_ - 2);
-
   // update dimension
   int dim_update = model_->nv * configuration_length_;
 
   // initialize 
-  // double cost = 0.0;
-  // int shift = 0;
+  double cost = 0.0;
+  int shift = 0;
+  if (gradient) mju_zero(gradient, dim_update);
+  if (hessian) mju_zero(hessian, dim_update * dim_update);
 
-  // // loop over time steps 
-  // for (int t = 0; t < configuration_length_ - 2; t++) {
-  //   // loop over joints 
-  //   for (int i = 0; i < model_->njnt; i++) {
-  //     // joint type 
-  //     int jnt_type = model_->jnt_type[i];
+  // loop over time steps 
+  for (int t = 0; t < configuration_length_ - 2; t++) {
+    // loop over joints 
+    for (int i = 0; i < model_->njnt; i++) {
+      // joint type 
+      int jnt_type = model_->jnt_type[i];
 
-  //     // weight 
-  //     double weight = weight_force_[jnt_type];
+      // dof 
+      int dof;
+      if (jnt_type == mjJNT_FREE) {
+        dof = 6;
+      } else if (jnt_type == mjJNT_BALL) {
+        dof = 3;
+      } else { // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
+        dof = 1;
+      }
 
-  //     // cost 
-  //     // cost += weight * Norm(NULL, NULL, residual_force_.data() + shift, , )
-  //   }
-  // }
+      // weight 
+      double weight = weight_force_[jnt_type];
 
-  // compute cost
-  double cost =
-      Norm(gradient ? norm_gradient_force_.data() : NULL,
-           hessian ? norm_hessian_force_.data() : NULL, residual_force_.data(),
-           norm_parameters_force_[0], dim_residual, norm_force_[0]);
-  cost *= weight_force_[0];  // TODO(taylor): weight -> matrix
+      // norm 
+      NormType norm = norm_force_[jnt_type];
 
-  // compute cost gradient wrt configuration
-  if (gradient) {
-    // scale gradient by weight
-    mju_scl(norm_gradient_force_.data(), norm_gradient_force_.data(),
-            weight_force_[0], dim_residual);
+      // parameters
+      double* params = norm_parameters_force_[jnt_type * 3];
 
-    // compute total gradient wrt configuration: drdq' * dndr
-    mju_mulMatTVec(gradient, jacobian_force_.data(),
-                   norm_gradient_force_.data(), dim_residual, dim_update);
-  }
+      // add weighted norm 
+      cost += weight * Norm(gradient ? norm_gradient_force_.data() : NULL,
+           hessian ? norm_hessian_force_.data() : NULL, residual_force_.data() + shift,
+           params, dof, norm);
 
-  // compute cost Hessian wrt configuration
-  if (hessian) {
-    // scale Hessian by weight
-    mju_scl(norm_hessian_force_.data(), norm_hessian_force_.data(),
-            weight_force_[0], dim_residual * dim_residual);
+      // gradient
+      if (gradient) {
+        // compute total gradient wrt configuration: drdq' * dndr
+        // TODO(taylor): only grab 3 * nv columns from Jacobian
+        mju_mulMatTVec(cost_scratch_force_.data(), jacobian_force_.data() + shift * dim_update,
+                      norm_gradient_force_.data(), dof, dim_update);
 
-    // compute total Hessian (Gauss-Newton approximation):
-    // hessian = drdq * d2ndr2 * drdq
+        // add 
+        mju_addToScl(gradient, cost_scratch_force_.data(), weight, dim_update);
+      }
 
-    // step 1: scratch = d2ndr2 * drdq
-    mju_mulMatMat(cost_scratch_force_.data(), norm_hessian_force_.data(),
-                  jacobian_force_.data(), dim_residual, dim_residual,
-                  dim_update);
+      // Hessian 
+      if (hessian) {
+        // compute total Hessian (Gauss-Newton approximation):
+        // hessian = drdq * d2ndr2 * drdq
 
-    // step 2: hessian = drdq' * scratch
-    mju_mulMatTMat(hessian, jacobian_force_.data(), cost_scratch_force_.data(),
-                   dim_residual, dim_update, dim_update);
+        // step 1: tmp0 = d2ndr2 * drdq
+        // TODO(taylor): only grab 3 * nv columns from Jacobian
+        double* tmp0 = cost_scratch_force_.data();
+        mju_mulMatMat(tmp0, norm_hessian_force_.data(),
+                      jacobian_force_.data() + shift * dim_update, dof, dof,
+                      dim_update);
+
+        // step 2: tmp1 = drdq' * tmp0
+        double* tmp1 = cost_scratch_force_.data() + dof * dim_update;
+        mju_mulMatTMat(tmp1, jacobian_force_.data() + shift * dim_update, tmp0,
+                       dof, dim_update, dim_update);
+
+        // add 
+        mju_addToScl(hessian, tmp1, weight, dim_update * dim_update);
+      }
+
+      // shift 
+      shift += dof;
+    }
   }
 
   return cost;

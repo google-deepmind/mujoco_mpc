@@ -345,6 +345,9 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
+
+  // TODO(taylor): set norms, parameters, etc
+
   for (int i = 0; i < model->nsensor; i++) {
     estimator.weight_sensor_[i] = 0.025;
   }
@@ -520,6 +523,8 @@ TEST(MeasurementCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
+
+  // TODO(taylor): set norms, parameters, etc
 
   for (int i = 0; i < model->nsensor; i++) {
     estimator.weight_sensor_[i] = 1.0e-4;

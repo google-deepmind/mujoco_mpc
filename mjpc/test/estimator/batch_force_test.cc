@@ -354,7 +354,7 @@ TEST(ForceCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_ = 0.0035;
+  estimator.weight_force_[0] = 0.0035;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -362,7 +362,7 @@ TEST(ForceCost, Particle) {
 
   // ----- cost ----- //
   auto cost_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
-                                &dim_res, &weight = estimator.weight_force_,
+                                &dim_res, &weight = estimator.weight_force_[0],
                                 &model, &data, nq,
                                 nv](const double* configuration) {
     // velocity
@@ -506,7 +506,7 @@ TEST(ForceCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_ = 0.00125;
+  estimator.weight_force_[0] = 0.00125;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -516,7 +516,7 @@ TEST(ForceCost, Box) {
   auto cost_inverse_dynamics = [&configuration = estimator.configuration_,
                                 &qfrc_actuator = estimator.force_measurement_,
                                 &configuration_length = T, &model, &dim_res,
-                                &weight = estimator.weight_force_, &data, nq,
+                                &weight = estimator.weight_force_[0], &data, nq,
                                 nv](const double* update) {
     // ----- integrate quaternion ----- //
     std::vector<double> qint(nq * configuration_length);

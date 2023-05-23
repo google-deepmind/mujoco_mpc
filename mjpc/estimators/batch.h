@@ -27,6 +27,7 @@ namespace mjpc {
 
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
+const int MAX_SENSOR = 32; // maximum number of sensors
 
 // linear system solver 
 enum BatchEstimatorSolver: int {
@@ -195,21 +196,24 @@ class Estimator {
   std::vector<double> cost_scratch_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_scratch_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
-  // weight TODO(taylor): matrices
-  double weight_prior_;
-  std::vector<double> weight_prior_dense_;
-  std::vector<double> weight_prior_band_;
+  // prior weights
+  std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  double scale_prior_;
 
-  double weight_sensor_;
-  double weight_force_;
+  // sensor weights
+  std::vector<double> weight_sensor_;          // ns
+
+  // force weights (free, ball, slide, hinge)
+  double weight_force_[4];
 
   // cost norms
-  NormType norm_sensor_;
-  NormType norm_force_;
+  std::vector<NormType> norm_sensor_;          // ns
+  NormType norm_force_[4];
 
   // cost norm parameters
-  std::vector<double> norm_parameters_sensor_;
-  std::vector<double> norm_parameters_force_;
+  std::vector<double> norm_parameters_sensor_; // ns x 3
+  double norm_parameters_force_[4][3];
 
   // norm gradient
   std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
@@ -246,9 +250,9 @@ class Estimator {
   double timer_line_search_;
 
   // status 
-  int iterations_smoother_;
-  int iterations_line_search_;
-  bool prior_warm_start_ = false;
+  int iterations_smoother_;             // total smoother iterations after Optimize
+  int iterations_line_search_;          // total line search iterations 
+  bool prior_warm_start_ = false;       // prior warm start status
   
   // settings
   int max_line_search_ = 10;            // maximum number of line search iterations

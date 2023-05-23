@@ -102,21 +102,42 @@ void Estimator::Initialize(mjModel* model) {
   cost_hessian_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_band_.resize(BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv));
 
-  // weight TODO(taylor): matrices
-  weight_prior_ = GetNumberOrDefault(1.0, model, "batch_weight_prior");
+  // prior weights
+  scale_prior_ = GetNumberOrDefault(1.0, model, "batch_scale_prior");
   weight_prior_dense_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
-  weight_sensor_ = GetNumberOrDefault(1.0, model, "batch_weight_sensor");
-  weight_force_ = GetNumberOrDefault(1.0, model, "batch_weight_force");
+  // sensor weights 
+  // TODO(taylor): only grab measurement sensors
+  weight_sensor_.resize(model->nsensor); 
+
+  // TODO(taylor): method for xml to initial weight
+  for (int i = 0; i < model->nsensor; i++) {
+    weight_sensor_[i] = GetNumberOrDefault(1.0, model, "batch_scale_sensor");
+  }
+
+  // force weights
+  weight_force_[0] = GetNumberOrDefault(1.0, model, "batch_scale_force_free");
+  weight_force_[1] = GetNumberOrDefault(1.0, model, "batch_scale_force_ball");
+  weight_force_[2] = GetNumberOrDefault(1.0, model, "batch_scale_force_slide");
+  weight_force_[3] = GetNumberOrDefault(1.0, model, "batch_scale_force_hinge");
 
   // cost norms
-  norm_sensor_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
-  norm_force_ = (NormType)GetNumberOrDefault(0, model, "batch_norm_force");
+  // TODO(taylor): only grab measurement sensors
+  norm_sensor_.resize(model->nsensor);
+
+  // TODO(taylor): method for xml to initial weight
+  for (int i = 0; i < model->nsensor; i++) {
+    norm_sensor_[i] = (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
+  }
+
+  norm_force_[0] = (NormType)GetNumberOrDefault(0, model, "batch_norm_force_free");
+  norm_force_[1] = (NormType)GetNumberOrDefault(0, model, "batch_norm_force_ball");
+  norm_force_[2] = (NormType)GetNumberOrDefault(0, model, "batch_norm_force_slide");
+  norm_force_[3] = (NormType)GetNumberOrDefault(0, model, "batch_norm_force_hinge");
 
   // cost norm parameters
-  norm_parameters_sensor_.resize(3);
-  norm_parameters_force_.resize(3);
+  norm_parameters_sensor_.resize(model->nsensor * 3);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -298,7 +319,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   }
 
   // weighted quadratic: 0.5 * w * r' * scratch
-  double cost = 0.5 * weight_prior_ * mju_dot(residual_prior_.data(), cost_scratch_prior_.data(), dim);
+  double cost = 0.5 * scale_prior_ * mju_dot(residual_prior_.data(), cost_scratch_prior_.data(), dim);
 
   // compute cost gradient wrt configuration
   if (gradient) {
@@ -307,7 +328,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
                    dim, dim);
 
     // weighted gradient: w * drdq' * scratch 
-    mju_scl(gradient, gradient, weight_prior_, dim);
+    mju_scl(gradient, gradient, scale_prior_, dim);
   }
 
   // compute cost Hessian wrt configuration
@@ -342,7 +363,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     }
 
     // step 3: scale
-    mju_scl(hessian, hessian, weight_prior_, dim * dim);
+    mju_scl(hessian, hessian, scale_prior_, dim * dim);
   }
 
   return cost;
@@ -402,6 +423,84 @@ void Estimator::JacobianPriorBlocks() {
 }
 
 // sensor cost TODO(taylor): normalize by dimension
+// double Estimator::CostSensor(double* gradient, double* hessian) {
+//   // residual dimension
+//   // int dim_residual = dim_sensor_ * (configuration_length_ - 2);
+
+//   // update dimension
+//   int dim_update = model_->nv * configuration_length_;
+
+//   // ----- cost ----- //
+
+//   // initialize 
+//   double cost = 0.0;
+//   int shift = 0;
+//   mju_zero(gradient, dim_update);
+//   mju_zero(hessian, dim_update * dim_update);
+  
+//   // loop over time steps 
+//   for (int t = 0; t < configuration_length_ - 2; t++) {
+//     // loop over sensors 
+//     for (int i = 0; i < model_->nsensor; i++) {
+//       // dimension 
+//       int dim_sensori = model_->sensor_dim[i];
+
+//       // weight
+//       double weight = weight_sensor_[i];
+
+//       // ----- cost ----- //
+//       cost += weight *
+//               Norm(gradient ? norm_gradient_sensor_.data() + shift : NULL,
+//                    hessian ? norm_hessian_sensor_.data() + shift * shift : NULL,
+//                    residual_sensor_.data() + shift,
+//                    norm_parameters_sensor_.data() + 3 * i, dim_sensori,
+//                    norm_sensor_[i]);
+
+
+//       // ----- gradient ----- //
+//       if (gradient) {
+//         // compute total gradient wrt configuration: drdq' * dndr
+//         // TODO(taylor): only grab 3 * nv columns from Jacobian
+//         mju_mulMatTVec(cost_scratch_sensor_.data(),
+//                        jacobian_sensor_.data() + shift * dim_update,
+//                        norm_gradient_sensor_.data() + shift, dim_sensori,
+//                        dim_update);
+
+//         // add
+//         mju_addScl(gradient, gradient, cost_scratch_sensor_.data(), weight,
+//                    dim_update);
+//       }
+
+//       // ----- Hessian ----- //
+//       if (hessian) {
+//         // compute Gauss-Newton Hessian: drdq' * d2ndr2 * drdq
+//         // TODO(taylor): only grab 3 * nv columns from Jacobian
+
+//         // step 1: scratch = d2ndr2 * drdq
+//         std::vector<double> tmp(dim_sensori * dim_update); // TODO(taylor): remove allocations
+//         mju_mulMatMat(tmp.data(), norm_hessian_sensor_.data() + shift * shift,
+//                       jacobian_sensor_.data() + shift * dim_update, dim_sensori, dim_sensori,
+//                       dim_update);
+
+//         // step 2: hessian = drdq' * scratch
+//         mju_mulMatTMat(cost_scratch_sensor_.data(),
+//                        jacobian_sensor_.data() + shift * dim_update, tmp.data(),
+//                        dim_sensori, dim_update, dim_update);
+
+//         // add
+//         mju_addScl(hessian, hessian, cost_scratch_sensor_.data(), weight,
+//                    dim_update * dim_update);
+//       }
+
+//       // shift
+//       shift += dim_sensori;
+//     }
+//   }
+
+//   return cost;
+// }
+
+// sensor cost TODO(taylor): normalize by dimension
 double Estimator::CostSensor(double* gradient, double* hessian) {
   // residual dimension
   int dim_residual = dim_sensor_ * (configuration_length_ - 2);
@@ -412,15 +511,15 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   // compute cost
   double cost = Norm(gradient ? norm_gradient_sensor_.data() : NULL,
                      hessian ? norm_hessian_sensor_.data() : NULL,
-                     residual_sensor_.data(), norm_parameters_sensor_.data(),
-                     dim_residual, norm_sensor_);
-  cost *= weight_sensor_;  // TODO(taylor): weight -> matrix
+                     residual_sensor_.data(), norm_parameters_sensor_.data() + 0 * 3,
+                     dim_residual, norm_sensor_[0]);
+  cost *= weight_sensor_[0];  // TODO(taylor): weight -> matrix
 
   // compute cost gradient wrt configuration
   if (gradient) {
     // scale gradient by weight
     mju_scl(norm_gradient_sensor_.data(), norm_gradient_sensor_.data(),
-            weight_sensor_, dim_residual);
+            weight_sensor_[0], dim_residual);
 
     // compute total gradient wrt configuration: drdq' * dndr
     mju_mulMatTVec(gradient, jacobian_sensor_.data(),
@@ -431,7 +530,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   if (hessian) {
     // scale Hessian by weight
     mju_scl(norm_hessian_sensor_.data(), norm_hessian_sensor_.data(),
-            weight_sensor_, dim_residual * dim_residual);
+            weight_sensor_[0], dim_residual * dim_residual);
 
     // compute Gauss-Newton Hessian: drdq' * d2ndr2 * drdq
 
@@ -555,18 +654,37 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
 
+  // initialize 
+  // double cost = 0.0;
+  // int shift = 0;
+
+  // // loop over time steps 
+  // for (int t = 0; t < configuration_length_ - 2; t++) {
+  //   // loop over joints 
+  //   for (int i = 0; i < model_->njnt; i++) {
+  //     // joint type 
+  //     int jnt_type = model_->jnt_type[i];
+
+  //     // weight 
+  //     double weight = weight_force_[jnt_type];
+
+  //     // cost 
+  //     // cost += weight * Norm(NULL, NULL, residual_force_.data() + shift, , )
+  //   }
+  // }
+
   // compute cost
   double cost =
       Norm(gradient ? norm_gradient_force_.data() : NULL,
            hessian ? norm_hessian_force_.data() : NULL, residual_force_.data(),
-           norm_parameters_force_.data(), dim_residual, norm_force_);
-  cost *= weight_force_;  // TODO(taylor): weight -> matrix
+           norm_parameters_force_[0], dim_residual, norm_force_[0]);
+  cost *= weight_force_[0];  // TODO(taylor): weight -> matrix
 
   // compute cost gradient wrt configuration
   if (gradient) {
     // scale gradient by weight
     mju_scl(norm_gradient_force_.data(), norm_gradient_force_.data(),
-            weight_force_, dim_residual);
+            weight_force_[0], dim_residual);
 
     // compute total gradient wrt configuration: drdq' * dndr
     mju_mulMatTVec(gradient, jacobian_force_.data(),
@@ -577,7 +695,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   if (hessian) {
     // scale Hessian by weight
     mju_scl(norm_hessian_force_.data(), norm_hessian_force_.data(),
-            weight_force_, dim_residual * dim_residual);
+            weight_force_[0], dim_residual * dim_residual);
 
     // compute total Hessian (Gauss-Newton approximation):
     // hessian = drdq * d2ndr2 * drdq

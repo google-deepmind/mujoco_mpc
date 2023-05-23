@@ -100,9 +100,9 @@ TEST(BatchOptimize, Particle2D) {
   estimator.configuration_length_ = T;
 
   // set weights 
-  estimator.weight_prior_ = 1.0;
-  estimator.weight_sensor_ = 1.0;
-  estimator.weight_force_ = 1.0;
+  estimator.scale_prior_ = 1.0;
+  estimator.weight_sensor_[0] = 1.0;
+  estimator.weight_force_[0] = 1.0;
 
   // ----- random perturbation ----- //
 
@@ -227,9 +227,9 @@ TEST(BatchOptimize, Box3D) {
   estimator.configuration_length_ = T;
 
   // set weights 
-  estimator.weight_prior_ = 1.0;
-  estimator.weight_sensor_ = 1.0;
-  estimator.weight_force_ = 1.0;
+  estimator.scale_prior_ = 1.0;
+  estimator.weight_sensor_[0] = 1.0;
+  estimator.weight_force_[0] = 1.0;
 
   // ----- random perturbation ----- //
 

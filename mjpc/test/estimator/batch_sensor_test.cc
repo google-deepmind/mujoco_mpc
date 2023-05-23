@@ -345,7 +345,7 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_ = 0.025;
+  estimator.weight_force_[0] = 0.025;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -353,7 +353,7 @@ TEST(MeasurementCost, Particle) {
 
   // ----- cost ----- //
   auto cost_measurement = [&measurement, &configuration_length = T, &model,
-                           &data, &dim_res, &weight = estimator.weight_sensor_,
+                           &data, &dim_res, &weight = estimator.weight_sensor_[0],
                            nq, nv](const double* configuration) {
     // velocity
     std::vector<double> v1(nv);
@@ -496,7 +496,7 @@ TEST(MeasurementCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_sensor_ = 1.0e-4;
+  estimator.weight_sensor_[0] = 1.0e-4;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -504,7 +504,7 @@ TEST(MeasurementCost, Box) {
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,
-                           &weight = estimator.weight_sensor_,
+                           &weight = estimator.weight_sensor_[0],
                            &configuration_length = T, &model, &data, nq,
                            nv](const double* update) {
     // ----- integrate quaternion ----- //

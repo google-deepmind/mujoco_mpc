@@ -249,7 +249,7 @@ TEST(PriorCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_prior_ = 7.3;
+  estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -267,7 +267,7 @@ TEST(PriorCost, Particle) {
 
   // ----- cost ----- //
   auto cost_prior = [&prior, &configuration_length = T,
-                     &weight = estimator.weight_prior_, nq, &P = P,
+                     &weight = estimator.scale_prior_, nq, &P = P,
                      nv](const double* configuration) {
     // dimension
     int dim_res = nv * configuration_length;
@@ -375,7 +375,7 @@ TEST(PriorCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_prior_ = 7.3;
+  estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -393,7 +393,7 @@ TEST(PriorCost, Box) {
 
   // ----- cost ----- //
   auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
-                     &weight = estimator.weight_prior_, nq, &P = P,
+                     &weight = estimator.scale_prior_, nq, &P = P,
                      nv](const double* update) {
     // residual
     int dim_res = nv * configuration_length;
@@ -496,7 +496,7 @@ TEST(ApproximatePriorCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_prior_ = 7.3;
+  estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -520,7 +520,7 @@ TEST(ApproximatePriorCost, Box) {
 
   // ----- cost ----- //
   auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
-                     &weight = estimator.weight_prior_, nq, &P_band = P_band,
+                     &weight = estimator.scale_prior_, nq, &P_band = P_band,
                      nv](const double* update) {
     // residual
     int dim_res = nv * configuration_length;

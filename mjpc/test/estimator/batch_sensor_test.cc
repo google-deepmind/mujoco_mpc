@@ -345,7 +345,9 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_force_[0] = 0.025;
+  for (int i = 0; i < model->nsensor; i++) {
+    estimator.weight_sensor_[i] = 0.025;
+  }
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -353,8 +355,10 @@ TEST(MeasurementCost, Particle) {
 
   // ----- cost ----- //
   auto cost_measurement = [&measurement, &configuration_length = T, &model,
-                           &data, &dim_res, &weight = estimator.weight_sensor_[0],
-                           nq, nv](const double* configuration) {
+                           &data, &dim_res, &weight = estimator.weight_sensor_,
+                           &params = estimator.norm_parameters_sensor_,
+                           &norms = estimator.norm_sensor_, nq,
+                           nv](const double* configuration) {
     // velocity
     std::vector<double> v1(nv);
     std::vector<double> v2(nv);
@@ -364,6 +368,9 @@ TEST(MeasurementCost, Particle) {
 
     // residual
     std::vector<double> residual(dim_res);
+
+    // initialize
+    double cost = 0.0;
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
@@ -392,10 +399,27 @@ TEST(MeasurementCost, Particle) {
 
       // measurement error
       mju_sub(rt, data->sensordata, y1, model->nsensordata);
+
+      // loop over sensors
+      int shift = 0;
+
+      for (int i = 0; i < model->nsensor; i++) {
+        // sensor dimension
+        int dim_sensori = model->sensor_dim[i];
+
+        // sensor residual
+        double* rti = rt + shift;
+
+        // add weighted norm
+        cost +=
+            weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori, norms[i]);
+
+        // shift
+        shift += dim_sensori;
+      }
     }
 
-    // weighted cost
-    return 0.5 * weight * mju_dot(residual.data(), residual.data(), dim_res);
+    return cost;
   };
 
   // ----- lambda ----- //
@@ -496,7 +520,10 @@ TEST(MeasurementCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  estimator.weight_sensor_[0] = 1.0e-4;
+
+  for (int i = 0; i < model->nsensor; i++) {
+    estimator.weight_sensor_[i] = 1.0e-4;
+  }
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
@@ -504,7 +531,9 @@ TEST(MeasurementCost, Box) {
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,
-                           &weight = estimator.weight_sensor_[0],
+                           &weight = estimator.weight_sensor_,
+                           &params = estimator.norm_parameters_sensor_,
+                           &norms = estimator.norm_sensor_,
                            &configuration_length = T, &model, &data, nq,
                            nv](const double* update) {
     // ----- integrate quaternion ----- //
@@ -527,6 +556,9 @@ TEST(MeasurementCost, Box) {
 
     // residual
     std::vector<double> residual(dim_res);
+
+    // initialize
+    double cost = 0.0;
 
     // loop over time
     for (int t = 0; t < configuration_length - 2; t++) {
@@ -555,10 +587,27 @@ TEST(MeasurementCost, Box) {
 
       // measurement error
       mju_sub(rt, data->sensordata, y1, model->nsensordata);
+
+      // loop over sensors
+      int shift = 0;
+
+      for (int i = 0; i < model->nsensor; i++) {
+        // sensor dimension
+        int dim_sensori = model->sensor_dim[i];
+
+        // sensor residual
+        double* rti = rt + shift;
+
+        // add weighted norm
+        cost +=
+            weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori, norms[i]);
+
+        // shift
+        shift += dim_sensori;
+      }
     }
 
-    // weighted cost
-    return weight * 0.5 * mju_dot(residual.data(), residual.data(), dim_res);
+    return cost;
   };
 
   // ----- lambda ----- //

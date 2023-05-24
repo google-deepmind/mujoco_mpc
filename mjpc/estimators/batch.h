@@ -241,6 +241,8 @@ class Estimator {
   // norm Hessian
   std::vector<double> norm_hessian_sensor_;    // (ns * MAX_HISTORY) * (ns * MAX_HISTORY)
   std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x MAX_HISTORY
+  std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
 
   // candidate
   std::vector<double> configuration_copy_;     // nq x MAX_HISTORY

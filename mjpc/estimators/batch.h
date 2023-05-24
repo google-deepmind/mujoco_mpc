@@ -31,8 +31,8 @@ const int MAX_SENSOR = 32; // maximum number of sensors
 
 // linear system solver 
 enum BatchEstimatorSolver: int {
-  kCholeskyDense = 0,
-  kBanded, // TODO(taylor)
+  kCholeskyDenseSolver = 0,
+  kBandSolver,
 };
 
 // batch estimator
@@ -107,8 +107,11 @@ class Estimator {
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force,
               ThreadPool& pool);
 
-  // compute covariance  
-  void Covariance();
+  // prior update
+  void PriorUpdate();
+
+  // covariance update 
+  void CovarianceUpdate();
 
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);
@@ -206,6 +209,7 @@ class Estimator {
   std::vector<double> cost_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_band_;      // BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv)
+  std::vector<double> cost_hessian_factor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // cost scratch
   std::vector<double> scratch0_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
@@ -251,11 +255,17 @@ class Estimator {
   std::vector<double> search_direction_;       // nv * MAX_HISTORY
 
   // solver 
-  BatchEstimatorSolver solver_ = kCholeskyDense;
+  BatchEstimatorSolver solver_ = kCholeskyDenseSolver;
+
+  // covariance 
+  std::vector<double> covariance_;             // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  double covariance_initial_scaling_;
 
   // timing
   double timer_total_;
-  double timer_covariance_;
+  double timer_prior_update_;
   double timer_inverse_dynamics_derivatives_;
   double timer_velacc_derivatives_;
   double timer_jacobian_prior_;

@@ -126,7 +126,7 @@ TEST(BatchOptimize, Particle2D) {
       estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
   // change solver 
-  estimator.solver_ = kBanded;
+  estimator.solver_ = kBandSolver;
 
   // change verbosity 
   estimator.verbose_ = true;
@@ -256,7 +256,7 @@ TEST(BatchOptimize, Box3D) {
       estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
   // change solver 
-  estimator.solver_ = kBanded;
+  estimator.solver_ = kBandSolver;
 
   // change verbosity 
   estimator.verbose_ = true;

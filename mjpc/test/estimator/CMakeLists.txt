@@ -15,6 +15,9 @@
 test(batch_band_test)
 target_link_libraries(batch_band_test load gmock)
 
+test(batch_covariance_test)
+target_link_libraries(batch_covariance_test load gmock)
+
 test(batch_force_test)
 target_link_libraries(batch_force_test load gmock)
 

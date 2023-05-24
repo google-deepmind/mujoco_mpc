@@ -16,6 +16,7 @@
 import contextlib
 
 from absl.testing import absltest
+import grpc
 import mujoco
 from mujoco_mpc import agent as agent_lib
 import numpy as np
@@ -188,6 +189,37 @@ class AgentTest(absltest.TestCase):
           userdata=list(data.userdata),
       )
       agent.planner_step()
+
+  def test_get_set_default_mode(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    agent.set_mode("default_mode")
+    self.assertEqual(agent.get_mode(), "default_mode")
+
+  @absltest.skip('asset import issue')
+  def test_get_set_mode(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Quadruped Flat", model=model)
+    agent.set_mode("Walk")
+    self.assertEqual(agent.get_mode(), "Walk")
+
+  @absltest.skip('asset import issue')
+  def test_set_mode_error(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Quadruped Flat", model=model)
+    self.assertRaises(grpc.RpcError, lambda: agent.set_mode("Run"))
 
 
 if __name__ == "__main__":

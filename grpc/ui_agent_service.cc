@@ -34,6 +34,8 @@ namespace agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetModeRequest;
+using ::agent::GetModeResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
@@ -46,6 +48,8 @@ using ::agent::ResetRequest;
 using ::agent::ResetResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
+using ::agent::SetModeRequest;
+using ::agent::SetModeResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
 using ::agent::SetTaskParametersRequest;
@@ -163,6 +167,24 @@ grpc::Status UiAgentService::SetCostWeights(
                                           const mjModel* model, mjData* data) {
     return grpc_agent_util::SetCostWeights(request, agent);
   });
+}
+
+grpc::Status UiAgentService::SetMode(grpc::ServerContext* context,
+                                     const SetModeRequest* request,
+                                     SetModeResponse* response) {
+  return RunBeforeStep(context, [request](mjpc::Agent* agent,
+                                          const mjModel* model, mjData* data) {
+    return grpc_agent_util::SetMode(request, agent);
+  });
+}
+grpc::Status UiAgentService::GetMode(grpc::ServerContext* context,
+                                     const GetModeRequest* request,
+                                     GetModeResponse* response) {
+  return RunBeforeStep(
+      context, [request, response](mjpc::Agent* agent, const mjModel* model,
+                                   mjData* data) {
+        return grpc_agent_util::GetMode(request, agent, response);
+      });
 }
 
 namespace {

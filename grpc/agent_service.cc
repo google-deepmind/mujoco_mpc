@@ -42,6 +42,10 @@ using ::agent::ResetRequest;
 using ::agent::ResetResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
+using ::agent::SetModeRequest;
+using ::agent::SetModeResponse;
+using ::agent::GetModeRequest;
+using ::agent::GetModeResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
 using ::agent::SetTaskParametersRequest;
@@ -214,6 +218,24 @@ grpc::Status AgentService::SetCostWeights(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::SetCostWeights(request, &agent_);
+}
+
+grpc::Status AgentService::SetMode(grpc::ServerContext* context,
+                                   const SetModeRequest* request,
+                                   SetModeResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::SetMode(request, &agent_);
+}
+
+grpc::Status AgentService::GetMode(grpc::ServerContext* context,
+                                   const GetModeRequest* request,
+                                   GetModeResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetMode(request, &agent_, response);
 }
 
 }  // namespace agent_grpc

@@ -15,6 +15,7 @@
 #include "grpc/grpc_agent_util.h"
 
 #include <sstream>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -37,8 +38,11 @@ using ::agent::GetActionResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::ValueAndWeight;
+using ::agent::GetModeRequest;
+using ::agent::GetModeResponse;
 using ::agent::GetStateResponse;
 using ::agent::SetCostWeightsRequest;
+using ::agent::SetModeRequest;
 using ::agent::SetStateRequest;
 using ::agent::SetTaskParametersRequest;
 
@@ -258,6 +262,28 @@ grpc::Status SetCostWeights(const SetCostWeightsRequest* request,
     }
   }
 
+  return grpc::Status::OK;
+}
+
+grpc::Status SetMode(const SetModeRequest* request, mjpc::Agent* agent) {
+  int outcome = agent->SetModeByName(request->mode());
+  if (outcome == -1) {
+    std::vector<std::string> mode_names = agent->GetAllModeNames();
+    std::ostringstream error_string;
+    error_string << "Mode '" << request->mode()
+                  << "' not found in task. Available names are:\n";
+    for (const auto& mode_name : mode_names) {
+      error_string << "  " << mode_name << "\n";
+    }
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string.str());
+  } else {
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status GetMode(const GetModeRequest* request, mjpc::Agent* agent,
+                     GetModeResponse* response) {
+  response->set_mode(agent->GetModeName());
   return grpc::Status::OK;
 }
 

@@ -81,6 +81,17 @@ class AgentService final : public agent::Agent::Service {
       const agent::SetCostWeightsRequest* request,
       agent::SetCostWeightsResponse* response) override;
 
+  grpc::Status SetMode(
+      grpc::ServerContext* context,
+      const agent::SetModeRequest* request,
+      agent::SetModeResponse* response) override;
+
+  grpc::Status GetMode(
+      grpc::ServerContext* context,
+      const agent::GetModeRequest* request,
+      agent::GetModeResponse* response) override;
+
+
  private:
   bool Initialized() const { return data_ != nullptr; }
 

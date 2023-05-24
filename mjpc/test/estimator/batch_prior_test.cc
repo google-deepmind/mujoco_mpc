@@ -98,7 +98,7 @@ TEST(PriorResidual, Particle) {
   fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
 
   // estimator
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
 
   // error
@@ -201,7 +201,7 @@ TEST(PriorResidual, Box) {
   fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
 
   // estimator
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
 
   // error
@@ -316,7 +316,7 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.weight_prior_dense_.data(), P.data(),
            dim_vel * dim_vel);  // copy random covariance
   estimator.ResidualPrior();
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -446,7 +446,7 @@ TEST(PriorCost, Box) {
   mju_copy(estimator.weight_prior_dense_.data(), P.data(),
            dim_vel * dim_vel);  // copy random covariance
   estimator.ResidualPrior();
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
@@ -570,7 +570,7 @@ TEST(ApproximatePriorCost, Particle) {
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
   estimator.ResidualPrior();
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -708,7 +708,7 @@ TEST(ApproximatePriorCost, Box) {
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
   estimator.ResidualPrior();
-  estimator.JacobianPriorBlocks();
+  estimator.BlocksPrior();
   estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);

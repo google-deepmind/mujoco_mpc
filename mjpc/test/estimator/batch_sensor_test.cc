@@ -140,6 +140,7 @@ TEST(MeasurementResidual, Particle) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
+  estimator.BlocksSensor();
   estimator.JacobianSensor();
 
   // error
@@ -287,6 +288,7 @@ TEST(MeasurementResidual, Box) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
+  estimator.BlocksSensor();
   estimator.JacobianSensor();
 
   // error
@@ -489,6 +491,7 @@ TEST(MeasurementCost, Particle) {
   estimator.ResidualSensor();
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
+  estimator.BlocksSensor();
   estimator.JacobianSensor();
 
   // cost
@@ -721,6 +724,7 @@ TEST(MeasurementCost, Box) {
   estimator.ResidualSensor();
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
+  estimator.BlocksSensor();
   estimator.JacobianSensor();
 
   // cost

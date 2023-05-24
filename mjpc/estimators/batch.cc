@@ -66,18 +66,29 @@ void Estimator::Initialize(mjModel* model) {
   jacobian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // prior Jacobian block
-  block_prior_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_prior_current_configuration_.resize((nv * nv) * MAX_HISTORY);
 
   // sensor Jacobian blocks
   block_sensor_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
   block_sensor_velocity_.resize((dim_sensor_ * nv) * MAX_HISTORY);
   block_sensor_acceleration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_scratch_.resize((dim_sensor_ * nv));
+
+  block_sensor_previous_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
+  block_sensor_current_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
+  block_sensor_next_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
+
+  block_sensor_scratch_.resize(mju_max(nv, dim_sensor_) *
+                               mju_max(nv, dim_sensor_));
 
   // force Jacobian blocks
   block_force_configuration_.resize((nv * nv) * MAX_HISTORY);
   block_force_velocity_.resize((nv * nv) * MAX_HISTORY);
   block_force_acceleration_.resize((nv * nv) * MAX_HISTORY);
+
+  block_force_previous_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_force_current_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_force_next_configuration_.resize((nv * nv) * MAX_HISTORY);
+
   block_force_scratch_.resize((nv * nv));
 
   // velocity Jacobian blocks
@@ -157,8 +168,10 @@ void Estimator::Initialize(mjModel* model) {
   scratch0_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
-  scratch0_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) * (mju_max(nv, dim_sensor_) * MAX_HISTORY));
-  scratch1_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) * (mju_max(nv, dim_sensor_) * MAX_HISTORY));
+  scratch0_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) *
+                          (mju_max(nv, dim_sensor_) * MAX_HISTORY));
+  scratch1_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) *
+                          (mju_max(nv, dim_sensor_) * MAX_HISTORY));
 
   scratch0_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
@@ -210,8 +223,8 @@ void Estimator::Reset() {
   std::fill(jacobian_force_.begin(), jacobian_force_.end(), 0.0);
 
   // prior Jacobian block
-  std::fill(block_prior_configuration_.begin(),
-            block_prior_configuration_.end(), 0.0);
+  std::fill(block_prior_current_configuration_.begin(),
+            block_prior_current_configuration_.end(), 0.0);
 
   // sensor Jacobian blocks
   std::fill(block_sensor_configuration_.begin(),
@@ -219,6 +232,16 @@ void Estimator::Reset() {
   std::fill(block_sensor_velocity_.begin(), block_sensor_velocity_.end(), 0.0);
   std::fill(block_sensor_acceleration_.begin(),
             block_sensor_acceleration_.end(), 0.0);
+
+  std::fill(block_sensor_previous_configuration_.begin(),
+            block_sensor_previous_configuration_.end(), 0.0);
+
+  std::fill(block_sensor_current_configuration_.begin(),
+            block_sensor_current_configuration_.end(), 0.0);
+
+  std::fill(block_sensor_next_configuration_.begin(),
+            block_sensor_next_configuration_.end(), 0.0);
+
   std::fill(block_sensor_scratch_.begin(), block_sensor_scratch_.end(), 0.0);
 
   // force Jacobian blocks
@@ -227,6 +250,16 @@ void Estimator::Reset() {
   std::fill(block_force_velocity_.begin(), block_force_velocity_.end(), 0.0);
   std::fill(block_force_acceleration_.begin(), block_force_acceleration_.end(),
             0.0);
+
+  std::fill(block_force_previous_configuration_.begin(),
+            block_force_previous_configuration_.end(), 0.0);
+
+  std::fill(block_force_current_configuration_.begin(),
+            block_force_current_configuration_.end(), 0.0);
+
+  std::fill(block_force_next_configuration_.begin(),
+            block_force_next_configuration_.end(), 0.0);
+
   std::fill(block_force_scratch_.begin(), block_force_scratch_.end(), 0.0);
 
   // velocity Jacobian blocks
@@ -314,7 +347,6 @@ void Estimator::Reset() {
 
 // prior cost
 // TODO(taylor): normalize by dimension (?)
-
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // residual dimension
   int dim = model_->nv * configuration_length_;
@@ -337,14 +369,12 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   }
 
   // weighted quadratic: 0.5 * w * r' * scratch
-  double cost =
-      0.5 * scale_prior_ *
-      mju_dot(residual_prior_.data(), scratch0_prior_.data(), dim);
+  double cost = 0.5 * scale_prior_ *
+                mju_dot(residual_prior_.data(), scratch0_prior_.data(), dim);
 
   // compute cost gradient wrt configuration
   if (gradient) {
     // compute total gradient wrt configuration: drdq' * scratch
-    // TODO(taylor): sparse version
     mju_mulMatTVec(gradient, jacobian_prior_.data(), scratch0_prior_.data(),
                    dim, dim);
 
@@ -356,32 +386,29 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   if (hessian) {
     // step 1: scratch = P * drdq
     if (band_covariance_) {  // approximate covariance
-      // TODO(taylor): sparse version
-
       // dimensions
       int ntotal = dim;
       int nband = 3 * model_->nv;
       int ndense = 0;
 
-      mju_transpose(scratch1_prior_.data(), jacobian_prior_.data(), dim, dim);
-
       // multiply: scratch = drdq' * P
+      mju_transpose(scratch1_prior_.data(), jacobian_prior_.data(), dim, dim);
       mju_bandMulMatVec(scratch0_prior_.data(), weight_prior_band_.data(),
-                        scratch1_prior_.data(), ntotal, nband, ndense, dim, true);
+                        scratch1_prior_.data(), ntotal, nband, ndense, dim,
+                        true);
 
       // step 2: hessian = scratch * drdq
       mju_mulMatMat(hessian, scratch0_prior_.data(), jacobian_prior_.data(),
                     dim, dim, dim);
 
     } else {  // exact covariance
-      // TODO(taylor): sparse version
       // multiply: scratch = P * drdq
       mju_mulMatMat(scratch0_prior_.data(), weight_prior_dense_.data(),
                     jacobian_prior_.data(), dim, dim, dim);
 
       // step 2: hessian = drdq' * scratch
-      mju_mulMatTMat(hessian, jacobian_prior_.data(),
-                     scratch0_prior_.data(), dim, dim, dim);
+      mju_mulMatTMat(hessian, jacobian_prior_.data(), scratch0_prior_.data(),
+                     dim, dim, dim);
     }
 
     // step 3: scale
@@ -419,7 +446,7 @@ void Estimator::JacobianPrior() {
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
     // unpack
-    double* block = block_prior_configuration_.data() + t * nv * nv;
+    double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
     // set block in matrix
     SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
@@ -428,7 +455,7 @@ void Estimator::JacobianPrior() {
 }
 
 // prior Jacobian blocks
-void Estimator::JacobianPriorBlocks() {
+void Estimator::BlocksPrior() {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
@@ -437,7 +464,7 @@ void Estimator::JacobianPriorBlocks() {
     // unpack
     double* qt = configuration_.data() + t * nq;
     double* qt_prior = configuration_prior_.data() + t * nq;
-    double* block = block_prior_configuration_.data() + t * nv * nv;
+    double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
     // compute Jacobian
     DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
@@ -533,10 +560,95 @@ void Estimator::ResidualSensor() {
   }
 }
 
+// // sensor Jacobian
+// void Estimator::JacobianSensor() {
+//   // velocity dimension
+//   int nv = model_->nv;
+
+//   // residual dimension
+//   int dim_residual = dim_sensor_ * (configuration_length_ - 2);
+
+//   // update dimension
+//   int dim_update = nv * configuration_length_;
+
+//   // reset Jacobian to zero
+//   mju_zero(jacobian_sensor_.data(), dim_residual * dim_update);
+
+//   // loop over sensors
+//   for (int t = 0; t < configuration_length_ - 2; t++) {
+//     // dqds
+//     double* dqds = block_sensor_configuration_.data() + t * dim_sensor_ * nv;
+
+//     // dvds
+//     double* dvds = block_sensor_velocity_.data() + t * dim_sensor_ * nv;
+
+//     // dads
+//     double* dads = block_sensor_acceleration_.data() + t * dim_sensor_ * nv;
+
+//     // indices
+//     int row = t * dim_sensor_;
+//     int col_previous = t * nv;
+//     int col_current = (t + 1) * nv;
+//     int col_next = (t + 2) * nv;
+
+//     // ----- configuration previous ----- //
+//     // dvds' * dvdq0
+//     double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
+//     mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq0, nv, dim_sensor_,
+//                    nv);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_previous);
+
+//     // dads' * dadq0
+//     double* dadq0 =
+//         block_acceleration_previous_configuration_.data() + t * nv * nv;
+//     mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq0, nv, dim_sensor_,
+//                    nv);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_previous);
+
+//     // ----- configuration current ----- //
+//     // dqds
+//     mju_transpose(block_sensor_scratch_.data(), dqds, nv, dim_sensor_);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_current);
+
+//     // dvds' * dvdq1
+//     double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+//     mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq1, nv, dim_sensor_,
+//                    nv);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_current);
+
+//     // dads' * dadq1
+//     double* dadq1 =
+//         block_acceleration_current_configuration_.data() + t * nv * nv;
+//     mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq1, nv, dim_sensor_,
+//                    nv);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_current);
+
+//     // ----- configuration next ----- //
+
+//     // dads' * dadq2
+//     double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+//     mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq2, nv, dim_sensor_,
+//                    nv);
+//     AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
+//                       1.0, dim_residual, dim_update, dim_sensor_, nv, row,
+//                       col_next);
+//   }
+// }
+
 // sensor Jacobian
 void Estimator::JacobianSensor() {
   // velocity dimension
-  int nv = model_->nv;
+  int nv = model_->nv, ns = dim_sensor_;
 
   // residual dimension
   int dim_residual = dim_sensor_ * (configuration_length_ - 2);
@@ -549,15 +661,6 @@ void Estimator::JacobianSensor() {
 
   // loop over sensors
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // dqds
-    double* dqds = block_sensor_configuration_.data() + t * dim_sensor_ * nv;
-
-    // dvds
-    double* dvds = block_sensor_velocity_.data() + t * dim_sensor_ * nv;
-
-    // dads
-    double* dads = block_sensor_acceleration_.data() + t * dim_sensor_ * nv;
-
     // indices
     int row = t * dim_sensor_;
     int col_previous = t * nv;
@@ -565,56 +668,101 @@ void Estimator::JacobianSensor() {
     int col_next = (t + 2) * nv;
 
     // ----- configuration previous ----- //
-    // dvds' * dvdq0
+
+    // unpack
+    double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
+
+    // set
+    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
+                      dim_update, dim_sensor_, nv, row, col_previous);
+
+    // ----- configuration current ----- //
+    
+    // unpack
+    double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+
+    // set
+    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
+                      dim_update, dim_sensor_, nv, row, col_current);
+
+    // ----- configuration next ----- //
+
+    // unpack 
+    double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+
+    // set
+    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
+                      dim_update, dim_sensor_, nv, row, col_next);
+  }
+}
+
+// sensor Jacobian blocks
+void Estimator::BlocksSensor() {
+  // dimensions
+  int nv = model_->nv, ns = dim_sensor_;
+
+  // loop over sensors
+  for (int t = 0; t < configuration_length_ - 2; t++) {
+    // dqds
+    double* dqds = block_sensor_configuration_.data() + t * ns * nv;
+
+    // dvds
+    double* dvds = block_sensor_velocity_.data() + t * ns * nv;
+
+    // dads
+    double* dads = block_sensor_acceleration_.data() + t * ns * nv;    
+
+    // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
+
+    // unpack
+    double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
+
+    // scratch = dvds' * dvdq0
     double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq0, nv, dim_sensor_,
-                   nv);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_previous);
+    mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq0, nv, ns, nv);
+
+    // dsdq0 <- scratch
+    mju_copy(dsdq0, block_sensor_scratch_.data(), ns * nv);
 
     // dads' * dadq0
     double* dadq0 =
         block_acceleration_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq0, nv, dim_sensor_,
-                   nv);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_previous);
+    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq0, nv, ns, nv);
 
-    // ----- configuration current ----- //
-    // dqds
-    mju_transpose(block_sensor_scratch_.data(), dqds, nv, dim_sensor_);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_current);
+    // dsdsq0 += scratch
+    mju_addTo(dsdq0, block_sensor_scratch_.data(), ns * nv);
+
+    // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 -- //
+
+    // unpack
+    double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+
+    // dsdq1 <- dqds'
+    mju_transpose(dsdq1, dqds, nv, ns);
 
     // dvds' * dvdq1
     double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq1, nv, dim_sensor_,
-                   nv);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_current);
+    mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq1, nv, ns, nv);
+
+    // dsdq1 += scratch
+    mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
 
     // dads' * dadq1
     double* dadq1 =
         block_acceleration_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq1, nv, dim_sensor_,
-                   nv);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_current);
+    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq1, nv, ns, nv);
 
-    // ----- configuration next ----- //
+    // dsdq1 += scratch
+    mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
 
-    // dads' * dadq2
+    // -- configuration next: dsdq2 = dsda * dadq2 -- //
+
+    // unpack
+    double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+
+    // dsdq2 = dads' * dadq2
     double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq2, nv, dim_sensor_,
-                   nv);
-    AddMatrixInMatrix(jacobian_sensor_.data(), block_sensor_scratch_.data(),
-                      1.0, dim_residual, dim_update, dim_sensor_, nv, row,
-                      col_next);
+    mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
   }
 }
 
@@ -791,6 +939,9 @@ void Estimator::JacobianForce() {
                       dim_residual, dim_update, nv, nv, row, col_next);
   }
 }
+
+// force Jacobian
+void Estimator::BlocksForce() {}
 
 // compute force
 void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
@@ -1187,7 +1338,7 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto jacobian_prior_start = std::chrono::steady_clock::now();
 
       // compute blocks
-      estimator.JacobianPriorBlocks();
+      estimator.BlocksPrior();
 
       // compute Jacobian
       estimator.JacobianPrior();
@@ -1219,6 +1370,7 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // compute Jacobian
+      estimator.BlocksSensor();
       estimator.JacobianSensor();
 
       // stop Jacobian timer
@@ -1248,6 +1400,7 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // compute Jacobian
+      estimator.BlocksForce();
       estimator.JacobianForce();
 
       // stop Jacobian timer

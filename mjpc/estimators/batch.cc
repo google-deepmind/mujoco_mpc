@@ -153,10 +153,15 @@ void Estimator::Initialize(mjModel* model) {
                               (dim_sensor_ * MAX_HISTORY));
   norm_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
-  // cost scratch
-  cost_scratch_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_scratch_sensor_.resize((dim_sensor_ * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_scratch_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  // scratch
+  scratch0_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch1_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+
+  scratch0_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) * (mju_max(nv, dim_sensor_) * MAX_HISTORY));
+  scratch1_sensor_.resize((mju_max(nv, dim_sensor_) * MAX_HISTORY) * (mju_max(nv, dim_sensor_) * MAX_HISTORY));
+
+  scratch0_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch1_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // candidate
   configuration_copy_.resize(nq * MAX_HISTORY);
@@ -269,10 +274,15 @@ void Estimator::Reset() {
   std::fill(norm_hessian_sensor_.begin(), norm_hessian_sensor_.end(), 0.0);
   std::fill(norm_hessian_force_.begin(), norm_hessian_force_.end(), 0.0);
 
-  // cost scratch
-  std::fill(cost_scratch_prior_.begin(), cost_scratch_prior_.end(), 0.0);
-  std::fill(cost_scratch_sensor_.begin(), cost_scratch_sensor_.end(), 0.0);
-  std::fill(cost_scratch_force_.begin(), cost_scratch_force_.end(), 0.0);
+  // scratch
+  std::fill(scratch0_prior_.begin(), scratch0_prior_.end(), 0.0);
+  std::fill(scratch1_prior_.begin(), scratch1_prior_.end(), 0.0);
+
+  std::fill(scratch0_sensor_.begin(), scratch0_sensor_.end(), 0.0);
+  std::fill(scratch1_sensor_.begin(), scratch1_sensor_.end(), 0.0);
+
+  std::fill(scratch0_force_.begin(), scratch0_force_.end(), 0.0);
+  std::fill(scratch1_force_.begin(), scratch1_force_.end(), 0.0);
 
   // candidate
   std::fill(configuration_copy_.begin(), configuration_copy_.end(), 0.0);
@@ -304,7 +314,7 @@ void Estimator::Reset() {
 
 // prior cost
 // TODO(taylor): normalize by dimension (?)
-//             : exploit [P 0; 0 p * I] structure
+
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // residual dimension
   int dim = model_->nv * configuration_length_;
@@ -317,23 +327,25 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     int ndense = 0;
 
     // multiply: scratch = P * r
-    mju_bandMulMatVec(cost_scratch_prior_.data(), weight_prior_band_.data(),
+    mju_bandMulMatVec(scratch0_prior_.data(), weight_prior_band_.data(),
                       residual_prior_.data(), ntotal, nband, ndense, 1, true);
   } else {  // exact covariance
     // multiply: scratch = P * r
-    mju_mulMatVec(cost_scratch_prior_.data(), weight_prior_dense_.data(),
+    // TODO(taylor): exploit potential [P 0; 0 p * I] structure
+    mju_mulMatVec(scratch0_prior_.data(), weight_prior_dense_.data(),
                   residual_prior_.data(), dim, dim);
   }
 
   // weighted quadratic: 0.5 * w * r' * scratch
   double cost =
       0.5 * scale_prior_ *
-      mju_dot(residual_prior_.data(), cost_scratch_prior_.data(), dim);
+      mju_dot(residual_prior_.data(), scratch0_prior_.data(), dim);
 
   // compute cost gradient wrt configuration
   if (gradient) {
     // compute total gradient wrt configuration: drdq' * scratch
-    mju_mulMatTVec(gradient, jacobian_prior_.data(), cost_scratch_prior_.data(),
+    // TODO(taylor): sparse version
+    mju_mulMatTVec(gradient, jacobian_prior_.data(), scratch0_prior_.data(),
                    dim, dim);
 
     // weighted gradient: w * drdq' * scratch
@@ -344,31 +356,32 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   if (hessian) {
     // step 1: scratch = P * drdq
     if (band_covariance_) {  // approximate covariance
+      // TODO(taylor): sparse version
+
       // dimensions
       int ntotal = dim;
       int nband = 3 * model_->nv;
       int ndense = 0;
 
-      // transpose TODO(taylor): remove allocations
-      std::vector<double> JT(dim * dim);
-      mju_transpose(JT.data(), jacobian_prior_.data(), dim, dim);
+      mju_transpose(scratch1_prior_.data(), jacobian_prior_.data(), dim, dim);
 
       // multiply: scratch = drdq' * P
-      mju_bandMulMatVec(cost_scratch_prior_.data(), weight_prior_band_.data(),
-                        JT.data(), ntotal, nband, ndense, 1, true);
+      mju_bandMulMatVec(scratch0_prior_.data(), weight_prior_band_.data(),
+                        scratch1_prior_.data(), ntotal, nband, ndense, dim, true);
 
       // step 2: hessian = scratch * drdq
-      mju_mulMatMat(hessian, cost_scratch_prior_.data(), jacobian_prior_.data(),
+      mju_mulMatMat(hessian, scratch0_prior_.data(), jacobian_prior_.data(),
                     dim, dim, dim);
 
     } else {  // exact covariance
+      // TODO(taylor): sparse version
       // multiply: scratch = P * drdq
-      mju_mulMatMat(cost_scratch_prior_.data(), weight_prior_dense_.data(),
+      mju_mulMatMat(scratch0_prior_.data(), weight_prior_dense_.data(),
                     jacobian_prior_.data(), dim, dim, dim);
 
       // step 2: hessian = drdq' * scratch
       mju_mulMatTMat(hessian, jacobian_prior_.data(),
-                     cost_scratch_prior_.data(), dim, dim, dim);
+                     scratch0_prior_.data(), dim, dim, dim);
     }
 
     // step 3: scale
@@ -466,12 +479,12 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       if (gradient) {
         // compute total gradient wrt configuration: drdq' * dndr
         // TODO(taylor): only grab 3 * nv columns from Jacobian
-        mju_mulMatTVec(cost_scratch_sensor_.data(),
+        mju_mulMatTVec(scratch0_sensor_.data(),
                        jacobian_sensor_.data() + shift * dim_update,
                        norm_gradient_sensor_.data(), dim_sensori, dim_update);
 
         // add
-        mju_addToScl(gradient, cost_scratch_sensor_.data(), weight, dim_update);
+        mju_addToScl(gradient, scratch0_sensor_.data(), weight, dim_update);
       }
 
       // ----- Hessian ----- //
@@ -480,14 +493,14 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
         // TODO(taylor): only grab 3 * nv columns from Jacobian
 
         // step 1: tmp0 = d2ndr2 * drdq
-        double* tmp0 = cost_scratch_sensor_.data();
+        double* tmp0 = scratch0_sensor_.data();
 
         mju_mulMatMat(tmp0, norm_hessian_sensor_.data(),
                       jacobian_sensor_.data() + shift * dim_update, dim_sensori,
                       dim_sensori, dim_update);
 
         // step 2: hessian = drdq' * tmp
-        // double* tmp1 = cost_scratch_sensor_.data() + dim_sensori *
+        // double* tmp1 = scratch0_sensor_.data() + dim_sensori *
         // dim_update;
         std::vector<double> tmp1(dim_update * dim_update);
 
@@ -650,12 +663,12 @@ double Estimator::CostForce(double* gradient, double* hessian) {
       if (gradient) {
         // compute total gradient wrt configuration: drdq' * dndr
         // TODO(taylor): only grab 3 * nv columns from Jacobian
-        mju_mulMatTVec(cost_scratch_force_.data(),
+        mju_mulMatTVec(scratch0_force_.data(),
                        jacobian_force_.data() + shift * dim_update,
                        norm_gradient_force_.data(), dof, dim_update);
 
         // add
-        mju_addToScl(gradient, cost_scratch_force_.data(), weight, dim_update);
+        mju_addToScl(gradient, scratch0_force_.data(), weight, dim_update);
       }
 
       // Hessian
@@ -665,13 +678,13 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
         // step 1: tmp0 = d2ndr2 * drdq
         // TODO(taylor): only grab 3 * nv columns from Jacobian
-        double* tmp0 = cost_scratch_force_.data();
+        double* tmp0 = scratch0_force_.data();
         mju_mulMatMat(tmp0, norm_hessian_force_.data(),
                       jacobian_force_.data() + shift * dim_update, dof, dof,
                       dim_update);
 
         // step 2: tmp1 = drdq' * tmp0
-        // double* tmp1 = cost_scratch_force_.data() + dof * dim_update;
+        // double* tmp1 = scratch0_force_.data() + dof * dim_update;
         std::vector<double> tmp1(dim_update * dim_update);
         mju_mulMatTMat(tmp1.data(), jacobian_force_.data() + shift * dim_update,
                        tmp0, dof, dim_update, dim_update);

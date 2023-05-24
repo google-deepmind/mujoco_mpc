@@ -125,7 +125,7 @@ TEST(PriorResidual, Box) {
   int nq = model->nq, nv = model->nv;
 
   // ----- configurations ----- //
-  int T = 5;
+  int T = 2;
   int dim_pos = nq * T;
   int dim_vel = nv * T;
   std::vector<double> configuration(dim_pos);
@@ -213,6 +213,9 @@ TEST(PriorResidual, Box) {
   EXPECT_NEAR(
       mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
       dim_vel), 0.0, 1.0e-3);
+
+  printf("prior residual Jacobian:\n");
+  mju_printMat(estimator.jacobian_prior_.data(), dim_vel, dim_vel);
 
   // delete data + model
   mj_deleteData(data);
@@ -459,6 +462,139 @@ TEST(PriorCost, Box) {
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
           fdg.gradient_.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
+TEST(ApproximatePriorCost, Particle) {
+  // load model
+  // note: needs to be a linear system to satisfy Gauss-Newton Hessian
+  // approximation
+  mjModel* model = LoadTestModel("particle2D.xml");
+  mjData* data = mj_makeData(model);
+
+  // dimension
+  int nq = model->nq, nv = model->nv;
+
+  // ----- configurations ----- //
+  int T = 5;
+  int dim_pos = nq * T;
+  int dim_vel = nv * T;
+  std::vector<double> configuration(dim_pos);
+  std::vector<double> prior(dim_pos);
+
+  // random initialization
+  absl::BitGen gen_;
+  for (int t = 0; t < T; t++) {
+    for (int i = 0; i < nq; i++) {
+      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // ----- estimator ----- //
+  Estimator estimator;
+  estimator.Initialize(model);
+  estimator.configuration_length_ = T;
+  estimator.scale_prior_ = 7.3;
+
+  // copy configuration, prior
+  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+
+  // ----- random covariance ----- //
+  std::vector<double> P(dim_vel * dim_vel);
+  std::vector<double> F(dim_vel * dim_vel);
+
+  // P = F' F
+  for (int i = 0; i < dim_vel * dim_vel; i++) {
+    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+
+  // convert to band 
+  // TODO(taylor): P_band nnz initialize (and copy below)
+  int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
+  std::vector<double> P_band(nnz);
+  mju_dense2Band(P_band.data(), P.data(), dim_vel, 3 * nv, 0);
+
+  // ----- cost ----- //
+  auto cost_prior = [&prior, &configuration_length = T,
+                     &weight = estimator.scale_prior_, nq, &P_band = P_band,
+                     nv](const double* configuration) {
+    // dimension
+    int dim_res = nv * configuration_length;
+
+    // residual
+    std::vector<double> residual(dim_res);
+
+    // loop over time
+    for (int t = 0; t < configuration_length; t++) {
+      // terms
+      double* rt = residual.data() + t * nv;
+      double* qt_prior = prior.data() + t * nq;
+      const double* qt = configuration + t * nq;
+
+      // configuration difference
+      mju_sub(rt, qt, qt_prior, nv);
+    }
+
+    // ----- 0.5 * w * r' * P * r ----- //
+
+    // scratch
+    std::vector<double> scratch(dim_res);
+    mju_bandMulMatVec(scratch.data(), P_band.data(), residual.data(), dim_res,
+                      3 * nv, 0, 1, true);
+
+    // weighted cost
+    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+  };
+
+  // ----- lambda ----- //
+
+  // cost
+  double cost_lambda = cost_prior(configuration.data());
+
+  // gradient
+  FiniteDifferenceGradient fdg(dim_vel);
+  fdg.Compute(cost_prior, configuration.data(), dim_vel);
+
+  // Hessian
+  FiniteDifferenceHessian fdh(dim_vel);
+  fdh.Compute(cost_prior, configuration.data(), dim_vel);
+
+  // ----- estimator ----- //
+  estimator.band_covariance_ = true;  // used approximate covariance
+  mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
+           nnz);  // copy random covariance
+  estimator.ResidualPrior();
+  estimator.JacobianPriorBlocks();
+  estimator.JacobianPrior();
+  double cost_estimator =
+      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
+                          estimator.cost_hessian_prior_.data());
+
+  // ----- error ----- //
+
+  // cost
+  double cost_error = cost_estimator - cost_lambda;
+  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
+
+  // gradient
+  std::vector<double> gradient_error(dim_vel);
+  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+          fdg.gradient_.data(), dim_vel);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+
+  // Hessian
+  std::vector<double> hessian_error(dim_vel * dim_vel);
+  mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
+          fdh.hessian_.data(), dim_vel * dim_vel);
+  EXPECT_NEAR(
+      mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
+      0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);

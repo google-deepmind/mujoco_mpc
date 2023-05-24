@@ -192,9 +192,12 @@ class Estimator {
   std::vector<double> cost_hessian_band_;      // BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv)
 
   // cost scratch
-  std::vector<double> cost_scratch_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_scratch_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_scratch_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch0_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch1_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch0_sensor_;        // (max(nv, ns) * MAX_HISTORY) * (max(nv, ns) * MAX_HISTORY)
+  std::vector<double> scratch1_sensor_;        // (max(nv, ns) * MAX_HISTORY) * (max(nv, ns) * MAX_HISTORY)
+  std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // prior weights
   std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)

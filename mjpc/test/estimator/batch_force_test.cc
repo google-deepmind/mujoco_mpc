@@ -32,7 +32,7 @@ TEST(ForceResidual, Particle) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // ----- configurations ----- //
@@ -65,12 +65,15 @@ TEST(ForceResidual, Particle) {
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
+  dim_id);
 
   // ----- residual ----- //
-  auto residual_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
+  auto residual_inverse_dynamics = [&qfrc_actuator, &configuration_length =
+  T,
                                     &model, &data, nq, nv](
-                                       double* residual, const double* update) {
+                                       double* residual, const double*
+                                       update) {
     // velocity
     std::vector<double> v1(nv);
     std::vector<double> v2(nv);
@@ -149,8 +152,8 @@ TEST(ForceResidual, Particle) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
+      dim_vel), 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -165,7 +168,7 @@ TEST(ForceResidual, Box) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // initial configuration
@@ -206,16 +209,18 @@ TEST(ForceResidual, Box) {
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
+  dim_id);
 
   // ----- residual ----- //
   auto residual_inverse_dynamics =
       [&configuration = estimator.configuration_,
-       &qfrc_actuator = estimator.force_measurement_, &configuration_length = T,
-       &model, &data, nq, nv](double* residual, const double* update) {
+       &qfrc_actuator = estimator.force_measurement_, &configuration_length =
+       T, &model, &data, nq, nv](double* residual, const double* update) {
         // ----- integrate quaternion ----- //
         std::vector<double> qint(nq * configuration_length);
-        mju_copy(qint.data(), configuration.data(), nq * configuration_length);
+        mju_copy(qint.data(), configuration.data(), nq *
+        configuration_length);
 
         // loop over configurations
         for (int t = 0; t < configuration_length; t++) {
@@ -302,8 +307,8 @@ TEST(ForceResidual, Box) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res * dim_vel),
-      0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res *
+      dim_vel), 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -318,14 +323,14 @@ TEST(ForceCost, Particle) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // threadpool 
-  ThreadPool pool(2);
+  // threadpool
+  ThreadPool pool(1);
 
   // initial configuration
   double qpos0[4] = {0.1, 0.3, -0.01, 0.25};
 
   // ----- configurations ----- //
-  int T = 3;
+  int T = 5;
   int dim_pos = nq * T;
   int dim_vel = nv * T;
   int dim_id = nv * T;
@@ -354,21 +359,31 @@ TEST(ForceCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
-  for (int i = 0; i < 4; i++) {
-    estimator.weight_force_[i] = 0.0035;
-  }
+
+  // weights
+  estimator.weight_force_[0] = 0.0055;
+  estimator.weight_force_[1] = 0.0325;
+  estimator.weight_force_[2] = 0.00025;
+  estimator.weight_force_[3] = 0.125;
+
+  // norms
+  estimator.norm_force_[0] = kQuadratic;
+  estimator.norm_force_[1] = kQuadratic;
+  estimator.norm_force_[2] = kQuadratic;
+  estimator.norm_force_[3] = kQuadratic;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
   mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
+  auto cost_inverse_dynamics = [&qfrc_actuator = estimator.force_measurement_,
+                                &configuration_length =
+                                    estimator.configuration_length_,
                                 &dim_res, &weight = estimator.weight_force_,
                                 &params = estimator.norm_parameters_force_,
-                                &norms = estimator.norm_force_,
-                                &model, &data, nq,
-                                nv](const double* configuration) {
+                                &norms = estimator.norm_force_, &model, &data,
+                                nq, nv](const double* configuration) {
     // velocity
     std::vector<double> v1(nv);
     std::vector<double> v2(nv);
@@ -379,7 +394,7 @@ TEST(ForceCost, Particle) {
     // residual
     std::vector<double> residual(dim_res);
 
-    // initialize 
+    // initialize
     double cost = 0.0;
 
     // loop over time
@@ -414,7 +429,7 @@ TEST(ForceCost, Particle) {
       int shift = 0;
 
       for (int i = 0; i < model->njnt; i++) {
-        // joint type 
+        // joint type
         int jnt_type = model->jnt_type[i];
 
         // dof
@@ -423,7 +438,7 @@ TEST(ForceCost, Particle) {
           dof = 6;
         } else if (jnt_type == mjJNT_BALL) {
           dof = 3;
-        } else { // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
+        } else {  // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
           dof = 1;
         }
 
@@ -431,8 +446,8 @@ TEST(ForceCost, Particle) {
         double* rti = rt + shift;
 
         // add weighted norm
-        cost +=
-            weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+        cost += weight[jnt_type] *
+                Norm(NULL, NULL, rti, params[jnt_type], dof, norms[jnt_type]);
 
         // shift
         shift += dof;
@@ -503,7 +518,7 @@ TEST(ForceCost, Box) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // initial configuration
@@ -520,11 +535,11 @@ TEST(ForceCost, Box) {
   std::vector<double> qfrc_actuator(dim_id);
 
   // random initialization
+  absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
     mju_copy(configuration.data() + t * nq, qpos0, nq);
 
     for (int i = 0; i < nq; i++) {
-      absl::BitGen gen_;
       configuration[nq * t + i] +=
           1.0e-2 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
@@ -532,7 +547,6 @@ TEST(ForceCost, Box) {
     mju_normalize4(configuration.data() + nq * t + 3);
 
     for (int i = 0; i < nv; i++) {
-      absl::BitGen gen_;
       qfrc_actuator[nv * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
@@ -542,21 +556,41 @@ TEST(ForceCost, Box) {
   estimator.Initialize(model);
   estimator.configuration_length_ = T;
 
-  for (int i = 0; i < 4; i++) {
-    estimator.weight_force_[i] = 0.00125;
-  }
+  // weights
+  estimator.weight_force_[0] = 0.00125;
+  estimator.weight_force_[1] = 0.0125;
+  estimator.weight_force_[2] = 0.000125;
+  estimator.weight_force_[3] = 0.125;
+
+  // norms
+  estimator.norm_force_[0] = kQuadratic;
+  estimator.norm_force_[1] = kL2;
+  estimator.norm_force_[2] = kSmoothAbs2Loss;
+  estimator.norm_force_[3] = kPowerLoss;
+
+  // parameters
+  // estimator.norm_parameters_force_[0]
+  estimator.norm_parameters_force_[1][0] = 0.1;
+  estimator.norm_parameters_force_[1][1] = 0.075;
+
+  estimator.norm_parameters_force_[2][0] = 0.027;
+  estimator.norm_parameters_force_[2][1] = 0.06;
+
+  estimator.norm_parameters_force_[3][0] = 0.15;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
+  dim_id);
 
   // ----- cost ----- //
   auto cost_inverse_dynamics = [&configuration = estimator.configuration_,
-                                &qfrc_actuator = estimator.force_measurement_,
+                                &qfrc_actuator =
+                                estimator.force_measurement_,
                                 &configuration_length = T, &model, &dim_res,
-                                &weight = estimator.weight_force_, 
-                                &params = estimator.norm_parameters_force_, 
-                                &norms = estimator.norm_force_, 
+                                &weight = estimator.weight_force_,
+                                &params = estimator.norm_parameters_force_,
+                                &norms = estimator.norm_force_,
                                 &data, nq,
                                 nv](const double* update) {
     // ----- integrate quaternion ----- //
@@ -580,7 +614,7 @@ TEST(ForceCost, Box) {
     // residual
     std::vector<double> residual(dim_res);
 
-    // initialize 
+    // initialize
     double cost = 0.0;
 
     // loop over time
@@ -615,7 +649,7 @@ TEST(ForceCost, Box) {
       int shift = 0;
 
       for (int i = 0; i < model->njnt; i++) {
-        // joint type 
+        // joint type
         int jnt_type = model->jnt_type[i];
 
         // dof
@@ -678,7 +712,8 @@ TEST(ForceCost, Box) {
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_force_.data(),
           fdg.gradient_.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel,
+  0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);

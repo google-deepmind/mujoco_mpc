@@ -214,9 +214,6 @@ TEST(PriorResidual, Box) {
       mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
       dim_vel), 0.0, 1.0e-3);
 
-  printf("prior residual Jacobian:\n");
-  mju_printMat(estimator.jacobian_prior_.data(), dim_vel, dim_vel);
-
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);

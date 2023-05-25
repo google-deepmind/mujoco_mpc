@@ -1200,17 +1200,17 @@ void Estimator::PriorUpdate() {
   }
 }
 
-// covariance update 
+// covariance update
 void Estimator::CovarianceUpdate() {
-  // sigma+ = sigma - sigma * hessian * sigma'
+  // covariance+ = covariance - covariance * hessian * covariance'
 
-  // dimension 
+  // dimension
   int dim = model_->nv * configuration_length_;
 
   // unpack
-  double* sigma = covariance_.data();
+  double* covariance = covariance_.data();
 
-  // -- tmp0 = sigma * hessian -- //
+  // -- tmp0 = covariance * hessian -- //
 
   // unpack
   double* tmp0 = scratch0_covariance_.data();
@@ -1221,22 +1221,23 @@ void Estimator::CovarianceUpdate() {
     int ntotal = dim;
     int nband = 3 * model_->nv;
     int ndense = 0;
-    // tmp0 = (hessian * sigma')'
-    mju_bandMulMatVec(tmp0, cost_hessian_band_.data(), sigma, ntotal, nband, ndense, ntotal, true);
+    // tmp0 = (hessian * covariance')'
+    mju_bandMulMatVec(tmp0, cost_hessian_band_.data(), covariance, ntotal,
+                      nband, ndense, ntotal, true);
 
-    // tmp1 = sigma * tmp0'
-    mju_mulMatMatT(tmp1, sigma, tmp0, dim, dim, dim);
+    // tmp1 = covariance * tmp0'
+    mju_mulMatMatT(tmp1, covariance, tmp0, dim, dim, dim);
 
-  } else { // dense
-    // tmp0 = hessian * sigma'
-    mju_mulMatMatT(tmp0, cost_hessian_.data(), sigma, dim, dim, dim);
+  } else {  // dense
+    // tmp0 = hessian * covariance'
+    mju_mulMatMatT(tmp0, cost_hessian_.data(), covariance, dim, dim, dim);
 
-    // tmp1 = sigma * tmp0
-    mju_mulMatMat(tmp1, sigma, tmp0, dim, dim, dim);
+    // tmp1 = covariance * tmp0
+    mju_mulMatMat(tmp1, covariance, tmp0, dim, dim, dim);
   }
 
-  // sigma+ = sigma - tmp1 
-  mju_subFrom(sigma, tmp1, dim * dim);
+  // covariance+ = covariance - tmp1
+  mju_subFrom(covariance, tmp1, dim * dim);
 }
 
 // optimize trajectory estimate

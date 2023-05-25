@@ -35,6 +35,9 @@ grpc::Status GetCostValuesAndWeights(
 grpc::Status Reset(mjpc::Agent* agent, const mjModel* model, mjData* data);
 grpc::Status SetTaskParameters(const agent::SetTaskParametersRequest* request,
                                mjpc::Agent* agent);
+grpc::Status GetTaskParameters(const agent::GetTaskParametersRequest* request,
+                               mjpc::Agent* agent,
+                              agent::GetTaskParametersResponse* response);
 grpc::Status SetCostWeights(const agent::SetCostWeightsRequest* request,
                             mjpc::Agent* agent);
 grpc::Status SetMode(const agent::SetModeRequest* request, mjpc::Agent* agent);

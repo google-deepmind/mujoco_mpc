@@ -37,14 +37,16 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
-using ::agent::ValueAndWeight;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
 using ::agent::GetStateResponse;
+using ::agent::GetTaskParametersRequest;
+using ::agent::GetTaskParametersResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetModeRequest;
 using ::agent::SetStateRequest;
 using ::agent::SetTaskParametersRequest;
+using ::agent::ValueAndWeight;
 
 grpc::Status GetState(const mjModel* model, const mjData* data,
                       GetStateResponse* response) {
@@ -234,6 +236,32 @@ grpc::Status SetTaskParameters(const SetTaskParametersRequest* request,
       default:
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                             absl::StrCat("Missing value for parameter ", name));
+    }
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status GetTaskParameters(const GetTaskParametersRequest* request,
+                               mjpc::Agent* agent,
+                               GetTaskParametersResponse* response) {
+  mjModel* agent_model = agent->GetModel();
+  int shift = 0;
+  for (int i = 0; i < agent_model->nnumeric; i++) {
+    std::string_view numeric_name(agent_model->names +
+                                  agent_model->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_select_")) {
+      std::string_view name =
+          absl::StripPrefix(numeric_name, "residual_select_");
+      (*response->mutable_parameters())[name].set_selection(
+          mjpc::ResidualSelection(agent_model, name,
+                                  agent->ActiveTask()->parameters[shift]));
+      shift++;
+    } else if (absl::StartsWith(numeric_name, "residual_")) {
+      std::string_view name = absl::StripPrefix(numeric_name, "residual_");
+      (*response->mutable_parameters())[name].set_numeric(
+          agent->ActiveTask()->parameters[shift]);
+      shift++;
     }
   }
 

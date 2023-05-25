@@ -68,6 +68,11 @@ class UiAgentService final : public agent::Agent::Service {
       const agent::SetTaskParametersRequest* request,
       agent::SetTaskParametersResponse* response) override;
 
+  grpc::Status GetTaskParameters(
+      grpc::ServerContext* context,
+      const agent::GetTaskParametersRequest* request,
+      agent::GetTaskParametersResponse* response) override;
+
   grpc::Status SetCostWeights(grpc::ServerContext* context,
                               const agent::SetCostWeightsRequest* request,
                               agent::SetCostWeightsResponse* response) override;

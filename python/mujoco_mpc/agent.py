@@ -255,6 +255,19 @@ class Agent:
         request.parameters[name].numeric = value
     self.stub.SetTaskParameters(request)
 
+  def get_task_parameters(self) -> dict[str, float|str]:
+    """Returns the agent's task parameters."""
+    response = self.stub.GetTaskParameters(
+        agent_pb2.GetTaskParametersRequest()
+    )
+    result = {}
+    for (name, value) in response.parameters.items():
+      if value.selection:
+        result[name] = value.selection
+      else:
+        result[name] = value.numeric
+    return result
+
   def set_cost_weights(
       self, weights: dict[str, float], reset_to_defaults: bool = False
   ):
@@ -269,6 +282,16 @@ class Agent:
         cost_weights=weights, reset_to_defaults=reset_to_defaults
     )
     self.stub.SetCostWeights(request)
+
+  def get_cost_weights(self) -> dict[str, float]:
+    """Returns the agent's cost weights."""
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    return {
+        name: value_weight.weight
+        for name, value_weight in terms.values_weights.items()
+    }
 
   def get_mode(self) -> str:
     return self.stub.GetMode(agent_pb2.GetModeRequest()).mode

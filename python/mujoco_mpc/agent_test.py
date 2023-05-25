@@ -42,6 +42,17 @@ def environment_reset(model, data):
 
 class AgentTest(absltest.TestCase):
 
+  def test_set_task_parameters(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    agent = agent_lib.Agent(task_id="Cartpole", model=model)
+    with contextlib.closing(agent):
+      agent.set_task_parameters({"Goal": 13})
+      self.assertEqual(agent.get_task_parameters()["Goal"], 13)
+
   def test_step_env_with_planner(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -162,6 +173,10 @@ class AgentTest(absltest.TestCase):
       agent.set_task_parameter("Goal", 1.0)
       agent.set_cost_weights(
           {"Vertical": 1, "Velocity": 1, "Centered": 1, "Control": 1}
+      )
+      self.assertEqual(
+          agent.get_cost_weights(),
+          {"Vertical": 1, "Velocity": 1, "Centered": 1, "Control": 1},
       )
       agent.set_state(qpos=[0, 0.5], qvel=[1, 1])
       terms_dict = agent.get_cost_term_values()

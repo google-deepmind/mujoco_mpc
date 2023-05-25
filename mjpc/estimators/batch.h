@@ -29,12 +29,6 @@ const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 const int MAX_SENSOR = 32; // maximum number of sensors
 
-// linear system solver 
-enum BatchEstimatorSolver: int {
-  kCholeskyDenseSolver = 0,
-  kBandSolver,
-};
-
 // batch estimator
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
 class Estimator {
@@ -222,6 +216,7 @@ class Estimator {
   // prior weights
   std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior_update_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   double scale_prior_;
 
   // sensor weights
@@ -254,11 +249,9 @@ class Estimator {
   // search direction
   std::vector<double> search_direction_;       // nv * MAX_HISTORY
 
-  // solver 
-  BatchEstimatorSolver solver_ = kCholeskyDenseSolver;
-
   // covariance 
   std::vector<double> covariance_;             // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> covariance_update_;      // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   double covariance_initial_scaling_;
@@ -277,13 +270,14 @@ class Estimator {
   double timer_cost_gradient_;
   double timer_cost_hessian_;
   double timer_cost_derivatives_;
+  double timer_covariance_update_;
   double timer_search_direction_;
   double timer_line_search_;
 
   // status 
   int iterations_smoother_;             // total smoother iterations after Optimize
   int iterations_line_search_;          // total line search iterations 
-  bool prior_warm_start_ = false;       // prior warm start status
+  bool prior_reset_ = true;             // prior reset status
   
   // settings
   int max_line_search_ = 10;            // maximum number of line search iterations

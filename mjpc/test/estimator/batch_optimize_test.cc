@@ -125,8 +125,8 @@ TEST(BatchOptimize, Particle2D) {
   double cost_random = estimator.Cost(
       estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
-  // change solver 
-  estimator.solver_ = kBandSolver;
+  // change to band covariance 
+  estimator.band_covariance_ = true;
 
   // change verbosity 
   estimator.verbose_ = true;
@@ -166,7 +166,7 @@ TEST(BatchOptimize, Box3D) {
 
   // ----- simulate ----- //
   // trajectories
-  int T = 10;
+  int T = 64;
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -255,8 +255,8 @@ TEST(BatchOptimize, Box3D) {
   double cost_random = estimator.Cost(
       estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
 
-  // change solver 
-  estimator.solver_ = kBandSolver;
+  // change to band covariance 
+  estimator.band_covariance_ = true;
 
   // change verbosity 
   estimator.verbose_ = true;

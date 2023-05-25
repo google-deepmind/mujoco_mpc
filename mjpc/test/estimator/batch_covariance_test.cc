@@ -33,11 +33,9 @@ TEST(Covariance, Update) {
 
   // ----- estimator ----- //
   Estimator estimator;
-  estimator.solver_ = kCholeskyDenseSolver;
+  estimator.band_covariance_ = false;
   estimator.Initialize(model);
   estimator.configuration_length_ = configuration_length;
-
-  printf("dim: %i\n", estimator.model_->nv * estimator.configuration_length_);
 
   // ----- random matrix square roots ----- //
   std::vector<double> A(dim * dim);
@@ -82,16 +80,16 @@ TEST(Covariance, Update) {
   // ----- error ----- //
   std::vector<double> error(dim * dim);
 
-  mju_sub(error.data(), estimator.covariance_.data(), covariance_update.data(),
+  mju_sub(error.data(), estimator.covariance_update_.data(), covariance_update.data(),
           dim * dim);
 
   // ------ test ----- //
   EXPECT_NEAR(mju_norm(error.data(), dim * dim) / (dim * dim), 0.0, 1.0e-3);
 
-  // ----- band solver ----- //
+  // ----- band covariance ----- //
 
-  // set solver
-  estimator.solver_ = kBandSolver;
+  // set band
+  estimator.band_covariance_ = true;
 
   // set covariance
   mju_copy(estimator.covariance_.data(), C.data(), dim * dim);
@@ -120,7 +118,7 @@ TEST(Covariance, Update) {
   mju_sub(covariance_update.data(), C.data(), tmp1.data(), dim * dim);
 
   // ----- error ----- //
-  mju_sub(error.data(), estimator.covariance_.data(), covariance_update.data(),
+  mju_sub(error.data(), estimator.covariance_update_.data(), covariance_update.data(),
           dim * dim);
 
   // ------ test ----- //

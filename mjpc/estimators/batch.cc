@@ -118,6 +118,7 @@ void Estimator::Initialize(mjModel* model) {
   scale_prior_ = GetNumberOrDefault(1.0, model, "batch_scale_prior");
   weight_prior_dense_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  weight_prior_update_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // sensor weights
   // TODO(taylor): only grab measurement sensors
@@ -188,13 +189,14 @@ void Estimator::Initialize(mjModel* model) {
 
   // covariance
   covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  covariance_update_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   covariance_initial_scaling_ =
       GetNumberOrDefault(1.0, model, "batch_covariance_initial_scaling");
 
   // status
-  prior_warm_start_ = false;
+  prior_reset_ = true;
 
   // settings
   band_covariance_ =
@@ -310,6 +312,7 @@ void Estimator::Reset() {
   // weight
   std::fill(weight_prior_dense_.begin(), weight_prior_dense_.end(), 0.0);
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
+  std::fill(weight_prior_update_.begin(), weight_prior_update_.end(), 0.0);
 
   // norm gradient
   std::fill(norm_gradient_sensor_.begin(), norm_gradient_sensor_.end(), 0.0);
@@ -340,6 +343,7 @@ void Estimator::Reset() {
 
   // covariance
   std::fill(covariance_.begin(), covariance_.end(), 0.0);
+  std::fill(covariance_update_.begin(), covariance_update_.end(), 0.0);
   std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
   std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
 
@@ -358,6 +362,7 @@ void Estimator::Reset() {
   timer_cost_hessian_ = 0.0;
   timer_cost_derivatives_ = 0.0;
   timer_search_direction_ = 0.0;
+  timer_covariance_update_ = 0.0;
   timer_line_search_ = 0.0;
 
   // status
@@ -1176,9 +1181,7 @@ void Estimator::PriorUpdate() {
   // dimension
   int dim = model_->nv * configuration_length_;
 
-  if (prior_warm_start_) {
-    // TODO(taylor): shift + utilize inverse Hessian
-  } else {
+  if (prior_reset_) {
     // set initial covariance, weight
     double* sigma = covariance_.data();
     double* weight = weight_prior_dense_.data();
@@ -1188,7 +1191,7 @@ void Estimator::PriorUpdate() {
       sigma[i * dim + i] *= covariance_initial_scaling_;
       weight[i * dim + i] *= covariance_initial_scaling_;
     }
-    
+
     // approximate covariance
     if (band_covariance_) {
       int ntotal = dim;
@@ -1197,18 +1200,20 @@ void Estimator::PriorUpdate() {
       mju_dense2Band(weight_prior_band_.data(), weight_prior_dense_.data(),
                      ntotal, nband, ndense);
     }
+  } else {  // TODO(taylor): shift + utilize inverse Hessian
   }
 }
 
 // covariance update
 void Estimator::CovarianceUpdate() {
-  // covariance+ = covariance - covariance * hessian * covariance'
+  // update = covariance - covariance * hessian * covariance'
 
   // dimension
   int dim = model_->nv * configuration_length_;
 
   // unpack
   double* covariance = covariance_.data();
+  double* update = covariance_update_.data();
 
   // -- tmp0 = covariance * hessian -- //
 
@@ -1217,10 +1222,11 @@ void Estimator::CovarianceUpdate() {
   double* tmp1 = scratch1_covariance_.data();
 
   // select solver
-  if (solver_ == kBandSolver) {
+  if (band_covariance_) {
     int ntotal = dim;
     int nband = 3 * model_->nv;
     int ndense = 0;
+
     // tmp0 = (hessian * covariance')'
     mju_bandMulMatVec(tmp0, cost_hessian_band_.data(), covariance, ntotal,
                       nband, ndense, ntotal, true);
@@ -1236,8 +1242,8 @@ void Estimator::CovarianceUpdate() {
     mju_mulMatMat(tmp1, covariance, tmp0, dim, dim, dim);
   }
 
-  // covariance+ = covariance - tmp1
-  mju_subFrom(covariance, tmp1, dim * dim);
+  // update = covariance - tmp1
+  mju_sub(update, covariance, tmp1, dim * dim);
 }
 
 // optimize trajectory estimate
@@ -1250,6 +1256,12 @@ void Estimator::Optimize(ThreadPool& pool) {
   // dimensions
   int dim_con = model_->nq * configuration_length_;
   int dim_vel = model_->nv * configuration_length_;
+
+  // band dimensions
+  int ntotal = model_->nv * configuration_length_;
+  int nband = 3 * model_->nv;
+  int ndense = 0;
+  int nnz = BandMatrixNonZeros(ntotal, nband);
 
   // timing
   double timer_prior_update = 0.0;
@@ -1264,6 +1276,7 @@ void Estimator::Optimize(ThreadPool& pool) {
   double timer_cost_gradient = 0.0;
   double timer_cost_hessian = 0.0;
   double timer_cost_derivatives = 0.0;
+  double timer_covariance_update = 0.0;
   double timer_search_direction = 0.0;
   double timer_line_search = 0.0;
 
@@ -1489,23 +1502,24 @@ void Estimator::Optimize(ThreadPool& pool) {
       hessian[j * dim_vel + j] += 1.0e-3;
     }
 
+    // -- band Hessian -- //
+    
+    // unpack
+    double* hessian_band = cost_hessian_band_.data();
+    
+    // convert
+    if (band_covariance_) {  // band solver
+      // dense to banded
+      mju_dense2Band(hessian_band, cost_hessian_.data(), ntotal, nband, ndense);
+    }
+
     // -- linear system solver -- //
 
     // unpack factor
     double* factor = cost_hessian_factor_.data();
 
     // select solver
-    if (solver_ == kBandSolver) {  // band solver
-      // dimensions
-      int ntotal = model_->nv * configuration_length_;
-      int nband = 3 * model_->nv;
-      int ndense = 0;
-      int nnz = BandMatrixNonZeros(ntotal, nband);
-
-      // dense to banded
-      double* hessian_band = cost_hessian_band_.data();
-      mju_dense2Band(hessian_band, cost_hessian_.data(), ntotal, nband, ndense);
-
+    if (band_covariance_) {  // band solver
       // factorize
       mju_copy(factor, hessian_band, nnz);
       mju_cholFactorBand(factor, ntotal, nband, ndense, 0.0, 0.0);
@@ -1521,9 +1535,9 @@ void Estimator::Optimize(ThreadPool& pool) {
       mju_cholSolve(dq, factor, gradient, dim_vel);
     }
 
-    // set prior warm start flag
-    if (!prior_warm_start_) {
-      prior_warm_start_ = true;
+    // set prior reset flag
+    if (prior_reset_) {
+      prior_reset_ = false;
     }
 
     // end timer
@@ -1571,7 +1585,6 @@ void Estimator::Optimize(ThreadPool& pool) {
       // update iteration
       iteration_line_search++;
     }
-
     // increment
     iterations_line_search += iteration_line_search;
 
@@ -1584,6 +1597,64 @@ void Estimator::Optimize(ThreadPool& pool) {
     // update cost
     cost = cost_candidate;
   }
+
+  // -- update covariance -- // 
+
+  // start timer
+  auto covariance_update_start = std::chrono::steady_clock::now();
+
+  // update covariance
+  CovarianceUpdate();
+
+  // factorize covariance 
+  double* factor = scratch0_covariance_.data();
+
+  if (band_covariance_) {
+    // convert
+    mju_dense2Band(factor, covariance_update_.data(), ntotal, nband, ndense);
+
+    // factorize
+    mju_cholFactorBand(factor, ntotal, nband, ndense, 0.0, 0.0);
+  } else {
+    // copy
+    mju_copy(factor, covariance_update_.data(), dim_vel);
+
+    // factorize
+    mju_cholFactor(factor, dim_vel, 0.0);
+  }
+
+  // update prior weight 
+  double* PT = weight_prior_update_.data();
+  double* In = scratch1_covariance_.data();
+  mju_eye(In, dim_vel);
+
+  
+  // -- P^T = L^-T L^-1 -- // 
+
+  // pool count
+  int count_before = pool.GetCount();
+
+  // loop
+  for (int i = 0; i < dim_vel; i++) {
+    pool.Schedule([&factor, &PT, &In, ntotal, nband, ndense, dim_vel, i]() {
+      mju_cholSolveBand(PT + i * dim_vel, factor, In, ntotal, nband, ndense);
+    });
+  }
+
+  // wait for individual cost computation
+  pool.WaitCount(count_before + dim_vel);
+
+  // reset pool count
+  pool.ResetCount();
+
+  // update
+  mju_copy(covariance_.data(), covariance_update_.data(), dim_vel * dim_vel);
+
+  // end timer
+  timer_covariance_update +=
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - covariance_update_start)
+          .count();
 
   // update cost
   cost_ = cost;
@@ -1605,6 +1676,7 @@ void Estimator::Optimize(ThreadPool& pool) {
   timer_cost_hessian_ = timer_cost_hessian;
   timer_cost_derivatives_ = timer_cost_derivatives;
   timer_search_direction_ = timer_search_direction;
+  timer_covariance_update_ = timer_covariance_update;
   timer_line_search_ = timer_line_search;
 
   // status
@@ -1641,10 +1713,11 @@ void Estimator::PrintStatus() {
   printf("  cost gradient: %.5f (ms) \n", 1.0e-3 * timer_cost_gradient_);
   printf("  cost hessian: %.5f (ms) \n", 1.0e-3 * timer_cost_hessian_);
   printf("  search direction: %.5f (ms) \n", 1.0e-3 * timer_search_direction_);
+  printf("  covariance update: %.5f (ms) \n", 1.0e-3 * timer_covariance_update_);
   printf("  line search: %.5f (ms) \n", 1.0e-3 * timer_line_search_);
   printf("  TOTAL: %.5f (ms) \n",
          1.0e-3 * (timer_cost_derivatives_ + timer_search_direction_ +
-                   timer_line_search_));
+                   timer_covariance_update_ + timer_line_search_));
   printf("\n");
 
   // status

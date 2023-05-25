@@ -82,14 +82,6 @@ TEST(GradientTest, CubicTest) {
   double ps[2 * n * S];
   mju_mulMatVec(ps, SM, y, 2 * n * S, n * S);
 
-  // slopes
-  double s[n * S];
-  for (int i = 0; i < S; i++) {
-    for (int j = 0; j < n; j++) {
-      s[n * i + j] = FiniteDifferenceSlope(x[i], x, y, n, S, j);
-    }
-  }
-
   // times
   const int T = 10;
   double t[T];

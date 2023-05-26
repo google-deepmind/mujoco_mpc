@@ -1,0 +1,11 @@
+<!-- A statically defined fractal terrain.  An example of an obstacle with a material. -->
+<mujoco>
+  <asset>
+    <hfield file="../assets/fractal_noise.png" size="5 5 1 2" />
+    <texture type="2d" file="../assets/martian.png"/>
+    <material name="martian" texture="martian"/>
+  </asset>
+  <worldbody>
+    <geom name="terrain" type="hfield" hfield="fractal_noise" rgba=".25 .25 .33 1"/>
+  </worldbody>
+</mujoco>

@@ -272,6 +272,11 @@ class Estimator {
   double timer_search_direction_;
   double timer_line_search_;
 
+  // cost flags
+  bool prior_flag_ = true;
+  bool sensor_flag_ = true;
+  bool force_flag_ = true;
+
   // status 
   int iterations_smoother_;             // total smoother iterations after Optimize
   int iterations_line_search_;          // total line search iterations 

@@ -92,7 +92,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // compute velocity, acceleration
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
 
   // velocity error
@@ -187,7 +187,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // compute velocity, acceleration
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
 
   // velocity error

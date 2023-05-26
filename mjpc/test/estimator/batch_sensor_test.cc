@@ -119,7 +119,7 @@ TEST(MeasurementResidual, Particle) {
 
   // (estimator)
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
@@ -145,10 +145,10 @@ TEST(MeasurementResidual, Particle) {
 
   // estimator
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
@@ -279,7 +279,7 @@ TEST(MeasurementResidual, Box) {
 
   // (estimator)
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
@@ -305,10 +305,10 @@ TEST(MeasurementResidual, Box) {
 
   // estimator
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
@@ -513,16 +513,16 @@ TEST(MeasurementCost, Particle) {
 
   // ----- estimator ----- //
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
@@ -756,16 +756,16 @@ TEST(MeasurementCost, Box) {
 
   // ----- estimator ----- //
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);

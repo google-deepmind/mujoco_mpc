@@ -27,11 +27,16 @@ void Estimator::Initialize(mjModel* model) {
   // model
   model_ = model;
 
-  // delete mjData instances since model might have changed.
-  data_.clear();
+  // data 
+  for (int i = 0; i < MAX_HISTORY; i++) {
+    data_.push_back(MakeUniqueMjData(mj_makeData(model)));
+  }
 
-  // allocate one mjData for nominal.
-  ResizeMjData(model_, MAX_HISTORY);  // TODO(taylor): set to 1, fix segfault...
+  // // delete mjData instances since model might have changed.
+  // data_.clear();
+
+  // // allocate one mjData for nominal.
+  // ResizeMjData(model_, MAX_HISTORY);  // TODO(taylor): set to 1, fix segfault...
 
   // dimension
   int nq = model->nq, nv = model->nv;
@@ -918,7 +923,7 @@ void Estimator::InverseDynamicsDerivatives(int t) {
   double* dqdf = block_force_configuration_.data() + t * nv * nv;
   double* dvdf = block_force_velocity_.data() + t * nv * nv;
   double* dadf = block_force_acceleration_.data() + t * nv * nv;
-  mjData* data = data_[0].get();
+  mjData* data = data_[t].get();
 
   // set (state, acceleration)
   mju_copy(data->qpos, q, nq);
@@ -1141,9 +1146,6 @@ void Estimator::CovarianceUpdate() {
 // optimize trajectory estimate
 void Estimator::Optimize(ThreadPool& pool) {
   // TODO(taylor): if configuration_length_ changes
-
-  // resize data
-  ResizeMjData(model_, pool.NumThreads());
 
   // dimensions
   int dim_con = model_->nq * configuration_length_;

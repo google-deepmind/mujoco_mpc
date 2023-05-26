@@ -119,7 +119,7 @@ TEST(ForceResidual, Particle) {
 
   // (estimator)
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
@@ -145,10 +145,10 @@ TEST(ForceResidual, Particle) {
 
   // estimator
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
@@ -285,7 +285,7 @@ TEST(ForceResidual, Box) {
 
   // (estimator)
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
@@ -311,10 +311,10 @@ TEST(ForceResidual, Box) {
 
   // estimator
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
@@ -494,16 +494,16 @@ TEST(ForceCost, Particle) {
 
   // ----- estimator ----- //
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualForce(t);
@@ -719,16 +719,16 @@ TEST(ForceCost, Box) {
 
   // compute intermediate terms
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    ConfigurationToVelocityAcceleration(t);
+    estimator.ConfigurationToVelocityAcceleration(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    InverseDynamicsDerivatives(t);
+    estimator.InverseDynamicsDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    VelocityAccelerationDerivatives(t);
+    estimator.VelocityAccelerationDerivatives(t);
   }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualForce(t);

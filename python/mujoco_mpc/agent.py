@@ -16,6 +16,7 @@
 """Python interface for the to interface with MuJoCo MPC agents."""
 
 import atexit
+import contextlib
 import pathlib
 import socket
 import subprocess
@@ -47,7 +48,7 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
-class Agent:
+class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.
 
   Attributes:
@@ -88,6 +89,9 @@ class Agent:
         send_as="mjb",
         real_time_speed=real_time_speed,
     )
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.close()
 
   def close(self):
     self.channel.close()

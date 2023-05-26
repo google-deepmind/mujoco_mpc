@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-import contextlib
 
 from absl.testing import absltest
 import grpc
@@ -48,8 +47,7 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
-    with contextlib.closing(agent):
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
       agent.set_task_parameters({"Goal": 13})
       self.assertEqual(agent.get_task_parameters()["Goal"], 13)
 
@@ -60,9 +58,8 @@ class AgentTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Particle", model=model)
 
-    with contextlib.closing(agent):
+    with agent_lib.Agent(task_id="Particle", model=model) as agent:
       actions = []
       observations = [environment_reset(model, data)]
 
@@ -95,8 +92,8 @@ class AgentTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
-    with contextlib.closing(agent):
+
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
       agent.set_task_parameter("Goal", -1.0)
 
       num_steps = 10
@@ -127,10 +124,9 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
 
     # by default, planner would produce a non-zero action
-    with contextlib.closing(agent):
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
       agent.set_task_parameter("Goal", -1.0)
       agent.planner_step()
       action = agent.get_action()
@@ -153,10 +149,9 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
 
     # by default, planner would produce a non-zero action
-    with contextlib.closing(agent):
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
       agent.set_task_parameter("Goal", -1.0)
       agent.planner_step()
       cost = agent.get_total_cost()
@@ -190,9 +185,8 @@ class AgentTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
-    agent = agent_lib.Agent(task_id="Particle", model=model)
 
-    with contextlib.closing(agent):
+    with agent_lib.Agent(task_id="Particle", model=model) as agent:
 
       agent.set_state(
           time=data.time,
@@ -211,9 +205,9 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Cartpole", model=model)
-    agent.set_mode("default_mode")
-    self.assertEqual(agent.get_mode(), "default_mode")
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      agent.set_mode("default_mode")
+      self.assertEqual(agent.get_mode(), "default_mode")
 
   @absltest.skip('asset import issue')
   def test_get_set_mode(self):
@@ -222,9 +216,9 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Quadruped Flat", model=model)
-    agent.set_mode("Walk")
-    self.assertEqual(agent.get_mode(), "Walk")
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      agent.set_mode("Walk")
+      self.assertEqual(agent.get_mode(), "Walk")
 
   @absltest.skip('asset import issue')
   def test_set_mode_error(self):
@@ -233,8 +227,8 @@ class AgentTest(absltest.TestCase):
         / "mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
-    agent = agent_lib.Agent(task_id="Quadruped Flat", model=model)
-    self.assertRaises(grpc.RpcError, lambda: agent.set_mode("Run"))
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      self.assertRaises(grpc.RpcError, lambda: agent.set_mode("Run"))
 
 
 if __name__ == "__main__":

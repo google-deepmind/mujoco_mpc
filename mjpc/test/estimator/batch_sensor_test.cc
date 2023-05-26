@@ -120,7 +120,9 @@ TEST(MeasurementResidual, Particle) {
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
+  }
 
   // error
   std::vector<double> residual_error(dim_mea);
@@ -140,7 +142,9 @@ TEST(MeasurementResidual, Particle) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockSensor(t);
+  }
   estimator.JacobianSensor();
 
   // error
@@ -268,7 +272,9 @@ TEST(MeasurementResidual, Box) {
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
+  }
 
   // // error
   std::vector<double> residual_error(dim_mea);
@@ -288,7 +294,9 @@ TEST(MeasurementResidual, Box) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockSensor(t);
+  }
   estimator.JacobianSensor();
 
   // error
@@ -329,7 +337,7 @@ TEST(MeasurementCost, Particle) {
   std::vector<double> configuration(dim_pos);
   std::vector<double> measurement(dim_mea);
 
-   // controller
+  // controller
   auto controller = [](double* ctrl, double time) {
     ctrl[0] = mju_sin(10 * time);
     ctrl[1] = mju_cos(10 * time);
@@ -401,12 +409,14 @@ TEST(MeasurementCost, Particle) {
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.sensor_measurement_.data(), measurement.data() + ns, dim_mea - ns);
+  mju_copy(estimator.sensor_measurement_.data(), measurement.data() + ns,
+           dim_mea - ns);
 
   // ----- cost ----- //
   auto cost_measurement =
-      [&measurement = estimator.sensor_measurement_, &configuration_length = estimator.configuration_length_,
-       &model, &data, &dim_res, &weight = estimator.weight_sensor_,
+      [&measurement = estimator.sensor_measurement_,
+       &configuration_length = estimator.configuration_length_, &model, &data,
+       &dim_res, &weight = estimator.weight_sensor_,
        &params = estimator.norm_parameters_sensor_,
        &norms = estimator.norm_sensor_, nq, nv](const double* configuration) {
         // velocity
@@ -488,10 +498,14 @@ TEST(MeasurementCost, Particle) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
+  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockSensor(t);
+  }
   estimator.JacobianSensor();
 
   // cost
@@ -696,8 +710,8 @@ TEST(MeasurementCost, Box) {
         double* rti = rt + shift;
 
         // add weighted norm
-        cost +=
-            weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori, norms[i]);
+        cost += weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i,
+                                 dim_sensori, norms[i]);
 
         // shift
         shift += dim_sensori;
@@ -721,10 +735,14 @@ TEST(MeasurementCost, Box) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
+  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksSensor();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockSensor(t);
+  }
   estimator.JacobianSensor();
 
   // cost

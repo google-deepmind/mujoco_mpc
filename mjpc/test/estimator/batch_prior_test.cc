@@ -80,7 +80,9 @@ TEST(PriorResidual, Particle) {
 
   // evaluate
   residual_prior(residual.data(), update.data());
-  estimator.ResidualPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+  }
 
   // error
   std::vector<double> residual_error(dim_vel);
@@ -98,7 +100,10 @@ TEST(PriorResidual, Particle) {
   fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
 
   // estimator
-  estimator.BlocksPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.BlockPrior(t);
+  }
+
   estimator.JacobianPrior();
 
   // error
@@ -108,8 +113,8 @@ TEST(PriorResidual, Particle) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
-      dim_vel), 0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
+      0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -183,7 +188,9 @@ TEST(PriorResidual, Box) {
 
   // evaluate
   residual_prior(residual.data(), update.data());
-  estimator.ResidualPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+  }
 
   // error
   std::vector<double> residual_error(dim_vel);
@@ -201,7 +208,9 @@ TEST(PriorResidual, Box) {
   fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
 
   // estimator
-  estimator.BlocksPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.BlockPrior(t);
+  }
   estimator.JacobianPrior();
 
   // error
@@ -211,8 +220,8 @@ TEST(PriorResidual, Box) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
-      dim_vel), 0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
+      0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -312,9 +321,14 @@ TEST(PriorCost, Particle) {
   // ----- estimator ----- //
   mju_copy(estimator.weight_prior_dense_.data(), P.data(),
            dim_vel * dim_vel);  // copy random covariance
-  estimator.ResidualPrior();
-  estimator.BlocksPrior();
+
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+    estimator.BlockPrior(t);
+  }
+
   estimator.JacobianPrior();
+
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
                           estimator.cost_hessian_prior_.data());
@@ -442,9 +456,13 @@ TEST(PriorCost, Box) {
   // ----- estimator ----- //
   mju_copy(estimator.weight_prior_dense_.data(), P.data(),
            dim_vel * dim_vel);  // copy random covariance
-  estimator.ResidualPrior();
-  estimator.BlocksPrior();
+
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+    estimator.BlockPrior(t);
+  }
   estimator.JacobianPrior();
+
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
 
@@ -511,7 +529,7 @@ TEST(ApproximatePriorCost, Particle) {
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
 
-  // convert to band 
+  // convert to band
   // TODO(taylor): P_band nnz initialize (and copy below)
   int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
   std::vector<double> P_band(nnz);
@@ -566,9 +584,12 @@ TEST(ApproximatePriorCost, Particle) {
   estimator.band_covariance_ = true;  // used approximate covariance
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
-  estimator.ResidualPrior();
-  estimator.BlocksPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+    estimator.BlockPrior(t);
+  }
   estimator.JacobianPrior();
+
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
                           estimator.cost_hessian_prior_.data());
@@ -645,7 +666,7 @@ TEST(ApproximatePriorCost, Box) {
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
 
-  // convert to band 
+  // convert to band
   // TODO(taylor): P_band nnz initialize (and copy below)
   int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
   std::vector<double> P_band(nnz);
@@ -704,8 +725,12 @@ TEST(ApproximatePriorCost, Box) {
   estimator.band_covariance_ = true;  // used approximate covariance
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
-  estimator.ResidualPrior();
-  estimator.BlocksPrior();
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.ResidualPrior(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_; t++) {
+    estimator.BlockPrior(t);
+  }
   estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);

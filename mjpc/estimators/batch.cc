@@ -444,20 +444,17 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
 }
 
 // prior residual
-void Estimator::ResidualPrior() {
+void Estimator::ResidualPrior(int t) {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
-  // loop over configurations
-  for (int t = 0; t < configuration_length_; t++) {
-    // terms
-    double* rt = residual_prior_.data() + t * nv;
-    double* qt_prior = configuration_prior_.data() + t * nq;
-    double* qt = configuration_.data() + t * nq;
+  // terms
+  double* rt = residual_prior_.data() + t * nv;
+  double* qt_prior = configuration_prior_.data() + t * nq;
+  double* qt = configuration_.data() + t * nq;
 
-    // configuration difference
-    mj_differentiatePos(model_, rt, 1.0, qt_prior, qt);
-  }
+  // configuration difference
+  mj_differentiatePos(model_, rt, 1.0, qt_prior, qt);
 }
 
 // prior Jacobian
@@ -480,20 +477,17 @@ void Estimator::JacobianPrior() {
 }
 
 // prior Jacobian blocks
-void Estimator::BlocksPrior() {
+void Estimator::BlockPrior(int t) {
   // dimension
   int nq = model_->nq, nv = model_->nv;
 
-  // loop over configurations
-  for (int t = 0; t < configuration_length_; t++) {
-    // unpack
-    double* qt = configuration_.data() + t * nq;
-    double* qt_prior = configuration_prior_.data() + t * nq;
-    double* block = block_prior_current_configuration_.data() + t * nv * nv;
+  // unpack
+  double* qt = configuration_.data() + t * nq;
+  double* qt_prior = configuration_prior_.data() + t * nq;
+  double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
-    // compute Jacobian
-    DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
-  }
+  // compute Jacobian
+  DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
 }
 
 // sensor cost
@@ -567,16 +561,14 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 }
 
 // sensor residual
-void Estimator::ResidualSensor() {
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // terms
-    double* rt = residual_sensor_.data() + t * dim_sensor_;
-    double* yt_sensor = sensor_measurement_.data() + t * dim_sensor_;
-    double* yt_model = sensor_prediction_.data() + t * dim_sensor_;
+void Estimator::ResidualSensor(int t) {
+  // terms
+  double* rt = residual_sensor_.data() + t * dim_sensor_;
+  double* yt_sensor = sensor_measurement_.data() + t * dim_sensor_;
+  double* yt_model = sensor_prediction_.data() + t * dim_sensor_;
 
-    // sensor difference
-    mju_sub(rt, yt_model, yt_sensor, dim_sensor_);
-  }
+  // sensor difference
+  mju_sub(rt, yt_model, yt_sensor, dim_sensor_);
 }
 
 // sensor Jacobian
@@ -630,66 +622,63 @@ void Estimator::JacobianSensor() {
   }
 }
 
-// sensor Jacobian blocks
-void Estimator::BlocksSensor() {
+// sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
+void Estimator::BlockSensor(int t) {
   // dimensions
   int nv = model_->nv, ns = dim_sensor_;
 
-  // loop over sensors
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // dqds
-    double* dqds = block_sensor_configuration_.data() + t * ns * nv;
+  // dqds
+  double* dqds = block_sensor_configuration_.data() + t * ns * nv;
 
-    // dvds
-    double* dvds = block_sensor_velocity_.data() + t * ns * nv;
+  // dvds
+  double* dvds = block_sensor_velocity_.data() + t * ns * nv;
 
-    // dads
-    double* dads = block_sensor_acceleration_.data() + t * ns * nv;
+  // dads
+  double* dads = block_sensor_acceleration_.data() + t * ns * nv;
 
-    // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
+  // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
 
-    // unpack
-    double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
 
-    // dsdq0 <- dvds' * dvdq0
-    double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(dsdq0, dvds, dvdq0, nv, ns, nv);
+  // dsdq0 <- dvds' * dvdq0
+  double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(dsdq0, dvds, dvdq0, nv, ns, nv);
 
-    // dqdq0 += dads' * dadq0
-    double* dadq0 =
-        block_acceleration_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq0, nv, ns, nv);
-    mju_addTo(dsdq0, block_sensor_scratch_.data(), ns * nv);
+  // dqdq0 += dads' * dadq0
+  double* dadq0 =
+      block_acceleration_previous_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq0, nv, ns, nv);
+  mju_addTo(dsdq0, block_sensor_scratch_.data(), ns * nv);
 
-    // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
-    // //
+  // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
+  // //
 
-    // unpack
-    double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
 
-    // dsdq1 <- dqds'
-    mju_transpose(dsdq1, dqds, nv, ns);
+  // dsdq1 <- dqds'
+  mju_transpose(dsdq1, dqds, nv, ns);
 
-    // dsdq1 += dvds' * dvdq1
-    double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq1, nv, ns, nv);
-    mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
+  // dsdq1 += dvds' * dvdq1
+  double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_sensor_scratch_.data(), dvds, dvdq1, nv, ns, nv);
+  mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
 
-    // dsdq1 += dads' * dadq1
-    double* dadq1 =
-        block_acceleration_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq1, nv, ns, nv);
-    mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
+  // dsdq1 += dads' * dadq1
+  double* dadq1 =
+      block_acceleration_current_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_sensor_scratch_.data(), dads, dadq1, nv, ns, nv);
+  mju_addTo(dsdq1, block_sensor_scratch_.data(), ns * nv);
 
-    // -- configuration next: dsdq2 = dsda * dadq2 -- //
+  // -- configuration next: dsdq2 = dsda * dadq2 -- //
 
-    // unpack
-    double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
 
-    // dsdq2 = dads' * dadq2
-    double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
-  }
+  // dsdq2 = dads' * dadq2
+  double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
 }
 
 // force cost TODO(taylor): normalize by dimension
@@ -771,20 +760,17 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 }
 
 // force residual
-void Estimator::ResidualForce() {
+void Estimator::ResidualForce(int t) {
   // dimension
   int nv = model_->nv;
 
-  // loop over force
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // terms
-    double* rt = residual_force_.data() + t * nv;
-    double* ft_actuator = force_measurement_.data() + t * nv;
-    double* ft_inverse_ = force_prediction_.data() + t * nv;
+  // terms
+  double* rt = residual_force_.data() + t * nv;
+  double* ft_actuator = force_measurement_.data() + t * nv;
+  double* ft_inverse_ = force_prediction_.data() + t * nv;
 
-    // force difference
-    mju_sub(rt, ft_inverse_, ft_actuator, nv);
-  }
+  // force difference
+  mju_sub(rt, ft_inverse_, ft_actuator, nv);
 }
 
 // force Jacobian
@@ -837,66 +823,63 @@ void Estimator::JacobianForce() {
   }
 }
 
-// force Jacobian
-void Estimator::BlocksForce() {
+// force Jacobian (dfdq0, dfdq1, dfdq2)
+void Estimator::BlockForce(int t) {
   // velocity dimension
   int nv = model_->nv;
 
-  // loop over force
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // dqdf
-    double* dqdf = block_force_configuration_.data() + t * nv * nv;
+  // dqdf
+  double* dqdf = block_force_configuration_.data() + t * nv * nv;
 
-    // dvdf
-    double* dvdf = block_force_velocity_.data() + t * nv * nv;
+  // dvdf
+  double* dvdf = block_force_velocity_.data() + t * nv * nv;
 
-    // dadf
-    double* dadf = block_force_acceleration_.data() + t * nv * nv;
+  // dadf
+  double* dadf = block_force_acceleration_.data() + t * nv * nv;
 
-    // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
+  // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
 
-    // unpack
-    double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
+  // unpack
+  double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
 
-    // dfdq0 <- dvdf' * dvdq0
-    double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
+  // dfdq0 <- dvdf' * dvdq0
+  double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
 
-    // dfdq0 += dadf' * dadq0
-    double* dadq0 =
-        block_acceleration_previous_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_force_scratch_.data(), dadf, dadq0, nv, nv, nv);
-    mju_addTo(dfdq0, block_force_scratch_.data(), nv * nv);
+  // dfdq0 += dadf' * dadq0
+  double* dadq0 =
+      block_acceleration_previous_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_force_scratch_.data(), dadf, dadq0, nv, nv, nv);
+  mju_addTo(dfdq0, block_force_scratch_.data(), nv * nv);
 
-    // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 --
-    // //
+  // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 --
+  // //
 
-    // unpack
-    double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
+  // unpack
+  double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
 
-    // dfdq1 <- dqdf'
-    mju_transpose(dfdq1, dqdf, nv, nv);
+  // dfdq1 <- dqdf'
+  mju_transpose(dfdq1, dqdf, nv, nv);
 
-    // dfdq1 += dvdf' * dvdq1
-    double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_force_scratch_.data(), dvdf, dvdq1, nv, nv, nv);
-    mju_addTo(dfdq1, block_force_scratch_.data(), nv * nv);
+  // dfdq1 += dvdf' * dvdq1
+  double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_force_scratch_.data(), dvdf, dvdq1, nv, nv, nv);
+  mju_addTo(dfdq1, block_force_scratch_.data(), nv * nv);
 
-    // dfdq1 += dadf' * dadq1
-    double* dadq1 =
-        block_acceleration_current_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(block_force_scratch_.data(), dadf, dadq1, nv, nv, nv);
-    mju_addTo(dfdq1, block_force_scratch_.data(), nv * nv);
+  // dfdq1 += dadf' * dadq1
+  double* dadq1 =
+      block_acceleration_current_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(block_force_scratch_.data(), dadf, dadq1, nv, nv, nv);
+  mju_addTo(dfdq1, block_force_scratch_.data(), nv * nv);
 
-    // -- configuration next: dfdq2 = dfda * dadq2 -- //
+  // -- configuration next: dfdq2 = dfda * dadq2 -- //
 
-    // unpack
-    double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
+  // unpack
+  double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
 
-    // dfdq2 <- dadf' * dadq2
-    double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
-    mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
-  }
+  // dfdq2 <- dadf' * dadq2
+  double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+  mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
 }
 
 // compute force
@@ -1148,21 +1131,41 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
   // threadpool current count
   int count_before = pool.GetCount();
 
+  // residuals
+  for (int t = 0; t < configuration_length_; t++) {
+    pool.Schedule([&estimator = *this, t]() {
+      // prior
+      estimator.ResidualPrior(t);
+
+      // skip
+      if (t >= estimator.configuration_length_ - 2) return;
+
+      // sensor
+      estimator.ResidualSensor(t);
+
+      // force
+      estimator.ResidualForce(t);
+    });
+  }
+
+  // wait for individual cost computation
+  pool.WaitCount(count_before + configuration_length_);
+
+  // reset pool count
+  pool.ResetCount();
+
   // prior
   pool.Schedule([&cost_prior, &estimator = *this]() {
-    estimator.ResidualPrior();
     cost_prior = estimator.CostPrior(NULL, NULL);
   });
 
   // sensor
   pool.Schedule([&cost_sensor, &estimator = *this]() {
-    estimator.ResidualSensor();
     cost_sensor = estimator.CostSensor(NULL, NULL);
   });
 
   // force
   pool.Schedule([&cost_force, &estimator = *this]() {
-    estimator.ResidualForce();
     cost_force = estimator.CostForce(NULL, NULL);
   });
 
@@ -1351,11 +1354,17 @@ void Estimator::Optimize(ThreadPool& pool) {
       // start Jacobian timer
       auto jacobian_prior_start = std::chrono::steady_clock::now();
 
-      // compute blocks
-      estimator.BlocksPrior();
-
       // compute Jacobian
+      for (int t = 0; t < estimator.configuration_length_; t++) {
+        // block
+        estimator.BlockPrior(t);
+
+        // assemble
+      }
+      
       estimator.JacobianPrior();
+
+      
 
       // stop Jacobian timer
       timer_jacobian_prior +=
@@ -1384,7 +1393,10 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // compute Jacobian
-      estimator.BlocksSensor();
+      for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+        estimator.BlockSensor(t);
+      }
+      
       estimator.JacobianSensor();
 
       // stop Jacobian timer
@@ -1414,7 +1426,9 @@ void Estimator::Optimize(ThreadPool& pool) {
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // compute Jacobian
-      estimator.BlocksForce();
+      for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+         estimator.BlockForce(t);
+      }
       estimator.JacobianForce();
 
       // stop Jacobian timer

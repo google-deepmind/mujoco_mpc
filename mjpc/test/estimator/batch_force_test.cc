@@ -65,15 +65,12 @@ TEST(ForceResidual, Particle) {
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
-  dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
 
   // ----- residual ----- //
-  auto residual_inverse_dynamics = [&qfrc_actuator, &configuration_length =
-  T,
+  auto residual_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
                                     &model, &data, nq, nv](
-                                       double* residual, const double*
-                                       update) {
+                                       double* residual, const double* update) {
     // velocity
     std::vector<double> v1(nv);
     std::vector<double> v2(nv);
@@ -123,7 +120,9 @@ TEST(ForceResidual, Particle) {
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
+  }
 
   // error
   std::vector<double> residual_error(dim_id);
@@ -143,7 +142,9 @@ TEST(ForceResidual, Particle) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockForce(t);
+  }
   estimator.JacobianForce();
 
   // error
@@ -153,8 +154,8 @@ TEST(ForceResidual, Particle) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel *
-      dim_vel), 0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
+      0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -210,18 +211,16 @@ TEST(ForceResidual, Box) {
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
-  dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
 
   // ----- residual ----- //
   auto residual_inverse_dynamics =
       [&configuration = estimator.configuration_,
-       &qfrc_actuator = estimator.force_measurement_, &configuration_length =
-       T, &model, &data, nq, nv](double* residual, const double* update) {
+       &qfrc_actuator = estimator.force_measurement_, &configuration_length = T,
+       &model, &data, nq, nv](double* residual, const double* update) {
         // ----- integrate quaternion ----- //
         std::vector<double> qint(nq * configuration_length);
-        mju_copy(qint.data(), configuration.data(), nq *
-        configuration_length);
+        mju_copy(qint.data(), configuration.data(), nq * configuration_length);
 
         // loop over configurations
         for (int t = 0; t < configuration_length; t++) {
@@ -279,7 +278,9 @@ TEST(ForceResidual, Box) {
   // (estimator)
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
+  }
 
   // error
   std::vector<double> residual_error(dim_id);
@@ -299,7 +300,9 @@ TEST(ForceResidual, Box) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockForce(t);
+  }
   estimator.JacobianForce();
 
   // error
@@ -309,8 +312,8 @@ TEST(ForceResidual, Box) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res *
-      dim_vel), 0.0, 1.0e-3);
+      mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res * dim_vel),
+      0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -476,10 +479,14 @@ TEST(ForceCost, Particle) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
+  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockForce(t);
+  }
   estimator.JacobianForce();
 
   // cost
@@ -583,102 +590,97 @@ TEST(ForceCost, Box) {
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(),
-  dim_id);
+  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&configuration = estimator.configuration_,
-                                &qfrc_actuator =
-                                estimator.force_measurement_,
-                                &configuration_length = T, &model, &dim_res,
-                                &weight = estimator.weight_force_,
-                                &params = estimator.norm_parameters_force_,
-                                &norms = estimator.norm_force_,
-                                &data, nq,
-                                nv](const double* update) {
-    // ----- integrate quaternion ----- //
-    std::vector<double> qint(nq * configuration_length);
-    mju_copy(qint.data(), configuration.data(), nq * configuration_length);
+  auto cost_inverse_dynamics =
+      [&configuration = estimator.configuration_,
+       &qfrc_actuator = estimator.force_measurement_, &configuration_length = T,
+       &model, &dim_res, &weight = estimator.weight_force_,
+       &params = estimator.norm_parameters_force_,
+       &norms = estimator.norm_force_, &data, nq, nv](const double* update) {
+        // ----- integrate quaternion ----- //
+        std::vector<double> qint(nq * configuration_length);
+        mju_copy(qint.data(), configuration.data(), nq * configuration_length);
 
-    // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
-      double* q = qint.data() + t * nq;
-      const double* dq = update + t * nv;
-      mj_integratePos(model, q, dq, 1.0);
-    }
-
-    // velocity
-    std::vector<double> v1(nv);
-    std::vector<double> v2(nv);
-
-    // acceleration
-    std::vector<double> a1(nv);
-
-    // residual
-    std::vector<double> residual(dim_res);
-
-    // initialize
-    double cost = 0.0;
-
-    // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
-      // unpack
-      double* rt = residual.data() + t * nv;
-      double* q0 = qint.data() + t * nq;
-      double* q1 = qint.data() + (t + 1) * nq;
-      double* q2 = qint.data() + (t + 2) * nq;
-      double* f1 = qfrc_actuator.data() + t * nv;
-
-      // velocity
-      mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
-      mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
-
-      // acceleration
-      mju_sub(a1.data(), v2.data(), v1.data(), nv);
-      mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
-
-      // set state
-      mju_copy(data->qpos, q1, nq);
-      mju_copy(data->qvel, v1.data(), nv);
-      mju_copy(data->qacc, a1.data(), nv);
-
-      // inverse dynamics
-      mj_inverse(model, data);
-
-      // inverse dynamics error
-      mju_sub(rt, data->qfrc_inverse, f1, nv);
-
-      // loop over sensors
-      int shift = 0;
-
-      for (int i = 0; i < model->njnt; i++) {
-        // joint type
-        int jnt_type = model->jnt_type[i];
-
-        // dof
-        int dof;
-        if (jnt_type == mjJNT_FREE) {
-          dof = 6;
-        } else if (jnt_type == mjJNT_BALL) {
-          dof = 3;
-        } else { // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
-          dof = 1;
+        // loop over configurations
+        for (int t = 0; t < configuration_length; t++) {
+          double* q = qint.data() + t * nq;
+          const double* dq = update + t * nv;
+          mj_integratePos(model, q, dq, 1.0);
         }
 
-        // force residual
-        double* rti = rt + shift;
+        // velocity
+        std::vector<double> v1(nv);
+        std::vector<double> v2(nv);
 
-        // add weighted norm
-        cost +=
-            weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+        // acceleration
+        std::vector<double> a1(nv);
 
-        // shift
-        shift += dof;
-      }
-    }
+        // residual
+        std::vector<double> residual(dim_res);
 
-    return cost;
-  };
+        // initialize
+        double cost = 0.0;
+
+        // loop over time
+        for (int t = 0; t < configuration_length - 2; t++) {
+          // unpack
+          double* rt = residual.data() + t * nv;
+          double* q0 = qint.data() + t * nq;
+          double* q1 = qint.data() + (t + 1) * nq;
+          double* q2 = qint.data() + (t + 2) * nq;
+          double* f1 = qfrc_actuator.data() + t * nv;
+
+          // velocity
+          mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
+          mj_differentiatePos(model, v2.data(), model->opt.timestep, q1, q2);
+
+          // acceleration
+          mju_sub(a1.data(), v2.data(), v1.data(), nv);
+          mju_scl(a1.data(), a1.data(), 1.0 / model->opt.timestep, nv);
+
+          // set state
+          mju_copy(data->qpos, q1, nq);
+          mju_copy(data->qvel, v1.data(), nv);
+          mju_copy(data->qacc, a1.data(), nv);
+
+          // inverse dynamics
+          mj_inverse(model, data);
+
+          // inverse dynamics error
+          mju_sub(rt, data->qfrc_inverse, f1, nv);
+
+          // loop over sensors
+          int shift = 0;
+
+          for (int i = 0; i < model->njnt; i++) {
+            // joint type
+            int jnt_type = model->jnt_type[i];
+
+            // dof
+            int dof;
+            if (jnt_type == mjJNT_FREE) {
+              dof = 6;
+            } else if (jnt_type == mjJNT_BALL) {
+              dof = 3;
+            } else {  // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
+              dof = 1;
+            }
+
+            // force residual
+            double* rti = rt + shift;
+
+            // add weighted norm
+            cost += weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+
+            // shift
+            shift += dof;
+          }
+        }
+
+        return cost;
+      };
 
   // ----- lambda ----- //
   std::vector<double> update(dim_vel);
@@ -696,10 +698,14 @@ TEST(ForceCost, Box) {
   // compute intermediate terms
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  estimator.ResidualForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
+  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
-  estimator.BlocksForce();
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.BlockForce(t);
+  }
   estimator.JacobianForce();
 
   // cost
@@ -716,8 +722,7 @@ TEST(ForceCost, Box) {
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_force_.data(),
           fdg.gradient_.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel,
-  0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);

@@ -49,37 +49,37 @@ class Estimator {
   double CostPrior(double* gradient, double* hessian);
 
   // prior residual
-  void ResidualPrior();
+  void ResidualPrior(int t);
 
   // prior Jacobian
   void JacobianPrior();
 
-  // prior Jacobian blocks
-  void BlocksPrior();
+  // prior Jacobian block
+  void BlockPrior(int t);
 
   // sensor cost
   double CostSensor(double* gradient, double* hessian);
 
   // sensor residual
-  void ResidualSensor();
+  void ResidualSensor(int t);
 
   // sensor Jacobian
   void JacobianSensor();
 
-  // sensor Jacobian blocks
-  void BlocksSensor();
+  // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
+  void BlockSensor(int t);
 
   // force cost
   double CostForce(double* gradient, double* hessian);
 
   // force residual
-  void ResidualForce();
+  void ResidualForce(int t);
 
   // force Jacobian
   void JacobianForce();
 
-  // force Jacobian blocks
-  void BlocksForce();
+  // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
+  void BlockForce(int t);
 
   // compute sensor and force predictions via inverse dynamics
   void InverseDynamicsPrediction(ThreadPool& pool);

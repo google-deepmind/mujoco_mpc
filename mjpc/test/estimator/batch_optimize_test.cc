@@ -123,7 +123,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // cost
   double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
 
   // change to band covariance 
   estimator.band_covariance_ = true;
@@ -162,7 +162,7 @@ TEST(BatchOptimize, Box3D) {
   int ns = model->nsensordata;
 
   // pool 
-  ThreadPool pool(2);
+  ThreadPool pool(8);
 
   // ----- simulate ----- //
   // trajectories
@@ -253,7 +253,7 @@ TEST(BatchOptimize, Box3D) {
 
   // cost (pre)
   double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_, pool);
+      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
 
   // change to band covariance 
   estimator.band_covariance_ = true;

@@ -91,7 +91,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
@@ -184,7 +186,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
 
   // velocity error
   std::vector<double> velocity_error(nv * T);

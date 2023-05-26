@@ -27,7 +27,6 @@ namespace mjpc {
 
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
-const int MAX_SENSOR = 32; // maximum number of sensors
 
 // batch estimator
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
@@ -82,24 +81,23 @@ class Estimator {
   void BlockForce(int t);
 
   // compute sensor and force predictions via inverse dynamics
-  void InverseDynamicsPrediction(ThreadPool& pool);
+  void InverseDynamicsPrediction(int t);
 
   // compute inverse dynamics derivatives (via finite difference)
-  void InverseDynamicsDerivatives(ThreadPool& pool);
+  void InverseDynamicsDerivatives(int t);
 
   // update configuration trajectory
   void UpdateConfiguration(double* candidate, const double* configuration,
                            const double* search_direction, double step_size);
 
   // convert sequence of configurations to velocities, accelerations
-  void ConfigurationToVelocityAcceleration(ThreadPool& pool);
+  void ConfigurationToVelocityAcceleration(int t);
 
   // compute finite-difference velocity, acceleration derivatives
-  void VelocityAccelerationDerivatives(ThreadPool& pool);
+  void VelocityAccelerationDerivatives(int t);
 
   // compute total cost
-  double Cost(double& cost_prior, double& cost_sensor, double& cost_force,
-              ThreadPool& pool);
+  double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
 
   // prior update
   void PriorUpdate();

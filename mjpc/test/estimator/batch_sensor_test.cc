@@ -118,8 +118,12 @@ TEST(MeasurementResidual, Particle) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration(pool);
-  estimator.InverseDynamicsPrediction(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.InverseDynamicsPrediction(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
   }
@@ -140,8 +144,12 @@ TEST(MeasurementResidual, Particle) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    InverseDynamicsDerivatives(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    VelocityAccelerationDerivatives(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
     estimator.JacobianSensor(t);
@@ -270,8 +278,12 @@ TEST(MeasurementResidual, Box) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  estimator.ConfigurationToVelocityAcceleration(pool);
-  estimator.InverseDynamicsPrediction(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.InverseDynamicsPrediction(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
   }
@@ -292,8 +304,12 @@ TEST(MeasurementResidual, Box) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    InverseDynamicsDerivatives(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    VelocityAccelerationDerivatives(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
     estimator.JacobianSensor(t);
@@ -496,10 +512,18 @@ TEST(MeasurementCost, Particle) {
   fdh.Compute(cost_measurement, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration(pool);
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.InverseDynamicsPrediction(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    InverseDynamicsDerivatives(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    VelocityAccelerationDerivatives(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
@@ -731,10 +755,18 @@ TEST(MeasurementCost, Box) {
   fdg.Compute(cost_measurement, update.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration(pool);
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    ConfigurationToVelocityAcceleration(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.InverseDynamicsPrediction(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    InverseDynamicsDerivatives(t);
+  }
+  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
+    VelocityAccelerationDerivatives(t);
+  }
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
     estimator.BlockSensor(t);

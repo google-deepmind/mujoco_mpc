@@ -458,22 +458,19 @@ void Estimator::ResidualPrior(int t) {
 }
 
 // prior Jacobian
-void Estimator::JacobianPrior() {
+void Estimator::JacobianPrior(int t) {
   // dimension
   int nv = model_->nv, dim = model_->nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_prior_.data(), dim * dim);
+  mju_zero(jacobian_prior_.data() + t * nv * dim, nv * dim);
 
-  // loop over configurations
-  for (int t = 0; t < configuration_length_; t++) {
-    // unpack
-    double* block = block_prior_current_configuration_.data() + t * nv * nv;
+  // unpack
+  double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
-    // set block in matrix
-    SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
-                      t * nv, t * nv);
-  }
+  // set block in matrix
+  SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
+                    t * nv, t * nv);
 }
 
 // prior Jacobian blocks
@@ -572,54 +569,51 @@ void Estimator::ResidualSensor(int t) {
 }
 
 // sensor Jacobian
-void Estimator::JacobianSensor() {
+void Estimator::JacobianSensor(int t) {
   // velocity dimension
   int nv = model_->nv, ns = dim_sensor_;
 
   // residual dimension
-  int dim_residual = dim_sensor_ * (configuration_length_ - 2);
+  int dim_residual = ns * (configuration_length_ - 2);
 
   // update dimension
   int dim_update = nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_sensor_.data(), dim_residual * dim_update);
+  mju_zero(jacobian_sensor_.data() + t * ns * dim_update, ns * dim_update);
 
-  // loop over sensors
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // indices
-    int row = t * dim_sensor_;
-    int col_previous = t * nv;
-    int col_current = (t + 1) * nv;
-    int col_next = (t + 2) * nv;
+  // indices
+  int row = t * ns;
+  int col_previous = t * nv;
+  int col_current = (t + 1) * nv;
+  int col_next = (t + 2) * nv;
 
-    // ----- configuration previous ----- //
+  // ----- configuration previous ----- //
 
-    // unpack
-    double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
 
-    // set
-    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
-                      dim_update, dim_sensor_, nv, row, col_previous);
+  // set
+  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
+                    dim_update, dim_sensor_, nv, row, col_previous);
 
-    // ----- configuration current ----- //
+  // ----- configuration current ----- //
 
-    // unpack
-    double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
 
-    // set
-    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
-                      dim_update, dim_sensor_, nv, row, col_current);
+  // set
+  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
+                    dim_update, dim_sensor_, nv, row, col_current);
 
-    // ----- configuration next ----- //
+  // ----- configuration next ----- //
 
-    // unpack
-    double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+  // unpack
+  double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
 
-    // set
-    SetMatrixInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
-                      dim_update, dim_sensor_, nv, row, col_next);
-  }
+  // set
+  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
+                    dim_update, dim_sensor_, nv, row, col_next);
 }
 
 // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
@@ -774,7 +768,7 @@ void Estimator::ResidualForce(int t) {
 }
 
 // force Jacobian
-void Estimator::JacobianForce() {
+void Estimator::JacobianForce(int t) {
   // velocity dimension
   int nv = model_->nv;
 
@@ -785,42 +779,39 @@ void Estimator::JacobianForce() {
   int dim_update = nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_force_.data(), dim_residual * dim_update);
+  mju_zero(jacobian_force_.data() + t * nv * dim_update, nv * dim_update);
 
-  // loop over force
-  for (int t = 0; t < configuration_length_ - 2; t++) {
-    // indices
-    int row = t * nv;
-    int col_previous = t * nv;
-    int col_current = (t + 1) * nv;
-    int col_next = (t + 2) * nv;
+  // indices
+  int row = t * nv;
+  int col_previous = t * nv;
+  int col_current = (t + 1) * nv;
+  int col_next = (t + 2) * nv;
 
-    // ----- configuration previous ----- //
-    // unpack
-    double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
+  // ----- configuration previous ----- //
+  // unpack
+  double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
 
-    // set
-    SetMatrixInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
-                      dim_update, nv, nv, row, col_previous);
+  // set
+  SetMatrixInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
+                    dim_update, nv, nv, row, col_previous);
 
-    // ----- configuration current ----- //
+  // ----- configuration current ----- //
 
-    // unpack
-    double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
+  // unpack
+  double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
 
-    // set
-    SetMatrixInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
-                      dim_update, nv, nv, row, col_current);
+  // set
+  SetMatrixInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
+                    dim_update, nv, nv, row, col_current);
 
-    // ----- configuration next ----- //
+  // ----- configuration next ----- //
 
-    // unpack
-    double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
+  // unpack
+  double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
 
-    // set
-    AddMatrixInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
-                      dim_update, nv, nv, row, col_next);
-  }
+  // set
+  AddMatrixInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
+                    dim_update, nv, nv, row, col_next);
 }
 
 // force Jacobian (dfdq0, dfdq1, dfdq2)
@@ -1360,11 +1351,8 @@ void Estimator::Optimize(ThreadPool& pool) {
         estimator.BlockPrior(t);
 
         // assemble
+        estimator.JacobianPrior(t);
       }
-      
-      estimator.JacobianPrior();
-
-      
 
       // stop Jacobian timer
       timer_jacobian_prior +=
@@ -1395,9 +1383,9 @@ void Estimator::Optimize(ThreadPool& pool) {
       // compute Jacobian
       for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
         estimator.BlockSensor(t);
+        estimator.JacobianSensor(t);
       }
       
-      estimator.JacobianSensor();
 
       // stop Jacobian timer
       timer_jacobian_sensor +=
@@ -1427,9 +1415,9 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // compute Jacobian
       for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-         estimator.BlockForce(t);
+        estimator.BlockForce(t);
+        estimator.JacobianForce(t);
       }
-      estimator.JacobianForce();
 
       // stop Jacobian timer
       timer_jacobian_force +=

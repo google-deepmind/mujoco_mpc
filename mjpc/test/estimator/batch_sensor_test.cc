@@ -144,8 +144,8 @@ TEST(MeasurementResidual, Particle) {
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
+    estimator.JacobianSensor(t);
   }
-  estimator.JacobianSensor();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
@@ -296,8 +296,8 @@ TEST(MeasurementResidual, Box) {
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
+    estimator.JacobianSensor(t);
   }
-  estimator.JacobianSensor();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
@@ -498,15 +498,13 @@ TEST(MeasurementCost, Particle) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
-  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
+    estimator.JacobianSensor(t);
   }
-  estimator.JacobianSensor();
 
   // cost
   double cost_estimator =
@@ -735,15 +733,13 @@ TEST(MeasurementCost, Box) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
-  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
+    estimator.JacobianSensor(t);
   }
-  estimator.JacobianSensor();
 
   // cost
   double cost_estimator =

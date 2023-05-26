@@ -102,9 +102,9 @@ TEST(PriorResidual, Particle) {
   // estimator
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
 
-  estimator.JacobianPrior();
 
   // error
   std::vector<double> jacobian_error(dim_vel * dim_vel);
@@ -210,8 +210,8 @@ TEST(PriorResidual, Box) {
   // estimator
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
-  estimator.JacobianPrior();
 
   // error
   std::vector<double> jacobian_error(dim_vel * dim_vel);
@@ -325,9 +325,9 @@ TEST(PriorCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
 
-  estimator.JacobianPrior();
 
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -460,8 +460,8 @@ TEST(PriorCost, Box) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
-  estimator.JacobianPrior();
 
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
@@ -587,8 +587,8 @@ TEST(ApproximatePriorCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
-  estimator.JacobianPrior();
 
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -730,8 +730,8 @@ TEST(ApproximatePriorCost, Box) {
   }
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
+    estimator.JacobianPrior(t);
   }
-  estimator.JacobianPrior();
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
 

@@ -144,8 +144,8 @@ TEST(ForceResidual, Particle) {
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
+    estimator.JacobianForce(t);
   }
-  estimator.JacobianForce();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
@@ -302,8 +302,8 @@ TEST(ForceResidual, Box) {
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
+    estimator.JacobianForce(t);
   }
-  estimator.JacobianForce();
 
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
@@ -479,15 +479,13 @@ TEST(ForceCost, Particle) {
   // ----- estimator ----- //
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualForce(t);
-  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
     estimator.BlockForce(t);
+    estimator.JacobianForce(t);
   }
-  estimator.JacobianForce();
 
   // cost
   double cost_estimator =
@@ -698,15 +696,13 @@ TEST(ForceCost, Box) {
   // compute intermediate terms
   estimator.ConfigurationToVelocityAcceleration(pool);
   estimator.InverseDynamicsPrediction(pool);
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualForce(t);
-  }
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
+    estimator.ResidualForce(t);
     estimator.BlockForce(t);
+    estimator.JacobianForce(t);
   }
-  estimator.JacobianForce();
 
   // cost
   double cost_estimator =

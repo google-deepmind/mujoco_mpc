@@ -52,7 +52,7 @@ class Estimator {
   void ResidualPrior(int t);
 
   // prior Jacobian
-  void JacobianPrior();
+  void JacobianPrior(int t);
 
   // prior Jacobian block
   void BlockPrior(int t);
@@ -64,7 +64,7 @@ class Estimator {
   void ResidualSensor(int t);
 
   // sensor Jacobian
-  void JacobianSensor();
+  void JacobianSensor(int t);
 
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
   void BlockSensor(int t);
@@ -76,7 +76,7 @@ class Estimator {
   void ResidualForce(int t);
 
   // force Jacobian
-  void JacobianForce();
+  void JacobianForce(int t);
 
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
   void BlockForce(int t);

@@ -24,84 +24,96 @@
 namespace mjpc {
 namespace {
 
-// multiply band-diagonal matrix with sparse vector
-void mju_bandMulMatVecSparse(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
-                             int ntotal, int nband, int ndense,
-                             mjtByte flg_sym) {
-  for (int i = 0; i < ntotal; i++) {
-    int width = mjMIN(i + 1, nband);
-    int adr = i * nband + nband - width;
-    int offset = mjMAX(0, i - nband + 1);
-    res[i] = mju_dot(mat + adr, vec + offset, width);  // lower triangle
-    if (flg_sym) {
-      // strict upper triangle
-      mju_addToScl(res + offset, mat + adr, vec[i], width - 1);
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = 0.0;
     }
   }
 }
 
-void mju_bandMulMatVecPrint(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
-                             int ntotal, int nband, int ndense,
-                             mjtByte flg_sym, int vind, int vlen) {
-  mju_zero(res, ntotal);
-  for (int i = 0; i < ntotal; i++) {
-    int width = mjMIN(i + 1, nband);
-    int adr = i * nband + nband - width;
-    int offset = mjMAX(0, i - nband + 1);
+// square dense to block band matrix
+void DenseToBlockBand(double* res, const double* mat, int dim, int dblock, int nblock) {
+  // number of block rows / columns
+  int num_blocks = dim / dblock;
 
-    printf("(%i):\n", i);
-    printf("  mat = ");
-    mju_printMat(mat + adr, 1, width);
+  // copy 
+  mju_copy(res, mat, dim * dim);
 
-    printf("  vec = ");
-    mju_printMat(vec+offset, 1, width);
-    printf("  width = %i\n", width);
-    
-    // res[i] = mju_dot(mat + adr, vec + offset, width);  // lower triangle
-    for (int j = 0; j < width; j++) {
-      if (offset + j >= vind && offset + j < vind + vlen) {
-        res[i] += mat[adr + j] * vec[offset + j];
-      }
-    }
-    if (flg_sym) {
-      // strict upper triangle
-      printf("  upper triangle v[%i] = %f\n", i, vec[i]);
-      printf("  res offset = %i\n", offset);
-      printf("  width - 1 = %i\n", width - 1);
-      if (i >= vind && i < vind + vlen) {
-        mju_addToScl(res + offset, mat + adr, vec[i], width - 1);
-      }
+  // zero off-band blocks
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = i + nblock; j < num_blocks; j++) {
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, i * dblock, j * dblock);
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, j * dblock, i * dblock);
     }
   }
 }
 
-// get block (size: rb x cb) from mat (size: rm x cm) given mat upper row and left column indices (ri, ci)
-void GetBlockFromMatrix(double* block, const double* A1, double s, int r1, int c1,
-                       int r2, int c2, int ri, int ci) {
-  // loop over A2 rows
-  for (int i = 0; i < r2; i++) {
-    // loop over A2 columns
-    for (int j = 0; j < c2; j++) {
-      A1[(ri + i) * c1 + ci + j] = s * A2[i * c2 + j];
+// block-diagonal' * block band * block-diagonal
+void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband, const double* blkdiag, int dim, int dblock, int nblock) {
+  // number of block rows / columns
+  int num_blocks = dim / dblock;
+
+  // allocate 
+  std::vector<double> bbij_(dblock * dblock);
+  double* bbij = bbij_.data();
+
+  std::vector<double> tmp0_(dblock * dblock);
+  double* tmp0 = tmp0_.data();
+
+  std::vector<double> tmp1_(dblock * dblock);
+  double* tmp1 = tmp1_.data();
+
+  std::vector<double> tmp2_(dblock * dblock);
+  double* tmp2 = tmp2_.data();
+
+  int count = 0;
+  for (int i = 0; i < num_blocks; i++) {
+    int num_cols = mju_min(nblock, num_blocks - i);
+    for (int j = i; j < i + num_cols; j++) {
+      // get matrices
+      BlockFromMatrix(bbij, blkband, dblock, dblock, dim, dim, i * dblock, j * dblock);
+      const double* bdi = blkdiag + dblock * dblock * i;
+      const double* bdj = blkdiag + dblock * dblock * j;
+
+      // -- bdi' * bbij * bdj -- // 
+
+      // tmp0 = bbij * bdj 
+      mju_mulMatMat(tmp0, bbij, bdj, dblock, dblock, dblock);
+
+      // tmp1 = bdi' * tmp0 
+      mju_mulMatTMat(tmp1, bdi, tmp0, dblock, dblock, dblock);
+
+      // set block in matrix 
+      SetBlockInMatrix(res, tmp1, 1.0, dim, dim, dblock, dblock, i * dblock, j * dblock);
+      if (j > i) {
+        mju_transpose(tmp2, tmp1, dblock, dblock);
+        SetBlockInMatrix(res, tmp2, 1.0, dim, dim, dblock, dblock, j * dblock, i * dblock);
+      } 
+      count++;
     }
   }
+  printf("block opts: %i\n", count);
 }
 
 TEST(MulMatTest, BandBlockDiagonal) {
   printf("Band Matrix x Block Diagonal Matrix:\n");
 
   // dimensions 
-  int n = 2;
+  int dblock = 2;
+  int nblock = 2;
   int T = 5;
-  int nband = 2 * n;
-  int ntotal = n * T;
-  int nnz = BandMatrixNonZeros(ntotal, nband);
+  int ntotal = dblock * T;
 
   // ----- create random band matrix ----- //
   std::vector<double> F(ntotal * ntotal);
   std::vector<double> A(ntotal * ntotal);
-  std::vector<double> Aband(nnz);
-  std::vector<double> Abanddense(ntotal * ntotal);
+  std::vector<double> Aband(ntotal * ntotal);
 
   // sample matrix square root
   absl::BitGen gen_;
@@ -112,22 +124,23 @@ TEST(MulMatTest, BandBlockDiagonal) {
   // A = F' F
   mju_mulMatTMat(A.data(), F.data(), F.data(), ntotal, ntotal, ntotal);
 
-  // band(A) 
-  mju_dense2Band(Aband.data(), A.data(), ntotal, nband, 0);
+  printf("A:\n");
+  mju_printMat(A.data(), ntotal, ntotal);
 
-  // dense band(A) 
-  mju_band2Dense(Abanddense.data(), Aband.data(), ntotal, nband, 0, true);
+
+  // band(A) 
+  DenseToBlockBand(Aband.data(), A.data(), ntotal, dblock, nblock);
 
   printf("A band:\n");
-  mju_printMat(Abanddense.data(), ntotal, ntotal);
+  mju_printMat(Aband.data(), ntotal, ntotal);
 
   // ----- create random block diagonal matrix ----- // 
-  std::vector<double> Dblocks(n * n * T);
+  std::vector<double> Dblocks(dblock * dblock * T);
   std::vector<double> Ddense(ntotal * ntotal);
   std::vector<double> DT(ntotal * ntotal);
 
   // sample random blocks 
-  for (int i = 0; i < n * n * T; i++) {
+  for (int i = 0; i < dblock * dblock * T; i++) {
     Dblocks[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
 
@@ -135,8 +148,8 @@ TEST(MulMatTest, BandBlockDiagonal) {
   mju_zero(Ddense.data(), ntotal * ntotal);
 
   for (int t = 0; t < T; t++) {
-    double* block = Dblocks.data() + n * n * t;
-    SetBlockInMatrix(Ddense.data(), block, 1.0, ntotal, ntotal, n, n, n * t, n * t);
+    double* block = Dblocks.data() + dblock * dblock * t;
+    SetBlockInMatrix(Ddense.data(), block, 1.0, ntotal, ntotal, dblock, dblock, dblock * t, dblock * t);
   }
 
   printf("D dense:\n");
@@ -152,7 +165,7 @@ TEST(MulMatTest, BandBlockDiagonal) {
   std::vector<double> tmp(ntotal * ntotal);
 
   // tmp = A * D 
-  mju_mulMatMat(tmp.data(), Abanddense.data(), Ddense.data(), ntotal, ntotal, ntotal);
+  mju_mulMatMat(tmp.data(), Aband.data(), Ddense.data(), ntotal, ntotal, ntotal);
 
   printf("A * D = \n");
   mju_printMat(tmp.data(), ntotal, ntotal);
@@ -163,50 +176,21 @@ TEST(MulMatTest, BandBlockDiagonal) {
   printf("B = D' * A * D = \n");
   mju_printMat(B.data(), ntotal, ntotal);
 
-  // ----- test sparse A * D ----- //
-  // int col = 1;
-  // int vind = col % n;
-  // std::vector<double> x(ntotal);
-  // mju_bandMulMatVecSparse(x.data(), Aband.data(), DT.data() + col * ntotal,
-  //                         ntotal, nband, 0, true);
+  // ----- custom method D' A D ----- //
+  std::vector<double> Bcustom(ntotal * ntotal);
+  BlockDiagonalTBlockBandBlockDiagonal(Bcustom.data(), Aband.data(), Dblocks.data(), ntotal, dblock, nblock);
 
-  // printf("column (%i) [vind (%i)]: \n", col, vind);
-  // mju_printMat(x.data(), ntotal, 1);
+  int num_blocks = ntotal / dblock;
+  printf("num block ops: %i\n", (num_blocks - 1) * nblock + (nblock - 1));
 
+  printf("B custom: \n");
+  mju_printMat(Bcustom.data(), ntotal, ntotal);
 
-  // ----- print bandMulMatVecSparse ----- //
-  ntotal = 4;
-  nband = 3;
-  nnz = BandMatrixNonZeros(ntotal, nband);
-  double X[16] = {1, 2, 3, 4, 2, 1, 5, 6, 3, 5, 1, 7, 4, 6, 7, 1};
+  // ----- error ----- //
+  std::vector<double> error(ntotal * ntotal);
+  mju_sub(error.data(), Bcustom.data(), B.data(), ntotal * ntotal);
 
-  double Xbanddense[16] = {1, 2, 3, 0, 2, 1, 5, 6, 3, 5, 1, 7, 0, 6, 7, 1};
-  double Xband[14];
-  // int vind = 0;
-  // int vlen = 4;
-  // double b[4] = {21, 22, 23, 24};
-
-  int vind = 1;
-  int vlen = 2;
-  double b[4] = {0, 22, 23, 0};
-
-  double s0[4];
-  double s1[4];
-
-  mju_dense2Band(Xband, X, ntotal, nband, 0);
-
-  printf("X = \n");
-  mju_printMat(Xbanddense, ntotal, ntotal);
-  printf("b = \n");
-  mju_printMat(b, ntotal, 1);
-
-  mju_bandMulMatVecPrint(s1, Xband, b, ntotal, nband, 0, true, vind, vlen);
-  printf("s1 = \n");
-  mju_printMat(s1, 1, ntotal);
-
-  mju_bandMulMatVecSparse(s0, Xband, b, ntotal, nband, 0, true);
-  printf("s0 = \n");
-  mju_printMat(s0, 1, ntotal);
+  printf("error: %.5f\n", mju_norm(error.data(), ntotal * ntotal));
 }
 
 }  // namespace

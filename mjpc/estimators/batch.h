@@ -161,7 +161,7 @@ class Estimator {
   std::vector<double> block_sensor_current_configuration_;   // (ns * nv) x MAX_HISTORY
   std::vector<double> block_sensor_next_configuration_;      // (ns * nv) x MAX_HISTORY
 
-  std::vector<double> block_sensor_scratch_;                 // max(nv, ns)
+  std::vector<double> block_sensor_scratch_;                 // max(nv, ns) x MAX_HISTORY
 
   // force Jacobian blocks (dqdf, dvdf, dadf), (dfdq0, dfdq1, dfdq2)
   std::vector<double> block_force_configuration_;            // (nv * nv) x MAX_HISTORY
@@ -172,7 +172,7 @@ class Estimator {
   std::vector<double> block_force_current_configuration_;    // (nv * nv) x MAX_HISTORY
   std::vector<double> block_force_next_configuration_;       // (nv * nv) x MAX_HISTORY
 
-  std::vector<double> block_force_scratch_;                  // (nv * nv)
+  std::vector<double> block_force_scratch_;                  // (nv * nv) x MAX_HISTORY
 
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
   std::vector<double> block_velocity_previous_configuration_; // (nv * nv) x MAX_HISTORY
@@ -271,6 +271,9 @@ class Estimator {
   double timer_covariance_update_;
   double timer_search_direction_;
   double timer_line_search_;
+  std::vector<double> timer_prior_step_;
+  std::vector<double> timer_sensor_step_;
+  std::vector<double> timer_force_step_;
 
   // cost flags
   bool prior_flag_ = true;
@@ -286,7 +289,8 @@ class Estimator {
   int max_line_search_ = 10;            // maximum number of line search iterations
   int max_smoother_iterations_ = 20;    // maximum number of smoothing iterations
   double gradient_tolerance_ = 1.0e-5;  // small gradient tolerance
-  bool verbose_ = false;                // flag for printing status
+  bool verbose_status_ = false;         // flag for printing status
+  bool verbose_cost_ = false;           // flag for printing cost
   bool band_covariance_ = false;        // approximate covariance for prior
 
   // finite-difference settings

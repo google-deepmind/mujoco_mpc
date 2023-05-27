@@ -105,7 +105,6 @@ TEST(PriorResidual, Particle) {
     estimator.JacobianPrior(t);
   }
 
-
   // error
   std::vector<double> jacobian_error(dim_vel * dim_vel);
   mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(),
@@ -302,7 +301,8 @@ TEST(PriorCost, Particle) {
     mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
 
     // weighted cost
-    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * weight / dim_res *
+           mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //
@@ -327,7 +327,6 @@ TEST(PriorCost, Particle) {
     estimator.BlockPrior(t);
     estimator.JacobianPrior(t);
   }
-
 
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -439,7 +438,8 @@ TEST(PriorCost, Box) {
     mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
 
     // weighted cost
-    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * weight / dim_res *
+           mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //
@@ -564,7 +564,8 @@ TEST(ApproximatePriorCost, Particle) {
                       3 * nv, 0, 1, true);
 
     // weighted cost
-    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * weight / dim_res *
+           mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //
@@ -707,7 +708,8 @@ TEST(ApproximatePriorCost, Box) {
                       3 * nv, 0, 1, true);
 
     // weighted cost
-    return 0.5 * weight * mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * weight / dim_res *
+           mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
   // ----- lambda ----- //

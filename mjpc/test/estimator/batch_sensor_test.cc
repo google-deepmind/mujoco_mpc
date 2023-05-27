@@ -32,7 +32,7 @@ TEST(MeasurementResidual, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(2);
+  ThreadPool pool(4);
 
   // ----- configurations ----- //
   int T = 5;
@@ -179,7 +179,7 @@ TEST(MeasurementResidual, Box) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(2);
+  ThreadPool pool(4);
 
   // ----- configurations ----- //
   int T = 5;
@@ -341,7 +341,7 @@ TEST(MeasurementCost, Particle) {
   int nq = model->nq, nv = model->nv, ns = model->nsensordata;
 
   // threadpool
-  ThreadPool pool(1);
+  ThreadPool pool(4);
 
   // ----- configurations ----- //
   int T = 5;
@@ -487,8 +487,9 @@ TEST(MeasurementCost, Particle) {
             double* rti = rt + shift;
 
             // add weighted norm
-            cost += weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i,
-                                     dim_sensori, norms[i]);
+            cost += weight[i] / dim_sensori *
+                    Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori,
+                         norms[i]);
 
             // shift
             shift += dim_sensori;
@@ -554,21 +555,6 @@ TEST(MeasurementCost, Particle) {
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
-
-  // printf("gradient (fd): \n");
-  // mju_printMat(fdg.gradient_.data(), 1, dim_vel);
-
-  // printf("gradient (est): \n");
-  // mju_printMat(estimator.cost_gradient_sensor_.data(), 1, dim_vel);
-
-  // printf("hessian (fd): \n");
-  // mju_printMat(fdh.hessian_.data(), dim_vel, dim_vel);
-
-  // printf("hessian (est): \n");
-  // mju_printMat(estimator.cost_hessian_sensor_.data(), dim_vel, dim_vel);
-
-  // printf("residual: \n");
-  // mju_printMat(estimator.residual_sensor_.data(), dim_vel, 1);
 
   // delete data + model
   mj_deleteData(data);
@@ -732,8 +718,9 @@ TEST(MeasurementCost, Box) {
         double* rti = rt + shift;
 
         // add weighted norm
-        cost += weight[i] * Norm(NULL, NULL, rti, params.data() + 3 * i,
-                                 dim_sensori, norms[i]);
+        cost +=
+            weight[i] / dim_sensori *
+            Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori, norms[i]);
 
         // shift
         shift += dim_sensori;

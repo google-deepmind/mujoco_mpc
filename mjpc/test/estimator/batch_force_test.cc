@@ -33,7 +33,7 @@ TEST(ForceResidual, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(2);
+  ThreadPool pool(4);
 
   // ----- configurations ----- //
   int T = 5;
@@ -179,7 +179,7 @@ TEST(ForceResidual, Box) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(2);
+  ThreadPool pool(4);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
@@ -345,7 +345,7 @@ TEST(ForceCost, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(1);
+  ThreadPool pool(4);
 
   // initial configuration
   double qpos0[4] = {0.1, 0.3, -0.01, 0.25};
@@ -467,7 +467,7 @@ TEST(ForceCost, Particle) {
         double* rti = rt + shift;
 
         // add weighted norm
-        cost += weight[jnt_type] *
+        cost += weight[jnt_type] / dof * model->opt.timestep *
                 Norm(NULL, NULL, rti, params[jnt_type], dof, norms[jnt_type]);
 
         // shift
@@ -551,7 +551,7 @@ TEST(ForceCost, Box) {
   int nq = model->nq, nv = model->nv;
 
   // threadpool
-  ThreadPool pool(2);
+  ThreadPool pool(4);
 
   // initial configuration
   double qpos0[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
@@ -694,7 +694,8 @@ TEST(ForceCost, Box) {
             double* rti = rt + shift;
 
             // add weighted norm
-            cost += weight[i] * Norm(NULL, NULL, rti, params[i], dof, norms[i]);
+            cost += weight[i] / dof * model->opt.timestep *
+                    Norm(NULL, NULL, rti, params[i], dof, norms[i]);
 
             // shift
             shift += dof;

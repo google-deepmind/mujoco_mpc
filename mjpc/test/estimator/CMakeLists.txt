@@ -21,6 +21,9 @@ target_link_libraries(batch_covariance_test load gmock)
 test(batch_force_test)
 target_link_libraries(batch_force_test load gmock)
 
+test(batch_mulmat_test)
+target_link_libraries(batch_mulmat_test gmock)
+
 test(batch_optimize_test)
 target_link_libraries(batch_optimize_test load gmock)
 

@@ -161,12 +161,19 @@ TEST(BatchOptimize, Box3D) {
   int nq = model->nq, nv = model->nv, nu = model->nu;
   int ns = model->nsensordata;
 
+  printf("Box dimensions:\n");
+  printf("nq: %i\n", nq);
+  printf("nv: %i\n", nv);
+  printf("nu: %i\n", nu);
+  printf("ns: %i\n", ns);
+
   // pool 
   ThreadPool pool(9);
 
   // ----- simulate ----- //
   // trajectories
-  int T = 64;
+  int T = 16;
+  printf("T: %i\n", T);
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);

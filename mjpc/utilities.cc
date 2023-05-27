@@ -1149,27 +1149,41 @@ double* FiniteDifferenceHessian::Compute(
   return hessian_.data();
 }
 
-// set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
-void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
-                       int r2, int c2, int ri, int ci) {
-  // loop over A2 rows
-  for (int i = 0; i < r2; i++) {
-    // loop over A2 columns
-    for (int j = 0; j < c2; j++) {
-      A1[(ri + i) * c1 + ci + j] = s * A2[i * c2 + j];
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void SetBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = scale * block[i * cb + j];
     }
   }
 }
 
-// add scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
-void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
-                       int r2, int c2, int ri, int ci) {
-  // loop over A2 rows
-  for (int i = 0; i < r2; i++) {
-    // loop over A2 columns
-    for (int j = 0; j < c2; j++) {
-      A1[(ri + i) * c1 + ci + j] += s * A2[i * c2 + j];
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void AddBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] += scale * block[i * cb + j];
     }
+  }
+}
+
+// get block (size: rb x cb) from mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void BlockFromMatrix(double* block, const double* mat, int rb, int cb, int rm,
+                     int cm, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    double* block_cols = block + i * cb;
+    const double* mat_cols = mat + (ri + i) * cm + ci;
+    mju_copy(block_cols, mat_cols, cb);
   }
 }
 
@@ -1256,7 +1270,7 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
           DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr);
 
           // set block in Jacobian
-          SetMatrixInMatrix(jac1, jac1_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
+          SetBlockInMatrix(jac1, jac1_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
                             vadr, vadr);
         }
 
@@ -1266,7 +1280,7 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
           DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr);
 
           // set block in Jacobian
-          SetMatrixInMatrix(jac2, jac2_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
+          SetBlockInMatrix(jac2, jac2_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
                             vadr, vadr);
         }
 

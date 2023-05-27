@@ -317,13 +317,20 @@ class FiniteDifferenceHessian {
   double epsilon_ = 1.0e-5;
 };
 
-// set scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
-void SetMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
-                       int r2, int c2, int ri, int ci);
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void SetBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci);
 
-// add scaled matrix A2 in A1 given upper left row and column indices (ri, ci)
-void AddMatrixInMatrix(double* A1, const double* A2, double s, int r1, int c1,
-                       int r2, int c2, int ri, int ci);
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void AddBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci);
+
+// get block (size: rb x cb) from mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void BlockFromMatrix(double* block, const double* mat, int rb, int cb, int rm,
+                     int cm, int ri, int ci);
 
 // differentiate mju_subQuat wrt qa, qb
 void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],

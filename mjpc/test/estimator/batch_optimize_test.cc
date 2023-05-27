@@ -297,7 +297,8 @@ TEST(BatchOptimize, Quadruped) {
 
   // ----- simulate ----- //
   // trajectories
-  int T = 32;
+  int T = 16;
+  printf("T: %i\n", T);
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);

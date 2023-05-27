@@ -214,16 +214,16 @@ TEST(MatrixInMatrix, Set) {
   std::vector<double> W4{13.0, 14.0, 15.0, 16.0};
 
   // set W1
-  mjpc::SetMatrixInMatrix(W.data(), W1.data(), 1.0, q, q, 2, 2, 0, 0);
+  mjpc::SetBlockInMatrix(W.data(), W1.data(), 1.0, q, q, 2, 2, 0, 0);
 
   // set W2
-  mjpc::SetMatrixInMatrix(W.data(), W2.data(), 1.0, q, q, 2, 2, 0, 4);
+  mjpc::SetBlockInMatrix(W.data(), W2.data(), 1.0, q, q, 2, 2, 0, 4);
 
   // set W3
-  mjpc::SetMatrixInMatrix(W.data(), W3.data(), 1.0, q, q, 2, 2, 4, 0);
+  mjpc::SetBlockInMatrix(W.data(), W3.data(), 1.0, q, q, 2, 2, 4, 0);
 
   // set W4
-  mjpc::SetMatrixInMatrix(W.data(), W4.data(), 1.0, q, q, 2, 2, 4, 4);
+  mjpc::SetBlockInMatrix(W.data(), W4.data(), 1.0, q, q, 2, 2, 4, 4);
 
   std::vector<double> solution = {
       1.00000000,  2.00000000,  0.00000000,  0.00000000,  5.00000000,
@@ -318,8 +318,8 @@ TEST(DifferentiateQuaternionTest, SubQuat) {
 }
 
 TEST(DifferentiateQuaternionTest, DifferentiatePos) {
-  // model 
-  mjModel* model = LoadTestModel("box3D.xml");
+  // model
+  mjModel *model = LoadTestModel("box3D.xml");
 
   // random qpos
   double qa[7];
@@ -338,14 +338,14 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   mj_differentiatePos(model, v, model->opt.timestep, qa, qb);
 
   double eps = 1.0e-6;
-  double Ja[36];       // Jacobian wrt to qa
-  double Jb[36];       // Jacobian wrt to qb
-  double JaT[36];      // Jacobian wrt to qa transposed
-  double JbT[36];      // Jacobian wrt to qb transposed
-  double dv[6];        // differentiatePos perturbation
-  double dq[6];        // qpos perturbation
-  double qa_copy[7];   // qa copy
-  double qb_copy[7];   // qb copy
+  double Ja[36];      // Jacobian wrt to qa
+  double Jb[36];      // Jacobian wrt to qb
+  double JaT[36];     // Jacobian wrt to qa transposed
+  double JbT[36];     // Jacobian wrt to qb transposed
+  double dv[6];       // differentiatePos perturbation
+  double dq[6];       // qpos perturbation
+  double qa_copy[7];  // qa copy
+  double qb_copy[7];  // qb copy
 
   for (int i = 0; i < 6; i++) {
     // perturbation
@@ -354,7 +354,7 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
 
     // Jacobian qa
     mju_copy(qa_copy, qa, model->nq);
-    mj_integratePos(model, qa_copy, dq, eps); 
+    mj_integratePos(model, qa_copy, dq, eps);
     mj_differentiatePos(model, dv, model->opt.timestep, qa_copy, qb);
 
     mju_sub(JaT + i * 6, dv, v, 6);
@@ -362,7 +362,7 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
 
     // Jacobian qb
     mju_copy(qb_copy, qb, 7);
-    mj_integratePos(model, qb_copy, dq, eps); 
+    mj_integratePos(model, qb_copy, dq, eps);
     mj_differentiatePos(model, dv, model->opt.timestep, qa, qb_copy);
 
     mju_sub(JbT + i * 6, dv, v, 6);
@@ -403,6 +403,51 @@ TEST(BandedMatrix, NonZeros) {
   EXPECT_EQ(BandMatrixNonZeros(4, 2), 10);
   EXPECT_EQ(BandMatrixNonZeros(4, 3), 14);
   EXPECT_EQ(BandMatrixNonZeros(4, 4), 16);
+}
+
+TEST(BlockFromMatrix, Block2x2Mat4x4) {
+  // matrix
+  int rm = 4;
+  int cm = 4;
+  double mat[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+
+  // block
+  int rb = 2;
+  int cb = 2;
+  double block[4];
+
+  // indices
+  int ri, ci;
+
+  // error
+  double error[4];
+
+  // upper left block
+  ri = 0;
+  ci = 0;
+  BlockFromMatrix(block, mat, rb, cb, rm, cm, ri, ci);
+  double ul[4] = {1, 2, 5, 6};
+  mju_sub(error, block, ul, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
+  mju_printMat(block, 2, 2);
+
+  // bottom right block
+  ri = 2;
+  ci = 2;
+  BlockFromMatrix(block, mat, rb, cb, rm, cm, ri, ci);
+  double br[4] = {11, 12, 15, 16};
+  mju_sub(error, block, br, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
+  mju_printMat(block, 2, 2);
+
+  // center block
+  ri = 1;
+  ci = 1;
+  BlockFromMatrix(block, mat, rb, cb, rm, cm, ri, ci);
+  double cc[4] = {6, 7, 10, 11};
+  mju_sub(error, block, cc, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
+  mju_printMat(block, 2, 2);
 }
 
 }  // namespace

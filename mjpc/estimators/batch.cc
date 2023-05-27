@@ -489,7 +489,7 @@ void Estimator::JacobianPrior(int t) {
   double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
   // set block in matrix
-  SetMatrixInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
+  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
                     t * nv, t * nv);
 }
 
@@ -616,7 +616,7 @@ void Estimator::JacobianSensor(int t) {
   double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
 
   // set
-  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
+  SetBlockInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
                     dim_update, dim_sensor_, nv, row, col_previous);
 
   // ----- configuration current ----- //
@@ -625,7 +625,7 @@ void Estimator::JacobianSensor(int t) {
   double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
 
   // set
-  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
+  SetBlockInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
                     dim_update, dim_sensor_, nv, row, col_current);
 
   // ----- configuration next ----- //
@@ -634,7 +634,7 @@ void Estimator::JacobianSensor(int t) {
   double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
 
   // set
-  SetMatrixInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
+  SetBlockInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
                     dim_update, dim_sensor_, nv, row, col_next);
 }
 
@@ -817,7 +817,7 @@ void Estimator::JacobianForce(int t) {
   double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
 
   // set
-  SetMatrixInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
+  SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
                     dim_update, nv, nv, row, col_previous);
 
   // ----- configuration current ----- //
@@ -826,7 +826,7 @@ void Estimator::JacobianForce(int t) {
   double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
 
   // set
-  SetMatrixInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
+  SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
                     dim_update, nv, nv, row, col_current);
 
   // ----- configuration next ----- //
@@ -835,7 +835,7 @@ void Estimator::JacobianForce(int t) {
   double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
 
   // set
-  AddMatrixInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
+  AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
                     dim_update, nv, nv, row, col_next);
 }
 

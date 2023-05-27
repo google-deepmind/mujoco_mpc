@@ -200,35 +200,38 @@ TEST(MulMatTest, BlockDiagonalTBandBlockDiagonal) {
 
   printf("error: %.5f\n", mju_norm(error.data(), ntotal * ntotal));
 
-  // ----- band * band ----- //
-  std::vector<double> BT(ntotal * ntotal);
-  mju_transpose(BT.data(), B.data(), ntotal, ntotal);
+  // ----- test ----- // 
+  EXPECT_NEAR(mju_norm(error.data(), ntotal * ntotal), 0.0, 1.0e-4);
 
-  std::vector<double> BB(ntotal * ntotal);
-  std::vector<double> BBT(ntotal * ntotal);
-  mju_mulMatMat(BB.data(), B.data(), B.data(), ntotal, ntotal, ntotal);
+  // // ----- band * band ----- //
+  // std::vector<double> BT(ntotal * ntotal);
+  // mju_transpose(BT.data(), B.data(), ntotal, ntotal);
 
-  printf("BB = \n");
-  mju_printMat(BB.data(), ntotal, ntotal);
+  // std::vector<double> BB(ntotal * ntotal);
+  // std::vector<double> BBT(ntotal * ntotal);
+  // mju_mulMatMat(BB.data(), B.data(), B.data(), ntotal, ntotal, ntotal);
 
-  printf("BBT = \n");
-  mju_transpose(BBT.data(), BB.data(), ntotal, ntotal);
-  mju_printMat(BBT.data(), ntotal, ntotal);
+  // printf("BB = \n");
+  // mju_printMat(BB.data(), ntotal, ntotal);
 
-  std::vector<double> BTBB(ntotal * ntotal);
-  mju_mulMatTMat(BTBB.data(), B.data(), BB.data(), ntotal, ntotal, ntotal);
+  // printf("BBT = \n");
+  // mju_transpose(BBT.data(), BB.data(), ntotal, ntotal);
+  // mju_printMat(BBT.data(), ntotal, ntotal);
 
-  printf("BTBB: \n");
-  mju_printMat(BTBB.data(), ntotal, ntotal);
+  // std::vector<double> BTBB(ntotal * ntotal);
+  // mju_mulMatTMat(BTBB.data(), B.data(), BB.data(), ntotal, ntotal, ntotal);
 
-  // ----- factor ----- //
-  std::vector<double> AF(ntotal * ntotal);
-  mju_copy(AF.data(), A.data(), ntotal * ntotal);
+  // printf("BTBB: \n");
+  // mju_printMat(BTBB.data(), ntotal, ntotal);
 
-  mju_cholFactor(AF.data(), ntotal, 0.0);
+  // // ----- factor ----- //
+  // std::vector<double> AF(ntotal * ntotal);
+  // mju_copy(AF.data(), A.data(), ntotal * ntotal);
 
-  printf("factor:\n");
-  mju_printMat(AF.data(), ntotal, ntotal);
+  // mju_cholFactor(AF.data(), ntotal, 0.0);
+
+  // printf("factor:\n");
+  // mju_printMat(AF.data(), ntotal, ntotal);
 }
 
 // rectangular block' * block diagonal * rectangular block
@@ -240,6 +243,8 @@ void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
 
   // allocate blocks: rect' * diag * rect
   std::vector<double> rdr_blk(nc * nc * length);
+
+  mju_zero(res, (nc + (length - 1) * nci) * (nc + (length - 1) * nci));
 
   // create blocks
   for (int i = 0; i < length; i++) {
@@ -256,7 +261,7 @@ void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
     mju_mulMatTMat(rdr, recti, dr, nr, nc, nc);
 
     // set
-    SetBlockInMatrix(res, rdr, 1.0, nc + (length - 1) * nci,
+    AddBlockInMatrix(res, rdr, 1.0, nc + (length - 1) * nci,
                      nc + (length - 1) * nci, nc, nc, nci * i, nci * i);
   }
 }
@@ -336,6 +341,13 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
 
   printf("custom: J' D J = \n");
   mju_printMat(JDJ.data(), nv * T, nv * T);
+
+  // ----- error ----- //
+  std::vector<double> error((nv * T) * (nv * T));
+  mju_sub(error.data(), JDJ.data(), tmp1.data(), (nv * T) * (nv * T));
+  printf("error: %.5f", mju_norm(error.data(), (nv * T) * (nv * T)));
+
+  EXPECT_NEAR(mju_norm(error.data(), (nv * T) * (nv * T)), 0.0, 1.0e-5);
 }
 
 }  // namespace

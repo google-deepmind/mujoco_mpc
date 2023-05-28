@@ -168,7 +168,10 @@ TEST(BatchOptimize, Box3D) {
   printf("ns: %i\n", ns);
 
   // pool 
-  ThreadPool pool(9);
+  int num_thread = 9;
+  ThreadPool pool(num_thread);
+
+  printf("num thread: %i\n", num_thread);
 
   // ----- simulate ----- //
   // trajectories
@@ -299,13 +302,18 @@ TEST(BatchOptimize, Quadruped) {
   printf("nu: %i\n", nu);
   printf("ns: %i\n", ns);
 
-  // pool 
-  ThreadPool pool(9);
-
-  // ----- simulate ----- //
   // trajectories
   int T = 16;
   printf("T: %i\n", T);
+  
+  // pool 
+  int num_thread = 9;
+  ThreadPool pool(num_thread);
+
+  printf("num thread: %i\n", num_thread);
+
+  // ----- simulate ----- //
+  
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -388,6 +396,9 @@ TEST(BatchOptimize, Quadruped) {
   // settings
   estimator.max_smoother_iterations_ = 1;
   estimator.max_line_search_ = 10;
+
+  // estimator.max_smoother_iterations_ = 10;
+  // estimator.max_line_search_ = 100;
 
   // set weights
   mju_fill(estimator.weight_sensor_.data(), 1.0, estimator.model_->nsensor);

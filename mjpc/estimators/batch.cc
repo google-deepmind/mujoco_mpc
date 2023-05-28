@@ -32,13 +32,6 @@ void Estimator::Initialize(mjModel* model) {
     data_.push_back(MakeUniqueMjData(mj_makeData(model)));
   }
 
-  // // delete mjData instances since model might have changed.
-  // data_.clear();
-
-  // // allocate one mjData for nominal.
-  // ResizeMjData(model_, MAX_HISTORY);  // TODO(taylor): set to 1, fix
-  // segfault...
-
   // dimension
   int nq = model->nq, nv = model->nv;
 
@@ -82,6 +75,7 @@ void Estimator::Initialize(mjModel* model) {
   block_sensor_previous_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
   block_sensor_current_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
   block_sensor_next_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
+  block_sensor_configurations_.resize((dim_sensor_ * 3 * nv) * MAX_HISTORY);
 
   block_sensor_scratch_.resize(mju_max(nv, dim_sensor_) *
                                mju_max(nv, dim_sensor_) * MAX_HISTORY);
@@ -94,6 +88,7 @@ void Estimator::Initialize(mjModel* model) {
   block_force_previous_configuration_.resize((nv * nv) * MAX_HISTORY);
   block_force_current_configuration_.resize((nv * nv) * MAX_HISTORY);
   block_force_next_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_force_configurations_.resize((nv * 3 * nv) * MAX_HISTORY);
 
   block_force_scratch_.resize((nv * nv) * MAX_HISTORY);
 
@@ -267,6 +262,9 @@ void Estimator::Reset() {
   std::fill(block_sensor_next_configuration_.begin(),
             block_sensor_next_configuration_.end(), 0.0);
 
+  std::fill(block_sensor_configurations_.begin(),
+            block_sensor_configurations_.end(), 0.0);
+
   std::fill(block_sensor_scratch_.begin(), block_sensor_scratch_.end(), 0.0);
 
   // force Jacobian blocks
@@ -284,6 +282,9 @@ void Estimator::Reset() {
 
   std::fill(block_force_next_configuration_.begin(),
             block_force_next_configuration_.end(), 0.0);
+
+  std::fill(block_force_configurations_.begin(),
+            block_force_configurations_.end(), 0.0);
 
   std::fill(block_force_scratch_.begin(), block_force_scratch_.end(), 0.0);
 
@@ -513,6 +514,8 @@ void Estimator::BlockPrior(int t) {
 double Estimator::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
+  int nv = model_->nv;
+  int ns = dim_sensor_;
 
   // ----- cost ----- //
 
@@ -525,56 +528,73 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
   // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
+    // unpack block 
+    double* block = block_sensor_configurations_.data() + ns * (3 * nv) * t;
+
+    // printf("block %i\n", t);
+    // mju_printMat(block, ns, 3 * nv);
+
+    // sensor shift 
+    int shift_sensor = 0;
+
     // loop over sensors
     for (int i = 0; i < model_->nsensor; i++) {
       // dimension
-      int dim_sensori = model_->sensor_dim[i];
+      int nsi = model_->sensor_dim[i];
 
       // weight
       double weight = weight_sensor_[i];
 
       // total scaling
-      double scale = weight / dim_sensori;
+      double scale = weight / nsi;
 
       // ----- cost ----- //
       cost +=
           scale * Norm(gradient ? norm_gradient_sensor_.data() + shift : NULL,
                        hessian ? norm_blocks_sensor_.data() + shift_mat : NULL,
                        residual_sensor_.data() + shift,
-                       norm_parameters_sensor_.data() + 3 * i, dim_sensori,
+                       norm_parameters_sensor_.data() + 3 * i, nsi,
                        norm_sensor_[i]);
 
-      // gradient wrt configuration: drdq' * dndr
+      // gradient wrt configuration: dridq012' * dndri
       if (gradient) {
-        mju_mulMatTVec(scratch0_sensor_.data(),
-                       jacobian_sensor_.data() + shift * dim_update,
-                       norm_gradient_sensor_.data() + shift, dim_sensori,
-                       dim_update);
+        // sensor block 
+        double* blocki = block + (3 * nv) * shift_sensor;
+
+        // printf("  block (%i): [nsi = %i]\n", i, nsi);
+        // mju_printMat(blocki, nsi, 3 * nv);
+
+        // scratch = dridq012' * dndri
+        mju_mulMatTVec(scratch0_sensor_.data(), blocki,
+                       norm_gradient_sensor_.data() + shift, nsi, 3 * nv);
 
         // add
-        mju_addToScl(gradient, scratch0_sensor_.data(), scale, dim_update);
+        mju_addToScl(gradient + t * nv, scratch0_sensor_.data(), scale, 3 * nv);
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
       if (hessian) {
-        // step 1: tmp0 = d2ndr2 * drdq
-        double* tmp0 = scratch0_sensor_.data();
-        mju_mulMatMat(tmp0, norm_blocks_sensor_.data() + shift_mat,
-                      jacobian_sensor_.data() + shift * dim_update, dim_sensori,
-                      dim_sensori, dim_update);
+        // sensor block 
+        double* blocki = block + (3 * nv) * shift_sensor;
 
-        // step 2: hessian = drdq' * tmp
+        // step 1: tmp0 = d2ndri2 * dridq
+        double* tmp0 = scratch0_sensor_.data();
+        mju_mulMatMat(tmp0, norm_blocks_sensor_.data() + shift_mat, blocki, nsi,
+                      nsi, 3 * nv);
+
+        // step 2: hessian = dridq' * tmp
         double* tmp1 = scratch1_sensor_.data();
-        mju_mulMatTMat(tmp1, jacobian_sensor_.data() + shift * dim_update, tmp0,
-                       dim_sensori, dim_update, dim_update);
+        mju_mulMatTMat(tmp1, blocki, tmp0,
+                       nsi, 3 * nv, 3 * nv);
 
         // add
-        mju_addToScl(hessian, tmp1, scale, dim_update * dim_update);
+        AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv, 3 * nv, nv * t, nv * t);
       }
 
       // shift
-      shift += dim_sensori;
-      shift_mat += dim_sensori * dim_sensori;
+      shift += nsi;
+      shift_mat += nsi * nsi;
+      shift_sensor += nsi;
     }
   }
 
@@ -697,12 +717,27 @@ void Estimator::BlockSensor(int t) {
   // dsdq2 = dads' * dadq2
   double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
   mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
+
+  // -- assemble dsdq012 block -- // 
+
+  // unpack 
+  double* dsdq012 = block_sensor_configurations_.data() + t * ns * (3 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
+
+  // set dfdq1
+  SetBlockInMatrix(dsdq012, dsdq1, 1.0, ns, 3 * nv, ns, nv, 0, 1 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dsdq012, dsdq2, 1.0, ns, 3 * nv, ns, nv, 0, 2 * nv);
 }
 
-// force cost TODO(taylor): normalize by dimension
+// force cost
 double Estimator::CostForce(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
+  int nv = model_->nv;
 
   // initialize
   double cost = 0.0;
@@ -714,6 +749,12 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
   // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
+    // unpack block
+    double* block = block_force_configurations_.data() + nv * (3 * nv) * t;
+
+    // shift by joint
+    int shift_joint = 0;
+
     // loop over joints
     for (int i = 0; i < model_->njnt; i++) {
       // joint type
@@ -744,36 +785,42 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                        residual_force_.data() + shift,
                        norm_parameters_force_[jnt_type], dof, norm);
 
-      // gradient wrt configuration: drdq' * dndr
+      // gradient wrt configuration: dridq012' * dndri
       if (gradient) {
-        mju_mulMatTVec(scratch0_force_.data(),
-                       jacobian_force_.data() + shift * dim_update,
-                       norm_gradient_force_.data() + shift, dof, dim_update);
+        // joint block
+        double* blocki = block + (3 * nv) * shift_joint;
+
+        // scratch = dridq012' * dndri
+        mju_mulMatTVec(scratch0_force_.data(), blocki,
+                       norm_gradient_force_.data() + shift, dof, 3 * nv);
 
         // add
-        mju_addToScl(gradient, scratch0_force_.data(), scale, dim_update);
+        mju_addToScl(gradient + t * nv, scratch0_force_.data(), scale, 3 * nv);
       }
 
       // Hessian (Gauss-Newton) wrt configuration: drdq * d2ndr2 * drdq
       if (hessian) {
-        // step 1: tmp0 = d2ndr2 * drdq
-        double* tmp0 = scratch0_force_.data();
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + shift_mat,
-                      jacobian_force_.data() + shift * dim_update, dof, dof,
-                      dim_update);
+        // joint block
+        double* blocki = block + (3 * nv) * shift_joint;
 
-        // step 2: tmp1 = drdq' * tmp0
+        // step 1: tmp0 = d2ndri2 * dridq012
+        double* tmp0 = scratch0_force_.data();
+        mju_mulMatMat(tmp0, norm_blocks_force_.data() + shift_mat, blocki, dof,
+                      dof, 3 * nv);
+
+        // step 2: tmp1 = dridq' * tmp0
         double* tmp1 = scratch1_force_.data();
-        mju_mulMatTMat(tmp1, jacobian_force_.data() + shift * dim_update, tmp0,
-                       dof, dim_update, dim_update);
+        mju_mulMatTMat(tmp1, blocki, tmp0, dof, 3 * nv, 3 * nv);
 
         // add
-        mju_addToScl(hessian, tmp1, scale, dim_update * dim_update);
+        AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
+                         3 * nv, nv * t, nv * t);
       }
 
       // shift
       shift += dof;
       shift_mat += dof * dof;
+      shift_joint += dof;
     }
   }
 
@@ -898,6 +945,20 @@ void Estimator::BlockForce(int t) {
   // dfdq2 <- dadf' * dadq2
   double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
+
+  // -- assemble dfdq012 block -- // 
+
+  // unpack 
+  double* dfdq012 = block_force_configurations_.data() + t * nv * (3 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
+
+  // set dfdq1
+  SetBlockInMatrix(dfdq012, dfdq1, 1.0, nv, 3 * nv, nv, nv, 0, 1 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dfdq012, dfdq2, 1.0, nv, 3 * nv, nv, nv, 0, 2 * nv);
 }
 
 // compute force

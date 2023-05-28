@@ -160,6 +160,7 @@ class Estimator {
   std::vector<double> block_sensor_previous_configuration_;  // (ns * nv) x MAX_HISTORY
   std::vector<double> block_sensor_current_configuration_;   // (ns * nv) x MAX_HISTORY
   std::vector<double> block_sensor_next_configuration_;      // (ns * nv) x MAX_HISTORY
+  std::vector<double> block_sensor_configurations_;          // (ns * 3 * nv) x MAX_HISTORY
 
   std::vector<double> block_sensor_scratch_;                 // max(nv, ns) x MAX_HISTORY
 
@@ -171,6 +172,7 @@ class Estimator {
   std::vector<double> block_force_previous_configuration_;   // (nv * nv) x MAX_HISTORY
   std::vector<double> block_force_current_configuration_;    // (nv * nv) x MAX_HISTORY
   std::vector<double> block_force_next_configuration_;       // (nv * nv) x MAX_HISTORY
+  std::vector<double> block_force_configurations_;           // (nv * 3 * nv) x MAX_HISTORY
 
   std::vector<double> block_force_scratch_;                  // (nv * nv) x MAX_HISTORY
 

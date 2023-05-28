@@ -1202,7 +1202,7 @@ void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
   double c0 = th2;
   double c1 = 1.0 - (mju_abs(th2) < 6e-8 ? 1.0 : th2 / mju_tan(th2));
 
-  // compute Jacobian 
+  // compute Jacobian
   double jac[9];
   jac[0] = 1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]);
   jac[1] = c1 * axis[0] * axis[1] - c0 * axis[2];
@@ -1271,7 +1271,7 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 
           // set block in Jacobian
           SetBlockInMatrix(jac1, jac1_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
-                            vadr, vadr);
+                           vadr, vadr);
         }
 
         if (jac2) {
@@ -1281,7 +1281,7 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 
           // set block in Jacobian
           SetBlockInMatrix(jac2, jac2_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
-                            vadr, vadr);
+                           vadr, vadr);
         }
 
         break;
@@ -1297,13 +1297,13 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 
 // compute number of nonzeros in band matrix
 int BandMatrixNonZeros(int ntotal, int nband) {
-  // no band 
+  // no band
   if (nband == 0) return 0;
 
-  // diagonal matrix 
+  // diagonal matrix
   if (nband == 1) return ntotal;
 
-  // initialize number of nonzeros 
+  // initialize number of nonzeros
   int nnz = 0;
 
   // diagonal
@@ -1316,6 +1316,105 @@ int BandMatrixNonZeros(int ntotal, int nband) {
 
   // total non-zeros
   return nnz;
+}
+
+// block-diagonal' * block band * block-diagonal
+void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband,
+                                          const double* blkdiag, int dblock,
+                                          int nblock, int num_blocks,
+                                          double* scratch) {
+  // total dimension
+  int dim = dblock * num_blocks;
+
+  // index over upper triangular blocks
+  // TODO(taylor): more efficient solution
+  auto shift_index = [num_blocks, nblock](int r, int c) {
+    int count = 0;
+    for (int i = 0; i < num_blocks; i++) {
+      int num_cols = mju_min(nblock, num_blocks - i);
+      for (int j = i; j < i + num_cols; j++) {
+        if (i == r && j == c) return count;
+        count++;
+      }
+    }
+    return count;
+  };
+
+  // loop over upper band
+  for (int i = 0; i < num_blocks; i++) {
+    // number of columns to loop over for row
+    int num_cols = mju_min(nblock, num_blocks - i);
+
+    for (int j = i; j < i + num_cols; j++) {
+      // shift index
+      int shift = shift_index(i, j);
+
+      // unpack
+      double* bbij =
+          scratch + 4 * dblock * dblock * shift + 0 * dblock * dblock;
+      double* tmp0 =
+          scratch + 4 * dblock * dblock * shift + 1 * dblock * dblock;
+      double* tmp1 =
+          scratch + 4 * dblock * dblock * shift + 2 * dblock * dblock;
+      double* tmp2 =
+          scratch + 4 * dblock * dblock * shift + 3 * dblock * dblock;
+
+      // get matrices
+      BlockFromMatrix(bbij, blkband, dblock, dblock, dim, dim, i * dblock,
+                      j * dblock);
+      const double* bdi = blkdiag + dblock * dblock * i;
+      const double* bdj = blkdiag + dblock * dblock * j;
+
+      // -- bdi' * bbij * bdj -- //
+
+      // tmp0 = bbij * bdj
+      mju_mulMatMat(tmp0, bbij, bdj, dblock, dblock, dblock);
+
+      // tmp1 = bdi' * tmp0
+      mju_mulMatTMat(tmp1, bdi, tmp0, dblock, dblock, dblock);
+
+      // set block in matrix
+      SetBlockInMatrix(res, tmp1, 1.0, dim, dim, dblock, dblock, i * dblock,
+                       j * dblock);
+      if (j > i) {
+        mju_transpose(tmp2, tmp1, dblock, dblock);
+        SetBlockInMatrix(res, tmp2, 1.0, dim, dim, dblock, dblock, j * dblock,
+                         i * dblock);
+      }
+    }
+  }
+}
+
+// rectangular block' * block diagonal * rectangular block
+void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
+                                    const double* blkrect, int nr, int nc,
+                                    int nci, int length, double* scratch) {
+  // unpack
+  double* dr_blk = scratch;
+  double* rdr_blk = scratch + nr * nc * length;
+
+  // zero result
+  // TODO(taylor): more efficient zeroing?
+  mju_zero(res, (nc + (length - 1) * nci) * (nc + (length - 1) * nci));
+
+  // create blocks
+  for (int i = 0; i < length; i++) {
+    // unpack
+    const double* diagi = blkdiag + nr * nr * i;
+    const double* recti = blkrect + nr * nc * i;
+
+    // d * r
+    double* dr = dr_blk + nr * nc * i;
+    mju_mulMatMat(dr, diagi, recti, nr, nr, nc);
+
+    // r' * d * r
+    double* rdr = rdr_blk + nc * nc * i;
+    mju_mulMatTMat(rdr, recti, dr, nr, nc, nc);
+
+    // set
+    AddBlockInMatrix(res, rdr, 1.0, nc + (length - 1) * nci,
+                     nc + (length - 1) * nci, nc, nc, nci * i, nci * i);
+  }
 }
 
 }  // namespace mjpc

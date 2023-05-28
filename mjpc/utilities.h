@@ -345,6 +345,17 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 // compute number of nonzeros in band matrix
 int BandMatrixNonZeros(int ntotal, int nband);
 
+// block-diagonal' * block band * block-diagonal
+void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband,
+                                          const double* blkdiag, int dblock,
+                                          int nblock, int num_blocks,
+                                          double* scratch);
+
+// rectangular block' * block diagonal * rectangular block
+void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
+                                    const double* blkrect, int nr, int nc,
+                                    int nci, int length, double* scratch);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

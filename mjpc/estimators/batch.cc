@@ -438,29 +438,62 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   if (hessian) {
     // step 1: scratch = P * drdq
     if (band_covariance_) {  // approximate covariance
-      // dimensions
-      int ntotal = dim;
-      int nband = 3 * model_->nv;
-      int ndense = 0;
+      // unpack
+      double* scratch = scratch1_prior_.data();
 
-      // multiply: scratch = drdq' * P
-      double* JT = scratch1_prior_.data();
-      mju_transpose(JT, J, dim, dim);
-      mju_bandMulMatVec(tmp, P, JT, ntotal, nband, ndense, ntotal, true);
+      // loop over upper band
+      for (int i = 0; i < configuration_length_; i++) {
+        // number of columns to loop over for row
+        int num_cols = mju_min(3, configuration_length_ - i);
 
-      // step 2: hessian = scratch * drdq
-      mju_mulMatMat(hessian, tmp, J, dim, dim, dim);
+        for (int j = i; j < i + num_cols; j++) {
+          // shift index
+          int shift = 0; //shift_index(i, j);
 
+          // unpack
+          double* bbij =
+              scratch + 4 * nv * nv * shift + 0 * nv * nv;
+          double* tmp0 =
+              scratch + 4 * nv * nv * shift + 1 * nv * nv;
+          double* tmp1 =
+              scratch + 4 * nv * nv * shift + 2 * nv * nv;
+          double* tmp2 =
+              scratch + 4 * nv * nv * shift + 3 * nv * nv;
+              
+          // get matrices
+          BlockFromMatrix(bbij, weight_prior_dense_.data(), nv, nv, dim, dim, i * nv,
+                          j * nv);
+          const double* bdi = block_prior_current_configuration_.data() + nv * nv * i;
+          const double* bdj = block_prior_current_configuration_.data() + nv * nv * j;
+
+          // -- bdi' * bbij * bdj -- //
+
+          // tmp0 = bbij * bdj
+          mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
+
+          // tmp1 = bdi' * tmp0
+          mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
+
+          // set scaled block in matrix
+          SetBlockInMatrix(hessian, tmp1, scale, dim, dim, nv, nv, i * nv,
+                           j * nv);
+          if (j > i) {
+            mju_transpose(tmp2, tmp1, nv, nv);
+            SetBlockInMatrix(hessian, tmp2, scale, dim, dim, nv, nv, j * nv,
+                             i * nv);
+          }
+        }
+      }
     } else {  // exact covariance
       // multiply: scratch = P * drdq
       mju_mulMatMat(tmp, P, J, dim, dim, dim);
 
       // step 2: hessian = drdq' * scratch
       mju_mulMatTMat(hessian, J, tmp, dim, dim, dim);
-    }
 
-    // step 3: scale
-    mju_scl(hessian, hessian, scale, dim * dim);
+      // step 3: scale
+      mju_scl(hessian, hessian, scale, dim * dim);
+    }
   }
 
   return cost;

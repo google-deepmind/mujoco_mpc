@@ -23,6 +23,37 @@
 namespace mjpc {
 namespace {
 
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = 0.0;
+    }
+  }
+}
+
+// square dense to block band matrix
+void DenseToBlockBand(double* res, const double* mat, int dim, int dblock,
+                      int nblock) {
+  // number of block rows / columns
+  int num_blocks = dim / dblock;
+
+  // copy
+  mju_copy(res, mat, dim * dim);
+
+  // zero off-band blocks
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = i + nblock; j < num_blocks; j++) {
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, i * dblock, j * dblock);
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, j * dblock, i * dblock);
+    }
+  }
+}
+
 TEST(PriorResidual, Particle) {
   // load model
   mjModel* model = LoadTestModel("particle2D.xml");
@@ -520,6 +551,7 @@ TEST(ApproximatePriorCost, Particle) {
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
+  std::vector<double> P_(dim_vel * dim_vel);
   std::vector<double> P(dim_vel * dim_vel);
   std::vector<double> F(dim_vel * dim_vel);
 
@@ -527,7 +559,8 @@ TEST(ApproximatePriorCost, Particle) {
   for (int i = 0; i < dim_vel * dim_vel; i++) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+  mju_mulMatTMat(P_.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+  DenseToBlockBand(P.data(), P_.data(), dim_vel, nv, 3);
 
   // convert to band
   // TODO(taylor): P_band nnz initialize (and copy below)
@@ -583,6 +616,8 @@ TEST(ApproximatePriorCost, Particle) {
 
   // ----- estimator ----- //
   estimator.band_covariance_ = true;  // used approximate covariance
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
+           dim_vel * dim_vel);  // copy random covariance
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
   for (int t = 0; t < estimator.configuration_length_; t++) {
@@ -614,7 +649,7 @@ TEST(ApproximatePriorCost, Particle) {
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
-
+  
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);
@@ -659,13 +694,15 @@ TEST(ApproximatePriorCost, Box) {
 
   // ----- random covariance ----- //
   std::vector<double> P(dim_vel * dim_vel);
+  std::vector<double> P_(dim_vel * dim_vel);
   std::vector<double> F(dim_vel * dim_vel);
 
   // P = F' F
   for (int i = 0; i < dim_vel * dim_vel; i++) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+  mju_mulMatTMat(P_.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+  DenseToBlockBand(P.data(), P_.data(), dim_vel, nv, 3);
 
   // convert to band
   // TODO(taylor): P_band nnz initialize (and copy below)
@@ -725,6 +762,8 @@ TEST(ApproximatePriorCost, Box) {
 
   // ----- estimator ----- //
   estimator.band_covariance_ = true;  // used approximate covariance
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
+           dim_vel * dim_vel);  // copy random covariance
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
            nnz);  // copy random covariance
   for (int t = 0; t < estimator.configuration_length_; t++) {

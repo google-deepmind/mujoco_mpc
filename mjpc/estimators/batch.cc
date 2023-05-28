@@ -198,6 +198,7 @@ void Estimator::Initialize(mjModel* model) {
   covariance_update_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch2_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   covariance_initial_scaling_ =
       GetNumberOrDefault(1.0, model, "batch_covariance_initial_scaling");
 
@@ -357,6 +358,7 @@ void Estimator::Reset() {
   std::fill(covariance_update_.begin(), covariance_update_.end(), 0.0);
   std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
   std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
+  std::fill(scratch2_covariance_.begin(), scratch2_covariance_.end(), 0.0);
 
   // timer
   std::fill(timer_prior_step_.begin(), timer_prior_step_.end(), 0.0);
@@ -1122,7 +1124,7 @@ void Estimator::PriorUpdate() {
 }
 
 // covariance update
-void Estimator::CovarianceUpdate() {
+void Estimator::CovarianceUpdate(ThreadPool& pool) {
   // update = covariance - covariance * hessian * covariance'
 
   // dimension
@@ -1137,6 +1139,7 @@ void Estimator::CovarianceUpdate() {
   // unpack
   double* tmp0 = scratch0_covariance_.data();
   double* tmp1 = scratch1_covariance_.data();
+  double* tmp2 = scratch2_covariance_.data();
 
   // select solver
   if (band_covariance_) {
@@ -1144,12 +1147,49 @@ void Estimator::CovarianceUpdate() {
     int nband = 3 * model_->nv;
     int ndense = 0;
 
-    // tmp0 = (hessian * covariance')'
-    mju_bandMulMatVec(tmp0, cost_hessian_band_.data(), covariance, ntotal,
-                      nband, ndense, ntotal, true);
+    // -- tmp0 = mul(hessian, covariance) -- //
 
-    // tmp1 = covariance * tmp0'
-    mju_mulMatMatT(tmp1, covariance, tmp0, dim, dim, dim);
+    // pool count 
+    int count_before = pool.GetCount();
+
+    // loop over covariance
+    for (int i = 0; i < ntotal; i++) {
+      pool.Schedule(
+          [&estimator = *this, &tmp0, &covariance, ntotal, nband, ndense, i]() {
+            mju_bandMulMatVec(
+                tmp0 + ntotal * i, estimator.cost_hessian_band_.data(),
+                covariance + ntotal * i, ntotal, nband, ndense, 1, true);
+          });
+    }
+
+    // wait 
+    pool.WaitCount(count_before + ntotal);
+
+    // reset pool count 
+    pool.ResetCount();
+
+    // band covariance
+    mju_dense2Band(tmp2, covariance, ntotal, nband, ndense);
+
+    // -- tmp1 = mul(covariance, mul(hessian, covariance)) -- // 
+
+    // pool count 
+    count_before = pool.GetCount();
+
+    // loop over tmp0
+    for (int i = 0; i < ntotal; i++) {
+      pool.Schedule([&tmp0, &tmp1, &tmp2, ntotal, nband, ndense, i]() {
+        mju_bandMulMatVec(
+                tmp1 + ntotal * i, tmp2,
+                tmp0 + ntotal * i, ntotal, nband, ndense, 1, true);
+      });  
+    }
+
+    // wait 
+    pool.WaitCount(count_before + ntotal);
+
+    // reset pool count
+    pool.ResetCount(); 
 
   } else {  // dense
     // tmp0 = hessian * covariance'
@@ -1614,7 +1654,7 @@ void Estimator::Optimize(ThreadPool& pool) {
   auto covariance_update_start = std::chrono::steady_clock::now();
 
   // update covariance
-  CovarianceUpdate();
+  CovarianceUpdate(pool);
 
   // factorize covariance
   double* factor = scratch0_covariance_.data();

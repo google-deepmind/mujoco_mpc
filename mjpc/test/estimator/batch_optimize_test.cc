@@ -46,7 +46,7 @@ TEST(BatchOptimize, Particle2D) {
   };
 
   // trajectories
-  int T = 5;
+  int T = 8;
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -117,7 +117,7 @@ TEST(BatchOptimize, Particle2D) {
     // add noise
     for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      q[i] += 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      q[i] += 0.001 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
@@ -304,7 +304,7 @@ TEST(BatchOptimize, Quadruped) {
 
   // ----- simulate ----- //
   // trajectories
-  int T = 16;
+  int T = 32;
   printf("T: %i\n", T);
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));

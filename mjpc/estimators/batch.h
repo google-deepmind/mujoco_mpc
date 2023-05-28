@@ -103,7 +103,7 @@ class Estimator {
   void PriorUpdate();
 
   // covariance update 
-  void CovarianceUpdate();
+  void CovarianceUpdate(ThreadPool& pool);
 
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);
@@ -252,6 +252,8 @@ class Estimator {
   std::vector<double> covariance_update_;      // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> scratch2_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+
   double covariance_initial_scaling_;
 
   // timing

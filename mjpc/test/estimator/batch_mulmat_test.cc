@@ -350,5 +350,51 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
   EXPECT_NEAR(mju_norm(error.data(), (nv * T) * (nv * T)), 0.0, 1.0e-5);
 }
 
+TEST(MulMatTest, BandBand) {
+  printf("BandBand:\n");
+
+  // dimensions
+  int dblock = 2;
+  int nblock = 2;
+  int T = 8;
+  int ntotal = dblock * T;
+
+  // ----- create random band matrix ----- //
+  std::vector<double> F(ntotal * ntotal);
+  std::vector<double> A(ntotal * ntotal);
+  std::vector<double> Aband(ntotal * ntotal);
+
+  // sample matrix square root
+  absl::BitGen gen_;
+  for (int i = 0; i < ntotal * ntotal; i++) {
+    F[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // A = F' F
+  mju_mulMatTMat(A.data(), F.data(), F.data(), ntotal, ntotal, ntotal);
+
+  // band(A)
+  DenseToBlockBand(Aband.data(), A.data(), ntotal, dblock, nblock);
+
+  printf("A band:\n");
+  mju_printMat(Aband.data(), ntotal, ntotal);
+
+  // ----- A * A ----- // 
+  std::vector<double> AA(ntotal * ntotal);
+
+  mju_mulMatMat(AA.data(), Aband.data(), Aband.data(), ntotal, ntotal, ntotal);
+
+  printf("AA\n");
+  mju_printMat(AA.data(), ntotal, ntotal);
+
+  // ----- AT * A * A ----- // 
+  std::vector<double> ATAA(ntotal * ntotal);
+
+  mju_mulMatTMat(ATAA.data(), Aband.data(), AA.data(), ntotal, ntotal, ntotal);
+
+  printf("AT * A * A: \n");
+  mju_printMat(ATAA.data(), ntotal, ntotal);
+}
+
 }  // namespace
 }  // namespace mjpc

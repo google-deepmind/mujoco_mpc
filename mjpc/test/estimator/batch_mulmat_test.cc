@@ -254,5 +254,122 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
   EXPECT_NEAR(mju_norm(error.data(), (nv * T) * (nv * T)), 0.0, 1.0e-5);
 }
 
+TEST(MulMatTest, BandSparse) {
+  printf("A * B * A':\n");
+
+  // dimensions
+  int dblock = 20;
+  int nblock = 3;
+  int T = 32;
+  int ntotal = dblock * T;
+
+  // ----- create random band matrix (0) ----- //
+  std::vector<double> F(ntotal * ntotal);
+  std::vector<double> A_(ntotal * ntotal);
+  std::vector<double> A(ntotal * ntotal);
+
+  // sample matrix square root
+  absl::BitGen gen_;
+  for (int i = 0; i < ntotal * ntotal; i++) {
+    F[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // A = F' F
+  mju_mulMatTMat(A_.data(), F.data(), F.data(), ntotal, ntotal, ntotal);
+
+  // band(A)
+  DenseToBlockBand(A.data(), A_.data(), ntotal, dblock, nblock);
+
+  // ----- create random band matrix (1) ----- //
+  std::vector<double> G(ntotal * ntotal);
+  std::vector<double> B_(ntotal * ntotal);
+  std::vector<double> B(ntotal * ntotal);
+
+  // sample matrix square root
+  for (int i = 0; i < ntotal * ntotal; i++) {
+    G[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // B = G' G
+  mju_mulMatTMat(B_.data(), G.data(), G.data(), ntotal, ntotal, ntotal);
+
+  // band(B)
+  DenseToBlockBand(B.data(), B_.data(), ntotal, dblock, nblock);
+  
+  // ----- compute: A * B * A' ----- //
+  std::vector<double> ABAT(ntotal * ntotal);
+  std::vector<double> tmp(ntotal * ntotal);
+
+  // start timer 
+  auto dense_start = std::chrono::steady_clock::now();
+
+  // tmp = B * A' 
+  mju_mulMatMatT(tmp.data(), B.data(), A.data(), ntotal, ntotal, ntotal);
+
+  // ABA' = A * tmp 
+  mju_mulMatMat(ABAT.data(), A.data(), tmp.data(), ntotal, ntotal, ntotal);
+
+  // stop timer 
+  double timer_dense = std::chrono::duration_cast<std::chrono::microseconds>(
+                           std::chrono::steady_clock::now() - dense_start)
+                           .count();
+
+  printf("dense time: %.5f\n", 1.0e-3 * timer_dense);
+
+
+  // ----- band ----- //
+  std::vector<double> Aband(ntotal * ntotal);
+  std::vector<double> Bband(ntotal * ntotal);
+  std::vector<double> ABATband(ntotal * ntotal);
+  int num_thread = 9;
+  ThreadPool pool(num_thread);
+
+  // start timer 
+  auto band_start = std::chrono::steady_clock::now();
+
+  // get band representations 
+  mju_dense2Band(Aband.data(), A.data(), ntotal, dblock * nblock, 0);
+  mju_dense2Band(Bband.data(), B.data(), ntotal, dblock * nblock, 0);
+
+  // mul(B, A)
+  int count_before = pool.GetCount();
+
+  for (int i = 0; i < ntotal; i++) {
+    pool.Schedule([&tmp, &A, &Bband, ntotal, dblock, nblock, i]() {
+      mju_bandMulMatVec(tmp.data() + ntotal * i, Bband.data(),
+                        A.data() + ntotal * i, ntotal, dblock * nblock, 0, 1,
+                        true);
+    });
+  }
+  pool.WaitCount(count_before + ntotal);
+  pool.ResetCount();
+
+  // mul(A, mul(B, A))
+  count_before = pool.GetCount();
+  for (int i = 0; i < ntotal; i++) {
+    pool.Schedule([&ABATband, &Aband, &tmp, ntotal, dblock, nblock, i]() {
+      mju_bandMulMatVec(ABATband.data() + ntotal * i, Aband.data(),
+                        tmp.data() + ntotal * i, ntotal, dblock * nblock, 0, 1,
+                        true);
+    });
+  }
+  pool.WaitCount(count_before + ntotal);
+  pool.ResetCount();
+
+  // end timer
+  double timer_band = std::chrono::duration_cast<std::chrono::microseconds>(
+                           std::chrono::steady_clock::now() - band_start)
+                           .count();
+
+  printf("band time (nthread = %i): %.5f\n", num_thread, 1.0e-3 * timer_band);
+
+  // ----- error ----- // 
+  std::vector<double> error(ntotal * ntotal);
+
+  mju_sub(error.data(), ABATband.data(), ABAT.data(), ntotal * ntotal);
+
+  printf("error = %.5f\n", mju_norm(error.data(), ntotal * ntotal));
+}
+
 }  // namespace
 }  // namespace mjpc

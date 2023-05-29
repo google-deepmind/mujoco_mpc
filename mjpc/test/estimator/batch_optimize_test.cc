@@ -303,7 +303,7 @@ TEST(BatchOptimize, Quadruped) {
   printf("ns: %i\n", ns);
 
   // trajectories
-  int T = 16;
+  int T = 64;
   printf("T: %i\n", T);
   
   // pool 

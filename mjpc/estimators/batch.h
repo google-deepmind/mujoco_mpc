@@ -99,6 +99,12 @@ class Estimator {
   // compute total cost
   double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
 
+  // compute total gradient 
+  void CostGradient();
+
+  // compute total Hessian 
+  void CostHessian();
+
   // prior update
   void PriorUpdate();
 

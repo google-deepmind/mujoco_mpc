@@ -35,7 +35,7 @@ TEST(BatchOptimize, Particle2D) {
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
   // threadpool 
-  ThreadPool pool(4);
+  ThreadPool pool(9);
 
   // ----- simulate ----- //
 
@@ -46,7 +46,7 @@ TEST(BatchOptimize, Particle2D) {
   };
 
   // trajectories
-  int T = 8;
+  int T = 32;
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -175,7 +175,7 @@ TEST(BatchOptimize, Box3D) {
 
   // ----- simulate ----- //
   // trajectories
-  int T = 16;
+  int T = 32;
   printf("T: %i\n", T);
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
@@ -303,7 +303,7 @@ TEST(BatchOptimize, Quadruped) {
   printf("ns: %i\n", ns);
 
   // trajectories
-  int T = 64;
+  int T = 32;
   printf("T: %i\n", T);
   
   // pool 

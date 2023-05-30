@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
+
 namespace mjpc {
 namespace {
 
@@ -120,9 +121,7 @@ TEST(MulMatTest, BlockDiagonalTBandBlockDiagonal) {
   mju_mulMatTMat(B.data(), Ddense.data(), tmp.data(), ntotal, ntotal, ntotal);
 
   // end timer
-  double timer_dense = std::chrono::duration_cast<std::chrono::microseconds>(
-                           std::chrono::steady_clock::now() - dense_start)
-                           .count();
+  double timer_dense = GetDuration(dense_start);
 
   printf("dense time: %.5f\n", 1.0e-3 * timer_dense);
 
@@ -145,9 +144,7 @@ TEST(MulMatTest, BlockDiagonalTBandBlockDiagonal) {
                                        scratch.data());
 
   // end timer
-  double timer_sparse = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - sparse_start)
-                            .count();
+  double timer_sparse = GetDuration(sparse_start);
 
   printf("sparse time: %.5f\n", 1.0e-3 * timer_sparse);
 
@@ -220,9 +217,7 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
                  nv * T);
 
   // end timer
-  double timer_dense = std::chrono::duration_cast<std::chrono::microseconds>(
-                           std::chrono::steady_clock::now() - dense_start)
-                           .count();
+  double timer_dense = GetDuration(dense_start);
 
   printf("dense time: %.5f\n", 1.0e-3 * timer_dense);
 
@@ -240,9 +235,7 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
                                  nc, nv, T - 2, scratch.data());
 
   // end timer
-  double timer_sparse = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - sparse_start)
-                            .count();
+  double timer_sparse = GetDuration(sparse_start);
 
   printf("sparse time: %.5f\n", 1.0e-3 * timer_sparse);
 
@@ -255,7 +248,8 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
 }
 
 // multiply band-diagonal matrix with vector sparse
-// void mju_bandMulMatVecSparse(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
+// void mju_bandMulMatVecSparse(mjtNum* res, const mjtNum* mat, const mjtNum*
+// vec,
 //                              int ntotal, int nband, mjtByte flg_sym) {
 //   for (int i = 0; i < ntotal; i++) {
 //     int width = mjMIN(i + 1, nband);
@@ -285,9 +279,9 @@ TEST(MulMatTest, RectBandTBlockDiagonalRectBand) {
 // }
 
 void mju_bandMulMatVecSparse_(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
-                             int ntotal, int nband, mjtByte flg_sym, int vec_shift, int vec_length) {
-
-  // vector interval 
+                              int ntotal, int nband, mjtByte flg_sym,
+                              int vec_shift, int vec_length) {
+  // vector interval
   int v1 = vec_shift;
   int v2 = vec_shift + vec_length - 1;
 
@@ -296,21 +290,21 @@ void mju_bandMulMatVecSparse_(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
     int adr = i * nband + nband - width;
     int offset = mjMAX(0, i - nband + 1);
 
-    // band interval 
+    // band interval
     int b1 = offset;
     int b2 = offset + width - 1;
 
-    // overlap 
+    // overlap
     int overlap = mju_max(0, mju_min(b2, v2) - mju_max(b1, v1) + 1);
 
     if (overlap) {
-      int start = mju_max(0, v1 - b1);;
+      int start = mju_max(0, v1 - b1);
       res[i] = mju_dot(mat + adr + start, vec + offset + start, overlap);
     } else {
       res[i] = 0.0;
     }
-    
-    // strict upper triangle 
+
+    // strict upper triangle
     if (flg_sym && mju_max(0, mju_min(b2, i) - mju_max(b1, i) + 1)) {
       // strict upper triangle
       mju_addToScl(res + offset, mat + adr, vec[i], width - 1);
@@ -318,10 +312,11 @@ void mju_bandMulMatVecSparse_(mjtNum* res, const mjtNum* mat, const mjtNum* vec,
   }
 }
 
-void BandMatrixColumnSparsity(int& shift, int& length, int ntotal, int dblock, int nblock, int num_blocks, int col) {
-  // get block column 
+void BandMatrixColumnSparsity(int& shift, int& length, int ntotal, int dblock,
+                              int nblock, int num_blocks, int col) {
+  // get block column
   int blk_col = col / dblock;
-  // set length 
+  // set length
   length = dblock * (nblock + 2);
 
   // first nblock - 1 columns
@@ -396,9 +391,7 @@ TEST(MulMatTest, BandSparse) {
   mju_mulMatMat(ABAT.data(), A.data(), tmp.data(), ntotal, ntotal, ntotal);
 
   // stop timer
-  double timer_dense = std::chrono::duration_cast<std::chrono::microseconds>(
-                           std::chrono::steady_clock::now() - dense_start)
-                           .count();
+  double timer_dense = GetDuration(dense_start);
 
   printf("dense time: %.5f\n", 1.0e-3 * timer_dense);
 
@@ -444,9 +437,7 @@ TEST(MulMatTest, BandSparse) {
   pool.ResetCount();
 
   // end timer
-  double timer_band = std::chrono::duration_cast<std::chrono::microseconds>(
-                          std::chrono::steady_clock::now() - band_start)
-                          .count();
+  double timer_band = GetDuration(band_start);
   printf("band time (nthread = %i): %.5f\n", num_thread, 1.0e-3 * timer_band);
 
   mju_copy(mBA.data(), tmp.data(), ntotal * ntotal);
@@ -455,7 +446,7 @@ TEST(MulMatTest, BandSparse) {
   std::vector<int> scratch(ntotal * ntotal);
   std::vector<double> ABATsparse(ntotal * ntotal);
 
-  // start 
+  // start
   auto sparse_start = std::chrono::steady_clock::now();
 
   // get band representations
@@ -468,10 +459,11 @@ TEST(MulMatTest, BandSparse) {
   for (int i = 0; i < ntotal; i++) {
     pool.Schedule([&tmp, &A, &Bband, ntotal, dblock, nblock, T, i]() {
       int vec_shift, vec_length;
-      BandMatrixColumnSparsity(vec_shift, vec_length, ntotal, dblock, nblock, T, i);
+      BandMatrixColumnSparsity(vec_shift, vec_length, ntotal, dblock, nblock, T,
+                               i);
       mju_bandMulMatVecSparse_(tmp.data() + ntotal * i, Bband.data(),
-                        A.data() + ntotal * i, ntotal, dblock * nblock,
-                        true, vec_shift, vec_length);
+                               A.data() + ntotal * i, ntotal, dblock * nblock,
+                               true, vec_shift, vec_length);
     });
   }
   pool.WaitCount(count_before + ntotal);
@@ -482,7 +474,8 @@ TEST(MulMatTest, BandSparse) {
   for (int i = 0; i < ntotal; i++) {
     pool.Schedule([&ABATsparse, &Aband, &tmp, ntotal, dblock, nblock, T, i]() {
       int vec_shift, vec_length;
-      BandMatrixColumnSparsity(vec_shift, vec_length, ntotal, dblock, nblock, T, i);
+      BandMatrixColumnSparsity(vec_shift, vec_length, ntotal, dblock, nblock, T,
+                               i);
       vec_shift = 0;
       vec_length = ntotal;
       mju_bandMulMatVecSparse_(ABATsparse.data() + ntotal * i, Aband.data(),
@@ -494,9 +487,7 @@ TEST(MulMatTest, BandSparse) {
   pool.ResetCount();
 
   // end timer
-  double timer_sparse = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - sparse_start)
-                            .count();
+  double timer_sparse = GetDuration(sparse_start);
 
   printf("sparse time (nthread = %i): %.5f\n", num_thread,
          1.0e-3 * timer_sparse);
@@ -513,33 +504,27 @@ TEST(MulMatTest, BandSparse) {
   mju_sub(error.data(), tmp.data(), mBA.data(), ntotal * ntotal);
   printf("BA error (sparse) = %.5f\n", mju_norm(error.data(), ntotal * ntotal));
 
-  // test sparse 
+  // test sparse
   double X[16] = {
-    1, 2, 3, 0,
-    2, 4, 5, 6,
-    3, 5, 7, 8, 
-    0, 6, 8, 9,
+      1, 2, 3, 0, 2, 4, 5, 6, 3, 5, 7, 8, 0, 6, 8, 9,
   };
 
   double L[16] = {
-    1, 0, 0, 0,
-    2, 4, 0, 0,
-    3, 5, 7, 0, 
-    0, 6, 8, 9,
+      1, 0, 0, 0, 2, 4, 0, 0, 3, 5, 7, 0, 0, 6, 8, 9,
   };
 
   double b[4] = {
-    10, 
-    11, 
-    12, 
-    13,
+      10,
+      11,
+      12,
+      13,
   };
 
   double bsparse[4] = {
-    0, 
-    11, 
-    12, 
-    0,
+      0,
+      11,
+      12,
+      0,
   };
 
   int vec_shift = 1;
@@ -580,16 +565,16 @@ TEST(MulMatTest, BandSparse) {
   mju_sub(e.data(), yband, y, ntotal);
   printf("error: %.4f\n", mju_norm(e.data(), ntotal));
 
-  // ----- lower triangle ----- // 
+  // ----- lower triangle ----- //
   double ylow0[4];
-  mju_bandMulMatVecSparse_(ylow0, Xband, bsparse, ntotal, nband, true, vec_shift, vec_len);
-  
+  mju_bandMulMatVecSparse_(ylow0, Xband, bsparse, ntotal, nband, true,
+                           vec_shift, vec_len);
+
   double ylow1[4];
   mju_mulMatVec(ylow1, X, bsparse, ntotal, ntotal);
 
   mju_sub(e.data(), ylow0, ylow1, ntotal);
   printf("lower error: %.4f\n", mju_norm(e.data(), ntotal));
-
 }
 
 TEST(BandMatrix, ColumnSparsity) {

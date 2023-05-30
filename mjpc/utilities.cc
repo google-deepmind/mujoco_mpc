@@ -1417,4 +1417,11 @@ void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
   }
 }
 
+// get duration since time point
+double GetDuration(std::chrono::steady_clock::time_point tp) {
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+             std::chrono::steady_clock::now() - tp)
+      .count();
+}
+
 }  // namespace mjpc

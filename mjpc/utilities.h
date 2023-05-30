@@ -19,6 +19,7 @@
 #include <mujoco/mujoco.h>
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -355,6 +356,9 @@ void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband,
 void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
                                     const double* blkrect, int nr, int nc,
                                     int nci, int length, double* scratch);
+
+// get duration since time point 
+double GetDuration(std::chrono::steady_clock::time_point time);
 
 }  // namespace mjpc
 

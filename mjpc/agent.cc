@@ -249,10 +249,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
       ActivePlanner().OptimizePolicy(steps_, *pool);
 
       // compute time
-      agent_compute_time_ =
-          std::chrono::duration_cast<std::chrono::microseconds>(
-              std::chrono::steady_clock::now() - agent_start)
-              .count();
+      agent_compute_time_ = GetDuration(agent_start);
 
       // counter
       count_ += 1;

@@ -367,22 +367,7 @@ void Estimator::Reset() {
   std::fill(timer_force_step_.begin(), timer_force_step_.end(), 0.0);
 
   // timing
-  timer_total_ = 0.0;
-  timer_prior_update_ = 0.0;
-  timer_inverse_dynamics_derivatives_ = 0.0;
-  timer_velacc_derivatives_ = 0.0;
-  timer_jacobian_prior_ = 0.0;
-  timer_jacobian_sensor_ = 0.0;
-  timer_jacobian_force_ = 0.0;
-  timer_cost_prior_derivatives_ = 0.0;
-  timer_cost_sensor_derivatives_ = 0.0;
-  timer_cost_force_derivatives_ = 0.0;
-  timer_cost_gradient_ = 0.0;
-  timer_cost_hessian_ = 0.0;
-  timer_cost_derivatives_ = 0.0;
-  timer_search_direction_ = 0.0;
-  timer_covariance_update_ = 0.0;
-  timer_line_search_ = 0.0;
+  ResetTimers();
 
   // status
   iterations_smoother_ = 0;
@@ -448,23 +433,21 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
 
         for (int j = i; j < i + num_cols; j++) {
           // shift index
-          int shift = 0; //shift_index(i, j);
+          int shift = 0;  // shift_index(i, j);
 
           // unpack
-          double* bbij =
-              scratch + 4 * nv * nv * shift + 0 * nv * nv;
-          double* tmp0 =
-              scratch + 4 * nv * nv * shift + 1 * nv * nv;
-          double* tmp1 =
-              scratch + 4 * nv * nv * shift + 2 * nv * nv;
-          double* tmp2 =
-              scratch + 4 * nv * nv * shift + 3 * nv * nv;
-              
+          double* bbij = scratch + 4 * nv * nv * shift + 0 * nv * nv;
+          double* tmp0 = scratch + 4 * nv * nv * shift + 1 * nv * nv;
+          double* tmp1 = scratch + 4 * nv * nv * shift + 2 * nv * nv;
+          double* tmp2 = scratch + 4 * nv * nv * shift + 3 * nv * nv;
+
           // get matrices
-          BlockFromMatrix(bbij, weight_prior_dense_.data(), nv, nv, dim, dim, i * nv,
-                          j * nv);
-          const double* bdi = block_prior_current_configuration_.data() + nv * nv * i;
-          const double* bdj = block_prior_current_configuration_.data() + nv * nv * j;
+          BlockFromMatrix(bbij, weight_prior_dense_.data(), nv, nv, dim, dim,
+                          i * nv, j * nv);
+          const double* bdi =
+              block_prior_current_configuration_.data() + nv * nv * i;
+          const double* bdj =
+              block_prior_current_configuration_.data() + nv * nv * j;
 
           // -- bdi' * bbij * bdj -- //
 
@@ -525,8 +508,8 @@ void Estimator::JacobianPrior(int t) {
   double* block = block_prior_current_configuration_.data() + t * nv * nv;
 
   // set block in matrix
-  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
-                    t * nv, t * nv);
+  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, t * nv,
+                   t * nv);
 }
 
 // prior Jacobian blocks
@@ -561,13 +544,13 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
   // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    // unpack block 
+    // unpack block
     double* block = block_sensor_configurations_.data() + ns * (3 * nv) * t;
 
     // printf("block %i\n", t);
     // mju_printMat(block, ns, 3 * nv);
 
-    // sensor shift 
+    // sensor shift
     int shift_sensor = 0;
 
     // loop over sensors
@@ -591,7 +574,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
       // gradient wrt configuration: dridq012' * dndri
       if (gradient) {
-        // sensor block 
+        // sensor block
         double* blocki = block + (3 * nv) * shift_sensor;
 
         // printf("  block (%i): [nsi = %i]\n", i, nsi);
@@ -607,7 +590,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
       if (hessian) {
-        // sensor block 
+        // sensor block
         double* blocki = block + (3 * nv) * shift_sensor;
 
         // step 1: tmp0 = d2ndri2 * dridq
@@ -617,11 +600,11 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
         // step 2: hessian = dridq' * tmp
         double* tmp1 = scratch1_sensor_.data();
-        mju_mulMatTMat(tmp1, blocki, tmp0,
-                       nsi, 3 * nv, 3 * nv);
+        mju_mulMatTMat(tmp1, blocki, tmp0, nsi, 3 * nv, 3 * nv);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv, 3 * nv, nv * t, nv * t);
+        AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
+                         3 * nv, nv * t, nv * t);
       }
 
       // shift
@@ -672,7 +655,7 @@ void Estimator::JacobianSensor(int t) {
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
-                    dim_update, dim_sensor_, nv, row, col_previous);
+                   dim_update, dim_sensor_, nv, row, col_previous);
 
   // ----- configuration current ----- //
 
@@ -681,7 +664,7 @@ void Estimator::JacobianSensor(int t) {
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
-                    dim_update, dim_sensor_, nv, row, col_current);
+                   dim_update, dim_sensor_, nv, row, col_current);
 
   // ----- configuration next ----- //
 
@@ -690,7 +673,7 @@ void Estimator::JacobianSensor(int t) {
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
-                    dim_update, dim_sensor_, nv, row, col_next);
+                   dim_update, dim_sensor_, nv, row, col_next);
 }
 
 // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
@@ -751,9 +734,9 @@ void Estimator::BlockSensor(int t) {
   double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
   mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
 
-  // -- assemble dsdq012 block -- // 
+  // -- assemble dsdq012 block -- //
 
-  // unpack 
+  // unpack
   double* dsdq012 = block_sensor_configurations_.data() + t * ns * (3 * nv);
 
   // set dfdq0
@@ -899,8 +882,8 @@ void Estimator::JacobianForce(int t) {
   double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
 
   // set
-  SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
-                    dim_update, nv, nv, row, col_previous);
+  SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual, dim_update,
+                   nv, nv, row, col_previous);
 
   // ----- configuration current ----- //
 
@@ -908,8 +891,8 @@ void Estimator::JacobianForce(int t) {
   double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
 
   // set
-  SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
-                    dim_update, nv, nv, row, col_current);
+  SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual, dim_update,
+                   nv, nv, row, col_current);
 
   // ----- configuration next ----- //
 
@@ -917,8 +900,8 @@ void Estimator::JacobianForce(int t) {
   double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
 
   // set
-  AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
-                    dim_update, nv, nv, row, col_next);
+  AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual, dim_update,
+                   nv, nv, row, col_next);
 }
 
 // force Jacobian (dfdq0, dfdq1, dfdq2)
@@ -979,9 +962,9 @@ void Estimator::BlockForce(int t) {
   double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
 
-  // -- assemble dfdq012 block -- // 
+  // -- assemble dfdq012 block -- //
 
-  // unpack 
+  // unpack
   double* dfdq012 = block_force_configurations_.data() + t * nv * (3 * nv);
 
   // set dfdq0
@@ -1147,8 +1130,7 @@ void Estimator::VelocityAccelerationDerivatives(int t) {
 }
 
 // compute total cost
-double Estimator::Cost(double& cost_prior, double& cost_sensor,
-                       double& cost_force) {
+double Estimator::Cost() {
   // ----- trajectories ----- //
 
   // finite-difference velocities, accelerations
@@ -1177,16 +1159,16 @@ double Estimator::Cost(double& cost_prior, double& cost_sensor,
   }
 
   // prior
-  cost_prior = (prior_flag_ ? CostPrior(NULL, NULL) : 0.0);
+  cost_prior_ = (prior_flag_ ? CostPrior(NULL, NULL) : 0.0);
 
   // sensor
-  cost_sensor = (sensor_flag_ ? CostSensor(NULL, NULL) : 0.0);
+  cost_sensor_ = (sensor_flag_ ? CostSensor(NULL, NULL) : 0.0);
 
   // force
-  cost_force = (force_flag_ ? CostForce(NULL, NULL) : 0.0);
+  cost_force_ = (force_flag_ ? CostForce(NULL, NULL) : 0.0);
 
   // total cost
-  return cost_prior + cost_sensor + cost_force;
+  return cost_prior_ + cost_sensor_ + cost_force_;
 }
 
 // prior update
@@ -1219,10 +1201,10 @@ void Estimator::PriorUpdate() {
 
 // compute total gradient
 void Estimator::CostGradient() {
-  // dimension 
+  // dimension
   int dim = configuration_length_ * model_->nv;
 
-  // unpack 
+  // unpack
   double* gradient = cost_gradient_.data();
 
   // individual gradients
@@ -1279,7 +1261,7 @@ void Estimator::CovarianceUpdate(ThreadPool& pool) {
 
     // -- tmp0 = mul(hessian, covariance) -- //
 
-    // pool count 
+    // pool count
     int count_before = pool.GetCount();
 
     // loop over covariance
@@ -1292,34 +1274,33 @@ void Estimator::CovarianceUpdate(ThreadPool& pool) {
           });
     }
 
-    // wait 
+    // wait
     pool.WaitCount(count_before + ntotal);
 
-    // reset pool count 
+    // reset pool count
     pool.ResetCount();
 
     // band covariance
     mju_dense2Band(tmp2, covariance, ntotal, nband, ndense);
 
-    // -- tmp1 = mul(covariance, mul(hessian, covariance)) -- // 
+    // -- tmp1 = mul(covariance, mul(hessian, covariance)) -- //
 
-    // pool count 
+    // pool count
     count_before = pool.GetCount();
 
     // loop over tmp0
     for (int i = 0; i < ntotal; i++) {
       pool.Schedule([&tmp0, &tmp1, &tmp2, ntotal, nband, ndense, i]() {
-        mju_bandMulMatVec(
-                tmp1 + ntotal * i, tmp2,
-                tmp0 + ntotal * i, ntotal, nband, ndense, 1, true);
-      });  
+        mju_bandMulMatVec(tmp1 + ntotal * i, tmp2, tmp0 + ntotal * i, ntotal,
+                          nband, ndense, 1, true);
+      });
     }
 
-    // wait 
+    // wait
     pool.WaitCount(count_before + ntotal);
 
     // reset pool count
-    pool.ResetCount(); 
+    pool.ResetCount();
 
   } else {  // dense
     // tmp0 = hessian * covariance'
@@ -1331,6 +1312,57 @@ void Estimator::CovarianceUpdate(ThreadPool& pool) {
 
   // update = covariance - tmp1
   mju_sub(update, covariance, tmp1, dim * dim);
+
+  // // -- update covariance -- //
+
+  // // start timer
+  // auto covariance_update_start = std::chrono::steady_clock::now();
+
+  // // update covariance
+  // CovarianceUpdate(pool);
+
+  // // factorize covariance
+  // double* factor = scratch0_covariance_.data();
+
+  // if (band_covariance_) {
+  //   // convert
+  //   mju_dense2Band(factor, covariance_update_.data(), ntotal, nband, ndense);
+
+  //   // factorize
+  //   mju_cholFactorBand(factor, ntotal, nband, ndense, 0.0, 0.0);
+  // } else {
+  //   // copy
+  //   mju_copy(factor, covariance_update_.data(), dim_vel);
+
+  //   // factorize
+  //   mju_cholFactor(factor, dim_vel, 0.0);
+  // }
+
+  // // update prior weight
+  // double* PT = weight_prior_update_.data();
+  // double* In = scratch1_covariance_.data();
+  // mju_eye(In, dim_vel);
+
+  // // -- P^T = L^-T L^-1 -- //
+
+  // // pool count
+  // int count_begin = pool.GetCount();
+
+  // // loop
+  // for (int i = 0; i < dim_vel; i++) {
+  //   pool.Schedule([&PT, &factor, &In, dim_vel, ntotal, nband, ndense, i]() {
+  //     mju_cholSolveBand(PT + i * dim_vel, factor, In, ntotal, nband, ndense);
+  //   });
+  // }
+
+  // // wait
+  // pool.WaitCount(count_begin + dim_vel);
+
+  // // reset count
+  // pool.ResetCount();
+
+  // // update
+  // mju_copy(covariance_.data(), covariance_update_.data(), dim_vel * dim_vel);
 }
 
 // optimize trajectory estimate
@@ -1347,22 +1379,8 @@ void Estimator::Optimize(ThreadPool& pool) {
   int ndense = 0;
   int nnz = BandMatrixNonZeros(ntotal, nband);
 
-  // timing
-  double timer_prior_update = 0.0;
-  double timer_inverse_dynamics_derivatives = 0.0;
-  double timer_velacc_derivatives = 0.0;
-  double timer_jacobian_prior = 0.0;
-  double timer_jacobian_sensor = 0.0;
-  double timer_jacobian_force = 0.0;
-  double timer_cost_prior_derivatives = 0.0;
-  double timer_cost_sensor_derivatives = 0.0;
-  double timer_cost_force_derivatives = 0.0;
-  double timer_cost_gradient = 0.0;
-  double timer_cost_hessian = 0.0;
-  double timer_cost_derivatives = 0.0;
-  double timer_covariance_update = 0.0;
-  double timer_search_direction = 0.0;
-  double timer_line_search = 0.0;
+  // reset timers
+  ResetTimers();
 
   // ----- prior update ----- //
 
@@ -1373,25 +1391,15 @@ void Estimator::Optimize(ThreadPool& pool) {
   PriorUpdate();
 
   // stop timer
-  timer_prior_update = GetDuration(prior_update_start);
+  timer_prior_update_ = GetDuration(prior_update_start);
 
-  // ----- compute cost ----- //
-
-  // initialize
-  double cost_prior = MAX_ESTIMATOR_COST;
-  double cost_sensor = MAX_ESTIMATOR_COST;
-  double cost_force = MAX_ESTIMATOR_COST;
+  // ----- compute initial cost ----- //
 
   // compute
-  double cost = Cost(cost_prior, cost_sensor, cost_force);
+  cost_ = Cost();
 
-  // printf cost
-  if (verbose_cost_) {
-    printf("cost (0): %.5f\n", cost);
-    printf("  prior: %.5f\n", cost_prior);
-    printf("  sensor: %.5f\n", cost_sensor);
-    printf("  force: %.5f\n", cost_force);
-  }
+  // cost status
+  PrintCost();
 
   // ----- smoother iterations ----- //
   int iterations_smoother = 0;
@@ -1425,7 +1433,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     pool.ResetCount();
 
     // stop timer
-    timer_inverse_dynamics_derivatives += GetDuration(inverse_dynamics_start);
+    timer_inverse_dynamics_derivatives_ += GetDuration(inverse_dynamics_start);
 
     // -- compute velocity, acceleration derivatives -- //
 
@@ -1440,7 +1448,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     }
 
     // stop timer
-    timer_velacc_derivatives += GetDuration(velacc_derivatives_start);
+    timer_velacc_derivatives_ += GetDuration(velacc_derivatives_start);
 
     // -- derivatives -- //
 
@@ -1519,12 +1527,12 @@ void Estimator::Optimize(ThreadPool& pool) {
     pool.ResetCount();
 
     // timers
-    timer_jacobian_prior +=
+    timer_jacobian_prior_ +=
         prior_flag_ * mju_sum(timer_prior_step_.data(), configuration_length_);
-    timer_jacobian_sensor += sensor_flag_ * mju_sum(timer_sensor_step_.data(),
-                                                    configuration_length_ - 2);
-    timer_jacobian_force += force_flag_ * mju_sum(timer_force_step_.data(),
-                                                  configuration_length_ - 2);
+    timer_jacobian_sensor_ += sensor_flag_ * mju_sum(timer_sensor_step_.data(),
+                                                     configuration_length_ - 2);
+    timer_jacobian_force_ += force_flag_ * mju_sum(timer_force_step_.data(),
+                                                   configuration_length_ - 2);
 
     // -- cost derivatives -- //
 
@@ -1533,7 +1541,7 @@ void Estimator::Optimize(ThreadPool& pool) {
 
     // prior derivatives
     if (prior_flag_) {
-      pool.Schedule([&estimator = *this, &timer_cost_prior_derivatives]() {
+      pool.Schedule([&estimator = *this]() {
         // start derivative timer
         auto cost_prior_start = std::chrono::steady_clock::now();
 
@@ -1542,13 +1550,14 @@ void Estimator::Optimize(ThreadPool& pool) {
                             estimator.cost_hessian_prior_.data());
 
         // stop derivative timer
-        timer_cost_prior_derivatives += GetDuration(cost_prior_start);
+        estimator.timer_cost_prior_derivatives_ +=
+            GetDuration(cost_prior_start);
       });
     }
 
     // sensor derivatives
     if (sensor_flag_) {
-      pool.Schedule([&estimator = *this, &timer_cost_sensor_derivatives]() {
+      pool.Schedule([&estimator = *this]() {
         // start derivative timer
         auto cost_sensor_start = std::chrono::steady_clock::now();
 
@@ -1557,13 +1566,14 @@ void Estimator::Optimize(ThreadPool& pool) {
                              estimator.cost_hessian_sensor_.data());
 
         // stop derivative timer
-        timer_cost_sensor_derivatives += GetDuration(cost_sensor_start);
+        estimator.timer_cost_sensor_derivatives_ +=
+            GetDuration(cost_sensor_start);
       });
     }
 
     // force derivatives
     if (force_flag_) {
-      pool.Schedule([&estimator = *this, &timer_cost_force_derivatives]() {
+      pool.Schedule([&estimator = *this]() {
         // start derivative timer
         auto cost_force_start = std::chrono::steady_clock::now();
 
@@ -1572,7 +1582,8 @@ void Estimator::Optimize(ThreadPool& pool) {
                             estimator.cost_hessian_force_.data());
 
         // stop derivative timer
-        timer_cost_force_derivatives += GetDuration(cost_force_start);
+        estimator.timer_cost_force_derivatives_ +=
+            GetDuration(cost_force_start);
       });
     }
 
@@ -1592,12 +1603,10 @@ void Estimator::Optimize(ThreadPool& pool) {
     CostGradient();
 
     // stop gradient timer
-    timer_cost_gradient += GetDuration(cost_gradient_start);
+    timer_cost_gradient_ += GetDuration(cost_gradient_start);
 
     // gradient tolerance check
-    double gradient_norm =
-        mju_norm(gradient, dim_vel) /
-        dim_vel;  // TODO(taylor):  normalization -> sqrt(dim_vel)?
+    double gradient_norm = mju_norm(gradient, dim_vel) / dim_vel;
     if (gradient_norm < gradient_tolerance_) break;
 
     // -- cumulative Hessian -- //
@@ -1610,10 +1619,10 @@ void Estimator::Optimize(ThreadPool& pool) {
     CostHessian();
 
     // stop Hessian timer
-    timer_cost_hessian += GetDuration(cost_hessian_start);
+    timer_cost_hessian_ += GetDuration(cost_hessian_start);
 
     // stop timer
-    timer_cost_derivatives += GetDuration(cost_derivatives_start);
+    timer_cost_derivatives_ += GetDuration(cost_derivatives_start);
 
     // ----- search direction ----- //
 
@@ -1667,7 +1676,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     }
 
     // end timer
-    timer_search_direction += GetDuration(search_direction_start);
+    timer_search_direction_ += GetDuration(search_direction_start);
 
     // ----- line search ----- //
     // TODO(taylor): option for curve search
@@ -1679,13 +1688,13 @@ void Estimator::Optimize(ThreadPool& pool) {
     mju_copy(configuration_copy_.data(), configuration_.data(), dim_con);
 
     // initialize
-    double cost_candidate = cost;
+    double cost_candidate = cost_;
     int iteration_line_search = 0;
     double step_size = 2.0;
 
     // backtracking until cost decrease
     // TODO(taylor): Armijo, Wolfe conditions
-    while (cost_candidate >= cost) {
+    while (cost_candidate >= cost_) {
       // check for max iterations
       if (iteration_line_search > max_line_search_) {
         // reset configuration
@@ -1703,7 +1712,7 @@ void Estimator::Optimize(ThreadPool& pool) {
                           -1.0 * step_size);
 
       // cost
-      cost_candidate = Cost(cost_prior, cost_sensor, cost_force);
+      cost_candidate = Cost();
 
       // update iteration
       iteration_line_search++;
@@ -1712,98 +1721,21 @@ void Estimator::Optimize(ThreadPool& pool) {
     iterations_line_search += iteration_line_search;
 
     // end timer
-    timer_line_search += GetDuration(line_search_start);
+    timer_line_search_ += GetDuration(line_search_start);
 
     // update cost
-    cost = cost_candidate;
+    cost_ = cost_candidate;
 
     // print cost
-    if (verbose_cost_) {
-      printf("cost (%i): %.5f\n", iterations_smoother + 1, cost);
-      printf("  prior: %.5f\n", cost_prior);
-      printf("  sensor: %.5f\n", cost_sensor);
-      printf("  force: %.5f\n", cost_force);
-    }
+    PrintCost();
   }
 
-  // // -- update covariance -- //
-
-  // // start timer
-  // auto covariance_update_start = std::chrono::steady_clock::now();
-
-  // // update covariance
-  // CovarianceUpdate(pool);
-
-  // // factorize covariance
-  // double* factor = scratch0_covariance_.data();
-
-  // if (band_covariance_) {
-  //   // convert
-  //   mju_dense2Band(factor, covariance_update_.data(), ntotal, nband, ndense);
-
-  //   // factorize
-  //   mju_cholFactorBand(factor, ntotal, nband, ndense, 0.0, 0.0);
-  // } else {
-  //   // copy
-  //   mju_copy(factor, covariance_update_.data(), dim_vel);
-
-  //   // factorize
-  //   mju_cholFactor(factor, dim_vel, 0.0);
-  // }
-
-  // // update prior weight
-  // double* PT = weight_prior_update_.data();
-  // double* In = scratch1_covariance_.data();
-  // mju_eye(In, dim_vel);
-
-  // // -- P^T = L^-T L^-1 -- //
-
-  // // pool count
-  // int count_begin = pool.GetCount();
-
-  // // loop
-  // for (int i = 0; i < dim_vel; i++) {
-  //   pool.Schedule([&PT, &factor, &In, dim_vel, ntotal, nband, ndense, i]() {
-  //     mju_cholSolveBand(PT + i * dim_vel, factor, In, ntotal, nband, ndense);
-  //   });
-  // }
-
-  // // wait
-  // pool.WaitCount(count_begin + dim_vel);
-
-  // // reset count
-  // pool.ResetCount();
-
-  // // update
-  // mju_copy(covariance_.data(), covariance_update_.data(), dim_vel * dim_vel);
-
-  // // end timer
-  // timer_covariance_update += GetDuration(covariance_update_start);
-
-  // update cost
-  cost_ = cost;
-  cost_prior_ = cost_prior;
-  cost_sensor_ = cost_sensor;
-  cost_force_ = cost_force;
+  // ----- GUI update ----- //
+  // update costs
 
   // set timers
-  timer_prior_update_ = timer_prior_update;
-  timer_inverse_dynamics_derivatives_ = timer_inverse_dynamics_derivatives;
-  timer_velacc_derivatives_ = timer_velacc_derivatives;
-  timer_jacobian_prior_ = timer_jacobian_prior;
-  timer_jacobian_sensor_ = timer_jacobian_sensor;
-  timer_jacobian_force_ = timer_jacobian_force;
-  timer_cost_prior_derivatives_ = timer_cost_prior_derivatives;
-  timer_cost_sensor_derivatives_ = timer_cost_sensor_derivatives;
-  timer_cost_force_derivatives_ = timer_cost_force_derivatives;
-  timer_cost_gradient_ = timer_cost_gradient;
-  timer_cost_hessian_ = timer_cost_hessian;
-  timer_cost_derivatives_ = timer_cost_derivatives;
-  timer_search_direction_ = timer_search_direction;
-  timer_covariance_update_ = timer_covariance_update;
-  timer_line_search_ = timer_line_search;
 
-  // status
+  // set status for GUI
   iterations_line_search_ = iterations_line_search;
   iterations_smoother_ = iterations_smoother;
 
@@ -1851,18 +1783,33 @@ void Estimator::PrintStatus() {
   printf("  iterations smoother: %i\n", iterations_smoother_);
 }
 
-// resize number of mjData
-// TODO(taylor): one method for planner and estimator?
-void Estimator::ResizeMjData(const mjModel* model, int num_threads) {
-  int new_size = std::max(1, num_threads);
-  if (data_.size() > new_size) {
-    data_.erase(data_.begin() + new_size, data_.end());
-  } else {
-    data_.reserve(new_size);
-    while (data_.size() < new_size) {
-      data_.push_back(MakeUniqueMjData(mj_makeData(model)));
-    }
+// print cost
+void Estimator::PrintCost() {
+  if (verbose_cost_) {
+    printf("cost (total): %.5f\n", cost_);
+    printf("  prior: %.5f\n", cost_prior_);
+    printf("  sensor: %.5f\n", cost_sensor_);
+    printf("  force: %.5f\n", cost_force_);
   }
+}
+
+// reset timers
+void Estimator::ResetTimers() {
+  timer_prior_update_ = 0.0;
+  timer_inverse_dynamics_derivatives_ = 0.0;
+  timer_velacc_derivatives_ = 0.0;
+  timer_jacobian_prior_ = 0.0;
+  timer_jacobian_sensor_ = 0.0;
+  timer_jacobian_force_ = 0.0;
+  timer_cost_prior_derivatives_ = 0.0;
+  timer_cost_sensor_derivatives_ = 0.0;
+  timer_cost_force_derivatives_ = 0.0;
+  timer_cost_gradient_ = 0.0;
+  timer_cost_hessian_ = 0.0;
+  timer_cost_derivatives_ = 0.0;
+  timer_covariance_update_ = 0.0;
+  timer_search_direction_ = 0.0;
+  timer_line_search_ = 0.0;
 }
 
 }  // namespace mjpc

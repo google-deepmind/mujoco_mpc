@@ -122,8 +122,7 @@ TEST(BatchOptimize, Particle2D) {
   }
 
   // cost
-  double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+  double cost_random = estimator.Cost();
 
   // change to band covariance 
   estimator.band_covariance_ = true;
@@ -257,8 +256,7 @@ TEST(BatchOptimize, Box3D) {
   }
 
   // cost (pre)
-  double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+  double cost_random = estimator.Cost();
 
   // change to band covariance 
   estimator.band_covariance_ = true;
@@ -405,8 +403,7 @@ TEST(BatchOptimize, Quadruped) {
   mju_fill(estimator.weight_force_, 1.0, 4);
 
   // cost (pre)
-  double cost_random = estimator.Cost(
-      estimator.cost_prior_, estimator.cost_sensor_, estimator.cost_force_);
+  double cost_random = estimator.Cost();
 
   // optimize
   estimator.Optimize(pool);

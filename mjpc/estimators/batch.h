@@ -97,7 +97,7 @@ class Estimator {
   void VelocityAccelerationDerivatives(int t);
 
   // compute total cost
-  double Cost(double& cost_prior, double& cost_sensor, double& cost_force);
+  double Cost();
 
   // compute total gradient 
   void CostGradient();
@@ -117,8 +117,11 @@ class Estimator {
   // print status 
   void PrintStatus();
 
-  // resize number of mjData
-  void ResizeMjData(const mjModel* model, int num_threads);
+  // print cost
+  void PrintCost();
+
+  // reset timers 
+  void ResetTimers();
 
   // model
   mjModel* model_;

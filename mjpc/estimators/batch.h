@@ -45,7 +45,7 @@ class Estimator {
   void Reset();
 
   // prior cost
-  double CostPrior(double* gradient, double* hessian);
+  double CostPrior(double* gradient, double* hessian, ThreadPool& pool);
 
   // prior residual
   void ResidualPrior(int t);
@@ -60,7 +60,7 @@ class Estimator {
   void JacobianPrior(ThreadPool& pool);
 
   // sensor cost
-  double CostSensor(double* gradient, double* hessian);
+  double CostSensor(double* gradient, double* hessian, ThreadPool& pool);
 
   // sensor residual
   void ResidualSensor(int t);
@@ -75,7 +75,7 @@ class Estimator {
   void JacobianSensor(ThreadPool& pool);
 
   // force cost
-  double CostForce(double* gradient, double* hessian);
+  double CostForce(double* gradient, double* hessian, ThreadPool& pool);
 
   // force residual
   void ResidualForce(int t);

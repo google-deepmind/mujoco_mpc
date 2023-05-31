@@ -144,15 +144,12 @@ TEST(ForceResidual, Particle) {
   fd.Compute(residual_inverse_dynamics, update.data(), dim_res, dim_vel);
 
   // estimator
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
+
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
-    estimator.JacobianForce(t);
+    estimator.AssembleJacobianForce(t);
   }
 
   // error
@@ -310,15 +307,11 @@ TEST(ForceResidual, Box) {
   fd.Compute(residual_inverse_dynamics, update.data(), dim_res, dim_vel);
 
   // estimator
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockForce(t);
-    estimator.JacobianForce(t);
+    estimator.AssembleJacobianForce(t);
   }
 
   // error
@@ -499,16 +492,12 @@ TEST(ForceCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualForce(t);
     estimator.BlockForce(t);
-    estimator.JacobianForce(t);
+    estimator.AssembleJacobianForce(t);
   }
 
   // cost
@@ -725,16 +714,12 @@ TEST(ForceCost, Box) {
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualForce(t);
     estimator.BlockForce(t);
-    estimator.JacobianForce(t);
+    estimator.AssembleJacobianForce(t);
   }
 
   // cost

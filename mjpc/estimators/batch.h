@@ -50,11 +50,14 @@ class Estimator {
   // prior residual
   void ResidualPrior(int t);
 
-  // prior Jacobian
-  void JacobianPrior(int t);
+  // assemble (dense) prior Jacobian
+  void AssembleJacobianPrior(int t);
 
   // prior Jacobian block
   void BlockPrior(int t);
+
+  // prior Jacobian 
+  void JacobianPrior(ThreadPool& pool);
 
   // sensor cost
   double CostSensor(double* gradient, double* hessian);
@@ -62,11 +65,14 @@ class Estimator {
   // sensor residual
   void ResidualSensor(int t);
 
-  // sensor Jacobian
-  void JacobianSensor(int t);
+  // assemble (dense) sensor Jacobian
+  void AssembleJacobianSensor(int t);
 
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
   void BlockSensor(int t);
+
+  // sensor Jacobian 
+  void JacobianSensor(ThreadPool& pool);
 
   // force cost
   double CostForce(double* gradient, double* hessian);
@@ -74,17 +80,20 @@ class Estimator {
   // force residual
   void ResidualForce(int t);
 
-  // force Jacobian
-  void JacobianForce(int t);
+  // assemble (dense) force Jacobian
+  void AssembleJacobianForce(int t);
 
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
   void BlockForce(int t);
+
+  // force Jacobian 
+  void JacobianForce(ThreadPool& pool);
 
   // compute sensor and force predictions via inverse dynamics
   void InverseDynamicsPrediction(int t);
 
   // compute inverse dynamics derivatives (via finite difference)
-  void InverseDynamicsDerivatives(int t);
+  void InverseDynamicsDerivatives(ThreadPool& pool);
 
   // update configuration trajectory
   void UpdateConfiguration(double* candidate, const double* configuration,
@@ -94,10 +103,10 @@ class Estimator {
   void ConfigurationToVelocityAcceleration(int t);
 
   // compute finite-difference velocity, acceleration derivatives
-  void VelocityAccelerationDerivatives(int t);
+  void VelocityAccelerationDerivatives(ThreadPool& pool);
 
   // compute total cost
-  double Cost();
+  double Cost(ThreadPool& pool);
 
   // compute total gradient 
   void CostGradient();

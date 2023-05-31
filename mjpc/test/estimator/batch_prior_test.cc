@@ -133,7 +133,7 @@ TEST(PriorResidual, Particle) {
   // estimator
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
 
   // error
@@ -240,7 +240,7 @@ TEST(PriorResidual, Box) {
   // estimator
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
 
   // error
@@ -356,7 +356,7 @@ TEST(PriorCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
 
   double cost_estimator =
@@ -491,7 +491,7 @@ TEST(PriorCost, Box) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
 
   double cost_estimator =
@@ -623,7 +623,7 @@ TEST(ApproximatePriorCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.ResidualPrior(t);
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
 
   double cost_estimator =
@@ -771,7 +771,7 @@ TEST(ApproximatePriorCost, Box) {
   }
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
-    estimator.JacobianPrior(t);
+    estimator.AssembleJacobianPrior(t);
   }
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);

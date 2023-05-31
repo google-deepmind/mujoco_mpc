@@ -144,15 +144,11 @@ TEST(MeasurementResidual, Particle) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
-    estimator.JacobianSensor(t);
+    estimator.AssembleJacobianSensor(t);
   }
 
   // error
@@ -304,15 +300,11 @@ TEST(MeasurementResidual, Box) {
   fd.Compute(residual_measurement, update.data(), dim_res, dim_vel);
 
   // estimator
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
-    estimator.JacobianSensor(t);
+    estimator.AssembleJacobianSensor(t);
   }
 
   // error
@@ -519,16 +511,12 @@ TEST(MeasurementCost, Particle) {
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
-    estimator.JacobianSensor(t);
+    estimator.AssembleJacobianSensor(t);
   }
 
   // cost
@@ -748,16 +736,12 @@ TEST(MeasurementCost, Box) {
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.InverseDynamicsPrediction(t);
   }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsDerivatives(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.VelocityAccelerationDerivatives(t);
-  }
+  estimator.InverseDynamicsDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives(pool);
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
-    estimator.JacobianSensor(t);
+    estimator.AssembleJacobianSensor(t);
   }
 
   // cost

@@ -1575,16 +1575,12 @@ void Estimator::Optimize(ThreadPool& pool) {
     // pool count
     count_begin = pool.GetCount();
 
-    // prior derivatives
+    // individual derivatives
     if (prior_flag_)
       CostPrior(cost_gradient_prior_.data(), cost_hessian_prior_.data(), pool);
-
-    // sensor derivatives
     if (sensor_flag_)
       CostSensor(cost_gradient_sensor_.data(), cost_hessian_sensor_.data(),
                  pool);
-
-    // force derivatives
     if (force_flag_)
       CostForce(cost_gradient_force_.data(), cost_hessian_force_.data(), pool);
 

@@ -1424,4 +1424,36 @@ double GetDuration(std::chrono::steady_clock::time_point tp) {
       .count();
 }
 
+// copy symmetric band matrix block by block
+void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
+                             int nblock, int num_blocks, double* scratch) {
+  // total dimension
+  int dim = dblock * num_blocks;
+
+  // tmp: block from mat
+  double* tmp1 = scratch;
+  double* tmp2 = scratch + dblock * dblock;
+
+  // loop over upper band
+  for (int i = 0; i < num_blocks; i++) {
+    // number of columns to loop over for row
+    int num_cols = mju_min(nblock, num_blocks - i);
+
+    for (int j = i; j < i + num_cols; j++) {
+      // get block from A 
+      BlockFromMatrix(tmp1, mat, dblock, dblock, dim, dim, i * dblock, j * dblock);
+  
+      // set block in matrix
+      AddBlockInMatrix(res, tmp1, 1.0, dim, dim, dblock, dblock, i * dblock,
+                       j * dblock);
+
+      if (j > i) {
+        mju_transpose(tmp2, tmp1, dblock, dblock);
+        AddBlockInMatrix(res, tmp2, 1.0, dim, dim, dblock, dblock, j * dblock,
+                         i * dblock);
+      }
+    }
+  }
+}
+
 }  // namespace mjpc

@@ -360,6 +360,11 @@ void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
 // get duration since time point 
 double GetDuration(std::chrono::steady_clock::time_point time);
 
+// copy symmetric band matrix block by block
+// TODO(taylor): multi-threaded triple add for estimator
+void SymmetricBandMatrixCopy(double* res, const double* A, int dblock,
+                             int nblock, int num_blocks, double* scratch);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

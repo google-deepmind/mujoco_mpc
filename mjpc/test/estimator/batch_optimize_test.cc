@@ -305,7 +305,7 @@ TEST(BatchOptimize, Quadruped) {
   printf("T: %i\n", T);
   
   // pool 
-  int num_thread = 9;
+  int num_thread = 10;
   ThreadPool pool(num_thread);
 
   printf("num thread: %i\n", num_thread);
@@ -406,6 +406,7 @@ TEST(BatchOptimize, Quadruped) {
   double cost_random = estimator.Cost(pool);
 
   // optimize
+  estimator.band_copy_ = true;
   estimator.Optimize(pool);
 
   printf("cost random: %.5f\n", cost_random);

@@ -28,6 +28,16 @@ namespace mjpc {
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 
+// search type for update
+enum SearchType : int {
+  kLineSearch = 0,
+  kCurveSearch,
+};
+
+// maximum / minimum regularization 
+const double MAX_REGULARIZATION = 1.0e6;
+const double MIN_REGULARIZATION = 1.0e-6;
+
 // batch estimator
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
 class Estimator {
@@ -45,7 +55,7 @@ class Estimator {
   void Reset();
 
   // prior cost
-  double CostPrior(double* gradient, double* hessian, ThreadPool& pool);
+  double CostPrior(double* gradient, double* hessian);
 
   // prior residual
   void ResidualPrior(int t);
@@ -60,7 +70,7 @@ class Estimator {
   void JacobianPrior(ThreadPool& pool);
 
   // sensor cost
-  double CostSensor(double* gradient, double* hessian, ThreadPool& pool);
+  double CostSensor(double* gradient, double* hessian);
 
   // sensor residual
   void ResidualSensor(int t);
@@ -75,7 +85,7 @@ class Estimator {
   void JacobianSensor(ThreadPool& pool);
 
   // force cost
-  double CostForce(double* gradient, double* hessian, ThreadPool& pool);
+  double CostForce(double* gradient, double* hessian);
 
   // force residual
   void ResidualForce(int t);
@@ -112,7 +122,7 @@ class Estimator {
   void CostGradient();
 
   // compute total Hessian 
-  void CostHessian();
+  void CostHessian(ThreadPool& pool);
 
   // prior update
   void PriorUpdate();
@@ -122,6 +132,12 @@ class Estimator {
 
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);
+
+  // regularize Hessian 
+  void Regularize();
+
+  // search direction 
+  void SearchDirection();
 
   // print status 
   void PrintStatus();
@@ -226,8 +242,8 @@ class Estimator {
   // cost scratch
   std::vector<double> scratch0_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch1_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch0_sensor_;        // (max(nv, ns) * MAX_HISTORY) * (max(nv, ns) * MAX_HISTORY)
-  std::vector<double> scratch1_sensor_;        // (max(nv, ns) * MAX_HISTORY) * (max(nv, ns) * MAX_HISTORY)
+  std::vector<double> scratch0_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
+  std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
   std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
@@ -256,7 +272,7 @@ class Estimator {
   std::vector<double> norm_gradient_force_;    // nv * MAX_HISTORY
 
   // norm Hessian
-  std::vector<double> norm_hessian_sensor_;    // (ns * MAX_HISTORY) * (ns * MAX_HISTORY)
+  std::vector<double> norm_hessian_sensor_;    // (ns * ns * MAX_HISTORY)
   std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> norm_blocks_sensor_;     // (ns * ns) x MAX_HISTORY
   std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
@@ -276,6 +292,13 @@ class Estimator {
 
   double covariance_initial_scaling_;
 
+  // regularization 
+  double regularization_;
+
+  // search type 
+  SearchType search_type_;
+  double step_size_;
+
   // timing
   double timer_total_;
   double timer_prior_update_;
@@ -284,15 +307,20 @@ class Estimator {
   double timer_jacobian_prior_;
   double timer_jacobian_sensor_;
   double timer_jacobian_force_;
+  double timer_jacobian_total_;
   double timer_cost_prior_derivatives_;
   double timer_cost_sensor_derivatives_;
   double timer_cost_force_derivatives_;
+  double timer_cost_total_derivatives_;
   double timer_cost_gradient_;
   double timer_cost_hessian_;
   double timer_cost_derivatives_;
+  double timer_cost_;
   double timer_covariance_update_;
   double timer_search_direction_;
-  double timer_line_search_;
+  double timer_search_;
+  double timer_configuration_update_;
+  double timer_optimize_;
   std::vector<double> timer_prior_step_;
   std::vector<double> timer_sensor_step_;
   std::vector<double> timer_force_step_;
@@ -303,17 +331,22 @@ class Estimator {
   bool force_flag_ = true;
 
   // status 
-  int iterations_smoother_;             // total smoother iterations after Optimize
-  int iterations_line_search_;          // total line search iterations 
-  bool prior_reset_ = true;             // prior reset status
+  int iterations_smoother_;                 // total smoother iterations after Optimize
+  int iterations_line_search_;              // total line search iterations 
+  bool hessian_factor_ = false;             // prior reset status
+  int cost_count_;
   
   // settings
-  int max_line_search_ = 10;            // maximum number of line search iterations
-  int max_smoother_iterations_ = 20;    // maximum number of smoothing iterations
-  double gradient_tolerance_ = 1.0e-5;  // small gradient tolerance
-  bool verbose_status_ = false;         // flag for printing status
-  bool verbose_cost_ = false;           // flag for printing cost
-  bool band_covariance_ = false;        // approximate covariance for prior
+  int max_line_search_ = 10;                // maximum number of line search iterations
+  int max_smoother_iterations_ = 20;        // maximum number of smoothing iterations
+  double gradient_tolerance_ = 1.0e-5;      // small gradient tolerance
+  bool verbose_status_ = false;             // flag for printing status
+  bool verbose_cost_ = false;               // flag for printing cost
+  bool band_covariance_ = false;            // approximate covariance for prior
+  double regularization_initial_ = 1.0e-3;  // initial regularization
+  double step_scaling_ = 0.5;               // step size scaling
+  double regularization_scaling_ = 10.0;    // regularization scaling
+  bool band_copy_ = true;                   // copy band matrices by block
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

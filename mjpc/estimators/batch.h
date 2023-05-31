@@ -316,6 +316,14 @@ class Estimator {
   double timer_cost_hessian_;
   double timer_cost_derivatives_;
   double timer_cost_;
+  double timer_cost_prior_;
+  double timer_cost_sensor_;
+  double timer_cost_force_;
+  double timer_cost_config_to_velacc_;
+  double timer_cost_prediction_;
+  double timer_residual_prior_;
+  double timer_residual_sensor_;
+  double timer_residual_force_;
   double timer_covariance_update_;
   double timer_search_direction_;
   double timer_search_;

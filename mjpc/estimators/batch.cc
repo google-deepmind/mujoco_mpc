@@ -1078,7 +1078,7 @@ void Estimator::InverseDynamicsPrediction(int t) {
   double* at = acceleration_.data() + t * nv;
 
   // data
-  mjData* d = data_[0].get();
+  mjData* d = data_[t].get();
 
   // set qt, vt, at
   mju_copy(d->qpos, qt, nq);
@@ -1266,38 +1266,66 @@ double Estimator::Cost(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
   
   // finite-difference velocities, accelerations
+  auto start_config_to_velacc = std::chrono::steady_clock::now();
   for (int t = 0; t < configuration_length_ - 1; t++) {
     ConfigurationToVelocityAcceleration(t);
   }
+  timer_cost_config_to_velacc_ += GetDuration(start_config_to_velacc);
 
   // compute sensor and force predictions
+  auto start_prediction = std::chrono::steady_clock::now();
+
+  // pool count 
+  int count_before = pool.GetCount();
   for (int t = 0; t < configuration_length_ - 2; t++) {
-    InverseDynamicsPrediction(t);
+    pool.Schedule([&estimator = *this, t]() {
+      estimator.InverseDynamicsPrediction(t);
+    });
   }
+  // wait 
+  pool.WaitCount(count_before + configuration_length_ - 2);
+  pool.ResetCount();
+  // for (int t = 0; t < configuration_length_ - 2; t++) {
+  //     InverseDynamicsPrediction(t);
+  // }
+  // stop timer
+  timer_cost_prediction_ += GetDuration(start_prediction);
 
   // residuals
   for (int t = 0; t < configuration_length_; t++) {
     // prior
+    auto start_residual_prior = std::chrono::steady_clock::now();
     if (prior_flag_) ResidualPrior(t);
+    timer_residual_prior_ += GetDuration(start_residual_prior);
 
     // skip
     if (t >= configuration_length_ - 2) continue;
 
     // sensor
+    auto start_residual_sensor = std::chrono::steady_clock::now();
     if (sensor_flag_) ResidualSensor(t);
+    timer_residual_sensor_ += GetDuration(start_residual_sensor);
 
     // force
+    auto start_residual_force = std::chrono::steady_clock::now();
     if (force_flag_) ResidualForce(t);
+    timer_residual_force_ += GetDuration(start_residual_force);
   }
 
   // prior
+  auto start_prior = std::chrono::steady_clock::now();
   cost_prior_ = (prior_flag_ ? CostPrior(NULL, NULL) : 0.0);
+  timer_cost_prior_ += GetDuration(start_prior);
 
   // sensor
+  auto start_sensor = std::chrono::steady_clock::now();
   cost_sensor_ = (sensor_flag_ ? CostSensor(NULL, NULL) : 0.0);
+  timer_cost_sensor_ += GetDuration(start_sensor);
 
   // force
+  auto start_force = std::chrono::steady_clock::now();
   cost_force_ = (force_flag_ ? CostForce(NULL, NULL) : 0.0);
+  timer_cost_force_ += GetDuration(start_force);
 
   // total cost  
   double cost = cost_prior_ + cost_sensor_ + cost_force_;
@@ -1824,6 +1852,14 @@ void Estimator::PrintStatus() {
   printf("  covariance: %.5f (ms) \n", 1.0e-3 * timer_prior_update_);
   printf("\n");
   printf("  cost (initial): %.5f (ms) \n", 1.0e-3 * timer_cost_ / cost_count_);
+  printf("    - prior: %.5f (ms) \n", 1.0e-3 * timer_cost_prior_ / cost_count_);
+  printf("    - sensor: %.5f (ms) \n", 1.0e-3 * timer_cost_sensor_ / cost_count_);
+  printf("    - force: %.5f (ms) \n", 1.0e-3 * timer_cost_force_ / cost_count_);
+  printf("    - qpos -> qvel, qacc: %.5f (ms) \n", 1.0e-3 * timer_cost_config_to_velacc_ / cost_count_);
+  printf("    - prediction: %.5f (ms) \n", 1.0e-3 * timer_cost_prediction_ / cost_count_);
+  printf("    - residual prior: %.5f (ms) \n", 1.0e-3 * timer_residual_prior_ / cost_count_);
+  printf("    - residual sensor: %.5f (ms) \n", 1.0e-3 * timer_residual_sensor_ / cost_count_);
+  printf("    - residual force: %.5f (ms) \n", 1.0e-3 * timer_residual_force_ / cost_count_);
   printf("\n");
   printf("  cost derivatives [total]: %.5f (ms) \n", 1.0e-3 * timer_cost_derivatives_);
   printf("    - inverse dynamics derivatives: %.5f (ms) \n",
@@ -1847,7 +1883,15 @@ void Estimator::PrintStatus() {
   printf("  search [total]: %.5f (ms) \n", 1.0e-3 * timer_search_);
   printf("    - direction: %.5f (ms) \n", 1.0e-3 * timer_search_direction_);
   printf("    - cost: %.5f (ms) \n", 1.0e-3 * (timer_cost_ - timer_cost_ / cost_count_));
-  printf("    - configuration update: %.5f (ms) \n", 1.0e-3 * timer_configuration_update_);
+  printf("      < prior: %.5f (ms) \n", 1.0e-3 * (timer_cost_prior_ - timer_cost_prior_ / cost_count_));
+  printf("      < sensor: %.5f (ms) \n", 1.0e-3 * (timer_cost_sensor_ - timer_cost_sensor_ / cost_count_));
+  printf("      < force: %.5f (ms) \n", 1.0e-3 * (timer_cost_force_ - timer_cost_force_ / cost_count_));
+  printf("      < qpos -> qvel, qacc: %.5f (ms) \n", 1.0e-3 * (timer_cost_config_to_velacc_ - timer_cost_config_to_velacc_ / cost_count_));
+  printf("      < prediction: %.5f (ms) \n", 1.0e-3 * (timer_cost_prediction_ - timer_cost_prediction_ / cost_count_));
+  printf("      < residual prior: %.5f (ms) \n", 1.0e-3 * (timer_residual_prior_ - timer_residual_prior_ / cost_count_));
+  printf("      < residual sensor: %.5f (ms) \n", 1.0e-3 * (timer_residual_sensor_ - timer_residual_sensor_ / cost_count_));
+  printf("      < residual force: %.5f (ms) \n", 1.0e-3 * (timer_residual_force_ - timer_residual_force_ / cost_count_));
+  printf("      < configuration update: %.5f (ms) \n", 1.0e-3 * timer_configuration_update_);
   printf("\n");
   printf("  TOTAL: %.5f (ms) \n", 1.0e-3 * (timer_optimize_));
   printf("\n");
@@ -1885,6 +1929,14 @@ void Estimator::ResetTimers() {
   timer_cost_hessian_ = 0.0;
   timer_cost_derivatives_ = 0.0;
   timer_cost_ = 0.0;
+  timer_cost_prior_ = 0.0;
+  timer_cost_sensor_ = 0.0;
+  timer_cost_force_ = 0.0;
+  timer_cost_config_to_velacc_ = 0.0;
+  timer_cost_prediction_ = 0.0;
+  timer_residual_prior_ = 0.0;
+  timer_residual_sensor_ = 0.0;
+  timer_residual_force_ = 0.0;
   timer_covariance_update_ = 0.0;
   timer_search_direction_ = 0.0;
   timer_search_ = 0.0;

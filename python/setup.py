@@ -277,8 +277,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.7",
     install_requires=[
-        "grpcio-tools >= 1.53.0",
-        "grpcio >= 1.53.0",
+        "grpcio-tools",
+        "grpcio",
     ],
     extras_require={
         "test": [

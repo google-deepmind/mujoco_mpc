@@ -128,7 +128,7 @@ class Estimator {
   void PriorUpdate();
 
   // covariance update 
-  void CovarianceUpdate(ThreadPool& pool);
+  void CovarianceUpdate(int num_new, ThreadPool& pool);
 
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);

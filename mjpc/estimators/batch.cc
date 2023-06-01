@@ -1285,9 +1285,7 @@ double Estimator::Cost(ThreadPool& pool) {
   // wait 
   pool.WaitCount(count_before + configuration_length_ - 2);
   pool.ResetCount();
-  // for (int t = 0; t < configuration_length_ - 2; t++) {
-  //     InverseDynamicsPrediction(t);
-  // }
+ 
   // stop timer
   timer_cost_prediction_ += GetDuration(start_prediction);
 
@@ -1442,133 +1440,101 @@ void Estimator::CostHessian(ThreadPool& pool) {
 }
 
 // covariance update
-void Estimator::CovarianceUpdate(ThreadPool& pool) {
-  // update = covariance - covariance * hessian * covariance'
+void Estimator::CovarianceUpdate(int num_new, ThreadPool& pool) {
+  // start timer 
+  auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int dim = model_->nv * configuration_length_;
+  int nv = model_->nv;
+  int ntotal = nv * configuration_length_;
+  // int nband = 3 * nv;
+  // int ndense = 0;
 
   // unpack
-  double* covariance = covariance_.data();
-  double* update = covariance_update_.data();
+  // double* covariance = covariance_.data();
+  // double* update = covariance_update_.data();
 
-  // -- tmp0 = covariance * hessian -- //
+  if (num_new == 0) { // P = H
+    // weights
+    double* weights = weight_prior_dense_.data();
+    
+    // zero memory
+    mju_zero(weights, ntotal * ntotal);
 
-  // unpack
-  double* tmp0 = scratch0_covariance_.data();
-  double* tmp1 = scratch1_covariance_.data();
-  double* tmp2 = scratch2_covariance_.data();
+    // copy blocks
+    SymmetricBandMatrixCopy(weights, cost_hessian_.data(), nv, 3,
+                            configuration_length_, scratch0_covariance_.data());
+  } else if (num_new == configuration_length_) { // P = sigma * I
+    // weights 
+    double* weights = weight_prior_dense_.data();
+    
+    // zero memory
+    mju_zero(weights, ntotal * ntotal);
 
-  // select solver
-  if (band_covariance_) {
-    int ntotal = dim;
-    int nband = 3 * model_->nv;
-    int ndense = 0;
-
-    // -- tmp0 = mul(hessian, covariance) -- //
-
-    // pool count
-    int count_before = pool.GetCount();
-
-    // loop over covariance
+    // set diagonal 
     for (int i = 0; i < ntotal; i++) {
-      pool.Schedule(
-          [&estimator = *this, &tmp0, &covariance, ntotal, nband, ndense, i]() {
-            mju_bandMulMatVec(
-                tmp0 + ntotal * i, estimator.cost_hessian_band_.data(),
-                covariance + ntotal * i, ntotal, nband, ndense, 1, true);
-          });
+      weights[ntotal * i + i] = scale_prior_;
     }
+  } else { // P = (E22 - E21 E11^-1 E12)^-1
+    // // -- covariance: E = [E11 E12; E21 E22] = H^-1 -- // 
+    
+    // // identity block 
+    // double* I = scratch0_covariance_.data();
+    // mju_eye(I.data(), ntotal);
 
-    // wait
-    pool.WaitCount(count_before + ntotal);
+    // // E = [Ea Eb] = H \ I
+    // double* Ea = scratch1_covariance_.data();  // (nv * T) x (nv * num_new)
+    // double* Eb = scratch1_covariance_.data() +
+    //              (nv * configuration_length) *
+    //                  (nv * num_new);  // (nv * T) x (nv * (T - num_new))
+    // // Ea
+    // for (int i = 0; i < nv * num_new; i++) {
+    //   if (band_covariance_) {
+    //     mju_cholSolveBand(Ea + ntotal * i, cost_hessian_band.data(),
+    //                       I.data() + ntotal * i, ntotal, nband, ndense);
+    //   } else {
+    //     mju_cholSolve(Ea + ntotal * i, cost_hessian_factor.data(),
+    //                   I.data() + ntotal * i, ntotal);
+    //   }
+    // }
 
-    // reset pool count
-    pool.ResetCount();
+    // // Eb 
+    // for (int i = nv * num_new; i < nv * configuration_length; i++) {
+    //   if (band_covariance_) {
+    //     mju_cholSolveBand(Eb + ntotal * (i - nv * num_new),
+    //                       cost_hessian_band.data(), I.data() + ntotal * i, ntotal,
+    //                       nband, ndense);
+    //   } else {
+    //     mju_cholSolve(Eb + ntotal * (i - nv * num_new), cost_hessian_factor.data(),
+    //                   I.data() + ntotal * i, ntotal);
+    //   }
+    // }
 
-    // band covariance
-    mju_dense2Band(tmp2, covariance, ntotal, nband, ndense);
+    // // E11, E12, E21, E22 
+    // double* E11 = Ea;
+    // double* E21 = Ea + (nv * num_new) * (nv * num_new);
+    // double* E12 = Eb;
+    // double* E22 = Eb + (nv * num_new) * (nv * num_new);
 
-    // -- tmp1 = mul(covariance, mul(hessian, covariance)) -- //
+    // // E11^-1 
+    // mju_cholFactor(E11, nv * num_new, 0.0);
 
-    // pool count
-    count_before = pool.GetCount();
+    // // tmp0 = E11^-1 E12 
+    // double* tmp0 = scratch2_covariance.data();
+    // for (int i = 0; i < nv * (configuration_length - num_new); i++) {
+    //   mju_cholSolve(tmp0, E11, E21 + nv * num_new * i, nv * num_new);
+    // }
 
-    // loop over tmp0
-    for (int i = 0; i < ntotal; i++) {
-      pool.Schedule([&tmp0, &tmp1, &tmp2, ntotal, nband, ndense, i]() {
-        mju_bandMulMatVec(tmp1 + ntotal * i, tmp2, tmp0 + ntotal * i, ntotal,
-                          nband, ndense, 1, true);
-      });
-    }
+    // // tmp1 = E21 * tmp0 
+    // double* tmp1 = scratch0_covariance_.data();
+    // mju_mulMatMat(tmp1, E12, tmp0, )
 
-    // wait
-    pool.WaitCount(count_before + ntotal);
-
-    // reset pool count
-    pool.ResetCount();
-
-  } else {  // dense
-    // tmp0 = hessian * covariance'
-    mju_mulMatMatT(tmp0, cost_hessian_.data(), covariance, dim, dim, dim);
-
-    // tmp1 = covariance * tmp0
-    mju_mulMatMat(tmp1, covariance, tmp0, dim, dim, dim);
+    // // Ehat = S22 - tmp1
+    // double* Ehat = ;
   }
 
-  // update = covariance - tmp1
-  mju_sub(update, covariance, tmp1, dim * dim);
-
-  // // -- update covariance -- //
-
-  // // start timer
-  // auto covariance_update_start = std::chrono::steady_clock::now();
-
-  // // update covariance
-  // CovarianceUpdate(pool);
-
-  // // factorize covariance
-  // double* factor = scratch0_covariance_.data();
-
-  // if (band_covariance_) {
-  //   // convert
-  //   mju_dense2Band(factor, covariance_update_.data(), ntotal, nband, ndense);
-
-  //   // factorize
-  //   mju_cholFactorBand(factor, ntotal, nband, ndense, 0.0, 0.0);
-  // } else {
-  //   // copy
-  //   mju_copy(factor, covariance_update_.data(), nvar);
-
-  //   // factorize
-  //   mju_cholFactor(factor, nvar, 0.0);
-  // }
-
-  // // update prior weight
-  // double* PT = weight_prior_update_.data();
-  // double* In = scratch1_covariance_.data();
-  // mju_eye(In, nvar);
-
-  // // -- P^T = L^-T L^-1 -- //
-
-  // // pool count
-  // int count_begin = pool.GetCount();
-
-  // // loop
-  // for (int i = 0; i < nvar; i++) {
-  //   pool.Schedule([&PT, &factor, &In, nvar, ntotal, nband, ndense, i]() {
-  //     mju_cholSolveBand(PT + i * nvar, factor, In, ntotal, nband, ndense);
-  //   });
-  // }
-
-  // // wait
-  // pool.WaitCount(count_begin + nvar);
-
-  // // reset count
-  // pool.ResetCount();
-
-  // // update
-  // mju_copy(covariance_.data(), covariance_update_.data(), nvar * nvar);
+  // stop timer 
+  timer_covariance_update_ += GetDuration(start);
 }
 
 // optimize trajectory estimate

@@ -116,7 +116,7 @@ TEST(Covariance, Update) {
   mju_copy(estimator.cost_hessian_.data(), Dband.data(), dim * dim);
 
   // update
-  estimator.CovarianceUpdate(pool);
+  estimator.CovarianceUpdate(0, pool);
 
   // ----- error ----- //
   std::vector<double> error(dim * dim);
@@ -140,7 +140,7 @@ TEST(Covariance, Update) {
                  3 * model->nv, 0);
 
   // update
-  estimator.CovarianceUpdate(pool);
+  estimator.CovarianceUpdate(0, pool);
 
   // ----- covariance update ----- //
 

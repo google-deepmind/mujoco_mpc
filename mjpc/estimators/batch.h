@@ -128,7 +128,7 @@ class Estimator {
   void PriorUpdate();
 
   // covariance update 
-  void CovarianceUpdate(int num_new, ThreadPool& pool);
+  void PriorWeightUpdate(int num_new, ThreadPool& pool);
 
   // optimize trajectory estimate 
   void Optimize(ThreadPool& pool);
@@ -289,6 +289,8 @@ class Estimator {
   std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
   std::vector<double> scratch2_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> scratch3_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
+  std::vector<double> scratch4_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
 
   double covariance_initial_scaling_;
 
@@ -324,7 +326,7 @@ class Estimator {
   double timer_residual_prior_;
   double timer_residual_sensor_;
   double timer_residual_force_;
-  double timer_covariance_update_;
+  double timer_prior_weight_update_;
   double timer_search_direction_;
   double timer_search_;
   double timer_configuration_update_;

@@ -193,6 +193,8 @@ void Estimator::Initialize(mjModel* model) {
   scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch2_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch3_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch4_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   covariance_initial_scaling_ =
       GetNumberOrDefault(1.0, model, "batch_covariance_initial_scaling");
 
@@ -365,6 +367,8 @@ void Estimator::Reset() {
   std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
   std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
   std::fill(scratch2_covariance_.begin(), scratch2_covariance_.end(), 0.0);
+  std::fill(scratch3_covariance_.begin(), scratch3_covariance_.end(), 0.0);
+  std::fill(scratch4_covariance_.begin(), scratch4_covariance_.end(), 0.0);
 
   // timer
   std::fill(timer_prior_step_.begin(), timer_prior_step_.end(), 0.0);
@@ -1440,20 +1444,17 @@ void Estimator::CostHessian(ThreadPool& pool) {
 }
 
 // covariance update
-void Estimator::CovarianceUpdate(int num_new, ThreadPool& pool) {
+void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
   // start timer 
   auto start = std::chrono::steady_clock::now();
 
   // dimension
   int nv = model_->nv;
   int ntotal = nv * configuration_length_;
-  // int nband = 3 * nv;
-  // int ndense = 0;
+  int nband = 3 * nv;
+  int ndense = 0;
 
-  // unpack
-  // double* covariance = covariance_.data();
-  // double* update = covariance_update_.data();
-
+  // update prior weights
   if (num_new == 0) { // P = H
     // weights
     double* weights = weight_prior_dense_.data();
@@ -1476,65 +1477,195 @@ void Estimator::CovarianceUpdate(int num_new, ThreadPool& pool) {
       weights[ntotal * i + i] = scale_prior_;
     }
   } else { // P = (E22 - E21 E11^-1 E12)^-1
-    // // -- covariance: E = [E11 E12; E21 E22] = H^-1 -- // 
+    // -- covariance: E = [E11 E12; E21 E22] = H^-1 -- // 
+    double* covariance = covariance_.data();
+
+    // identity block 
+    double* I = scratch0_covariance_.data();
+    mju_eye(I, ntotal);
+
+    // -- E = H \ I -- // 
+
+    // pool count 
+    int count_before = pool.GetCount();
+
+    // loop over cols/rows
+    for (int i = 0; i < ntotal; i++) {
+      // schedule
+      pool.Schedule([&estimator = *this, ntotal, nband, ndense, i]() {
+        if (estimator.band_covariance_) {
+          mju_cholSolveBand(estimator.covariance_.data() + ntotal * i,
+                            estimator.cost_hessian_band_.data(),
+                            estimator.scratch0_covariance_.data() + ntotal * i,
+                            ntotal, nband, ndense);
+        } else {
+          mju_cholSolve(estimator.covariance_.data() + ntotal * i,
+                        estimator.cost_hessian_factor_.data(),
+                        estimator.scratch0_covariance_.data() + ntotal * i,
+                        ntotal);
+        }
+      });
+    }
+
+    // wait 
+    pool.WaitCount(count_before + ntotal);
+    pool.ResetCount();
+
+    // band matrix
+    if (band_covariance_) DenseToBlockBand(covariance, ntotal, nv, 3);
     
-    // // identity block 
-    // double* I = scratch0_covariance_.data();
-    // mju_eye(I.data(), ntotal);
+    // E11 
+    double* E11 = scratch1_covariance_.data();
+    BlockFromMatrix(E11, covariance, nv * num_new, nv * num_new,
+                    nv * configuration_length_, nv * configuration_length_, 0,
+                    0);
+    int shift_E12 = (nv * num_new) * (nv * num_new);
 
-    // // E = [Ea Eb] = H \ I
-    // double* Ea = scratch1_covariance_.data();  // (nv * T) x (nv * num_new)
-    // double* Eb = scratch1_covariance_.data() +
-    //              (nv * configuration_length) *
-    //                  (nv * num_new);  // (nv * T) x (nv * (T - num_new))
-    // // Ea
-    // for (int i = 0; i < nv * num_new; i++) {
-    //   if (band_covariance_) {
-    //     mju_cholSolveBand(Ea + ntotal * i, cost_hessian_band.data(),
-    //                       I.data() + ntotal * i, ntotal, nband, ndense);
-    //   } else {
-    //     mju_cholSolve(Ea + ntotal * i, cost_hessian_factor.data(),
-    //                   I.data() + ntotal * i, ntotal);
-    //   }
-    // }
+    // E12 
+    double* E12 = scratch1_covariance_.data() + shift_E12;
+    BlockFromMatrix(E12, covariance, nv * num_new,
+                    nv * (configuration_length_ - num_new),
+                    nv * configuration_length_, nv * configuration_length_, 0,
+                    nv * num_new);
+    int shift_E21 = shift_E12 + (nv * num_new) * (nv * (configuration_length_ - num_new));
 
-    // // Eb 
-    // for (int i = nv * num_new; i < nv * configuration_length; i++) {
-    //   if (band_covariance_) {
-    //     mju_cholSolveBand(Eb + ntotal * (i - nv * num_new),
-    //                       cost_hessian_band.data(), I.data() + ntotal * i, ntotal,
-    //                       nband, ndense);
-    //   } else {
-    //     mju_cholSolve(Eb + ntotal * (i - nv * num_new), cost_hessian_factor.data(),
-    //                   I.data() + ntotal * i, ntotal);
-    //   }
-    // }
+    // E21
+    double* E21 = scratch1_covariance_.data() + shift_E21;
+    BlockFromMatrix(E21, covariance, nv * (configuration_length_ - num_new),
+                    nv * num_new, nv * configuration_length_,
+                    nv * configuration_length_, nv * num_new, 0);
+    int shift_E22 = shift_E21 + (nv * (configuration_length_ - num_new)) * (nv * num_new);
 
-    // // E11, E12, E21, E22 
-    // double* E11 = Ea;
-    // double* E21 = Ea + (nv * num_new) * (nv * num_new);
-    // double* E12 = Eb;
-    // double* E22 = Eb + (nv * num_new) * (nv * num_new);
+    // E22
+    double* E22 = scratch1_covariance_.data() + shift_E22;
+    BlockFromMatrix(E22, covariance, nv * (configuration_length_ - num_new),
+                    nv * (configuration_length_ - num_new),
+                    nv * configuration_length_, nv * configuration_length_,
+                    nv * num_new, nv * num_new);
 
-    // // E11^-1 
-    // mju_cholFactor(E11, nv * num_new, 0.0);
+    // E11 (factor)
+    if (band_covariance_) {
+      // unpack 
+      double* E11band = scratch3_covariance_.data();
+      // covert to band 
+      mju_dense2Band(E11band, E11, nv * num_new, 3 * nv, 0);
+      mju_cholFactorBand(E11band, nv * num_new, 3 * nv, 0, 0.0, 0.0);
+    } else {
+      mju_cholFactor(E11, nv * num_new, 0.0);
+    }
 
-    // // tmp0 = E11^-1 E12 
-    // double* tmp0 = scratch2_covariance.data();
-    // for (int i = 0; i < nv * (configuration_length - num_new); i++) {
-    //   mju_cholSolve(tmp0, E11, E21 + nv * num_new * i, nv * num_new);
-    // }
+    // -- tmp = E11^-1 E12 -- //
 
-    // // tmp1 = E21 * tmp0 
-    // double* tmp1 = scratch0_covariance_.data();
-    // mju_mulMatMat(tmp1, E12, tmp0, )
+    // pool count 
+    count_before = pool.GetCount();
 
-    // // Ehat = S22 - tmp1
-    // double* Ehat = ;
+    // loop over cols/rows
+    for (int i = 0; i < nv * (configuration_length_ - num_new); i++) {
+      pool.Schedule([&estimator = *this, nv, num_new, shift_E21, i]() {
+        if (estimator.band_covariance_) {
+          mju_cholSolveBand(estimator.scratch2_covariance_.data(),
+                            estimator.scratch3_covariance_.data(),
+                            estimator.scratch1_covariance_.data() + shift_E21 +
+                                nv * num_new * i,
+                            nv * num_new, 3 * nv, 0);
+        } else {
+          mju_cholSolve(estimator.scratch2_covariance_.data(),
+                        estimator.scratch1_covariance_.data(),
+                        estimator.scratch1_covariance_.data() + shift_E21 +
+                            nv * num_new * i,
+                        nv * num_new);
+        } 
+      });
+    }
+
+    // wait 
+    pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
+    pool.ResetCount();
+
+    // tmp1 = E21 * tmp0 
+    double* tmp0 = scratch2_covariance_.data();
+    double* tmp1 = scratch0_covariance_.data();
+    mju_mulMatMatT(tmp1, E21, tmp0, nv * num_new, nv * (configuration_length_ - num_new), nv * (configuration_length_ - num_new));
+
+    // Ehat = S22 - tmp1
+    double* Ehat = covariance_update_.data();
+    mju_sub(Ehat, E22, tmp1,
+            (nv * (configuration_length_ - num_new)) *
+                (nv * (configuration_length_ - num_new)));
+
+    // band matrix
+    if (band_covariance_)
+      DenseToBlockBand(Ehat, nv * (configuration_length_ - num_new), nv, 3);
+
+    // P = Ehat^-1 
+    double* In = scratch0_covariance_.data();
+    mju_eye(In, nv * (configuration_length_ - num_new));
+
+    // Ehat (factor)
+    if (band_covariance_) {
+      // unpack 
+      double* Ehatband = scratch1_covariance_.data();
+      // covert to band 
+      mju_dense2Band(Ehatband, Ehat, nv * (configuration_length_ - num_new), 3 * nv, 0);
+      mju_cholFactorBand(Ehatband, nv * (configuration_length_ - num_new), 3 * nv, 0, 0.0, 0.0);
+    } else {
+      mju_cholFactor(Ehat, nv * (configuration_length_ - num_new), 0.0);
+    }
+
+    // pool count 
+    count_before = pool.GetCount();
+
+    // compute P by cols/rows 
+    for (int i = 0; i < nv * (configuration_length_ - num_new); i++) {
+      // schedule 
+      pool.Schedule([&estimator = *this, nv, num_new, i]() {
+        if (estimator.band_covariance_) {
+          mju_cholSolveBand(
+              estimator.scratch2_covariance_.data() +
+                  (nv * (estimator.configuration_length_ - num_new)) * i,
+              estimator.scratch1_covariance_.data(),
+              estimator.scratch0_covariance_.data() +
+                  +(nv * (estimator.configuration_length_ - num_new)) * i,
+              nv * (estimator.configuration_length_ - num_new), 3 * nv, 0);
+        } else {
+          mju_cholSolve(
+              estimator.scratch2_covariance_.data() +
+                  (nv * (estimator.configuration_length_ - num_new)) * i,
+              estimator.covariance_update_.data(),
+              estimator.scratch0_covariance_.data() +
+                  +(nv * (estimator.configuration_length_ - num_new)) * i,
+              nv * (estimator.configuration_length_ - num_new));
+        }
+      });
+    }
+
+    // wait 
+    pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
+    pool.ResetCount();
+
+    // -- set weight matrix -- // 
+
+    // zero memory
+    mju_zero(weight_prior_dense_.data(),
+             (nv * configuration_length_) * (nv * configuration_length_));
+
+    // set Ehat^-1
+    SetBlockInMatrix(weight_prior_dense_.data(),
+                     scratch2_covariance_.data(),
+                     1.0,
+                     nv * configuration_length_, nv * configuration_length_,
+                     nv * (configuration_length_ - num_new),
+                     nv * (configuration_length_ - num_new), 0, 0);
+
+    // set scale * I
+    for (int i = nv * (configuration_length_ - num_new);
+         i < nv * configuration_length_; i++) {
+      weight_prior_dense_[nv * configuration_length_ * i + i] = scale_prior_;
+    }
   }
 
   // stop timer 
-  timer_covariance_update_ += GetDuration(start);
+  timer_prior_weight_update_ += GetDuration(start);
 }
 
 // optimize trajectory estimate
@@ -1857,7 +1988,6 @@ void Estimator::PrintStatus() {
   printf("      < residual prior: %.5f (ms) \n", 1.0e-3 * (timer_residual_prior_ - timer_residual_prior_ / cost_count_));
   printf("      < residual sensor: %.5f (ms) \n", 1.0e-3 * (timer_residual_sensor_ - timer_residual_sensor_ / cost_count_));
   printf("      < residual force: %.5f (ms) \n", 1.0e-3 * (timer_residual_force_ - timer_residual_force_ / cost_count_));
-  printf("      < configuration update: %.5f (ms) \n", 1.0e-3 * timer_configuration_update_);
   printf("\n");
   printf("  TOTAL: %.5f (ms) \n", 1.0e-3 * (timer_optimize_));
   printf("\n");
@@ -1903,7 +2033,7 @@ void Estimator::ResetTimers() {
   timer_residual_prior_ = 0.0;
   timer_residual_sensor_ = 0.0;
   timer_residual_force_ = 0.0;
-  timer_covariance_update_ = 0.0;
+  timer_prior_weight_update_ = 0.0;
   timer_search_direction_ = 0.0;
   timer_search_ = 0.0;
   timer_configuration_update_ = 0.0;

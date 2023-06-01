@@ -365,6 +365,14 @@ double GetDuration(std::chrono::steady_clock::time_point time);
 void SymmetricBandMatrixCopy(double* res, const double* A, int dblock,
                              int nblock, int num_blocks, double* scratch);
 
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci);
+
+// square dense to block band matrix
+void DenseToBlockBand(double* res, int dim, int dblock, int nblock);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

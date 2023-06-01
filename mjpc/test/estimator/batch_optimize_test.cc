@@ -411,7 +411,14 @@ TEST(BatchOptimize, Quadruped) {
 
   printf("cost random: %.5f\n", cost_random);
   printf("cost estimator: %.5f\n", estimator.cost_);
+  printf("\n");
 
+  // prior weight update 
+  estimator.PriorWeightUpdate(16, pool);
+  printf("prior weight update: %.5f\n",
+         1.0e-3 * estimator.timer_prior_weight_update_);
+  printf("\n");
+  
   // error
   std::vector<double> configuration_error(nq * T);
   mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);

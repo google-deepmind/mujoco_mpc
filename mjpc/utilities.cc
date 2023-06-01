@@ -1456,4 +1456,33 @@ void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
   }
 }
 
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = 0.0;
+    }
+  }
+}
+
+// square dense to block band matrix
+void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
+  // number of block rows / columns
+  int num_blocks = dim / dblock;
+
+  // zero off-band blocks
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = i + nblock; j < num_blocks; j++) {
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, i * dblock, j * dblock);
+      if (j > i)
+        ZeroBlockInMatrix(res, dim, dim, dblock, dblock, j * dblock,
+                          i * dblock);
+    }
+  }
+}
+
 }  // namespace mjpc

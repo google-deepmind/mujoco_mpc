@@ -314,6 +314,7 @@ void Estimator::Reset() {
   cost_sensor_ = 0.0;
   cost_force_ = 0.0;
   cost_ = 0.0;
+  cost_initial_ = 0.0;
 
   // cost gradient
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
@@ -1456,6 +1457,9 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
 
   // update prior weights
   if (num_new == 0) { // P = H
+    // start timer
+    auto start_set_weight = std::chrono::steady_clock::now();
+
     // weights
     double* weights = weight_prior_dense_.data();
     
@@ -1465,7 +1469,13 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     // copy blocks
     SymmetricBandMatrixCopy(weights, cost_hessian_.data(), nv, 3,
                             configuration_length_, scratch0_covariance_.data());
+    
+    // stop timer 
+    timer_prior_set_weight_ += GetDuration(start_set_weight);
   } else if (num_new == configuration_length_) { // P = sigma * I
+    // start timer 
+    auto start_set_weight = std::chrono::steady_clock::now();
+
     // weights 
     double* weights = weight_prior_dense_.data();
     
@@ -1476,8 +1486,16 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     for (int i = 0; i < ntotal; i++) {
       weights[ntotal * i + i] = scale_prior_;
     }
+
+    // stop timer 
+    timer_prior_set_weight_ += GetDuration(start_set_weight);
   } else { // P = (E22 - E21 E11^-1 E12)^-1
     // -- covariance: E = [E11 E12; E21 E22] = H^-1 -- // 
+
+    // start timer 
+    auto start_covariance = std::chrono::steady_clock::now();
+
+    // covariance
     double* covariance = covariance_.data();
 
     // identity block 
@@ -1514,6 +1532,14 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     // band matrix
     if (band_covariance_) DenseToBlockBand(covariance, ntotal, nv, 3);
     
+    // stop timer 
+    timer_prior_covariance_ += GetDuration(start_covariance);
+
+    // -- split covariance E = [E11 E12; E21 E22] -- // 
+    
+    // start timer 
+    auto start_covariance_split = std::chrono::steady_clock::now();
+
     // E11 
     double* E11 = scratch1_covariance_.data();
     BlockFromMatrix(E11, covariance, nv * num_new, nv * num_new,
@@ -1543,7 +1569,15 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
                     nv * configuration_length_, nv * configuration_length_,
                     nv * num_new, nv * num_new);
 
-    // E11 (factor)
+    // stop timer 
+    timer_prior_covariance_split_ += GetDuration(start_covariance_split);
+
+    // -- E11 (factor) -- // 
+
+    // start timer 
+    auto start_E11_factor = std::chrono::steady_clock::now();
+
+    // factorize
     if (band_covariance_) {
       // unpack 
       double* E11band = scratch3_covariance_.data();
@@ -1554,7 +1588,13 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
       mju_cholFactor(E11, nv * num_new, 0.0);
     }
 
+    // stop timer 
+    timer_prior_E11_factor_ += GetDuration(start_E11_factor);
+
     // -- tmp = E11^-1 E12 -- //
+
+    // start timer 
+    auto start_solveE11E12 = std::chrono::steady_clock::now();
 
     // pool count 
     count_before = pool.GetCount();
@@ -1581,23 +1621,44 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     // wait 
     pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
     pool.ResetCount();
+    
+    // stop timer 
+    timer_prior_solveE11E12_ += GetDuration(start_solveE11E12);
 
-    // tmp1 = E21 * tmp0 
+    // -- tmp1 = E21 * tmp0 -- //
+
+    // start timer 
+    auto start_mulE21 = std::chrono::steady_clock::now();
+
     double* tmp0 = scratch2_covariance_.data();
     double* tmp1 = scratch0_covariance_.data();
     mju_mulMatMatT(tmp1, E21, tmp0, nv * num_new, nv * (configuration_length_ - num_new), nv * (configuration_length_ - num_new));
 
-    // Ehat = S22 - tmp1
+    // stop timer 
+    timer_prior_mulE21_ += GetDuration(start_mulE21);
+
+    // -- Ehat = E22 - tmp1 -- //
+
+    // start timer 
+    auto start_subE22 = std::chrono::steady_clock::now();
+
     double* Ehat = covariance_update_.data();
     mju_sub(Ehat, E22, tmp1,
             (nv * (configuration_length_ - num_new)) *
                 (nv * (configuration_length_ - num_new)));
 
+    // stop timer 
+    timer_prior_subE22_ += GetDuration(start_subE22);
+
+    // -- P = Ehat^-1 -- //
+
+    // start timer 
+    auto start_factorEhat = std::chrono::steady_clock::now();
+
     // band matrix
     if (band_covariance_)
       DenseToBlockBand(Ehat, nv * (configuration_length_ - num_new), nv, 3);
 
-    // P = Ehat^-1 
     double* In = scratch0_covariance_.data();
     mju_eye(In, nv * (configuration_length_ - num_new));
 
@@ -1611,6 +1672,14 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     } else {
       mju_cholFactor(Ehat, nv * (configuration_length_ - num_new), 0.0);
     }
+
+    // stop timer
+    timer_prior_factorEhat_ += GetDuration(start_factorEhat);
+
+    // -- \hat P = \hat E^-1 -- // 
+
+    // start timer 
+    auto start_solvePhat = std::chrono::steady_clock::now();
 
     // pool count 
     count_before = pool.GetCount();
@@ -1643,7 +1712,13 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
     pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
     pool.ResetCount();
 
+    // stop timer 
+    timer_prior_solvePhat_ += GetDuration(start_solvePhat);
+
     // -- set weight matrix -- // 
+
+    // start timer 
+    auto start_set_weight = std::chrono::steady_clock::now();
 
     // zero memory
     mju_zero(weight_prior_dense_.data(),
@@ -1662,14 +1737,20 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
          i < nv * configuration_length_; i++) {
       weight_prior_dense_[nv * configuration_length_ * i + i] = scale_prior_;
     }
+
+    // stop timer 
+    timer_prior_set_weight_ += GetDuration(start_set_weight);
   }
 
   // stop timer 
   timer_prior_weight_update_ += GetDuration(start);
+
+  // status 
+  PrintPriorWeightUpdate();
 }
 
 // optimize trajectory estimate
-void Estimator::Optimize(ThreadPool& pool) {
+void Estimator::Optimize(int num_new, ThreadPool& pool) {
   // start timer 
   auto start_optimize = std::chrono::steady_clock::now();
 
@@ -1688,11 +1769,12 @@ void Estimator::Optimize(ThreadPool& pool) {
   ResetTimers();
 
   // prior update
-  PriorUpdate();
+  PriorWeightUpdate(num_new, pool);
 
   // initial cost
   cost_count_ = 0;
   cost_ = Cost(pool);
+  cost_initial_ = cost_;
 
   // print initial cost
   PrintCost();
@@ -1832,6 +1914,9 @@ void Estimator::Optimize(ThreadPool& pool) {
             SearchDirection();
             break;
         }
+
+        // count
+        iteration_search++;
       }
 
       // candidate
@@ -1845,8 +1930,8 @@ void Estimator::Optimize(ThreadPool& pool) {
       iteration_search++;
     }
 
-    // // increment
-    // iterations_line_search_ += iteration_search;
+    // increment
+    iterations_line_search_ += iteration_search;
 
     // end timer
     timer_search_ += GetDuration(line_search_start);
@@ -1867,7 +1952,7 @@ void Estimator::Optimize(ThreadPool& pool) {
   timer_optimize_ = GetDuration(start_optimize);
 
   // status
-  PrintStatus();
+  PrintOptimize();
 }
 
 // regularize Hessian 
@@ -1937,75 +2022,103 @@ void Estimator::SearchDirection() {
   timer_search_direction_ += GetDuration(search_direction_start);
 }
 
-// print status
-void Estimator::PrintStatus() {
-  if (!verbose_status_) return;
+// print Optimize status
+void Estimator::PrintOptimize() {
+  if (!verbose_optimize_) return;
 
   // title
   printf("Estimator::Optimize Status:\n\n");
 
   // timing
   printf("Timing:\n");
-  printf("  covariance: %.5f (ms) \n", 1.0e-3 * timer_prior_update_);
+
+  PrintPriorWeightUpdate();
+
   printf("\n");
-  printf("  cost (initial): %.5f (ms) \n", 1.0e-3 * timer_cost_ / cost_count_);
-  printf("    - prior: %.5f (ms) \n", 1.0e-3 * timer_cost_prior_ / cost_count_);
-  printf("    - sensor: %.5f (ms) \n", 1.0e-3 * timer_cost_sensor_ / cost_count_);
-  printf("    - force: %.5f (ms) \n", 1.0e-3 * timer_cost_force_ / cost_count_);
-  printf("    - qpos -> qvel, qacc: %.5f (ms) \n", 1.0e-3 * timer_cost_config_to_velacc_ / cost_count_);
-  printf("    - prediction: %.5f (ms) \n", 1.0e-3 * timer_cost_prediction_ / cost_count_);
-  printf("    - residual prior: %.5f (ms) \n", 1.0e-3 * timer_residual_prior_ / cost_count_);
-  printf("    - residual sensor: %.5f (ms) \n", 1.0e-3 * timer_residual_sensor_ / cost_count_);
-  printf("    - residual force: %.5f (ms) \n", 1.0e-3 * timer_residual_force_ / cost_count_);
+  printf("  cost (initial): %.3f (ms) \n", 1.0e-3 * timer_cost_ / cost_count_);
+  printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_cost_prior_ / cost_count_);
+  printf("    - sensor: %.3f (ms) \n", 1.0e-3 * timer_cost_sensor_ / cost_count_);
+  printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_cost_force_ / cost_count_);
+  printf("    - qpos -> qvel, qacc: %.3f (ms) \n", 1.0e-3 * timer_cost_config_to_velacc_ / cost_count_);
+  printf("    - prediction: %.3f (ms) \n", 1.0e-3 * timer_cost_prediction_ / cost_count_);
+  printf("    - residual prior: %.3f (ms) \n", 1.0e-3 * timer_residual_prior_ / cost_count_);
+  printf("    - residual sensor: %.3f (ms) \n", 1.0e-3 * timer_residual_sensor_ / cost_count_);
+  printf("    - residual force: %.3f (ms) \n", 1.0e-3 * timer_residual_force_ / cost_count_);
   printf("\n");
-  printf("  cost derivatives [total]: %.5f (ms) \n", 1.0e-3 * timer_cost_derivatives_);
-  printf("    - inverse dynamics derivatives: %.5f (ms) \n",
+  printf("  cost derivatives [total]: %.3f (ms) \n", 1.0e-3 * timer_cost_derivatives_);
+  printf("    - inverse dynamics derivatives: %.3f (ms) \n",
          1.0e-3 * timer_inverse_dynamics_derivatives_);
-  printf("    - vel., acc. derivatives: %.5f (ms) \n",
+  printf("    - vel., acc. derivatives: %.3f (ms) \n",
          1.0e-3 * timer_velacc_derivatives_);
-  printf("    - jacobian [total]: %.5f (ms) \n", 1.0e-3 * timer_jacobian_total_);
-  printf("      < prior: %.5f (ms) \n", 1.0e-3 * timer_jacobian_prior_);
-  printf("      < sensor: %.5f (ms) \n", 1.0e-3 * timer_jacobian_sensor_);
-  printf("      < force: %.5f (ms) \n", 1.0e-3 * timer_jacobian_force_);
-  printf("    - gradient, hessian [total]: %.5f (ms) \n", 1.0e-3 * timer_cost_total_derivatives_);
-  printf("      < prior: %.5f (ms) \n", 1.0e-3 * timer_cost_prior_derivatives_);
-  printf("      < sensor: %.5f (ms) \n",
+  printf("    - jacobian [total]: %.3f (ms) \n", 1.0e-3 * timer_jacobian_total_);
+  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_jacobian_prior_);
+  printf("      < sensor: %.3f (ms) \n", 1.0e-3 * timer_jacobian_sensor_);
+  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_jacobian_force_);
+  printf("    - gradient, hessian [total]: %.3f (ms) \n", 1.0e-3 * timer_cost_total_derivatives_);
+  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_cost_prior_derivatives_);
+  printf("      < sensor: %.3f (ms) \n",
          1.0e-3 * timer_cost_sensor_derivatives_);
-  printf("      < force: %.5f (ms) \n", 1.0e-3 * timer_cost_force_derivatives_);
-  printf("      < gradient assemble: %.5f (ms) \n",
+  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_cost_force_derivatives_);
+  printf("      < gradient assemble: %.3f (ms) \n",
          1.0e-3 * timer_cost_gradient_);
-  printf("      < hessian assemble: %.5f (ms) \n",
+  printf("      < hessian assemble: %.3f (ms) \n",
          1.0e-3 * timer_cost_hessian_);
   printf("\n");
-  printf("  search [total]: %.5f (ms) \n", 1.0e-3 * timer_search_);
-  printf("    - direction: %.5f (ms) \n", 1.0e-3 * timer_search_direction_);
-  printf("    - cost: %.5f (ms) \n", 1.0e-3 * (timer_cost_ - timer_cost_ / cost_count_));
-  printf("      < prior: %.5f (ms) \n", 1.0e-3 * (timer_cost_prior_ - timer_cost_prior_ / cost_count_));
-  printf("      < sensor: %.5f (ms) \n", 1.0e-3 * (timer_cost_sensor_ - timer_cost_sensor_ / cost_count_));
-  printf("      < force: %.5f (ms) \n", 1.0e-3 * (timer_cost_force_ - timer_cost_force_ / cost_count_));
-  printf("      < qpos -> qvel, qacc: %.5f (ms) \n", 1.0e-3 * (timer_cost_config_to_velacc_ - timer_cost_config_to_velacc_ / cost_count_));
-  printf("      < prediction: %.5f (ms) \n", 1.0e-3 * (timer_cost_prediction_ - timer_cost_prediction_ / cost_count_));
-  printf("      < residual prior: %.5f (ms) \n", 1.0e-3 * (timer_residual_prior_ - timer_residual_prior_ / cost_count_));
-  printf("      < residual sensor: %.5f (ms) \n", 1.0e-3 * (timer_residual_sensor_ - timer_residual_sensor_ / cost_count_));
-  printf("      < residual force: %.5f (ms) \n", 1.0e-3 * (timer_residual_force_ - timer_residual_force_ / cost_count_));
+  printf("  search [total]: %.3f (ms) \n", 1.0e-3 * timer_search_);
+  printf("    - direction: %.3f (ms) \n", 1.0e-3 * timer_search_direction_);
+  printf("    - cost: %.3f (ms) \n", 1.0e-3 * (timer_cost_ - timer_cost_ / cost_count_));
+  printf("      < prior: %.3f (ms) \n", 1.0e-3 * (timer_cost_prior_ - timer_cost_prior_ / cost_count_));
+  printf("      < sensor: %.3f (ms) \n", 1.0e-3 * (timer_cost_sensor_ - timer_cost_sensor_ / cost_count_));
+  printf("      < force: %.3f (ms) \n", 1.0e-3 * (timer_cost_force_ - timer_cost_force_ / cost_count_));
+  printf("      < qpos -> qvel, qacc: %.3f (ms) \n", 1.0e-3 * (timer_cost_config_to_velacc_ - timer_cost_config_to_velacc_ / cost_count_));
+  printf("      < prediction: %.3f (ms) \n", 1.0e-3 * (timer_cost_prediction_ - timer_cost_prediction_ / cost_count_));
+  printf("      < residual prior: %.3f (ms) \n", 1.0e-3 * (timer_residual_prior_ - timer_residual_prior_ / cost_count_));
+  printf("      < residual sensor: %.3f (ms) \n", 1.0e-3 * (timer_residual_sensor_ - timer_residual_sensor_ / cost_count_));
+  printf("      < residual force: %.3f (ms) \n", 1.0e-3 * (timer_residual_force_ - timer_residual_force_ / cost_count_));
   printf("\n");
-  printf("  TOTAL: %.5f (ms) \n", 1.0e-3 * (timer_optimize_));
+  printf("  TOTAL: %.3f (ms) \n", 1.0e-3 * (timer_optimize_));
   printf("\n");
 
   // status
   printf("Status:\n");
   printf("  iterations line search: %i\n", iterations_line_search_);
   printf("  iterations smoother: %i\n", iterations_smoother_);
+  printf("\n");
+
+  // cost 
+  printf("Cost:\n");
+  printf("  initial: %.3f\n", cost_initial_);
+  printf("  final: %.3f\n", cost_);
+  printf("\n");
 }
 
 // print cost
 void Estimator::PrintCost() {
   if (verbose_cost_) {
-    printf("cost (total): %.5f\n", cost_);
-    printf("  prior: %.5f\n", cost_prior_);
-    printf("  sensor: %.5f\n", cost_sensor_);
-    printf("  force: %.5f\n", cost_force_);
+    printf("cost (total): %.3f\n", cost_);
+    printf("  prior: %.3f\n", cost_prior_);
+    printf("  sensor: %.3f\n", cost_sensor_);
+    printf("  force: %.3f\n", cost_force_);
   }
+}
+
+// print prior weight update status 
+// print Optimize status
+void Estimator::PrintPriorWeightUpdate() {
+  if (!verbose_prior_) return;
+
+  // timing
+  printf("  prior weight update [total]: %.3f (ms) \n", 1.0e-3 * timer_prior_weight_update_);
+  printf("    - covariance: %.3f (ms) \n", 1.0e-3 * timer_prior_covariance_);
+  printf("    - split covariance: %.3f (ms) \n", 1.0e-3 * timer_prior_covariance_split_);
+  printf("    - E11 factor: %.3f (ms) \n", 1.0e-3 * timer_prior_E11_factor_);
+  printf("    - solve E11 \\ E12: %.3f (ms) \n", 1.0e-3 * timer_prior_solveE11E12_);
+  printf("    - multiply E21 [E11 \\ E12]: %.3f (ms) \n", 1.0e-3 * timer_prior_mulE21_);
+  printf("    - sub E22 - [E21 (E11 \\ E12)]: %.3f (ms) \n", 1.0e-3 * timer_prior_subE22_);
+  printf("    - factor [E22 - [E21 (E11 \\ E12)]]: %.3f (ms) \n", 1.0e-3 * timer_prior_factorEhat_);
+  printf("    - solve Phat = Ehat^-1: %.3f (ms) \n", 1.0e-3 * timer_prior_solvePhat_);
+  printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_prior_set_weight_);
+  printf("\n");
 }
 
 // reset timers
@@ -2033,11 +2146,20 @@ void Estimator::ResetTimers() {
   timer_residual_prior_ = 0.0;
   timer_residual_sensor_ = 0.0;
   timer_residual_force_ = 0.0;
-  timer_prior_weight_update_ = 0.0;
   timer_search_direction_ = 0.0;
   timer_search_ = 0.0;
   timer_configuration_update_ = 0.0;
   timer_optimize_ = 0.0;
+  timer_prior_weight_update_ = 0.0;
+  timer_prior_set_weight_ = 0.0;
+  timer_prior_covariance_ = 0.0;
+  timer_prior_covariance_split_ = 0.0;
+  timer_prior_E11_factor_ = 0.0;
+  timer_prior_solveE11E12_ = 0.0;
+  timer_prior_mulE21_ = 0.0;
+  timer_prior_subE22_ = 0.0;
+  timer_prior_factorEhat_ = 0.0;
+  timer_prior_solvePhat_ = 0.0;
 }
 
 }  // namespace mjpc

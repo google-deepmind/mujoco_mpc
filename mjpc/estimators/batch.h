@@ -131,7 +131,7 @@ class Estimator {
   void PriorWeightUpdate(int num_new, ThreadPool& pool);
 
   // optimize trajectory estimate 
-  void Optimize(ThreadPool& pool);
+  void Optimize(int num_new, ThreadPool& pool);
 
   // regularize Hessian 
   void Regularize();
@@ -139,11 +139,14 @@ class Estimator {
   // search direction 
   void SearchDirection();
 
-  // print status 
-  void PrintStatus();
+  // print optimize status 
+  void PrintOptimize();
 
   // print cost
   void PrintCost();
+
+  // print update prior weight status 
+  void PrintPriorWeightUpdate();
 
   // reset timers 
   void ResetTimers();
@@ -224,6 +227,7 @@ class Estimator {
   double cost_sensor_;
   double cost_force_; 
   double cost_;
+  double cost_initial_;
 
   // cost gradient
   std::vector<double> cost_gradient_prior_;    // nv * MAX_HISTORY
@@ -326,11 +330,21 @@ class Estimator {
   double timer_residual_prior_;
   double timer_residual_sensor_;
   double timer_residual_force_;
-  double timer_prior_weight_update_;
   double timer_search_direction_;
   double timer_search_;
   double timer_configuration_update_;
   double timer_optimize_;
+  double timer_prior_weight_update_;
+  double timer_prior_set_weight_;
+  double timer_prior_covariance_;
+  double timer_prior_covariance_split_;
+  double timer_prior_E11_factor_;
+  double timer_prior_solveE11E12_;
+  double timer_prior_mulE21_;
+  double timer_prior_subE22_;
+  double timer_prior_factorEhat_;
+  double timer_prior_solvePhat_;
+
   std::vector<double> timer_prior_step_;
   std::vector<double> timer_sensor_step_;
   std::vector<double> timer_force_step_;
@@ -350,8 +364,9 @@ class Estimator {
   int max_line_search_ = 10;                // maximum number of line search iterations
   int max_smoother_iterations_ = 20;        // maximum number of smoothing iterations
   double gradient_tolerance_ = 1.0e-5;      // small gradient tolerance
-  bool verbose_status_ = false;             // flag for printing status
+  bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost
+  bool verbose_prior_ = false;              // flag for printing prior weight update status
   bool band_covariance_ = false;            // approximate covariance for prior
   double regularization_initial_ = 1.0e-3;  // initial regularization
   double step_scaling_ = 0.5;               // step size scaling

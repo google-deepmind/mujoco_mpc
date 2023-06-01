@@ -128,10 +128,10 @@ TEST(BatchOptimize, Particle2D) {
   estimator.band_covariance_ = true;
 
   // change verbosity 
-  estimator.verbose_status_ = true;
+  estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(pool);
+  estimator.Optimize(estimator.configuration_length_, pool);
 
   // error 
   std::vector<double> configuration_error(nq * T);
@@ -262,10 +262,10 @@ TEST(BatchOptimize, Box3D) {
   estimator.band_covariance_ = true;
 
   // change verbosity 
-  estimator.verbose_status_ = true;
+  estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(pool);
+  estimator.Optimize(estimator.configuration_length_, pool);
 
   // error
   std::vector<double> configuration_error(nq * T);
@@ -389,7 +389,8 @@ TEST(BatchOptimize, Quadruped) {
   estimator.band_covariance_ = true;
 
   // change verbosity 
-  estimator.verbose_status_ = true;
+  estimator.verbose_optimize_ = true;
+  estimator.verbose_prior_ = true;
 
   // settings
   estimator.max_smoother_iterations_ = 1;
@@ -407,18 +408,13 @@ TEST(BatchOptimize, Quadruped) {
 
   // optimize
   estimator.band_copy_ = true;
-  estimator.Optimize(pool);
-
-  printf("cost random: %.5f\n", cost_random);
-  printf("cost estimator: %.5f\n", estimator.cost_);
-  printf("\n");
+  estimator.Optimize(estimator.configuration_length_, pool);
 
   // prior weight update 
+  printf("Covariance Weight Update (after Optimize):\n");
+  estimator.ResetTimers();
   estimator.PriorWeightUpdate(16, pool);
-  printf("prior weight update: %.5f\n",
-         1.0e-3 * estimator.timer_prior_weight_update_);
-  printf("\n");
-  
+
   // error
   std::vector<double> configuration_error(nq * T);
   mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);

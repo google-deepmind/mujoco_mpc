@@ -33,5 +33,8 @@ target_link_libraries(batch_prior_test load gmock)
 test(batch_sensor_test)
 target_link_libraries(batch_sensor_test load gmock)
 
+test(batch_trajectory_test)
+target_link_libraries(batch_trajectory_test gmock)
+
 test(batch_utilities_test)
 target_link_libraries(batch_utilities_test load gmock)

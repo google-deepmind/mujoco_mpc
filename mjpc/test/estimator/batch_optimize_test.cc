@@ -301,7 +301,7 @@ TEST(BatchOptimize, Quadruped) {
   printf("ns: %i\n", ns);
 
   // trajectories
-  int T = 32;
+  int T = 64;
   printf("T: %i\n", T);
   
   // pool 
@@ -363,7 +363,6 @@ TEST(BatchOptimize, Quadruped) {
   mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
            ns * (T - 2));
   estimator.configuration_length_ = T;
-  estimator.PriorUpdate();
 
   // ----- random perturbation ----- //
 
@@ -409,11 +408,12 @@ TEST(BatchOptimize, Quadruped) {
   // optimize
   estimator.band_copy_ = true;
   estimator.Optimize(estimator.configuration_length_, pool);
+  estimator.Optimize(estimator.configuration_length_, pool);
 
-  // prior weight update 
-  printf("Covariance Weight Update (after Optimize):\n");
-  estimator.ResetTimers();
-  estimator.PriorWeightUpdate(estimator.configuration_length_ / 2, pool);
+  // // prior weight update 
+  // printf("Covariance Weight Update (after Optimize):\n");
+  // estimator.ResetTimers();
+  // estimator.PriorWeightUpdate(estimator.configuration_length_ / 2, pool);
 
   // error
   std::vector<double> configuration_error(nq * T);

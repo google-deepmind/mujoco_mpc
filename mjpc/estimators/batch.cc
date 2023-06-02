@@ -119,7 +119,7 @@ void Estimator::Initialize(mjModel* model) {
   scale_prior_ = GetNumberOrDefault(1.0, model, "batch_scale_prior");
   weight_prior_dense_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  weight_prior_update_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch_prior_weight_.resize(2 * nv * nv);
 
   // sensor weights
   // TODO(taylor): only grab measurement sensors
@@ -186,17 +186,6 @@ void Estimator::Initialize(mjModel* model) {
 
   // search direction
   search_direction_.resize(nv * MAX_HISTORY);
-
-  // covariance
-  covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  covariance_update_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch2_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch3_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch4_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  covariance_initial_scaling_ =
-      GetNumberOrDefault(1.0, model, "batch_covariance_initial_scaling");
 
   // regularization 
   regularization_ = regularization_initial_;
@@ -333,7 +322,7 @@ void Estimator::Reset() {
   // weight
   std::fill(weight_prior_dense_.begin(), weight_prior_dense_.end(), 0.0);
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
-  std::fill(weight_prior_update_.begin(), weight_prior_update_.end(), 0.0);
+  std::fill(scratch_prior_weight_.begin(), scratch_prior_weight_.end(), 0.0);
 
   // norm gradient
   std::fill(norm_gradient_sensor_.begin(), norm_gradient_sensor_.end(), 0.0);
@@ -361,15 +350,6 @@ void Estimator::Reset() {
 
   // search direction
   std::fill(search_direction_.begin(), search_direction_.end(), 0.0);
-
-  // covariance
-  std::fill(covariance_.begin(), covariance_.end(), 0.0);
-  std::fill(covariance_update_.begin(), covariance_update_.end(), 0.0);
-  std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
-  std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
-  std::fill(scratch2_covariance_.begin(), scratch2_covariance_.end(), 0.0);
-  std::fill(scratch3_covariance_.begin(), scratch3_covariance_.end(), 0.0);
-  std::fill(scratch4_covariance_.begin(), scratch4_covariance_.end(), 0.0);
 
   // timer
   std::fill(timer_prior_step_.begin(), timer_prior_step_.end(), 0.0);
@@ -1343,40 +1323,6 @@ double Estimator::Cost(ThreadPool& pool) {
   return cost;
 }
 
-// prior update
-void Estimator::PriorUpdate() {
-  // start timer
-  auto prior_update_start = std::chrono::steady_clock::now();
-
-  // dimension
-  int dim = model_->nv * configuration_length_;
-
-  if (!hessian_factor_) {
-    // set initial covariance, weight
-    double* covariance = covariance_.data();
-    double* weight = weight_prior_dense_.data();
-    mju_eye(covariance, dim);
-    mju_eye(weight, dim);
-    for (int i = 0; i < dim; i++) {
-      covariance[i * dim + i] *= covariance_initial_scaling_;
-      weight[i * dim + i] *= covariance_initial_scaling_;
-    }
-
-    // approximate covariance
-    if (band_covariance_) {
-      int ntotal = dim;
-      int nband = 3 * model_->nv;
-      int ndense = 0;
-      mju_dense2Band(weight_prior_band_.data(), weight_prior_dense_.data(),
-                     ntotal, nband, ndense);
-    }
-  } else {  // TODO(taylor): shift + utilize inverse Hessian
-  }
-
-  // stop timer
-  timer_prior_update_ = GetDuration(prior_update_start);
-}
-
 // compute total gradient
 void Estimator::CostGradient() {
   // start gradient timer
@@ -1453,296 +1399,32 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
   // dimension
   int nv = model_->nv;
   int ntotal = nv * configuration_length_;
-  int nband = 3 * nv;
-  int ndense = 0;
 
-  // update prior weights
-  if (num_new == 0) { // P = H
-    // start timer
-    auto start_set_weight = std::chrono::steady_clock::now();
+  // ----- update prior weights ----- //
+  // start timer
+  auto start_set_weight = std::chrono::steady_clock::now();
 
-    // weights
-    double* weights = weight_prior_dense_.data();
-    
-    // zero memory
-    mju_zero(weights, ntotal * ntotal);
+  // weight 
+  double* weight = weight_prior_dense_.data();
 
-    // copy blocks
-    SymmetricBandMatrixCopy(weights, cost_hessian_.data(), nv, 3,
-                            ntotal, configuration_length_, 0, 0, 0, 0,
-                            scratch0_covariance_.data());
+  // Hessian 
+  double* hessian = cost_hessian_.data();
 
-    // stop timer 
-    timer_prior_set_weight_ += GetDuration(start_set_weight);
-  } else if (num_new == configuration_length_) { // P = sigma * I
-    // start timer 
-    auto start_set_weight = std::chrono::steady_clock::now();
+  // zero memory
+  mju_zero(weight, ntotal * ntotal);
 
-    // weights 
-    double* weights = weight_prior_dense_.data();
-    
-    // zero memory
-    mju_zero(weights, ntotal * ntotal);
-
-    // set diagonal 
-    for (int i = 0; i < ntotal; i++) {
-      weights[ntotal * i + i] = scale_prior_;
-    }
-
-    // stop timer 
-    timer_prior_set_weight_ += GetDuration(start_set_weight);
-  } else { // P = (E22 - E21 E11^-1 E12)^-1
-    // -- covariance: E = [E11 E12; E21 E22] = H^-1 -- // 
-
-    // start timer 
-    auto start_covariance = std::chrono::steady_clock::now();
-
-    // covariance
-    double* covariance = covariance_.data();
-
-    // identity block 
-    double* I = scratch0_covariance_.data();
-    mju_eye(I, ntotal);
-
-    // -- E = H \ I -- // 
-
-    // pool count 
-    int count_before = pool.GetCount();
-
-    // loop over cols/rows
-    for (int i = 0; i < ntotal; i++) {
-      // schedule
-      pool.Schedule([&estimator = *this, ntotal, nband, ndense, i]() {
-        if (estimator.band_covariance_) {
-          mju_cholSolveBand(estimator.covariance_.data() + ntotal * i,
-                            estimator.cost_hessian_band_.data(),
-                            estimator.scratch0_covariance_.data() + ntotal * i,
-                            ntotal, nband, ndense);
-        } else {
-          mju_cholSolve(estimator.covariance_.data() + ntotal * i,
-                        estimator.cost_hessian_factor_.data(),
-                        estimator.scratch0_covariance_.data() + ntotal * i,
-                        ntotal);
-        }
-      });
-    }
-
-    // wait 
-    pool.WaitCount(count_before + ntotal);
-    pool.ResetCount();
-
-    // band matrix
-    if (band_covariance_) DenseToBlockBand(covariance, ntotal, nv, 3);
-    
-    // stop timer 
-    timer_prior_covariance_ += GetDuration(start_covariance);
-
-    // -- split covariance E = [E11 E12; E21 E22] -- // 
-    
-    // start timer 
-    auto start_covariance_split = std::chrono::steady_clock::now();
-
-    // E11 
-    double* E11 = scratch1_covariance_.data();
-    BlockFromMatrix(E11, covariance, nv * num_new, nv * num_new,
-                    nv * configuration_length_, nv * configuration_length_, 0,
-                    0);
-    int shift_E12 = (nv * num_new) * (nv * num_new);
-
-    // E12 
-    double* E12 = scratch1_covariance_.data() + shift_E12;
-    BlockFromMatrix(E12, covariance, nv * num_new,
-                    nv * (configuration_length_ - num_new),
-                    nv * configuration_length_, nv * configuration_length_, 0,
-                    nv * num_new);
-    int shift_E21 = shift_E12 + (nv * num_new) * (nv * (configuration_length_ - num_new));
-
-    // E21
-    double* E21 = scratch1_covariance_.data() + shift_E21;
-    BlockFromMatrix(E21, covariance, nv * (configuration_length_ - num_new),
-                    nv * num_new, nv * configuration_length_,
-                    nv * configuration_length_, nv * num_new, 0);
-    int shift_E22 = shift_E21 + (nv * (configuration_length_ - num_new)) * (nv * num_new);
-
-    // E22
-    double* E22 = scratch1_covariance_.data() + shift_E22;
-    BlockFromMatrix(E22, covariance, nv * (configuration_length_ - num_new),
-                    nv * (configuration_length_ - num_new),
-                    nv * configuration_length_, nv * configuration_length_,
-                    nv * num_new, nv * num_new);
-
-    // stop timer 
-    timer_prior_covariance_split_ += GetDuration(start_covariance_split);
-
-    // -- E11 (factor) -- // 
-
-    // start timer 
-    auto start_E11_factor = std::chrono::steady_clock::now();
-
-    // factorize
-    if (band_covariance_) {
-      // unpack 
-      double* E11band = scratch3_covariance_.data();
-      // covert to band 
-      mju_dense2Band(E11band, E11, nv * num_new, 3 * nv, 0);
-      mju_cholFactorBand(E11band, nv * num_new, 3 * nv, 0, 0.0, 0.0);
-    } else {
-      mju_cholFactor(E11, nv * num_new, 0.0);
-    }
-
-    // stop timer 
-    timer_prior_E11_factor_ += GetDuration(start_E11_factor);
-
-    // -- tmp = E11^-1 E12 -- //
-
-    // start timer 
-    auto start_solveE11E12 = std::chrono::steady_clock::now();
-
-    // pool count 
-    count_before = pool.GetCount();
-
-    // loop over cols/rows
-    for (int i = 0; i < nv * (configuration_length_ - num_new); i++) {
-      pool.Schedule([&estimator = *this, nv, num_new, shift_E21, i]() {
-        if (estimator.band_covariance_) {
-          mju_cholSolveBand(estimator.scratch2_covariance_.data(),
-                            estimator.scratch3_covariance_.data(),
-                            estimator.scratch1_covariance_.data() + shift_E21 +
-                                nv * num_new * i,
-                            nv * num_new, 3 * nv, 0);
-        } else {
-          mju_cholSolve(estimator.scratch2_covariance_.data(),
-                        estimator.scratch1_covariance_.data(),
-                        estimator.scratch1_covariance_.data() + shift_E21 +
-                            nv * num_new * i,
-                        nv * num_new);
-        } 
-      });
-    }
-
-    // wait 
-    pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
-    pool.ResetCount();
-    
-    // stop timer 
-    timer_prior_solveE11E12_ += GetDuration(start_solveE11E12);
-
-    // -- tmp1 = E21 * tmp0 -- //
-
-    // start timer 
-    auto start_mulE21 = std::chrono::steady_clock::now();
-
-    double* tmp0 = scratch2_covariance_.data();
-    double* tmp1 = scratch0_covariance_.data();
-    mju_mulMatMatT(tmp1, E21, tmp0, nv * num_new, nv * (configuration_length_ - num_new), nv * (configuration_length_ - num_new));
-
-    // stop timer 
-    timer_prior_mulE21_ += GetDuration(start_mulE21);
-
-    // -- Ehat = E22 - tmp1 -- //
-
-    // start timer 
-    auto start_subE22 = std::chrono::steady_clock::now();
-
-    double* Ehat = covariance_update_.data();
-    mju_sub(Ehat, E22, tmp1,
-            (nv * (configuration_length_ - num_new)) *
-                (nv * (configuration_length_ - num_new)));
-
-    // stop timer 
-    timer_prior_subE22_ += GetDuration(start_subE22);
-
-    // -- P = Ehat^-1 -- //
-
-    // start timer 
-    auto start_factorEhat = std::chrono::steady_clock::now();
-
-    // band matrix
-    if (band_covariance_)
-      DenseToBlockBand(Ehat, nv * (configuration_length_ - num_new), nv, 3);
-
-    double* In = scratch0_covariance_.data();
-    mju_eye(In, nv * (configuration_length_ - num_new));
-
-    // Ehat (factor)
-    if (band_covariance_) {
-      // unpack 
-      double* Ehatband = scratch1_covariance_.data();
-      // covert to band 
-      mju_dense2Band(Ehatband, Ehat, nv * (configuration_length_ - num_new), 3 * nv, 0);
-      mju_cholFactorBand(Ehatband, nv * (configuration_length_ - num_new), 3 * nv, 0, 0.0, 0.0);
-    } else {
-      mju_cholFactor(Ehat, nv * (configuration_length_ - num_new), 0.0);
-    }
-
-    // stop timer
-    timer_prior_factorEhat_ += GetDuration(start_factorEhat);
-
-    // -- \hat P = \hat E^-1 -- // 
-
-    // start timer 
-    auto start_solvePhat = std::chrono::steady_clock::now();
-
-    // pool count 
-    count_before = pool.GetCount();
-
-    // compute P by cols/rows 
-    for (int i = 0; i < nv * (configuration_length_ - num_new); i++) {
-      // schedule 
-      pool.Schedule([&estimator = *this, nv, num_new, i]() {
-        if (estimator.band_covariance_) {
-          mju_cholSolveBand(
-              estimator.scratch2_covariance_.data() +
-                  (nv * (estimator.configuration_length_ - num_new)) * i,
-              estimator.scratch1_covariance_.data(),
-              estimator.scratch0_covariance_.data() +
-                  +(nv * (estimator.configuration_length_ - num_new)) * i,
-              nv * (estimator.configuration_length_ - num_new), 3 * nv, 0);
-        } else {
-          mju_cholSolve(
-              estimator.scratch2_covariance_.data() +
-                  (nv * (estimator.configuration_length_ - num_new)) * i,
-              estimator.covariance_update_.data(),
-              estimator.scratch0_covariance_.data() +
-                  +(nv * (estimator.configuration_length_ - num_new)) * i,
-              nv * (estimator.configuration_length_ - num_new));
-        }
-      });
-    }
-
-    // wait 
-    pool.WaitCount(count_before + nv * (configuration_length_ - num_new));
-    pool.ResetCount();
-
-    // stop timer 
-    timer_prior_solvePhat_ += GetDuration(start_solvePhat);
-
-    // -- set weight matrix -- // 
-
-    // start timer 
-    auto start_set_weight = std::chrono::steady_clock::now();
-
-    // zero memory
-    mju_zero(weight_prior_dense_.data(),
-             (nv * configuration_length_) * (nv * configuration_length_));
-
-    // set Ehat^-1
-    SetBlockInMatrix(weight_prior_dense_.data(),
-                     scratch2_covariance_.data(),
-                     1.0,
-                     nv * configuration_length_, nv * configuration_length_,
-                     nv * (configuration_length_ - num_new),
-                     nv * (configuration_length_ - num_new), 0, 0);
-
-    // set scale * I
-    for (int i = nv * (configuration_length_ - num_new);
-         i < nv * configuration_length_; i++) {
-      weight_prior_dense_[nv * configuration_length_ * i + i] = scale_prior_;
-    }
-
-    // stop timer 
-    timer_prior_set_weight_ += GetDuration(start_set_weight);
+  // copy Hessian block to upper left
+  SymmetricBandMatrixCopy(weight, hessian, nv, nv, ntotal,
+                          configuration_length_ - num_new, 0, 0, num_new,
+                          num_new, scratch_prior_weight_.data());
+  
+  // set s * I to lower right 
+  for (int i = nv * (configuration_length_ - num_new); i < ntotal; i++) {
+    weight[ntotal * i + i] = scale_prior_;
   }
+
+  // stop timer 
+  timer_prior_set_weight_ += GetDuration(start_set_weight);
 
   // stop timer 
   timer_prior_weight_update_ += GetDuration(start);
@@ -2110,22 +1792,14 @@ void Estimator::PrintPriorWeightUpdate() {
   if (!verbose_prior_) return;
 
   // timing
-  printf("  prior weight update [total]: %.3f (ms) \n", 1.0e-3 * timer_prior_weight_update_);
-  printf("    - covariance: %.3f (ms) \n", 1.0e-3 * timer_prior_covariance_);
-  printf("    - split covariance: %.3f (ms) \n", 1.0e-3 * timer_prior_covariance_split_);
-  printf("    - E11 factor: %.3f (ms) \n", 1.0e-3 * timer_prior_E11_factor_);
-  printf("    - solve E11 \\ E12: %.3f (ms) \n", 1.0e-3 * timer_prior_solveE11E12_);
-  printf("    - multiply E21 [E11 \\ E12]: %.3f (ms) \n", 1.0e-3 * timer_prior_mulE21_);
-  printf("    - sub E22 - [E21 (E11 \\ E12)]: %.3f (ms) \n", 1.0e-3 * timer_prior_subE22_);
-  printf("    - factor [E22 - [E21 (E11 \\ E12)]]: %.3f (ms) \n", 1.0e-3 * timer_prior_factorEhat_);
-  printf("    - solve Phat = Ehat^-1: %.3f (ms) \n", 1.0e-3 * timer_prior_solvePhat_);
+  printf("  prior weight update [total]: %.3f (ms) \n",
+         1.0e-3 * timer_prior_weight_update_);
   printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_prior_set_weight_);
   printf("\n");
 }
 
 // reset timers
 void Estimator::ResetTimers() {
-  timer_prior_update_ = 0.0;
   timer_inverse_dynamics_derivatives_ = 0.0;
   timer_velacc_derivatives_ = 0.0;
   timer_jacobian_prior_ = 0.0;
@@ -2154,14 +1828,6 @@ void Estimator::ResetTimers() {
   timer_optimize_ = 0.0;
   timer_prior_weight_update_ = 0.0;
   timer_prior_set_weight_ = 0.0;
-  timer_prior_covariance_ = 0.0;
-  timer_prior_covariance_split_ = 0.0;
-  timer_prior_E11_factor_ = 0.0;
-  timer_prior_solveE11E12_ = 0.0;
-  timer_prior_mulE21_ = 0.0;
-  timer_prior_subE22_ = 0.0;
-  timer_prior_factorEhat_ = 0.0;
-  timer_prior_solvePhat_ = 0.0;
 }
 
 }  // namespace mjpc

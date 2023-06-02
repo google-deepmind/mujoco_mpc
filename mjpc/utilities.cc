@@ -1429,6 +1429,9 @@ void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
                              int nblock, int ntotal, int num_blocks, int res_start_row,
                              int res_start_col, int mat_start_row,
                              int mat_start_col, double* scratch) {
+  // check for no blocks to copy
+  if (num_blocks == 0) return;
+
   // tmp: block from mat
   double* tmp1 = scratch;
   double* tmp2 = scratch + dblock * dblock;

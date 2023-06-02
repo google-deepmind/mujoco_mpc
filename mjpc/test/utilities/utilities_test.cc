@@ -473,40 +473,45 @@ TEST(BandMatrix, Copy) {
   // band(A)
   DenseToBlockBand(A.data(), ntotal, dblock, nblock);
 
-  // band copy 
+  // band copy
   std::vector<double> Acopy(ntotal * ntotal);
   std::vector<double> scratch(2 * dblock * dblock);
-  SymmetricBandMatrixCopy(Acopy.data(), A.data(), dblock, nblock, ntotal, num_blocks, 0,
-                          0, 0, 0, scratch.data());
+  SymmetricBandMatrixCopy(Acopy.data(), A.data(), dblock, nblock, ntotal,
+                          num_blocks, 0, 0, 0, 0, scratch.data());
 
-  // error 
+  // error
   std::vector<double> error(ntotal * ntotal);
   mju_sub(error.data(), Acopy.data(), A.data(), ntotal * ntotal);
 
-  // test 
+  // test
   EXPECT_NEAR(mju_norm(error.data(), ntotal * ntotal), 0.0, 1.0e-3);
 
   // ----- test upper right copy ----- //
   int num_new = 7;
   std::vector<double> B(ntotal * ntotal);
   mju_zero(B.data(), ntotal * ntotal);
-  SymmetricBandMatrixCopy(B.data(), A.data(), dblock, nblock, ntotal, num_blocks - num_new, 0,
-                          0, num_new, num_new, scratch.data());
+  SymmetricBandMatrixCopy(B.data(), A.data(), dblock, nblock, ntotal,
+                          num_blocks - num_new, 0, 0, num_new, num_new,
+                          scratch.data());
 
   // top left block from B
-  std::vector<double> tl(dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
-  mju_zero(tl.data(), dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  std::vector<double> tl(dblock * (num_blocks - num_new) * dblock *
+                         (num_blocks - num_new));
+  mju_zero(tl.data(),
+           dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
   BlockFromMatrix(tl.data(), B.data(), dblock * (num_blocks - num_new),
                   dblock * (num_blocks - num_new), ntotal, ntotal, 0, 0);
 
-  // bottom right block from A 
-  std::vector<double> br(dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
-  mju_zero(br.data(), dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  // bottom right block from A
+  std::vector<double> br(dblock * (num_blocks - num_new) * dblock *
+                         (num_blocks - num_new));
+  mju_zero(br.data(),
+           dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
   BlockFromMatrix(br.data(), A.data(), dblock * (num_blocks - num_new),
                   dblock * (num_blocks - num_new), ntotal, ntotal,
                   dblock * num_new, dblock * num_new);
 
-  // error 
+  // error
   mju_zero(error.data(), ntotal * ntotal);
   mju_sub(error.data(), tl.data(), br.data(),
           dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));

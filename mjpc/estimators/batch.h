@@ -124,10 +124,7 @@ class Estimator {
   // compute total Hessian 
   void CostHessian(ThreadPool& pool);
 
-  // prior update
-  void PriorUpdate();
-
-  // covariance update 
+  // prior weight update 
   void PriorWeightUpdate(int num_new, ThreadPool& pool);
 
   // optimize trajectory estimate 
@@ -254,7 +251,8 @@ class Estimator {
   // prior weights
   std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> weight_prior_update_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch_prior_weight_;   // 2 * nv * nv
+
   double scale_prior_;
 
   // sensor weights
@@ -287,17 +285,6 @@ class Estimator {
   // search direction
   std::vector<double> search_direction_;       // nv * MAX_HISTORY
 
-  // covariance 
-  std::vector<double> covariance_;             // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> covariance_update_;      // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> scratch2_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> scratch3_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-  std::vector<double> scratch4_covariance_;    // (nv * MAX_HISTORY) x (nv * MAX_HISTORY)
-
-  double covariance_initial_scaling_;
-
   // regularization 
   double regularization_;
 
@@ -307,7 +294,6 @@ class Estimator {
 
   // timing
   double timer_total_;
-  double timer_prior_update_;
   double timer_inverse_dynamics_derivatives_;
   double timer_velacc_derivatives_;
   double timer_jacobian_prior_;
@@ -336,14 +322,6 @@ class Estimator {
   double timer_optimize_;
   double timer_prior_weight_update_;
   double timer_prior_set_weight_;
-  double timer_prior_covariance_;
-  double timer_prior_covariance_split_;
-  double timer_prior_E11_factor_;
-  double timer_prior_solveE11E12_;
-  double timer_prior_mulE21_;
-  double timer_prior_subE22_;
-  double timer_prior_factorEhat_;
-  double timer_prior_solvePhat_;
 
   std::vector<double> timer_prior_step_;
   std::vector<double> timer_sensor_step_;
@@ -368,8 +346,8 @@ class Estimator {
   bool verbose_cost_ = false;               // flag for printing cost
   bool verbose_prior_ = false;              // flag for printing prior weight update status
   bool band_covariance_ = false;            // approximate covariance for prior
-  double regularization_initial_ = 1.0e-3;  // initial regularization
   double step_scaling_ = 0.5;               // step size scaling
+  double regularization_initial_ = 1.0e-5;  // initial regularization
   double regularization_scaling_ = 10.0;    // regularization scaling
   bool band_copy_ = true;                   // copy band matrices by block
 

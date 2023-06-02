@@ -1418,16 +1418,17 @@ void Estimator::CostHessian(ThreadPool& pool) {
 
     // individual Hessians
     if (prior_flag_)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_prior_.data(), model_->nv, 3,
-                              configuration_length_, scratch0_prior_.data());
-    // mju_copy(hessian, cost_hessian_prior_.data(), dim * dim);
+      SymmetricBandMatrixCopy(hessian, cost_hessian_prior_.data(), model_->nv,
+                              3, dim, configuration_length_, 0, 0, 0, 0,
+                              scratch0_prior_.data());
     if (sensor_flag_)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_sensor_.data(), model_->nv, 3,
-                              configuration_length_, scratch0_sensor_.data());
-    // mju_addTo(hessian, cost_hessian_sensor_.data(), dim * dim);
+      SymmetricBandMatrixCopy(hessian, cost_hessian_sensor_.data(), model_->nv,
+                              3, dim, configuration_length_, 0, 0, 0, 0,
+                              scratch0_sensor_.data());
     if (force_flag_)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_force_.data(), model_->nv, 3,
-                              configuration_length_, scratch0_force_.data());
+      SymmetricBandMatrixCopy(hessian, cost_hessian_force_.data(), model_->nv,
+                              3, dim, configuration_length_, 0, 0, 0, 0,
+                              scratch0_force_.data());
   } else {
     // individual Hessians
     if (prior_flag_) {
@@ -1468,8 +1469,9 @@ void Estimator::PriorWeightUpdate(int num_new, ThreadPool& pool) {
 
     // copy blocks
     SymmetricBandMatrixCopy(weights, cost_hessian_.data(), nv, 3,
-                            configuration_length_, scratch0_covariance_.data());
-    
+                            ntotal, configuration_length_, 0, 0, 0, 0,
+                            scratch0_covariance_.data());
+
     // stop timer 
     timer_prior_set_weight_ += GetDuration(start_set_weight);
   } else if (num_new == configuration_length_) { // P = sigma * I

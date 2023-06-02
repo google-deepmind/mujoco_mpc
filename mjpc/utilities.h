@@ -363,7 +363,9 @@ double GetDuration(std::chrono::steady_clock::time_point time);
 // copy symmetric band matrix block by block
 // TODO(taylor): multi-threaded triple add for estimator
 void SymmetricBandMatrixCopy(double* res, const double* A, int dblock,
-                             int nblock, int num_blocks, double* scratch);
+                             int nblock, int ntotal, int num_blocks, int res_start_row,
+                             int res_start_col, int mat_start_row,
+                             int mat_start_col, double* scratch);
 
 // zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
 // and left column indices (ri, ci)

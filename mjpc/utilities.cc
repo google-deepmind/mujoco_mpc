@@ -1426,10 +1426,9 @@ double GetDuration(std::chrono::steady_clock::time_point tp) {
 
 // copy symmetric band matrix block by block
 void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
-                             int nblock, int num_blocks, double* scratch) {
-  // total dimension
-  int dim = dblock * num_blocks;
-
+                             int nblock, int ntotal, int num_blocks, int res_start_row,
+                             int res_start_col, int mat_start_row,
+                             int mat_start_col, double* scratch) {
   // tmp: block from mat
   double* tmp1 = scratch;
   double* tmp2 = scratch + dblock * dblock;
@@ -1441,16 +1440,16 @@ void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
 
     for (int j = i; j < i + num_cols; j++) {
       // get block from A 
-      BlockFromMatrix(tmp1, mat, dblock, dblock, dim, dim, i * dblock, j * dblock);
-  
+      BlockFromMatrix(tmp1, mat, dblock, dblock, ntotal, ntotal, (i + mat_start_row) * dblock, (j + mat_start_col) * dblock);
+
       // set block in matrix
-      AddBlockInMatrix(res, tmp1, 1.0, dim, dim, dblock, dblock, i * dblock,
-                       j * dblock);
+      AddBlockInMatrix(res, tmp1, 1.0, ntotal, ntotal, dblock, dblock, (i + res_start_row) * dblock,
+                       (j + res_start_col) * dblock);
 
       if (j > i) {
         mju_transpose(tmp2, tmp1, dblock, dblock);
-        AddBlockInMatrix(res, tmp2, 1.0, dim, dim, dblock, dblock, j * dblock,
-                         i * dblock);
+        AddBlockInMatrix(res, tmp2, 1.0, ntotal, ntotal, dblock, dblock, (j + res_start_col) * dblock,
+                         (i + res_start_row) * dblock);
       }
     }
   }

@@ -451,8 +451,11 @@ TEST(BandMatrix, Copy) {
   // dimensions
   int dblock = 20;
   int nblock = 3;
-  int T = 32;
-  int ntotal = dblock * T;
+  int num_blocks = 32;
+  // int dblock = 2;
+  // int nblock = 3;
+  // int num_blocks = 5;
+  int ntotal = dblock * num_blocks;
 
   // ----- create random band matrix ----- //
   std::vector<double> F(ntotal * ntotal);
@@ -473,8 +476,8 @@ TEST(BandMatrix, Copy) {
   // band copy 
   std::vector<double> Acopy(ntotal * ntotal);
   std::vector<double> scratch(2 * dblock * dblock);
-  SymmetricBandMatrixCopy(Acopy.data(), A.data(), dblock, nblock, ntotal,
-                          scratch.data());
+  SymmetricBandMatrixCopy(Acopy.data(), A.data(), dblock, nblock, ntotal, num_blocks, 0,
+                          0, 0, 0, scratch.data());
 
   // error 
   std::vector<double> error(ntotal * ntotal);
@@ -482,6 +485,36 @@ TEST(BandMatrix, Copy) {
 
   // test 
   EXPECT_NEAR(mju_norm(error.data(), ntotal * ntotal), 0.0, 1.0e-3);
+
+  // ----- test upper right copy ----- //
+  int num_new = 7;
+  std::vector<double> B(ntotal * ntotal);
+  mju_zero(B.data(), ntotal * ntotal);
+  SymmetricBandMatrixCopy(B.data(), A.data(), dblock, nblock, ntotal, num_blocks - num_new, 0,
+                          0, num_new, num_new, scratch.data());
+
+  // top left block from B
+  std::vector<double> tl(dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  mju_zero(tl.data(), dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  BlockFromMatrix(tl.data(), B.data(), dblock * (num_blocks - num_new),
+                  dblock * (num_blocks - num_new), ntotal, ntotal, 0, 0);
+
+  // bottom right block from A 
+  std::vector<double> br(dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  mju_zero(br.data(), dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+  BlockFromMatrix(br.data(), A.data(), dblock * (num_blocks - num_new),
+                  dblock * (num_blocks - num_new), ntotal, ntotal,
+                  dblock * num_new, dblock * num_new);
+
+  // error 
+  mju_zero(error.data(), ntotal * ntotal);
+  mju_sub(error.data(), tl.data(), br.data(),
+          dblock * (num_blocks - num_new) * dblock * (num_blocks - num_new));
+
+  // test
+  EXPECT_NEAR(mju_norm(error.data(), dblock * (num_blocks - num_new) * dblock *
+                                         (num_blocks - num_new)),
+              0.0, 1.0e-3);
 }
 
 }  // namespace

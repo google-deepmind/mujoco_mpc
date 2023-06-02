@@ -12,14 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <mujoco/mujoco.h>
+
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "mjpc/estimators/trajectory.h"
 
 namespace mjpc {
 namespace {
 
-TEST(Trajectory, Test) {}
+TEST(Trajectory, Test) { 
+  // dimensions 
+  int dim = 5;
+  int length = 10;
+
+  // trajectory
+  Trajectory trajectory; 
+
+  // initialize
+  trajectory.Initialize(dim, length);
+
+  // test initialization
+  EXPECT_EQ(trajectory.head_index_, 0);
+  EXPECT_NEAR(mju_norm(trajectory.data_.data(), trajectory.data_.size()), 0.0,
+              1.0e-5);
+  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.data_.size()), 0.0,
+              1.0e-5);
+
+  // random initialization 
+
+}
 
 }  // namespace
 }  // namespace mjpc

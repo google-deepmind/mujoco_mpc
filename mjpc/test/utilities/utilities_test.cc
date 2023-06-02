@@ -429,7 +429,6 @@ TEST(BlockFromMatrix, Block2x2Mat4x4) {
   double ul[4] = {1, 2, 5, 6};
   mju_sub(error, block, ul, 4);
   EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
-  mju_printMat(block, 2, 2);
 
   // bottom right block
   ri = 2;
@@ -438,7 +437,6 @@ TEST(BlockFromMatrix, Block2x2Mat4x4) {
   double br[4] = {11, 12, 15, 16};
   mju_sub(error, block, br, 4);
   EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
-  mju_printMat(block, 2, 2);
 
   // center block
   ri = 1;
@@ -447,7 +445,43 @@ TEST(BlockFromMatrix, Block2x2Mat4x4) {
   double cc[4] = {6, 7, 10, 11};
   mju_sub(error, block, cc, 4);
   EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-6);
-  mju_printMat(block, 2, 2);
+}
+
+TEST(BandMatrix, Copy) {
+  // dimensions
+  int dblock = 20;
+  int nblock = 3;
+  int T = 32;
+  int ntotal = dblock * T;
+
+  // ----- create random band matrix ----- //
+  std::vector<double> F(ntotal * ntotal);
+  std::vector<double> A(ntotal * ntotal);
+
+  // sample matrix square root
+  absl::BitGen gen_;
+  for (int i = 0; i < ntotal * ntotal; i++) {
+    F[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // A = F' F
+  mju_mulMatTMat(A.data(), F.data(), F.data(), ntotal, ntotal, ntotal);
+
+  // band(A)
+  DenseToBlockBand(A.data(), ntotal, dblock, nblock);
+
+  // band copy 
+  std::vector<double> Acopy(ntotal * ntotal);
+  std::vector<double> scratch(2 * dblock * dblock);
+  SymmetricBandMatrixCopy(Acopy.data(), A.data(), dblock, nblock, ntotal,
+                          scratch.data());
+
+  // error 
+  std::vector<double> error(ntotal * ntotal);
+  mju_sub(error.data(), Acopy.data(), A.data(), ntotal * ntotal);
+
+  // test 
+  EXPECT_NEAR(mju_norm(error.data(), ntotal * ntotal), 0.0, 1.0e-3);
 }
 
 }  // namespace

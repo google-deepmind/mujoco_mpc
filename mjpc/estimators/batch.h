@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -50,6 +51,9 @@ class Estimator {
 
   // initialize
   void Initialize(mjModel* model);
+
+  // set configuration length 
+  void SetConfigurationLength(int length);
 
   // reset memory
   void Reset();
@@ -155,8 +159,8 @@ class Estimator {
   std::vector<UniqueMjData> data_;
 
   // trajectories
-  int configuration_length_;                 // T
-  std::vector<double> configuration_;        // nq x MAX_HISTORY
+  int configuration_length_;                 
+  Trajectory configuration_;                
   std::vector<double> velocity_;             // nv x MAX_HISTORY
   std::vector<double> acceleration_;         // na x MAX_HISTORY
   std::vector<double> time_;                 // 1  x MAX_HISTORY
@@ -166,12 +170,12 @@ class Estimator {
 
   // sensor
   int dim_sensor_;                           // ns
-  std::vector<double> sensor_measurement_;   // ns x MAX_HISTORY
-  std::vector<double> sensor_prediction_;    // ns x MAX_HISTORY
+  Trajectory sensor_measurement_;            
+  Trajectory sensor_prediction_;             
 
   // forces
-  std::vector<double> force_measurement_;    // nv x MAX_HISTORY
-  std::vector<double> force_prediction_;     // nv x MAX_HISTORY
+  Trajectory force_measurement_;   
+  Trajectory force_prediction_; 
 
   // residual
   std::vector<double> residual_prior_;       // nv * T

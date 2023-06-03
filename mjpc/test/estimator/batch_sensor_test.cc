@@ -25,7 +25,7 @@ namespace {
 
 TEST(MeasurementResidual, Particle) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -61,11 +61,11 @@ TEST(MeasurementResidual, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.sensor_measurement_.Data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //
   auto residual_measurement = [&measurement, &configuration_length = T, &model,
@@ -168,7 +168,7 @@ TEST(MeasurementResidual, Particle) {
 
 TEST(MeasurementResidual, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -206,11 +206,11 @@ TEST(MeasurementResidual, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.sensor_measurement_.Data(), measurement.data(), dim_mea);
 
   // ----- residual ----- //
   auto residual_measurement = [&configuration, &measurement,
@@ -326,7 +326,7 @@ TEST(MeasurementCost, Particle) {
   // load model
   // note: needs to be a linear system to satisfy Gauss-Newton Hessian
   // approximation
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -388,7 +388,7 @@ TEST(MeasurementCost, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // weights
   estimator.weight_sensor_[0] = 0.00125;
@@ -416,8 +416,8 @@ TEST(MeasurementCost, Particle) {
   estimator.norm_parameters_sensor_[3 * 3 + 1] = 2.0;
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.sensor_measurement_.data(), measurement.data() + ns,
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.sensor_measurement_.Data(), measurement.data() + ns,
            dim_mea - ns);
 
   // ----- cost ----- //
@@ -447,7 +447,7 @@ TEST(MeasurementCost, Particle) {
           const double* q0 = configuration + t * nq;
           const double* q1 = configuration + (t + 1) * nq;
           const double* q2 = configuration + (t + 2) * nq;
-          double* y1 = measurement.data() + t * model->nsensordata;
+          double* y1 = measurement.Get(t);
 
           // velocity
           mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -551,7 +551,7 @@ TEST(MeasurementCost, Particle) {
 
 TEST(MeasurementCost, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   model->opt.timestep = 0.05;
   mjData* data = mj_makeData(model);
 
@@ -595,7 +595,7 @@ TEST(MeasurementCost, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // weights
   estimator.weight_sensor_[0] = 0.00125;
@@ -633,8 +633,8 @@ TEST(MeasurementCost, Box) {
   estimator.norm_parameters_sensor_[5 * 3 + 1] = 2.0;
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.sensor_measurement_.data(), measurement.data(), dim_mea);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.sensor_measurement_.Data(), measurement.data(), dim_mea);
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,

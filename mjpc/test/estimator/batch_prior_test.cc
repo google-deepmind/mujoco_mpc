@@ -56,7 +56,7 @@ void DenseToBlockBand(double* res, const double* mat, int dim, int dblock,
 
 TEST(PriorResidual, Particle) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -81,10 +81,10 @@ TEST(PriorResidual, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
@@ -153,7 +153,7 @@ TEST(PriorResidual, Particle) {
 
 TEST(PriorResidual, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -181,10 +181,10 @@ TEST(PriorResidual, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
@@ -262,7 +262,7 @@ TEST(PriorCost, Particle) {
   // load model
   // note: needs to be a linear system to satisfy Gauss-Newton Hessian
   // approximation
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -287,11 +287,11 @@ TEST(PriorCost, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
@@ -390,7 +390,7 @@ TEST(PriorCost, Particle) {
 
 TEST(PriorCost, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -418,11 +418,11 @@ TEST(PriorCost, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
@@ -518,7 +518,7 @@ TEST(ApproximatePriorCost, Particle) {
   // load model
   // note: needs to be a linear system to satisfy Gauss-Newton Hessian
   // approximation
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -543,11 +543,11 @@ TEST(ApproximatePriorCost, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
@@ -657,7 +657,7 @@ TEST(ApproximatePriorCost, Particle) {
 
 TEST(ApproximatePriorCost, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -685,11 +685,11 @@ TEST(ApproximatePriorCost, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
   mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //

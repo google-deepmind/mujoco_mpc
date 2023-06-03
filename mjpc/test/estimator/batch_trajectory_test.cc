@@ -23,13 +23,13 @@
 namespace mjpc {
 namespace {
 
-TEST(Trajectory, Test) { 
-  // dimensions 
+TEST(Trajectory, Test) {
+  // dimensions
   int dim = 2;
   int length = 3;
 
   // trajectory
-  Trajectory trajectory; 
+  Trajectory trajectory;
 
   // initialize
   trajectory.Initialize(dim, length);
@@ -41,7 +41,7 @@ TEST(Trajectory, Test) {
   EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.data_.size()), 0.0,
               1.0e-5);
 
-  // index map 
+  // index map
   EXPECT_EQ(trajectory.IndexMap(0), 0);
   EXPECT_EQ(trajectory.IndexMap(1), 1);
   EXPECT_EQ(trajectory.IndexMap(2), 2);
@@ -59,29 +59,29 @@ TEST(Trajectory, Test) {
     trajectory.Set(element, i);
   }
 
-  // test get data 
+  // test get data
   std::vector<double> error(dim);
   for (int i = 0; i < length; i++) {
     // get elements
     double* element = data.data() + dim * i;
     double* traj_element = trajectory.Get(i);
 
-    // error 
+    // error
     mju_sub(error.data(), traj_element, element, dim);
 
-    // test 
+    // test
     EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
   }
 
-  // elements 
+  // elements
   double* e0 = data.data() + dim * 0;
   double* e1 = data.data() + dim * 1;
   double* e2 = data.data() + dim * 2;
-  
-  // shift head index 
+
+  // shift head index
   trajectory.head_index_++;
 
-  // test map index 
+  // test map index
   EXPECT_EQ(trajectory.IndexMap(0), 1);
   EXPECT_EQ(trajectory.IndexMap(1), 2);
   EXPECT_EQ(trajectory.IndexMap(2), 0);
@@ -103,11 +103,11 @@ TEST(Trajectory, Test) {
   mju_sub(error.data(), t2, e0, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
-  // test set 
+  // test set
   double s[2] = {1.1, 3.24};
   trajectory.Set(s, 0);
 
-  // t0 - s 
+  // t0 - s
   mju_sub(error.data(), t0, s, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
@@ -115,10 +115,10 @@ TEST(Trajectory, Test) {
   mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
-  // shift head index 
+  // shift head index
   trajectory.head_index_++;
 
-  // test map index 
+  // test map index
   EXPECT_EQ(trajectory.IndexMap(0), 2);
   EXPECT_EQ(trajectory.IndexMap(1), 0);
   EXPECT_EQ(trajectory.IndexMap(2), 1);

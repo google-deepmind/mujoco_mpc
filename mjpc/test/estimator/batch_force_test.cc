@@ -26,7 +26,7 @@ namespace {
 
 TEST(ForceResidual, Particle) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -61,11 +61,11 @@ TEST(ForceResidual, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), dim_id);
 
   // ----- residual ----- //
   auto residual_inverse_dynamics = [&qfrc_actuator, &configuration_length = T,
@@ -169,7 +169,7 @@ TEST(ForceResidual, Particle) {
 
 TEST(ForceResidual, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -212,11 +212,11 @@ TEST(ForceResidual, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), dim_id);
 
   // ----- residual ----- //
   auto residual_inverse_dynamics =
@@ -225,7 +225,7 @@ TEST(ForceResidual, Box) {
        &model, &data, nq, nv](double* residual, const double* update) {
         // ----- integrate quaternion ----- //
         std::vector<double> qint(nq * configuration_length);
-        mju_copy(qint.data(), configuration.data(), nq * configuration_length);
+        mju_copy(qint.data(), configuration.Data(), nq * configuration_length);
 
         // loop over configurations
         for (int t = 0; t < configuration_length; t++) {
@@ -248,7 +248,7 @@ TEST(ForceResidual, Box) {
           double* q0 = qint.data() + t * nq;
           double* q1 = qint.data() + (t + 1) * nq;
           double* q2 = qint.data() + (t + 2) * nq;
-          double* f1 = qfrc_actuator.data() + t * nv;
+          double* f1 = qfrc_actuator.Get(t);
 
           // velocity
           mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -331,7 +331,7 @@ TEST(ForceResidual, Box) {
 
 TEST(ForceCost, Particle) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -372,7 +372,7 @@ TEST(ForceCost, Particle) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // weights
   estimator.weight_force_[0] = 0.0055;
@@ -387,8 +387,8 @@ TEST(ForceCost, Particle) {
   estimator.norm_force_[3] = kQuadratic;
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), dim_id);
 
   // ----- cost ----- //
   auto cost_inverse_dynamics = [&qfrc_actuator = estimator.force_measurement_,
@@ -418,7 +418,7 @@ TEST(ForceCost, Particle) {
       const double* q0 = configuration + t * nq;
       const double* q1 = configuration + (t + 1) * nq;
       const double* q2 = configuration + (t + 2) * nq;
-      double* f1 = qfrc_actuator.data() + t * nv;
+      double* f1 = qfrc_actuator.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -532,7 +532,7 @@ TEST(ForceCost, Particle) {
 
 TEST(ForceCost, Box) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   model->opt.timestep = 0.035;
   mjData* data = mj_makeData(model);
 
@@ -575,7 +575,7 @@ TEST(ForceCost, Box) {
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
-  estimator.configuration_length_ = T;
+  estimator.SetConfigurationLength(T);
 
   // weights
   estimator.weight_force_[0] = 0.00125;
@@ -600,8 +600,8 @@ TEST(ForceCost, Box) {
   estimator.norm_parameters_force_[3][0] = 0.15;
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.data(), configuration.data(), dim_pos);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data(), dim_id);
+  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), dim_id);
 
   // ----- cost ----- //
   auto cost_inverse_dynamics =
@@ -612,7 +612,7 @@ TEST(ForceCost, Box) {
        &norms = estimator.norm_force_, &data, nq, nv](const double* update) {
         // ----- integrate quaternion ----- //
         std::vector<double> qint(nq * configuration_length);
-        mju_copy(qint.data(), configuration.data(), nq * configuration_length);
+        mju_copy(qint.data(), configuration.Data(), nq * configuration_length);
 
         // loop over configurations
         for (int t = 0; t < configuration_length; t++) {
@@ -641,7 +641,7 @@ TEST(ForceCost, Box) {
           double* q0 = qint.data() + t * nq;
           double* q1 = qint.data() + (t + 1) * nq;
           double* q2 = qint.data() + (t + 2) * nq;
-          double* f1 = qfrc_actuator.data() + t * nv;
+          double* f1 = qfrc_actuator.Get(t);
 
           // velocity
           mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);

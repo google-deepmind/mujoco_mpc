@@ -27,7 +27,7 @@ namespace {
 
 TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // threadpool 
@@ -88,7 +88,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
@@ -121,7 +121,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
 TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // load model
-  mjModel* model = LoadTestModel("box3D.xml");
+  mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
   // threadpool 
@@ -183,7 +183,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * (T + 1));
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
   for (int t = 0; t < estimator.configuration_length_ - 1; t++) {

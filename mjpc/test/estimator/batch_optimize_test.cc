@@ -28,7 +28,7 @@ namespace {
 
 TEST(BatchOptimize, Particle2D) {
   // load model
-  mjModel* model = LoadTestModel("particle2D.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimensions
@@ -91,13 +91,13 @@ TEST(BatchOptimize, Particle2D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  estimator.SetConfigurationLength(T);
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv,
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
            ns * (T - 2));
-  estimator.configuration_length_ = T;
 
   // set weights 
   estimator.scale_prior_ = 1.0;
@@ -107,12 +107,12 @@ TEST(BatchOptimize, Particle2D) {
   // ----- random perturbation ----- //
 
   // set configuration to nominal
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
 
   // randomly perturb
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.data() + t * nq;
+    double* q = estimator.configuration_.Data() + t * nq;
 
     // add noise
     for (int i = 0; i < nq; i++) {
@@ -135,7 +135,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // error 
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
 
   // test cost decrease
   EXPECT_LE(estimator.cost_, cost_random);
@@ -153,7 +153,7 @@ TEST(BatchOptimize, Particle2D) {
 
 TEST(BatchOptimize, Box3D) {
   // load model
-  mjModel* model = LoadTestModel("box3D_sensor.xml");
+  mjModel* model = LoadTestModel("estimator/box/task1.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -227,13 +227,13 @@ TEST(BatchOptimize, Box3D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  estimator.SetConfigurationLength(T);
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv,
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
            ns * (T - 2));
-  estimator.configuration_length_ = T;
 
   // ----- random perturbation ----- //
 
@@ -243,7 +243,7 @@ TEST(BatchOptimize, Box3D) {
   // loop over configurations
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.data() + t * nq;
+    double* q = estimator.configuration_.Get(t);
 
     // add noise
     for (int i = 0; i < nv; i++) {
@@ -269,7 +269,7 @@ TEST(BatchOptimize, Box3D) {
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
 
   // test cost decrease 
   EXPECT_LE(estimator.cost_, cost_random);
@@ -287,7 +287,7 @@ TEST(BatchOptimize, Box3D) {
 
 TEST(BatchOptimize, Quadruped) {
   // load model
-  mjModel* model = LoadTestModel("quadruped/scene.xml");
+  mjModel* model = LoadTestModel("estimator/quadruped/task.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
@@ -356,13 +356,13 @@ TEST(BatchOptimize, Quadruped) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.data(), qpos.data(), nq * T);
+  estimator.SetConfigurationLength(T);
+  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.data(), qfrc_actuator.data() + nv,
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.data(), sensordata.data() + ns,
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
            ns * (T - 2));
-  estimator.configuration_length_ = T;
 
   // ----- random perturbation ----- //
 
@@ -372,7 +372,7 @@ TEST(BatchOptimize, Quadruped) {
   // loop over configurations
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.data() + t * nq;
+    double* q = estimator.configuration_.Get(t);
 
     // add noise
     for (int i = 0; i < nv; i++) {
@@ -417,7 +417,7 @@ TEST(BatchOptimize, Quadruped) {
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.data(), qpos.data(), nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
 
   // test cost decrease 
   EXPECT_LE(estimator.cost_, cost_random);

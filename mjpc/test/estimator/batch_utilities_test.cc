@@ -97,7 +97,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.data(), qvel.data() + nv,
+  mju_sub(velocity_error.data(), estimator.velocity_.Data(), qvel.data() + nv,
           nv * (T - 1));
 
   // velocity test
@@ -106,7 +106,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // acceleration error
   std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration_.data(),
+  mju_sub(acceleration_error.data(), estimator.acceleration_.Data(),
           qacc.data() + nv, nv * (T - 2));
 
   // velocity test
@@ -192,7 +192,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.data(), qvel.data() + nv,
+  mju_sub(velocity_error.data(), estimator.velocity_.Data(), qvel.data() + nv,
           nv * (T - 1));
 
   // velocity test
@@ -201,7 +201,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // acceleration error
   std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration_.data(),
+  mju_sub(acceleration_error.data(), estimator.acceleration_.Data(),
           qacc.data() + nv, nv * (T - 2));
 
   // velocity test

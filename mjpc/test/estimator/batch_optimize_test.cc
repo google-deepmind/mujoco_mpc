@@ -93,7 +93,7 @@ TEST(BatchOptimize, Particle2D) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
   mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
@@ -229,7 +229,7 @@ TEST(BatchOptimize, Box3D) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
   mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
@@ -358,7 +358,7 @@ TEST(BatchOptimize, Quadruped) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.configuration_prior_.data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
            nv * (T - 2));
   mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,

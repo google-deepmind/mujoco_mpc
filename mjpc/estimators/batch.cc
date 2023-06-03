@@ -35,16 +35,18 @@ void Estimator::Initialize(mjModel* model) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // trajectories
+  // length of configuration trajectory
   configuration_length_ =
       GetNumberOrDefault(32, model, "estimator_configuration_length");
+
+  // trajectories
   configuration_.Initialize(nq, configuration_length_);
-  velocity_.resize(nv * MAX_HISTORY);
-  acceleration_.resize(nv * MAX_HISTORY);
-  time_.resize(MAX_HISTORY);
+  velocity_.Initialize(nv, configuration_length_);
+  acceleration_.Initialize(nv, configuration_length_);
+  time_.Initialize(1, configuration_length_);
 
   // prior
-  configuration_prior_.resize(nq * MAX_HISTORY);
+  configuration_prior_.Initialize(nq, configuration_length_);
 
   // sensor
   dim_sensor_ = model->nsensordata;  // TODO(taylor): grab from model
@@ -66,41 +68,54 @@ void Estimator::Initialize(mjModel* model) {
   jacobian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // prior Jacobian block
-  block_prior_current_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
 
   // sensor Jacobian blocks
-  block_sensor_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_velocity_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_acceleration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
+  block_sensor_configuration_.Initialize(dim_sensor_ * nv,
+                                         configuration_length_);
+  block_sensor_velocity_.Initialize(dim_sensor_ * nv, configuration_length_);
+  block_sensor_acceleration_.Initialize(dim_sensor_ * nv,
+                                        configuration_length_);
 
-  block_sensor_previous_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_current_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_next_configuration_.resize((dim_sensor_ * nv) * MAX_HISTORY);
-  block_sensor_configurations_.resize((dim_sensor_ * 3 * nv) * MAX_HISTORY);
+  block_sensor_previous_configuration_.Initialize(dim_sensor_ * nv,
+                                                  configuration_length_);
+  block_sensor_current_configuration_.Initialize(dim_sensor_ * nv,
+                                                 configuration_length_);
+  block_sensor_next_configuration_.Initialize(dim_sensor_ * nv,
+                                              configuration_length_);
+  block_sensor_configurations_.Initialize(dim_sensor_ * 3 * nv,
+                                          configuration_length_);
 
-  block_sensor_scratch_.resize(mju_max(nv, dim_sensor_) *
-                               mju_max(nv, dim_sensor_) * MAX_HISTORY);
+  block_sensor_scratch_.Initialize(
+      mju_max(nv, dim_sensor_) * mju_max(nv, dim_sensor_),
+      configuration_length_);
 
   // force Jacobian blocks
-  block_force_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_force_velocity_.resize((nv * nv) * MAX_HISTORY);
-  block_force_acceleration_.resize((nv * nv) * MAX_HISTORY);
+  block_force_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_velocity_.Initialize(nv * nv, configuration_length_);
+  block_force_acceleration_.Initialize(nv * nv, configuration_length_);
 
-  block_force_previous_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_force_current_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_force_next_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_force_configurations_.resize((nv * 3 * nv) * MAX_HISTORY);
+  block_force_previous_configuration_.Initialize(nv * nv,
+                                                 configuration_length_);
+  block_force_current_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_next_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_configurations_.Initialize(nv * 3 * nv, configuration_length_);
 
-  block_force_scratch_.resize((nv * nv) * MAX_HISTORY);
+  block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
   // velocity Jacobian blocks
-  block_velocity_previous_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_velocity_current_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_velocity_previous_configuration_.Initialize(nv * nv,
+                                                    configuration_length_);
+  block_velocity_current_configuration_.Initialize(nv * nv,
+                                                   configuration_length_);
 
   // acceleration Jacobian blocks
-  block_acceleration_previous_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_acceleration_current_configuration_.resize((nv * nv) * MAX_HISTORY);
-  block_acceleration_next_configuration_.resize((nv * nv) * MAX_HISTORY);
+  block_acceleration_previous_configuration_.Initialize(nv * nv,
+                                                        configuration_length_);
+  block_acceleration_current_configuration_.Initialize(nv * nv,
+                                                       configuration_length_);
+  block_acceleration_next_configuration_.Initialize(nv * nv,
+                                                    configuration_length_);
 
   // cost gradient
   cost_gradient_prior_.resize(nv * MAX_HISTORY);
@@ -216,13 +231,21 @@ void Estimator::Initialize(mjModel* model) {
   Reset();
 }
 
-// set configuration length 
+// set configuration length
 void Estimator::SetConfigurationLength(int length) {
-  // set length 
+  // set length
   configuration_length_ = length;
 
   // update trajectory lengths
   configuration_.length_ = length;
+
+  // TODO(taylor): set to T - 2
+
+  velocity_.length_ = length;
+  acceleration_.length_ = length;
+  time_.length_ = length;
+
+  configuration_prior_.length_ = length;
 
   sensor_measurement_.length_ = length;
   sensor_prediction_.length_ = length;
@@ -230,18 +253,48 @@ void Estimator::SetConfigurationLength(int length) {
   force_measurement_.length_ = length;
   force_prediction_.length_ = length;
 
+  block_prior_current_configuration_.length_ = length;
+
+  block_sensor_configuration_.length_ = length;
+  block_sensor_velocity_.length_ = length;
+  block_sensor_acceleration_.length_ = length;
+
+  block_sensor_previous_configuration_.length_ = length;
+  block_sensor_current_configuration_.length_ = length;
+  block_sensor_next_configuration_.length_ = length;
+  block_sensor_configurations_.length_ = length;
+
+  block_sensor_scratch_.length_ = length;
+
+  block_force_configuration_.length_ = length;
+  block_force_velocity_.length_ = length;
+  block_force_acceleration_.length_ = length;
+
+  block_force_previous_configuration_.length_ = length;
+  block_force_current_configuration_.length_ = length;
+  block_force_next_configuration_.length_ = length;
+  block_force_configurations_.length_ = length;
+
+  block_force_scratch_.length_ = length;
+
+  block_velocity_previous_configuration_.length_ = length;
+  block_velocity_current_configuration_.length_ = length;
+
+  block_acceleration_previous_configuration_.length_ = length;
+  block_acceleration_current_configuration_.length_ = length;
+  block_acceleration_next_configuration_.length_ = length;
 }
 
 // reset memory
 void Estimator::Reset() {
   // trajectories
   configuration_.Reset();
-  std::fill(velocity_.begin(), velocity_.end(), 0.0);
-  std::fill(acceleration_.begin(), acceleration_.end(), 0.0);
-  std::fill(time_.begin(), time_.end(), 0.0);
+  velocity_.Reset();
+  acceleration_.Reset();
+  time_.Reset();
 
   // prior
-  std::fill(configuration_prior_.begin(), configuration_prior_.end(), 0.0);
+  configuration_prior_.Reset();
 
   // sensor
   sensor_measurement_.Reset();
@@ -262,64 +315,40 @@ void Estimator::Reset() {
   std::fill(jacobian_force_.begin(), jacobian_force_.end(), 0.0);
 
   // prior Jacobian block
-  std::fill(block_prior_current_configuration_.begin(),
-            block_prior_current_configuration_.end(), 0.0);
+  block_prior_current_configuration_.Reset();
 
   // sensor Jacobian blocks
-  std::fill(block_sensor_configuration_.begin(),
-            block_sensor_configuration_.end(), 0.0);
-  std::fill(block_sensor_velocity_.begin(), block_sensor_velocity_.end(), 0.0);
-  std::fill(block_sensor_acceleration_.begin(),
-            block_sensor_acceleration_.end(), 0.0);
+  block_sensor_configuration_.Reset();
+  block_sensor_velocity_.Reset();
+  block_sensor_acceleration_.Reset();
 
-  std::fill(block_sensor_previous_configuration_.begin(),
-            block_sensor_previous_configuration_.end(), 0.0);
+  block_sensor_previous_configuration_.Reset();
+  block_sensor_current_configuration_.Reset();
+  block_sensor_next_configuration_.Reset();
+  block_sensor_configurations_.Reset();
 
-  std::fill(block_sensor_current_configuration_.begin(),
-            block_sensor_current_configuration_.end(), 0.0);
-
-  std::fill(block_sensor_next_configuration_.begin(),
-            block_sensor_next_configuration_.end(), 0.0);
-
-  std::fill(block_sensor_configurations_.begin(),
-            block_sensor_configurations_.end(), 0.0);
-
-  std::fill(block_sensor_scratch_.begin(), block_sensor_scratch_.end(), 0.0);
+  block_sensor_scratch_.Reset();
 
   // force Jacobian blocks
-  std::fill(block_force_configuration_.begin(),
-            block_force_configuration_.end(), 0.0);
-  std::fill(block_force_velocity_.begin(), block_force_velocity_.end(), 0.0);
-  std::fill(block_force_acceleration_.begin(), block_force_acceleration_.end(),
-            0.0);
+  block_force_configuration_.Reset();
+  block_force_velocity_.Reset();
+  block_force_acceleration_.Reset();
 
-  std::fill(block_force_previous_configuration_.begin(),
-            block_force_previous_configuration_.end(), 0.0);
+  block_force_previous_configuration_.Reset();
+  block_force_current_configuration_.Reset();
+  block_force_next_configuration_.Reset();
+  block_force_configurations_.Reset();
 
-  std::fill(block_force_current_configuration_.begin(),
-            block_force_current_configuration_.end(), 0.0);
-
-  std::fill(block_force_next_configuration_.begin(),
-            block_force_next_configuration_.end(), 0.0);
-
-  std::fill(block_force_configurations_.begin(),
-            block_force_configurations_.end(), 0.0);
-
-  std::fill(block_force_scratch_.begin(), block_force_scratch_.end(), 0.0);
+  block_force_scratch_.Reset();
 
   // velocity Jacobian blocks
-  std::fill(block_velocity_previous_configuration_.begin(),
-            block_velocity_previous_configuration_.end(), 0.0);
-  std::fill(block_velocity_current_configuration_.begin(),
-            block_velocity_current_configuration_.end(), 0.0);
+  block_velocity_previous_configuration_.Reset();
+  block_velocity_current_configuration_.Reset();
 
   // acceleration Jacobian blocks
-  std::fill(block_acceleration_previous_configuration_.begin(),
-            block_acceleration_previous_configuration_.end(), 0.0);
-  std::fill(block_acceleration_current_configuration_.begin(),
-            block_acceleration_current_configuration_.end(), 0.0);
-  std::fill(block_acceleration_next_configuration_.begin(),
-            block_acceleration_next_configuration_.end(), 0.0);
+  block_acceleration_previous_configuration_.Reset();
+  block_acceleration_current_configuration_.Reset();
+  block_acceleration_next_configuration_.Reset();
 
   // cost
   cost_prior_ = 0.0;
@@ -432,7 +461,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     if (gradient) {
       // unpack
       double* gt = gradient + t * nv;
-      double* block = block_prior_current_configuration_.data() + t * nv * nv;
+      double* block = block_prior_current_configuration_.Get(t);
 
       // compute
       mju_mulMatTVec(gt, block, tmp + t * nv, nv, nv);
@@ -463,10 +492,8 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
         // get matrices
         BlockFromMatrix(bbij, weight_prior_dense_.data(), nv, nv, dim, dim,
                         t * nv, j * nv);
-        const double* bdi =
-            block_prior_current_configuration_.data() + nv * nv * t;
-        const double* bdj =
-            block_prior_current_configuration_.data() + nv * nv * j;
+        const double* bdi = block_prior_current_configuration_.Get(t);
+        const double* bdj = block_prior_current_configuration_.Get(j);
 
         // -- bdi' * bbij * bdj -- //
 
@@ -512,11 +539,11 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
 // prior residual
 void Estimator::ResidualPrior(int t) {
   // dimension
-  int nq = model_->nq, nv = model_->nv;
+  int nv = model_->nv;
 
   // terms
   double* rt = residual_prior_.data() + t * nv;
-  double* qt_prior = configuration_prior_.data() + t * nq;
+  double* qt_prior = configuration_prior_.Get(t);
   double* qt = configuration_.Get(t);
 
   // configuration difference
@@ -532,7 +559,7 @@ void Estimator::AssembleJacobianPrior(int t) {
   mju_zero(jacobian_prior_.data() + t * nv * dim, nv * dim);
 
   // unpack
-  double* block = block_prior_current_configuration_.data() + t * nv * nv;
+  double* block = block_prior_current_configuration_.Get(t);
 
   // set block in matrix
   SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, t * nv,
@@ -541,13 +568,10 @@ void Estimator::AssembleJacobianPrior(int t) {
 
 // prior Jacobian blocks
 void Estimator::BlockPrior(int t) {
-  // dimension
-  int nq = model_->nq, nv = model_->nv;
-
   // unpack
   double* qt = configuration_.Get(t);
-  double* qt_prior = configuration_prior_.data() + t * nq;
-  double* block = block_prior_current_configuration_.data() + t * nv * nv;
+  double* qt_prior = configuration_prior_.Get(t);
+  double* block = block_prior_current_configuration_.Get(t);
 
   // compute Jacobian
   DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
@@ -583,7 +607,6 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
   int nv = model_->nv;
-  int ns = dim_sensor_;
 
   // ----- cost ----- //
 
@@ -597,7 +620,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
     // unpack block
-    double* block = block_sensor_configurations_.data() + ns * (3 * nv) * t;
+    double* block = block_sensor_configurations_.Get(t);
 
     // sensor shift
     int shift_sensor = 0;
@@ -700,7 +723,7 @@ void Estimator::AssembleJacobianSensor(int t) {
   // ----- configuration previous ----- //
 
   // unpack
-  double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
+  double* dsdq0 = block_sensor_previous_configuration_.Get(t);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
@@ -709,7 +732,7 @@ void Estimator::AssembleJacobianSensor(int t) {
   // ----- configuration current ----- //
 
   // unpack
-  double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+  double* dsdq1 = block_sensor_current_configuration_.Get(t);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
@@ -718,7 +741,7 @@ void Estimator::AssembleJacobianSensor(int t) {
   // ----- configuration next ----- //
 
   // unpack
-  double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+  double* dsdq2 = block_sensor_next_configuration_.Get(t);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
@@ -731,62 +754,60 @@ void Estimator::BlockSensor(int t) {
   int nv = model_->nv, ns = dim_sensor_;
 
   // dqds
-  double* dqds = block_sensor_configuration_.data() + t * ns * nv;
+  double* dqds = block_sensor_configuration_.Get(t);
 
   // dvds
-  double* dvds = block_sensor_velocity_.data() + t * ns * nv;
+  double* dvds = block_sensor_velocity_.Get(t);
 
   // dads
-  double* dads = block_sensor_acceleration_.data() + t * ns * nv;
+  double* dads = block_sensor_acceleration_.Get(t);
 
   // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
 
   // unpack
-  double* dsdq0 = block_sensor_previous_configuration_.data() + ns * nv * t;
-  double* tmp = block_sensor_scratch_.data() + t * ns * nv;
+  double* dsdq0 = block_sensor_previous_configuration_.Get(t);
+  double* tmp = block_sensor_scratch_.Get(t);
 
   // dsdq0 <- dvds' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
+  double* dvdq0 = block_velocity_previous_configuration_.Get(t);
   mju_mulMatTMat(dsdq0, dvds, dvdq0, nv, ns, nv);
 
   // dsdq0 += dads' * dadq0
-  double* dadq0 =
-      block_acceleration_previous_configuration_.data() + t * nv * nv;
+  double* dadq0 = block_acceleration_previous_configuration_.Get(t);
   mju_mulMatTMat(tmp, dads, dadq0, nv, ns, nv);
   mju_addTo(dsdq0, tmp, ns * nv);
 
   // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
 
   // unpack
-  double* dsdq1 = block_sensor_current_configuration_.data() + ns * nv * t;
+  double* dsdq1 = block_sensor_current_configuration_.Get(t);
 
   // dsdq1 <- dqds'
   mju_transpose(dsdq1, dqds, nv, ns);
 
   // dsdq1 += dvds' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+  double* dvdq1 = block_velocity_current_configuration_.Get(t);
   mju_mulMatTMat(tmp, dvds, dvdq1, nv, ns, nv);
   mju_addTo(dsdq1, tmp, ns * nv);
 
   // dsdq1 += dads' * dadq1
-  double* dadq1 =
-      block_acceleration_current_configuration_.data() + t * nv * nv;
+  double* dadq1 = block_acceleration_current_configuration_.Get(t);
   mju_mulMatTMat(tmp, dads, dadq1, nv, ns, nv);
   mju_addTo(dsdq1, tmp, ns * nv);
 
   // -- configuration next: dsdq2 = dsda * dadq2 -- //
 
   // unpack
-  double* dsdq2 = block_sensor_next_configuration_.data() + ns * nv * t;
+  double* dsdq2 = block_sensor_next_configuration_.Get(t);
 
   // dsdq2 = dads' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+  double* dadq2 = block_acceleration_next_configuration_.Get(t);
   mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
 
   // -- assemble dsdq012 block -- //
 
   // unpack
-  double* dsdq012 = block_sensor_configurations_.data() + t * ns * (3 * nv);
+  double* dsdq012 = block_sensor_configurations_.Get(t);
 
   // set dfdq0
   SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
@@ -840,7 +861,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   // loop over time steps
   for (int t = 0; t < configuration_length_ - 2; t++) {
     // unpack block
-    double* block = block_force_configurations_.data() + nv * (3 * nv) * t;
+    double* block = block_force_configurations_.Get(t);
 
     // shift by joint
     int shift_joint = 0;
@@ -956,7 +977,7 @@ void Estimator::AssembleJacobianForce(int t) {
 
   // ----- configuration previous ----- //
   // unpack
-  double* dfdq0 = block_force_previous_configuration_.data() + nv * nv * t;
+  double* dfdq0 = block_force_previous_configuration_.Get(t);
 
   // set
   SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual, dim_update,
@@ -965,7 +986,7 @@ void Estimator::AssembleJacobianForce(int t) {
   // ----- configuration current ----- //
 
   // unpack
-  double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
+  double* dfdq1 = block_force_current_configuration_.Get(t);
 
   // set
   SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual, dim_update,
@@ -974,7 +995,7 @@ void Estimator::AssembleJacobianForce(int t) {
   // ----- configuration next ----- //
 
   // unpack
-  double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
+  double* dfdq2 = block_force_next_configuration_.Get(t);
 
   // set
   AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual, dim_update,
@@ -987,62 +1008,60 @@ void Estimator::BlockForce(int t) {
   int nv = model_->nv;
 
   // dqdf
-  double* dqdf = block_force_configuration_.data() + t * nv * nv;
+  double* dqdf = block_force_configuration_.Get(t);
 
   // dvdf
-  double* dvdf = block_force_velocity_.data() + t * nv * nv;
+  double* dvdf = block_force_velocity_.Get(t);
 
   // dadf
-  double* dadf = block_force_acceleration_.data() + t * nv * nv;
+  double* dadf = block_force_acceleration_.Get(t);
 
   // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
 
   // unpack
-  double* dfdq0 = block_force_previous_configuration_.data() + t * nv * nv;
-  double* tmp = block_force_scratch_.data() + t * nv * nv;
+  double* dfdq0 = block_force_previous_configuration_.Get(t);
+  double* tmp = block_force_scratch_.Get(t);
 
   // dfdq0 <- dvdf' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.data() + t * nv * nv;
+  double* dvdq0 = block_velocity_previous_configuration_.Get(t);
   mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
 
   // dfdq0 += dadf' * dadq0
-  double* dadq0 =
-      block_acceleration_previous_configuration_.data() + t * nv * nv;
+  double* dadq0 = block_acceleration_previous_configuration_.Get(t);
   mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
   mju_addTo(dfdq0, tmp, nv * nv);
 
   // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 -- //
 
   // unpack
-  double* dfdq1 = block_force_current_configuration_.data() + nv * nv * t;
+  double* dfdq1 = block_force_current_configuration_.Get(t);
 
   // dfdq1 <- dqdf'
   mju_transpose(dfdq1, dqdf, nv, nv);
 
   // dfdq1 += dvdf' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.data() + t * nv * nv;
+  double* dvdq1 = block_velocity_current_configuration_.Get(t);
   mju_mulMatTMat(tmp, dvdf, dvdq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
   // dfdq1 += dadf' * dadq1
-  double* dadq1 =
-      block_acceleration_current_configuration_.data() + t * nv * nv;
+  double* dadq1 = block_acceleration_current_configuration_.Get(t);
   mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
   // -- configuration next: dfdq2 = dfda * dadq2 -- //
 
   // unpack
-  double* dfdq2 = block_force_next_configuration_.data() + nv * nv * t;
+  double* dfdq2 = block_force_next_configuration_.Get(t);
 
   // dfdq2 <- dadf' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.data() + t * nv * nv;
+  double* dadq2 = block_acceleration_next_configuration_.Get(t);
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
 
   // -- assemble dfdq012 block -- //
 
   // unpack
-  double* dfdq012 = block_force_configurations_.data() + t * nv * (3 * nv);
+  double* dfdq012 = block_force_configurations_.Get(t);
 
   // set dfdq0
   SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
@@ -1082,8 +1101,8 @@ void Estimator::InverseDynamicsPrediction(int t) {
 
   // terms
   double* qt = configuration_.Get(t + 1);
-  double* vt = velocity_.data() + t * nv;
-  double* at = acceleration_.data() + t * nv;
+  double* vt = velocity_.Get(t);
+  double* at = acceleration_.Get(t);
 
   // data
   mjData* d = data_[t].get();
@@ -1111,7 +1130,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv, ns = dim_sensor_;
+  int nq = model_->nq, nv = model_->nv;
 
   // pool count
   int count_before = pool.GetCount();
@@ -1119,17 +1138,17 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   // loop over estimation horizon
   for (int t = 0; t < configuration_length_ - 2; t++) {
     // schedule
-    pool.Schedule([&estimator = *this, nq, nv, ns, t]() {
+    pool.Schedule([&estimator = *this, nq, nv, t]() {
       // unpack
       double* q = estimator.configuration_.Get(t + 1);
-      double* v = estimator.velocity_.data() + t * nv;
-      double* a = estimator.acceleration_.data() + t * nv;
-      double* dqds = estimator.block_sensor_configuration_.data() + t * ns * nv;
-      double* dvds = estimator.block_sensor_velocity_.data() + t * ns * nv;
-      double* dads = estimator.block_sensor_acceleration_.data() + t * ns * nv;
-      double* dqdf = estimator.block_force_configuration_.data() + t * nv * nv;
-      double* dvdf = estimator.block_force_velocity_.data() + t * nv * nv;
-      double* dadf = estimator.block_force_acceleration_.data() + t * nv * nv;
+      double* v = estimator.velocity_.Get(t);
+      double* a = estimator.acceleration_.Get(t);
+      double* dqds = estimator.block_sensor_configuration_.Get(t);
+      double* dvds = estimator.block_sensor_velocity_.Get(t);
+      double* dads = estimator.block_sensor_acceleration_.Get(t);
+      double* dqdf = estimator.block_force_configuration_.Get(t);
+      double* dvdf = estimator.block_force_velocity_.Get(t);
+      double* dadf = estimator.block_force_acceleration_.Get(t);
       mjData* data = estimator.data_[t].get();  // TODO(taylor): WorkerID
 
       // set (state, acceleration)
@@ -1196,16 +1215,16 @@ void Estimator::ConfigurationToVelocityAcceleration(int t) {
   const double* q1 = configuration_.Get(t + 1);
 
   // compute velocity
-  double* v1 = velocity_.data() + t * nv;
+  double* v1 = velocity_.Get(t);
   mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
 
   // compute acceleration
   if (t > 0) {
     // previous velocity
-    const double* v0 = velocity_.data() + (t - 1) * nv;
+    const double* v0 = velocity_.Get(t - 1);
 
     // compute acceleration
-    double* a1 = acceleration_.data() + (t - 1) * nv;
+    double* a1 = acceleration_.Get(t - 1);
     mju_sub(a1, v1, v0, nv);
     mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
   }
@@ -1225,9 +1244,8 @@ void Estimator::VelocityAccelerationDerivatives(ThreadPool& pool) {
     // unpack
     double* q1 = configuration_.Get(t);
     double* q2 = configuration_.Get(t + 1);
-    double* dv2dq1 =
-        block_velocity_previous_configuration_.data() + t * nv * nv;
-    double* dv2dq2 = block_velocity_current_configuration_.data() + t * nv * nv;
+    double* dv2dq1 = block_velocity_previous_configuration_.Get(t);
+    double* dv2dq2 = block_velocity_current_configuration_.Get(t);
 
     // compute velocity Jacobians
     DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model_, model_->opt.timestep,
@@ -1236,18 +1254,13 @@ void Estimator::VelocityAccelerationDerivatives(ThreadPool& pool) {
     // compute acceleration Jacobians
     if (t > 0) {
       // unpack
-      double* dadq0 =
-          block_acceleration_previous_configuration_.data() + (t - 1) * nv * nv;
-      double* dadq1 =
-          block_acceleration_current_configuration_.data() + (t - 1) * nv * nv;
-      double* dadq2 =
-          block_acceleration_next_configuration_.data() + (t - 1) * nv * nv;
+      double* dadq0 = block_acceleration_previous_configuration_.Get(t - 1);
+      double* dadq1 = block_acceleration_current_configuration_.Get(t - 1);
+      double* dadq2 = block_acceleration_next_configuration_.Get(t - 1);
 
       // previous velocity Jacobians
-      double* dv1dq0 =
-          block_velocity_previous_configuration_.data() + (t - 1) * nv * nv;
-      double* dv1dq1 =
-          block_velocity_current_configuration_.data() + (t - 1) * nv * nv;
+      double* dv1dq0 = block_velocity_previous_configuration_.Get(t - 1);
+      double* dv1dq1 = block_velocity_current_configuration_.Get(t - 1);
 
       // dadq0 = -dv1dq0 / h
       mju_copy(dadq0, dv1dq0, nv * nv);

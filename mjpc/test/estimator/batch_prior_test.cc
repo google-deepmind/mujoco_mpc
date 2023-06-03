@@ -85,7 +85,7 @@ TEST(PriorResidual, Particle) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
   auto residual_prior = [&prior, &configuration_length = T, &model, nq, nv](
@@ -185,7 +185,7 @@ TEST(PriorResidual, Box) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- residual ----- //
   auto residual_prior = [&configuration, &prior, &configuration_length = T,
@@ -292,7 +292,7 @@ TEST(PriorCost, Particle) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
   std::vector<double> P(dim_vel * dim_vel);
@@ -423,7 +423,7 @@ TEST(PriorCost, Box) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
   std::vector<double> P(dim_vel * dim_vel);
@@ -548,7 +548,7 @@ TEST(ApproximatePriorCost, Particle) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
   std::vector<double> P_(dim_vel * dim_vel);
@@ -690,7 +690,7 @@ TEST(ApproximatePriorCost, Box) {
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
 
   // ----- random covariance ----- //
   std::vector<double> P(dim_vel * dim_vel);

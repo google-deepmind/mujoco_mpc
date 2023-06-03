@@ -159,28 +159,28 @@ class Estimator {
   std::vector<UniqueMjData> data_;
 
   // trajectories
-  int configuration_length_;                 
-  Trajectory configuration_;                
-  std::vector<double> velocity_;             // nv x MAX_HISTORY
-  std::vector<double> acceleration_;         // na x MAX_HISTORY
-  std::vector<double> time_;                 // 1  x MAX_HISTORY
+  int configuration_length_;                 // T
+  Trajectory configuration_;                 // nq x T
+  Trajectory velocity_;                      // nv x T
+  Trajectory acceleration_;                  // nv x T
+  Trajectory time_;                          //  1 x T
 
   // prior 
-  std::vector<double> configuration_prior_;  // nq x MAX_HISTORY
+  Trajectory configuration_prior_;           // nq x T
 
   // sensor
   int dim_sensor_;                           // ns
-  Trajectory sensor_measurement_;            
-  Trajectory sensor_prediction_;             
+  Trajectory sensor_measurement_;            // ns x T
+  Trajectory sensor_prediction_;             // ns x T  
 
   // forces
-  Trajectory force_measurement_;   
-  Trajectory force_prediction_; 
+  Trajectory force_measurement_;             // nv x T
+  Trajectory force_prediction_;              // nv x T
 
   // residual
-  std::vector<double> residual_prior_;       // nv * T
-  std::vector<double> residual_sensor_;      // ns * (T - 2)
-  std::vector<double> residual_force_;       // nv * (T - 2)
+  std::vector<double> residual_prior_;       // nv x T
+  std::vector<double> residual_sensor_;      // ns x (T - 2)
+  std::vector<double> residual_force_;       // nv x (T - 2)
 
   // Jacobian
   std::vector<double> jacobian_prior_;       // (nv * T) * (nv * T)
@@ -188,40 +188,40 @@ class Estimator {
   std::vector<double> jacobian_force_;       // (nv * (T - 2)) * (nv * T)
 
   // prior Jacobian block
-  std::vector<double> block_prior_current_configuration_;  // (nv * nv) x MAX_HISTORY
+  Trajectory block_prior_current_configuration_;  // (nv * nv) x T
 
   // sensor Jacobian blocks (dqds, dvds, dads), (dsdq0, dsdq1, dsdq2)
-  std::vector<double> block_sensor_configuration_;           // (nv * ns) x MAX_HISTORY
-  std::vector<double> block_sensor_velocity_;                // (nv * ns) x MAX_HISTORY
-  std::vector<double> block_sensor_acceleration_;            // (nv * ns) x MAX_HISTORY
+  Trajectory block_sensor_configuration_;           // (nv * ns) x T
+  Trajectory block_sensor_velocity_;                // (nv * ns) x T
+  Trajectory block_sensor_acceleration_;            // (nv * ns) x T
 
-  std::vector<double> block_sensor_previous_configuration_;  // (ns * nv) x MAX_HISTORY
-  std::vector<double> block_sensor_current_configuration_;   // (ns * nv) x MAX_HISTORY
-  std::vector<double> block_sensor_next_configuration_;      // (ns * nv) x MAX_HISTORY
-  std::vector<double> block_sensor_configurations_;          // (ns * 3 * nv) x MAX_HISTORY
+  Trajectory block_sensor_previous_configuration_;  // (ns * nv) x T
+  Trajectory block_sensor_current_configuration_;   // (ns * nv) x T
+  Trajectory block_sensor_next_configuration_;      // (ns * nv) x T
+  Trajectory block_sensor_configurations_;          // (ns * 3 * nv) x T
 
-  std::vector<double> block_sensor_scratch_;                 // max(nv, ns) x MAX_HISTORY
+  Trajectory block_sensor_scratch_;                 // max(nv, ns) x T
 
   // force Jacobian blocks (dqdf, dvdf, dadf), (dfdq0, dfdq1, dfdq2)
-  std::vector<double> block_force_configuration_;            // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_force_velocity_;                 // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_force_acceleration_;             // (nv * nv) x MAX_HISTORY
+  Trajectory block_force_configuration_;            // (nv * nv) x T
+  Trajectory block_force_velocity_;                 // (nv * nv) x T
+  Trajectory block_force_acceleration_;             // (nv * nv) x T
 
-  std::vector<double> block_force_previous_configuration_;   // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_force_current_configuration_;    // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_force_next_configuration_;       // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_force_configurations_;           // (nv * 3 * nv) x MAX_HISTORY
+  Trajectory block_force_previous_configuration_;   // (nv * nv) x T
+  Trajectory block_force_current_configuration_;    // (nv * nv) x T
+  Trajectory block_force_next_configuration_;       // (nv * nv) x T
+  Trajectory block_force_configurations_;           // (nv * 3 * nv) x T
 
-  std::vector<double> block_force_scratch_;                  // (nv * nv) x MAX_HISTORY
+  Trajectory block_force_scratch_;                  // (nv * nv) x T
 
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
-  std::vector<double> block_velocity_previous_configuration_; // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_velocity_current_configuration_;  // (nv * nv) x MAX_HISTORY
+  Trajectory block_velocity_previous_configuration_; // (nv * nv) x T
+  Trajectory block_velocity_current_configuration_;  // (nv * nv) x T
 
   // acceleration Jacobian blocks (da1dq0, da1dq1, da1dq2)
-  std::vector<double> block_acceleration_previous_configuration_; // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_acceleration_current_configuration_;  // (nv * nv) x MAX_HISTORY
-  std::vector<double> block_acceleration_next_configuration_;     // (nv * nv) x MAX_HISTORY
+  Trajectory block_acceleration_previous_configuration_; // (nv * nv) x T
+  Trajectory block_acceleration_current_configuration_;  // (nv * nv) x T
+  Trajectory block_acceleration_next_configuration_;     // (nv * nv) x T
 
   // cost 
   double cost_prior_;

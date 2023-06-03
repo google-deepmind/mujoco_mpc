@@ -46,6 +46,9 @@ class Trajectory {
   // get all data
   double* Data();
 
+  // map index to data_ index
+  int IndexMap(int index);
+
   // index for trajectory head
   int head_index_;
 
@@ -57,10 +60,6 @@ class Trajectory {
 
   // data for trajectory
   std::vector<double> data_;
-
- private:
-  // map index to data_ index
-  int IndexMap(int index);
 };
 
 }  // namespace mjpc

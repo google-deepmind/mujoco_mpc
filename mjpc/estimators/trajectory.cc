@@ -67,6 +67,10 @@ double* Trajectory::Data() { return data_.data(); }
 
 // map index to data_ index 
 int Trajectory::IndexMap(int index) {
+  // out of bounds
+  if (head_index_ >= length_)
+    mju_error("trajectory.head_index_ out of bounds!\n");
+
   // if synced
   if (head_index_ == 0) return index;
 

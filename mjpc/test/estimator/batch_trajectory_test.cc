@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include <vector>
@@ -24,8 +25,8 @@ namespace {
 
 TEST(Trajectory, Test) { 
   // dimensions 
-  int dim = 5;
-  int length = 10;
+  int dim = 2;
+  int length = 3;
 
   // trajectory
   Trajectory trajectory; 
@@ -40,8 +41,108 @@ TEST(Trajectory, Test) {
   EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.data_.size()), 0.0,
               1.0e-5);
 
-  // random initialization 
+  // index map 
+  EXPECT_EQ(trajectory.IndexMap(0), 0);
+  EXPECT_EQ(trajectory.IndexMap(1), 1);
+  EXPECT_EQ(trajectory.IndexMap(2), 2);
 
+  // random data
+  std::vector<double> data(dim * length);
+  absl::BitGen gen_;
+  for (int i = 0; i < dim * length; i++) {
+    data[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // set data
+  for (int i = 0; i < length; i++) {
+    double* element = data.data() + dim * i;
+    trajectory.Set(element, i);
+  }
+
+  // test get data 
+  std::vector<double> error(dim);
+  for (int i = 0; i < length; i++) {
+    // get elements
+    double* element = data.data() + dim * i;
+    double* traj_element = trajectory.Get(i);
+
+    // error 
+    mju_sub(error.data(), traj_element, element, dim);
+
+    // test 
+    EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+  }
+
+  // elements 
+  double* e0 = data.data() + dim * 0;
+  double* e1 = data.data() + dim * 1;
+  double* e2 = data.data() + dim * 2;
+  
+  // shift head index 
+  trajectory.head_index_++;
+
+  // test map index 
+  EXPECT_EQ(trajectory.IndexMap(0), 1);
+  EXPECT_EQ(trajectory.IndexMap(1), 2);
+  EXPECT_EQ(trajectory.IndexMap(2), 0);
+
+  // trajectory elements
+  double* t0 = trajectory.Get(0);
+  double* t1 = trajectory.Get(1);
+  double* t2 = trajectory.Get(2);
+
+  // t0 - e1
+  mju_sub(error.data(), t0, e1, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // t1 - e2
+  mju_sub(error.data(), t1, e2, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // t2 - e0
+  mju_sub(error.data(), t2, e0, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // test set 
+  double s[2] = {1.1, 3.24};
+  trajectory.Set(s, 0);
+
+  // t0 - s 
+  mju_sub(error.data(), t0, s, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // data_ + dim * 1 - s
+  mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // shift head index 
+  trajectory.head_index_++;
+
+  // test map index 
+  EXPECT_EQ(trajectory.IndexMap(0), 2);
+  EXPECT_EQ(trajectory.IndexMap(1), 0);
+  EXPECT_EQ(trajectory.IndexMap(2), 1);
+
+  // trajectory elements
+  t0 = trajectory.Get(0);
+  t1 = trajectory.Get(1);
+  t2 = trajectory.Get(2);
+
+  // t0 - e2
+  mju_sub(error.data(), t0, e2, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // t1 - e0
+  mju_sub(error.data(), t1, e0, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // t2 - s
+  mju_sub(error.data(), t2, s, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // data_ + dim * 1 - s
+  mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
+  EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 }
 
 }  // namespace

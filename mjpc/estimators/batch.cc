@@ -235,56 +235,56 @@ void Estimator::Initialize(mjModel* model) {
 // set configuration length
 void Estimator::SetConfigurationLength(int length) {
   // set length
-  configuration_length_ = length;
+  configuration_length_ = mju_max(length, MIN_HISTORY);
 
   // update trajectory lengths
   configuration_.length_ = length;
 
   // TODO(taylor): set to T - 2
 
-  velocity_.length_ = length;
-  acceleration_.length_ = length;
-  action_.length_ = length;
+  velocity_.length_ = length - 1;
+  acceleration_.length_ = length - 2;
+  action_.length_ = length - 2;
   time_.length_ = length;
 
   configuration_prior_.length_ = length;
 
-  sensor_measurement_.length_ = length;
-  sensor_prediction_.length_ = length;
+  sensor_measurement_.length_ = length - 2;
+  sensor_prediction_.length_ = length - 2;
 
-  force_measurement_.length_ = length;
-  force_prediction_.length_ = length;
+  force_measurement_.length_ = length - 2;
+  force_prediction_.length_ = length - 2;
 
   block_prior_current_configuration_.length_ = length;
 
-  block_sensor_configuration_.length_ = length;
-  block_sensor_velocity_.length_ = length;
-  block_sensor_acceleration_.length_ = length;
+  block_sensor_configuration_.length_ = length - 2;
+  block_sensor_velocity_.length_ = length - 2;
+  block_sensor_acceleration_.length_ = length - 2;
 
-  block_sensor_previous_configuration_.length_ = length;
-  block_sensor_current_configuration_.length_ = length;
-  block_sensor_next_configuration_.length_ = length;
-  block_sensor_configurations_.length_ = length;
+  block_sensor_previous_configuration_.length_ = length - 2;
+  block_sensor_current_configuration_.length_ = length - 2;
+  block_sensor_next_configuration_.length_ = length - 2;
+  block_sensor_configurations_.length_ = length - 2;
 
-  block_sensor_scratch_.length_ = length;
+  block_sensor_scratch_.length_ = length - 2;
 
-  block_force_configuration_.length_ = length;
-  block_force_velocity_.length_ = length;
-  block_force_acceleration_.length_ = length;
+  block_force_configuration_.length_ = length - 2;
+  block_force_velocity_.length_ = length - 2;
+  block_force_acceleration_.length_ = length - 2;
 
-  block_force_previous_configuration_.length_ = length;
-  block_force_current_configuration_.length_ = length;
-  block_force_next_configuration_.length_ = length;
-  block_force_configurations_.length_ = length;
+  block_force_previous_configuration_.length_ = length - 2;
+  block_force_current_configuration_.length_ = length - 2;
+  block_force_next_configuration_.length_ = length - 2;
+  block_force_configurations_.length_ = length - 2;
 
-  block_force_scratch_.length_ = length;
+  block_force_scratch_.length_ = length - 2;
 
-  block_velocity_previous_configuration_.length_ = length;
-  block_velocity_current_configuration_.length_ = length;
+  block_velocity_previous_configuration_.length_ = length - 2;
+  block_velocity_current_configuration_.length_ = length - 2;
 
-  block_acceleration_previous_configuration_.length_ = length;
-  block_acceleration_current_configuration_.length_ = length;
-  block_acceleration_next_configuration_.length_ = length;
+  block_acceleration_previous_configuration_.length_ = length - 2;
+  block_acceleration_current_configuration_.length_ = length - 2;
+  block_acceleration_next_configuration_.length_ = length - 2;
 }
 
 // reset memory

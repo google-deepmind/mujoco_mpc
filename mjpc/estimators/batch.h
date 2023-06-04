@@ -26,6 +26,7 @@
 
 namespace mjpc {
 
+const int MIN_HISTORY = 3;    // maximum configuration trajectory length
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 

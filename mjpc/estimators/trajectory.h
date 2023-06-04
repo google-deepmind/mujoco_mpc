@@ -27,6 +27,7 @@ class Trajectory {
  public:
   // constructor
   Trajectory() = default;
+  Trajectory(int dim, int length) { Initialize(dim, length); };
 
   // destructor
   virtual ~Trajectory() = default;

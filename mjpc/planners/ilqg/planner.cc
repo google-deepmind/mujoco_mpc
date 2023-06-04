@@ -73,9 +73,9 @@ void iLQGPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
   }
 
-  // forward dynamics derivatives
-  forward_dynamics_derivative.Allocate(dim_state_derivative, dim_action,
-                                       dim_sensor, kMaxTrajectoryHorizon);
+  // model derivatives
+  model_derivative.Allocate(dim_state_derivative, dim_action, dim_sensor,
+                            kMaxTrajectoryHorizon);
 
   // costs derivatives
   cost_derivative.Allocate(dim_state_derivative, dim_action, task->num_residual,
@@ -103,9 +103,8 @@ void iLQGPlanner::Reset(int horizon) {
   std::fill(userdata.begin(), userdata.end(), 0.0);
   time = 0.0;
 
-  // forward dynamics derivatives
-  forward_dynamics_derivative.Reset(dim_state_derivative, dim_action,
-                                    dim_sensor, horizon);
+  // model derivatives
+  model_derivative.Reset(dim_state_derivative, dim_action, dim_sensor, horizon);
 
   // cost derivatives
   cost_derivative.Reset(dim_state_derivative, dim_action, task->num_residual,
@@ -316,8 +315,8 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,
-                 1.0e-3 * forward_dynamics_derivative_compute_time * planning,
-                 100, 1 + timer_shift, 0, 1, -100);
+                 1.0e-3 * model_derivative_compute_time * planning, 100,
+                 1 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[2 + timer_shift][0] + 1,
@@ -367,12 +366,12 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
            num_trajectory_ - 1);
   linesearch_steps[num_trajectory_ - 1] = 0.0;
 
-  // ----- forward dynamics derivatives ----- //
+  // ----- model derivatives ----- //
   // start timer
-  auto forward_dynamics_derivative_start = std::chrono::steady_clock::now();
+  auto model_derivative_start = std::chrono::steady_clock::now();
 
   // compute model and sensor Jacobians
-  forward_dynamics_derivative.Compute(
+  model_derivative.Compute(
       model, data_, candidate_policy[0].trajectory.states.data(),
       candidate_policy[0].trajectory.actions.data(),
       candidate_policy[0].trajectory.times.data(), dim_state,
@@ -380,7 +379,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
       settings.fd_tolerance, settings.fd_mode, pool);
 
   // stop timer
-  double forward_dynamics_derivative_time = GetDuration(forward_dynamics_derivative_start);
+  double model_derivative_time = GetDuration(model_derivative_start);
 
   // ----- cost derivatives ----- //
   // start timer
@@ -388,10 +387,9 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
 
   // cost derivatives
   cost_derivative.Compute(
-      candidate_policy[0].trajectory.residual.data(),
-      forward_dynamics_derivative.C.data(),
-      forward_dynamics_derivative.D.data(), dim_state_derivative, dim_action,
-      dim_max, dim_sensor, task->num_residual, task->dim_norm_residual.data(),
+      candidate_policy[0].trajectory.residual.data(), model_derivative.C.data(),
+      model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
+      dim_sensor, task->num_residual, task->dim_norm_residual.data(),
       task->num_term, task->weight.data(), task->norm.data(),
       task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
       horizon, pool);
@@ -429,10 +427,9 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
           DataAt(backward_pass.Vx, (t + 1) * dim_state_derivative),
           DataAt(backward_pass.Vxx,
                  (t + 1) * dim_state_derivative * dim_state_derivative),
-          DataAt(forward_dynamics_derivative.A,
+          DataAt(model_derivative.A,
                  t * dim_state_derivative * dim_state_derivative),
-          DataAt(forward_dynamics_derivative.B,
-                 t * dim_state_derivative * dim_action),
+          DataAt(model_derivative.B, t * dim_state_derivative * dim_action),
           DataAt(cost_derivative.cx, t * dim_state_derivative),
           DataAt(cost_derivative.cu, t * dim_action),
           DataAt(cost_derivative.cxx,
@@ -507,7 +504,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // terminate early if backward pass failure
   if (backward_pass_status == 0) {
     // set timers
-    forward_dynamics_derivative_compute_time = forward_dynamics_derivative_time;
+    model_derivative_compute_time = model_derivative_time;
     cost_derivative_compute_time = cost_derivative_time;
     rollouts_compute_time = 0.0;
     backward_pass_compute_time = backward_pass_time;
@@ -589,7 +586,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   double policy_update_time = GetDuration(policy_update_start);
 
   // set timers
-  forward_dynamics_derivative_compute_time = forward_dynamics_derivative_time;
+  model_derivative_compute_time = model_derivative_time;
   cost_derivative_compute_time = cost_derivative_time;
   rollouts_compute_time = rollouts_time;
   backward_pass_compute_time = backward_pass_time;

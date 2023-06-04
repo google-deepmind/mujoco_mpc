@@ -111,8 +111,8 @@ class iLQGPlanner : public Planner {
   // candidate trajectories
   Trajectory trajectory[kMaxTrajectory];
 
-  // forward dynamics derivatives
-  ForwardDynamicsDerivatives forward_dynamics_derivative;
+  // model derivatives
+  ModelDerivatives model_derivative;
 
   // cost derivatives
   CostDerivatives cost_derivative;
@@ -141,7 +141,7 @@ class iLQGPlanner : public Planner {
 
   // compute time
   double nominal_compute_time;
-  double forward_dynamics_derivative_compute_time;
+  double model_derivative_compute_time;
   double cost_derivative_compute_time;
   double rollouts_compute_time;
   double backward_pass_compute_time;

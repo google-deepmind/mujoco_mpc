@@ -346,26 +346,15 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 // compute number of nonzeros in band matrix
 int BandMatrixNonZeros(int ntotal, int nband);
 
-// block-diagonal' * block band * block-diagonal
-void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband,
-                                          const double* blkdiag, int dblock,
-                                          int nblock, int num_blocks,
-                                          double* scratch);
-
-// rectangular block' * block diagonal * rectangular block
-void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
-                                    const double* blkrect, int nr, int nc,
-                                    int nci, int length, double* scratch);
-
-// get duration since time point 
+// get duration since time point
 double GetDuration(std::chrono::steady_clock::time_point time);
 
 // copy symmetric band matrix block by block
-// TODO(taylor): multi-threaded triple add for estimator
 void SymmetricBandMatrixCopy(double* res, const double* A, int dblock,
-                             int nblock, int ntotal, int num_blocks, int res_start_row,
-                             int res_start_col, int mat_start_row,
-                             int mat_start_col, double* scratch);
+                             int nblock, int ntotal, int num_blocks,
+                             int res_start_row, int res_start_col,
+                             int mat_start_row, int mat_start_col,
+                             double* scratch);
 
 // zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
 // and left column indices (ri, ci)

@@ -182,7 +182,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     if (active_policy == kSampling) {
       ilqg.nominal_compute_time = 0.0;
     }
-    ilqg.forward_dynamics_derivative_compute_time = 0.0;
+    ilqg.model_derivative_compute_time = 0.0;
     ilqg.cost_derivative_compute_time = 0.0;
     ilqg.backward_pass_compute_time = 0.0;
     ilqg.rollouts_compute_time = 0.0;

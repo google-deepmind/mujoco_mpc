@@ -54,6 +54,7 @@ extern "C" {
 }
 
 namespace mjpc {
+  
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state) {
   mju_copy(data->qpos, state, model->nq);
@@ -1318,105 +1319,6 @@ int BandMatrixNonZeros(int ntotal, int nband) {
   return nnz;
 }
 
-// block-diagonal' * block band * block-diagonal
-void BlockDiagonalTBlockBandBlockDiagonal(double* res, const double* blkband,
-                                          const double* blkdiag, int dblock,
-                                          int nblock, int num_blocks,
-                                          double* scratch) {
-  // total dimension
-  int dim = dblock * num_blocks;
-
-  // index over upper triangular blocks
-  // TODO(taylor): more efficient solution
-  auto shift_index = [num_blocks, nblock](int r, int c) {
-    int count = 0;
-    for (int i = 0; i < num_blocks; i++) {
-      int num_cols = mju_min(nblock, num_blocks - i);
-      for (int j = i; j < i + num_cols; j++) {
-        if (i == r && j == c) return count;
-        count++;
-      }
-    }
-    return count;
-  };
-
-  // loop over upper band
-  for (int i = 0; i < num_blocks; i++) {
-    // number of columns to loop over for row
-    int num_cols = mju_min(nblock, num_blocks - i);
-
-    for (int j = i; j < i + num_cols; j++) {
-      // shift index
-      int shift = shift_index(i, j);
-
-      // unpack
-      double* bbij =
-          scratch + 4 * dblock * dblock * shift + 0 * dblock * dblock;
-      double* tmp0 =
-          scratch + 4 * dblock * dblock * shift + 1 * dblock * dblock;
-      double* tmp1 =
-          scratch + 4 * dblock * dblock * shift + 2 * dblock * dblock;
-      double* tmp2 =
-          scratch + 4 * dblock * dblock * shift + 3 * dblock * dblock;
-
-      // get matrices
-      BlockFromMatrix(bbij, blkband, dblock, dblock, dim, dim, i * dblock,
-                      j * dblock);
-      const double* bdi = blkdiag + dblock * dblock * i;
-      const double* bdj = blkdiag + dblock * dblock * j;
-
-      // -- bdi' * bbij * bdj -- //
-
-      // tmp0 = bbij * bdj
-      mju_mulMatMat(tmp0, bbij, bdj, dblock, dblock, dblock);
-
-      // tmp1 = bdi' * tmp0
-      mju_mulMatTMat(tmp1, bdi, tmp0, dblock, dblock, dblock);
-
-      // set block in matrix
-      SetBlockInMatrix(res, tmp1, 1.0, dim, dim, dblock, dblock, i * dblock,
-                       j * dblock);
-      if (j > i) {
-        mju_transpose(tmp2, tmp1, dblock, dblock);
-        SetBlockInMatrix(res, tmp2, 1.0, dim, dim, dblock, dblock, j * dblock,
-                         i * dblock);
-      }
-    }
-  }
-}
-
-// rectangular block' * block diagonal * rectangular block
-void RectBandTBlockDiagonalRectBand(double* res, const double* blkdiag,
-                                    const double* blkrect, int nr, int nc,
-                                    int nci, int length, double* scratch) {
-  // unpack
-  double* dr_blk = scratch;
-  double* rdr_blk = scratch + nr * nc * length;
-
-  // zero result
-  // TODO(taylor): more efficient zeroing?
-  mju_zero(res, (nc + (length - 1) * nci) * (nc + (length - 1) * nci));
-
-  // create blocks
-  for (int i = 0; i < length; i++) {
-    // unpack
-    const double* diagi = blkdiag + nr * nr * i;
-    const double* recti = blkrect + nr * nc * i;
-
-    // d * r
-    double* dr = dr_blk + nr * nc * i;
-    mju_mulMatMat(dr, diagi, recti, nr, nr, nc);
-
-    // r' * d * r
-    double* rdr = rdr_blk + nc * nc * i;
-    mju_mulMatTMat(rdr, recti, dr, nr, nc, nc);
-
-    // set
-    AddBlockInMatrix(res, rdr, 1.0, nc + (length - 1) * nci,
-                     nc + (length - 1) * nci, nc, nc, nci * i, nci * i);
-  }
-}
-
 // get duration since time point
 double GetDuration(std::chrono::steady_clock::time_point tp) {
   return std::chrono::duration_cast<std::chrono::microseconds>(
@@ -1426,9 +1328,10 @@ double GetDuration(std::chrono::steady_clock::time_point tp) {
 
 // copy symmetric band matrix block by block
 void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
-                             int nblock, int ntotal, int num_blocks, int res_start_row,
-                             int res_start_col, int mat_start_row,
-                             int mat_start_col, double* scratch) {
+                             int nblock, int ntotal, int num_blocks,
+                             int res_start_row, int res_start_col,
+                             int mat_start_row, int mat_start_col,
+                             double* scratch) {
   // check for no blocks to copy
   if (num_blocks == 0) return;
 
@@ -1442,16 +1345,20 @@ void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
     int num_cols = mju_min(nblock, num_blocks - i);
 
     for (int j = i; j < i + num_cols; j++) {
-      // get block from A 
-      BlockFromMatrix(tmp1, mat, dblock, dblock, ntotal, ntotal, (i + mat_start_row) * dblock, (j + mat_start_col) * dblock);
+      // get block from A
+      BlockFromMatrix(tmp1, mat, dblock, dblock, ntotal, ntotal,
+                      (i + mat_start_row) * dblock,
+                      (j + mat_start_col) * dblock);
 
       // set block in matrix
-      AddBlockInMatrix(res, tmp1, 1.0, ntotal, ntotal, dblock, dblock, (i + res_start_row) * dblock,
+      AddBlockInMatrix(res, tmp1, 1.0, ntotal, ntotal, dblock, dblock,
+                       (i + res_start_row) * dblock,
                        (j + res_start_col) * dblock);
 
       if (j > i) {
         mju_transpose(tmp2, tmp1, dblock, dblock);
-        AddBlockInMatrix(res, tmp2, 1.0, ntotal, ntotal, dblock, dblock, (j + res_start_col) * dblock,
+        AddBlockInMatrix(res, tmp2, 1.0, ntotal, ntotal, dblock, dblock,
+                         (j + res_start_col) * dblock,
                          (i + res_start_row) * dblock);
       }
     }

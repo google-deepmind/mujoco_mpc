@@ -135,47 +135,6 @@ TEST(BatchShift, Particle2D) {
   mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
            ns * horizon_estimator);
 
-  // // ----- random perturbation ----- //
-
-  // // set configuration to nominal
-  // mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
-
-  // // randomly perturb
-  // for (int t = 0; t < T; t++) {
-  //   // unpack
-  //   double* q = estimator.configuration_.Data() + t * nq;
-
-  //   // add noise
-  //   for (int i = 0; i < nq; i++) {
-  //     absl::BitGen gen_;
-  //     q[i] += 0.001 * absl::Gaussian<double>(gen_, 0.0, 1.0);
-  //   }
-  // }
-
-  // // cost
-  // double cost_random = estimator.Cost(pool);
-
-  // // change to band covariance 
-  // estimator.band_covariance_ = true;
-
-  // // change verbosity 
-  // estimator.verbose_optimize_ = true;
-
-  // // optimize
-  // estimator.Optimize(estimator.configuration_length_, pool);
-
-  // // error 
-  // std::vector<double> configuration_error(nq * T);
-  // mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
-
-  // // test cost decrease
-  // EXPECT_LE(estimator.cost_, cost_random);
-
-  // // test gradient tolerance
-  // EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0, estimator.gradient_tolerance_);
-
-  // // test recovered configuration trajectory
-  // EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-3);
 
   // delete data + model
   mj_deleteData(data);

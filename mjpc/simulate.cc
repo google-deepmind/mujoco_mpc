@@ -228,7 +228,7 @@ void InitializeProfiler(mj::Simulate* sim) {
   sim->figtimer.range[1][0] = 0;
   sim->figtimer.range[1][1] = 0.4f;
 
-  // init x axis on T figures (do not show yet)
+  // init x axis on history figures (do not show yet)
   for (n=0; n<6; n++)
     for (i=0; i<mjMAXLINEPNT; i++) {
       sim->figtimer.linedata[n][2*i] = -i;

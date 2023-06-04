@@ -20,7 +20,7 @@
 
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/gradient/policy.h"
-#include "mjpc/planners/forward_dynamics_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -66,7 +66,7 @@ int Gradient::GradientStep(int n, int m, const double *Wx, const double *At,
 }
 
 // compute gradient for entire trajectory
-int Gradient::Compute(GradientPolicy *p, const ForwardDynamicsDerivatives *md,
+int Gradient::Compute(GradientPolicy *p, const ModelDerivatives *md,
                       const CostDerivatives *cd, int dim_state_derivative,
                       int dim_action, int T) {
   // reset

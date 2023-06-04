@@ -21,7 +21,7 @@
 #include "mjpc/planners/ilqg/boxqp.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"
-#include "mjpc/planners/forward_dynamics_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
 
 namespace mjpc {
 
@@ -58,7 +58,7 @@ class iLQGBackwardPass {
                   const double *action_limits, int reg_type, int limits);
 
   // compute backward pass using Riccati
-  int Riccati(iLQGPolicy *p, const ForwardDynamicsDerivatives *fd,
+  int Riccati(iLQGPolicy *p, const ModelDerivatives *md,
               const CostDerivatives *cd, int dim_dstate, int dim_action, int T,
               double reg, BoxQP &boxqp, const double *actions,
               const double *action_limits, const iLQGSettings &settings);

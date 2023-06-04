@@ -14,14 +14,15 @@
 
 #include "mjpc/planners/ilqg/backward_pass.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/ilqg/boxqp.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"
-#include "mjpc/planners/forward_dynamics_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -35,10 +36,10 @@ void iLQGBackwardPass::Allocate(int dim_dstate, int dim_action, int T) {
   Qxx.resize(dim_dstate * dim_dstate * (T - 1));
   Qxu.resize(dim_dstate * dim_action * (T - 1));
   Quu.resize(dim_action * dim_action * (T - 1));
-  Q_scratch.resize(
-      10 *
-      (dim_dstate * dim_dstate + 7 * dim_action + 2 * dim_action * dim_action + dim_dstate * dim_action +
-       3 * mju_max(dim_action, dim_dstate) * mju_max(dim_action, dim_dstate)));
+  Q_scratch.resize(10 * (dim_dstate * dim_dstate + 7 * dim_action +
+                         2 * dim_action * dim_action + dim_dstate * dim_action +
+                         3 * mju_max(dim_action, dim_dstate) *
+                             mju_max(dim_action, dim_dstate)));
 
   // regularization
   regularization = 1.0;
@@ -250,11 +251,12 @@ int iLQGBackwardPass::RiccatiStep(
 }
 
 // compute backward pass using Riccati
-int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ForwardDynamicsDerivatives *fd,
-                          const CostDerivatives *cd, int dim_dstate,
-                          int dim_action, int T, double reg, BoxQP &boxqp,
-                          const double *actions, const double *action_limits,
-                          const iLQGSettings &settings) {
+int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ModelDerivatives *md,
+                              const CostDerivatives *cd, int dim_dstate,
+                              int dim_action, int T, double reg, BoxQP &boxqp,
+                              const double *actions,
+                              const double *action_limits,
+                              const iLQGSettings &settings) {
   // reset
   mju_zero(dV, 2);
 
@@ -273,8 +275,8 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ForwardDynamicsDerivatives *f
       int status = this->RiccatiStep(
           dim_dstate, dim_action, reg, DataAt(Vx, t * dim_dstate),
           DataAt(Vxx, t * dim_dstate * dim_dstate),
-          DataAt(fd->A, (t - 1) * dim_dstate * dim_dstate),
-          DataAt(fd->B, (t - 1) * dim_dstate * dim_action),
+          DataAt(md->A, (t - 1) * dim_dstate * dim_dstate),
+          DataAt(md->B, (t - 1) * dim_dstate * dim_action),
           DataAt(cd->cx, (t - 1) * dim_dstate),
           DataAt(cd->cu, (t - 1) * dim_action),
           DataAt(cd->cxx, (t - 1) * dim_dstate * dim_dstate),
@@ -324,7 +326,7 @@ int iLQGBackwardPass::Riccati(iLQGPolicy *p, const ForwardDynamicsDerivatives *f
 
 // scale backward pass regularization
 void iLQGBackwardPass::ScaleRegularization(double factor, double reg_min,
-                                       double reg_max) {
+                                           double reg_max) {
   // scale rate
   if (factor > 1)
     regularization_rate = mju_max(regularization_rate * factor, factor);
@@ -338,7 +340,7 @@ void iLQGBackwardPass::ScaleRegularization(double factor, double reg_min,
 
 // update backward pass regularization
 void iLQGBackwardPass::UpdateRegularization(double reg_min, double reg_max,
-                                        double z, double s) {
+                                            double z, double s) {
   // divergence or no improvement: increase dmu by muFactor^2
   if (mju_isBad(z) || mju_isBad(s))
     // muScale(t, o, o.muFactor*o.muFactor);

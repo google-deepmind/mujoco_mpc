@@ -404,11 +404,6 @@ TEST(BatchOptimize, Quadruped) {
   estimator.Optimize(estimator.configuration_length_, pool);
   estimator.Optimize(estimator.configuration_length_, pool);
 
-  // // prior weight update 
-  // printf("Covariance Weight Update (after Optimize):\n");
-  // estimator.ResetTimers();
-  // estimator.PriorWeightUpdate(estimator.configuration_length_ / 2, pool);
-
   // error
   std::vector<double> configuration_error(nq * T);
   mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);

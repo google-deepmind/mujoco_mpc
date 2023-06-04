@@ -23,11 +23,11 @@
 #include <vector>
 
 #include "mjpc/planners/cost_derivatives.h"
-#include "mjpc/planners/forward_dynamics_derivatives.h"
 #include "mjpc/planners/gradient/gradient.h"
 #include "mjpc/planners/gradient/policy.h"
 #include "mjpc/planners/gradient/settings.h"
 #include "mjpc/planners/gradient/spline_mapping.h"
+#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
@@ -120,8 +120,8 @@ class GradientPlanner : public Planner {
   // rollout parameters
   double timestep_power;
 
-  // forward dynamics derivatives
-  ForwardDynamicsDerivatives forward_dynamics_derivatives;
+  // model derivatives
+  ModelDerivatives model_derivatives;
 
   // cost derivatives
   CostDerivatives cost_derivative;
@@ -149,7 +149,7 @@ class GradientPlanner : public Planner {
 
   // compute time
   double nominal_compute_time;
-  double forward_dynamics_derivative_compute_time;
+  double model_derivative_compute_time;
   double cost_derivative_compute_time;
   double rollouts_compute_time;
   double gradient_compute_time;

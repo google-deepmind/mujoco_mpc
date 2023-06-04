@@ -14,10 +14,11 @@
 
 #include "mjpc/planners/ilqg/backward_pass.h"
 
-#include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+
+#include "gtest/gtest.h"
 #include "mjpc/planners/cost_derivatives.h"
-#include "mjpc/planners/forward_dynamics_derivatives.h"
+#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/test/lqr.h"
 #include "mjpc/utilities.h"
 
@@ -67,9 +68,9 @@ TEST(iLQGTest, BackwardPass) {
   // settings
   iLQGSettings settings;
 
-  // forward dynamics derivatives
-  ForwardDynamicsDerivatives fd;
-  fd.Allocate(n, m, 0, T);
+  // model derivatives
+  ModelDerivatives md;
+  md.Allocate(n, m, 0, T);
 
   // cost derivatives
   CostDerivatives cd;
@@ -85,8 +86,8 @@ TEST(iLQGTest, BackwardPass) {
     cu(DataAt(cd.cu, t * m), x + t * n, u + t * m);
     cuu(DataAt(cd.cuu, t * m * m), x + t * n, u + t * m);
     cxu(DataAt(cd.cxu, t * n * m), x + t * n, u + t * m);
-    fx(DataAt(fd.A, t * n * n), x + t * n, u + t * m);
-    fu(DataAt(fd.B, t * n * m), x + t * n, u + t * m);
+    fx(DataAt(md.A, t * n * n), x + t * n, u + t * m);
+    fu(DataAt(md.B, t * n * m), x + t * n, u + t * m);
   }
 
   // boxqp
@@ -94,7 +95,7 @@ TEST(iLQGTest, BackwardPass) {
   boxqp.Allocate(m);
 
   // backward pass
-  bp.Riccati(&p, &fd, &cd, n, m, T, 0.0, boxqp, u, action_limits, settings);
+  bp.Riccati(&p, &md, &cd, n, m, T, 0.0, boxqp, u, action_limits, settings);
 
   // ----- oracle ----- //
   double Vx[T * n] = {0.0, 0.0, 0.5, 1.25, 0.5, 1.0};

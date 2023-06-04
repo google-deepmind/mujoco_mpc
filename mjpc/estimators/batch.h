@@ -62,10 +62,10 @@ class Estimator {
   double CostPrior(double* gradient, double* hessian);
 
   // prior residual
-  void ResidualPrior(int t);
+  void ResidualPrior();
 
-  // assemble (dense) prior Jacobian
-  void AssembleJacobianPrior(int t);
+  // set block in prior Jacobian
+  void SetBlockPrior(int t);
 
   // prior Jacobian block
   void BlockPrior(int t);
@@ -77,10 +77,10 @@ class Estimator {
   double CostSensor(double* gradient, double* hessian);
 
   // sensor residual
-  void ResidualSensor(int t);
+  void ResidualSensor();
 
-  // assemble (dense) sensor Jacobian
-  void AssembleJacobianSensor(int t);
+  // set block in sensor Jacobian
+  void SetBlockSensor(int t);
 
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
   void BlockSensor(int t);
@@ -92,10 +92,10 @@ class Estimator {
   double CostForce(double* gradient, double* hessian);
 
   // force residual
-  void ResidualForce(int t);
+  void ResidualForce();
 
-  // assemble (dense) force Jacobian
-  void AssembleJacobianForce(int t);
+  // set block in force Jacobian
+  void SetBlockForce(int t);
 
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
   void BlockForce(int t);
@@ -104,20 +104,21 @@ class Estimator {
   void JacobianForce(ThreadPool& pool);
 
   // compute sensor and force predictions via inverse dynamics
-  void InverseDynamicsPrediction(int t);
+  void InverseDynamicsPrediction(ThreadPool& pool);
 
   // compute inverse dynamics derivatives (via finite difference)
   void InverseDynamicsDerivatives(ThreadPool& pool);
 
   // update configuration trajectory
-  void UpdateConfiguration(double* candidate, const double* configuration,
+  // TODO(taylor): configuration should be const
+  void UpdateConfiguration(Trajectory& candidate, Trajectory& configuration,
                            const double* search_direction, double step_size);
 
   // convert sequence of configurations to velocities, accelerations
-  void ConfigurationToVelocityAcceleration(int t);
+  void ConfigurationToVelocityAcceleration();
 
   // compute finite-difference velocity, acceleration derivatives
-  void VelocityAccelerationDerivatives(ThreadPool& pool);
+  void VelocityAccelerationDerivatives();
 
   // compute total cost
   double Cost(ThreadPool& pool);
@@ -126,7 +127,7 @@ class Estimator {
   void CostGradient();
 
   // compute total Hessian 
-  void CostHessian(ThreadPool& pool);
+  void CostHessian();
 
   // prior weight update 
   void PriorWeightUpdate(int num_new, ThreadPool& pool);
@@ -163,6 +164,7 @@ class Estimator {
   Trajectory configuration_;                 // nq x T
   Trajectory velocity_;                      // nv x T
   Trajectory acceleration_;                  // nv x T
+  Trajectory action_;                        // nu x T
   Trajectory time_;                          //  1 x T
 
   // prior 
@@ -284,7 +286,7 @@ class Estimator {
   std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
 
   // candidate
-  std::vector<double> configuration_copy_;     // nq x MAX_HISTORY
+  Trajectory configuration_copy_;              // nq x T
 
   // search direction
   std::vector<double> search_direction_;       // nv * MAX_HISTORY

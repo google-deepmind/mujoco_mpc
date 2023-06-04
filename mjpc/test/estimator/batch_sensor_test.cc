@@ -118,15 +118,9 @@ TEST(MeasurementResidual, Particle) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.ConfigurationToVelocityAcceleration(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsPrediction(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
-  }
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.InverseDynamicsPrediction(pool);
+  estimator.ResidualSensor();
 
   // error
   std::vector<double> residual_error(dim_mea);
@@ -145,10 +139,10 @@ TEST(MeasurementResidual, Particle) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives();
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
-    estimator.AssembleJacobianSensor(t);
+    estimator.SetBlockSensor(t);
   }
 
   // error
@@ -274,15 +268,9 @@ TEST(MeasurementResidual, Box) {
   residual_measurement(residual.data(), update.data());
 
   // (estimator)
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.ConfigurationToVelocityAcceleration(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsPrediction(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
-  }
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.InverseDynamicsPrediction(pool);
+  estimator.ResidualSensor();
 
   // // error
   std::vector<double> residual_error(dim_mea);
@@ -301,10 +289,10 @@ TEST(MeasurementResidual, Box) {
 
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives();
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
     estimator.BlockSensor(t);
-    estimator.AssembleJacobianSensor(t);
+    estimator.SetBlockSensor(t);
   }
 
   // error
@@ -505,18 +493,14 @@ TEST(MeasurementCost, Particle) {
   fdh.Compute(cost_measurement, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.ConfigurationToVelocityAcceleration(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsPrediction(t);
-  }
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives();
+  estimator.ResidualSensor();
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
-    estimator.AssembleJacobianSensor(t);
+    estimator.SetBlockSensor(t);
   }
 
   // cost
@@ -730,18 +714,14 @@ TEST(MeasurementCost, Box) {
   fdg.Compute(cost_measurement, update.data(), dim_vel);
 
   // ----- estimator ----- //
-  for (int t = 0; t < estimator.configuration_length_ - 1; t++) {
-    estimator.ConfigurationToVelocityAcceleration(t);
-  }
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.InverseDynamicsPrediction(t);
-  }
+  estimator.ConfigurationToVelocityAcceleration();
+  estimator.InverseDynamicsPrediction(pool);
   estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives(pool);
+  estimator.VelocityAccelerationDerivatives();
+  estimator.ResidualSensor();
   for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.ResidualSensor(t);
     estimator.BlockSensor(t);
-    estimator.AssembleJacobianSensor(t);
+    estimator.SetBlockSensor(t);
   }
 
   // cost

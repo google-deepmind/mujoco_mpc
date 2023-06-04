@@ -94,10 +94,8 @@ TEST(BatchOptimize, Particle2D) {
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
-           nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
-           ns * (T - 2));
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data(), ns * T);
 
   // set weights 
   estimator.scale_prior_ = 1.0;
@@ -230,10 +228,8 @@ TEST(BatchOptimize, Box3D) {
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
-           nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
-           ns * (T - 2));
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data(), ns * T);
 
   // ----- random perturbation ----- //
 
@@ -359,10 +355,8 @@ TEST(BatchOptimize, Quadruped) {
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data() + nv,
-           nv * (T - 2));
-  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data() + ns,
-           ns * (T - 2));
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
+  mju_copy(estimator.sensor_measurement_.Data(), sensordata.data(), ns * T);
 
   // ----- random perturbation ----- //
 

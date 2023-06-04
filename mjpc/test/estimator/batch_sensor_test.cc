@@ -79,12 +79,15 @@ TEST(MeasurementResidual, Particle) {
     std::vector<double> a1(nv);
 
     // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
+    for (int k = 0; k < configuration_length - 2; k++) {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* rt = residual + t * model->nsensordata;
-      const double* q0 = update + t * nq;
-      const double* q1 = update + (t + 1) * nq;
-      const double* q2 = update + (t + 2) * nq;
+      double* rk = residual + k * model->nsensordata;
+      const double* q0 = update + (t - 1) * nq;
+      const double* q1 = update + (t + 0) * nq;
+      const double* q2 = update + (t + 1) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -104,7 +107,7 @@ TEST(MeasurementResidual, Particle) {
       mj_inverse(model, data);
 
       // measurement error
-      mju_sub(rt, data->sensordata, y1, model->nsensordata);
+      mju_sub(rk, data->sensordata, y1, model->nsensordata);
     }
   };
 
@@ -229,12 +232,15 @@ TEST(MeasurementResidual, Box) {
     std::vector<double> a1(nv);
 
     // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
+    for (int k = 0; k < configuration_length - 2; k++) {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* rt = residual + t * model->nsensordata;
-      double* q0 = qint.data() + t * nq;
-      double* q1 = qint.data() + (t + 1) * nq;
-      double* q2 = qint.data() + (t + 2) * nq;
+      double* rk = residual + k * model->nsensordata;
+      double* q0 = qint.data() + (t - 1) * nq;
+      double* q1 = qint.data() + (t + 0) * nq;
+      double* q2 = qint.data() + (t + 1) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -254,7 +260,7 @@ TEST(MeasurementResidual, Box) {
       mj_inverse(model, data);
 
       // measurement error
-      mju_sub(rt, data->sensordata, y1, model->nsensordata);
+      mju_sub(rk, data->sensordata, y1, model->nsensordata);
     }
   };
 
@@ -429,12 +435,15 @@ TEST(MeasurementCost, Particle) {
         double cost = 0.0;
 
         // loop over time
-        for (int t = 0; t < configuration_length - 2; t++) {
+        for (int k = 0; k < configuration_length - 2; k++) {
+          // time index 
+          int t = k + 1;
+          
           // unpack
-          double* rt = residual.data() + t * model->nsensordata;
-          const double* q0 = configuration + t * nq;
-          const double* q1 = configuration + (t + 1) * nq;
-          const double* q2 = configuration + (t + 2) * nq;
+          double* rk = residual.data() + k * model->nsensordata;
+          const double* q0 = configuration + (t - 1) * nq;
+          const double* q1 = configuration + (t + 0) * nq;
+          const double* q2 = configuration + (t + 1) * nq;
           double* y1 = measurement.Get(t);
 
           // velocity
@@ -454,7 +463,7 @@ TEST(MeasurementCost, Particle) {
           mj_inverse(model, data);
 
           // measurement error
-          mju_sub(rt, data->sensordata, y1, model->nsensordata);
+          mju_sub(rk, data->sensordata, y1, model->nsensordata);
 
           // loop over sensors
           int shift = 0;
@@ -464,11 +473,11 @@ TEST(MeasurementCost, Particle) {
             int dim_sensori = model->sensor_dim[i];
 
             // sensor residual
-            double* rti = rt + shift;
+            double* rki = rk + shift;
 
             // add weighted norm
             cost += weight[i] / dim_sensori *
-                    Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori,
+                    Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori,
                          norms[i]);
 
             // shift
@@ -652,12 +661,15 @@ TEST(MeasurementCost, Box) {
     double cost = 0.0;
 
     // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
+    for (int k = 0; k < configuration_length - 2; k++) {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* rt = residual.data() + t * model->nsensordata;
-      double* q0 = qint.data() + t * nq;
-      double* q1 = qint.data() + (t + 1) * nq;
-      double* q2 = qint.data() + (t + 2) * nq;
+      double* rk = residual.data() + k * model->nsensordata;
+      double* q0 = qint.data() + (t - 1) * nq;
+      double* q1 = qint.data() + (t + 0) * nq;
+      double* q2 = qint.data() + (t + 1) * nq;
       double* y1 = measurement.data() + t * model->nsensordata;
 
       // velocity
@@ -677,7 +689,7 @@ TEST(MeasurementCost, Box) {
       mj_inverse(model, data);
 
       // measurement error
-      mju_sub(rt, data->sensordata, y1, model->nsensordata);
+      mju_sub(rk, data->sensordata, y1, model->nsensordata);
 
       // loop over sensors
       int shift = 0;
@@ -687,12 +699,12 @@ TEST(MeasurementCost, Box) {
         int dim_sensori = model->sensor_dim[i];
 
         // sensor residual
-        double* rti = rt + shift;
+        double* rki = rk + shift;
 
         // add weighted norm
         cost +=
             weight[i] / dim_sensori *
-            Norm(NULL, NULL, rti, params.data() + 3 * i, dim_sensori, norms[i]);
+            Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori, norms[i]);
 
         // shift
         shift += dim_sensori;

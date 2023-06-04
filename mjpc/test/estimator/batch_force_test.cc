@@ -79,12 +79,15 @@ TEST(ForceResidual, Particle) {
     std::vector<double> a1(nv);
 
     // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
+    for (int k = 0; k < configuration_length - 2; k++) {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* rt = residual + t * nv;
-      const double* q0 = update + t * nq;
-      const double* q1 = update + (t + 1) * nq;
-      const double* q2 = update + (t + 2) * nq;
+      double* rk = residual + k * nv;
+      const double* q0 = update + (t - 1) * nq;
+      const double* q1 = update + (t + 0) * nq;
+      const double* q2 = update + (t + 1) * nq;
       double* f1 = qfrc_actuator.data() + t * nv;
 
       // velocity
@@ -104,7 +107,7 @@ TEST(ForceResidual, Particle) {
       mj_inverse(model, data);
 
       // inverse dynamics error
-      mju_sub(rt, data->qfrc_inverse, f1, nv);
+      mju_sub(rk, data->qfrc_inverse, f1, nv);
     }
   };
 
@@ -236,12 +239,15 @@ TEST(ForceResidual, Box) {
         std::vector<double> a1(nv);
 
         // loop over time
-        for (int t = 0; t < configuration_length - 2; t++) {
+        for (int k = 0; k < configuration_length - 2; k++) {
+          // time index 
+          int t = k + 1;
+
           // unpack
-          double* rt = residual + t * nv;
-          double* q0 = qint.data() + t * nq;
-          double* q1 = qint.data() + (t + 1) * nq;
-          double* q2 = qint.data() + (t + 2) * nq;
+          double* rk = residual + k * nv;
+          double* q0 = qint.data() + (t - 1) * nq;
+          double* q1 = qint.data() + (t + 0) * nq;
+          double* q2 = qint.data() + (t + 1) * nq;
           double* f1 = qfrc_actuator.Get(t);
 
           // velocity
@@ -261,7 +267,7 @@ TEST(ForceResidual, Box) {
           mj_inverse(model, data);
 
           // inverse dynamics error
-          mju_sub(rt, data->qfrc_inverse, f1, nv);
+          mju_sub(rk, data->qfrc_inverse, f1, nv);
         }
       };
 
@@ -400,12 +406,15 @@ TEST(ForceCost, Particle) {
     double cost = 0.0;
 
     // loop over time
-    for (int t = 0; t < configuration_length - 2; t++) {
+    for (int k = 0; k < configuration_length - 2; k++) {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* rt = residual.data() + t * nv;
-      const double* q0 = configuration + t * nq;
-      const double* q1 = configuration + (t + 1) * nq;
-      const double* q2 = configuration + (t + 2) * nq;
+      double* rk = residual.data() + k * nv;
+      const double* q0 = configuration + (t - 1) * nq;
+      const double* q1 = configuration + (t + 0) * nq;
+      const double* q2 = configuration + (t + 1) * nq;
       double* f1 = qfrc_actuator.Get(t);
 
       // velocity
@@ -425,7 +434,7 @@ TEST(ForceCost, Particle) {
       mj_inverse(model, data);
 
       // inverse dynamics error
-      mju_sub(rt, data->qfrc_inverse, f1, nv);
+      mju_sub(rk, data->qfrc_inverse, f1, nv);
 
       // loop over sensors
       int shift = 0;
@@ -445,7 +454,7 @@ TEST(ForceCost, Particle) {
         }
 
         // force residual
-        double* rti = rt + shift;
+        double* rti = rk + shift;
 
         // add weighted norm
         cost += weight[jnt_type] / dof * model->opt.timestep *
@@ -619,12 +628,15 @@ TEST(ForceCost, Box) {
         double cost = 0.0;
 
         // loop over time
-        for (int t = 0; t < configuration_length - 2; t++) {
+        for (int k = 0; k < configuration_length - 2; k++) {
+          // time index 
+          int t = k + 1;
+
           // unpack
-          double* rt = residual.data() + t * nv;
-          double* q0 = qint.data() + t * nq;
-          double* q1 = qint.data() + (t + 1) * nq;
-          double* q2 = qint.data() + (t + 2) * nq;
+          double* rk = residual.data() + k * nv;
+          double* q0 = qint.data() + (t - 1) * nq;
+          double* q1 = qint.data() + (t + 0) * nq;
+          double* q2 = qint.data() + (t + 1) * nq;
           double* f1 = qfrc_actuator.Get(t);
 
           // velocity
@@ -644,7 +656,7 @@ TEST(ForceCost, Box) {
           mj_inverse(model, data);
 
           // inverse dynamics error
-          mju_sub(rt, data->qfrc_inverse, f1, nv);
+          mju_sub(rk, data->qfrc_inverse, f1, nv);
 
           // loop over sensors
           int shift = 0;
@@ -664,7 +676,7 @@ TEST(ForceCost, Box) {
             }
 
             // force residual
-            double* rti = rt + shift;
+            double* rti = rk + shift;
 
             // add weighted norm
             cost += weight[i] / dof * model->opt.timestep *

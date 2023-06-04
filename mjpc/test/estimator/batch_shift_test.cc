@@ -128,12 +128,12 @@ TEST(BatchShift, Particle2D) {
            nq * horizon_estimator);
   mju_copy(estimator.configuration_prior_.Data(),
            estimator.configuration_.Data(), nq * horizon_estimator);
-  mju_copy(estimator.action_.Data(), ctrl_buffer.Data() + nu,
-           nu * (horizon_estimator - 2));
-  mju_copy(estimator.force_measurement_.Data(),
-           qfrc_actuator_buffer.Data() + nv, nv * (horizon_estimator - 2));
-  mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data() + ns,
-           ns * (horizon_estimator - 2));
+  mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
+           nu * horizon_estimator);
+  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
+           nv * horizon_estimator);
+  mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
+           ns * horizon_estimator);
 
   // // ----- random perturbation ----- //
 

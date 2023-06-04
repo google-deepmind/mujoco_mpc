@@ -630,10 +630,10 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, dim_update);
   if (hessian) mju_zero(hessian, dim_update * dim_update);
 
-  // loop over time steps
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // unpack block
-    double* block = block_sensor_configurations_.Get(t);
+    double* block = block_sensor_configurations_.Get(k);
 
     // sensor shift
     int shift_sensor = 0;
@@ -673,7 +673,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                        norm_gradient_sensor_.data() + shift, nsi, 3 * nv);
 
         // add
-        mju_addToScl(gradient + t * nv, scratch0_sensor_.data(), scale, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_sensor_.data(), scale, 3 * nv);
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -692,7 +692,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
         // add
         AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
-                         3 * nv, nv * t, nv * t);
+                         3 * nv, nv * k, nv * k);
       }
 
       // shift
@@ -713,10 +713,13 @@ void Estimator::ResidualSensor() {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
+    // time index 
+    int t = k + 1;
+
     // terms
-    double* rt = residual_sensor_.data() + t * dim_sensor_;
+    double* rt = residual_sensor_.data() + k * dim_sensor_;
     double* yt_sensor = sensor_measurement_.Get(t);
     double* yt_model = sensor_prediction_.Get(t);
 
@@ -729,7 +732,7 @@ void Estimator::ResidualSensor() {
 }
 
 // set block in sensor Jacobian
-void Estimator::SetBlockSensor(int t) {
+void Estimator::SetBlockSensor(int index) {
   // velocity dimension
   int nv = model_->nv, ns = dim_sensor_;
 
@@ -740,18 +743,18 @@ void Estimator::SetBlockSensor(int t) {
   int dim_update = nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_sensor_.data() + t * ns * dim_update, ns * dim_update);
+  mju_zero(jacobian_sensor_.data() + index * ns * dim_update, ns * dim_update);
 
   // indices
-  int row = t * ns;
-  int col_previous = t * nv;
-  int col_current = (t + 1) * nv;
-  int col_next = (t + 2) * nv;
+  int row = index * ns;
+  int col_previous = index * nv;
+  int col_current = (index + 1) * nv;
+  int col_next = (index + 2) * nv;
 
   // ----- configuration previous ----- //
 
   // unpack
-  double* dsdq0 = block_sensor_previous_configuration_.Get(t);
+  double* dsdq0 = block_sensor_previous_configuration_.Get(index);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq0, 1.0, dim_residual,
@@ -760,7 +763,7 @@ void Estimator::SetBlockSensor(int t) {
   // ----- configuration current ----- //
 
   // unpack
-  double* dsdq1 = block_sensor_current_configuration_.Get(t);
+  double* dsdq1 = block_sensor_current_configuration_.Get(index);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq1, 1.0, dim_residual,
@@ -769,7 +772,7 @@ void Estimator::SetBlockSensor(int t) {
   // ----- configuration next ----- //
 
   // unpack
-  double* dsdq2 = block_sensor_next_configuration_.Get(t);
+  double* dsdq2 = block_sensor_next_configuration_.Get(index);
 
   // set
   SetBlockInMatrix(jacobian_sensor_.data(), dsdq2, 1.0, dim_residual,
@@ -777,65 +780,65 @@ void Estimator::SetBlockSensor(int t) {
 }
 
 // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
-void Estimator::BlockSensor(int t) {
+void Estimator::BlockSensor(int index) {
   // dimensions
   int nv = model_->nv, ns = dim_sensor_;
 
   // dqds
-  double* dqds = block_sensor_configuration_.Get(t);
+  double* dqds = block_sensor_configuration_.Get(index);
 
   // dvds
-  double* dvds = block_sensor_velocity_.Get(t);
+  double* dvds = block_sensor_velocity_.Get(index);
 
   // dads
-  double* dads = block_sensor_acceleration_.Get(t);
+  double* dads = block_sensor_acceleration_.Get(index);
 
   // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
 
   // unpack
-  double* dsdq0 = block_sensor_previous_configuration_.Get(t);
-  double* tmp = block_sensor_scratch_.Get(t);
+  double* dsdq0 = block_sensor_previous_configuration_.Get(index);
+  double* tmp = block_sensor_scratch_.Get(index);
 
   // dsdq0 <- dvds' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.Get(t);
+  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
   mju_mulMatTMat(dsdq0, dvds, dvdq0, nv, ns, nv);
 
   // dsdq0 += dads' * dadq0
-  double* dadq0 = block_acceleration_previous_configuration_.Get(t);
+  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
   mju_mulMatTMat(tmp, dads, dadq0, nv, ns, nv);
   mju_addTo(dsdq0, tmp, ns * nv);
 
   // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
 
   // unpack
-  double* dsdq1 = block_sensor_current_configuration_.Get(t);
+  double* dsdq1 = block_sensor_current_configuration_.Get(index);
 
   // dsdq1 <- dqds'
   mju_transpose(dsdq1, dqds, nv, ns);
 
   // dsdq1 += dvds' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.Get(t);
+  double* dvdq1 = block_velocity_current_configuration_.Get(index);
   mju_mulMatTMat(tmp, dvds, dvdq1, nv, ns, nv);
   mju_addTo(dsdq1, tmp, ns * nv);
 
   // dsdq1 += dads' * dadq1
-  double* dadq1 = block_acceleration_current_configuration_.Get(t);
+  double* dadq1 = block_acceleration_current_configuration_.Get(index);
   mju_mulMatTMat(tmp, dads, dadq1, nv, ns, nv);
   mju_addTo(dsdq1, tmp, ns * nv);
 
   // -- configuration next: dsdq2 = dsda * dadq2 -- //
 
   // unpack
-  double* dsdq2 = block_sensor_next_configuration_.Get(t);
+  double* dsdq2 = block_sensor_next_configuration_.Get(index);
 
   // dsdq2 = dads' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.Get(t);
+  double* dadq2 = block_acceleration_next_configuration_.Get(index);
   mju_mulMatTMat(dsdq2, dads, dadq2, nv, ns, nv);
 
   // -- assemble dsdq012 block -- //
 
   // unpack
-  double* dsdq012 = block_sensor_configurations_.Get(t);
+  double* dsdq012 = block_sensor_configurations_.Get(index);
 
   // set dfdq0
   SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
@@ -850,21 +853,21 @@ void Estimator::BlockSensor(int t) {
 // sensor Jacobian
 // note: pool wait is called outside this function
 void Estimator::JacobianSensor(ThreadPool& pool) {
-  // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // schedule by time step
-    pool.Schedule([&estimator = *this, t]() {
+    pool.Schedule([&estimator = *this, k]() {
       // start Jacobian timer
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // block
-      estimator.BlockSensor(t);
+      estimator.BlockSensor(k);
 
       // assemble
-      if (!estimator.band_covariance_) estimator.SetBlockSensor(t);
+      if (!estimator.band_covariance_) estimator.SetBlockSensor(k);
 
       // stop Jacobian timer
-      estimator.timer_sensor_step_[t] = GetDuration(jacobian_sensor_start);
+      estimator.timer_sensor_step_[k] = GetDuration(jacobian_sensor_start);
     });
   }
 }
@@ -886,10 +889,10 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, dim_update);
   if (hessian) mju_zero(hessian, dim_update * dim_update);
 
-  // loop over time steps
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // unpack block
-    double* block = block_force_configurations_.Get(t);
+    double* block = block_force_configurations_.Get(k);
 
     // shift by joint
     int shift_joint = 0;
@@ -940,7 +943,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                        norm_gradient_force_.data() + shift, dof, 3 * nv);
 
         // add
-        mju_addToScl(gradient + t * nv, scratch0_force_.data(), scale, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale, 3 * nv);
       }
 
       // Hessian (Gauss-Newton) wrt configuration: drdq * d2ndr2 * drdq
@@ -959,7 +962,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
         // add
         AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
-                         3 * nv, nv * t, nv * t);
+                         3 * nv, nv * k, nv * k);
       }
 
       // shift
@@ -984,9 +987,12 @@ void Estimator::ResidualForce() {
   int nv = model_->nv;
 
   // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  for (int k = 0; k < configuration_length_ - 2; k++) {
+    // time index 
+    int t = k + 1;
+
     // terms
-    double* rt = residual_force_.data() + t * nv;
+    double* rt = residual_force_.data() + k * nv;
     double* ft_actuator = force_measurement_.Get(t);
     double* ft_inverse_ = force_prediction_.Get(t);
 
@@ -999,7 +1005,7 @@ void Estimator::ResidualForce() {
 }
 
 // set block in force Jacobian
-void Estimator::SetBlockForce(int t) {
+void Estimator::SetBlockForce(int index) {
   // velocity dimension
   int nv = model_->nv;
 
@@ -1010,17 +1016,17 @@ void Estimator::SetBlockForce(int t) {
   int dim_update = nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_force_.data() + t * nv * dim_update, nv * dim_update);
+  mju_zero(jacobian_force_.data() + index * nv * dim_update, nv * dim_update);
 
   // indices
-  int row = t * nv;
-  int col_previous = t * nv;
-  int col_current = (t + 1) * nv;
-  int col_next = (t + 2) * nv;
+  int row = index * nv;
+  int col_previous = index * nv;
+  int col_current = (index + 1) * nv;
+  int col_next = (index + 2) * nv;
 
   // ----- configuration previous ----- //
   // unpack
-  double* dfdq0 = block_force_previous_configuration_.Get(t);
+  double* dfdq0 = block_force_previous_configuration_.Get(index);
 
   // set
   SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual, dim_update,
@@ -1029,7 +1035,7 @@ void Estimator::SetBlockForce(int t) {
   // ----- configuration current ----- //
 
   // unpack
-  double* dfdq1 = block_force_current_configuration_.Get(t);
+  double* dfdq1 = block_force_current_configuration_.Get(index);
 
   // set
   SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual, dim_update,
@@ -1038,7 +1044,7 @@ void Estimator::SetBlockForce(int t) {
   // ----- configuration next ----- //
 
   // unpack
-  double* dfdq2 = block_force_next_configuration_.Get(t);
+  double* dfdq2 = block_force_next_configuration_.Get(index);
 
   // set
   AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual, dim_update,
@@ -1046,65 +1052,65 @@ void Estimator::SetBlockForce(int t) {
 }
 
 // force Jacobian (dfdq0, dfdq1, dfdq2)
-void Estimator::BlockForce(int t) {
+void Estimator::BlockForce(int index) {
   // velocity dimension
   int nv = model_->nv;
 
   // dqdf
-  double* dqdf = block_force_configuration_.Get(t);
+  double* dqdf = block_force_configuration_.Get(index);
 
   // dvdf
-  double* dvdf = block_force_velocity_.Get(t);
+  double* dvdf = block_force_velocity_.Get(index);
 
   // dadf
-  double* dadf = block_force_acceleration_.Get(t);
+  double* dadf = block_force_acceleration_.Get(index);
 
   // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
 
   // unpack
-  double* dfdq0 = block_force_previous_configuration_.Get(t);
-  double* tmp = block_force_scratch_.Get(t);
+  double* dfdq0 = block_force_previous_configuration_.Get(index);
+  double* tmp = block_force_scratch_.Get(index);
 
   // dfdq0 <- dvdf' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.Get(t);
+  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
   mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
 
   // dfdq0 += dadf' * dadq0
-  double* dadq0 = block_acceleration_previous_configuration_.Get(t);
+  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
   mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
   mju_addTo(dfdq0, tmp, nv * nv);
 
   // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 -- //
 
   // unpack
-  double* dfdq1 = block_force_current_configuration_.Get(t);
+  double* dfdq1 = block_force_current_configuration_.Get(index);
 
   // dfdq1 <- dqdf'
   mju_transpose(dfdq1, dqdf, nv, nv);
 
   // dfdq1 += dvdf' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.Get(t);
+  double* dvdq1 = block_velocity_current_configuration_.Get(index);
   mju_mulMatTMat(tmp, dvdf, dvdq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
   // dfdq1 += dadf' * dadq1
-  double* dadq1 = block_acceleration_current_configuration_.Get(t);
+  double* dadq1 = block_acceleration_current_configuration_.Get(index);
   mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
   // -- configuration next: dfdq2 = dfda * dadq2 -- //
 
   // unpack
-  double* dfdq2 = block_force_next_configuration_.Get(t);
+  double* dfdq2 = block_force_next_configuration_.Get(index);
 
   // dfdq2 <- dadf' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.Get(t);
+  double* dadq2 = block_acceleration_next_configuration_.Get(index);
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
 
   // -- assemble dfdq012 block -- //
 
   // unpack
-  double* dfdq012 = block_force_configurations_.Get(t);
+  double* dfdq012 = block_force_configurations_.Get(index);
 
   // set dfdq0
   SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
@@ -1118,21 +1124,21 @@ void Estimator::BlockForce(int t) {
 
 // force Jacobian
 void Estimator::JacobianForce(ThreadPool& pool) {
-  // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // schedule by time step
-    pool.Schedule([&estimator = *this, t]() {
+    pool.Schedule([&estimator = *this, k]() {
       // start Jacobian timer
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // block
-      estimator.BlockForce(t);
+      estimator.BlockForce(k);
 
       // assemble
-      if (!estimator.band_covariance_) estimator.SetBlockForce(t);
+      if (!estimator.band_covariance_) estimator.SetBlockForce(k);
 
       // stop Jacobian timer
-      estimator.timer_force_step_[t] = GetDuration(jacobian_force_start);
+      estimator.timer_force_step_[k] = GetDuration(jacobian_force_start);
     });
   }
 }
@@ -1148,17 +1154,20 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   // pool count
   int count_before = pool.GetCount();
   
-  // loop over estimation horizon 
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  // loop over predictions
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // schedule 
-    pool.Schedule([&estimator = *this, nq, nv, ns, t]() {
+    pool.Schedule([&estimator = *this, nq, nv, ns, k]() {
+      // time index 
+      int t = k + 1;
+
       // terms
-      double* qt = estimator.configuration_.Get(t + 1);
+      double* qt = estimator.configuration_.Get(t);
       double* vt = estimator.velocity_.Get(t);
       double* at = estimator.acceleration_.Get(t);
 
       // data
-      mjData* d = estimator.data_[t].get();
+      mjData* d = estimator.data_[k].get();
 
       // set qt, vt, at
       mju_copy(d->qpos, qt, nq);
@@ -1199,20 +1208,23 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   int count_before = pool.GetCount();
 
   // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 2; t++) {
+  for (int k = 0; k < configuration_length_ - 2; k++) {
     // schedule
-    pool.Schedule([&estimator = *this, nq, nv, t]() {
+    pool.Schedule([&estimator = *this, nq, nv, k]() {
+      // time index 
+      int t = k + 1;
+
       // unpack
-      double* q = estimator.configuration_.Get(t + 1);
+      double* q = estimator.configuration_.Get(t);
       double* v = estimator.velocity_.Get(t);
       double* a = estimator.acceleration_.Get(t);
-      double* dqds = estimator.block_sensor_configuration_.Get(t);
-      double* dvds = estimator.block_sensor_velocity_.Get(t);
-      double* dads = estimator.block_sensor_acceleration_.Get(t);
-      double* dqdf = estimator.block_force_configuration_.Get(t);
-      double* dvdf = estimator.block_force_velocity_.Get(t);
-      double* dadf = estimator.block_force_acceleration_.Get(t);
-      mjData* data = estimator.data_[t].get();  // TODO(taylor): WorkerID
+      double* dqds = estimator.block_sensor_configuration_.Get(k);
+      double* dvds = estimator.block_sensor_velocity_.Get(k);
+      double* dads = estimator.block_sensor_acceleration_.Get(k);
+      double* dqdf = estimator.block_force_configuration_.Get(k);
+      double* dvdf = estimator.block_force_velocity_.Get(k);
+      double* dadf = estimator.block_force_acceleration_.Get(k);
+      mjData* data = estimator.data_[k].get();  // TODO(taylor): WorkerID
 
       // set (state, acceleration)
       mju_copy(data->qpos, q, nq);
@@ -1278,17 +1290,20 @@ void Estimator::ConfigurationToVelocityAcceleration() {
   int nv = model_->nv;
 
   // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int k = 0; k < configuration_length_ - 1; k++) {
+    // time index 
+    int t = k + 1;
+
     // previous and current configurations
-    const double* q0 = configuration_.Get(t);
-    const double* q1 = configuration_.Get(t + 1);
+    const double* q0 = configuration_.Get(t - 1);
+    const double* q1 = configuration_.Get(t);
 
     // compute velocity
     double* v1 = velocity_.Get(t);
     mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
 
     // compute acceleration
-    if (t > 0) {
+    if (t > 1) {
       // previous velocity
       const double* v0 = velocity_.Get(t - 1);
 
@@ -1312,27 +1327,30 @@ void Estimator::VelocityAccelerationDerivatives() {
   int nv = model_->nv;
 
   // loop over estimation horizon
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int k = 0; k < configuration_length_ - 1; k++) {
+    // time index 
+    int t = k + 1;
+
     // unpack
-    double* q1 = configuration_.Get(t);
-    double* q2 = configuration_.Get(t + 1);
-    double* dv2dq1 = block_velocity_previous_configuration_.Get(t);
-    double* dv2dq2 = block_velocity_current_configuration_.Get(t);
+    double* q1 = configuration_.Get(t - 1);
+    double* q2 = configuration_.Get(t);
+    double* dv2dq1 = block_velocity_previous_configuration_.Get(k);
+    double* dv2dq2 = block_velocity_current_configuration_.Get(k);
 
     // compute velocity Jacobians
     DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model_, model_->opt.timestep,
                                   q1, q2);
 
     // compute acceleration Jacobians
-    if (t > 0) {
+    if (t > 1) {
       // unpack
-      double* dadq0 = block_acceleration_previous_configuration_.Get(t - 1);
-      double* dadq1 = block_acceleration_current_configuration_.Get(t - 1);
-      double* dadq2 = block_acceleration_next_configuration_.Get(t - 1);
+      double* dadq0 = block_acceleration_previous_configuration_.Get(k - 1);
+      double* dadq1 = block_acceleration_current_configuration_.Get(k - 1);
+      double* dadq2 = block_acceleration_next_configuration_.Get(k - 1);
 
       // previous velocity Jacobians
-      double* dv1dq0 = block_velocity_previous_configuration_.Get(t - 1);
-      double* dv1dq1 = block_velocity_current_configuration_.Get(t - 1);
+      double* dv1dq0 = block_velocity_previous_configuration_.Get(k - 1);
+      double* dv1dq1 = block_velocity_current_configuration_.Get(k - 1);
 
       // dadq0 = -dv1dq0 / h
       mju_copy(dadq0, dv1dq0, nv * nv);

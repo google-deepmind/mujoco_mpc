@@ -240,20 +240,18 @@ void Estimator::SetConfigurationLength(int length) {
   // update trajectory lengths
   configuration_.length_ = length;
 
-  // TODO(taylor): set to T - 2
-
-  velocity_.length_ = length - 1;
-  acceleration_.length_ = length - 2;
-  action_.length_ = length - 2;
+  velocity_.length_ = length;
+  acceleration_.length_ = length;
+  action_.length_ = length;
   time_.length_ = length;
 
   configuration_prior_.length_ = length;
 
-  sensor_measurement_.length_ = length - 2;
-  sensor_prediction_.length_ = length - 2;
+  sensor_measurement_.length_ = length;
+  sensor_prediction_.length_ = length;
 
-  force_measurement_.length_ = length - 2;
-  force_prediction_.length_ = length - 2;
+  force_measurement_.length_ = length;
+  force_prediction_.length_ = length;
 
   block_prior_current_configuration_.length_ = length;
 
@@ -279,8 +277,8 @@ void Estimator::SetConfigurationLength(int length) {
 
   block_force_scratch_.length_ = length - 2;
 
-  block_velocity_previous_configuration_.length_ = length - 2;
-  block_velocity_current_configuration_.length_ = length - 2;
+  block_velocity_previous_configuration_.length_ = length - 1;
+  block_velocity_current_configuration_.length_ = length - 1;
 
   block_acceleration_previous_configuration_.length_ = length - 2;
   block_acceleration_current_configuration_.length_ = length - 2;

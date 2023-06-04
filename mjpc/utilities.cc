@@ -96,11 +96,11 @@ void Clamp(double* x, const double* bounds, int n) {
 }
 
 int ReinterpretAsInt(double value) {
-  return *reinterpret_cast<const int*>(&value);
+  return *std::launder(reinterpret_cast<const int*>(&value));
 }
 
 double ReinterpretAsDouble(int64_t value) {
-  return *reinterpret_cast<const double*>(&value);
+  return *std::launder(reinterpret_cast<const double*>(&value));
 }
 
 absl::flat_hash_map<std::string, std::vector<std::string>>
@@ -205,7 +205,7 @@ int ParameterIndex(const mjModel* model, std::string_view name) {
 double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   // list selections are stored as ints, but numeric values are doubles.
   int64_t value = m->numeric_data[m->numeric_adr[numeric_index]];
-  return *reinterpret_cast<const double*>(&value);
+  return *std::launder(reinterpret_cast<const double*>(&value));
 }
 
 int CostTermByName(const mjModel* m, const std::string& name) {

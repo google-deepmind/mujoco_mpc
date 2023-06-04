@@ -37,6 +37,9 @@ grpc::Status SetTaskParameters(const agent::SetTaskParametersRequest* request,
                                mjpc::Agent* agent);
 grpc::Status SetCostWeights(const agent::SetCostWeightsRequest* request,
                             mjpc::Agent* agent);
+grpc::Status SetMode(const agent::SetModeRequest* request, mjpc::Agent* agent);
+grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
+                     agent::GetModeResponse* response);
 
 // set up the task and model on the agent so that the next call to
 // agent.LoadModel returns any custom model, or the relevant task model.

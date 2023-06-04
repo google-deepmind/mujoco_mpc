@@ -20,12 +20,14 @@
 #include <cstdio>
 #include <cstring>
 #include <mutex>
-#include <string>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/match.h>
 #include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mjui.h>
@@ -361,6 +363,40 @@ int Agent::SetWeightByName(std::string_view name, double value) {
       ActiveTask()->weight[i] = value;
       return i;
     }
+  }
+  return -1;
+}
+
+std::vector<std::string> Agent::GetAllModeNames() const {
+  char* transition_str = GetCustomTextData(model_, "task_transition");
+  if (transition_str) {
+    // split concatenated names
+    return absl::StrSplit(transition_str, '|', absl::SkipEmpty());
+  }
+  return {"default_mode"};
+}
+
+std::string Agent::GetModeName() const {
+  std::vector<std::string> mode_names = GetAllModeNames();
+  return mode_names[ActiveTask()->mode];
+}
+
+int Agent::SetModeByName(std::string_view name) {
+  char* transition_str = GetCustomTextData(model_, "task_transition");
+  if (transition_str) {
+    std::vector<std::string> mode_names =
+        absl::StrSplit(transition_str, '|', absl::SkipEmpty());
+    for (int i = 0; i < mode_names.size(); i++) {
+      if (mode_names[i] == name) {
+        ActiveTask()->mode = i;
+        return i;
+      }
+    }
+    return -1;
+  }
+  if (name == "default_mode") {
+    ActiveTask()->mode = 0;
+    return 0;
   }
   return -1;
 }

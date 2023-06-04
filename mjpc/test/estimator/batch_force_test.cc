@@ -78,7 +78,7 @@ TEST(ForceResidual, Particle) {
     // acceleration
     std::vector<double> a1(nv);
 
-    // loop over time
+    // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
       // time index 
       int t = k + 1;
@@ -144,9 +144,9 @@ TEST(ForceResidual, Particle) {
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
 
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockForce(t);
-    estimator.SetBlockForce(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockForce(k);
+    estimator.SetBlockForce(k);
   }
 
   // error
@@ -238,7 +238,7 @@ TEST(ForceResidual, Box) {
         // acceleration
         std::vector<double> a1(nv);
 
-        // loop over time
+        // loop over predictions
         for (int k = 0; k < configuration_length - 2; k++) {
           // time index 
           int t = k + 1;
@@ -303,9 +303,9 @@ TEST(ForceResidual, Box) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockForce(t);
-    estimator.SetBlockForce(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockForce(k);
+    estimator.SetBlockForce(k);
   }
 
   // error
@@ -405,7 +405,7 @@ TEST(ForceCost, Particle) {
     // initialize
     double cost = 0.0;
 
-    // loop over time
+    // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
       // time index 
       int t = k + 1;
@@ -488,9 +488,9 @@ TEST(ForceCost, Particle) {
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
   estimator.ResidualForce();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockForce(t);
-    estimator.SetBlockForce(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockForce(k);
+    estimator.SetBlockForce(k);
   }
 
   // cost
@@ -627,7 +627,7 @@ TEST(ForceCost, Box) {
         // initialize
         double cost = 0.0;
 
-        // loop over time
+        // loop over predictions
         for (int k = 0; k < configuration_length - 2; k++) {
           // time index 
           int t = k + 1;
@@ -709,9 +709,9 @@ TEST(ForceCost, Box) {
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
   estimator.ResidualForce();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockForce(t);
-    estimator.SetBlockForce(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockForce(k);
+    estimator.SetBlockForce(k);
   }
 
   // cost

@@ -39,6 +39,9 @@ void Estimator::Initialize(mjModel* model) {
   configuration_length_ =
       GetNumberOrDefault(32, model, "estimator_configuration_length");
 
+  // number of predictions 
+  prediction_length_ = configuration_length_ - 2;
+
   // trajectories
   configuration_.Initialize(nq, configuration_length_);
   velocity_.Initialize(nv, configuration_length_);
@@ -234,8 +237,11 @@ void Estimator::Initialize(mjModel* model) {
 
 // set configuration length
 void Estimator::SetConfigurationLength(int length) {
-  // set length
+  // set configuration length
   configuration_length_ = mju_max(length, MIN_HISTORY);
+
+  // set prediction length 
+  prediction_length_ = configuration_length_ - 2;
 
   // update trajectory lengths
   configuration_.length_ = length;
@@ -459,7 +465,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   // derivatives
   if (!gradient && !hessian) return cost;
 
-  // loop over estimation horizon
+  // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
     // cost gradient wrt configuration
     if (gradient) {
@@ -548,7 +554,7 @@ void Estimator::ResidualPrior() {
   // dimension
   int nv = model_->nv;
 
-  // loop over estimation horizon
+  // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
     // terms
     double* rt = residual_prior_.data() + t * nv;
@@ -564,27 +570,27 @@ void Estimator::ResidualPrior() {
 }
 
 // set block in prior Jacobian
-void Estimator::SetBlockPrior(int t) {
+void Estimator::SetBlockPrior(int index) {
   // dimension
   int nv = model_->nv, dim = model_->nv * configuration_length_;
 
   // reset Jacobian to zero
-  mju_zero(jacobian_prior_.data() + t * nv * dim, nv * dim);
+  mju_zero(jacobian_prior_.data() + index * nv * dim, nv * dim);
 
   // unpack
-  double* block = block_prior_current_configuration_.Get(t);
+  double* block = block_prior_current_configuration_.Get(index);
 
   // set block in matrix
-  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, t * nv,
-                   t * nv);
+  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, index * nv,
+                   index * nv);
 }
 
 // prior Jacobian blocks
-void Estimator::BlockPrior(int t) {
+void Estimator::BlockPrior(int index) {
   // unpack
-  double* qt = configuration_.Get(t);
-  double* qt_prior = configuration_prior_.Get(t);
-  double* block = block_prior_current_configuration_.Get(t);
+  double* qt = configuration_.Get(index);
+  double* qt_prior = configuration_prior_.Get(index);
+  double* block = block_prior_current_configuration_.Get(index);
 
   // compute Jacobian
   DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
@@ -593,7 +599,7 @@ void Estimator::BlockPrior(int t) {
 // prior Jacobian
 // note: pool wait is called outside this function
 void Estimator::JacobianPrior(ThreadPool& pool) {
-  // loop over estimation horizon
+  // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
     pool.Schedule([&estimator = *this, t]() {
@@ -627,11 +633,13 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   double cost = 0.0;
   int shift = 0;
   int shift_mat = 0;
+
+  // zero memory
   if (gradient) mju_zero(gradient, dim_update);
   if (hessian) mju_zero(hessian, dim_update * dim_update);
 
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // unpack block
     double* block = block_sensor_configurations_.Get(k);
 
@@ -714,17 +722,17 @@ void Estimator::ResidualSensor() {
   auto start = std::chrono::steady_clock::now();
 
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // time index 
     int t = k + 1;
 
     // terms
-    double* rt = residual_sensor_.data() + k * dim_sensor_;
+    double* rk = residual_sensor_.data() + k * dim_sensor_;
     double* yt_sensor = sensor_measurement_.Get(t);
     double* yt_model = sensor_prediction_.Get(t);
 
     // sensor difference
-    mju_sub(rt, yt_model, yt_sensor, dim_sensor_);
+    mju_sub(rk, yt_model, yt_sensor, dim_sensor_);
   }
 
   // stop timer
@@ -737,7 +745,7 @@ void Estimator::SetBlockSensor(int index) {
   int nv = model_->nv, ns = dim_sensor_;
 
   // residual dimension
-  int dim_residual = ns * (configuration_length_ - 2);
+  int dim_residual = ns * prediction_length_;
 
   // update dimension
   int dim_update = nv * configuration_length_;
@@ -854,7 +862,7 @@ void Estimator::BlockSensor(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianSensor(ThreadPool& pool) {
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule by time step
     pool.Schedule([&estimator = *this, k]() {
       // start Jacobian timer
@@ -886,11 +894,13 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   int shift = 0;
   int shift_mat = 0;
   int dof;
+
+  // zero memory
   if (gradient) mju_zero(gradient, dim_update);
   if (hessian) mju_zero(hessian, dim_update * dim_update);
 
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // unpack block
     double* block = block_force_configurations_.Get(k);
 
@@ -986,18 +996,18 @@ void Estimator::ResidualForce() {
   // dimension
   int nv = model_->nv;
 
-  // loop over estimation horizon
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  // loop over predictions
+  for (int k = 0; k < prediction_length_; k++) {
     // time index 
     int t = k + 1;
 
     // terms
-    double* rt = residual_force_.data() + k * nv;
+    double* rk = residual_force_.data() + k * nv;
     double* ft_actuator = force_measurement_.Get(t);
     double* ft_inverse_ = force_prediction_.Get(t);
 
     // force difference
-    mju_sub(rt, ft_inverse_, ft_actuator, nv);
+    mju_sub(rk, ft_inverse_, ft_actuator, nv);
   }
 
   // stop timer
@@ -1010,7 +1020,7 @@ void Estimator::SetBlockForce(int index) {
   int nv = model_->nv;
 
   // residual dimension
-  int dim_residual = nv * (configuration_length_ - 2);
+  int dim_residual = nv * prediction_length_;
 
   // update dimension
   int dim_update = nv * configuration_length_;
@@ -1125,7 +1135,7 @@ void Estimator::BlockForce(int index) {
 // force Jacobian
 void Estimator::JacobianForce(ThreadPool& pool) {
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule by time step
     pool.Schedule([&estimator = *this, k]() {
       // start Jacobian timer
@@ -1155,7 +1165,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   int count_before = pool.GetCount();
   
   // loop over predictions
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule 
     pool.Schedule([&estimator = *this, nq, nv, ns, k]() {
       // time index 
@@ -1189,7 +1199,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   }
 
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 2);
+  pool.WaitCount(count_before + prediction_length_);
   pool.ResetCount();
 
   // stop timer
@@ -1207,8 +1217,8 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   // pool count
   int count_before = pool.GetCount();
 
-  // loop over estimation horizon
-  for (int k = 0; k < configuration_length_ - 2; k++) {
+  // loop over predictions
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule
     pool.Schedule([&estimator = *this, nq, nv, k]() {
       // time index 
@@ -1218,6 +1228,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       double* q = estimator.configuration_.Get(t);
       double* v = estimator.velocity_.Get(t);
       double* a = estimator.acceleration_.Get(t);
+
       double* dqds = estimator.block_sensor_configuration_.Get(k);
       double* dvds = estimator.block_sensor_velocity_.Get(k);
       double* dads = estimator.block_sensor_acceleration_.Get(k);
@@ -1241,7 +1252,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   }
 
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 2);
+  pool.WaitCount(count_before + prediction_length_);
 
   // reset pool count
   pool.ResetCount();
@@ -1251,6 +1262,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 }
 
 // update configuration trajectory
+// TODO(taylor): const configuration
 void Estimator::UpdateConfiguration(Trajectory& candidate,
                                     Trajectory& configuration,
                                     const double* search_direction,
@@ -1289,7 +1301,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
   // dimension
   int nv = model_->nv;
 
-  // loop over estimation horizon
+  // loop over configurations
   for (int k = 0; k < configuration_length_ - 1; k++) {
     // time index 
     int t = k + 1;
@@ -1326,7 +1338,7 @@ void Estimator::VelocityAccelerationDerivatives() {
   // dimension
   int nv = model_->nv;
 
-  // loop over estimation horizon
+  // loop over configurations
   for (int k = 0; k < configuration_length_ - 1; k++) {
     // time index 
     int t = k + 1;
@@ -1525,8 +1537,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
 
   // operations
   int nprior = prior_flag_ * configuration_length_;
-  int nsensor = sensor_flag_ * (configuration_length_ - 2);
-  int nforce = force_flag_ * (configuration_length_ - 2);
+  int nsensor = sensor_flag_ * prediction_length_;
+  int nforce = force_flag_ * prediction_length_;
 
   // reset timers
   ResetTimers();

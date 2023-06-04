@@ -78,7 +78,7 @@ TEST(MeasurementResidual, Particle) {
     // acceleration
     std::vector<double> a1(nv);
 
-    // loop over time
+    // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
       // time index 
       int t = k + 1;
@@ -143,9 +143,9 @@ TEST(MeasurementResidual, Particle) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockSensor(t);
-    estimator.SetBlockSensor(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockSensor(k);
+    estimator.SetBlockSensor(k);
   }
 
   // error
@@ -231,7 +231,7 @@ TEST(MeasurementResidual, Box) {
     // acceleration
     std::vector<double> a1(nv);
 
-    // loop over time
+    // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
       // time index 
       int t = k + 1;
@@ -296,9 +296,9 @@ TEST(MeasurementResidual, Box) {
   // estimator
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockSensor(t);
-    estimator.SetBlockSensor(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockSensor(k);
+    estimator.SetBlockSensor(k);
   }
 
   // error
@@ -434,11 +434,11 @@ TEST(MeasurementCost, Particle) {
         // initialize
         double cost = 0.0;
 
-        // loop over time
+        // loop over predictions
         for (int k = 0; k < configuration_length - 2; k++) {
           // time index 
           int t = k + 1;
-          
+
           // unpack
           double* rk = residual.data() + k * model->nsensordata;
           const double* q0 = configuration + (t - 1) * nq;
@@ -507,9 +507,9 @@ TEST(MeasurementCost, Particle) {
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
   estimator.ResidualSensor();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockSensor(t);
-    estimator.SetBlockSensor(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockSensor(k);
+    estimator.SetBlockSensor(k);
   }
 
   // cost
@@ -660,7 +660,7 @@ TEST(MeasurementCost, Box) {
     // initialize
     double cost = 0.0;
 
-    // loop over time
+    // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
       // time index 
       int t = k + 1;
@@ -731,9 +731,9 @@ TEST(MeasurementCost, Box) {
   estimator.InverseDynamicsDerivatives(pool);
   estimator.VelocityAccelerationDerivatives();
   estimator.ResidualSensor();
-  for (int t = 0; t < estimator.configuration_length_ - 2; t++) {
-    estimator.BlockSensor(t);
-    estimator.SetBlockSensor(t);
+  for (int k = 0; k < estimator.prediction_length_; k++) {
+    estimator.BlockSensor(k);
+    estimator.SetBlockSensor(k);
   }
 
   // cost

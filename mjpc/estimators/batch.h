@@ -66,10 +66,10 @@ class Estimator {
   void ResidualPrior();
 
   // set block in prior Jacobian
-  void SetBlockPrior(int t);
+  void SetBlockPrior(int index);
 
   // prior Jacobian block
-  void BlockPrior(int t);
+  void BlockPrior(int index);
 
   // prior Jacobian 
   void JacobianPrior(ThreadPool& pool);
@@ -81,10 +81,10 @@ class Estimator {
   void ResidualSensor();
 
   // set block in sensor Jacobian
-  void SetBlockSensor(int t);
+  void SetBlockSensor(int index);
 
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
-  void BlockSensor(int t);
+  void BlockSensor(int index);
 
   // sensor Jacobian 
   void JacobianSensor(ThreadPool& pool);
@@ -96,10 +96,10 @@ class Estimator {
   void ResidualForce();
 
   // set block in force Jacobian
-  void SetBlockForce(int t);
+  void SetBlockForce(int index);
 
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
-  void BlockForce(int t);
+  void BlockForce(int index);
 
   // force Jacobian 
   void JacobianForce(ThreadPool& pool);
@@ -162,6 +162,7 @@ class Estimator {
 
   // trajectories
   int configuration_length_;                 // T
+  int prediction_length_;                    // T - 2
   Trajectory configuration_;                 // nq x T
   Trajectory velocity_;                      // nv x T
   Trajectory acceleration_;                  // nv x T

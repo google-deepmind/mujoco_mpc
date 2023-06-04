@@ -62,7 +62,7 @@ TEST(PriorResidual, Particle) {
     // integrated quaternion
     std::vector<double> qint(nq);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual + t * nv;
@@ -161,7 +161,7 @@ TEST(PriorResidual, Box) {
     // integrated quaternion
     std::vector<double> qint(nq);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual + t * nv;
@@ -279,7 +279,7 @@ TEST(PriorCost, Particle) {
     // residual
     std::vector<double> residual(dim_res);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual.data() + t * nv;
@@ -411,7 +411,7 @@ TEST(PriorCost, Box) {
     // integrated quaternion
     std::vector<double> qint(nq);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual.data() + t * nv;
@@ -542,7 +542,7 @@ TEST(ApproximatePriorCost, Particle) {
     // residual
     std::vector<double> residual(dim_res);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual.data() + t * nv;
@@ -684,7 +684,7 @@ TEST(ApproximatePriorCost, Box) {
     // integrated quaternion
     std::vector<double> qint(nq);
 
-    // loop over time
+    // loop over configurations
     for (int t = 0; t < configuration_length; t++) {
       // terms
       double* rt = residual.data() + t * nv;

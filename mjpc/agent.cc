@@ -14,16 +14,6 @@
 
 #include "mjpc/agent.h"
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_join.h>
-#include <absl/strings/str_split.h>
-#include <absl/strings/strip.h>
-#include <mujoco/mjmodel.h>
-#include <mujoco/mjui.h>
-#include <mujoco/mjvisualize.h>
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -34,6 +24,15 @@
 #include <string>
 #include <string_view>
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjui.h>
+#include <mujoco/mjvisualize.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
@@ -162,7 +161,9 @@ void Agent::Reset() {
   std::fill(terms_.begin(), terms_.end(), 0.0);
 }
 
-void Agent::SetState(const mjData* data) { ActiveState().Set(model_, data); }
+void Agent::SetState(const mjData* data) {
+  ActiveState().Set(model_, data);
+}
 
 int Agent::GetTaskIdByName(std::string_view name) const {
   for (int i = 0; i < tasks_.size(); i++) {
@@ -195,7 +196,8 @@ Agent::LoadModelResult Agent::LoadModel() const {
         mju::strcpy_arr(load_error, "could not load binary model");
       }
     } else {
-      mnew = mj_loadXML(filename.c_str(), nullptr, load_error, kErrorLength);
+      mnew = mj_loadXML(filename.c_str(), nullptr, load_error,
+                        kErrorLength);
       // remove trailing newline character from load_error
       if (load_error[0]) {
         int error_length = mju::strlen_arr(load_error);
@@ -205,7 +207,8 @@ Agent::LoadModelResult Agent::LoadModel() const {
       }
     }
   }
-  return {.model = {mnew, mj_deleteModel}, .error = load_error};
+  return {.model = {mnew, mj_deleteModel},
+          .error = load_error};
 }
 
 void Agent::OverrideModel(UniqueMjModel model) {
@@ -230,7 +233,8 @@ void Agent::PlanIteration(ThreadPool* pool) {
   model_->opt.integrator = integrator_;
 
   // set planning steps
-  steps_ = mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
+  steps_ =
+      mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
 
   // plan
   if (!allocate_enabled) {
@@ -247,7 +251,10 @@ void Agent::PlanIteration(ThreadPool* pool) {
       ActivePlanner().OptimizePolicy(steps_, *pool);
 
       // compute time
-      agent_compute_time_ = GetDuration(agent_start);
+      agent_compute_time_ =
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - agent_start)
+              .count();
 
       // counter
       count_ += 1;
@@ -285,19 +292,19 @@ void Agent::RunBeforeStep(StepJob job) {
 
 void Agent::ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data) {
   while (true) {
-    StepJob step_job;
-    {
-      // only hold the lock while reading from the queue and not while
-      // executing the jobs
-      std::lock_guard<std::mutex> lock(step_jobs_mutex_);
-      if (step_jobs_.empty()) {
-        break;
+      StepJob step_job;
+      {
+        // only hold the lock while reading from the queue and not while
+        // executing the jobs
+        std::lock_guard<std::mutex> lock(step_jobs_mutex_);
+        if (step_jobs_.empty()) {
+          break;
+        }
+        step_job = std::move(step_jobs_.front());
+        step_jobs_.pop_front();
       }
-      step_job = std::move(step_jobs_.front());
-      step_jobs_.pop_front();
+      step_job(this, model, data);
     }
-    step_job(this, model, data);
-  }
 }
 
 int Agent::SetParamByName(std::string_view name, double value) {
@@ -455,16 +462,17 @@ void Agent::ModifyScene(mjvScene* scn) {
 
       // initialize geometry
       mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, zero3, zero3, zero9,
-                   color);
+                  color);
 
       // make geometry
-      mjv_makeConnector(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-                        winner->trace[3 * num_trace * i + 3 * j],
-                        winner->trace[3 * num_trace * i + 1 + 3 * j],
-                        winner->trace[3 * num_trace * i + 2 + 3 * j],
-                        winner->trace[3 * num_trace * (i + 1) + 3 * j],
-                        winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
-                        winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
+      mjv_makeConnector(
+          &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
+          winner->trace[3 * num_trace * i + 3 * j],
+          winner->trace[3 * num_trace * i + 1 + 3 * j],
+          winner->trace[3 * num_trace * i + 2 + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
+          winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
       // increment number of geometries
       scn->ngeom += 1;
     }
@@ -597,20 +605,20 @@ void Agent::GUI(mjUI& ui) {
   }
 
   // ----- agent ----- //
-  mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
-                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-                        {mjITEM_SELECT, "Planner", 2, &planner_, ""},
-                        {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
-                        {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
-                        {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
-                        {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
-                        {mjITEM_SEPARATOR, "Agent Settings", 1},
-                        {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
-                        {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-                        {mjITEM_SELECT, "Integrator", 2, &integrator_,
-                         "Euler\nRK4\nImplicit\nFastImplicit"},
-                        {mjITEM_SEPARATOR, "Planner Settings", 1},
-                        {mjITEM_END}};
+  mjuiDef defAgent[] = {
+      {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
+      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+      {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+      {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
+      {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
+      {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
+      {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
+      {mjITEM_SEPARATOR, "Agent Settings", 1},
+      {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
+      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
+      {mjITEM_SELECT, "Integrator", 2, &integrator_, "Euler\nRK4\nImplicit\nFastImplicit"},
+      {mjITEM_SEPARATOR, "Planner Settings", 1},
+      {mjITEM_END}};
 
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
@@ -798,6 +806,7 @@ void Agent::PlotInitialize() {
       plots_.planner.linedata[j][2 * i] = (float)-i;
       plots_.timer.linedata[j][2 * i] = (float)-i;
 
+
       // colors
       if (j == 0) continue;
       plots_.planner.linergb[j][0] = CostColors[j][0];
@@ -837,7 +846,9 @@ void Agent::PlotReset() {
 }
 
 // return horizon (continuous time)
-double Agent::Horizon() const { return horizon_; }
+double Agent::Horizon() const {
+  return horizon_;
+}
 
 // plot current information
 void Agent::Plots(const mjData* data, int shift) {

@@ -208,7 +208,8 @@ class BuildCMakeExtension(build_ext.build_ext):
     cmake_configure_args = [
         "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
         f"-DCMAKE_BUILD_TYPE:STRING={build_cfg}",
-        "-DBUILD_TESTING:BOOL=OFF"
+        "-DBUILD_TESTING:BOOL=OFF",
+        "-DMJPC_BUILD_GRPC_SERVICE:BOOL=ON",
     ]
 
     if platform.system() == "Darwin" and "ARCHFLAGS" in os.environ:

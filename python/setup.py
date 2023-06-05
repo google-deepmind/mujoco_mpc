@@ -54,6 +54,8 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     `import [agent_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
+    # We import here because, if the import is at the top of this file, we
+    # cannot resolve the dependencies without having `grpcio-tools` installed.
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
     agent_proto_filename = "agent.proto"
@@ -70,6 +72,9 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     shutil.copy(agent_proto_source_path, agent_proto_destination_path)
 
     protoc_command_parts = [
+        # We use `__file__`  as the first argument the same way as is done by
+        # `protoc` when called as `__main__` here:
+        # https://github.com/grpc/grpc/blob/21996c37842035661323c71b9e7040345f0915e2/tools/distrib/python/grpcio_tools/grpc_tools/protoc.py#L172-L173.
         __file__,
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",

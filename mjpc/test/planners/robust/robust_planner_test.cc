@@ -14,6 +14,7 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+#include "mjpc/planners/robust/robust_planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
@@ -40,8 +41,8 @@ void sensor(const mjModel* model, mjData* data, int stage) {
   }
 }
 
-// test sampling planner on particle task
-TEST(SamplingPlannerTest, RandomSearch) {
+// test robust sampling planner on particle task
+TEST(RobustPlannerTest, RandomSearch) {
   // load model
   model = LoadTestModel("particle_task.xml");
   task.Reset(model);
@@ -56,13 +57,11 @@ TEST(SamplingPlannerTest, RandomSearch) {
   state.Set(model, data);
 
   // ----- sampling planner ----- //
-  SamplingPlanner planner;
+  RobustPlanner planner(std::make_unique<SamplingPlanner>());
   planner.Initialize(model, task);
   planner.Allocate();
   planner.Reset(kMaxTrajectoryHorizon);
-  // A larger value causes flakiness, because the final state isn't close enough
-  // to the goal.
-  planner.noise_exploration = 0.01;
+
   // ----- settings ----- //
   int iterations = 1000;
   double horizon = 2.5;
@@ -113,6 +112,8 @@ TEST(SamplingPlannerTest, RandomSearch) {
   // delete model
   mj_deleteModel(model);
 }
+
+
 
 }  // namespace
 }  // namespace mjpc

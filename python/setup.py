@@ -102,16 +102,20 @@ class CopyAgentServerBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    source_path = Path("../build/bin/agent_server")
+    self._copy_binary("agent_server")
+    self._copy_binary("ui_agent_server")
+
+  def _copy_binary(self, binary_name):
+    source_path = Path(f"../build/bin/{binary_name}")
     if not source_path.exists():
       raise ValueError(
-          f"Cannot find `agent_server` binary from {source_path}. Please build"
-          " the `agent_server` C++ gRPC service."
+          f"Cannot find `{binary_name}` binary from {source_path}. Please build"
+          " the `{binary_name}` C++ gRPC service."
       )
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     destination_path = Path(
-        build_lib_path, "mujoco_mpc", "mjpc", "agent_server"
+        build_lib_path, "mujoco_mpc", "mjpc", binary_name
     )
 
     self.announce(f"{source_path.resolve()=}")
@@ -122,7 +126,7 @@ class CopyAgentServerBinaryCommand(setuptools.Command):
 
 
 class CopyTaskAssetsCommand(setuptools.Command):
-  """Specialized setup command to copy `agent_server` next to `agent.py`.
+  """Copies `agent_server` and `ui_agent_server` next to `agent.py`.
 
   Assumes that the C++ gRPC `agent_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
@@ -229,17 +233,21 @@ class BuildCMakeExtension(build_ext.build_ext):
         f"-B{mujoco_mpc_build_dir.resolve()}",
     ], cwd=mujoco_mpc_root)
 
-    print("Building `agent_server` with CMake")
-    subprocess.check_call([
-        cmake_command,
-        "--build",
-        mujoco_mpc_build_dir.resolve(),
-        "--target",
-        "agent_server",
-        f"-j{os.cpu_count()}",
-        "--config",
-        build_cfg,
-    ], cwd=mujoco_mpc_root)
+    print("Building `agent_server` and `ui_agent_server` with CMake")
+    subprocess.check_call(
+        [
+            cmake_command,
+            "--build",
+            mujoco_mpc_build_dir.resolve(),
+            "--target",
+            "agent_server",
+            "ui_agent_server",
+            f"-j{os.cpu_count()}",
+            "--config",
+            build_cfg,
+        ],
+        cwd=mujoco_mpc_root,
+    )
 
 
 setuptools.setup(
@@ -281,6 +289,10 @@ setuptools.setup(
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={
-        "": ["mjpc/agent_server", "mjpc/tasks/**/*.xml"],
+        "": [
+            "mjpc/agent_server",
+            "mjpc/ui_agent_server",
+            "mjpc/tasks/**/*.xml",
+        ],
     },
 )

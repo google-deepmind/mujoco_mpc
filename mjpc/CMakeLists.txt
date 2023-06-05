@@ -77,6 +77,8 @@ add_library(
   planners/linear_solve.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
+  planners/robust/robust_planner.cc
+  planners/robust/robust_planner.h
   planners/sampling/planner.cc
   planners/sampling/planner.h
   planners/sampling/policy.cc
@@ -100,18 +102,28 @@ add_library(
   planners/ilqg/settings.h
   planners/ilqs/planner.cc
   planners/ilqs/planner.h
+  app.cc
+  app.h
   norm.cc
   norm.h
+  simulate.cc
+  simulate.h
   task.cc
   task.h
+  $<TARGET_OBJECTS:mujoco::platform_ui_adapter>
 )
 set_target_properties(libmjpc PROPERTIES OUTPUT_NAME mjpc)
 target_compile_options(libmjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
+target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
+  absl::any_invocable
   absl::flat_hash_map
   absl::random_random
+  glfw
+  lodepng
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
 )
@@ -119,12 +131,7 @@ target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(
   mjpc
-  app.cc
-  app.h
   main.cc
-  simulate.cc
-  simulate.h
-  $<TARGET_OBJECTS:mujoco::platform_ui_adapter>
 )
 target_link_libraries(
   mjpc
@@ -132,11 +139,8 @@ target_link_libraries(
   absl::flags_parse
   absl::random_random
   absl::strings
-  glfw
   libmjpc
-  lodepng
   mujoco::mujoco
-  mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
 )

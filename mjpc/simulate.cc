@@ -481,14 +481,14 @@ void UpdateInfoText(mj::Simulate* sim,
 
   // prepare info text
   mju::strcpy_arr(title, "Objective\nDoFs\nControls\nTime\nMemory");
-  mju::sprintf_arr(content,
-                   "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
-                   sim->agent->ActivePlanner().BestTrajectory()->total_return,
-                   m->nv,
-                   m->nu,
-                   d->time,
-                   d->maxuse_arena/(double)(d->nstack * sizeof(mjtNum)),
-                   mju_writeNumBytes(d->nstack * sizeof(mjtNum)));
+  const mjpc::Trajectory* best_trajectory =
+      sim->agent->ActivePlanner().BestTrajectory();
+  if (best_trajectory) {
+    mju::sprintf_arr(content, "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
+                     best_trajectory->total_return, m->nv, m->nu, d->time,
+                     d->maxuse_arena / (double)(d->nstack * sizeof(mjtNum)),
+                     mju_writeNumBytes(d->nstack * sizeof(mjtNum)));
+  }
 
   // add Energy if enabled
   {
@@ -696,15 +696,20 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
   for (i=0; i<mjNVISFLAG; i++) {
     // set name, remove "&"
     mju::strcpy_arr(defFlag[0].name, mjVISSTRING[i][0]);
-    for (j=0; j<strlen(mjVISSTRING[i][0]); j++)
+    for (j=0; j<strlen(mjVISSTRING[i][0]); j++) {
       if (mjVISSTRING[i][0][j]=='&') {
         mju_strncpy(
           defFlag[0].name+j, mjVISSTRING[i][0]+j+1, mju::sizeof_arr(defFlag[0].name)-j);
         break;
       }
+    }
 
     // set shortcut and data
-    mju::sprintf_arr(defFlag[0].other, " %s", mjVISSTRING[i][2]);
+    if (mjVISSTRING[i][2][0]) {
+      mju::sprintf_arr(defFlag[0].other, " %s", mjVISSTRING[i][2]);
+    } else {
+      mju::sprintf_arr(defFlag[0].other, "");
+    }
     defFlag[0].pdata = sim->opt.flags + i;
     mjui_add(&sim->ui0, defFlag);
   }
@@ -713,6 +718,8 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
     mju::strcpy_arr(defFlag[0].name, mjRNDSTRING[i][0]);
     if (mjRNDSTRING[i][2][0]) {
       mju::sprintf_arr(defFlag[0].other, " %s", mjRNDSTRING[i][2]);
+    } else {
+      mju::sprintf_arr(defFlag[0].other, "");
     }
     defFlag[0].pdata = sim->scn.flags + i;
     mjui_add(&sim->ui0, defFlag);

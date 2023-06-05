@@ -15,12 +15,15 @@
 #include "mjpc/task.h"
 
 #include <cstring>
+#include <mutex>
 
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
 namespace mjpc {
+
+using ForwardingResidualFn = internal::ForwardingResidualFn;
 
 namespace {
 void MissingParameterError(const mjModel* m, int sensorid) {
@@ -29,7 +32,11 @@ void MissingParameterError(const mjModel* m, int sensorid) {
       " sensor ID = %d (%s)",
       sensorid, m->names + m->name_sensoradr[sensorid]);
 }
-}
+}  // namespace
+
+
+Task::Task() : default_residual_(this) {}
+
 // called at: construction, load, and GUI reset
 void Task::Reset(const mjModel* model) {
   // ----- defaults ----- //
@@ -70,8 +77,8 @@ void Task::Reset(const mjModel* model) {
   }
   if (num_term > kMaxCostTerms) {
     mju_error(
-            "Number of cost terms exceeds maximum. Either: 1) reduce number of "
-            "terms 2) increase kMaxCostTerms");
+        "Number of cost terms exceeds maximum. Either: 1) reduce number of "
+        "terms 2) increase kMaxCostTerms");
   }
 
   // get number of traces
@@ -126,48 +133,6 @@ void Task::Reset(const mjModel* model) {
   this->SetFeatureParameters(model);
 }
 
-// compute weighted cost terms
-void Task::CostTerms(double* terms, const double* residual,
-                     bool weighted) const {
-  int f_shift = 0;
-  int p_shift = 0;
-  for (int k = 0; k < num_term; k++) {
-    // running cost
-    terms[k] =
-        (weighted ? weight[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
-                                          DataAt(num_parameter, p_shift),
-                                          dim_norm_residual[k], norm[k]);
-
-    // shift residual
-    f_shift += dim_norm_residual[k];
-
-    // shift parameters
-    p_shift += num_norm_parameter[k];
-  }
-}
-
-// compute weighted cost from terms
-double Task::CostValue(const double* residual) const {
-  // cost terms
-  double terms[kMaxCostTerms];
-
-  // evaluate
-  this->CostTerms(terms, residual);
-
-  // summation of cost terms
-  double cost = 0.0;
-  for (int i = 0; i < num_term; i++) {
-    cost += terms[i];
-  }
-
-  // exponential risk transformation
-  if (mju_abs(risk) < kRiskNeutralTolerance) {
-    return cost;
-  } else {
-    return (mju_exp(risk * cost) - 1.0) / risk;
-  }
-}
-
 // initial residual parameters from model
 void Task::SetFeatureParameters(const mjModel* model) {
   // set counter
@@ -196,4 +161,148 @@ void Task::SetFeatureParameters(const mjModel* model) {
     }
   }
 }
+
+BaseResidualFn::BaseResidualFn(const Task* task) : task_(task) {
+  Update();
+}
+
+// compute weighted cost terms
+void BaseResidualFn::CostTerms(double* terms, const double* residual,
+                               bool weighted) const {
+  int f_shift = 0;
+  int p_shift = 0;
+  for (int k = 0; k < num_term_; k++) {
+    // running cost
+    terms[k] =
+        (weighted ? weight_[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
+                                           DataAt(num_parameter_, p_shift),
+                                           dim_norm_residual_[k], norm_[k]);
+
+    // shift residual
+    f_shift += dim_norm_residual_[k];
+
+    // shift parameters
+    p_shift += num_norm_parameter_[k];
+  }
+}
+
+// compute weighted cost from terms
+double BaseResidualFn::CostValue(const double* residual) const {
+  // cost terms
+  double terms[kMaxCostTerms];
+
+  // evaluate
+  this->CostTerms(terms, residual, /*weighted=*/true);
+
+  // summation of cost terms
+  double cost = 0.0;
+  for (int i = 0; i < num_term_; i++) {
+    cost += terms[i];
+  }
+
+  // exponential risk transformation
+  if (mju_abs(risk_) < kRiskNeutralTolerance) {
+    return cost;
+  } else {
+    return (mju_exp(risk_ * cost) - 1.0) / risk_;
+  }
+}
+
+void BaseResidualFn::Update() {
+  num_residual_ = task_->num_residual;
+  num_term_ = task_->num_term;
+  num_trace_ = task_->num_trace;
+  dim_norm_residual_ = task_->dim_norm_residual;
+  num_norm_parameter_ = task_->num_norm_parameter;
+  norm_ = task_->norm;
+  weight_ = task_->weight;
+  num_parameter_ = task_->num_parameter;
+  risk_ = task_->risk;
+  parameters_ = task_->parameters;
+}
+
+// default implementation calls down to Task::Residual, for backwards compat.
+// this is not thread safe, but it's what most existing tasks do.
+void ForwardingResidualFn::Residual(const mjModel* model, const mjData* data,
+                                    double* residual) const {
+  task_->Residual(model, data, residual);
+}
+
+// compute weighted cost terms
+void ForwardingResidualFn::CostTerms(double* terms, const double* residual,
+                                     bool weighted) const {
+  int f_shift = 0;
+  int p_shift = 0;
+  for (int k = 0; k < task_->num_term; k++) {
+    // running cost
+    terms[k] = (weighted ? task_->weight[k] : 1) *
+               Norm(nullptr, nullptr, residual + f_shift,
+                    DataAt(task_->num_parameter, p_shift),
+                    task_->dim_norm_residual[k], task_->norm[k]);
+
+    // shift residual
+    f_shift += task_->dim_norm_residual[k];
+
+    // shift parameters
+    p_shift += task_->num_norm_parameter[k];
+  }
+}
+
+// compute weighted cost from terms
+double ForwardingResidualFn::CostValue(const double* residual) const {
+  // cost terms
+  double terms[kMaxCostTerms];
+
+  // evaluate
+  this->CostTerms(terms, residual, /*weighted=*/true);
+
+  // summation of cost terms
+  double cost = 0.0;
+  for (int i = 0; i < task_->num_term; i++) {
+    cost += terms[i];
+  }
+
+  // exponential risk transformation
+  if (mju_abs(task_->risk) < kRiskNeutralTolerance) {
+    return cost;
+  } else {
+    return (mju_exp(task_->risk * cost) - 1.0) / task_->risk;
+  }
+}
+
+std::unique_ptr<ResidualFn> ThreadSafeTask::Residual() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return ResidualLocked();
+}
+
+void ThreadSafeTask::Residual(const mjModel* model, const mjData* data,
+                              double* residual) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  InternalResidual()->Residual(model, data, residual);
+}
+
+void ThreadSafeTask::Transition(const mjModel* model, mjData* data) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  TransitionLocked(model, data);
+  InternalResidual()->Update();
+}
+
+void ThreadSafeTask::Reset(const mjModel* model) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  Task::Reset(model);
+  ResetLocked(model);
+  InternalResidual()->Update();
+}
+
+void ThreadSafeTask::CostTerms(double* terms, const double* residual,
+                               bool weighted) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return InternalResidual()->CostTerms(terms, residual, weighted);
+}
+
+double ThreadSafeTask::CostValue(const double* residual) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return InternalResidual()->CostValue(residual);
+}
+
 }  // namespace mjpc

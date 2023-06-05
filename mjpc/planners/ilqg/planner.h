@@ -44,7 +44,7 @@ class iLQGPlanner : public Planner {
   void Reset(int horizon) override;
 
   // set state
-  void SetState(State& state) override;
+  void SetState(const State& state) override;
 
   // optimize nominal policy using iLQG
   void OptimizePolicy(int horizon, ThreadPool& pool) override;
@@ -54,7 +54,7 @@ class iLQGPlanner : public Planner {
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state,
-                        double time) override;
+                        double time, bool use_previous = false) override;
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -79,7 +79,9 @@ class iLQGPlanner : public Planner {
   void FeedbackRollouts(int horizon, ThreadPool& pool);
 
   // return index of trajectory with best rollout
-  int BestRollout(double previous_return, int num_trajectory);
+  int BestRollout();
+
+  void UpdateNumTrajectoriesFromGUI();
 
   //
 
@@ -95,6 +97,7 @@ class iLQGPlanner : public Planner {
 
   // policy
   iLQGPolicy policy;
+  iLQGPolicy previous_policy;
   iLQGPolicy candidate_policy[kMaxTrajectory];
 
   // dimensions
@@ -106,7 +109,6 @@ class iLQGPlanner : public Planner {
 
   // candidate trajectories
   Trajectory trajectory[kMaxTrajectory];
-  int num_trajectory;
 
   // model derivatives
   ModelDerivatives model_derivative;
@@ -146,6 +148,10 @@ class iLQGPlanner : public Planner {
 
   // mutex
   mutable std::shared_mutex mtx_;
+
+ private:
+  int num_trajectory_ = 1;
+  int num_rollouts_gui_ = 1;
 };
 
 }  // namespace mjpc

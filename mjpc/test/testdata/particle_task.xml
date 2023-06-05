@@ -6,10 +6,10 @@
   <custom>
     <numeric name="task_risk" data="1.0" />
     <numeric name="agent_planner" data="0" />
-    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_horizon" data="1" /><!-- a smaller value causes flakiness in sampling_planner_test -->
     <numeric name="agent_timestep" data="0.1" />
     <numeric name="agent_policy_width" data="0.0015" />
-    <numeric name="sampling_spline_points" data="11" />
+    <numeric name="sampling_spline_points" data="11" /><!-- a smaller value causes flakiness in sampling_planner_test -->
     <numeric name="sampling_exploration" data="0.01" />
     <numeric name="sampling_processed_noise" data="1" />
     <numeric name="sampling_processed_noise_neighbors" data="3" />
@@ -18,8 +18,8 @@
     <numeric name="test_double" data="0.1" />
     <numeric name="test_int" data="1" />
     <numeric name="test_doubles" data="0.2 0.3" />
-    <numeric name="residual_x goal" data="0.05" />
-    <numeric name="residual_y goal" data="-0.1" />
+    <numeric name="residual_dummy1" data="0.05" />
+    <numeric name="residual_dummy2" data="-0.1" />
     <text name="custom_text" data="falafel" />
   </custom>
 

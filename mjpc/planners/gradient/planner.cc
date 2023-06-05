@@ -23,7 +23,7 @@
 #include "mjpc/planners/gradient/gradient.h"
 #include "mjpc/planners/gradient/policy.h"
 #include "mjpc/planners/gradient/settings.h"
-#include "mjpc/planners/model_derivative.h"
+#include "mjpc/planners/model_derivatives.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"

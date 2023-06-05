@@ -121,7 +121,7 @@ class GradientPlanner : public Planner {
   double timestep_power;
 
   // model derivatives
-  ModelDerivatives model_derivatives;
+  ModelDerivatives model_derivative;
 
   // cost derivatives
   CostDerivatives cost_derivative;

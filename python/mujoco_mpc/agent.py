@@ -21,7 +21,7 @@ import pathlib
 import socket
 import subprocess
 import tempfile
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 import grpc
 import mujoco
@@ -65,6 +65,7 @@ class Agent(contextlib.AbstractContextManager):
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       server_binary_path: Optional[str] = None,
+      extra_flags: Sequence[str] = (),
       real_time_speed: float = 1.0,
   ):
     self.task_id = task_id
@@ -76,12 +77,13 @@ class Agent(contextlib.AbstractContextManager):
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
         [str(server_binary_path), f"--mjpc_port={self.port}"]
+        + list(extra_flags)
     )
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
-    grpc.channel_ready_future(self.channel).result(timeout=10)
+    grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
     self.init(
         task_id,

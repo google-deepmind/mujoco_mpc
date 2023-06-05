@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/estimators/batch.h"
+#include "mjpc/estimators/estimator.h"
 
 #include <chrono>
 
@@ -227,6 +227,9 @@ void Estimator::Initialize(mjModel* model) {
   // status
   hessian_factor_ = false;
 
+  // state index 
+  state_index_ = configuration_length_ - 1;
+
   // settings
   band_covariance_ =
       (bool)GetNumberOrDefault(0, model, "estimator_band_covariance");
@@ -289,6 +292,9 @@ void Estimator::SetConfigurationLength(int length) {
   block_acceleration_previous_configuration_.length_ = length - 2;
   block_acceleration_current_configuration_.length_ = length - 2;
   block_acceleration_next_configuration_.length_ = length - 2;
+
+  // state index 
+  state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
 }
 
 // reset memory
@@ -1939,6 +1945,16 @@ void Estimator::ResetTimers() {
   timer_optimize_ = 0.0;
   timer_prior_weight_update_ = 0.0;
   timer_prior_set_weight_ = 0.0;
+}
+
+// get qpos estimate 
+double* Estimator::GetPosition() {
+  return configuration_.Get(state_index_);
+}
+
+// get qvel estimate 
+double* Estimator::GetVelocity() {
+  return velocity_.Get(state_index_);
 }
 
 }  // namespace mjpc

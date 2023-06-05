@@ -16,7 +16,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/test/load.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"

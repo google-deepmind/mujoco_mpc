@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_BATCH_H_
-#define MJPC_ESTIMATORS_BATCH_H_
+#ifndef MJPC_ESTIMATORS_ESTIMATOR_H_
+#define MJPC_ESTIMATORS_ESTIMATOR_H_
 
 #include <mujoco/mujoco.h>
 
@@ -153,6 +153,12 @@ class Estimator {
 
   // reset timers 
   void ResetTimers();
+
+  // get qpos estimate 
+  double* GetPosition();
+
+  // get qvel estimate 
+  double* GetVelocity();
 
   // model
   mjModel* model_;
@@ -340,6 +346,9 @@ class Estimator {
   bool sensor_flag_ = true;
   bool force_flag_ = true;
 
+  // state index 
+  int state_index_;
+
   // status 
   int iterations_smoother_;                 // total smoother iterations after Optimize
   int iterations_line_search_;              // total line search iterations 
@@ -368,4 +377,4 @@ class Estimator {
 
 }  // namespace mjpc
 
-#endif  // MJPC_ESTIMATORS_BATCH_H_
+#endif  // MJPC_ESTIMATORS_ESTIMATOR_H_

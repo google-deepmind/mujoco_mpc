@@ -167,5 +167,143 @@ TEST(BatchShift, Particle2D) {
   mj_deleteModel(model);
 }
 
+TEST(BatchReuse, Particle2D) {
+  // load model
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
+  mjData* data = mj_makeData(model);
+
+  // dimensions
+  int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+
+  // threadpool
+  ThreadPool pool(2);
+
+  // ----- simulate ----- //
+
+  // controller
+  auto controller = [](double* ctrl, double time) {
+    ctrl[0] = mju_sin(100 * time);
+    ctrl[1] = mju_cos(100 * time);
+  };
+
+  // trajectories
+  int horizon_buffer = 100;
+  Trajectory qpos_buffer(nq, horizon_buffer + 1);
+  Trajectory qvel_buffer(nv, horizon_buffer + 1);
+  Trajectory qacc_buffer(nv, horizon_buffer);
+  Trajectory ctrl_buffer(nu, horizon_buffer);
+  Trajectory qfrc_actuator_buffer(nv, horizon_buffer);
+  Trajectory sensor_buffer(ns, horizon_buffer + 1);
+  Trajectory time_buffer(1, horizon_buffer + 1);
+
+  // reset
+  mj_resetData(model, data);
+
+  // rollout
+  for (int t = 0; t < horizon_buffer; t++) {
+    // time
+    time_buffer.Set(&data->time, t);
+
+    // set control
+    controller(data->ctrl, data->time);
+
+    // forward computes instantaneous qacc
+    mj_forward(model, data);
+
+    // cache
+    qpos_buffer.Set(data->qpos, t);
+    qvel_buffer.Set(data->qvel, t);
+    qacc_buffer.Set(data->qacc, t);
+    ctrl_buffer.Set(data->ctrl, t);
+    qfrc_actuator_buffer.Set(data->qfrc_actuator, t);
+    sensor_buffer.Set(data->sensordata, t);
+
+    // step using mj_Euler since mj_forward has been called
+    // see mj_ step implementation here
+    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    mj_Euler(model, data);
+  }
+
+  // final cache
+  qpos_buffer.Set(data->qpos, horizon_buffer);
+  qvel_buffer.Set(data->qvel, horizon_buffer);
+
+  time_buffer.Set(&data->time, horizon_buffer);
+
+  mj_forward(model, data);
+  sensor_buffer.Set(data->sensordata, horizon_buffer);
+
+  // noisy sensors 
+  for (int i = 0; i < ns * (horizon_buffer + 1); i++) {
+    absl::BitGen gen_;
+    sensor_buffer.Data()[i] += 0.05 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // ----- estimator ----- //
+  int horizon_estimator = 10;
+
+  // initialize
+  Estimator estimator0;
+  estimator0.Initialize(model);
+  estimator0.SetConfigurationLength(horizon_estimator);
+
+  // copy buffers
+  mju_copy(estimator0.configuration_.Data(), qpos_buffer.Data(),
+            nq * horizon_estimator);
+  mju_copy(estimator0.configuration_prior_.Data(),
+            estimator0.configuration_.Data(), nq * horizon_estimator);
+  mju_copy(estimator0.action_.Data(), ctrl_buffer.Data(),
+            nu * (horizon_estimator - 1));
+  mju_copy(estimator0.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
+            nv * (horizon_estimator - 1));
+  mju_copy(estimator0.sensor_measurement_.Data(), sensor_buffer.Data(),
+            ns * (horizon_estimator - 1));
+  mju_copy(estimator0.time_.Data(), time_buffer.Data(),
+            (horizon_estimator - 1));
+
+  // randomly perturb
+  for (int t = 0; t < horizon_estimator; t++) {
+    // unpack
+    double* q = estimator0.configuration_.Data() + t * nq;
+
+    // add noise
+    for (int i = 0; i < nq; i++) {
+      absl::BitGen gen_;
+      q[i] += 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // cost
+  double cost_random = estimator0.Cost(pool);
+  printf("cost 0: %.4f\n", cost_random);
+
+  // verbose 
+  estimator0.verbose_optimize_ = false;
+  estimator0.reuse_data_ = true;
+  estimator0.iterations_smoother_ = 1;
+
+  for (int shift = 1; shift < 25; shift++) {
+    // optimize 
+    estimator0.Optimize(estimator0.configuration_length_, pool);
+
+    printf("cost %i: %.4f\n", shift, estimator0.cost_);
+
+    // set buffer length
+    ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
+    sensor_buffer.length_ = (horizon_estimator - 1) + shift;
+    time_buffer.length_ = (horizon_estimator - 1) + shift;
+
+    // update estimator trajectories
+    estimator0.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+
+    printf("  optimize time: %.4f (ms)\n", 1.0e-3 * estimator0.timer_optimize_);
+    printf("  update time: %.4f (ms)\n", 1.0e-3 * estimator0.timer_update_trajectory_);
+  }
+  
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
 }  // namespace
 }  // namespace mjpc

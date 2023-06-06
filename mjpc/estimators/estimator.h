@@ -134,7 +134,7 @@ class Estimator {
   void CostHessian();
 
   // prior weight update 
-  void PriorWeightUpdate(int num_new, ThreadPool& pool);
+  void PriorWeightUpdate(ThreadPool& pool);
 
   // optimize trajectory estimate 
   void Optimize(int num_new, ThreadPool& pool);
@@ -344,6 +344,7 @@ class Estimator {
   double timer_optimize_;
   double timer_prior_weight_update_;
   double timer_prior_set_weight_;
+  double timer_update_trajectory_;
 
   std::vector<double> timer_prior_step_;
   std::vector<double> timer_sensor_step_;
@@ -362,6 +363,8 @@ class Estimator {
   int iterations_line_search_;              // total line search iterations 
   bool hessian_factor_ = false;             // prior reset status
   int cost_count_;
+  int num_new_;                             // number of new elements
+  bool reuse_data_ = true;                  // flag for resuing data previously computed
   
   // settings
   int max_line_search_ = 10;                // maximum number of line search iterations

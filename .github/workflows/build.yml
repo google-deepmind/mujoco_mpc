@@ -18,11 +18,13 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang-14
               -DCMAKE_CXX_COMPILER:STRING=clang++-14
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: macos-12
             cmake_args: >-
               -G Ninja
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: windows-2022
@@ -30,6 +32,7 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang
               -DCMAKE_CXX_COMPILER:STRING=clang++
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"

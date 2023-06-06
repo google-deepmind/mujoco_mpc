@@ -54,6 +54,10 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     `import [agent_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
+    # We import here because, if the import is at the top of this file, we
+    # cannot resolve the dependencies without having `grpcio-tools` installed.
+    from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
+
     agent_proto_filename = "agent.proto"
     agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
     assert self.build_lib is not None
@@ -68,18 +72,24 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     shutil.copy(agent_proto_source_path, agent_proto_destination_path)
 
     protoc_command_parts = [
+        # We use `__file__`  as the first argument the same way as is done by
+        # `protoc` when called as `__main__` here:
+        # https://github.com/grpc/grpc/blob/21996c37842035661323c71b9e7040345f0915e2/tools/distrib/python/grpcio_tools/grpc_tools/protoc.py#L172-L173.
+        __file__,
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",
         f"--grpc_python_out={build_lib_path}",
-        agent_proto_destination_path
+        str(agent_proto_destination_path),
     ]
-    # Instead of `self.spawn`, this should be runnable directly as
-    # `grpc_tools.protoc.main(protoc_command_parts)`, but that seems to fail
-    # on MacOS for some reason, most likely because of the lack of explicit
-    # `protoc.py` included by the script-version of `protoc`.
-    self.spawn([
-        "python", "-m", "grpc_tools.protoc", *protoc_command_parts
-    ])
+
+    protoc_returncode = protoc.main(protoc_command_parts)
+
+    if protoc_returncode != 0:
+      raise subprocess.CalledProcessError(
+        returncode=protoc_returncode,
+        cmd=f"`protoc.main({protoc_command_parts})`",
+      )
+
     self.spawn([
         "touch", str(agent_proto_destination_path.parent / "__init__.py")
     ])
@@ -208,7 +218,8 @@ class BuildCMakeExtension(build_ext.build_ext):
     cmake_configure_args = [
         "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
         f"-DCMAKE_BUILD_TYPE:STRING={build_cfg}",
-        "-DBUILD_TESTING:BOOL=OFF"
+        "-DBUILD_TESTING:BOOL=OFF",
+        "-DMJPC_BUILD_GRPC_SERVICE:BOOL=ON",
     ]
 
     if platform.system() == "Darwin" and "ARCHFLAGS" in os.environ:
@@ -238,7 +249,7 @@ class BuildCMakeExtension(build_ext.build_ext):
         [
             cmake_command,
             "--build",
-            mujoco_mpc_build_dir.resolve(),
+            str(mujoco_mpc_build_dir.resolve()),
             "--target",
             "agent_server",
             "ui_agent_server",
@@ -271,8 +282,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.7",
     install_requires=[
-        "grpcio-tools >= 1.53.0",
-        "grpcio >= 1.53.0",
+        "grpcio-tools",
+        "grpcio",
     ],
     extras_require={
         "test": [

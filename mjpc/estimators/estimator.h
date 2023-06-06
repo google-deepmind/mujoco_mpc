@@ -163,6 +163,11 @@ class Estimator {
   // get qvel estimate 
   double* GetVelocity();
 
+  // initialize trajectories
+  // TODO(taylor): make const Trajectory
+  void InitializeTrajectories(Trajectory& measurement, Trajectory& ctrl,
+                              Trajectory& time);
+
   // update trajectories
   // TODO(taylor): make const Trajectory
   void UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
@@ -368,7 +373,7 @@ class Estimator {
   
   // settings
   int max_line_search_ = 10;                // maximum number of line search iterations
-  int max_smoother_iterations_ = 20;        // maximum number of smoothing iterations
+  int max_smoother_iterations_ = 10;        // maximum number of smoothing iterations
   double gradient_tolerance_ = 1.0e-5;      // small gradient tolerance
   bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost

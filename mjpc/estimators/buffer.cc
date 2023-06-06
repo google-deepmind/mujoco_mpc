@@ -97,4 +97,7 @@ void Buffer::Print() {
   }
 }
 
+// length
+int Buffer::Length() { return time_.length_; }
+
 }  // namespace mjpc

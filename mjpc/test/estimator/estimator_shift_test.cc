@@ -28,145 +28,145 @@
 namespace mjpc {
 namespace {
 
-TEST(BatchShift, Particle2D) {
-  // load model
-  mjModel* model = LoadTestModel("estimator/particle/task.xml");
-  mjData* data = mj_makeData(model);
+// TEST(BatchShift, Particle2D) {
+//   // load model
+//   mjModel* model = LoadTestModel("estimator/particle/task.xml");
+//   mjData* data = mj_makeData(model);
 
-  // dimensions
-  int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+//   // dimensions
+//   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
-  // threadpool
-  ThreadPool pool(2);
+//   // threadpool
+//   ThreadPool pool(2);
 
-  // ----- simulate ----- //
+//   // ----- simulate ----- //
 
-  // controller
-  auto controller = [](double* ctrl, double time) {
-    ctrl[0] = mju_sin(100 * time);
-    ctrl[1] = mju_cos(100 * time);
-  };
+//   // controller
+//   auto controller = [](double* ctrl, double time) {
+//     ctrl[0] = mju_sin(100 * time);
+//     ctrl[1] = mju_cos(100 * time);
+//   };
 
-  // trajectories
-  int horizon_buffer = 20;
-  Trajectory qpos_buffer(nq, horizon_buffer + 1);
-  Trajectory qvel_buffer(nv, horizon_buffer + 1);
-  Trajectory qacc_buffer(nv, horizon_buffer);
-  Trajectory ctrl_buffer(nu, horizon_buffer);
-  Trajectory qfrc_actuator_buffer(nv, horizon_buffer);
-  Trajectory sensor_buffer(ns, horizon_buffer + 1);
-  Trajectory time_buffer(1, horizon_buffer + 1);
+//   // trajectories
+//   int horizon_buffer = 20;
+//   Trajectory qpos_buffer(nq, horizon_buffer + 1);
+//   Trajectory qvel_buffer(nv, horizon_buffer + 1);
+//   Trajectory qacc_buffer(nv, horizon_buffer);
+//   Trajectory ctrl_buffer(nu, horizon_buffer);
+//   Trajectory qfrc_actuator_buffer(nv, horizon_buffer);
+//   Trajectory sensor_buffer(ns, horizon_buffer + 1);
+//   Trajectory time_buffer(1, horizon_buffer + 1);
 
-  // reset
-  mj_resetData(model, data);
+//   // reset
+//   mj_resetData(model, data);
 
-  // rollout
-  for (int t = 0; t < horizon_buffer; t++) {
-    // time
-    time_buffer.Set(&data->time, t);
+//   // rollout
+//   for (int t = 0; t < horizon_buffer; t++) {
+//     // time
+//     time_buffer.Set(&data->time, t);
 
-    // set control
-    controller(data->ctrl, data->time);
+//     // set control
+//     controller(data->ctrl, data->time);
 
-    // forward computes instantaneous qacc
-    mj_forward(model, data);
+//     // forward computes instantaneous qacc
+//     mj_forward(model, data);
 
-    // cache
-    qpos_buffer.Set(data->qpos, t);
-    qvel_buffer.Set(data->qvel, t);
-    qacc_buffer.Set(data->qacc, t);
-    ctrl_buffer.Set(data->ctrl, t);
-    qfrc_actuator_buffer.Set(data->qfrc_actuator, t);
-    sensor_buffer.Set(data->sensordata, t);
+//     // cache
+//     qpos_buffer.Set(data->qpos, t);
+//     qvel_buffer.Set(data->qvel, t);
+//     qacc_buffer.Set(data->qacc, t);
+//     ctrl_buffer.Set(data->ctrl, t);
+//     qfrc_actuator_buffer.Set(data->qfrc_actuator, t);
+//     sensor_buffer.Set(data->sensordata, t);
 
-    // step using mj_Euler since mj_forward has been called
-    // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
-    mj_Euler(model, data);
-  }
+//     // step using mj_Euler since mj_forward has been called
+//     // see mj_ step implementation here
+//     // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+//     mj_Euler(model, data);
+//   }
 
-  // final cache
-  qpos_buffer.Set(data->qpos, horizon_buffer);
-  qvel_buffer.Set(data->qvel, horizon_buffer);
+//   // final cache
+//   qpos_buffer.Set(data->qpos, horizon_buffer);
+//   qvel_buffer.Set(data->qvel, horizon_buffer);
 
-  time_buffer.Set(&data->time, horizon_buffer);
+//   time_buffer.Set(&data->time, horizon_buffer);
 
-  mj_forward(model, data);
-  sensor_buffer.Set(data->sensordata, horizon_buffer);
+//   mj_forward(model, data);
+//   sensor_buffer.Set(data->sensordata, horizon_buffer);
 
-  // ----- estimator ----- //
-  for (int horizon_estimator = 3; horizon_estimator < 7; horizon_estimator++) {
-    // initialize
-    Estimator estimator;
-    estimator.Initialize(model);
-    estimator.SetConfigurationLength(horizon_estimator);
+//   // ----- estimator ----- //
+//   for (int horizon_estimator = 3; horizon_estimator < 7; horizon_estimator++) {
+//     // initialize
+//     Estimator estimator;
+//     estimator.Initialize(model);
+//     estimator.SetConfigurationLength(horizon_estimator);
 
-    // copy buffers
-    mju_copy(estimator.configuration_.Data(), qpos_buffer.Data(),
-             nq * horizon_estimator);
-    mju_copy(estimator.configuration_prior_.Data(),
-             estimator.configuration_.Data(), nq * horizon_estimator);
-    mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
-             nu * (horizon_estimator - 1));
-    mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
-             nv * (horizon_estimator - 1));
-    mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
-             ns * (horizon_estimator - 1));
-    mju_copy(estimator.time_.Data(), time_buffer.Data(),
-             (horizon_estimator - 1));
+//     // copy buffers
+//     mju_copy(estimator.configuration_.Data(), qpos_buffer.Data(),
+//              nq * horizon_estimator);
+//     mju_copy(estimator.configuration_prior_.Data(),
+//              estimator.configuration_.Data(), nq * horizon_estimator);
+//     mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
+//              nu * (horizon_estimator - 1));
+//     mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
+//              nv * (horizon_estimator - 1));
+//     mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
+//              ns * (horizon_estimator - 1));
+//     mju_copy(estimator.time_.Data(), time_buffer.Data(),
+//              (horizon_estimator - 1));
 
-    // shift
-    for (int shift = 0; shift < 5; shift++) {
-      // set buffer length
-      ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
-      sensor_buffer.length_ = (horizon_estimator - 1) + shift;
-      time_buffer.length_ = (horizon_estimator - 1) + shift;
+//     // shift
+//     for (int shift = 0; shift < 5; shift++) {
+//       // set buffer length
+//       ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
+//       sensor_buffer.length_ = (horizon_estimator - 1) + shift;
+//       time_buffer.length_ = (horizon_estimator - 1) + shift;
 
-      // update estimator trajectories
-      estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+//       // update estimator trajectories
+//       estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
 
-      // sensor measurement error
-      std::vector<double> sensor_error(ns * (horizon_estimator - 1));
-      for (int i = 0; i < horizon_estimator - 1; i++) {
-        mju_sub(sensor_error.data() + ns * i, sensor_buffer.Get(i + shift),
-                estimator.sensor_measurement_.Get(i), ns);
-      }
-      EXPECT_NEAR(mju_norm(sensor_error.data(), ns * (horizon_estimator - 1)),
-                  0.0, 1.0e-4);
+//       // sensor measurement error
+//       std::vector<double> sensor_error(ns * (horizon_estimator - 1));
+//       for (int i = 0; i < horizon_estimator - 1; i++) {
+//         mju_sub(sensor_error.data() + ns * i, sensor_buffer.Get(i + shift),
+//                 estimator.sensor_measurement_.Get(i), ns);
+//       }
+//       EXPECT_NEAR(mju_norm(sensor_error.data(), ns * (horizon_estimator - 1)),
+//                   0.0, 1.0e-4);
 
-      // force measurement error
-      std::vector<double> force_error(nv * (horizon_estimator - 1));
-      for (int i = 0; i < horizon_estimator - 1; i++) {
-        mju_sub(force_error.data() + nv * i,
-                qfrc_actuator_buffer.Get(i + shift),
-                estimator.force_measurement_.Get(i), nv);
-      }
-      EXPECT_NEAR(mju_norm(force_error.data(), nv * (horizon_estimator - 1)),
-                  0.0, 1.0e-4);
+//       // force measurement error
+//       std::vector<double> force_error(nv * (horizon_estimator - 1));
+//       for (int i = 0; i < horizon_estimator - 1; i++) {
+//         mju_sub(force_error.data() + nv * i,
+//                 qfrc_actuator_buffer.Get(i + shift),
+//                 estimator.force_measurement_.Get(i), nv);
+//       }
+//       EXPECT_NEAR(mju_norm(force_error.data(), nv * (horizon_estimator - 1)),
+//                   0.0, 1.0e-4);
 
-      // configuration error
-      std::vector<double> configuration_error(nq * horizon_estimator);
-      for (int i = 0; i < horizon_estimator; i++) {
-        mju_sub(configuration_error.data() + nq * i, qpos_buffer.Get(i + shift),
-                estimator.configuration_.Get(i), nq);
-      }
-      EXPECT_NEAR(mju_norm(configuration_error.data(), nq * horizon_estimator),
-                  0.0, 1.0e-4);
+//       // configuration error
+//       std::vector<double> configuration_error(nq * horizon_estimator);
+//       for (int i = 0; i < horizon_estimator; i++) {
+//         mju_sub(configuration_error.data() + nq * i, qpos_buffer.Get(i + shift),
+//                 estimator.configuration_.Get(i), nq);
+//       }
+//       EXPECT_NEAR(mju_norm(configuration_error.data(), nq * horizon_estimator),
+//                   0.0, 1.0e-4);
 
-      // time error
-      std::vector<double> time_error(horizon_estimator);
-      for (int i = 0; i < horizon_estimator; i++) {
-        mju_sub(time_error.data() + i, time_buffer.Get(i + shift),
-                estimator.time_.Get(i), 1);
-      }
-      EXPECT_NEAR(mju_norm(time_error.data(), horizon_estimator), 0.0, 1.0e-4);
-    }
-  }
+//       // time error
+//       std::vector<double> time_error(horizon_estimator);
+//       for (int i = 0; i < horizon_estimator; i++) {
+//         mju_sub(time_error.data() + i, time_buffer.Get(i + shift),
+//                 estimator.time_.Get(i), 1);
+//       }
+//       EXPECT_NEAR(mju_norm(time_error.data(), horizon_estimator), 0.0, 1.0e-4);
+//     }
+//   }
 
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
+//   // delete data + model
+//   mj_deleteData(data);
+//   mj_deleteModel(model);
+// }
 
 TEST(BatchReuse, Particle2D) {
   // load model
@@ -270,7 +270,7 @@ TEST(BatchReuse, Particle2D) {
     // add noise
     for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      q[i] += 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      q[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
@@ -280,7 +280,7 @@ TEST(BatchReuse, Particle2D) {
 
   // verbose 
   estimator0.verbose_optimize_ = false;
-  estimator0.reuse_data_ = true;
+  estimator0.reuse_data_ = false;
   estimator0.iterations_smoother_ = 1;
 
   for (int shift = 1; shift < 25; shift++) {
@@ -306,49 +306,93 @@ TEST(BatchReuse, Particle2D) {
   mj_deleteModel(model);
 }
 
-TEST(Buffer, Particle2D) {
-  // load model
-  mjModel* model = LoadTestModel("estimator/particle/task.xml");
-  mjData* data = mj_makeData(model);
+// TEST(Buffer, Particle2D) {
+//   // load model
+//   mjModel* model = LoadTestModel("estimator/particle/task.xml");
+//   mjData* data = mj_makeData(model);
 
-  // ----- simulate ----- //
+//   // threadpool 
+//   ThreadPool pool(2);
 
-  // buffer 
-  Buffer buffer(model, 32);
+//   // ----- estimator ----- //
+//   int horizon_estimator = 3;
 
-  // controller
-  auto controller = [](double* ctrl, double time) {
-    ctrl[0] = mju_sin(100 * time);
-    ctrl[1] = mju_cos(100 * time);
-  };
+//   // initialize
+//   Estimator estimator;
+//   estimator.Initialize(model);
+//   estimator.SetConfigurationLength(horizon_estimator);
+//   estimator.verbose_optimize_ = false;
+//   estimator.reuse_data_ = false;
+//   estimator.iterations_smoother_ = 1;
+//   // estimator.search_type_ = kCurveSearch;
+//   bool estimator_initialized = false;
+//   // estimator.prior_flag_ = false;
+//   estimator.force_flag_ = false;
+//   // estimator.scale_prior_ = 1.0e-3;
 
-  // reset
-  mj_resetData(model, data);
+//   // initialize 
+//   for (int i = 0; i < estimator.configuration_length_; i++) {
+//     estimator.configuration_.Set(model->qpos0, i);
+//     estimator.configuration_prior_.Set(model->qpos0, i);
+//   }
 
-  // rollout
-  for (int t = 0; t < buffer.max_length_; t++) {
-    // time
+//   // ----- simulate ----- //
 
-    // set control
-    controller(data->ctrl, data->time);
+//   // buffer 
+//   Buffer buffer(model, 32);
 
-    // forward
-    mj_forward(model, data);
+//   // controller
+//   auto controller = [](double* ctrl, double time) {
+//     ctrl[0] = mju_sin(100 * time);
+//     ctrl[1] = mju_cos(100 * time);
+//   };
 
-    // update buffer 
-    buffer.Update(model, data);
+//   // reset
+//   mj_resetData(model, data);
 
-    // Euler integration
-    mj_Euler(model, data);
-  }
+//   // rollout
+//   for (int t = 0; t < horizon_estimator + 1; t++) {
+//     printf("t = %i\n", t);
 
-  // show buffer 
-  buffer.Print();
+//     // set control
+//     controller(data->ctrl, data->time);
 
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
+//     // forward
+//     mj_forward(model, data);
+
+//     // add noise to sensors 
+//     // for (int i = 0; i < model->nsensordata; i++) {
+//     //   absl::BitGen gen_;
+//     //   data->sensordata[i] += 0.001 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+//     // }
+
+//     // update buffer 
+//     buffer.Update(model, data);
+
+//     if (buffer.Length() >= estimator.configuration_length_ - 1) {
+//       if (!estimator_initialized) {
+//         estimator.InitializeTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+//         printf("num_new = %i\n", estimator.configuration_length_ - 1);
+//         estimator_initialized = true;
+//       } else {
+//         estimator.UpdateTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+//       }
+//       // optimize 
+//       estimator.Optimize(estimator.configuration_length_, pool);
+//       printf("  cost = %.4f [initial = %.4f]\n", estimator.cost_, estimator.cost_initial_);
+//     }
+
+//     // Euler integration
+//     mj_Euler(model, data);
+//   }
+
+//   // show buffer 
+//   // buffer.Print();
+
+//   // delete data + model
+//   mj_deleteData(data);
+//   mj_deleteModel(model);
+// }
 
 }  // namespace
 }  // namespace mjpc

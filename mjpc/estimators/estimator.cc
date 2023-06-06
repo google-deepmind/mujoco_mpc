@@ -1635,6 +1635,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
   cost_ = Cost(pool);
   cost_initial_ = cost_;
 
+  printf("initial cost: %.4f\n", cost_initial_);
+
   // print initial cost
   PrintCost();
 
@@ -1760,6 +1762,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
         // restore velocity, acceleration
         ConfigurationToVelocityAcceleration();
         
+        printf("line search failure\n");
+
         // failure
         return;
       }
@@ -1780,6 +1784,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
             break;
         }
 
+        printf("step size: %.4f\n", step_size_);
+
         // count
         iteration_search++;
       }
@@ -1790,6 +1796,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
 
       // cost
       cost_candidate = Cost(pool);
+
+      printf("cost candidate: %.4f\n", cost_candidate);
 
       // update iteration
       iteration_search++;
@@ -2042,6 +2050,71 @@ double* Estimator::GetVelocity() {
   return velocity_.Get(state_index_);
 }
 
+// initialize trajectories
+// TODO(taylor): make const Trajectory
+void Estimator::InitializeTrajectories(Trajectory& measurement,
+                                       Trajectory& ctrl, Trajectory& time) {
+  // start timer 
+  auto start = std::chrono::steady_clock::now();
+
+  // set initial configurations 
+  configuration_.Set(model_->qpos0, 0);
+  configuration_.Set(model_->qpos0, 1);
+
+  // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
+  // new time
+  for (int i = 1; i < configuration_length_ - 1; i++) {
+    // buffer index 
+    int buffer_index = time.length_ - (configuration_length_ - 1) + i;
+
+    // time 
+    time_.Set(time.Get(buffer_index), i);
+
+    // set measurement
+    double* yi = measurement.Get(buffer_index);
+    sensor_measurement_.Set(yi, i);
+
+    // set ctrl
+    double* ui = ctrl.Get(buffer_index);
+    action_.Set(ui, i);
+
+    // ----- forward dynamics ----- //
+
+    // get data
+    mjData* data = data_[0].get();
+
+    // set ctrl
+    mju_copy(data->ctrl, ui, model_->nu);
+
+    // set qpos
+    double* q0 = configuration_.Get(i - 1);
+    double* q1 = configuration_.Get(i);
+    mju_copy(data->qpos, q1, model_->nq);
+
+    // set qvel
+    mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
+
+    // step dynamics
+    mj_step(model_, data);
+
+    // copy qfrc_actuator
+    force_measurement_.Set(data->qfrc_actuator, i);
+
+    // copy configuration
+    configuration_.Set(data->qpos, i + 1);
+  }
+
+  // time 
+  // time_.Set(time.Get(time.length_ - 1), configuration_length_ - 1);
+
+  // copy configuration to prior
+  mju_copy(configuration_prior_.Data(), configuration_.Data(),
+           model_->nq * configuration_length_);
+
+  // stop timer 
+  timer_update_trajectory_ += GetDuration(start);
+}
+
 // update trajectories
 // TODO(taylor): make const Trajectory
 void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
@@ -2061,6 +2134,8 @@ void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
       std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
                  model_->opt.timestep);
 
+  printf("num_new = %i\n", num_new);
+  
   // shift trajectory heads
   ShiftTrajectoryHead(num_new);
 

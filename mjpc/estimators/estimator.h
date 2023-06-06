@@ -26,7 +26,7 @@
 
 namespace mjpc {
 
-const int MIN_HISTORY = 3;    // maximum configuration trajectory length
+const int MIN_HISTORY = 3;    // minimum configuration trajectory length
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 
@@ -112,7 +112,8 @@ class Estimator {
 
   // update configuration trajectory
   // TODO(taylor): configuration should be const
-  void UpdateConfiguration(Trajectory& candidate, Trajectory& configuration,
+  void UpdateConfiguration(EstimatorTrajectory& candidate,
+                           EstimatorTrajectory& configuration,
                            const double* search_direction, double step_size);
 
   // convert sequence of configurations to velocities, accelerations
@@ -169,23 +170,23 @@ class Estimator {
   // trajectories
   int configuration_length_;                 // T
   int prediction_length_;                    // T - 2
-  Trajectory configuration_;                 // nq x T
-  Trajectory velocity_;                      // nv x T
-  Trajectory acceleration_;                  // nv x T
-  Trajectory action_;                        // nu x T
-  Trajectory time_;                          //  1 x T
+  EstimatorTrajectory configuration_;        // nq x T
+  EstimatorTrajectory velocity_;             // nv x T
+  EstimatorTrajectory acceleration_;         // nv x T
+  EstimatorTrajectory action_;               // nu x T
+  EstimatorTrajectory time_;                 //  1 x T
 
   // prior 
-  Trajectory configuration_prior_;           // nq x T
+  EstimatorTrajectory configuration_prior_;  // nq x T
 
   // sensor
   int dim_sensor_;                           // ns
-  Trajectory sensor_measurement_;            // ns x T
-  Trajectory sensor_prediction_;             // ns x T  
+  EstimatorTrajectory sensor_measurement_;   // ns x T
+  EstimatorTrajectory sensor_prediction_;    // ns x T  
 
   // forces
-  Trajectory force_measurement_;             // nv x T
-  Trajectory force_prediction_;              // nv x T
+  EstimatorTrajectory force_measurement_;    // nv x T
+  EstimatorTrajectory force_prediction_;     // nv x T
 
   // residual
   std::vector<double> residual_prior_;       // nv x T
@@ -198,40 +199,40 @@ class Estimator {
   std::vector<double> jacobian_force_;       // (nv * (T - 2)) * (nv * T)
 
   // prior Jacobian block
-  Trajectory block_prior_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory block_prior_current_configuration_;  // (nv * nv) x T
 
   // sensor Jacobian blocks (dqds, dvds, dads), (dsdq0, dsdq1, dsdq2)
-  Trajectory block_sensor_configuration_;           // (nv * ns) x T
-  Trajectory block_sensor_velocity_;                // (nv * ns) x T
-  Trajectory block_sensor_acceleration_;            // (nv * ns) x T
+  EstimatorTrajectory block_sensor_configuration_;           // (nv * ns) x T
+  EstimatorTrajectory block_sensor_velocity_;                // (nv * ns) x T
+  EstimatorTrajectory block_sensor_acceleration_;            // (nv * ns) x T
 
-  Trajectory block_sensor_previous_configuration_;  // (ns * nv) x T
-  Trajectory block_sensor_current_configuration_;   // (ns * nv) x T
-  Trajectory block_sensor_next_configuration_;      // (ns * nv) x T
-  Trajectory block_sensor_configurations_;          // (ns * 3 * nv) x T
+  EstimatorTrajectory block_sensor_previous_configuration_;  // (ns * nv) x T
+  EstimatorTrajectory block_sensor_current_configuration_;   // (ns * nv) x T
+  EstimatorTrajectory block_sensor_next_configuration_;      // (ns * nv) x T
+  EstimatorTrajectory block_sensor_configurations_;          // (ns * 3 * nv) x T
 
-  Trajectory block_sensor_scratch_;                 // max(nv, ns) x T
+  EstimatorTrajectory block_sensor_scratch_;                 // max(nv, ns) x T
 
   // force Jacobian blocks (dqdf, dvdf, dadf), (dfdq0, dfdq1, dfdq2)
-  Trajectory block_force_configuration_;            // (nv * nv) x T
-  Trajectory block_force_velocity_;                 // (nv * nv) x T
-  Trajectory block_force_acceleration_;             // (nv * nv) x T
+  EstimatorTrajectory block_force_configuration_;            // (nv * nv) x T
+  EstimatorTrajectory block_force_velocity_;                 // (nv * nv) x T
+  EstimatorTrajectory block_force_acceleration_;             // (nv * nv) x T
 
-  Trajectory block_force_previous_configuration_;   // (nv * nv) x T
-  Trajectory block_force_current_configuration_;    // (nv * nv) x T
-  Trajectory block_force_next_configuration_;       // (nv * nv) x T
-  Trajectory block_force_configurations_;           // (nv * 3 * nv) x T
+  EstimatorTrajectory block_force_previous_configuration_;   // (nv * nv) x T
+  EstimatorTrajectory block_force_current_configuration_;    // (nv * nv) x T
+  EstimatorTrajectory block_force_next_configuration_;       // (nv * nv) x T
+  EstimatorTrajectory block_force_configurations_;           // (nv * 3 * nv) x T
 
-  Trajectory block_force_scratch_;                  // (nv * nv) x T
+  EstimatorTrajectory block_force_scratch_;                  // (nv * nv) x T
 
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
-  Trajectory block_velocity_previous_configuration_; // (nv * nv) x T
-  Trajectory block_velocity_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory block_velocity_previous_configuration_; // (nv * nv) x T
+  EstimatorTrajectory block_velocity_current_configuration_;  // (nv * nv) x T
 
   // acceleration Jacobian blocks (da1dq0, da1dq1, da1dq2)
-  Trajectory block_acceleration_previous_configuration_; // (nv * nv) x T
-  Trajectory block_acceleration_current_configuration_;  // (nv * nv) x T
-  Trajectory block_acceleration_next_configuration_;     // (nv * nv) x T
+  EstimatorTrajectory block_acceleration_previous_configuration_; // (nv * nv) x T
+  EstimatorTrajectory block_acceleration_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory block_acceleration_next_configuration_;     // (nv * nv) x T
 
   // cost 
   double cost_prior_;
@@ -294,7 +295,7 @@ class Estimator {
   std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
 
   // candidate
-  Trajectory configuration_copy_;              // nq x T
+  EstimatorTrajectory configuration_copy_;     // nq x T
 
   // search direction
   std::vector<double> search_direction_;       // nv * MAX_HISTORY

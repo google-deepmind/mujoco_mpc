@@ -23,14 +23,14 @@ const int MAX_TRAJECTORY = 128;
 
 // trajectory
 // TODO(taylor): template for data_ type
-class Trajectory {
+class EstimatorTrajectory {
  public:
   // constructor
-  Trajectory() = default;
-  Trajectory(int dim, int length) { Initialize(dim, length); };
+  EstimatorTrajectory() = default;
+  EstimatorTrajectory(int dim, int length) { Initialize(dim, length); };
 
   // destructor
-  virtual ~Trajectory() = default;
+  virtual ~EstimatorTrajectory() = default;
 
   // initialize
   void Initialize(int dim, int length);

@@ -23,13 +23,13 @@
 namespace mjpc {
 namespace {
 
-TEST(Trajectory, Test) {
+TEST(EstimatorTrajectory, Test) {
   // dimensions
   int dim = 2;
   int length = 3;
 
   // trajectory
-  Trajectory trajectory;
+  EstimatorTrajectory trajectory;
 
   // initialize
   trajectory.Initialize(dim, length);

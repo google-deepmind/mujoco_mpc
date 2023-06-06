@@ -39,7 +39,7 @@ void Estimator::Initialize(mjModel* model) {
   configuration_length_ =
       GetNumberOrDefault(32, model, "estimator_configuration_length");
 
-  // number of predictions 
+  // number of predictions
   prediction_length_ = configuration_length_ - 2;
 
   // trajectories
@@ -227,7 +227,7 @@ void Estimator::Initialize(mjModel* model) {
   // status
   hessian_factor_ = false;
 
-  // state index 
+  // state index
   state_index_ = configuration_length_ - 1;
 
   // settings
@@ -243,7 +243,7 @@ void Estimator::SetConfigurationLength(int length) {
   // set configuration length
   configuration_length_ = mju_max(length, MIN_HISTORY);
 
-  // set prediction length 
+  // set prediction length
   prediction_length_ = configuration_length_ - 2;
 
   // update trajectory lengths
@@ -293,7 +293,7 @@ void Estimator::SetConfigurationLength(int length) {
   block_acceleration_current_configuration_.length_ = length - 2;
   block_acceleration_next_configuration_.length_ = length - 2;
 
-  // state index 
+  // state index
   state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
 }
 
@@ -465,7 +465,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   // weighted quadratic: 0.5 * w * r' * tmp
   double cost = 0.5 * scale * mju_dot(r, tmp, dim);
 
-  // stop cost timer 
+  // stop cost timer
   timer_cost_prior_ += GetDuration(start);
 
   // derivatives
@@ -587,8 +587,8 @@ void Estimator::SetBlockPrior(int index) {
   double* block = block_prior_current_configuration_.Get(index);
 
   // set block in matrix
-  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, index * nv,
-                   index * nv);
+  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
+                   index * nv, index * nv);
 }
 
 // prior Jacobian blocks
@@ -654,7 +654,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
     // loop over sensors
     for (int i = 0; i < model_->nsensor; i++) {
-      // start cost timer 
+      // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
       // dimension
@@ -674,7 +674,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                        norm_parameters_sensor_.data() + 3 * i, nsi,
                        norm_sensor_[i]);
 
-      // stop cost timer 
+      // stop cost timer
       timer_cost_sensor_ += GetDuration(start_cost);
 
       // gradient wrt configuration: dridq012' * dndri
@@ -729,7 +729,7 @@ void Estimator::ResidualSensor() {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // terms
@@ -915,7 +915,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
     // loop over joints
     for (int i = 0; i < model_->njnt; i++) {
-      // start cost timer 
+      // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
       // joint type
@@ -946,7 +946,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                        residual_force_.data() + shift,
                        norm_parameters_force_[jnt_type], dof, norm);
 
-      // stop cost timer 
+      // stop cost timer
       timer_cost_force_ += GetDuration(start_cost);
 
       // gradient wrt configuration: dridq012' * dndri
@@ -1004,7 +1004,7 @@ void Estimator::ResidualForce() {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // terms
@@ -1169,12 +1169,12 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
 
   // pool count
   int count_before = pool.GetCount();
-  
+
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // schedule 
+    // schedule
     pool.Schedule([&estimator = *this, nq, nv, ns, k]() {
-      // time index 
+      // time index
       int t = k + 1;
 
       // terms
@@ -1201,7 +1201,6 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       double* ft = estimator.force_prediction_.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
     });
-    
   }
 
   // wait
@@ -1227,7 +1226,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   for (int k = 0; k < prediction_length_; k++) {
     // schedule
     pool.Schedule([&estimator = *this, nq, nv, k]() {
-      // time index 
+      // time index
       int t = k + 1;
 
       // unpack
@@ -1269,8 +1268,8 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 
 // update configuration trajectory
 // TODO(taylor): const configuration
-void Estimator::UpdateConfiguration(Trajectory& candidate,
-                                    Trajectory& configuration,
+void Estimator::UpdateConfiguration(EstimatorTrajectory& candidate,
+                                    EstimatorTrajectory& configuration,
                                     const double* search_direction,
                                     double step_size) {
   // start timer
@@ -1309,7 +1308,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
 
   // loop over configurations
   for (int k = 0; k < configuration_length_ - 1; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // previous and current configurations
@@ -1346,7 +1345,7 @@ void Estimator::VelocityAccelerationDerivatives() {
 
   // loop over configurations
   for (int k = 0; k < configuration_length_ - 1; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // unpack
@@ -1947,14 +1946,10 @@ void Estimator::ResetTimers() {
   timer_prior_set_weight_ = 0.0;
 }
 
-// get qpos estimate 
-double* Estimator::GetPosition() {
-  return configuration_.Get(state_index_);
-}
+// get qpos estimate
+double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
 
-// get qvel estimate 
-double* Estimator::GetVelocity() {
-  return velocity_.Get(state_index_);
-}
+// get qvel estimate
+double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 }  // namespace mjpc

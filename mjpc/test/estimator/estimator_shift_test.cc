@@ -35,7 +35,7 @@ TEST(BatchShift, Particle2D) {
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // ----- simulate ----- //
@@ -48,12 +48,12 @@ TEST(BatchShift, Particle2D) {
 
   // trajectories
   int horizon_buffer = 10;
-  Trajectory qpos_buffer(nq, horizon_buffer + 1);
-  Trajectory qvel_buffer(nv, horizon_buffer + 1);
-  Trajectory qacc_buffer(nv, horizon_buffer);
-  Trajectory ctrl_buffer(nu, horizon_buffer);
-  Trajectory qfrc_actuator_buffer(nv, horizon_buffer);
-  Trajectory sensor_buffer(ns, horizon_buffer + 1);
+  EstimatorTrajectory qpos_buffer(nq, horizon_buffer + 1);
+  EstimatorTrajectory qvel_buffer(nv, horizon_buffer + 1);
+  EstimatorTrajectory qacc_buffer(nv, horizon_buffer);
+  EstimatorTrajectory ctrl_buffer(nu, horizon_buffer);
+  EstimatorTrajectory qfrc_actuator_buffer(nv, horizon_buffer);
+  EstimatorTrajectory sensor_buffer(ns, horizon_buffer + 1);
 
   // reset
   mj_resetData(model, data);
@@ -83,11 +83,11 @@ TEST(BatchShift, Particle2D) {
   // final cache
   qpos_buffer.Set(data->qpos, horizon_buffer);
   qvel_buffer.Set(data->qvel, horizon_buffer);
-  
+
   mj_forward(model, data);
   sensor_buffer.Set(data->sensordata, horizon_buffer);
 
-  // print 
+  // print
   printf("qpos: \n");
   for (int t = 0; t < qpos_buffer.length_; t++) {
     printf("  (%i): ", t);
@@ -134,7 +134,6 @@ TEST(BatchShift, Particle2D) {
            nv * horizon_estimator);
   mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
            ns * horizon_estimator);
-
 
   // delete data + model
   mj_deleteData(data);

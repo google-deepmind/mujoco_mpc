@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/test/load.h"
@@ -300,6 +301,50 @@ TEST(BatchReuse, Particle2D) {
     printf("  update time: %.4f (ms)\n", 1.0e-3 * estimator0.timer_update_trajectory_);
   }
   
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
+
+TEST(Buffer, Particle2D) {
+  // load model
+  mjModel* model = LoadTestModel("estimator/particle/task.xml");
+  mjData* data = mj_makeData(model);
+
+  // ----- simulate ----- //
+
+  // buffer 
+  Buffer buffer(model, 32);
+
+  // controller
+  auto controller = [](double* ctrl, double time) {
+    ctrl[0] = mju_sin(100 * time);
+    ctrl[1] = mju_cos(100 * time);
+  };
+
+  // reset
+  mj_resetData(model, data);
+
+  // rollout
+  for (int t = 0; t < buffer.max_length_; t++) {
+    // time
+
+    // set control
+    controller(data->ctrl, data->time);
+
+    // forward
+    mj_forward(model, data);
+
+    // update buffer 
+    buffer.Update(model, data);
+
+    // Euler integration
+    mj_Euler(model, data);
+  }
+
+  // show buffer 
+  buffer.Print();
+
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);

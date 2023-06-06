@@ -122,9 +122,6 @@ TEST(BatchOptimize, Particle2D) {
   // cost
   double cost_random = estimator.Cost(pool);
 
-  // change to band covariance 
-  estimator.band_covariance_ = true;
-
   // change verbosity 
   estimator.verbose_optimize_ = true;
 
@@ -254,9 +251,6 @@ TEST(BatchOptimize, Box3D) {
   // cost (pre)
   double cost_random = estimator.Cost(pool);
 
-  // change to band covariance 
-  estimator.band_covariance_ = true;
-
   // change verbosity 
   estimator.verbose_optimize_ = true;
 
@@ -377,9 +371,6 @@ TEST(BatchOptimize, Box3D) {
 //     // integrate configuration
 //     mj_integratePos(model, q, noise.data(), 1.0);
 //   }
-
-//   // change to band covariance 
-//   estimator.band_covariance_ = true;
 
 //   // change verbosity 
 //   estimator.verbose_optimize_ = true;

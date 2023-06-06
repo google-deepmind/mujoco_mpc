@@ -143,6 +143,29 @@ TEST(Trajectory, Test) {
   // data_ + dim * 1 - s
   mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
+
+  // ----- shift head ----- //
+  trajectory.head_index_ = 0;
+  
+  // shift by 1 
+  trajectory.ShiftHeadIndex(1);
+  EXPECT_EQ(trajectory.head_index_, 1);
+  
+  // shift by 1 
+  trajectory.ShiftHeadIndex(1);
+  EXPECT_EQ(trajectory.head_index_, 2);
+
+  // shift by 1
+  trajectory.ShiftHeadIndex(1);
+  EXPECT_EQ(trajectory.head_index_, 0);
+
+  // shift by 3 
+  trajectory.ShiftHeadIndex(trajectory.length_);
+  EXPECT_EQ(trajectory.head_index_, 0);
+
+  // shift by 2 
+  trajectory.ShiftHeadIndex(2);
+  EXPECT_EQ(trajectory.head_index_, 2);
 }
 
 }  // namespace

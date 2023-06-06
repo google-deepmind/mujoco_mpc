@@ -26,7 +26,7 @@
 
 namespace mjpc {
 
-const int MIN_HISTORY = 3;    // maximum configuration trajectory length
+const int MIN_HISTORY = 3;    // minimum configuration trajectory length
 const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 
@@ -55,6 +55,9 @@ class Estimator {
 
   // set configuration length 
   void SetConfigurationLength(int length);
+
+  // shift trajectory heads
+  void ShiftTrajectoryHead(int shift);
 
   // reset memory
   void Reset();
@@ -159,6 +162,11 @@ class Estimator {
 
   // get qvel estimate 
   double* GetVelocity();
+
+  // update trajectories
+  // TODO(taylor): make const Trajectory
+  void UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
+                          Trajectory& time);
 
   // model
   mjModel* model_;
@@ -362,7 +370,7 @@ class Estimator {
   bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost
   bool verbose_prior_ = false;              // flag for printing prior weight update status
-  bool band_covariance_ = false;            // approximate covariance for prior
+  bool band_covariance_ = true;             // approximate covariance for prior
   double step_scaling_ = 0.5;               // step size scaling
   double regularization_initial_ = 1.0e-5;  // initial regularization
   double regularization_scaling_ = 10.0;    // regularization scaling

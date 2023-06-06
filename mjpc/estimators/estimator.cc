@@ -297,6 +297,56 @@ void Estimator::SetConfigurationLength(int length) {
   state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
 }
 
+// shift trajectory heads
+void Estimator::ShiftTrajectoryHead(int shift) {
+  // update trajectory lengths
+  configuration_.ShiftHeadIndex(shift);
+
+  velocity_.ShiftHeadIndex(shift);
+  acceleration_.ShiftHeadIndex(shift);
+  action_.ShiftHeadIndex(shift);
+  time_.ShiftHeadIndex(shift);
+
+  configuration_prior_.ShiftHeadIndex(shift);
+
+  sensor_measurement_.ShiftHeadIndex(shift);
+  sensor_prediction_.ShiftHeadIndex(shift);
+
+  force_measurement_.ShiftHeadIndex(shift);
+  force_prediction_.ShiftHeadIndex(shift);
+
+  block_prior_current_configuration_.ShiftHeadIndex(shift);
+
+  block_sensor_configuration_.ShiftHeadIndex(shift);
+  block_sensor_velocity_.ShiftHeadIndex(shift);
+  block_sensor_acceleration_.ShiftHeadIndex(shift);
+
+  block_sensor_previous_configuration_.ShiftHeadIndex(shift);
+  block_sensor_current_configuration_.ShiftHeadIndex(shift);
+  block_sensor_next_configuration_.ShiftHeadIndex(shift);
+  block_sensor_configurations_.ShiftHeadIndex(shift);
+
+  block_sensor_scratch_.ShiftHeadIndex(shift);
+
+  block_force_configuration_.ShiftHeadIndex(shift);
+  block_force_velocity_.ShiftHeadIndex(shift);
+  block_force_acceleration_.ShiftHeadIndex(shift);
+
+  block_force_previous_configuration_.ShiftHeadIndex(shift);
+  block_force_current_configuration_.ShiftHeadIndex(shift);
+  block_force_next_configuration_.ShiftHeadIndex(shift);
+  block_force_configurations_.ShiftHeadIndex(shift);
+
+  block_force_scratch_.ShiftHeadIndex(shift);
+
+  block_velocity_previous_configuration_.ShiftHeadIndex(shift);
+  block_velocity_current_configuration_.ShiftHeadIndex(shift);
+
+  block_acceleration_previous_configuration_.ShiftHeadIndex(shift);
+  block_acceleration_current_configuration_.ShiftHeadIndex(shift);
+  block_acceleration_next_configuration_.ShiftHeadIndex(shift);
+}
+
 // reset memory
 void Estimator::Reset() {
   // trajectories
@@ -1676,6 +1726,9 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
         // reset configuration
         mju_copy(configuration_.Data(), configuration_copy_.Data(), nconfig);
 
+        // restore velocity, acceleration
+        ConfigurationToVelocityAcceleration();
+        
         // failure
         return;
       }
@@ -1955,6 +2008,81 @@ double* Estimator::GetPosition() {
 // get qvel estimate 
 double* Estimator::GetVelocity() {
   return velocity_.Get(state_index_);
+}
+
+// update trajectories
+// TODO(taylor): make const Trajectory
+void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
+                                   Trajectory& time) {
+  // lastest buffer time
+  double time_buffer_last = *time.Get(time.length_ - 1);
+
+  // latest estimator time
+  double time_estimator_last =
+      *time_.Get(time_.length_ - 2);  // index to latest measurement time
+
+  // compute number of new elements
+  int num_new =
+      std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
+                 model_->opt.timestep);
+
+  // shift trajectory heads
+  ShiftTrajectoryHead(num_new);
+
+  // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
+  // new time
+  for (int i = 0; i < num_new; i++) {
+    // time index
+    int t = i + configuration_length_ - num_new - 1;
+
+    // buffer index
+    int b = i + measurement.length_ - num_new;
+
+    // set measurement
+    double* yi = measurement.Get(b);
+    sensor_measurement_.Set(yi, t);
+
+    // set ctrl
+    double* ui = ctrl.Get(b);
+    action_.Set(ui, t);
+
+    // set time
+    double* ti = time.Get(b);
+    time_.Set(ti, t);
+
+    // ----- forward dynamics ----- //
+
+    // get data
+    mjData* data = data_[0].get();
+
+    // set ctrl
+    mju_copy(data->ctrl, ui, model_->nu);
+
+    // set qpos
+    double* q0 = configuration_.Get(t - 1);
+    double* q1 = configuration_.Get(t);
+    mju_copy(data->qpos, q1, model_->nq);
+
+    // set qvel
+    mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
+
+    // step dynamics
+    mj_step(model_, data);
+
+    // copy qfrc_actuator
+    force_measurement_.Set(data->qfrc_actuator, t);
+
+    // copy configuration
+    configuration_.Set(data->qpos, t + 1);
+  }
+
+  // set time
+  double tT = *time.Get(time.length_ - 1) + model_->opt.timestep;
+  time_.Set(&tT, configuration_length_ - 1);
+
+  // copy configuration to prior
+  mju_copy(configuration_prior_.Data(), configuration_.Data(),
+           model_->nq * configuration_length_);
 }
 
 }  // namespace mjpc

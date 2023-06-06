@@ -84,4 +84,16 @@ int Trajectory::IndexMap(int index) {
   }
 }
 
+// shift head_index_
+void Trajectory::ShiftHeadIndex(int shift) {
+  // compute new head index
+  int new_head = head_index_ + shift;
+
+  if (new_head < length_) {  // valid head
+    head_index_ = new_head;
+  } else {
+    head_index_ = new_head - length_;  // corrected head
+  }
+}
+
 }  // namespace mjpc

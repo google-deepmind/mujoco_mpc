@@ -50,6 +50,9 @@ class Trajectory {
   // map index to data_ index
   int IndexMap(int index);
 
+  // shift head_index_ 
+  void ShiftHeadIndex(int shift);
+
   // index for trajectory head
   int head_index_;
 

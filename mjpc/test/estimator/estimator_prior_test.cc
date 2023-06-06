@@ -251,6 +251,8 @@ TEST(PriorCost, Particle) {
 
   // ----- estimator ----- //
   Estimator estimator;
+  estimator.band_covariance_ = false;
+
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
@@ -382,6 +384,8 @@ TEST(PriorCost, Box) {
 
   // ----- estimator ----- //
   Estimator estimator;
+  estimator.band_covariance_ = false;
+
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
@@ -579,7 +583,7 @@ TEST(ApproximatePriorCost, Particle) {
   fdh.Compute(cost_prior, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.band_covariance_ = true;  // used approximate covariance
+  estimator.band_covariance_ = true;
   mju_copy(estimator.weight_prior_dense_.data(), P.data(),
            dim_vel * dim_vel);  // copy random covariance
   mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
@@ -724,11 +728,8 @@ TEST(ApproximatePriorCost, Box) {
   fdg.Compute(cost_prior, update.data(), dim_vel);
 
   // ----- estimator ----- //
-  estimator.band_covariance_ = true;  // used approximate covariance
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
-           dim_vel * dim_vel);  // copy random covariance
-  mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
-           nnz);  // copy random covariance
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(), dim_vel * dim_vel);
+  mju_copy(estimator.weight_prior_band_.data(), P_band.data(), nnz);
   estimator.ResidualPrior();
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);

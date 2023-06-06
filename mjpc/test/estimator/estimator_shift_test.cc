@@ -35,7 +35,7 @@ TEST(BatchShift, Particle2D) {
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // ----- simulate ----- //
@@ -47,19 +47,23 @@ TEST(BatchShift, Particle2D) {
   };
 
   // trajectories
-  int horizon_buffer = 10;
+  int horizon_buffer = 20;
   Trajectory qpos_buffer(nq, horizon_buffer + 1);
   Trajectory qvel_buffer(nv, horizon_buffer + 1);
   Trajectory qacc_buffer(nv, horizon_buffer);
   Trajectory ctrl_buffer(nu, horizon_buffer);
   Trajectory qfrc_actuator_buffer(nv, horizon_buffer);
   Trajectory sensor_buffer(ns, horizon_buffer + 1);
+  Trajectory time_buffer(1, horizon_buffer + 1);
 
   // reset
   mj_resetData(model, data);
 
   // rollout
   for (int t = 0; t < horizon_buffer; t++) {
+    // time
+    time_buffer.Set(&data->time, t);
+
     // set control
     controller(data->ctrl, data->time);
 
@@ -83,58 +87,80 @@ TEST(BatchShift, Particle2D) {
   // final cache
   qpos_buffer.Set(data->qpos, horizon_buffer);
   qvel_buffer.Set(data->qvel, horizon_buffer);
-  
+
+  time_buffer.Set(&data->time, horizon_buffer);
+
   mj_forward(model, data);
   sensor_buffer.Set(data->sensordata, horizon_buffer);
 
-  // print 
-  printf("qpos: \n");
-  for (int t = 0; t < qpos_buffer.length_; t++) {
-    printf("  (%i): ", t);
-    mju_printMat(qpos_buffer.Get(t), 1, qpos_buffer.dim_);
-    printf("\n");
-  }
-
-  printf("ctrl: \n");
-  for (int t = 0; t < ctrl_buffer.length_; t++) {
-    printf("  (%i): ", t);
-    mju_printMat(ctrl_buffer.Get(t), 1, ctrl_buffer.dim_);
-    printf("\n");
-  }
-
-  printf("qfrc actuator: \n");
-  for (int t = 0; t < qfrc_actuator_buffer.length_; t++) {
-    printf("  (%i): ", t);
-    mju_printMat(qfrc_actuator_buffer.Get(t), 1, qfrc_actuator_buffer.dim_);
-    printf("\n");
-  }
-
-  printf("sensor: \n");
-  for (int t = 0; t < sensor_buffer.length_; t++) {
-    printf("  (%i): ", t);
-    mju_printMat(sensor_buffer.Get(t), 1, sensor_buffer.dim_);
-    printf("\n");
-  }
-
   // ----- estimator ----- //
-  // horizon
-  int horizon_estimator = 5;
+  for (int horizon_estimator = 3; horizon_estimator < 7; horizon_estimator++) {
+    // initialize
+    Estimator estimator;
+    estimator.Initialize(model);
+    estimator.SetConfigurationLength(horizon_estimator);
 
-  // initialize
-  Estimator estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(horizon_estimator);
-  mju_copy(estimator.configuration_.Data(), qpos_buffer.Data(),
-           nq * horizon_estimator);
-  mju_copy(estimator.configuration_prior_.Data(),
-           estimator.configuration_.Data(), nq * horizon_estimator);
-  mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
-           nu * horizon_estimator);
-  mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
-           nv * horizon_estimator);
-  mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
-           ns * horizon_estimator);
+    // copy buffers
+    mju_copy(estimator.configuration_.Data(), qpos_buffer.Data(),
+             nq * horizon_estimator);
+    mju_copy(estimator.configuration_prior_.Data(),
+             estimator.configuration_.Data(), nq * horizon_estimator);
+    mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
+             nu * (horizon_estimator - 1));
+    mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
+             nv * (horizon_estimator - 1));
+    mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
+             ns * (horizon_estimator - 1));
+    mju_copy(estimator.time_.Data(), time_buffer.Data(),
+             (horizon_estimator - 1));
 
+    // shift
+    for (int shift = 0; shift < 5; shift++) {
+      // set buffer length
+      ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
+      sensor_buffer.length_ = (horizon_estimator - 1) + shift;
+      time_buffer.length_ = (horizon_estimator - 1) + shift;
+
+      // update estimator trajectories
+      estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+
+      // sensor measurement error
+      std::vector<double> sensor_error(ns * (horizon_estimator - 1));
+      for (int i = 0; i < horizon_estimator - 1; i++) {
+        mju_sub(sensor_error.data() + ns * i, sensor_buffer.Get(i + shift),
+                estimator.sensor_measurement_.Get(i), ns);
+      }
+      EXPECT_NEAR(mju_norm(sensor_error.data(), ns * (horizon_estimator - 1)),
+                  0.0, 1.0e-4);
+
+      // force measurement error
+      std::vector<double> force_error(nv * (horizon_estimator - 1));
+      for (int i = 0; i < horizon_estimator - 1; i++) {
+        mju_sub(force_error.data() + nv * i,
+                qfrc_actuator_buffer.Get(i + shift),
+                estimator.force_measurement_.Get(i), nv);
+      }
+      EXPECT_NEAR(mju_norm(force_error.data(), nv * (horizon_estimator - 1)),
+                  0.0, 1.0e-4);
+
+      // configuration error
+      std::vector<double> configuration_error(nq * horizon_estimator);
+      for (int i = 0; i < horizon_estimator; i++) {
+        mju_sub(configuration_error.data() + nq * i, qpos_buffer.Get(i + shift),
+                estimator.configuration_.Get(i), nq);
+      }
+      EXPECT_NEAR(mju_norm(configuration_error.data(), nq * horizon_estimator),
+                  0.0, 1.0e-4);
+
+      // time error
+      std::vector<double> time_error(horizon_estimator);
+      for (int i = 0; i < horizon_estimator; i++) {
+        mju_sub(time_error.data() + i, time_buffer.Get(i + shift),
+                estimator.time_.Get(i), 1);
+      }
+      EXPECT_NEAR(mju_norm(time_error.data(), horizon_estimator), 0.0, 1.0e-4);
+    }
+  }
 
   // delete data + model
   mj_deleteData(data);

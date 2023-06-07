@@ -165,18 +165,15 @@ class Estimator {
   double* GetVelocity();
 
   // initialize trajectories
-  // TODO(taylor): make const Trajectory
-  void InitializeTrajectories(Trajectory& measurement, Trajectory& ctrl,
-                              Trajectory& time);
+  void InitializeTrajectories(const Trajectory& measurement, const Trajectory& ctrl,
+                              const Trajectory& time);
 
   // update trajectories
-  // TODO(taylor): make const Trajectory
-  int UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
-                         Trajectory& time);
+  int UpdateTrajectories(const Trajectory& measurement, const Trajectory& ctrl,
+                         const Trajectory& time);
 
   // update 
-  // TODO(taylor): make const Buffer
-  void Update(Buffer& buffer, ThreadPool& pool);
+  void Update(const Buffer& buffer, ThreadPool& pool);
 
   // model
   mjModel* model_;

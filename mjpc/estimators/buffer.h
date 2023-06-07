@@ -46,7 +46,7 @@ class Buffer {
   void Print();
 
   // length 
-  int Length();
+  int Length() const;
 
   // sensor 
   Trajectory sensor_;

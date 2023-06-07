@@ -50,6 +50,14 @@ double* Trajectory::Get(int index) {
   return data_.data() + dim_ * map_index;
 }
 
+const double* Trajectory::Get(int index) const {
+  // get mapped index 
+  int map_index = IndexMap(index);
+
+  // return element 
+  return data_.data() + dim_ * map_index;
+}
+
 // set element at index
 void Trajectory::Set(const double* element, int index) {
   // get map index 
@@ -66,7 +74,7 @@ void Trajectory::Set(const double* element, int index) {
 double* Trajectory::Data() { return data_.data(); }
 
 // map index to data_ index 
-int Trajectory::IndexMap(int index) {
+int Trajectory::IndexMap(int index) const{
   // out of bounds
   if (head_index_ >= length_)
     mju_error("trajectory.head_index_ out of bounds!\n");

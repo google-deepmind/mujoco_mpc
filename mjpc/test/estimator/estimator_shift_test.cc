@@ -159,7 +159,8 @@ TEST(BatchShift, Particle2D) {
         mju_sub(time_error.data() + i, time_buffer.Get(i + shift),
                 estimator.time_.Get(i), 1);
       }
-      EXPECT_NEAR(mju_norm(time_error.data(), horizon_estimator - 1), 0.0, 1.0e-4);
+      EXPECT_NEAR(mju_norm(time_error.data(), horizon_estimator - 1), 0.0,
+                  1.0e-4);
     }
   }
 
@@ -235,7 +236,7 @@ TEST(BatchReuse, Particle2D) {
   mj_forward(model, data);
   sensor_buffer.Set(data->sensordata, horizon_buffer);
 
-  // noisy sensors 
+  // noisy sensors
   for (int i = 0; i < ns * (horizon_buffer + 1); i++) {
     absl::BitGen gen_;
     sensor_buffer.Data()[i] += 0.05 * absl::Gaussian<double>(gen_, 0.0, 1.0);
@@ -253,7 +254,7 @@ TEST(BatchReuse, Particle2D) {
   for (int t = 0; t < horizon_estimator; t++) {
     estimator.configuration_.Set(qpos_buffer.Get(t), t);
     estimator.configuration_prior_.Set(qpos_buffer.Get(t), t);
-    
+
     if (t >= horizon_estimator - 1) continue;
 
     estimator.action_.Set(ctrl_buffer.Get(t), t);
@@ -266,17 +267,19 @@ TEST(BatchReuse, Particle2D) {
   int shift = 0;
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
-    // times 
+    // times
     EXPECT_NEAR(time_buffer.Get(i)[0] - estimator.time_.Get(i)[0], 0.0, 1.0e-5);
 
-    // sensor 
+    // sensor
     std::vector<double> error_sensor(ns);
-    mju_sub(error_sensor.data(), sensor_buffer.Get(i), estimator.sensor_measurement_.Get(i), ns);
+    mju_sub(error_sensor.data(), sensor_buffer.Get(i),
+            estimator.sensor_measurement_.Get(i), ns);
     EXPECT_NEAR(mju_norm(error_sensor.data(), ns), 0.0, 1.0e-5);
 
-    // force 
+    // force
     std::vector<double> error_force(nv);
-    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i), estimator.force_measurement_.Get(i), nv);
+    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i),
+            estimator.force_measurement_.Get(i), nv);
     EXPECT_NEAR(mju_norm(error_force.data(), nv), 0.0, 1.0e-5);
   }
 
@@ -292,17 +295,20 @@ TEST(BatchReuse, Particle2D) {
   estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
-    // times 
-    EXPECT_NEAR(time_buffer.Get(i + 1)[0] - estimator.time_.Get(i)[0], 0.0, 1.0e-5);
+    // times
+    EXPECT_NEAR(time_buffer.Get(i + 1)[0] - estimator.time_.Get(i)[0], 0.0,
+                1.0e-5);
 
-    // sensor 
+    // sensor
     std::vector<double> error_sensor(ns);
-    mju_sub(error_sensor.data(), sensor_buffer.Get(i + 1), estimator.sensor_measurement_.Get(i), ns);
+    mju_sub(error_sensor.data(), sensor_buffer.Get(i + 1),
+            estimator.sensor_measurement_.Get(i), ns);
     EXPECT_NEAR(mju_norm(error_sensor.data(), ns), 0.0, 1.0e-5);
 
-    // force 
+    // force
     std::vector<double> error_force(nv);
-    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i + 1), estimator.force_measurement_.Get(i), nv);
+    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i + 1),
+            estimator.force_measurement_.Get(i), nv);
     EXPECT_NEAR(mju_norm(error_force.data(), nv), 0.0, 1.0e-5);
   }
 
@@ -318,20 +324,23 @@ TEST(BatchReuse, Particle2D) {
   estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
-    // times 
-    EXPECT_NEAR(time_buffer.Get(i + 3)[0] - estimator.time_.Get(i)[0], 0.0, 1.0e-5);
+    // times
+    EXPECT_NEAR(time_buffer.Get(i + 3)[0] - estimator.time_.Get(i)[0], 0.0,
+                1.0e-5);
 
-    // sensor 
+    // sensor
     std::vector<double> error_sensor(ns);
-    mju_sub(error_sensor.data(), sensor_buffer.Get(i + 3), estimator.sensor_measurement_.Get(i), ns);
+    mju_sub(error_sensor.data(), sensor_buffer.Get(i + 3),
+            estimator.sensor_measurement_.Get(i), ns);
     EXPECT_NEAR(mju_norm(error_sensor.data(), ns), 0.0, 1.0e-5);
 
-    // force 
+    // force
     std::vector<double> error_force(nv);
-    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i + 3), estimator.force_measurement_.Get(i), nv);
+    mju_sub(error_force.data(), qfrc_actuator_buffer.Get(i + 3),
+            estimator.force_measurement_.Get(i), nv);
     EXPECT_NEAR(mju_norm(error_force.data(), nv), 0.0, 1.0e-5);
   }
-    
+
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);
@@ -342,7 +351,7 @@ TEST(Buffer, Particle2D) {
   mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // ----- estimator ----- //
@@ -356,7 +365,7 @@ TEST(Buffer, Particle2D) {
 
   // ----- simulate ----- //
 
-  // buffer 
+  // buffer
   Buffer buffer(model, 32);
 
   // controller
@@ -375,19 +384,19 @@ TEST(Buffer, Particle2D) {
     // set control
     controller(data->ctrl, data->time);
 
-    // step 
+    // step
     mj_step(model, data);
 
-    // add noise to sensors 
+    // add noise to sensors
     for (int i = 0; i < model->nsensordata; i++) {
       absl::BitGen gen_;
       data->sensordata[i] += 0.05 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
-    // update buffer 
+    // update buffer
     buffer.Update(model, data);
 
-    // update estimator 
+    // update estimator
     estimator.Update(buffer, pool);
 
     // test
@@ -395,7 +404,7 @@ TEST(Buffer, Particle2D) {
       // printf("  cost = %.4f [initial = %.4f]\n", estimator.cost_,
       //      estimator.cost_initial_);
       // printf("  iterations = %i\n", estimator.iterations_smoother_);
-      
+
       EXPECT_LE(estimator.cost_, estimator.cost_initial_);
     }
   }

@@ -2048,9 +2048,9 @@ double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
 double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 // initialize trajectories
-// TODO(taylor): make const Trajectory
-void Estimator::InitializeTrajectories(Trajectory& measurement,
-                                       Trajectory& ctrl, Trajectory& time) {
+void Estimator::InitializeTrajectories(const Trajectory& measurement,
+                                       const Trajectory& ctrl,
+                                       const Trajectory& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2068,11 +2068,11 @@ void Estimator::InitializeTrajectories(Trajectory& measurement,
     time_.Set(time.Get(buffer_index), i);
 
     // set measurement
-    double* yi = measurement.Get(buffer_index);
+    const double* yi = measurement.Get(buffer_index);
     sensor_measurement_.Set(yi, i);
 
     // set ctrl
-    double* ui = ctrl.Get(buffer_index);
+    const double* ui = ctrl.Get(buffer_index);
     action_.Set(ui, i);
 
     // ----- forward dynamics ----- //
@@ -2110,9 +2110,9 @@ void Estimator::InitializeTrajectories(Trajectory& measurement,
 }
 
 // update trajectories
-// TODO(taylor): make const Trajectory
-int Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
-                                  Trajectory& time) {
+int Estimator::UpdateTrajectories(const Trajectory& measurement,
+                                  const Trajectory& ctrl,
+                                  const Trajectory& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2141,15 +2141,15 @@ int Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
     int b = i + measurement.length_ - num_new;
 
     // set measurement
-    double* yi = measurement.Get(b);
+    const double* yi = measurement.Get(b);
     sensor_measurement_.Set(yi, t);
 
     // set ctrl
-    double* ui = ctrl.Get(b);
+    const double* ui = ctrl.Get(b);
     action_.Set(ui, t);
 
     // set time
-    double* ti = time.Get(b);
+    const double* ti = time.Get(b);
     time_.Set(ti, t);
 
     // ----- forward dynamics ----- //
@@ -2189,8 +2189,7 @@ int Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
 }
 
 // update
-// TODO(taylor): make const Buffer
-void Estimator::Update(Buffer& buffer, ThreadPool& pool) {
+void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   if (buffer.Length() >= configuration_length_ - 1) {
     int num_new = configuration_length_;
     if (!initialized_) {

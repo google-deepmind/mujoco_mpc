@@ -40,6 +40,7 @@ class Trajectory {
 
   // get element at index
   double* Get(int index);
+  const double* Get(int index) const;
 
   // set element at index
   void Set(const double* element, int index);
@@ -48,7 +49,7 @@ class Trajectory {
   double* Data();
 
   // map index to data_ index
-  int IndexMap(int index);
+  int IndexMap(int index) const;
 
   // shift head_index_ 
   void ShiftHeadIndex(int shift);

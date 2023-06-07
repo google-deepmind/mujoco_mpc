@@ -98,6 +98,6 @@ void Buffer::Print() {
 }
 
 // length
-int Buffer::Length() { return time_.length_; }
+int Buffer::Length() const { return time_.length_; }
 
 }  // namespace mjpc

@@ -42,7 +42,6 @@ include(MujocoMacOS)
 
 option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
 option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
-option(MJPC_BUILD_GRPC_SERVICE "Build MJPC gRPC service." OFF)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
 
 include(FindOrFetch)
@@ -191,6 +190,4 @@ set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
-if(MJPC_BUILD_GRPC_SERVICE)
-  add_subdirectory(grpc)
-endif()
+# add_subdirectory(grpc)

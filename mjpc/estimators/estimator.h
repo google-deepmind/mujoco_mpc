@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -170,8 +171,12 @@ class Estimator {
 
   // update trajectories
   // TODO(taylor): make const Trajectory
-  void UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
-                          Trajectory& time);
+  int UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
+                         Trajectory& time);
+
+  // update 
+  // TODO(taylor): make const Buffer
+  void Update(Buffer& buffer, ThreadPool& pool);
 
   // model
   mjModel* model_;
@@ -369,7 +374,8 @@ class Estimator {
   bool hessian_factor_ = false;             // prior reset status
   int cost_count_;
   int num_new_;                             // number of new elements
-  bool reuse_data_ = true;                  // flag for resuing data previously computed
+  
+  bool initialized_ = false;                // flag for initialization
   
   // settings
   int max_line_search_ = 10;                // maximum number of line search iterations
@@ -383,6 +389,8 @@ class Estimator {
   double regularization_initial_ = 1.0e-5;  // initial regularization
   double regularization_scaling_ = 10.0;    // regularization scaling
   bool band_copy_ = true;                   // copy band matrices by block
+  bool reuse_data_ = true;                  // flag for resuing data previously computed
+  bool update_prior_weight_ = false;        // flag for updating prior weights
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

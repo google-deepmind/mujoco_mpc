@@ -1394,4 +1394,15 @@ void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
   }
 }
 
+// print matrix to screen
+void mju_printMat1(const mjtNum* mat, int nr, int nc) {
+  for (int r=0; r < nr; r++) {
+    for (int c=0; c < nc; c++) {
+      printf("%.1f ", mat[r*nc+c]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 }  // namespace mjpc

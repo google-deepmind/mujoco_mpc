@@ -16,6 +16,7 @@
 
 #include <chrono>
 
+#include "mjpc/estimators/buffer.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -39,7 +40,7 @@ void Estimator::Initialize(mjModel* model) {
   configuration_length_ =
       GetNumberOrDefault(32, model, "estimator_configuration_length");
 
-  // number of predictions 
+  // number of predictions
   prediction_length_ = configuration_length_ - 2;
 
   // trajectories
@@ -75,11 +76,9 @@ void Estimator::Initialize(mjModel* model) {
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
 
   // sensor Jacobian blocks
-  block_sensor_configuration_.Initialize(dim_sensor_ * nv,
-                                         prediction_length_);
+  block_sensor_configuration_.Initialize(dim_sensor_ * nv, prediction_length_);
   block_sensor_velocity_.Initialize(dim_sensor_ * nv, prediction_length_);
-  block_sensor_acceleration_.Initialize(dim_sensor_ * nv,
-                                        prediction_length_);
+  block_sensor_acceleration_.Initialize(dim_sensor_ * nv, prediction_length_);
 
   block_sensor_previous_configuration_.Initialize(dim_sensor_ * nv,
                                                   prediction_length_);
@@ -91,16 +90,14 @@ void Estimator::Initialize(mjModel* model) {
                                           prediction_length_);
 
   block_sensor_scratch_.Initialize(
-      mju_max(nv, dim_sensor_) * mju_max(nv, dim_sensor_),
-      prediction_length_);
+      mju_max(nv, dim_sensor_) * mju_max(nv, dim_sensor_), prediction_length_);
 
   // force Jacobian blocks
   block_force_configuration_.Initialize(nv * nv, prediction_length_);
   block_force_velocity_.Initialize(nv * nv, prediction_length_);
   block_force_acceleration_.Initialize(nv * nv, prediction_length_);
 
-  block_force_previous_configuration_.Initialize(nv * nv,
-                                                 prediction_length_);
+  block_force_previous_configuration_.Initialize(nv * nv, prediction_length_);
   block_force_current_configuration_.Initialize(nv * nv, prediction_length_);
   block_force_next_configuration_.Initialize(nv * nv, prediction_length_);
   block_force_configurations_.Initialize(nv * 3 * nv, prediction_length_);
@@ -228,7 +225,7 @@ void Estimator::Initialize(mjModel* model) {
   hessian_factor_ = false;
   num_new_ = configuration_length_;
 
-  // state index 
+  // state index
   state_index_ = configuration_length_ - 1;
 
   // settings
@@ -244,7 +241,7 @@ void Estimator::SetConfigurationLength(int length) {
   // set configuration length
   configuration_length_ = mju_max(length, MIN_HISTORY);
 
-  // set prediction length 
+  // set prediction length
   prediction_length_ = configuration_length_ - 2;
 
   // update trajectory lengths
@@ -295,11 +292,12 @@ void Estimator::SetConfigurationLength(int length) {
   block_acceleration_current_configuration_.length_ = prediction_length_;
   block_acceleration_next_configuration_.length_ = prediction_length_;
 
-  // state index 
+  // state index
   state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
 
-  // status 
+  // status
   num_new_ = configuration_length_;
+  initialized_ = false;
 }
 
 // shift trajectory heads
@@ -484,6 +482,7 @@ void Estimator::Reset() {
   iterations_smoother_ = 0;
   iterations_line_search_ = 0;
   cost_count_ = 0;
+  initialized_ = false;
 }
 
 // prior cost
@@ -521,7 +520,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   // weighted quadratic: 0.5 * w * r' * tmp
   double cost = 0.5 * scale * mju_dot(r, tmp, dim);
 
-  // stop cost timer 
+  // stop cost timer
   timer_cost_prior_ += GetDuration(start);
 
   // derivatives
@@ -643,8 +642,8 @@ void Estimator::SetBlockPrior(int index) {
   double* block = block_prior_current_configuration_.Get(index);
 
   // set block in matrix
-  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv, index * nv,
-                   index * nv);
+  SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, dim, dim, nv, nv,
+                   index * nv, index * nv);
 }
 
 // prior Jacobian blocks
@@ -661,7 +660,7 @@ void Estimator::BlockPrior(int index) {
 // prior Jacobian
 // note: pool wait is called outside this function
 void Estimator::JacobianPrior(ThreadPool& pool) {
-  // start index 
+  // start index
   int start_index = reuse_data_ * mju_max(0, configuration_length_ - num_new_);
 
   // loop over predictions
@@ -713,7 +712,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
     // loop over sensors
     for (int i = 0; i < model_->nsensor; i++) {
-      // start cost timer 
+      // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
       // dimension
@@ -733,7 +732,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                        norm_parameters_sensor_.data() + 3 * i, nsi,
                        norm_sensor_[i]);
 
-      // stop cost timer 
+      // stop cost timer
       timer_cost_sensor_ += GetDuration(start_cost);
 
       // gradient wrt configuration: dridq012' * dndri
@@ -788,7 +787,7 @@ void Estimator::ResidualSensor() {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // terms
@@ -926,7 +925,7 @@ void Estimator::BlockSensor(int index) {
 // sensor Jacobian
 // note: pool wait is called outside this function
 void Estimator::JacobianSensor(ThreadPool& pool) {
-  // start index 
+  // start index
   int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
@@ -977,7 +976,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
     // loop over joints
     for (int i = 0; i < model_->njnt; i++) {
-      // start cost timer 
+      // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
       // joint type
@@ -1008,7 +1007,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                        residual_force_.data() + shift,
                        norm_parameters_force_[jnt_type], dof, norm);
 
-      // stop cost timer 
+      // stop cost timer
       timer_cost_force_ += GetDuration(start_cost);
 
       // gradient wrt configuration: dridq012' * dndri
@@ -1066,7 +1065,7 @@ void Estimator::ResidualForce() {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // terms
@@ -1202,7 +1201,7 @@ void Estimator::BlockForce(int index) {
 
 // force Jacobian
 void Estimator::JacobianForce(ThreadPool& pool) {
-  // start index 
+  // start index
   int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
@@ -1232,17 +1231,17 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   // dimension
   int nq = model_->nq, nv = model_->nv, ns = dim_sensor_;
 
-  // start index 
+  // start index
   int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // pool count
   int count_before = pool.GetCount();
-  
+
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
-    // schedule 
+    // schedule
     pool.Schedule([&estimator = *this, nq, nv, ns, k]() {
-      // time index 
+      // time index
       int t = k + 1;
 
       // terms
@@ -1269,7 +1268,6 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       double* ft = estimator.force_prediction_.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
     });
-    
   }
 
   // wait
@@ -1291,14 +1289,14 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   // pool count
   int count_before = pool.GetCount();
 
-  // start index 
+  // start index
   int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
     // schedule
     pool.Schedule([&estimator = *this, nq, nv, k]() {
-      // time index 
+      // time index
       int t = k + 1;
 
       // unpack
@@ -1378,12 +1376,13 @@ void Estimator::ConfigurationToVelocityAcceleration() {
   // dimension
   int nv = model_->nv;
 
-  // start index 
-  int start_index = reuse_data_ * mju_max(0, configuration_length_ - num_new_);
+  // start index
+  int start_index =
+      reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // previous and current configurations
@@ -1418,12 +1417,13 @@ void Estimator::VelocityAccelerationDerivatives() {
   // dimension
   int nv = model_->nv;
 
-  // start index 
-  int start_index = reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
+  // start index
+  int start_index =
+      reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
     // unpack
@@ -1589,16 +1589,29 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
   // zero memory
   mju_zero(weight, ntotal * ntotal);
 
+  if (update_prior_weight_) {
+    printf("Hessian:\n");
+    mju_printMat1(hessian, nv * configuration_length_,
+                  nv * configuration_length_);
+  }
+
   // copy Hessian block to upper left
-  if (configuration_length_ - num_new_ > 0) {
+  if (configuration_length_ - num_new_ > 0 && update_prior_weight_) {
     SymmetricBandMatrixCopy(weight, hessian, nv, nv, ntotal,
                             configuration_length_ - num_new_, 0, 0, num_new_,
                             num_new_, scratch_prior_weight_.data());
   }
 
   // set s * I to lower right
-  for (int i = nv * (configuration_length_ - num_new_); i < ntotal; i++) {
+  for (int i = update_prior_weight_ * nv * (configuration_length_ - num_new_);
+       i < ntotal; i++) {
     weight[ntotal * i + i] = scale_prior_;
+  }
+
+  if (update_prior_weight_) {
+    printf("weight:\n");
+    mju_printMat1(weight, nv * configuration_length_,
+                  nv * configuration_length_);
   }
 
   // stop timer
@@ -1616,7 +1629,7 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
   // start timer
   auto start_optimize = std::chrono::steady_clock::now();
 
-  // set num_new_ 
+  // set num_new_
   num_new_ = num_new;
 
   // dimensions
@@ -1716,8 +1729,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
     // pool reset
     pool.ResetCount();
 
-    // reset num_new_ 
-    num_new_ = configuration_length_; // update all data now
+    // reset num_new_
+    num_new_ = configuration_length_;  // update all data now
 
     // stop timer
     timer_cost_total_derivatives_ += GetDuration(start_cost_total_derivatives);
@@ -1729,7 +1742,6 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
     // gradient tolerance check
     double gradient_norm = mju_norm(gradient, nvar) / nvar;
     if (gradient_norm < gradient_tolerance_) {
-      printf("gradient tolerance achieved!\n");
       break;
     }
 
@@ -1766,7 +1778,7 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
 
         // restore velocity, acceleration
         ConfigurationToVelocityAcceleration();
-        
+
         printf("line search failure\n");
 
         // failure
@@ -2041,34 +2053,30 @@ void Estimator::ResetTimers() {
   timer_update_trajectory_ = 0.0;
 }
 
-// get qpos estimate 
-double* Estimator::GetPosition() {
-  return configuration_.Get(state_index_);
-}
+// get qpos estimate
+double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
 
-// get qvel estimate 
-double* Estimator::GetVelocity() {
-  return velocity_.Get(state_index_);
-}
+// get qvel estimate
+double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 // initialize trajectories
 // TODO(taylor): make const Trajectory
 void Estimator::InitializeTrajectories(Trajectory& measurement,
                                        Trajectory& ctrl, Trajectory& time) {
-  // start timer 
+  // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // set initial configurations 
+  // set initial configurations
   configuration_.Set(model_->qpos0, 0);
   configuration_.Set(model_->qpos0, 1);
 
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
   // new time
   for (int i = 1; i < configuration_length_ - 1; i++) {
-    // buffer index 
+    // buffer index
     int buffer_index = time.length_ - (configuration_length_ - 1) + i;
 
-    // time 
+    // time
     time_.Set(time.Get(buffer_index), i);
 
     // set measurement
@@ -2105,22 +2113,19 @@ void Estimator::InitializeTrajectories(Trajectory& measurement,
     configuration_.Set(data->qpos, i + 1);
   }
 
-  // time 
-  // time_.Set(time.Get(time.length_ - 1), configuration_length_ - 1);
-
   // copy configuration to prior
   mju_copy(configuration_prior_.Data(), configuration_.Data(),
            model_->nq * configuration_length_);
 
-  // stop timer 
+  // stop timer
   timer_update_trajectory_ += GetDuration(start);
 }
 
 // update trajectories
 // TODO(taylor): make const Trajectory
-void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
-                                   Trajectory& time) {
-  // start timer 
+int Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
+                                  Trajectory& time) {
+  // start timer
   auto start = std::chrono::steady_clock::now();
 
   // lastest buffer time
@@ -2135,10 +2140,6 @@ void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
       std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
                  model_->opt.timestep);
 
-  printf("time buffer = %.4f\n", time_buffer_last);
-  printf("time estimator = %.4f\n", time_estimator_last);
-  printf("num_new = %i\n", num_new);
-  
   // shift trajectory heads
   ShiftTrajectoryHead(num_new);
 
@@ -2189,12 +2190,30 @@ void Estimator::UpdateTrajectories(Trajectory& measurement, Trajectory& ctrl,
     configuration_.Set(data->qpos, t + 1);
   }
 
-  // // copy configuration to prior
-  // mju_copy(configuration_prior_.Data(), configuration_.Data(),
-  //          model_->nq * configuration_length_);
+  // copy configuration to prior
+  mju_copy(configuration_prior_.Data(), configuration_.Data(),
+           model_->nq * configuration_length_);
 
-  // stop timer 
+  // stop timer
   timer_update_trajectory_ += GetDuration(start);
+
+  return num_new;
+}
+
+// update
+// TODO(taylor): make const Buffer
+void Estimator::Update(Buffer& buffer, ThreadPool& pool) {
+  if (buffer.Length() >= configuration_length_ - 1) {
+    int num_new = configuration_length_;
+    if (!initialized_) {
+      InitializeTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+      initialized_ = true;
+    } else {
+      num_new = UpdateTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+    }
+    // optimize
+    Optimize(num_new, pool);
+  }
 }
 
 }  // namespace mjpc

@@ -1589,12 +1589,6 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
   // zero memory
   mju_zero(weight, ntotal * ntotal);
 
-  if (update_prior_weight_) {
-    printf("Hessian:\n");
-    mju_printMat1(hessian, nv * configuration_length_,
-                  nv * configuration_length_);
-  }
-
   // copy Hessian block to upper left
   if (configuration_length_ - num_new_ > 0 && update_prior_weight_) {
     SymmetricBandMatrixCopy(weight, hessian, nv, nv, ntotal,
@@ -1606,12 +1600,6 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
   for (int i = update_prior_weight_ * nv * (configuration_length_ - num_new_);
        i < ntotal; i++) {
     weight[ntotal * i + i] = scale_prior_;
-  }
-
-  if (update_prior_weight_) {
-    printf("weight:\n");
-    mju_printMat1(weight, nv * configuration_length_,
-                  nv * configuration_length_);
   }
 
   // stop timer

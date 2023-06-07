@@ -364,9 +364,6 @@ void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
 // square dense to block band matrix
 void DenseToBlockBand(double* res, int dim, int dblock, int nblock);
 
-// print matrix to screen
-void mju_printMat1(const mjtNum* mat, int nr, int nc);
-
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

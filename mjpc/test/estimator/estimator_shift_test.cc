@@ -369,8 +369,8 @@ TEST(Buffer, Particle2D) {
   mj_resetData(model, data);
 
   // rollout
-  for (int t = 0; t < 20; t++) {
-    printf("t = %i\n", t);
+  for (int t = 0; t < 2 * horizon_estimator; t++) {
+    // printf("t = %i\n", t);
 
     // set control
     controller(data->ctrl, data->time);
@@ -390,13 +390,15 @@ TEST(Buffer, Particle2D) {
     // update estimator 
     estimator.Update(buffer, pool);
 
-    printf("  cost = %.4f [initial = %.4f]\n", estimator.cost_,
-           estimator.cost_initial_);
-    printf("  iterations = %i\n", estimator.iterations_smoother_);
+    // test
+    if (t >= horizon_estimator - 1) {
+      // printf("  cost = %.4f [initial = %.4f]\n", estimator.cost_,
+      //      estimator.cost_initial_);
+      // printf("  iterations = %i\n", estimator.iterations_smoother_);
+      
+      EXPECT_LE(estimator.cost_, estimator.cost_initial_);
+    }
   }
-
-  // show buffer 
-  // buffer.Print();
 
   // delete data + model
   mj_deleteData(data);

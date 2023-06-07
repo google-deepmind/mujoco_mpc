@@ -20,21 +20,21 @@
 
 namespace mjpc {
 // initialize
-void Trajectory::Initialize(int dim, int length) {
+void EstimatorTrajectory::Initialize(int dim, int length) {
   // set
   dim_ = dim;
   length_ = length;
 
-  // allocate memory 
+  // allocate memory
   data_.resize(dim * MAX_TRAJECTORY);
 
-  // reset 
+  // reset
   Reset();
 }
 
 // reset memory
-void Trajectory::Reset() {
-  // set head 
+void EstimatorTrajectory::Reset() {
+  // set head
   head_index_ = 0;
 
   // zero memory
@@ -42,28 +42,28 @@ void Trajectory::Reset() {
 }
 
 // get element at index
-double* Trajectory::Get(int index) {
-  // get mapped index 
+double* EstimatorTrajectory::Get(int index) {
+  // get mapped index
   int map_index = IndexMap(index);
 
-  // return element 
+  // return element
   return data_.data() + dim_ * map_index;
 }
 
-const double* Trajectory::Get(int index) const {
-  // get mapped index 
+const double* EstimatorTrajectory::Get(int index) const {
+  // get mapped index
   int map_index = IndexMap(index);
 
-  // return element 
+  // return element
   return data_.data() + dim_ * map_index;
 }
 
 // set element at index
-void Trajectory::Set(const double* element, int index) {
-  // get map index 
+void EstimatorTrajectory::Set(const double* element, int index) {
+  // get map index
   int map_index = IndexMap(index);
 
-  // get data element 
+  // get data element
   double* data_element = data_.data() + dim_ * map_index;
 
   // set element
@@ -71,10 +71,10 @@ void Trajectory::Set(const double* element, int index) {
 }
 
 // get all data
-double* Trajectory::Data() { return data_.data(); }
+double* EstimatorTrajectory::Data() { return data_.data(); }
 
-// map index to data_ index 
-int Trajectory::IndexMap(int index) const{
+// map index to data_ index
+int EstimatorTrajectory::IndexMap(int index) const {
   // out of bounds
   if (head_index_ >= length_)
     mju_error("trajectory.head_index_ out of bounds!\n");
@@ -93,7 +93,7 @@ int Trajectory::IndexMap(int index) const{
 }
 
 // shift head_index_
-void Trajectory::ShiftHeadIndex(int shift) {
+void EstimatorTrajectory::ShiftHeadIndex(int shift) {
   // compute new head index
   int new_head = head_index_ + shift;
 

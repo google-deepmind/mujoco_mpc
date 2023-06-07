@@ -36,26 +36,26 @@ class Buffer {
   // initialize
   void Initialize(mjModel* model, int max_length);
 
-  // reset 
+  // reset
   void Reset();
 
-  // update 
+  // update
   void Update(mjModel* model, mjData* data);
 
-  // print 
+  // print
   void Print();
 
-  // length 
+  // length
   int Length() const;
 
-  // sensor 
-  Trajectory sensor_;
+  // sensor
+  EstimatorTrajectory sensor_;
 
-  // ctrl 
-  Trajectory ctrl_;
+  // ctrl
+  EstimatorTrajectory ctrl_;
 
-  // time 
-  Trajectory time_;
+  // time
+  EstimatorTrajectory time_;
 
   // max buffer length
   int max_length_;

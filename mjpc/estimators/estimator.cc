@@ -1338,8 +1338,8 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 
 // update configuration trajectory
 // TODO(taylor): const configuration
-void Estimator::UpdateConfiguration(Trajectory& candidate,
-                                    Trajectory& configuration,
+void Estimator::UpdateConfiguration(EstimatorTrajectory& candidate,
+                                    const EstimatorTrajectory& configuration,
                                     const double* search_direction,
                                     double step_size) {
   // start timer
@@ -1351,7 +1351,7 @@ void Estimator::UpdateConfiguration(Trajectory& candidate,
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
     // unpack
-    double* qt = configuration.Get(t);
+    const double* qt = configuration.Get(t);
     double* ct = candidate.Get(t);
 
     // copy
@@ -2048,9 +2048,9 @@ double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
 double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 // initialize trajectories
-void Estimator::InitializeTrajectories(const Trajectory& measurement,
-                                       const Trajectory& ctrl,
-                                       const Trajectory& time) {
+void Estimator::InitializeTrajectories(const EstimatorTrajectory& measurement,
+                                       const EstimatorTrajectory& ctrl,
+                                       const EstimatorTrajectory& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2110,9 +2110,9 @@ void Estimator::InitializeTrajectories(const Trajectory& measurement,
 }
 
 // update trajectories
-int Estimator::UpdateTrajectories(const Trajectory& measurement,
-                                  const Trajectory& ctrl,
-                                  const Trajectory& time) {
+int Estimator::UpdateTrajectories(const EstimatorTrajectory& measurement,
+                                  const EstimatorTrajectory& ctrl,
+                                  const EstimatorTrajectory& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 

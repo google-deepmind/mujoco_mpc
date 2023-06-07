@@ -23,13 +23,13 @@
 namespace mjpc {
 namespace {
 
-TEST(Trajectory, Test) {
+TEST(EstimatorTrajectory, Test) {
   // dimensions
   int dim = 2;
   int length = 3;
 
   // trajectory
-  Trajectory trajectory;
+  EstimatorTrajectory trajectory;
 
   // initialize
   trajectory.Initialize(dim, length);
@@ -146,12 +146,12 @@ TEST(Trajectory, Test) {
 
   // ----- shift head ----- //
   trajectory.head_index_ = 0;
-  
-  // shift by 1 
+
+  // shift by 1
   trajectory.ShiftHeadIndex(1);
   EXPECT_EQ(trajectory.head_index_, 1);
-  
-  // shift by 1 
+
+  // shift by 1
   trajectory.ShiftHeadIndex(1);
   EXPECT_EQ(trajectory.head_index_, 2);
 
@@ -159,11 +159,11 @@ TEST(Trajectory, Test) {
   trajectory.ShiftHeadIndex(1);
   EXPECT_EQ(trajectory.head_index_, 0);
 
-  // shift by 3 
+  // shift by 3
   trajectory.ShiftHeadIndex(trajectory.length_);
   EXPECT_EQ(trajectory.head_index_, 0);
 
-  // shift by 2 
+  // shift by 2
   trajectory.ShiftHeadIndex(2);
   EXPECT_EQ(trajectory.head_index_, 2);
 }

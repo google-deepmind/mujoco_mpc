@@ -188,7 +188,7 @@ TEST(BatchReuse, Particle2D) {
   };
 
   // trajectories
-  int horizon_buffer = 100;
+  int horizon_buffer = 10;
   Trajectory qpos_buffer(nq, horizon_buffer + 1);
   Trajectory qvel_buffer(nv, horizon_buffer + 1);
   Trajectory qacc_buffer(nv, horizon_buffer);
@@ -241,66 +241,114 @@ TEST(BatchReuse, Particle2D) {
   }
 
   // ----- estimator ----- //
-  int horizon_estimator = 10;
+  int horizon_estimator = 3;
 
   // initialize
-  Estimator estimator0;
-  estimator0.Initialize(model);
-  estimator0.SetConfigurationLength(horizon_estimator);
+  Estimator estimator;
+  estimator.Initialize(model);
+  estimator.SetConfigurationLength(horizon_estimator);
+
+  // estimator.ShiftTrajectoryHead(1);
+  // estimator.configuration_.ShiftHeadIndex(1);
+  // estimator.configuration_copy_.ShiftHeadIndex(1);
+  // estimator.configuration_prior_.ShiftHeadIndex(1);
+
+  // estimator.action_.ShiftHeadIndex(1);
+  // estimator.force_measurement_.ShiftHeadIndex(1);
+  // estimator.sensor_measurement_.ShiftHeadIndex(1);
+  // estimator.time_.ShiftHeadIndex(1);
 
   // copy buffers
-  mju_copy(estimator0.configuration_.Data(), qpos_buffer.Data(),
-            nq * horizon_estimator);
-  mju_copy(estimator0.configuration_prior_.Data(),
-            estimator0.configuration_.Data(), nq * horizon_estimator);
-  mju_copy(estimator0.action_.Data(), ctrl_buffer.Data(),
-            nu * (horizon_estimator - 1));
-  mju_copy(estimator0.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
-            nv * (horizon_estimator - 1));
-  mju_copy(estimator0.sensor_measurement_.Data(), sensor_buffer.Data(),
-            ns * (horizon_estimator - 1));
-  mju_copy(estimator0.time_.Data(), time_buffer.Data(),
-            (horizon_estimator - 1));
+  for (int t = 0; t < horizon_estimator; t++) {
+    estimator.configuration_.Set(qpos_buffer.Get(t), t);
+    estimator.configuration_prior_.Set(qpos_buffer.Get(t), t);
+    
+    if (t >= horizon_estimator - 1) continue;
+
+    estimator.action_.Set(ctrl_buffer.Get(t), t);
+    estimator.force_measurement_.Set(qfrc_actuator_buffer.Get(t), t);
+    estimator.sensor_measurement_.Set(sensor_buffer.Get(t), t);
+    estimator.time_.Set(time_buffer.Get(t), t);
+  }
+
+  // mju_copy(estimator.configuration_.Data(), qpos_buffer.Data(),
+  //           nq * horizon_estimator);
+  // mju_copy(estimator.configuration_prior_.Data(),
+  //           estimator.configuration_.Data(), nq * horizon_estimator);
+  // mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
+  //           nu * (horizon_estimator - 1));
+  // mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
+  //           nv * (horizon_estimator - 1));
+  // mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
+  //           ns * (horizon_estimator - 1));
+  // mju_copy(estimator.time_.Data(), time_buffer.Data(),
+  //           (horizon_estimator - 1));
 
   // randomly perturb
   for (int t = 0; t < horizon_estimator; t++) {
     // unpack
-    double* q = estimator0.configuration_.Data() + t * nq;
+    double* q = estimator.configuration_.Data() + t * nq;
 
     // add noise
     for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      q[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      q[i] += 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // cost
-  double cost_random = estimator0.Cost(pool);
-  printf("cost 0: %.4f\n", cost_random);
+  double cost_random = estimator.Cost(pool);
+  printf("cost (random): %.4f\n\n", cost_random);
 
   // verbose 
-  estimator0.verbose_optimize_ = false;
-  estimator0.reuse_data_ = false;
-  estimator0.iterations_smoother_ = 1;
+  estimator.verbose_optimize_ = false;
+  estimator.reuse_data_ = false;
+  estimator.iterations_smoother_ = 1;
 
-  for (int shift = 1; shift < 25; shift++) {
-    // optimize 
-    estimator0.Optimize(estimator0.configuration_length_, pool);
+  printf("all buffer times: \n");
+  mju_printMat(time_buffer.Data(), 1, horizon_buffer + 1);
 
-    printf("cost %i: %.4f\n", shift, estimator0.cost_);
+  printf("all buffer sensors: \n");
+  mju_printMat(sensor_buffer.Data(), horizon_buffer + 1, ns);
 
-    // set buffer length
-    ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
-    sensor_buffer.length_ = (horizon_estimator - 1) + shift;
-    time_buffer.length_ = (horizon_estimator - 1) + shift;
+  printf("all buffer force: \n");
+  mju_printMat(qfrc_actuator_buffer.Data(), horizon_buffer + 1, nv);
 
-    // update estimator trajectories
-    estimator0.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+  int shift = 0;
+  estimator.Optimize(estimator.configuration_length_, pool);
+  printf("cost %i: %.6f [initial: %.6f]\n\n", shift, estimator.cost_, estimator.cost_initial_);
 
-    printf("  optimize time: %.4f (ms)\n", 1.0e-3 * estimator0.timer_optimize_);
-    printf("  update time: %.4f (ms)\n", 1.0e-3 * estimator0.timer_update_trajectory_);
-  }
-  
+
+  printf("times %i [head = %i]: \n", shift, estimator.time_.head_index_);
+  mju_printMat(estimator.time_.Data(), 1, estimator.configuration_length_);
+
+  printf("sensor %i [head = %i]: \n", shift, estimator.sensor_measurement_.head_index_);
+  mju_printMat(estimator.sensor_measurement_.Data(), estimator.configuration_length_, ns);
+
+  printf("force %i [head = %i]: \n", shift, estimator.force_measurement_.head_index_);
+  mju_printMat(estimator.force_measurement_.Data(), estimator.configuration_length_, nv);
+
+  // set buffer length
+  shift = 1;
+  ctrl_buffer.length_ = horizon_estimator;
+  sensor_buffer.length_ = horizon_estimator;
+  time_buffer.length_ = horizon_estimator;
+
+  // update estimator trajectories
+  estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+
+  printf("times %i [head = %i]: \n", shift, estimator.time_.head_index_);
+  mju_printMat(estimator.time_.Data(), 1, estimator.configuration_length_);
+
+  printf("sensor %i [head = %i]: \n", shift, estimator.sensor_measurement_.head_index_);
+  mju_printMat(estimator.sensor_measurement_.Data(), estimator.configuration_length_, ns);
+
+  printf("force %i [head = %i]: \n", shift, estimator.force_measurement_.head_index_);
+  mju_printMat(estimator.force_measurement_.Data(), estimator.configuration_length_, nv);
+
+  estimator.Optimize(estimator.configuration_length_, pool);
+  printf("cost %i: %.6f [initial: %.6f]\n\n", shift, estimator.cost_, estimator.cost_initial_);
+    
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);

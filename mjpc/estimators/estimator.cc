@@ -307,7 +307,7 @@ void Estimator::ShiftTrajectoryHead(int shift) {
   // update trajectory lengths
   configuration_.ShiftHeadIndex(shift);
   configuration_copy_.ShiftHeadIndex(shift);
-  
+
   velocity_.ShiftHeadIndex(shift);
   acceleration_.ShiftHeadIndex(shift);
   action_.ShiftHeadIndex(shift);
@@ -662,7 +662,7 @@ void Estimator::BlockPrior(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianPrior(ThreadPool& pool) {
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, configuration_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, configuration_length_ - num_new_);
 
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
@@ -927,7 +927,7 @@ void Estimator::BlockSensor(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianSensor(ThreadPool& pool) {
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
@@ -1203,7 +1203,7 @@ void Estimator::BlockForce(int index) {
 // force Jacobian
 void Estimator::JacobianForce(ThreadPool& pool) {
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
@@ -1233,7 +1233,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   int nq = model_->nq, nv = model_->nv, ns = dim_sensor_;
 
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // pool count
   int count_before = pool.GetCount();
@@ -1292,7 +1292,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   int count_before = pool.GetCount();
 
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
@@ -1379,7 +1379,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
   int nv = model_->nv;
 
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, configuration_length_ - num_new_);
+  int start_index = reuse_data_ * mju_max(0, configuration_length_ - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {
@@ -1419,7 +1419,7 @@ void Estimator::VelocityAccelerationDerivatives() {
   int nv = model_->nv;
 
   // start index 
-  int start_index = 0 * reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
+  int start_index = reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {

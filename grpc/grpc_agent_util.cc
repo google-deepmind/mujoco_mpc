@@ -303,6 +303,7 @@ mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
   return m;
 }
 
+// TODO(taylor): this method doesn't work?
 mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   static constexpr char file[] = "temporary-filename.mjb";
   // mjVFS structs need to be allocated on the heap, because it's ~2MB

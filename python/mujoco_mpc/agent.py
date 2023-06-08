@@ -315,7 +315,7 @@ class Estimator:
     self.init(
         model,
         configuration_length,
-        send_as="mjb",
+        send_as="xml",
     )
 
   def close(self):
@@ -327,7 +327,7 @@ class Estimator:
       self,
       model: Optional[mujoco.MjModel] = None,
       configuration_length: int = 3,
-      send_as: Literal["mjb", "xml"] = "xml",
+      send_as: Literal["xml"] = "xml",
   ):
     """Initialize the estimator for estimation horizon `configuration_length`.
 
@@ -336,15 +336,8 @@ class Estimator:
         the underlying model for planning. If not provided, the default MJPC
         task xml will be used.
       configuration_length: estimation horizon.
-      send_as: The serialization format for sending the model over gRPC. Either
-        "mjb" or "xml".
+      send_as: The serialization format for sending the model over gRPC; "xml".
     """
-
-    def model_to_mjb(model: mujoco.MjModel) -> bytes:
-      buffer_size = mujoco.mj_sizeModel(model)
-      buffer = np.empty(shape=buffer_size, dtype=np.uint8)
-      mujoco.mj_saveModel(model, None, buffer)
-      return buffer.tobytes()
 
     def model_to_xml(model: mujoco.MjModel) -> str:
       tmp = tempfile.NamedTemporaryFile()
@@ -354,11 +347,9 @@ class Estimator:
       return xml_string
 
     if model is not None:
-      if send_as == "mjb":
-        model_message = agent_pb2.MjModel(mjb=model_to_mjb(model))
-      else:
         model_message = agent_pb2.MjModel(xml=model_to_xml(model))
     else:
+      print("Failed to find xml.")
       model_message = None
 
     init_request = agent_pb2.InitEstimatorRequest(

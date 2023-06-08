@@ -55,6 +55,8 @@ using ::agent::StepRequest;
 using ::agent::StepResponse;
 using ::agent::InitEstimatorRequest;
 using ::agent::InitEstimatorResponse;
+// using ::agent::SetEstimatorConfigurationRequest;
+// using ::agent::SetEstimatorConfigurationResponse;
 
 // task used to define desired behaviour
 mjpc::Task* task = nullptr;
@@ -255,16 +257,14 @@ grpc::Status AgentService::InitEstimator(
 
   // ----- initialize with model ----- //
   mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
-  char load_error[1024] = "";
 
   // convert message
-  if (request->has_model() && request->model().has_mjb()) {
-    std::string_view model_mjb_bytes = request->model().mjb();
-    // TODO(khartikainen): Add error handling for mjb loading.
-    tmp_model = grpc_agent_util::LoadModelFromBytes(model_mjb_bytes);
-  } else if (request->has_model() && request->model().has_xml()) {
+  if (request->model().has_xml()) {
     std::string_view model_xml = request->model().xml();
+    char load_error[1024] = "";
     tmp_model = grpc_agent_util::LoadModelFromString(model_xml, load_error, sizeof(load_error));
+  } else {
+    mju_error("Failed to create mjModel.");
   }
 
   // move
@@ -279,6 +279,19 @@ grpc::Status AgentService::InitEstimator(
   // TODO(taylor): additional settings
   return grpc::Status::OK;
 }
+
+// grpc::Status AgentService::SetEstimatorConfiguration(
+//     grpc::ServerContext *context,
+//     const agent::SetEstimatorConfigurationRequest *request,
+//     agent::SetEstimatorConfigurationResponse *response)
+// {
+//   // if (!Initialized()) {
+//   //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+//   // }
+
+//   // TODO(taylor): additional settings
+//   return grpc::Status::OK;
+// }
 
 
 }  // namespace agent_grpc

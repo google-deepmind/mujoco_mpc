@@ -34,7 +34,7 @@ class EstimatorTest(absltest.TestCase):
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
     configuration_length = 5
-    estimator = agent_lib.Estimator(model, configuration_length)
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
 
     # self.assertFalse((observations == 0).all())
 

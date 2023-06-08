@@ -456,8 +456,12 @@ TEST(ForceCost, Particle) {
         // force residual
         double* rti = rk + shift;
 
+        // time scaling
+        double timestep = model->opt.timestep;
+        double time_scale = timestep * timestep * timestep * timestep;
+
         // add weighted norm
-        cost += weight[jnt_type] / dof * model->opt.timestep *
+        cost += weight[jnt_type] / dof * time_scale *
                 Norm(NULL, NULL, rti, params[jnt_type], dof, norms[jnt_type]);
 
         // shift
@@ -678,8 +682,12 @@ TEST(ForceCost, Box) {
             // force residual
             double* rti = rk + shift;
 
+            // time scaling
+            double timestep = model->opt.timestep;
+            double time_scale = timestep * timestep * timestep * timestep;
+
             // add weighted norm
-            cost += weight[i] / dof * model->opt.timestep *
+            cost += weight[i] / dof * time_scale *
                     Norm(NULL, NULL, rti, params[i], dof, norms[i]);
 
             // shift

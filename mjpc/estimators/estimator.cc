@@ -723,8 +723,29 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       // weight
       double weight = weight_sensor_[i];
 
+      
+
+      // time scaling, accounts for finite difference division by timestep
+      double time_scale = 1.0;
+
+      if (time_scaling_) {
+        // stage 
+        int stage = model_->sensor_needstage[i];
+
+        // time step
+        double timestep = model_->opt.timestep;
+
+        // scale by sensor type
+        if (stage == mjSTAGE_VEL) {
+          time_scale = timestep * timestep;
+        } else if (stage == mjSTAGE_ACC) {
+          time_scale = timestep * timestep * timestep * timestep;
+        }
+      }
+      
+
       // total scaling
-      double scale = weight / nsi;
+      double scale = weight / nsi * time_scale;
 
       // ----- cost ----- //
       cost +=
@@ -996,8 +1017,13 @@ double Estimator::CostForce(double* gradient, double* hessian) {
       // weight
       double weight = weight_force_[jnt_type];
 
+      // time scaling
+      double timestep = model_->opt.timestep;
+      double time_scale =
+          (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
+
       // total scaling
-      double scale = weight / dof * model_->opt.timestep;
+      double scale = weight / dof * time_scale;
 
       // norm
       NormType norm = norm_force_[jnt_type];

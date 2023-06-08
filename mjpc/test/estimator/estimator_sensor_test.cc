@@ -475,8 +475,24 @@ TEST(MeasurementCost, Particle) {
             // sensor residual
             double* rki = rk + shift;
 
+            // time scaling
+            double time_scale = 1.0;
+
+            // stage 
+            int stage = model->sensor_needstage[i];
+
+            // time step
+            double timestep = model->opt.timestep;
+
+            // scale by sensor type
+            if (stage == mjSTAGE_VEL) {
+              time_scale = timestep * timestep;
+            } else if (stage == mjSTAGE_ACC) {
+              time_scale = timestep * timestep * timestep * timestep;
+            }
+
             // add weighted norm
-            cost += weight[i] / dim_sensori *
+            cost += weight[i] / dim_sensori * time_scale *
                     Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori,
                          norms[i]);
 
@@ -701,9 +717,25 @@ TEST(MeasurementCost, Box) {
         // sensor residual
         double* rki = rk + shift;
 
+        // time scaling
+        double time_scale = 1.0;
+
+        // stage 
+        int stage = model->sensor_needstage[i];
+
+        // time step
+        double timestep = model->opt.timestep;
+
+        // scale by sensor type
+        if (stage == mjSTAGE_VEL) {
+          time_scale = timestep * timestep;
+        } else if (stage == mjSTAGE_ACC) {
+          time_scale = timestep * timestep * timestep * timestep;
+        }
+
         // add weighted norm
         cost +=
-            weight[i] / dim_sensori *
+            weight[i] / dim_sensori * time_scale *
             Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori, norms[i]);
 
         // shift

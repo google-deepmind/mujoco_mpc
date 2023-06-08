@@ -355,13 +355,14 @@ TEST(Buffer, Particle2D) {
   ThreadPool pool(2);
 
   // ----- estimator ----- //
-  int horizon_estimator = 16;
+  int horizon_estimator = 3;
 
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(horizon_estimator);
   estimator.verbose_optimize_ = false;
+  estimator.update_prior_weight_ = true;
 
   // ----- simulate ----- //
 
@@ -379,6 +380,7 @@ TEST(Buffer, Particle2D) {
 
   // rollout
   for (int t = 0; t < 2 * horizon_estimator; t++) {
+    printf("t = %i\n", t);
 
     // set control
     controller(data->ctrl, data->time);
@@ -397,6 +399,33 @@ TEST(Buffer, Particle2D) {
 
     // update estimator
     estimator.Update(buffer, pool);
+
+    // Hessians 
+    int dim = model->nv * estimator.configuration_length_;
+
+    printf("prior gradient\n");
+    mju_printMat(estimator.cost_gradient_prior_.data(), 1, dim);
+
+    printf("prior Hessian\n");
+    mju_printMat(estimator.cost_hessian_prior_.data(), dim, dim);
+
+    printf("sensor gradient\n");
+    mju_printMat(estimator.cost_gradient_sensor_.data(), 1, dim);
+
+    printf("sensor Hessian\n");
+    mju_printMat(estimator.cost_hessian_sensor_.data(), dim, dim);
+
+    printf("force gradient\n");
+    mju_printMat(estimator.cost_gradient_force_.data(), 1, dim);
+
+    printf("force Hessian\n");
+    mju_printMat(estimator.cost_hessian_force_.data(), dim, dim);
+
+    printf("total gradient\n");
+    mju_printMat(estimator.cost_gradient_.data(), 1, dim);
+
+    printf("total Hessian\n");
+    mju_printMat(estimator.cost_hessian_.data(), dim, dim);
 
     // test
     if (t >= horizon_estimator - 1) {

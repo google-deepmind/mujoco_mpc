@@ -45,12 +45,6 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Initialize Estimator
   rpc InitEstimator(InitEstimatorRequest) returns (InitEstimatorResponse);
-  // Set estimator data
-  rpc SetEstimatorData(SetEstimatorDataRequest) returns (SetEstimatorDataResponse);
-  // Estimator optimization step
-  rpc EstimatorOptimizationStep(EstimatorOptimizationStepRequest) returns (EstimatorOptimizationStepResponse);
-  // Get estimated trajectory
-  rpc GetEstimatedTrajectory(GetEstimatedTrajectoryRequest) returns (GetEstimatedTrajectoryResponse);
 }
 
 message MjModel {
@@ -152,44 +146,8 @@ message SetModeRequest {
 message SetModeResponse {}
 
 message InitEstimatorRequest {
-  optional int32 horizon = 1;
+  optional MjModel model = 1;
+  optional int32 configuration_length = 2;
 }
 
 message InitEstimatorResponse {}
-
-message EstimatorDataFrame {
-  repeated double configuration = 1 [packed = true];
-  repeated double configuration_prior = 2 [packed = true];
-  repeated double force_measurement = 3 [packed = true];
-  repeated double sensor_measurement  = 4 [packed = true];
-}
-
-message SetEstimatorDataRequest {
-  repeated EstimatorDataFrame frames = 1;
-}
-
-message SetEstimatorDataResponse {}
-
-message EstimatorOptimizationStepRequest {}
-
-message EstimatorOptimizationStepResponse {}
-
-message GetEstimatedTrajectoryRequest {
-  optional bool configuration = 1;
-  optional bool velocity = 2;
-  optional bool acceleration = 3;
-  optional bool sensor_prediction = 4;
-  optional bool force_prediction = 5;
-}
-
-message EstimatedFrame {
-  repeated double configuration = 1 [packed = true];
-  repeated double velocity = 2 [packed = true];
-  repeated double acceleration = 3 [packed = true];
-  repeated double sensor_prediction  = 4 [packed = true];
-  repeated double force_prediction  = 5 [packed = true];
-}
-
-message GetEstimatedTrajectoryResponse {
-  repeated EstimatedFrame frames = 1;
-}

@@ -276,3 +276,92 @@ class Agent:
   def set_mode(self, mode: str):
     request = agent_pb2.SetModeRequest(mode=mode)
     self.stub.SetMode(request)
+
+
+class Estimator:
+  """`Estimator` class to interface with MuJoCo MPC estimator.
+
+  Attributes:
+    model:
+    configuration_length:
+    port:
+    channel:
+    stub:
+    server_process:
+  """
+
+  def __init__(
+      self,
+      model: Optional[mujoco.MjModel] = None,
+      configuration_length: int = 3,
+      server_binary_path: Optional[str] = None,
+  ):
+    self.configuration_length = configuration_length
+    self.model = model
+
+    if server_binary_path is None:
+      binary_name = "agent_server"
+      server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
+    self.port = find_free_port()
+    self.server_process = subprocess.Popen(
+        [str(server_binary_path), f"--mjpc_port={self.port}"]
+    )
+    atexit.register(self.server_process.kill)
+
+    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
+    grpc.channel_ready_future(self.channel).result(timeout=10)
+    self.stub = agent_pb2_grpc.AgentStub(self.channel)
+    self.init(
+        model,
+        configuration_length,
+        send_as="mjb",
+    )
+
+  def close(self):
+    self.channel.close()
+    self.server_process.kill()
+    self.server_process.wait()
+
+  def init(
+      self,
+      model: Optional[mujoco.MjModel] = None,
+      configuration_length: int = 3,
+      send_as: Literal["mjb", "xml"] = "xml",
+  ):
+    """Initialize the estimator for estimation horizon `configuration_length`.
+
+    Args:
+      model: optional `MjModel` instance, which, if provided, will be used as
+        the underlying model for planning. If not provided, the default MJPC
+        task xml will be used.
+      configuration_length: estimation horizon.
+      send_as: The serialization format for sending the model over gRPC. Either
+        "mjb" or "xml".
+    """
+
+    def model_to_mjb(model: mujoco.MjModel) -> bytes:
+      buffer_size = mujoco.mj_sizeModel(model)
+      buffer = np.empty(shape=buffer_size, dtype=np.uint8)
+      mujoco.mj_saveModel(model, None, buffer)
+      return buffer.tobytes()
+
+    def model_to_xml(model: mujoco.MjModel) -> str:
+      tmp = tempfile.NamedTemporaryFile()
+      mujoco.mj_saveLastXML(tmp.name, model)
+      with pathlib.Path(tmp.name).open("rt") as f:
+        xml_string = f.read()
+      return xml_string
+
+    if model is not None:
+      if send_as == "mjb":
+        model_message = agent_pb2.MjModel(mjb=model_to_mjb(model))
+      else:
+        model_message = agent_pb2.MjModel(xml=model_to_xml(model))
+    else:
+      model_message = None
+
+    init_request = agent_pb2.InitEstimatorRequest(
+        model=model_message, configuration_length=configuration_length, 
+    )
+    self.stub.InitEstimator(init_request)

@@ -17,6 +17,7 @@
 
 #include <mujoco/mujoco.h>
 
+#include <mutex>
 #include <vector>
 
 #include "mjpc/estimators/buffer.h"
@@ -177,6 +178,12 @@ class Estimator {
   // update 
   void Update(const Buffer& buffer, ThreadPool& pool);
 
+  // get terms from GUI 
+  void GetGUI();
+
+  // set terms to GUI
+  void SetGUI();
+
   // model
   mjModel* model_;
 
@@ -290,7 +297,7 @@ class Estimator {
   std::vector<double> weight_sensor_;          // ns
 
   // force weights (free, ball, slide, hinge)
-  double weight_force_[4];
+  std::vector<double> weight_force_;           // 4
 
   // cost norms
   std::vector<NormType> norm_sensor_;          // ns
@@ -396,6 +403,34 @@ class Estimator {
     double tolerance = 1.0e-5;
     bool flg_actuation = 0;
   } finite_difference_;
+
+  // ----- GUI terms ----- //
+
+  // TODO(taylor): initialize all properly
+
+  // settings
+  int gui_configuration_length_;
+  int gui_max_smoother_iterations_;
+
+  // weights
+  double gui_scale_prior_;
+  std::vector<double> gui_weight_sensor_;          
+  std::vector<double> gui_weight_force_;
+
+  // costs 
+  double gui_cost_prior_;
+  double gui_cost_sensor_;
+  double gui_cost_force_; 
+  double gui_cost_;
+
+  // status 
+  double gui_regularization_;
+  double gui_step_size_;
+
+  // timers 
+
+  // mutex
+  std::mutex mutex_;
 };
 
 }  // namespace mjpc

@@ -379,7 +379,6 @@ TEST(Buffer, Particle2D) {
 
   // rollout
   for (int t = 0; t < 2 * horizon_estimator; t++) {
-    // printf("t = %i\n", t);
 
     // set control
     controller(data->ctrl, data->time);

@@ -149,6 +149,8 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // force weights
+  weight_force_.resize(4);
+
   weight_force_[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
   weight_force_[1] =
@@ -2201,6 +2203,39 @@ void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
     // optimize
     Optimize(num_new, pool);
   }
+}
+
+// get terms from GUI 
+void Estimator::GetGUI() {
+  // lock
+  const std::lock_guard<std::mutex> lock(mutex_);
+
+  // settings
+  configuration_length_ = gui_configuration_length_;
+  max_smoother_iterations_ = gui_max_smoother_iterations_;
+
+  // weights
+  scale_prior_ = gui_scale_prior_;
+  weight_sensor_ = gui_weight_sensor_;          
+  weight_force_ = gui_weight_force_;
+}
+
+// set terms to GUI
+void Estimator::SetGUI() {
+  // lock
+  const std::lock_guard<std::mutex> lock(mutex_);
+
+  // costs
+  gui_cost_prior_ = cost_prior_;
+  gui_cost_sensor_ = cost_sensor_;
+  gui_cost_force_ = cost_force_; 
+  gui_cost_ = cost_;
+
+  // status
+  gui_regularization_ = regularization_;
+  gui_step_size_ = step_size_;
+
+  // timers
 }
 
 }  // namespace mjpc

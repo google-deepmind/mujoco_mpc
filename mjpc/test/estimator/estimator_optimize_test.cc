@@ -385,7 +385,7 @@ TEST(BatchOptimize, Box3D) {
 
 //   // set weights
 //   mju_fill(estimator.weight_sensor_.data(), 1.0, estimator.model_->nsensor);
-//   mju_fill(estimator.weight_force_, 1.0, 4);
+//   mju_fill(estimator.weight_force_.data(), 1.0, 4);
 
 //   // cost (pre)
 //   double cost_random = estimator.Cost(pool);

@@ -26,6 +26,7 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -91,6 +92,26 @@ class AgentService final : public agent::Agent::Service {
       const agent::GetModeRequest* request,
       agent::GetModeResponse* response) override;
 
+  grpc::Status InitEstimator(
+      grpc::ServerContext* context,
+      const agent::InitEstimatorRequest* request,
+      agent::InitEstimatorResponse* response) override;
+
+  grpc::Status SetEstimatorData(
+      grpc::ServerContext* context,
+      const agent::SetEstimatorDataRequest* request,
+      agent::SetEstimatorDataResponse* response) override;
+
+  grpc::Status EstimatorOptimizationStep(
+      grpc::ServerContext* context,
+      const agent::EstimatorOptimizationStepRequest* request,
+      agent::EstimatorOptimizationStepResponse* response) override;
+
+  grpc::Status GetEstimatedTrajectory(
+      grpc::ServerContext* context,
+      const agent::GetEstimatedTrajectoryRequest* request,
+      agent::GetEstimatedTrajectoryResponse* response) override;
+
 
  private:
   bool Initialized() const { return data_ != nullptr; }
@@ -99,6 +120,7 @@ class AgentService final : public agent::Agent::Service {
   mjpc::Agent agent_;
   std::vector<std::shared_ptr<mjpc::Task>> tasks_;
   mjData* data_ = nullptr;
+  mjpc::Estimator estimator_;
 };
 
 }  // namespace agent_grpc

@@ -24,6 +24,7 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/task.h"
 
 namespace agent_grpc {
@@ -52,10 +53,23 @@ using ::agent::SetTaskParametersRequest;
 using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
+using ::agent::InitEstimatorRequest;
+using ::agent::InitEstimatorResponse;
+using ::agent::EstimatorDataFrame;
+using ::agent::SetEstimatorDataRequest;
+using ::agent::SetEstimatorDataResponse;
+using ::agent::EstimatorOptimizationStepRequest;
+using ::agent::EstimatorOptimizationStepResponse;
+using ::agent::GetEstimatedTrajectoryRequest;
+using ::agent::EstimatedFrame;
+using ::agent::GetEstimatedTrajectoryResponse;
 
+// task used to define desired behaviour
 mjpc::Task* task = nullptr;
+
 // model used for physics
 mjModel* model = nullptr;
+
 // model used for planning, owned by the Agent instance.
 mjModel* agent_model = nullptr;
 
@@ -236,6 +250,76 @@ grpc::Status AgentService::GetMode(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::GetMode(request, &agent_, response);
+}
+
+grpc::Status AgentService::InitEstimator(
+    grpc::ServerContext *context,
+    const agent::InitEstimatorRequest *request,
+    agent::InitEstimatorResponse *response)
+{
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  // initialize with model 
+  estimator_.Initialize(agent_.GetModel());
+
+  // set estimation horizon 
+  estimator_.SetConfigurationLength(request->horizon());
+
+  // TODO(taylor): additional settings
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::SetEstimatorData(
+    grpc::ServerContext *context,
+    const agent::SetEstimatorDataRequest *request,
+    agent::SetEstimatorDataResponse *response)
+{
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  // code goes here
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::EstimatorOptimizationStep(
+    grpc::ServerContext *context,
+    const agent::EstimatorOptimizationStepRequest *request,
+    agent::EstimatorOptimizationStepResponse *response)
+{
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+
+  // code goes here
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatedTrajectory(
+    grpc::ServerContext *context,
+    const agent::GetEstimatedTrajectoryRequest *request,
+    agent::GetEstimatedTrajectoryResponse *response)
+{
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // loop over time steps
+  for (int t = 0; t < estimator_.configuration_length_; t++) {
+    // configurations
+    if (request->configuration()) {
+      // double* q = estimator_.configuration_.Get(t);
+      for (int i = 0; i < estimator_.model_->nq; i++) {
+        // frame->add_configuration(q[j]);
+      }
+    }
+
+    // 
+  }
+
+  // code goes here
+  return grpc::Status::OK;
 }
 
 }  // namespace agent_grpc

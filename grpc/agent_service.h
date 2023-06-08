@@ -97,10 +97,15 @@ class AgentService final : public agent::Agent::Service {
       const agent::InitEstimatorRequest* request,
       agent::InitEstimatorResponse* response) override;
 
-//   grpc::Status SetEstimatorConfiguration(
-//       grpc::ServerContext* context,
-//       const agent::SetEstimatorConfigurationRequest* request,
-//       agent::SetEstimatorConfigurationResponse* response) override;
+  grpc::Status SetEstimatorConfiguration(
+      grpc::ServerContext* context,
+      const agent::SetEstimatorConfigurationRequest* request,
+      agent::SetEstimatorConfigurationResponse* response) override;
+
+  grpc::Status GetEstimatorConfiguration(
+      grpc::ServerContext* context,
+      const agent::GetEstimatorConfigurationRequest* request,
+      agent::GetEstimatorConfigurationResponse* response) override;
 
  private:
   bool Initialized() const { return data_ != nullptr; }

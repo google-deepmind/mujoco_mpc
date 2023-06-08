@@ -33,10 +33,19 @@ class EstimatorTest(absltest.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
+
+    # initialize
     configuration_length = 5
     estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
 
-    # self.assertFalse((observations == 0).all())
+    # set configuration
+    configuration = np.random.rand(model.nq)
+    index = 0
+    estimator.set_configuration(configuration, index)
+    out = estimator.get_configuration(index)
+
+    # test that input and output configurations match
+    self.assertTrue(np.linalg.norm(configuration - out) < 1.0e-3)
 
 if __name__ == "__main__":
   absltest.main()

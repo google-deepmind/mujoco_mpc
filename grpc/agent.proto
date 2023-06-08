@@ -45,6 +45,10 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Initialize Estimator
   rpc InitEstimator(InitEstimatorRequest) returns (InitEstimatorResponse);
+  // Set Estimator configuration
+  rpc SetEstimatorConfiguration(SetEstimatorConfigurationRequest) returns (SetEstimatorConfigurationResponse);
+  // Get Estimator configuration
+  rpc GetEstimatorConfiguration(GetEstimatorConfigurationRequest) returns (GetEstimatorConfigurationResponse);
 }
 
 message MjModel {
@@ -151,5 +155,20 @@ message InitEstimatorRequest {
 }
 
 message InitEstimatorResponse {}
+
+message SetEstimatorConfigurationRequest {
+  repeated double configuration = 1 [packed = true];
+  int32 index = 2;
+}
+
+message SetEstimatorConfigurationResponse {}
+
+message GetEstimatorConfigurationRequest {
+  int32 index = 1;
+}
+
+message GetEstimatorConfigurationResponse {
+  repeated double configuration = 1 [packed = true];
+}
 
 

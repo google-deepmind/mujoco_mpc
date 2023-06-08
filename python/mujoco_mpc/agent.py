@@ -356,3 +356,14 @@ class Estimator:
         model=model_message, configuration_length=configuration_length, 
     )
     self.stub.InitEstimator(init_request)
+  
+  def set_configuration(self,
+                        configuration: npt.ArrayLike,
+                        index: int):
+    request = agent_pb2.SetEstimatorConfigurationRequest(configuration=configuration, index=index)
+    self.stub.SetEstimatorConfiguration(request)
+
+  def get_configuration(self,
+                        index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorConfigurationRequest(index=index)
+    return self.stub.GetEstimatorConfiguration(request).configuration

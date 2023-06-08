@@ -55,8 +55,10 @@ using ::agent::StepRequest;
 using ::agent::StepResponse;
 using ::agent::InitEstimatorRequest;
 using ::agent::InitEstimatorResponse;
-// using ::agent::SetEstimatorConfigurationRequest;
-// using ::agent::SetEstimatorConfigurationResponse;
+using ::agent::SetEstimatorConfigurationRequest;
+using ::agent::SetEstimatorConfigurationResponse;
+using ::agent::GetEstimatorConfigurationRequest;
+using ::agent::GetEstimatorConfigurationResponse;
 
 // task used to define desired behaviour
 mjpc::Task* task = nullptr;
@@ -259,7 +261,7 @@ grpc::Status AgentService::InitEstimator(
   mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
 
   // convert message
-  if (request->model().has_xml()) {
+  if (request->has_model() && request->model().has_xml()) {
     std::string_view model_xml = request->model().xml();
     char load_error[1024] = "";
     tmp_model = grpc_agent_util::LoadModelFromString(model_xml, load_error, sizeof(load_error));
@@ -280,18 +282,44 @@ grpc::Status AgentService::InitEstimator(
   return grpc::Status::OK;
 }
 
-// grpc::Status AgentService::SetEstimatorConfiguration(
-//     grpc::ServerContext *context,
-//     const agent::SetEstimatorConfigurationRequest *request,
-//     agent::SetEstimatorConfigurationResponse *response)
-// {
-//   // if (!Initialized()) {
-//   //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-//   // }
+grpc::Status AgentService::SetEstimatorConfiguration(
+    grpc::ServerContext *context,
+    const agent::SetEstimatorConfigurationRequest *request,
+    agent::SetEstimatorConfigurationResponse *response)
+{
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
 
-//   // TODO(taylor): additional settings
-//   return grpc::Status::OK;
-// }
+  // set data
+  estimator_.configuration_.Set(request->configuration().data(),
+                                (int)(request->index()));
+
+  // TODO(taylor): additional settings
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatorConfiguration(
+    grpc::ServerContext *context,
+    const agent::GetEstimatorConfigurationRequest *request,
+    agent::GetEstimatorConfigurationResponse *response)
+{
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // get data
+  double* configuration =
+      estimator_.configuration_.Get((int)(request->index()));
+
+  // copy to response
+  for (int i = 0; i < estimator_.model_->nq; i++) {
+    response->add_configuration(configuration[i]);
+  }
+
+  // TODO(taylor): additional settings
+  return grpc::Status::OK;
+}
 
 
 }  // namespace agent_grpc

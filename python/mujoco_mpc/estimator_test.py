@@ -13,12 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
-import contextlib
-
 from absl.testing import absltest
-import grpc
 import mujoco
-from mujoco_mpc import agent as agent_lib
+from mujoco_mpc import estimator as agent_lib
 import numpy as np
 
 import pathlib

@@ -466,3 +466,57 @@ class Estimator:
                            index: int) -> npt.ArrayLike:
     request = agent_pb2.GetEstimatorDataRequest(index=index, force_prediction=True)
     return self.stub.GetEstimatorData(request).force_prediction
+  
+  def set_configuration_length(self,
+                               configuration_length: int):
+    request = agent_pb2.SetEstimatorSettingsRequest(configuration_length=configuration_length)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_configuration_length(self) -> int:
+    request = agent_pb2.GetEstimatorSettingsRequest(configuration_length=True)
+    return self.stub.GetEstimatorSettings(request).configuration_length
+  
+  def set_search_type(self,
+                      search_type: int):
+    request = agent_pb2.SetEstimatorSettingsRequest(search_type=search_type)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_search_type(self) -> int:
+    request = agent_pb2.GetEstimatorSettingsRequest(search_type=True)
+    return self.stub.GetEstimatorSettings(request).search_type
+  
+  def set_prior_flag(self,
+                     flag: bool):
+    request = agent_pb2.SetEstimatorSettingsRequest(prior_flag=flag)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_prior_flag(self) -> bool:
+    request = agent_pb2.GetEstimatorSettingsRequest(prior_flag=True)
+    return self.stub.GetEstimatorSettings(request).prior_flag
+  
+  def set_sensor_flag(self,
+                      flag: bool):
+    request = agent_pb2.SetEstimatorSettingsRequest(sensor_flag=flag)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_sensor_flag(self) -> bool:
+    request = agent_pb2.GetEstimatorSettingsRequest(sensor_flag=True)
+    return self.stub.GetEstimatorSettings(request).sensor_flag
+  
+  def set_force_flag(self,
+                     flag: bool):
+    request = agent_pb2.SetEstimatorSettingsRequest(force_flag=flag)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_force_flag(self) -> bool:
+    request = agent_pb2.GetEstimatorSettingsRequest(force_flag=True)
+    return self.stub.GetEstimatorSettings(request).force_flag
+  
+  def set_smoother_iterations(self,
+                              iterations: int):
+    request = agent_pb2.SetEstimatorSettingsRequest(smoother_iterations=iterations)
+    self.stub.SetEstimatorSettings(request)
+
+  def get_smoother_iterations(self) -> int:
+    request = agent_pb2.GetEstimatorSettingsRequest(smoother_iterations=True)
+    return self.stub.GetEstimatorSettings(request).smoother_iterations

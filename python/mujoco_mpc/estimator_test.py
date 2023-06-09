@@ -26,7 +26,7 @@ import pathlib
 
 class EstimatorTest(absltest.TestCase):
 
-  def test_get_set(self):
+  def test_get_set_data(self):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -160,6 +160,64 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertTrue(np.linalg.norm(force_prediction - out_force_prediction) < 1.0e-3)
+
+  def test_settings(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # initial configuration length 
+    self.assertTrue(configuration_length == estimator.get_configuration_length())
+
+    # get/set configuration length
+    in_configuration_length = 7
+    estimator.set_configuration_length(in_configuration_length)
+    out_configuration_length = estimator.get_configuration_length()
+    
+    self.assertTrue(in_configuration_length == out_configuration_length)
+
+    # get/set search type 
+    in_search_type = 1 
+    estimator.set_search_type(in_search_type) 
+    out_search_type = estimator.get_search_type()
+    
+    self.assertTrue(in_search_type == out_search_type)
+
+    # get/set prior flag 
+    in_prior_flag = False
+    estimator.set_prior_flag(in_prior_flag)
+    out_prior_flag = estimator.get_prior_flag()
+
+    self.assertTrue(in_prior_flag == out_prior_flag)
+
+    # get/set sensor flag 
+    in_sensor_flag = False
+    estimator.set_sensor_flag(in_sensor_flag)
+    out_sensor_flag = estimator.get_sensor_flag()
+
+    self.assertTrue(in_sensor_flag == out_sensor_flag)
+
+    # get/set force flag 
+    in_force_flag = False
+    estimator.set_force_flag(in_force_flag)
+    out_force_flag = estimator.get_force_flag()
+
+    self.assertTrue(in_force_flag == out_force_flag)
+
+    # get/set smoother iterations 
+    in_iterations = 25 
+    estimator.set_smoother_iterations(in_iterations)
+    out_iterations = estimator.get_smoother_iterations()
+
+    self.assertTrue(in_iterations == out_iterations)
+
 
 if __name__ == "__main__":
   absltest.main()

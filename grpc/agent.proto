@@ -49,6 +49,10 @@ service Agent {
   rpc SetEstimatorData(SetEstimatorDataRequest) returns (SetEstimatorDataResponse);
   // Get Estimator data
   rpc GetEstimatorData(GetEstimatorDataRequest) returns (GetEstimatorDataResponse);
+  // Set Estimator settings
+  rpc SetEstimatorSettings(SetEstimatorSettingsRequest) returns (SetEstimatorSettingsResponse);
+  // Get Estimator settings
+  rpc GetEstimatorSettings(GetEstimatorSettingsRequest) returns (GetEstimatorSettingsResponse);
 }
 
 message MjModel {
@@ -197,6 +201,35 @@ message GetEstimatorDataResponse {
   repeated double sensor_prediction = 8 [packed = true];
   repeated double force_measurement = 9 [packed = true];
   repeated double force_prediction = 10 [packed = true];
+}
+
+message SetEstimatorSettingsRequest {
+  optional int32 configuration_length = 1;
+  optional int32 search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional int32 smoother_iterations = 6;
+}
+
+message SetEstimatorSettingsResponse {}
+
+message GetEstimatorSettingsRequest {
+  optional bool configuration_length = 1;
+  optional bool search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional bool smoother_iterations = 6;
+}
+
+message GetEstimatorSettingsResponse {
+  optional int32 configuration_length = 1;
+  optional int32 search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional int32 smoother_iterations = 6;
 }
 
 

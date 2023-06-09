@@ -1815,6 +1815,9 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
             // recompute search direction
             SearchDirection();
             break;
+          default:
+            mju_error("Invalid search type.\n");
+            break;
         }
 
         // count

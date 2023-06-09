@@ -59,6 +59,10 @@ using ::agent::SetEstimatorDataRequest;
 using ::agent::SetEstimatorDataResponse;
 using ::agent::GetEstimatorDataRequest;
 using ::agent::GetEstimatorDataResponse;
+using ::agent::SetEstimatorSettingsRequest;
+using ::agent::SetEstimatorSettingsResponse;
+using ::agent::GetEstimatorSettingsRequest;
+using ::agent::GetEstimatorSettingsResponse;
 
 
 // task used to define desired behaviour
@@ -479,6 +483,117 @@ grpc::Status AgentService::GetEstimatorData(
     for (int i = 0; i < estimator_.model_->nv; i++) {
       response->add_force_prediction(force_prediction[i]);
     }
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::SetEstimatorSettings(
+    grpc::ServerContext *context,
+    const agent::SetEstimatorSettingsRequest *request,
+    agent::SetEstimatorSettingsResponse *response)
+{
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // configuration length
+  if (request->has_configuration_length()) {
+    // unpack
+    int configuration_length = (int)(request->configuration_length());
+
+    // check for valid length
+    if (configuration_length < 3) {
+      // TODO(taylor): warning/error?
+      return grpc::Status::CANCELLED;
+    }
+
+    // set
+    estimator_.configuration_length_ = configuration_length;
+  }
+
+  // search type 
+  if (request->has_search_type()) {
+    // unpack 
+    mjpc::SearchType search_type = (mjpc::SearchType)(request->search_type());
+
+    // check for valid search type 
+    if (search_type >= mjpc::kNumSearch) {
+      // TODO(taylor): warning/error?
+      return grpc::Status::CANCELLED;
+    }
+
+    // set 
+    estimator_.search_type_ = search_type;
+  }
+
+  // prior flag 
+  if (request->has_prior_flag()) 
+    estimator_.prior_flag_ = request->prior_flag();
+
+  // sensor flag 
+  if (request->has_sensor_flag()) 
+    estimator_.sensor_flag_ = request->sensor_flag();
+
+  // force flag 
+  if (request->has_force_flag()) 
+    estimator_.force_flag_ = request->force_flag();
+
+  // smoother iterations 
+  if (request->has_smoother_iterations()) {
+    // unpack 
+    int iterations = request->smoother_iterations();
+
+    // test valid 
+    if (iterations < 1) {
+      // TODO(taylor): warning/error ?
+      return grpc::Status::CANCELLED;
+    }
+
+    // set
+    estimator_.max_smoother_iterations_ = request->smoother_iterations();
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatorSettings(
+    grpc::ServerContext* context, const agent::GetEstimatorSettingsRequest* request,
+    agent::GetEstimatorSettingsResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // configuration length
+  if (request->has_configuration_length() &&
+      request->configuration_length() == true) {
+    response->set_configuration_length(estimator_.configuration_length_);
+  }
+
+  // search type
+  if (request->has_search_type() && request->search_type() == true) {
+    response->set_search_type(estimator_.search_type_);
+  }
+
+  // prior flag
+  if (request->has_prior_flag() && request->prior_flag() == true) {
+    response->set_prior_flag(estimator_.prior_flag_);
+  }
+
+  // sensor flag
+  if (request->has_sensor_flag() && request->sensor_flag() == true) {
+    response->set_sensor_flag(estimator_.sensor_flag_);
+  }
+
+  // force flag
+  if (request->has_force_flag() && request->force_flag() == true) {
+    response->set_force_flag(estimator_.force_flag_);
+  }
+
+  // smoother iterations
+  if (request->has_smoother_iterations() &&
+      request->smoother_iterations() == true) {
+    response->set_smoother_iterations(estimator_.max_smoother_iterations_);
   }
 
   return grpc::Status::OK;

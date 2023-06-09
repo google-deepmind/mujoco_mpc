@@ -36,6 +36,7 @@ const double MAX_ESTIMATOR_COST = 1.0e6; // maximum total cost
 enum SearchType : int {
   kLineSearch = 0,
   kCurveSearch,
+  kNumSearch,
 };
 
 // maximum / minimum regularization 

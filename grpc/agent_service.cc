@@ -63,6 +63,8 @@ using ::agent::SetEstimatorSettingsRequest;
 using ::agent::SetEstimatorSettingsResponse;
 using ::agent::GetEstimatorSettingsRequest;
 using ::agent::GetEstimatorSettingsResponse;
+using ::agent::GetEstimatorCostsRequest;
+using ::agent::GetEstimatorCostsResponse;
 
 
 // task used to define desired behaviour
@@ -594,6 +596,41 @@ grpc::Status AgentService::GetEstimatorSettings(
   if (request->has_smoother_iterations() &&
       request->smoother_iterations() == true) {
     response->set_smoother_iterations(estimator_.max_smoother_iterations_);
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatorCosts(
+    grpc::ServerContext* context, const agent::GetEstimatorCostsRequest* request,
+    agent::GetEstimatorCostsResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // cost 
+  if (request->has_cost() && request->cost() == true) {
+    response->set_cost(estimator_.cost_);
+  }
+
+  // prior cost 
+  if (request->has_prior() && request->prior() == true) {
+    response->set_prior(estimator_.cost_prior_);
+  }
+
+  // sensor cost 
+  if (request->has_sensor() && request->sensor() == true) {
+    response->set_sensor(estimator_.cost_sensor_);
+  }
+
+  // force cost 
+  if (request->has_force() && request->force() == true) {
+    response->set_force(estimator_.cost_force_);
+  }
+
+  // initial cost 
+  if (request->has_initial() && request->initial() == true) {
+    response->set_initial(estimator_.cost_initial_);
   }
 
   return grpc::Status::OK;

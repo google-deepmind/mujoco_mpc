@@ -218,6 +218,45 @@ class EstimatorTest(absltest.TestCase):
 
     self.assertTrue(in_iterations == out_iterations)
 
+  def test_costs(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # TODO(taylor): better tests 
+
+    # cost 
+    cost = estimator.get_cost() 
+
+    self.assertTrue(np.abs(cost - 0.0) < 1.0e-5)
+
+    # cost prior 
+    cost_prior = estimator.get_cost_prior() 
+
+    self.assertTrue(np.abs(cost_prior - 0.0) < 1.0e-5)
+
+    # cost sensor 
+    cost_sensor = estimator.get_cost_sensor() 
+
+    self.assertTrue(np.abs(cost_sensor - 0.0) < 1.0e-5)
+
+    # cost force
+    cost_force = estimator.get_cost_force() 
+
+    self.assertTrue(np.abs(cost_force - 0.0) < 1.0e-5)
+
+    # cost initial 
+    cost_initial = estimator.get_cost_initial() 
+
+    self.assertTrue(np.abs(cost_initial - 0.0) < 1.0e-5)
+
 
 if __name__ == "__main__":
   absltest.main()

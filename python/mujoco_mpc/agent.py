@@ -520,3 +520,23 @@ class Estimator:
   def get_smoother_iterations(self) -> int:
     request = agent_pb2.GetEstimatorSettingsRequest(smoother_iterations=True)
     return self.stub.GetEstimatorSettings(request).smoother_iterations
+  
+  def get_cost(self) -> float:
+    request = agent_pb2.GetEstimatorCostsRequest(cost=True)
+    return self.stub.GetEstimatorCosts(request).cost
+  
+  def get_cost_prior(self) -> float:
+    request = agent_pb2.GetEstimatorCostsRequest(prior=True)
+    return self.stub.GetEstimatorCosts(request).prior
+  
+  def get_cost_sensor(self) -> float:
+    request = agent_pb2.GetEstimatorCostsRequest(sensor=True)
+    return self.stub.GetEstimatorCosts(request).sensor
+  
+  def get_cost_force(self) -> float:
+    request = agent_pb2.GetEstimatorCostsRequest(force=True)
+    return self.stub.GetEstimatorCosts(request).force
+  
+  def get_cost_initial(self) -> float:
+    request = agent_pb2.GetEstimatorCostsRequest(initial=True)
+    return self.stub.GetEstimatorCosts(request).initial

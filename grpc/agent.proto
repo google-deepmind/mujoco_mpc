@@ -53,6 +53,8 @@ service Agent {
   rpc SetEstimatorSettings(SetEstimatorSettingsRequest) returns (SetEstimatorSettingsResponse);
   // Get Estimator settings
   rpc GetEstimatorSettings(GetEstimatorSettingsRequest) returns (GetEstimatorSettingsResponse);
+  // Get Estimator costs
+  rpc GetEstimatorCosts(GetEstimatorCostsRequest) returns (GetEstimatorCostsResponse);
 }
 
 message MjModel {
@@ -230,6 +232,22 @@ message GetEstimatorSettingsResponse {
   optional bool sensor_flag = 4;
   optional bool force_flag = 5;
   optional int32 smoother_iterations = 6;
+}
+
+message GetEstimatorCostsRequest {
+  optional bool cost = 1;
+  optional bool prior = 2;
+  optional bool sensor = 3;
+  optional bool force = 4;
+  optional bool initial = 5;
+}
+
+message GetEstimatorCostsResponse {
+  optional double cost = 1;
+  optional double prior = 2;
+  optional double sensor = 3;
+  optional double force = 4;
+  optional double initial = 5;
 }
 
 

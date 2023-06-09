@@ -540,3 +540,30 @@ class Estimator:
   def get_cost_initial(self) -> float:
     request = agent_pb2.GetEstimatorCostsRequest(initial=True)
     return self.stub.GetEstimatorCosts(request).initial
+  
+  def set_prior_weight(self,
+                       weight: float):
+    request = agent_pb2.SetEstimatorWeightsRequest(prior=weight)
+    self.stub.SetEstimatorWeights(request)
+
+  def get_prior_weight(self) -> float:
+    request = agent_pb2.GetEstimatorWeightsRequest(prior=True)
+    return self.stub.GetEstimatorWeights(request).prior
+  
+  def set_sensor_weight(self,
+                        weight: npt.ArrayLike):
+    request = agent_pb2.SetEstimatorWeightsRequest(sensor=weight)
+    self.stub.SetEstimatorWeights(request)
+
+  def get_sensor_weight(self) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorWeightsRequest(sensor=True)
+    return self.stub.GetEstimatorWeights(request).sensor
+  
+  def set_force_weight(self,
+                       weight: npt.ArrayLike):
+    request = agent_pb2.SetEstimatorWeightsRequest(force=weight)
+    self.stub.SetEstimatorWeights(request)
+
+  def get_force_weight(self) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorWeightsRequest(force=True)
+    return self.stub.GetEstimatorWeights(request).force

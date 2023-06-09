@@ -74,6 +74,7 @@ void EstimatorTrajectory::Set(const double* element, int index) {
 double* EstimatorTrajectory::Data() { return data_.data(); }
 
 // map index to data_ index
+// TODO(taylor): index beyond 2 * length
 int EstimatorTrajectory::IndexMap(int index) const {
   // out of bounds
   if (head_index_ >= length_)
@@ -93,6 +94,7 @@ int EstimatorTrajectory::IndexMap(int index) const {
 }
 
 // shift head_index_
+// TODO(taylor): shift beyond 2 * length
 void EstimatorTrajectory::ShiftHeadIndex(int shift) {
   // compute new head index
   int new_head = head_index_ + shift;

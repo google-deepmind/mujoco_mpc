@@ -636,4 +636,62 @@ grpc::Status AgentService::GetEstimatorCosts(
   return grpc::Status::OK;
 }
 
+grpc::Status AgentService::SetEstimatorWeights(
+    grpc::ServerContext *context,
+    const agent::SetEstimatorWeightsRequest *request,
+    agent::SetEstimatorWeightsResponse *response)
+{
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // prior 
+  if (request->has_prior()) {
+    estimator_.scale_prior_ = request->prior();
+  }
+
+  // sensor
+  int ns = estimator_.dim_sensor_;
+  if (request->sensor_size() == ns) {
+    mju_copy(estimator_.scale_sensor_.data(), request->sensor().data(), ns);
+  }
+
+  // force
+  int nv = estimator_.model_->nv;
+  if (request->force_size() == nv) {
+    mju_copy(estimator_.scale_force_.data(), request->force().data(), nv);
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatorWeights(
+    grpc::ServerContext* context, const agent::GetEstimatorWeightsRequest* request,
+    agent::GetEstimatorWeightsResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // prior 
+  if (request->has_prior() && request->prior() == true) {
+    response->set_prior(estimator_.scale_prior_);
+  }
+
+  // sensor 
+  if (request->has_sensor() && request->sensor() == true) {
+    for (int i = 0; i < estimator_.dim_sensor_; i++) {
+      response->add_sensor(estimator_.scale_sensor_[i]);
+    }
+  }
+
+  // force 
+  if (request->has_force() && request->force() == true) {
+    for (int i = 0; i < estimator_.model_->nv; i++) {
+      response->add_force(estimator_.scale_force_[i]);
+    }
+  }
+
+  return grpc::Status::OK;
+}
+
 }  // namespace agent_grpc

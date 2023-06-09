@@ -258,5 +258,38 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.abs(cost_initial - 0.0) < 1.0e-5)
 
 
+  def test_weights(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    ## prior 
+    in_prior_weight = 2.5 
+    estimator.set_prior_weight(in_prior_weight)
+    out_prior_weight = estimator.get_prior_weight()
+
+    self.assertTrue(np.abs(in_prior_weight - out_prior_weight) < 1.0e-5)
+
+    ## sensor 
+    in_sensor_weight = np.random.rand(model.nsensordata)
+    estimator.set_sensor_weight(in_sensor_weight)
+    out_sensor_weight = estimator.get_sensor_weight()
+
+    self.assertTrue(np.linalg.norm(in_sensor_weight - out_sensor_weight) < 1.0e-5)
+
+    ## force 
+    in_force_weight = np.random.rand(model.nv)
+    estimator.set_force_weight(in_force_weight)
+    out_force_weight = estimator.get_force_weight()
+
+    self.assertTrue(np.linalg.norm(in_force_weight - out_force_weight) < 1.0e-5)
+
 if __name__ == "__main__":
   absltest.main()

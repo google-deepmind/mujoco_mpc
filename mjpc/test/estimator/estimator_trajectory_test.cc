@@ -168,5 +168,7 @@ TEST(EstimatorTrajectory, Test) {
   EXPECT_EQ(trajectory.head_index_, 2);
 }
 
+// TODO(taylor): shift, index beyond 2 * length
+
 }  // namespace
 }  // namespace mjpc

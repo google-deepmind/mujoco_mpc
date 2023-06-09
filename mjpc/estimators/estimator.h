@@ -396,7 +396,7 @@ class Estimator {
   double regularization_initial_ = 1.0e-5;  // initial regularization
   double regularization_scaling_ = 10.0;    // regularization scaling
   bool band_copy_ = true;                   // copy band matrices by block
-  bool reuse_data_ = true;                  // flag for resuing data previously computed
+  bool reuse_data_ = false;                 // flag for resuing data previously computed
   bool update_prior_weight_ = true;         // flag for updating prior weights
   bool time_scaling_ = true;                // scale sensor and force costs by time step
 

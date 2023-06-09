@@ -55,6 +55,10 @@ service Agent {
   rpc GetEstimatorSettings(GetEstimatorSettingsRequest) returns (GetEstimatorSettingsResponse);
   // Get Estimator costs
   rpc GetEstimatorCosts(GetEstimatorCostsRequest) returns (GetEstimatorCostsResponse);
+  // Set Estimator weights
+  rpc SetEstimatorWeights(SetEstimatorWeightsRequest) returns (SetEstimatorWeightsResponse);
+  // Get Estimator weights
+  rpc GetEstimatorWeights(GetEstimatorWeightsRequest) returns (GetEstimatorWeightsResponse);
 }
 
 message MjModel {
@@ -250,4 +254,22 @@ message GetEstimatorCostsResponse {
   optional double initial = 5;
 }
 
+message SetEstimatorWeightsRequest {
+  optional double prior = 1;
+  repeated double sensor = 2 [packed = true];
+  repeated double force = 3 [packed = true];
+}
 
+message SetEstimatorWeightsResponse {}
+
+message GetEstimatorWeightsRequest {
+  optional bool prior = 1;
+  optional bool sensor = 2;
+  optional bool force = 3;
+}
+
+message GetEstimatorWeightsResponse {
+  optional double prior = 1;
+  repeated double sensor = 2 [packed = true];
+  repeated double force = 3 [packed = true];
+}

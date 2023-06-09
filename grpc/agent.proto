@@ -45,10 +45,10 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Initialize Estimator
   rpc InitEstimator(InitEstimatorRequest) returns (InitEstimatorResponse);
-  // Set Estimator configuration
-  rpc SetEstimatorConfiguration(SetEstimatorConfigurationRequest) returns (SetEstimatorConfigurationResponse);
-  // Get Estimator configuration
-  rpc GetEstimatorConfiguration(GetEstimatorConfigurationRequest) returns (GetEstimatorConfigurationResponse);
+  // Set Estimator data
+  rpc SetEstimatorData(SetEstimatorDataRequest) returns (SetEstimatorDataResponse);
+  // Get Estimator data
+  rpc GetEstimatorData(GetEstimatorDataRequest) returns (GetEstimatorDataResponse);
 }
 
 message MjModel {
@@ -156,19 +156,47 @@ message InitEstimatorRequest {
 
 message InitEstimatorResponse {}
 
-message SetEstimatorConfigurationRequest {
-  repeated double configuration = 1 [packed = true];
-  int32 index = 2;
-}
-
-message SetEstimatorConfigurationResponse {}
-
-message GetEstimatorConfigurationRequest {
+message SetEstimatorDataRequest {
   int32 index = 1;
+  repeated double configuration = 2 [packed = true];
+  repeated double velocity = 3 [packed = true];
+  repeated double acceleration = 4 [packed = true];
+  repeated double action = 5 [packed = true];
+  repeated double time = 6 [packed = true];
+  repeated double configuration_prior = 7 [packed = true];
+  repeated double sensor_measurement = 8 [packed = true];
+  repeated double sensor_prediction = 9 [packed = true];
+  repeated double force_measurement = 10 [packed = true];
+  repeated double force_prediction = 11 [packed = true];
 }
 
-message GetEstimatorConfigurationResponse {
+message SetEstimatorDataResponse {}
+
+message GetEstimatorDataRequest {
+  int32 index = 1;
+  optional bool configuration = 2;
+  optional bool velocity = 3;
+  optional bool acceleration = 4;
+  optional bool action = 5;
+  optional bool time = 6;
+  optional bool configuration_prior = 7;
+  optional bool sensor_measurement = 8;
+  optional bool sensor_prediction = 9;
+  optional bool force_measurement = 10;
+  optional bool force_prediction = 11;
+}
+
+message GetEstimatorDataResponse {
   repeated double configuration = 1 [packed = true];
+  repeated double velocity = 2 [packed = true];
+  repeated double acceleration = 3 [packed = true];
+  repeated double action = 4 [packed = true];
+  repeated double time = 5 [packed = true];
+  repeated double configuration_prior = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated double force_measurement = 9 [packed = true];
+  repeated double force_prediction = 10 [packed = true];
 }
 
 

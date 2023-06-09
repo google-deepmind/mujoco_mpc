@@ -138,26 +138,26 @@ void Estimator::Initialize(mjModel* model) {
   weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch_prior_weight_.resize(2 * nv * nv);
 
-  // sensor weights
+  // sensor scale
   // TODO(taylor): only grab measurement sensors
-  weight_sensor_.resize(model->nsensor);
+  scale_sensor_.resize(model->nsensor);
 
   // TODO(taylor): method for xml to initial weight
   for (int i = 0; i < model->nsensor; i++) {
-    weight_sensor_[i] =
+    scale_sensor_[i] =
         GetNumberOrDefault(1.0, model, "estimator_scale_sensor");
   }
 
-  // force weights
-  weight_force_.resize(4);
+  // force scale
+  scale_force_.resize(4);
 
-  weight_force_[0] =
+  scale_force_[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
-  weight_force_[1] =
+  scale_force_[1] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_ball");
-  weight_force_[2] =
+  scale_force_[2] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_slide");
-  weight_force_[3] =
+  scale_force_[3] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_hinge");
 
   // cost norms
@@ -721,7 +721,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       int nsi = model_->sensor_dim[i];
 
       // weight
-      double weight = weight_sensor_[i];
+      double weight = scale_sensor_[i];
 
       
 
@@ -1015,7 +1015,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
       }
 
       // weight
-      double weight = weight_force_[jnt_type];
+      double weight = scale_force_[jnt_type];
 
       // time scaling
       double timestep = model_->opt.timestep;
@@ -2242,8 +2242,8 @@ void Estimator::GetGUI() {
 
   // weights
   scale_prior_ = gui_scale_prior_;
-  weight_sensor_ = gui_weight_sensor_;          
-  weight_force_ = gui_weight_force_;
+  scale_sensor_ = gui_weight_sensor_;          
+  scale_force_ = gui_weight_force_;
 }
 
 // set terms to GUI

@@ -360,10 +360,109 @@ class Estimator:
   def set_configuration(self,
                         configuration: npt.ArrayLike,
                         index: int):
-    request = agent_pb2.SetEstimatorConfigurationRequest(configuration=configuration, index=index)
-    self.stub.SetEstimatorConfiguration(request)
+    request = agent_pb2.SetEstimatorDataRequest(configuration=configuration, index=index)
+    self.stub.SetEstimatorData(request)
 
   def get_configuration(self,
                         index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorConfigurationRequest(index=index)
-    return self.stub.GetEstimatorConfiguration(request).configuration
+    request = agent_pb2.GetEstimatorDataRequest(index=index, configuration=True)
+    return self.stub.GetEstimatorData(request).configuration
+  
+  def set_velocity(self,
+                   velocity: npt.ArrayLike,
+                   index: int):
+    request = agent_pb2.SetEstimatorDataRequest(velocity=velocity, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_velocity(self,
+                   index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, velocity=True)
+    return self.stub.GetEstimatorData(request).velocity
+  
+  def set_acceleration(self,
+                       acceleration: npt.ArrayLike,
+                       index: int):
+    request = agent_pb2.SetEstimatorDataRequest(acceleration=acceleration, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_acceleration(self,
+                       index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, acceleration=True)
+    return self.stub.GetEstimatorData(request).acceleration
+  
+  def set_action(self,
+                 action: npt.ArrayLike,
+                 index: int):
+    request = agent_pb2.SetEstimatorDataRequest(action=action, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_action(self,
+                 index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, action=True)
+    return self.stub.GetEstimatorData(request).action
+  
+  def set_time(self,
+               time: npt.ArrayLike,
+               index: int):
+    request = agent_pb2.SetEstimatorDataRequest(time=time, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_time(self,
+               index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, time=True)
+    return self.stub.GetEstimatorData(request).time
+  
+  def set_configuration_prior(self,
+                              configuration_prior: npt.ArrayLike,
+                              index: int):
+    request = agent_pb2.SetEstimatorDataRequest(configuration_prior=configuration_prior, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_configuration_prior(self,
+                              index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, configuration_prior=True)
+    return self.stub.GetEstimatorData(request).configuration_prior
+  
+  def set_sensor_measurement(self,
+                             sensor_measurement: npt.ArrayLike,
+                             index: int):
+    request = agent_pb2.SetEstimatorDataRequest(sensor_measurement=sensor_measurement, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_sensor_measurement(self,
+                             index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, sensor_measurement=True)
+    return self.stub.GetEstimatorData(request).sensor_measurement
+  
+  def set_sensor_prediction(self,
+                            sensor_prediction: npt.ArrayLike,
+                            index: int):
+    request = agent_pb2.SetEstimatorDataRequest(sensor_prediction=sensor_prediction, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_sensor_prediction(self,
+                            index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, sensor_prediction=True)
+    return self.stub.GetEstimatorData(request).sensor_prediction
+  
+  def set_force_measurement(self,
+                            force_measurement: npt.ArrayLike,
+                            index: int):
+    request = agent_pb2.SetEstimatorDataRequest(force_measurement=force_measurement, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_force_measurement(self,
+                            index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, force_measurement=True)
+    return self.stub.GetEstimatorData(request).force_measurement
+  
+  def set_force_prediction(self,
+                           force_prediction: npt.ArrayLike,
+                           index: int):
+    request = agent_pb2.SetEstimatorDataRequest(force_prediction=force_prediction, index=index)
+    self.stub.SetEstimatorData(request)
+
+  def get_force_prediction(self,
+                           index: int) -> npt.ArrayLike:
+    request = agent_pb2.GetEstimatorDataRequest(index=index, force_prediction=True)
+    return self.stub.GetEstimatorData(request).force_prediction

@@ -369,10 +369,10 @@ TEST(ForceCost, Particle) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_force_[0] = 0.0055;
-  estimator.weight_force_[1] = 0.0325;
-  estimator.weight_force_[2] = 0.00025;
-  estimator.weight_force_[3] = 0.125;
+  estimator.scale_force_[0] = 0.0055;
+  estimator.scale_force_[1] = 0.0325;
+  estimator.scale_force_[2] = 0.00025;
+  estimator.scale_force_[3] = 0.125;
 
   // norms
   estimator.norm_force_[0] = kQuadratic;
@@ -388,7 +388,7 @@ TEST(ForceCost, Particle) {
   auto cost_inverse_dynamics = [&qfrc_actuator = estimator.force_measurement_,
                                 &configuration_length =
                                     estimator.configuration_length_,
-                                &dim_res, &weight = estimator.weight_force_,
+                                &dim_res, &weight = estimator.scale_force_,
                                 &params = estimator.norm_parameters_force_,
                                 &norms = estimator.norm_force_, &model, &data,
                                 nq, nv](const double* configuration) {
@@ -575,10 +575,10 @@ TEST(ForceCost, Box) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_force_[0] = 0.00125;
-  estimator.weight_force_[1] = 0.0125;
-  estimator.weight_force_[2] = 0.000125;
-  estimator.weight_force_[3] = 0.125;
+  estimator.scale_force_[0] = 0.00125;
+  estimator.scale_force_[1] = 0.0125;
+  estimator.scale_force_[2] = 0.000125;
+  estimator.scale_force_[3] = 0.125;
 
   // norms
   estimator.norm_force_[0] = kQuadratic;
@@ -604,7 +604,7 @@ TEST(ForceCost, Box) {
   auto cost_inverse_dynamics =
       [&configuration = estimator.configuration_,
        &qfrc_actuator = estimator.force_measurement_, &configuration_length = T,
-       &model, &dim_res, &weight = estimator.weight_force_,
+       &model, &dim_res, &weight = estimator.scale_force_,
        &params = estimator.norm_parameters_force_,
        &norms = estimator.norm_force_, &data, nq, nv](const double* update) {
         // ----- integrate quaternion ----- //

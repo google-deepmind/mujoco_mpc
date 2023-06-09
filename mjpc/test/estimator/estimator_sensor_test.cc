@@ -385,10 +385,10 @@ TEST(MeasurementCost, Particle) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_sensor_[0] = 0.00125;
-  estimator.weight_sensor_[1] = 0.0125;
-  estimator.weight_sensor_[2] = 0.000125;
-  estimator.weight_sensor_[3] = 0.0125;
+  estimator.scale_sensor_[0] = 0.00125;
+  estimator.scale_sensor_[1] = 0.0125;
+  estimator.scale_sensor_[2] = 0.000125;
+  estimator.scale_sensor_[3] = 0.0125;
 
   // norms
   estimator.norm_sensor_[0] = kL22;
@@ -418,7 +418,7 @@ TEST(MeasurementCost, Particle) {
   auto cost_measurement =
       [&measurement = estimator.sensor_measurement_,
        &configuration_length = estimator.configuration_length_, &model, &data,
-       &dim_res, &weight = estimator.weight_sensor_,
+       &dim_res, &weight = estimator.scale_sensor_,
        &params = estimator.norm_parameters_sensor_,
        &norms = estimator.norm_sensor_, nq, nv](const double* configuration) {
         // velocity
@@ -607,12 +607,12 @@ TEST(MeasurementCost, Box) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_sensor_[0] = 0.00125;
-  estimator.weight_sensor_[1] = 0.0125;
-  estimator.weight_sensor_[2] = 0.000125;
-  estimator.weight_sensor_[3] = 0.125;
-  estimator.weight_sensor_[4] = 0.0825;
-  estimator.weight_sensor_[5] = 0.00355;
+  estimator.scale_sensor_[0] = 0.00125;
+  estimator.scale_sensor_[1] = 0.0125;
+  estimator.scale_sensor_[2] = 0.000125;
+  estimator.scale_sensor_[3] = 0.125;
+  estimator.scale_sensor_[4] = 0.0825;
+  estimator.scale_sensor_[5] = 0.00355;
 
   // norms
   estimator.norm_sensor_[0] = kQuadratic;
@@ -647,7 +647,7 @@ TEST(MeasurementCost, Box) {
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,
-                           &weight = estimator.weight_sensor_,
+                           &weight = estimator.scale_sensor_,
                            &params = estimator.norm_parameters_sensor_,
                            &norms = estimator.norm_sensor_,
                            &configuration_length = T, &model, &data, nq,

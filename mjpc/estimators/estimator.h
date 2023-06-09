@@ -293,11 +293,11 @@ class Estimator {
 
   double scale_prior_;
 
-  // sensor weights
-  std::vector<double> weight_sensor_;          // ns
+  // sensor scale
+  std::vector<double> scale_sensor_;           // ns
 
-  // force weights (free, ball, slide, hinge)
-  std::vector<double> weight_force_;           // 4
+  // force scale (free, ball, slide, hinge)
+  std::vector<double> scale_force_;            // 4
 
   // cost norms
   std::vector<NormType> norm_sensor_;          // ns

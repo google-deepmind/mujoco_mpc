@@ -55,10 +55,11 @@ using ::agent::StepRequest;
 using ::agent::StepResponse;
 using ::agent::InitEstimatorRequest;
 using ::agent::InitEstimatorResponse;
-using ::agent::SetEstimatorConfigurationRequest;
-using ::agent::SetEstimatorConfigurationResponse;
-using ::agent::GetEstimatorConfigurationRequest;
-using ::agent::GetEstimatorConfigurationResponse;
+using ::agent::SetEstimatorDataRequest;
+using ::agent::SetEstimatorDataResponse;
+using ::agent::GetEstimatorDataRequest;
+using ::agent::GetEstimatorDataResponse;
+
 
 // task used to define desired behaviour
 mjpc::Task* task = nullptr;
@@ -278,48 +279,209 @@ grpc::Status AgentService::InitEstimator(
   // set estimation horizon 
   estimator_.SetConfigurationLength(request->configuration_length());
 
-  // TODO(taylor): additional settings
   return grpc::Status::OK;
 }
 
-grpc::Status AgentService::SetEstimatorConfiguration(
+grpc::Status AgentService::SetEstimatorData(
     grpc::ServerContext *context,
-    const agent::SetEstimatorConfigurationRequest *request,
-    agent::SetEstimatorConfigurationResponse *response)
+    const agent::SetEstimatorDataRequest *request,
+    agent::SetEstimatorDataResponse *response)
 {
   // if (!Initialized()) {
   //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   // }
 
-  // set data
-  estimator_.configuration_.Set(request->configuration().data(),
-                                (int)(request->index()));
-
-  // TODO(taylor): additional settings
-  return grpc::Status::OK;
-}
-
-grpc::Status AgentService::GetEstimatorConfiguration(
-    grpc::ServerContext *context,
-    const agent::GetEstimatorConfigurationRequest *request,
-    agent::GetEstimatorConfigurationResponse *response)
-{
-  // if (!Initialized()) {
-  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  // }
-
-  // get data
-  double* configuration =
-      estimator_.configuration_.Get((int)(request->index()));
-
-  // copy to response
-  for (int i = 0; i < estimator_.model_->nq; i++) {
-    response->add_configuration(configuration[i]);
+  // valid index 
+  int index = (int)(request->index());
+  if (index < 0 || index >= estimator_.configuration_length_) {
+    // TODO(taylor): does this need a warning/error message or StatusCode?
+    return grpc::Status::CANCELLED;
   }
 
-  // TODO(taylor): additional settings
+  // set configuration
+  if (request->configuration_size() == estimator_.model_->nq) {
+    estimator_.configuration_.Set(request->configuration().data(), index);
+  }
+
+  // set velocity
+  if (request->velocity_size() == estimator_.model_->nv) {
+    estimator_.velocity_.Set(request->velocity().data(), index);
+  }
+
+  // set acceleration
+  if (request->acceleration_size() == estimator_.model_->nv) {
+    estimator_.acceleration_.Set(request->acceleration().data(), index);
+  }
+
+  // set action
+  if (request->action_size() == estimator_.model_->nu) {
+    estimator_.action_.Set(request->action().data(), index);
+  }
+
+  // set time
+  if (request->time_size() == 1) {
+    estimator_.time_.Set(request->time().data(), index);
+  }
+
+  // set configuration prior
+  if (request->configuration_prior_size() == estimator_.model_->nq) {
+    estimator_.configuration_prior_.Set(request->configuration_prior().data(),
+                                        index);
+  }
+
+  // set sensor measurement
+  if (request->sensor_measurement_size() == estimator_.dim_sensor_) {
+    estimator_.sensor_measurement_.Set(request->sensor_measurement().data(),
+                                       index);
+  }
+
+  // set sensor prediction
+  if (request->sensor_prediction_size() == estimator_.dim_sensor_) {
+    estimator_.sensor_prediction_.Set(request->sensor_prediction().data(),
+                                      index);
+  }
+
+  // set force measurement
+  if (request->force_measurement_size() == estimator_.model_->nv) {
+    estimator_.force_measurement_.Set(request->force_measurement().data(),
+                                      index);
+  }
+
+  // set force prediction
+  if (request->force_prediction_size() == estimator_.model_->nv) {
+    estimator_.force_prediction_.Set(request->force_prediction().data(), index);
+  }
+
   return grpc::Status::OK;
 }
 
+grpc::Status AgentService::GetEstimatorData(
+    grpc::ServerContext* context, const agent::GetEstimatorDataRequest* request,
+    agent::GetEstimatorDataResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // valid index
+  int index = (int)(request->index());
+  if (index < 0 || index >= estimator_.configuration_length_) {
+    // TODO(taylor): does this need a warning/error message or StatusCode?
+    return grpc::Status::CANCELLED;
+  }
+
+  // get configuration
+  if (request->has_configuration() && request->configuration() == true) {
+    // get data
+    double* configuration = estimator_.configuration_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nq; i++) {
+      response->add_configuration(configuration[i]);
+    }
+  }
+
+  // get velocity
+  if (request->has_velocity() && request->velocity() == true) {
+    // get data
+    double* velocity = estimator_.velocity_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nv; i++) {
+      response->add_velocity(velocity[i]);
+    }
+  }
+
+  // get acceleration
+  if (request->has_acceleration() && request->acceleration() == true) {
+    // get data
+    double* acceleration = estimator_.acceleration_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nv; i++) {
+      response->add_acceleration(acceleration[i]);
+    }
+  }
+
+  // get action
+  if (request->has_action() && request->action() == true) {
+    // get data
+    double* action = estimator_.action_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nu; i++) {
+      response->add_action(action[i]);
+    }
+  }
+
+  // get time
+  if (request->has_time() && request->time() == true) {
+    // get data
+    double* time = estimator_.time_.Get(index);
+
+    // copy to response
+    response->add_time(time[0]);
+  }
+
+  // get configuration prior
+  if (request->has_configuration_prior() &&
+      request->configuration_prior() == true) {
+    // get data
+    double* configuration_prior = estimator_.configuration_prior_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nq; i++) {
+      response->add_configuration_prior(configuration_prior[i]);
+    }
+  }
+
+  // get sensor measurement
+  if (request->has_sensor_measurement() &&
+      request->sensor_measurement() == true) {
+    // get data
+    double* sensor_measurement = estimator_.sensor_measurement_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.dim_sensor_; i++) {
+      response->add_sensor_measurement(sensor_measurement[i]);
+    }
+  }
+
+  // get sensor prediction
+  if (request->has_sensor_prediction() &&
+      request->sensor_prediction() == true) {
+    // get data
+    double* sensor_prediction = estimator_.sensor_prediction_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.dim_sensor_; i++) {
+      response->add_sensor_prediction(sensor_prediction[i]);
+    }
+  }
+
+  // get force measurement
+  if (request->has_force_measurement() &&
+      request->force_measurement() == true) {
+    // get data
+    double* force_measurement = estimator_.force_measurement_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nv; i++) {
+      response->add_force_measurement(force_measurement[i]);
+    }
+  }
+
+  // get force prediction
+  if (request->has_force_prediction() && request->force_prediction() == true) {
+    // get data
+    double* force_prediction = estimator_.force_prediction_.Get(index);
+
+    // copy to response
+    for (int i = 0; i < estimator_.model_->nv; i++) {
+      response->add_force_prediction(force_prediction[i]);
+    }
+  }
+
+  return grpc::Status::OK;
+}
 
 }  // namespace agent_grpc

@@ -140,7 +140,7 @@ class Estimator {
   void PriorWeightUpdate(ThreadPool& pool);
 
   // optimize trajectory estimate 
-  void Optimize(int num_new, ThreadPool& pool);
+  void Optimize(ThreadPool& pool);
 
   // regularize Hessian 
   void Regularize();
@@ -381,6 +381,7 @@ class Estimator {
   bool hessian_factor_ = false;             // prior reset status
   int cost_count_;
   int num_new_;                             // number of new elements
+  double gradient_norm_;                    // norm of cost gradient
   
   bool initialized_ = false;                // flag for initialization
   

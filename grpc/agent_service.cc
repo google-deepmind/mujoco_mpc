@@ -65,7 +65,18 @@ using ::agent::GetEstimatorSettingsRequest;
 using ::agent::GetEstimatorSettingsResponse;
 using ::agent::GetEstimatorCostsRequest;
 using ::agent::GetEstimatorCostsResponse;
-
+using ::agent::SetEstimatorWeightsRequest;
+using ::agent::SetEstimatorWeightsResponse;
+using ::agent::GetEstimatorWeightsRequest;
+using ::agent::GetEstimatorWeightsResponse;
+using ::agent::ShiftEstimatorTrajectoriesRequest;
+using ::agent::ShiftEstimatorTrajectoriesResponse;
+using ::agent::ResetEstimatorRequest;
+using ::agent::ResetEstimatorResponse;
+using ::agent::OptimizeEstimatorRequest;
+using ::agent::OptimizeEstimatorResponse;
+using ::agent::GetEstimatorStatusRequest;
+using ::agent::GetEstimatorStatusResponse;
 
 // task used to define desired behaviour
 mjpc::Task* task = nullptr;
@@ -689,6 +700,85 @@ grpc::Status AgentService::GetEstimatorWeights(
     for (int i = 0; i < estimator_.model_->nv; i++) {
       response->add_force(estimator_.scale_force_[i]);
     }
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::ShiftEstimatorTrajectories(
+    grpc::ServerContext* context, const agent::ShiftEstimatorTrajectoriesRequest* request,
+    agent::ShiftEstimatorTrajectoriesResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // shift
+  estimator_.ShiftTrajectoryHead(request->shift());
+
+  // get head index
+  response->set_head(estimator_.configuration_.head_index_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::ResetEstimator(
+    grpc::ServerContext* context, const agent::ResetEstimatorRequest* request,
+    agent::ResetEstimatorResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // reset
+  estimator_.Reset();
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::OptimizeEstimator(
+    grpc::ServerContext* context, const agent::OptimizeEstimatorRequest* request,
+    agent::OptimizeEstimatorResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // optimize
+  estimator_.Optimize(thread_pool_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status AgentService::GetEstimatorStatus(
+    grpc::ServerContext* context, const agent::GetEstimatorStatusRequest* request,
+    agent::GetEstimatorStatusResponse* response) {
+  // if (!Initialized()) {
+  //   return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  // }
+
+  // search iterations
+  if (request->has_search_iterations() &&
+      request->search_iterations() == true) {
+    response->set_search_iterations(estimator_.iterations_line_search_);
+  }
+
+  // smoother iterations
+  if (request->has_smoother_iterations() &&
+      request->smoother_iterations() == true) {
+    response->set_smoother_iterations(estimator_.iterations_smoother_);
+  }
+
+  // step size
+  if (request->has_step_size() && request->step_size() == true) {
+    response->set_step_size(estimator_.step_size_);
+  }
+
+  // regularization
+  if (request->has_regularization() && request->regularization() == true) {
+    response->set_regularization(estimator_.regularization_);
+  }
+
+  // gradient norm
+  if (request->has_gradient_norm() && request->gradient_norm() == true) {
+    response->set_gradient_norm(estimator_.gradient_norm_);
   }
 
   return grpc::Status::OK;

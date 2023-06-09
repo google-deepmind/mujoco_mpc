@@ -567,3 +567,36 @@ class Estimator:
   def get_force_weight(self) -> npt.ArrayLike:
     request = agent_pb2.GetEstimatorWeightsRequest(force=True)
     return self.stub.GetEstimatorWeights(request).force
+  
+  def shift_trajectory(self,
+                       shift: int) -> int:
+    request = agent_pb2.ShiftEstimatorTrajectoriesRequest(shift=shift)
+    return self.stub.ShiftEstimatorTrajectories(request).head
+  
+  def reset(self):
+    request = agent_pb2.ResetEstimatorRequest()
+    self.stub.ResetEstimator(request)
+
+  def optimize(self):
+    request = agent_pb2.OptimizeEstimatorRequest()
+    self.stub.OptimizeEstimator(request)
+
+  def search_iterations(self) -> int:
+    request = agent_pb2.GetEstimatorStatusRequest(search_iterations=True)
+    return self.stub.GetEstimatorStatus(request).search_iterations
+  
+  def smoother_iterations(self) -> int:
+    request = agent_pb2.GetEstimatorStatusRequest(smoother_iterations=True)
+    return self.stub.GetEstimatorStatus(request).smoother_iterations
+  
+  def step_size(self) -> float:
+    request = agent_pb2.GetEstimatorStatusRequest(step_size=True)
+    return self.stub.GetEstimatorStatus(request).step_size
+  
+  def regularization(self) -> float:
+    request = agent_pb2.GetEstimatorStatusRequest(regularization=True)
+    return self.stub.GetEstimatorStatus(request).regularization
+  
+  def gradient_norm(self) -> float:
+    request = agent_pb2.GetEstimatorStatusRequest(gradient_norm=True)
+    return self.stub.GetEstimatorStatus(request).gradient_norm

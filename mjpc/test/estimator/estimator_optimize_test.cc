@@ -126,7 +126,7 @@ TEST(BatchOptimize, Particle2D) {
   estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(estimator.configuration_length_, pool);
+  estimator.Optimize(pool);
 
   // error 
   std::vector<double> configuration_error(nq * T);
@@ -255,7 +255,7 @@ TEST(BatchOptimize, Box3D) {
   estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(estimator.configuration_length_, pool);
+  estimator.Optimize(pool);
 
   // error
   std::vector<double> configuration_error(nq * T);
@@ -392,8 +392,8 @@ TEST(BatchOptimize, Box3D) {
 
 //   // optimize
 //   estimator.band_copy_ = true;
-//   estimator.Optimize(estimator.configuration_length_, pool);
-//   estimator.Optimize(estimator.configuration_length_, pool);
+//   estimator.Optimize(pool);
+//   estimator.Optimize(pool);
 
 //   // error
 //   std::vector<double> configuration_error(nq * T);

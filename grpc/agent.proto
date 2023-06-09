@@ -59,6 +59,14 @@ service Agent {
   rpc SetEstimatorWeights(SetEstimatorWeightsRequest) returns (SetEstimatorWeightsResponse);
   // Get Estimator weights
   rpc GetEstimatorWeights(GetEstimatorWeightsRequest) returns (GetEstimatorWeightsResponse);
+  // Shift Estimator trajectories
+  rpc ShiftEstimatorTrajectories(ShiftEstimatorTrajectoriesRequest) returns (ShiftEstimatorTrajectoriesResponse);
+  // Reset Estimator
+  rpc ResetEstimator(ResetEstimatorRequest) returns (ResetEstimatorResponse);
+  // Optimize Estimator
+  rpc OptimizeEstimator(OptimizeEstimatorRequest) returns (OptimizeEstimatorResponse);
+  // Get Estimator status
+  rpc GetEstimatorStatus(GetEstimatorStatusRequest) returns (GetEstimatorStatusResponse);
 }
 
 message MjModel {
@@ -272,4 +280,36 @@ message GetEstimatorWeightsResponse {
   optional double prior = 1;
   repeated double sensor = 2 [packed = true];
   repeated double force = 3 [packed = true];
+}
+
+message ShiftEstimatorTrajectoriesRequest {
+  int32 shift = 1;
+}
+
+message ShiftEstimatorTrajectoriesResponse {
+  int32 head = 1;
+}
+
+message ResetEstimatorRequest {}
+
+message ResetEstimatorResponse {}
+
+message OptimizeEstimatorRequest {}
+
+message OptimizeEstimatorResponse {}
+
+message GetEstimatorStatusRequest {
+  optional bool search_iterations = 1;
+  optional bool smoother_iterations = 2;
+  optional bool step_size = 3;
+  optional bool regularization = 4;
+  optional bool gradient_norm = 5;
+}
+
+message GetEstimatorStatusResponse {
+  int32 search_iterations = 1;
+  int32 smoother_iterations = 2;
+  double step_size = 3;
+  double regularization = 4;
+  double gradient_norm = 5;
 }

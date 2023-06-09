@@ -291,5 +291,111 @@ class EstimatorTest(absltest.TestCase):
 
     self.assertTrue(np.linalg.norm(in_force_weight - out_force_weight) < 1.0e-5)
 
+  def test_shift(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # no shift
+    head = estimator.shift_trajectory(0)
+    self.assertTrue(head == 0) 
+
+    # shift 
+    shift = 1
+    head = estimator.shift_trajectory(shift)
+    self.assertTrue(head == 1) 
+
+    shift = 2 
+    head = estimator.shift_trajectory(shift)
+    self.assertTrue(head == 3)
+
+  def test_shift(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # set 
+    index = 1
+    configuration = np.random.rand(model.nq)
+    estimator.set_configuration(configuration, index)
+    sensor_measurement = np.random.rand(model.nsensordata)
+    estimator.set_sensor_measurement(sensor_measurement, index)
+
+    # check that elements are set
+    self.assertTrue(np.linalg.norm(estimator.get_configuration(index)) > 0.0)
+    self.assertTrue(np.linalg.norm(estimator.get_sensor_measurement(index)) > 0.0)
+
+    # reset 
+    estimator.reset()
+
+    # check that elements are reset to zero
+    self.assertTrue(np.linalg.norm(estimator.get_configuration(index)) < 1.0e-5)
+    self.assertTrue(np.linalg.norm(estimator.get_sensor_measurement(index)) < 1.0e-5)
+
+  def test_optimize(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # TODO(taylor): setup
+
+    # optimize
+    # estimator.optimize()
+
+  def test_status(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = agent_lib.Estimator(model=model, configuration_length=configuration_length)
+
+    # TODO(taylor): setup
+
+    # search iterations 
+    search_iterations = estimator.search_iterations()
+    self.assertTrue(search_iterations == 0)
+
+    # smoother iterations 
+    smoother_iterations = estimator.smoother_iterations()
+    self.assertTrue(smoother_iterations == 0)
+
+    # step size 
+    step_size = estimator.step_size()
+    self.assertTrue(np.abs(step_size - 1.0) < 1.0e-5)
+
+    # regularization 
+    regularization = estimator.regularization()
+    self.assertTrue(np.abs(regularization - 1.0e-5) < 1.0e-6)
+
+    # gradient norm 
+    gradient_norm = estimator.gradient_norm()
+    self.assertTrue(np.abs(gradient_norm) < 1.0e-3)
+
 if __name__ == "__main__":
   absltest.main()

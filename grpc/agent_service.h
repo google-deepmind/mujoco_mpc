@@ -132,6 +132,26 @@ class AgentService final : public agent::Agent::Service {
       const agent::GetEstimatorWeightsRequest* request,
       agent::GetEstimatorWeightsResponse* response) override;
 
+  grpc::Status ShiftEstimatorTrajectories(
+      grpc::ServerContext* context,
+      const agent::ShiftEstimatorTrajectoriesRequest* request,
+      agent::ShiftEstimatorTrajectoriesResponse* response) override;
+
+  grpc::Status ResetEstimator(
+      grpc::ServerContext* context,
+      const agent::ResetEstimatorRequest* request,
+      agent::ResetEstimatorResponse* response) override;
+
+  grpc::Status OptimizeEstimator(
+      grpc::ServerContext* context,
+      const agent::OptimizeEstimatorRequest* request,
+      agent::OptimizeEstimatorResponse* response) override;
+
+  grpc::Status GetEstimatorStatus(
+      grpc::ServerContext* context,
+      const agent::GetEstimatorStatusRequest* request,
+      agent::GetEstimatorStatusResponse* response) override;
+
  private:
   bool Initialized() const { return data_ != nullptr; }
 

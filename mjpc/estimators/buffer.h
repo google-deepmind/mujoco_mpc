@@ -24,6 +24,7 @@
 namespace mjpc {
 
 // buffer containing: sensor, ctrl, and time data
+// TODO(taylor): sensor mask (bool)
 class Buffer {
  public:
   // constructor

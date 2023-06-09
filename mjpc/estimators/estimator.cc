@@ -226,6 +226,7 @@ void Estimator::Initialize(mjModel* model) {
   // status
   hessian_factor_ = false;
   num_new_ = configuration_length_;
+  gradient_norm_ = 0.0;
 
   // state index
   state_index_ = configuration_length_ - 1;
@@ -300,6 +301,8 @@ void Estimator::SetConfigurationLength(int length) {
   // status
   num_new_ = configuration_length_;
   initialized_ = false;
+  step_size_ = 1.0;
+  gradient_norm_ = 0.0;
 }
 
 // shift trajectory heads
@@ -1641,12 +1644,9 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
 }
 
 // optimize trajectory estimate
-void Estimator::Optimize(int num_new, ThreadPool& pool) {
+void Estimator::Optimize(ThreadPool& pool) {
   // start timer
   auto start_optimize = std::chrono::steady_clock::now();
-
-  // set num_new_
-  num_new_ = num_new;
 
   // dimensions
   int nconfig = model_->nq * configuration_length_;
@@ -1756,8 +1756,8 @@ void Estimator::Optimize(int num_new, ThreadPool& pool) {
     CostGradient();
 
     // gradient tolerance check
-    double gradient_norm = mju_norm(gradient, nvar) / nvar;
-    if (gradient_norm < gradient_tolerance_) {
+    gradient_norm_ = mju_norm(gradient, nvar) / nvar;
+    if (gradient_norm_ < gradient_tolerance_) {
       break;
     }
 
@@ -2222,15 +2222,15 @@ int Estimator::UpdateTrajectories(const EstimatorTrajectory& measurement,
 // update
 void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   if (buffer.Length() >= configuration_length_ - 1) {
-    int num_new = configuration_length_;
+    num_new_ = configuration_length_;
     if (!initialized_) {
       InitializeTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
       initialized_ = true;
     } else {
-      num_new = UpdateTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
     }
     // optimize
-    Optimize(num_new, pool);
+    Optimize(pool);
   }
 }
 

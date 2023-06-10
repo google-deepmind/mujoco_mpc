@@ -26,7 +26,6 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
-#include "mjpc/estimators/estimator.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -92,66 +91,6 @@ class AgentService final : public agent::Agent::Service {
       const agent::GetModeRequest* request,
       agent::GetModeResponse* response) override;
 
-  grpc::Status InitEstimator(
-      grpc::ServerContext* context,
-      const agent::InitEstimatorRequest* request,
-      agent::InitEstimatorResponse* response) override;
-
-  grpc::Status SetEstimatorData(
-      grpc::ServerContext* context,
-      const agent::SetEstimatorDataRequest* request,
-      agent::SetEstimatorDataResponse* response) override;
-
-  grpc::Status GetEstimatorData(
-      grpc::ServerContext* context,
-      const agent::GetEstimatorDataRequest* request,
-      agent::GetEstimatorDataResponse* response) override;
-
-  grpc::Status SetEstimatorSettings(
-      grpc::ServerContext* context,
-      const agent::SetEstimatorSettingsRequest* request,
-      agent::SetEstimatorSettingsResponse* response) override;
-
-  grpc::Status GetEstimatorSettings(
-      grpc::ServerContext* context,
-      const agent::GetEstimatorSettingsRequest* request,
-      agent::GetEstimatorSettingsResponse* response) override;
-
-  grpc::Status GetEstimatorCosts(
-      grpc::ServerContext* context,
-      const agent::GetEstimatorCostsRequest* request,
-      agent::GetEstimatorCostsResponse* response) override;
-
-  grpc::Status SetEstimatorWeights(
-      grpc::ServerContext* context,
-      const agent::SetEstimatorWeightsRequest* request,
-      agent::SetEstimatorWeightsResponse* response) override;
-
-  grpc::Status GetEstimatorWeights(
-      grpc::ServerContext* context,
-      const agent::GetEstimatorWeightsRequest* request,
-      agent::GetEstimatorWeightsResponse* response) override;
-
-  grpc::Status ShiftEstimatorTrajectories(
-      grpc::ServerContext* context,
-      const agent::ShiftEstimatorTrajectoriesRequest* request,
-      agent::ShiftEstimatorTrajectoriesResponse* response) override;
-
-  grpc::Status ResetEstimator(
-      grpc::ServerContext* context,
-      const agent::ResetEstimatorRequest* request,
-      agent::ResetEstimatorResponse* response) override;
-
-  grpc::Status OptimizeEstimator(
-      grpc::ServerContext* context,
-      const agent::OptimizeEstimatorRequest* request,
-      agent::OptimizeEstimatorResponse* response) override;
-
-  grpc::Status GetEstimatorStatus(
-      grpc::ServerContext* context,
-      const agent::GetEstimatorStatusRequest* request,
-      agent::GetEstimatorStatusResponse* response) override;
-
  private:
   bool Initialized() const { return data_ != nullptr; }
 
@@ -159,10 +98,6 @@ class AgentService final : public agent::Agent::Service {
   mjpc::Agent agent_;
   std::vector<std::shared_ptr<mjpc::Task>> tasks_;
   mjData* data_ = nullptr;
-
-  // estimator
-  mjpc::Estimator estimator_;
-  mjpc::UniqueMjModel estimator_model_override_ = {nullptr, mj_deleteModel};
 };
 
 }  // namespace agent_grpc

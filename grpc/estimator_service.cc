@@ -23,7 +23,6 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "grpc/estimator.pb.h"
-// #include "grpc_agent_util.h"
 #include "mjpc/estimators/estimator.h"
 
 namespace estimator_grpc {

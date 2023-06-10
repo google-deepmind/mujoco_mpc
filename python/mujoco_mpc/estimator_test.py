@@ -15,7 +15,7 @@
 
 from absl.testing import absltest
 import mujoco
-from mujoco_mpc import estimator as agent_lib
+from mujoco_mpc import estimator as estimator_lib
 import numpy as np
 
 import pathlib
@@ -33,7 +33,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -174,7 +174,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -233,7 +233,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -274,7 +274,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -309,7 +309,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -336,7 +336,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -368,7 +368,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -387,7 +387,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    estimator = agent_lib.Estimator(
+    estimator = estimator_lib.Estimator(
         model=model, configuration_length=configuration_length
     )
 

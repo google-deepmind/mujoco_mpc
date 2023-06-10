@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Python interface for the to interface with MuJoCo MPC agents."""
+"""Python interface for the to interface with Estimator."""
 
 import atexit
 import pathlib
@@ -28,8 +28,8 @@ from numpy import typing as npt
 from utilities import find_free_port
 
 # INTERNAL IMPORT
-from mujoco_mpc.proto import agent_pb2
-from mujoco_mpc.proto import agent_pb2_grpc
+from mujoco_mpc.proto import estimator_pb2
+from mujoco_mpc.proto import estimator_pb2_grpc
 
 
 class Estimator:
@@ -50,7 +50,7 @@ class Estimator:
   ):
 
     if server_binary_path is None:
-      binary_name = "agent_server"
+      binary_name = "estimator_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
@@ -61,7 +61,7 @@ class Estimator:
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
-    self.stub = agent_pb2_grpc.AgentStub(self.channel)
+    self.stub = estimator_pb2_grpc.EstimatorStub(self.channel)
     self.init(
         model,
         configuration_length,
@@ -97,231 +97,231 @@ class Estimator:
       return xml_string
 
     if model is not None:
-      model_message = agent_pb2.MjModel(xml=model_to_xml(model))
+      model_message = estimator_pb2.MjModel(xml=model_to_xml(model))
     else:
       print("Failed to find xml.")
       model_message = None
 
-    init_request = agent_pb2.InitEstimatorRequest(
+    init_request = estimator_pb2.InitRequest(
         model=model_message,
         configuration_length=configuration_length,
     )
-    self.stub.InitEstimator(init_request)
+    self.stub.Init(init_request)
 
   def set_configuration(self, configuration: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         configuration=configuration, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_configuration(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, configuration=True)
-    return self.stub.GetEstimatorData(request).configuration
+    request = estimator_pb2.GetDataRequest(index=index, configuration=True)
+    return self.stub.GetData(request).configuration
 
   def set_velocity(self, velocity: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(velocity=velocity, index=index)
-    self.stub.SetEstimatorData(request)
+    request = estimator_pb2.SetDataRequest(velocity=velocity, index=index)
+    self.stub.SetData(request)
 
   def get_velocity(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, velocity=True)
-    return self.stub.GetEstimatorData(request).velocity
+    request = estimator_pb2.GetDataRequest(index=index, velocity=True)
+    return self.stub.GetData(request).velocity
 
   def set_acceleration(self, acceleration: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(acceleration=acceleration, index=index)
-    self.stub.SetEstimatorData(request)
+    request = estimator_pb2.SetDataRequest(acceleration=acceleration, index=index)
+    self.stub.SetData(request)
 
   def get_acceleration(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, acceleration=True)
-    return self.stub.GetEstimatorData(request).acceleration
+    request = estimator_pb2.GetDataRequest(index=index, acceleration=True)
+    return self.stub.GetData(request).acceleration
 
   def set_action(self, action: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(action=action, index=index)
-    self.stub.SetEstimatorData(request)
+    request = estimator_pb2.SetDataRequest(action=action, index=index)
+    self.stub.SetData(request)
 
   def get_action(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, action=True)
-    return self.stub.GetEstimatorData(request).action
+    request = estimator_pb2.GetDataRequest(index=index, action=True)
+    return self.stub.GetData(request).action
 
   def set_time(self, time: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(time=time, index=index)
-    self.stub.SetEstimatorData(request)
+    request = estimator_pb2.SetDataRequest(time=time, index=index)
+    self.stub.SetData(request)
 
   def get_time(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, time=True)
-    return self.stub.GetEstimatorData(request).time
+    request = estimator_pb2.GetDataRequest(index=index, time=True)
+    return self.stub.GetData(request).time
 
   def set_configuration_prior(self, configuration_prior: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         configuration_prior=configuration_prior, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_configuration_prior(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, configuration_prior=True)
-    return self.stub.GetEstimatorData(request).configuration_prior
+    request = estimator_pb2.GetDataRequest(index=index, configuration_prior=True)
+    return self.stub.GetData(request).configuration_prior
 
   def set_sensor_measurement(self, sensor_measurement: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         sensor_measurement=sensor_measurement, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_sensor_measurement(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, sensor_measurement=True)
-    return self.stub.GetEstimatorData(request).sensor_measurement
+    request = estimator_pb2.GetDataRequest(index=index, sensor_measurement=True)
+    return self.stub.GetData(request).sensor_measurement
 
   def set_sensor_prediction(self, sensor_prediction: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         sensor_prediction=sensor_prediction, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_sensor_prediction(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, sensor_prediction=True)
-    return self.stub.GetEstimatorData(request).sensor_prediction
+    request = estimator_pb2.GetDataRequest(index=index, sensor_prediction=True)
+    return self.stub.GetData(request).sensor_prediction
 
   def set_force_measurement(self, force_measurement: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         force_measurement=force_measurement, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_force_measurement(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, force_measurement=True)
-    return self.stub.GetEstimatorData(request).force_measurement
+    request = estimator_pb2.GetDataRequest(index=index, force_measurement=True)
+    return self.stub.GetData(request).force_measurement
 
   def set_force_prediction(self, force_prediction: npt.ArrayLike, index: int):
-    request = agent_pb2.SetEstimatorDataRequest(
+    request = estimator_pb2.SetDataRequest(
         force_prediction=force_prediction, index=index
     )
-    self.stub.SetEstimatorData(request)
+    self.stub.SetData(request)
 
   def get_force_prediction(self, index: int) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorDataRequest(index=index, force_prediction=True)
-    return self.stub.GetEstimatorData(request).force_prediction
+    request = estimator_pb2.GetDataRequest(index=index, force_prediction=True)
+    return self.stub.GetData(request).force_prediction
 
   def set_configuration_length(self, configuration_length: int):
-    request = agent_pb2.SetEstimatorSettingsRequest(
+    request = estimator_pb2.SetSettingsRequest(
         configuration_length=configuration_length
     )
-    self.stub.SetEstimatorSettings(request)
+    self.stub.SetSettings(request)
 
   def get_configuration_length(self) -> int:
-    request = agent_pb2.GetEstimatorSettingsRequest(configuration_length=True)
-    return self.stub.GetEstimatorSettings(request).configuration_length
+    request = estimator_pb2.GetSettingsRequest(configuration_length=True)
+    return self.stub.GetSettings(request).configuration_length
 
   def set_search_type(self, search_type: int):
-    request = agent_pb2.SetEstimatorSettingsRequest(search_type=search_type)
-    self.stub.SetEstimatorSettings(request)
+    request = estimator_pb2.SetSettingsRequest(search_type=search_type)
+    self.stub.SetSettings(request)
 
   def get_search_type(self) -> int:
-    request = agent_pb2.GetEstimatorSettingsRequest(search_type=True)
-    return self.stub.GetEstimatorSettings(request).search_type
+    request = estimator_pb2.GetSettingsRequest(search_type=True)
+    return self.stub.GetSettings(request).search_type
 
   def set_prior_flag(self, flag: bool):
-    request = agent_pb2.SetEstimatorSettingsRequest(prior_flag=flag)
-    self.stub.SetEstimatorSettings(request)
+    request = estimator_pb2.SetSettingsRequest(prior_flag=flag)
+    self.stub.SetSettings(request)
 
   def get_prior_flag(self) -> bool:
-    request = agent_pb2.GetEstimatorSettingsRequest(prior_flag=True)
-    return self.stub.GetEstimatorSettings(request).prior_flag
+    request = estimator_pb2.GetSettingsRequest(prior_flag=True)
+    return self.stub.GetSettings(request).prior_flag
 
   def set_sensor_flag(self, flag: bool):
-    request = agent_pb2.SetEstimatorSettingsRequest(sensor_flag=flag)
-    self.stub.SetEstimatorSettings(request)
+    request = estimator_pb2.SetSettingsRequest(sensor_flag=flag)
+    self.stub.SetSettings(request)
 
   def get_sensor_flag(self) -> bool:
-    request = agent_pb2.GetEstimatorSettingsRequest(sensor_flag=True)
-    return self.stub.GetEstimatorSettings(request).sensor_flag
+    request = estimator_pb2.GetSettingsRequest(sensor_flag=True)
+    return self.stub.GetSettings(request).sensor_flag
 
   def set_force_flag(self, flag: bool):
-    request = agent_pb2.SetEstimatorSettingsRequest(force_flag=flag)
-    self.stub.SetEstimatorSettings(request)
+    request = estimator_pb2.SetSettingsRequest(force_flag=flag)
+    self.stub.SetSettings(request)
 
   def get_force_flag(self) -> bool:
-    request = agent_pb2.GetEstimatorSettingsRequest(force_flag=True)
-    return self.stub.GetEstimatorSettings(request).force_flag
+    request = estimator_pb2.GetSettingsRequest(force_flag=True)
+    return self.stub.GetSettings(request).force_flag
 
   def set_smoother_iterations(self, iterations: int):
-    request = agent_pb2.SetEstimatorSettingsRequest(smoother_iterations=iterations)
-    self.stub.SetEstimatorSettings(request)
+    request = estimator_pb2.SetSettingsRequest(smoother_iterations=iterations)
+    self.stub.SetSettings(request)
 
   def get_smoother_iterations(self) -> int:
-    request = agent_pb2.GetEstimatorSettingsRequest(smoother_iterations=True)
-    return self.stub.GetEstimatorSettings(request).smoother_iterations
+    request = estimator_pb2.GetSettingsRequest(smoother_iterations=True)
+    return self.stub.GetSettings(request).smoother_iterations
 
   def get_cost(self) -> float:
-    request = agent_pb2.GetEstimatorCostsRequest(cost=True)
-    return self.stub.GetEstimatorCosts(request).cost
+    request = estimator_pb2.GetCostsRequest(cost=True)
+    return self.stub.GetCosts(request).cost
 
   def get_cost_prior(self) -> float:
-    request = agent_pb2.GetEstimatorCostsRequest(prior=True)
-    return self.stub.GetEstimatorCosts(request).prior
+    request = estimator_pb2.GetCostsRequest(prior=True)
+    return self.stub.GetCosts(request).prior
 
   def get_cost_sensor(self) -> float:
-    request = agent_pb2.GetEstimatorCostsRequest(sensor=True)
-    return self.stub.GetEstimatorCosts(request).sensor
+    request = estimator_pb2.GetCostsRequest(sensor=True)
+    return self.stub.GetCosts(request).sensor
 
   def get_cost_force(self) -> float:
-    request = agent_pb2.GetEstimatorCostsRequest(force=True)
-    return self.stub.GetEstimatorCosts(request).force
+    request = estimator_pb2.GetCostsRequest(force=True)
+    return self.stub.GetCosts(request).force
 
   def get_cost_initial(self) -> float:
-    request = agent_pb2.GetEstimatorCostsRequest(initial=True)
-    return self.stub.GetEstimatorCosts(request).initial
+    request = estimator_pb2.GetCostsRequest(initial=True)
+    return self.stub.GetCosts(request).initial
 
   def set_prior_weight(self, weight: float):
-    request = agent_pb2.SetEstimatorWeightsRequest(prior=weight)
-    self.stub.SetEstimatorWeights(request)
+    request = estimator_pb2.SetWeightsRequest(prior=weight)
+    self.stub.SetWeights(request)
 
   def get_prior_weight(self) -> float:
-    request = agent_pb2.GetEstimatorWeightsRequest(prior=True)
-    return self.stub.GetEstimatorWeights(request).prior
+    request = estimator_pb2.GetWeightsRequest(prior=True)
+    return self.stub.GetWeights(request).prior
 
   def set_sensor_weight(self, weight: npt.ArrayLike):
-    request = agent_pb2.SetEstimatorWeightsRequest(sensor=weight)
-    self.stub.SetEstimatorWeights(request)
+    request = estimator_pb2.SetWeightsRequest(sensor=weight)
+    self.stub.SetWeights(request)
 
   def get_sensor_weight(self) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorWeightsRequest(sensor=True)
-    return self.stub.GetEstimatorWeights(request).sensor
+    request = estimator_pb2.GetWeightsRequest(sensor=True)
+    return self.stub.GetWeights(request).sensor
 
   def set_force_weight(self, weight: npt.ArrayLike):
-    request = agent_pb2.SetEstimatorWeightsRequest(force=weight)
-    self.stub.SetEstimatorWeights(request)
+    request = estimator_pb2.SetWeightsRequest(force=weight)
+    self.stub.SetWeights(request)
 
   def get_force_weight(self) -> npt.ArrayLike:
-    request = agent_pb2.GetEstimatorWeightsRequest(force=True)
-    return self.stub.GetEstimatorWeights(request).force
+    request = estimator_pb2.GetWeightsRequest(force=True)
+    return self.stub.GetWeights(request).force
 
   def shift_trajectory(self, shift: int) -> int:
-    request = agent_pb2.ShiftEstimatorTrajectoriesRequest(shift=shift)
-    return self.stub.ShiftEstimatorTrajectories(request).head
+    request = estimator_pb2.ShiftTrajectoriesRequest(shift=shift)
+    return self.stub.ShiftTrajectories(request).head
 
   def reset(self):
-    request = agent_pb2.ResetEstimatorRequest()
-    self.stub.ResetEstimator(request)
+    request = estimator_pb2.ResetRequest()
+    self.stub.Reset(request)
 
   def optimize(self):
-    request = agent_pb2.OptimizeEstimatorRequest()
-    self.stub.OptimizeEstimator(request)
+    request = estimator_pb2.OptimizeRequest()
+    self.stub.Optimize(request)
 
   def search_iterations(self) -> int:
-    request = agent_pb2.GetEstimatorStatusRequest(search_iterations=True)
-    return self.stub.GetEstimatorStatus(request).search_iterations
+    request = estimator_pb2.GetStatusRequest(search_iterations=True)
+    return self.stub.GetStatus(request).search_iterations
 
   def smoother_iterations(self) -> int:
-    request = agent_pb2.GetEstimatorStatusRequest(smoother_iterations=True)
-    return self.stub.GetEstimatorStatus(request).smoother_iterations
+    request = estimator_pb2.GetStatusRequest(smoother_iterations=True)
+    return self.stub.GetStatus(request).smoother_iterations
 
   def step_size(self) -> float:
-    request = agent_pb2.GetEstimatorStatusRequest(step_size=True)
-    return self.stub.GetEstimatorStatus(request).step_size
+    request = estimator_pb2.GetStatusRequest(step_size=True)
+    return self.stub.GetStatus(request).step_size
 
   def regularization(self) -> float:
-    request = agent_pb2.GetEstimatorStatusRequest(regularization=True)
-    return self.stub.GetEstimatorStatus(request).regularization
+    request = estimator_pb2.GetStatusRequest(regularization=True)
+    return self.stub.GetStatus(request).regularization
 
   def gradient_norm(self) -> float:
-    request = agent_pb2.GetEstimatorStatusRequest(gradient_norm=True)
-    return self.stub.GetEstimatorStatus(request).gradient_norm
+    request = estimator_pb2.GetStatusRequest(gradient_norm=True)
+    return self.stub.GetStatus(request).gradient_norm

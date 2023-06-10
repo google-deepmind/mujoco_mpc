@@ -16,6 +16,7 @@
 
 #include <mujoco/mujoco.h>
 
+#include <cstring>
 #include <vector>
 
 namespace mjpc {
@@ -67,7 +68,8 @@ void EstimatorTrajectory::Set(const double* element, int index) {
   double* data_element = data_.data() + dim_ * map_index;
 
   // set element
-  mju_copy(data_element, element, dim_);
+  // mju_copy(data_element, element, dim_);
+  std::memcpy(data_element, element, dim_ * sizeof(double));
 }
 
 // get all data
@@ -89,7 +91,7 @@ int EstimatorTrajectory::IndexMap(int index) const {
   if (map < length_) {  // valid map
     return map;
   } else {  // corrected map
-    return map - length_;
+    return map % length_;
   }
 }
 
@@ -102,7 +104,7 @@ void EstimatorTrajectory::ShiftHeadIndex(int shift) {
   if (new_head < length_) {  // valid head
     head_index_ = new_head;
   } else {
-    head_index_ = new_head - length_;  // corrected head
+    head_index_ = new_head % length_;  // corrected head
   }
 }
 

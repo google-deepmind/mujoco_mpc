@@ -166,9 +166,19 @@ TEST(EstimatorTrajectory, Test) {
   // shift by 2
   trajectory.ShiftHeadIndex(2);
   EXPECT_EQ(trajectory.head_index_, 2);
-}
 
-// TODO(taylor): shift, index beyond 2 * length
+  // shift by length
+  trajectory.ShiftHeadIndex(length);
+  EXPECT_EQ(trajectory.head_index_, 2);
+
+  // shift by 2 * length
+  trajectory.ShiftHeadIndex(2 * length);
+  EXPECT_EQ(trajectory.head_index_, 2);
+
+  // shift by 2 * length + 1
+  trajectory.ShiftHeadIndex(2 * length + 1);
+  EXPECT_EQ(trajectory.head_index_, 0);
+}
 
 }  // namespace
 }  // namespace mjpc

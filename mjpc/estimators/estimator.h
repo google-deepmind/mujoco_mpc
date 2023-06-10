@@ -48,7 +48,11 @@ const double MIN_REGULARIZATION = 1.0e-6;
 class Estimator {
  public:
   // constructor
-  Estimator() {}
+  Estimator() = default;
+  Estimator(mjModel* model, int length) {
+    Initialize(model);
+    SetConfigurationLength(length);
+  }
 
   // destructor
   ~Estimator() {}

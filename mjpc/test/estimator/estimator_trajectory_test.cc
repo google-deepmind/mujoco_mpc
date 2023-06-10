@@ -29,7 +29,7 @@ TEST(EstimatorTrajectory, Test) {
   int length = 3;
 
   // trajectory
-  EstimatorTrajectory trajectory;
+  EstimatorTrajectory<double> trajectory;
 
   // initialize
   trajectory.Initialize(dim, length);

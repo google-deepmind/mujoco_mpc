@@ -49,13 +49,13 @@ TEST(BatchShift, Particle2D) {
 
   // trajectories
   int horizon_buffer = 20;
-  EstimatorTrajectory qpos_buffer(nq, horizon_buffer + 1);
-  EstimatorTrajectory qvel_buffer(nv, horizon_buffer + 1);
-  EstimatorTrajectory qacc_buffer(nv, horizon_buffer);
-  EstimatorTrajectory ctrl_buffer(nu, horizon_buffer);
-  EstimatorTrajectory qfrc_actuator_buffer(nv, horizon_buffer);
-  EstimatorTrajectory sensor_buffer(ns, horizon_buffer + 1);
-  EstimatorTrajectory time_buffer(1, horizon_buffer + 1);
+  EstimatorTrajectory<double> qpos_buffer(nq, horizon_buffer + 1);
+  EstimatorTrajectory<double> qvel_buffer(nv, horizon_buffer + 1);
+  EstimatorTrajectory<double> qacc_buffer(nv, horizon_buffer);
+  EstimatorTrajectory<double> ctrl_buffer(nu, horizon_buffer);
+  EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
+  EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
+  EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
   mj_resetData(model, data);
@@ -191,13 +191,13 @@ TEST(BatchReuse, Particle2D) {
 
   // trajectories
   int horizon_buffer = 25;
-  EstimatorTrajectory qpos_buffer(nq, horizon_buffer + 1);
-  EstimatorTrajectory qvel_buffer(nv, horizon_buffer + 1);
-  EstimatorTrajectory qacc_buffer(nv, horizon_buffer);
-  EstimatorTrajectory ctrl_buffer(nu, horizon_buffer);
-  EstimatorTrajectory qfrc_actuator_buffer(nv, horizon_buffer);
-  EstimatorTrajectory sensor_buffer(ns, horizon_buffer + 1);
-  EstimatorTrajectory time_buffer(1, horizon_buffer + 1);
+  EstimatorTrajectory<double> qpos_buffer(nq, horizon_buffer + 1);
+  EstimatorTrajectory<double> qvel_buffer(nv, horizon_buffer + 1);
+  EstimatorTrajectory<double> qacc_buffer(nv, horizon_buffer);
+  EstimatorTrajectory<double> ctrl_buffer(nu, horizon_buffer);
+  EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
+  EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
+  EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
   mj_resetData(model, data);

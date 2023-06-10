@@ -15,6 +15,7 @@
 #include "mjpc/estimators/buffer.h"
 
 #include <vector>
+#include <cstring>
 
 #include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>
@@ -25,6 +26,13 @@ namespace mjpc {
 void Buffer::Initialize(mjModel* model, int max_length) {
   // sensor 
   sensor_.Initialize(model->nsensordata, 0);
+
+  // sensor mask
+  sensor_mask_.Initialize(model->nsensor, 0);
+
+  // mask (for single time step)
+  mask_.resize(model->nsensor);
+  std::fill(mask_.begin(), mask_.end(), 1);
 
   // ctrl 
   ctrl_.Initialize(model->nu, 0);
@@ -41,6 +49,13 @@ void Buffer::Reset() {
   // sensor 
   sensor_.Reset();
   sensor_.length_ = 0;
+
+  // sensor mask
+  sensor_mask_.Reset();
+  sensor_mask_.length_ = 0;
+
+  // mask
+  std::fill(mask_.begin(), mask_.end(), 1); // set to true
 
   // ctrl 
   ctrl_.Reset();
@@ -67,6 +82,13 @@ void Buffer::Update(mjModel* model, mjData* data) {
                   sensor_.length_ * model->nsensordata,
               data->sensordata, model->nsensordata);
     sensor_.length_++;
+
+    // sensor mask 
+    // TODO(taylor): external method must set mask
+    std::memcpy(
+        sensor_mask_.data_.data() + sensor_mask_.length_ * model->nsensor,
+        mask_.data(), model->nsensor * sizeof(int));
+    sensor_mask_.length_++;
   } else {  // update buffer
     // time
     time_.ShiftHeadIndex(1);
@@ -79,7 +101,17 @@ void Buffer::Update(mjModel* model, mjData* data) {
     // sensor
     sensor_.ShiftHeadIndex(1);
     sensor_.Set(data->sensordata, sensor_.length_ - 1);
+
+    // sensor mask 
+    // TODO(taylor): external method must set mask
+    sensor_mask_.ShiftHeadIndex(1);
+    sensor_mask_.Set(mask_.data(), sensor_.length_ - 1);
   }
+}
+
+ // update mask 
+void Buffer::UpdateMask() {
+  // TODO(taylor)
 }
 
 // print 
@@ -91,6 +123,10 @@ void Buffer::Print() {
     printf("\n");
     printf("sensor = ");
     mju_printMat(sensor_.Get(i), 1, sensor_.dim_);
+    printf("sensor mask = ");
+    for (int j = 0; j < sensor_mask_.dim_; j++)
+      printf("%i ", sensor_mask_.Get(i)[j]);
+    printf("\n");
     printf("ctrl = ");
     mju_printMat(ctrl_.Get(i), 1, ctrl_.dim_);
     printf("\n");

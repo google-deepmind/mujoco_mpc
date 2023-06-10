@@ -55,8 +55,10 @@ void Estimator::Initialize(mjModel* model) {
 
   // sensor
   dim_sensor_ = model->nsensordata;  // TODO(taylor): grab from model
+  num_sensor_ = model->nsensor;      // TODO(taylor): grab from model
   sensor_measurement_.Initialize(dim_sensor_, configuration_length_);
   sensor_prediction_.Initialize(dim_sensor_, configuration_length_);
+  sensor_mask_.Initialize(num_sensor_, configuration_length_);
 
   // force
   force_measurement_.Initialize(nv, configuration_length_);
@@ -140,12 +142,11 @@ void Estimator::Initialize(mjModel* model) {
 
   // sensor scale
   // TODO(taylor): only grab measurement sensors
-  scale_sensor_.resize(model->nsensor);
+  scale_sensor_.resize(num_sensor_);
 
   // TODO(taylor): method for xml to initial weight
-  for (int i = 0; i < model->nsensor; i++) {
-    scale_sensor_[i] =
-        GetNumberOrDefault(1.0, model, "estimator_scale_sensor");
+  for (int i = 0; i < num_sensor_; i++) {
+    scale_sensor_[i] = GetNumberOrDefault(1.0, model, "estimator_scale_sensor");
   }
 
   // force scale
@@ -162,10 +163,10 @@ void Estimator::Initialize(mjModel* model) {
 
   // cost norms
   // TODO(taylor): only grab measurement sensors
-  norm_sensor_.resize(model->nsensor);
+  norm_sensor_.resize(num_sensor_);
 
   // TODO(taylor): method for xml to initial weight
-  for (int i = 0; i < model->nsensor; i++) {
+  for (int i = 0; i < num_sensor_; i++) {
     norm_sensor_[i] =
         (NormType)GetNumberOrDefault(0, model, "estimator_norm_sensor");
   }
@@ -180,7 +181,7 @@ void Estimator::Initialize(mjModel* model) {
       (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_hinge");
 
   // cost norm parameters
-  norm_parameters_sensor_.resize(model->nsensor * 3);
+  norm_parameters_sensor_.resize(num_sensor_ * 3);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -260,6 +261,7 @@ void Estimator::SetConfigurationLength(int length) {
 
   sensor_measurement_.length_ = length;
   sensor_prediction_.length_ = length;
+  sensor_mask_.length_ = length;
 
   force_measurement_.length_ = length;
   force_prediction_.length_ = length;
@@ -320,6 +322,7 @@ void Estimator::ShiftTrajectoryHead(int shift) {
 
   sensor_measurement_.ShiftHeadIndex(shift);
   sensor_prediction_.ShiftHeadIndex(shift);
+  sensor_mask_.ShiftHeadIndex(shift);
 
   force_measurement_.ShiftHeadIndex(shift);
   force_prediction_.ShiftHeadIndex(shift);
@@ -371,6 +374,10 @@ void Estimator::Reset() {
   // sensor
   sensor_measurement_.Reset();
   sensor_prediction_.Reset();
+
+  // sensor mask
+  sensor_mask_.Reset();
+  std::fill(sensor_mask_.data_.begin(), sensor_mask_.data_.end(), 1);
 
   // force
   force_measurement_.Reset();
@@ -709,6 +716,12 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
+    // time index 
+    int t = k + 1;
+
+    // mask 
+    int* mask = sensor_mask_.Get(t);
+
     // unpack block
     double* block = block_sensor_configurations_.Get(k);
 
@@ -716,9 +729,12 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
     int shift_sensor = 0;
 
     // loop over sensors
-    for (int i = 0; i < model_->nsensor; i++) {
+    for (int i = 0; i < num_sensor_; i++) {
       // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
+
+      // check mask, skip if missing measurement
+      if (!mask[i]) continue;
 
       // dimension
       int nsi = model_->sensor_dim[i];
@@ -726,13 +742,11 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       // weight
       double weight = scale_sensor_[i];
 
-      
-
       // time scaling, accounts for finite difference division by timestep
       double time_scale = 1.0;
 
       if (time_scaling_) {
-        // stage 
+        // stage
         int stage = model_->sensor_needstage[i];
 
         // time step
@@ -745,7 +759,6 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
           time_scale = timestep * timestep * timestep * timestep;
         }
       }
-      
 
       // total scaling
       double scale = weight / nsi * time_scale;
@@ -807,6 +820,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 }
 
 // sensor residual
+// TODO(taylor): skip residual computation based on sensor_mask_
 void Estimator::ResidualSensor() {
   // start timer
   auto start = std::chrono::steady_clock::now();
@@ -1369,10 +1383,10 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 
 // update configuration trajectory
 // TODO(taylor): const configuration
-void Estimator::UpdateConfiguration(EstimatorTrajectory& candidate,
-                                    const EstimatorTrajectory& configuration,
-                                    const double* search_direction,
-                                    double step_size) {
+void Estimator::UpdateConfiguration(
+    EstimatorTrajectory<double>& candidate,
+    const EstimatorTrajectory<double>& configuration,
+    const double* search_direction, double step_size) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2079,9 +2093,10 @@ double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
 double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 // initialize trajectories
-void Estimator::InitializeTrajectories(const EstimatorTrajectory& measurement,
-                                       const EstimatorTrajectory& ctrl,
-                                       const EstimatorTrajectory& time) {
+void Estimator::InitializeTrajectories(
+    const EstimatorTrajectory<double>& measurement,
+    const EstimatorTrajectory<double>& ctrl,
+    const EstimatorTrajectory<double>& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2141,9 +2156,10 @@ void Estimator::InitializeTrajectories(const EstimatorTrajectory& measurement,
 }
 
 // update trajectories
-int Estimator::UpdateTrajectories(const EstimatorTrajectory& measurement,
-                                  const EstimatorTrajectory& ctrl,
-                                  const EstimatorTrajectory& time) {
+int Estimator::UpdateTrajectories(
+    const EstimatorTrajectory<double>& measurement,
+    const EstimatorTrajectory<double>& ctrl,
+    const EstimatorTrajectory<double>& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2234,7 +2250,7 @@ void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   }
 }
 
-// get terms from GUI 
+// get terms from GUI
 void Estimator::GetGUI() {
   // lock
   const std::lock_guard<std::mutex> lock(mutex_);
@@ -2245,7 +2261,7 @@ void Estimator::GetGUI() {
 
   // weights
   scale_prior_ = gui_scale_prior_;
-  scale_sensor_ = gui_weight_sensor_;          
+  scale_sensor_ = gui_weight_sensor_;
   scale_force_ = gui_weight_force_;
 }
 
@@ -2257,7 +2273,7 @@ void Estimator::SetGUI() {
   // costs
   gui_cost_prior_ = cost_prior_;
   gui_cost_sensor_ = cost_sensor_;
-  gui_cost_force_ = cost_force_; 
+  gui_cost_force_ = cost_force_;
   gui_cost_ = cost_;
 
   // status

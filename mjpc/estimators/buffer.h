@@ -43,6 +43,9 @@ class Buffer {
   // update
   void Update(mjModel* model, mjData* data);
 
+  // update mask 
+  void UpdateMask();
+
   // print
   void Print();
 
@@ -50,13 +53,18 @@ class Buffer {
   int Length() const;
 
   // sensor
-  EstimatorTrajectory sensor_;
+  EstimatorTrajectory<double> sensor_;
+
+  // mask 
+  // note: std::vector<bool> is weird...
+  EstimatorTrajectory<int> sensor_mask_;
+  std::vector<int> mask_;
 
   // ctrl
-  EstimatorTrajectory ctrl_;
+  EstimatorTrajectory<double> ctrl_;
 
   // time
-  EstimatorTrajectory time_;
+  EstimatorTrajectory<double> time_;
 
   // max buffer length
   int max_length_;

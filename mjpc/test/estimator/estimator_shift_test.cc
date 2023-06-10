@@ -55,6 +55,8 @@ TEST(BatchShift, Particle2D) {
   EstimatorTrajectory<double> ctrl_buffer(nu, horizon_buffer);
   EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
   EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
+  EstimatorTrajectory<int> mask_buffer(model->nsensor, horizon_buffer + 1);
+  std::fill(mask_buffer.data_.begin(), mask_buffer.data_.end(), 1);
   EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
@@ -123,7 +125,7 @@ TEST(BatchShift, Particle2D) {
       time_buffer.length_ = (horizon_estimator - 1) + shift;
 
       // update estimator trajectories
-      estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+      estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
 
       // sensor measurement error
       std::vector<double> sensor_error(ns * (horizon_estimator - 1));
@@ -197,6 +199,8 @@ TEST(BatchReuse, Particle2D) {
   EstimatorTrajectory<double> ctrl_buffer(nu, horizon_buffer);
   EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
   EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
+  EstimatorTrajectory<int> mask_buffer(model->nsensor, horizon_buffer + 1);
+  std::fill(mask_buffer.data_.begin(), mask_buffer.data_.end(), 1);
   EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
@@ -292,7 +296,7 @@ TEST(BatchReuse, Particle2D) {
   time_buffer.length_ = horizon_estimator;
 
   // update estimator trajectories
-  estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
     // times
@@ -321,7 +325,7 @@ TEST(BatchReuse, Particle2D) {
   time_buffer.length_ = horizon_estimator + 2;
 
   // update estimator trajectories
-  estimator.UpdateTrajectories(sensor_buffer, ctrl_buffer, time_buffer);
+  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
     // times

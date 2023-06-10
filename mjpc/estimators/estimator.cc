@@ -2095,6 +2095,7 @@ double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 // initialize trajectories
 void Estimator::InitializeTrajectories(
     const EstimatorTrajectory<double>& measurement,
+    const EstimatorTrajectory<int>& measurement_mask,
     const EstimatorTrajectory<double>& ctrl,
     const EstimatorTrajectory<double>& time) {
   // start timer
@@ -2116,6 +2117,10 @@ void Estimator::InitializeTrajectories(
     // set measurement
     const double* yi = measurement.Get(buffer_index);
     sensor_measurement_.Set(yi, i);
+
+    // set mask 
+    const int* mi = measurement_mask.Get(buffer_index);
+    sensor_mask_.Set(mi, i);
 
     // set ctrl
     const double* ui = ctrl.Get(buffer_index);
@@ -2158,6 +2163,7 @@ void Estimator::InitializeTrajectories(
 // update trajectories
 int Estimator::UpdateTrajectories(
     const EstimatorTrajectory<double>& measurement,
+    const EstimatorTrajectory<int>& measurement_mask,
     const EstimatorTrajectory<double>& ctrl,
     const EstimatorTrajectory<double>& time) {
   // start timer
@@ -2190,6 +2196,10 @@ int Estimator::UpdateTrajectories(
     // set measurement
     const double* yi = measurement.Get(b);
     sensor_measurement_.Set(yi, t);
+
+    // set measurement mask
+    const int* mi = measurement_mask.Get(b);
+    sensor_mask_.Set(mi, t);
 
     // set ctrl
     const double* ui = ctrl.Get(b);
@@ -2240,10 +2250,10 @@ void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   if (buffer.Length() >= configuration_length_ - 1) {
     num_new_ = configuration_length_;
     if (!initialized_) {
-      InitializeTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+      InitializeTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_, buffer.time_);
       initialized_ = true;
     } else {
-      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.ctrl_, buffer.time_);
+      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_, buffer.time_);
     }
     // optimize
     Optimize(pool);

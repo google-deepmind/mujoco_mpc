@@ -172,11 +172,13 @@ class Estimator {
 
   // initialize trajectories
   void InitializeTrajectories(const EstimatorTrajectory<double>& measurement,
+                              const EstimatorTrajectory<int>& measurement_mask,
                               const EstimatorTrajectory<double>& ctrl,
                               const EstimatorTrajectory<double>& time);
 
   // update trajectories
   int UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
+                         const EstimatorTrajectory<int>& measurement_mask,
                          const EstimatorTrajectory<double>& ctrl,
                          const EstimatorTrajectory<double>& time);
 

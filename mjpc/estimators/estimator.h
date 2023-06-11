@@ -58,7 +58,7 @@ class Estimator {
   ~Estimator() {}
 
   // initialize
-  void Initialize(mjModel* model);
+  void Initialize(mjModel* model); // TODO(taylor): const
 
   // set configuration length 
   void SetConfigurationLength(int length);
@@ -314,7 +314,7 @@ class Estimator {
 
   // cost norm parameters
   std::vector<double> norm_parameters_sensor_; // ns x 3
-  double norm_parameters_force_[4][3];
+  double norm_parameters_force_[4][3]; //TODO(taylor): std::vector
 
   // norm gradient
   std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY

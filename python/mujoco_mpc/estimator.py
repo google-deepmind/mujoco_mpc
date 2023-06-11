@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Python interface for the to interface with Estimator."""
+"""Python interface for interface with Estimator."""
 
 import atexit
 import pathlib

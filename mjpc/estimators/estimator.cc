@@ -1363,7 +1363,6 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       mju_copy(data->qacc, a, nv);
 
       // finite-difference derivatives
-      // TODO(taylor): skip sensor jacobian based on pos, vel, acc
       mjd_inverseFD(estimator.model_, data,
                     estimator.finite_difference_.tolerance,
                     estimator.finite_difference_.flg_actuation, dqdf, dvdf,

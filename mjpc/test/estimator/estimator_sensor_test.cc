@@ -385,10 +385,10 @@ TEST(MeasurementCost, Particle) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_sensor_[0] = 0.00125;
-  estimator.weight_sensor_[1] = 0.0125;
-  estimator.weight_sensor_[2] = 0.000125;
-  estimator.weight_sensor_[3] = 0.0125;
+  estimator.scale_sensor_[0] = 0.00125;
+  estimator.scale_sensor_[1] = 0.0125;
+  estimator.scale_sensor_[2] = 0.000125;
+  estimator.scale_sensor_[3] = 0.0125;
 
   // norms
   estimator.norm_sensor_[0] = kL22;
@@ -418,7 +418,7 @@ TEST(MeasurementCost, Particle) {
   auto cost_measurement =
       [&measurement = estimator.sensor_measurement_,
        &configuration_length = estimator.configuration_length_, &model, &data,
-       &dim_res, &weight = estimator.weight_sensor_,
+       &dim_res, &weight = estimator.scale_sensor_,
        &params = estimator.norm_parameters_sensor_,
        &norms = estimator.norm_sensor_, nq, nv](const double* configuration) {
         // velocity
@@ -475,8 +475,24 @@ TEST(MeasurementCost, Particle) {
             // sensor residual
             double* rki = rk + shift;
 
+            // time scaling
+            double time_scale = 1.0;
+
+            // stage 
+            int stage = model->sensor_needstage[i];
+
+            // time step
+            double timestep = model->opt.timestep;
+
+            // scale by sensor type
+            if (stage == mjSTAGE_VEL) {
+              time_scale = timestep * timestep;
+            } else if (stage == mjSTAGE_ACC) {
+              time_scale = timestep * timestep * timestep * timestep;
+            }
+
             // add weighted norm
-            cost += weight[i] / dim_sensori *
+            cost += weight[i] / dim_sensori * time_scale *
                     Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori,
                          norms[i]);
 
@@ -591,12 +607,12 @@ TEST(MeasurementCost, Box) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.weight_sensor_[0] = 0.00125;
-  estimator.weight_sensor_[1] = 0.0125;
-  estimator.weight_sensor_[2] = 0.000125;
-  estimator.weight_sensor_[3] = 0.125;
-  estimator.weight_sensor_[4] = 0.0825;
-  estimator.weight_sensor_[5] = 0.00355;
+  estimator.scale_sensor_[0] = 0.00125;
+  estimator.scale_sensor_[1] = 0.0125;
+  estimator.scale_sensor_[2] = 0.000125;
+  estimator.scale_sensor_[3] = 0.125;
+  estimator.scale_sensor_[4] = 0.0825;
+  estimator.scale_sensor_[5] = 0.00355;
 
   // norms
   estimator.norm_sensor_[0] = kQuadratic;
@@ -631,7 +647,7 @@ TEST(MeasurementCost, Box) {
 
   // ----- cost ----- //
   auto cost_measurement = [&configuration, &measurement, &dim_res,
-                           &weight = estimator.weight_sensor_,
+                           &weight = estimator.scale_sensor_,
                            &params = estimator.norm_parameters_sensor_,
                            &norms = estimator.norm_sensor_,
                            &configuration_length = T, &model, &data, nq,
@@ -701,9 +717,25 @@ TEST(MeasurementCost, Box) {
         // sensor residual
         double* rki = rk + shift;
 
+        // time scaling
+        double time_scale = 1.0;
+
+        // stage 
+        int stage = model->sensor_needstage[i];
+
+        // time step
+        double timestep = model->opt.timestep;
+
+        // scale by sensor type
+        if (stage == mjSTAGE_VEL) {
+          time_scale = timestep * timestep;
+        } else if (stage == mjSTAGE_ACC) {
+          time_scale = timestep * timestep * timestep * timestep;
+        }
+
         // add weighted norm
         cost +=
-            weight[i] / dim_sensori *
+            weight[i] / dim_sensori * time_scale *
             Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori, norms[i]);
 
         // shift

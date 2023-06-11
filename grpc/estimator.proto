@@ -1,0 +1,240 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package estimator;
+
+service Estimator {
+  // Initialize Estimator
+  rpc Init(InitRequest) returns (InitResponse);
+  // Set Estimator data
+  rpc SetData(SetDataRequest) returns (SetDataResponse);
+  // Get Estimator data
+  rpc GetData(GetDataRequest) returns (GetDataResponse);
+  // Set Estimator settings
+  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse);
+  // Get Estimator settings
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  // Get Estimator costs
+  rpc GetCosts(GetCostsRequest) returns (GetCostsResponse);
+  // Set Estimator weights
+  rpc SetWeights(SetWeightsRequest) returns (SetWeightsResponse);
+  // Get Estimator weights
+  rpc GetWeights(GetWeightsRequest) returns (GetWeightsResponse);
+  // Shift Estimator trajectories
+  rpc ShiftTrajectories(ShiftTrajectoriesRequest) returns (ShiftTrajectoriesResponse);
+  // Reset Estimator
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // Optimize Estimator
+  rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
+  // Get Estimator status
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional MjModel model = 1;
+  optional int32 configuration_length = 2;
+}
+
+message InitResponse {}
+
+message Data {
+  repeated double configuration = 1 [packed = true];
+  repeated double velocity = 2 [packed = true];
+  repeated double acceleration = 3 [packed = true];
+  repeated double action = 4 [packed = true];
+  repeated double time = 5 [packed = true];
+  repeated double configuration_prior = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated double force_measurement = 9 [packed = true];
+  repeated double force_prediction = 10 [packed = true];
+}
+
+message SetDataRequest {
+  int32 index = 1;
+  repeated double configuration = 2 [packed = true];
+  repeated double velocity = 3 [packed = true];
+  repeated double acceleration = 4 [packed = true];
+  repeated double action = 5 [packed = true];
+  repeated double time = 6 [packed = true];
+  repeated double configuration_prior = 7 [packed = true];
+  repeated double sensor_measurement = 8 [packed = true];
+  repeated double sensor_prediction = 9 [packed = true];
+  repeated double force_measurement = 10 [packed = true];
+  repeated double force_prediction = 11 [packed = true];
+}
+
+message SetDataResponse {}
+
+message GetDataRequest {
+  int32 index = 1;
+  optional bool configuration = 2;
+  optional bool velocity = 3;
+  optional bool acceleration = 4;
+  optional bool action = 5;
+  optional bool time = 6;
+  optional bool configuration_prior = 7;
+  optional bool sensor_measurement = 8;
+  optional bool sensor_prediction = 9;
+  optional bool force_measurement = 10;
+  optional bool force_prediction = 11;
+}
+
+message GetDataResponse {
+  repeated double configuration = 1 [packed = true];
+  repeated double velocity = 2 [packed = true];
+  repeated double acceleration = 3 [packed = true];
+  repeated double action = 4 [packed = true];
+  repeated double time = 5 [packed = true];
+  repeated double configuration_prior = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated double force_measurement = 9 [packed = true];
+  repeated double force_prediction = 10 [packed = true];
+}
+
+message Settings {
+  optional int32 configuration_length = 1;
+  optional int32 search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional int32 smoother_iterations = 6;
+}
+
+message SetSettingsRequest {
+  optional int32 configuration_length = 1;
+  optional int32 search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional int32 smoother_iterations = 6;
+}
+
+message SetSettingsResponse {}
+
+message GetSettingsRequest {
+  optional bool configuration_length = 1;
+  optional bool search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional bool smoother_iterations = 6;
+}
+
+message GetSettingsResponse {
+  optional int32 configuration_length = 1;
+  optional int32 search_type = 2;
+  optional bool prior_flag = 3;
+  optional bool sensor_flag = 4;
+  optional bool force_flag = 5;
+  optional int32 smoother_iterations = 6;
+}
+
+message Cost {
+  optional double cost = 1;
+  optional double prior = 2;
+  optional double sensor = 3;
+  optional double force = 4;
+  optional double initial = 5;
+}
+
+message GetCostsRequest {
+  optional bool cost = 1;
+  optional bool prior = 2;
+  optional bool sensor = 3;
+  optional bool force = 4;
+  optional bool initial = 5;
+}
+
+message GetCostsResponse {
+  optional double cost = 1;
+  optional double prior = 2;
+  optional double sensor = 3;
+  optional double force = 4;
+  optional double initial = 5;
+}
+
+message Weight {
+  optional double prior = 1;
+  repeated double sensor = 2 [packed = true];
+  repeated double force = 3 [packed = true];
+}
+
+message SetWeightsRequest {
+  optional double prior = 1;
+  repeated double sensor = 2 [packed = true];
+  repeated double force = 3 [packed = true];
+}
+
+message SetWeightsResponse {}
+
+message GetWeightsRequest {
+  optional bool prior = 1;
+  optional bool sensor = 2;
+  optional bool force = 3;
+}
+
+message GetWeightsResponse {
+  optional double prior = 1;
+  repeated double sensor = 2 [packed = true];
+  repeated double force = 3 [packed = true];
+}
+
+message ShiftTrajectoriesRequest {
+  int32 shift = 1;
+}
+
+message ShiftTrajectoriesResponse {
+  int32 head = 1;
+}
+
+message ResetRequest {}
+
+message ResetResponse {}
+
+message OptimizeRequest {}
+
+message OptimizeResponse {}
+
+message Status {
+  int32 search_iterations = 1;
+  int32 smoother_iterations = 2;
+  double step_size = 3;
+  double regularization = 4;
+  double gradient_norm = 5;
+}
+
+message GetStatusRequest {
+  optional bool search_iterations = 1;
+  optional bool smoother_iterations = 2;
+  optional bool step_size = 3;
+  optional bool regularization = 4;
+  optional bool gradient_norm = 5;
+}
+
+message GetStatusResponse {
+  int32 search_iterations = 1;
+  int32 smoother_iterations = 2;
+  double step_size = 3;
+  double regularization = 4;
+  double gradient_norm = 5;
+}

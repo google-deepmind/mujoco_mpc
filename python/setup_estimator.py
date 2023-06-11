@@ -28,9 +28,9 @@ Path = pathlib.Path
 
 
 class GenerateProtoGrpcCommand(setuptools.Command):
-  """Specialized setup command to handle agent proto compilation.
+  """Specialized setup command to handle estimator proto compilation.
 
-  Generates the `agent_pb2{_grpc}.py` files from `agent_proto`. Assumes that
+  Generates the `estimator_pb2{_grpc}.py` files from `estimator_proto`. Assumes that
   `grpc_tools.protoc` is installed.
   """
 
@@ -44,32 +44,32 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    """Generate `agent.proto` into `agent_pb2{_grpc}.py`.
+    """Generate `estimator.proto` into `estimator_pb2{_grpc}.py`.
 
     This function looks more complicated than what it has to be because the
     `protoc` generator is very particular in the way it generates the imports
-    for the generated `agent_pb2_grpc.py` file. The final argument of the
-    `protoc` call has to be "mujoco_mpc/agent.proto" in order for the import to
-    become `from mujoco_mpc import [agent_pb2_proto_import]` instead of just
-    `import [agent_pb2_proto_import]`. The latter would fail because the name is
+    for the generated `estimator_pb2_grpc.py` file. The final argument of the
+    `protoc` call has to be "mujoco_mpc/estimator.proto" in order for the import to
+    become `from mujoco_mpc import [estimator_pb2_proto_import]` instead of just
+    `import [estimator_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
     # We import here because, if the import is at the top of this file, we
     # cannot resolve the dependencies without having `grpcio-tools` installed.
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
-    agent_proto_filename = "agent.proto"
-    agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
+    estimator_proto_filename = "estimator.proto"
+    estimator_proto_source_path = Path("..", "grpc", estimator_proto_filename).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     proto_module_relative_path = Path(
-        "mujoco_mpc", "proto", agent_proto_filename)
-    agent_proto_destination_path = Path(
+        "mujoco_mpc", "proto", estimator_proto_filename)
+    estimator_proto_destination_path = Path(
         build_lib_path, proto_module_relative_path
     )
-    agent_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
-    # Copy `agent_proto_filename` into current source.
-    shutil.copy(agent_proto_source_path, agent_proto_destination_path)
+    estimator_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
+    # Copy `estimator_proto_filename` into current source.
+    shutil.copy(estimator_proto_source_path, estimator_proto_destination_path)
 
     protoc_command_parts = [
         # We use `__file__`  as the first argument the same way as is done by
@@ -79,7 +79,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",
         f"--grpc_python_out={build_lib_path}",
-        str(agent_proto_destination_path),
+        str(estimator_proto_destination_path),
     ]
 
     protoc_returncode = protoc.main(protoc_command_parts)
@@ -91,18 +91,18 @@ class GenerateProtoGrpcCommand(setuptools.Command):
       )
 
     self.spawn([
-        "touch", str(agent_proto_destination_path.parent / "__init__.py")
+        "touch", str(estimator_proto_destination_path.parent / "__init__.py")
     ])
 
 
-class CopyAgentServerBinaryCommand(setuptools.Command):
-  """Specialized setup command to copy `agent_server` next to `agent.py`.
+class CopyEstimatorServerBinaryCommand(setuptools.Command):
+  """Specialized setup command to copy `estimator_server` next to `estimator.py`.
 
-  Assumes that the C++ gRPC `agent_server` binary has been manually built and
+  Assumes that the C++ gRPC `estimator_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
-  description = "Copy `agent_server` next to `agent.py`."
+  description = "Copy `estimator_server` next to `estimator.py`."
   user_options = []
 
   def initialize_options(self):
@@ -112,8 +112,8 @@ class CopyAgentServerBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    self._copy_binary("agent_server")
-    # self._copy_binary("ui_agent_server")
+    self._copy_binary("estimator_server")
+    # self._copy_binary("ui_estimator_server")
 
   def _copy_binary(self, binary_name):
     source_path = Path(f"../build/bin/{binary_name}")
@@ -136,15 +136,15 @@ class CopyAgentServerBinaryCommand(setuptools.Command):
 
 
 class CopyTaskAssetsCommand(setuptools.Command):
-  """Copies `agent_server` and `ui_agent_server` next to `agent.py`.
+  """Copies `estimator_server` and `ui_estimator_server` next to `estimator.py`.
 
-  Assumes that the C++ gRPC `agent_server` binary has been manually built and
+  Assumes that the C++ gRPC `estimator_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
   description = (
       "Copy task assets over to python source to make them accessible by"
-      " `Agent`."
+      " `Estimator`."
   )
   user_options = []
 
@@ -177,10 +177,10 @@ class CopyTaskAssetsCommand(setuptools.Command):
 
 
 class BuildPyCommand(build_py.build_py):
-  """Specialized Python builder to handle agent service dependencies.
+  """Specialized Python builder to handle estimator service dependencies.
 
-  During build, this will generate the `agent_pb2{_grpc}.py` files and copy
-  `agent_server` binary next to `agent.py`.
+  During build, this will generate the `estimator_pb2{_grpc}.py` files and copy
+  `estimator_server` binary next to `estimator.py`.
   """
 
   user_options = build_py.build_py.user_options
@@ -206,10 +206,10 @@ class BuildCMakeExtension(build_ext.build_ext):
   """Uses CMake to build extensions."""
 
   def run(self):
-    self._configure_and_build_agent_server()
-    self.run_command("copy_agent_server_binary")
+    self._configure_and_build_estimator_server()
+    self.run_command("copy_estimator_server_binary")
 
-  def _configure_and_build_agent_server(self):
+  def _configure_and_build_estimator_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
     build_cfg = "Debug"
@@ -244,15 +244,15 @@ class BuildCMakeExtension(build_ext.build_ext):
         f"-B{mujoco_mpc_build_dir.resolve()}",
     ], cwd=mujoco_mpc_root)
 
-    print("Building `agent_server` and `ui_agent_server` with CMake")
+    print("Building `estimator_server` and `ui_estimator_server` with CMake")
     subprocess.check_call(
         [
             cmake_command,
             "--build",
             str(mujoco_mpc_build_dir.resolve()),
             "--target",
-            "agent_server",
-            # "ui_agent_server",
+            "estimator_server",
+            # "ui_estimator_server",
             f"-j{os.cpu_count()}",
             "--config",
             build_cfg,
@@ -291,19 +291,18 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
-    ext_modules=[CMakeExtension("agent_server")],
+    ext_modules=[CMakeExtension("estimator_server")],
     cmdclass={
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
-        "copy_agent_server_binary": CopyAgentServerBinaryCommand,
+        "copy_estimator_server_binary": CopyEstimatorServerBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={
         "": [
-            "mjpc/agent_server",
-            # "mjpc/ui_agent_server",
-            "mjpc/tasks/**/*.xml",
+            "mjpc/estimator_server",
+            # "mjpc/ui_estimator_server",
         ],
     },
 )

@@ -53,9 +53,12 @@ using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
 
+// task used to define desired behaviour
 mjpc::Task* task = nullptr;
+
 // model used for physics
 mjModel* model = nullptr;
+
 // model used for planning, owned by the Agent instance.
 mjModel* agent_model = nullptr;
 

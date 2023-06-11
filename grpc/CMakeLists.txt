@@ -53,6 +53,9 @@ unset(BUILD_SHARED_LIBS_OLD)
 
 get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
+get_filename_component(estimator_service_proto "./estimator.proto" ABSOLUTE)
+get_filename_component(estimator_service_proto_path "${estimator_service_proto}" PATH)
+
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -60,7 +63,12 @@ set(agent_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.h")
 set(agent_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.cc")
 set(agent_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.h")
 
-message("We need the following for agent_protos:")
+set(estimator_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.cc")
+set(estimator_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.h")
+set(estimator_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.cc")
+set(estimator_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.h")
+
+message("We need the following for agent/estimator_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
 
 add_custom_command(
@@ -78,6 +86,23 @@ add_custom_command(
   "${agent_service_proto}"
   DEPENDS
   "${agent_service_proto}"
+)
+
+add_custom_command(
+  OUTPUT
+  "${estimator_service_proto_srcs}"
+  "${estimator_service_proto_hdrs}"
+  "${estimator_service_grpc_srcs}"
+  "${estimator_service_grpc_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS
+  --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  -I "${estimator_service_proto_path}"
+  --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+  "${estimator_service_proto}"
+  DEPENDS
+  "${estimator_service_proto}"
 )
 
 # Include generated *.pb.h files
@@ -151,4 +176,37 @@ target_link_libraries(
 target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
+
+
+add_executable(
+  estimator_server
+  estimator_server.cc
+  ${estimator_service_grpc_srcs}
+  ${estimator_service_grpc_hdrs}
+  ${estimator_service_proto_srcs}
+  ${estimator_service_proto_hdrs}
+  estimator_service.h
+  estimator_service.cc
+)
+
+target_link_libraries(
+  estimator_server
+  # estimator_service_grpc_proto
+  absl::check
+  absl::flags
+  absl::flags_parse
+  absl::log
+  absl::random_random
+  absl::status
+  absl::strings
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  mujoco::mujoco
+  libmjpc
+)
+target_include_directories(estimator_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(ESTIMATOR_SERVICE_COMPILE_OPTIONS=${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_compile_options(estimator_server PUBLIC ${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_link_options(estimator_server PRIVATE ${ESTIMATOR_SERVICE_LINK_OPTIONS})
 

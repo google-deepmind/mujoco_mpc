@@ -102,9 +102,10 @@ add_library(
   planners/ilqg/settings.h
   planners/ilqs/planner.cc
   planners/ilqs/planner.h
+  estimators/buffer.cc
+  estimators/buffer.h
   estimators/estimator.cc
   estimators/estimator.h
-  estimators/trajectory.cc
   estimators/trajectory.h
   app.cc
   app.h

@@ -15,6 +15,9 @@
 #ifndef MJPC_ESTIMATORS_TRAJECTORY_H_
 #define MJPC_ESTIMATORS_TRAJECTORY_H_
 
+#include <mujoco/mujoco.h>
+
+#include <cstring>
 #include <vector>
 
 namespace mjpc {
@@ -22,7 +25,7 @@ namespace mjpc {
 const int MAX_TRAJECTORY = 128;
 
 // trajectory
-// TODO(taylor): template for data_ type
+template <typename T>
 class EstimatorTrajectory {
  public:
   // constructor
@@ -33,22 +36,90 @@ class EstimatorTrajectory {
   virtual ~EstimatorTrajectory() = default;
 
   // initialize
-  void Initialize(int dim, int length);
+  void Initialize(int dim, int length) {
+    // set
+    dim_ = dim;
+    length_ = length;
+
+    // allocate memory
+    data_.resize(dim * MAX_TRAJECTORY);
+
+    // reset
+    Reset();
+  }
 
   // reset memory
-  void Reset();
+  void Reset() {
+    // set head
+    head_index_ = 0;
+
+    // zero memory
+    std::fill(data_.begin(), data_.end(), 0);
+  }
 
   // get element at index
-  double* Get(int index);
+  T* Get(int index) {
+    // get mapped index
+    int map_index = IndexMap(index);
+
+    // return element
+    return data_.data() + dim_ * map_index;
+  }
+
+  const T* Get(int index) const {
+    // get mapped index
+    int map_index = IndexMap(index);
+
+    // return element
+    return data_.data() + dim_ * map_index;
+  }
 
   // set element at index
-  void Set(const double* element, int index);
+  void Set(const T* element, int index) {
+    // get map index
+    int map_index = IndexMap(index);
+
+    // get data element
+    T* data_element = data_.data() + dim_ * map_index;
+
+    // set element
+    // mju_copy(data_element, element, dim_);
+    std::memcpy(data_element, element, dim_ * sizeof(T));
+  }
 
   // get all data
-  double* Data();
+  T* Data() { return data_.data(); }
 
   // map index to data_ index
-  int IndexMap(int index);
+  int IndexMap(int index) const {
+    // out of bounds
+    if (head_index_ >= length_)
+      mju_error("trajectory.head_index_ out of bounds!\n");
+
+    // if synced
+    if (head_index_ == 0) return index;
+
+    // not synced
+    int map = head_index_ + index;
+
+    if (map < length_) {  // valid map
+      return map;
+    } else {  // corrected map
+      return map % length_;
+    }
+  }
+
+  // shift head_index_
+  void ShiftHeadIndex(int shift) {
+    // compute new head index
+    int new_head = head_index_ + shift;
+
+    if (new_head < length_) {  // valid head
+      head_index_ = new_head;
+    } else {
+      head_index_ = new_head % length_;  // corrected head
+    }
+  }
 
   // index for trajectory head
   int head_index_;
@@ -60,7 +131,7 @@ class EstimatorTrajectory {
   int length_;
 
   // data for trajectory
-  std::vector<double> data_;
+  std::vector<T> data_;
 };
 
 }  // namespace mjpc

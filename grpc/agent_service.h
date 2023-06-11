@@ -91,7 +91,6 @@ class AgentService final : public agent::Agent::Service {
       const agent::GetModeRequest* request,
       agent::GetModeResponse* response) override;
 
-
  private:
   bool Initialized() const { return data_ != nullptr; }
 

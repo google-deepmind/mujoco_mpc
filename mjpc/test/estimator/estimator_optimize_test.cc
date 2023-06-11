@@ -99,8 +99,8 @@ TEST(BatchOptimize, Particle2D) {
 
   // set weights 
   estimator.scale_prior_ = 1.0;
-  estimator.weight_sensor_[0] = 1.0;
-  estimator.weight_force_[0] = 1.0;
+  estimator.scale_sensor_[0] = 1.0;
+  estimator.scale_force_[0] = 1.0;
 
   // ----- random perturbation ----- //
 
@@ -122,14 +122,11 @@ TEST(BatchOptimize, Particle2D) {
   // cost
   double cost_random = estimator.Cost(pool);
 
-  // change to band covariance 
-  estimator.band_covariance_ = true;
-
   // change verbosity 
   estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(estimator.configuration_length_, pool);
+  estimator.Optimize(pool);
 
   // error 
   std::vector<double> configuration_error(nq * T);
@@ -254,14 +251,11 @@ TEST(BatchOptimize, Box3D) {
   // cost (pre)
   double cost_random = estimator.Cost(pool);
 
-  // change to band covariance 
-  estimator.band_covariance_ = true;
-
   // change verbosity 
   estimator.verbose_optimize_ = true;
 
   // optimize
-  estimator.Optimize(estimator.configuration_length_, pool);
+  estimator.Optimize(pool);
 
   // error
   std::vector<double> configuration_error(nq * T);
@@ -378,9 +372,6 @@ TEST(BatchOptimize, Box3D) {
 //     mj_integratePos(model, q, noise.data(), 1.0);
 //   }
 
-//   // change to band covariance 
-//   estimator.band_covariance_ = true;
-
 //   // change verbosity 
 //   estimator.verbose_optimize_ = true;
 //   estimator.verbose_prior_ = true;
@@ -393,16 +384,16 @@ TEST(BatchOptimize, Box3D) {
 //   // estimator.max_line_search_ = 100;
 
 //   // set weights
-//   mju_fill(estimator.weight_sensor_.data(), 1.0, estimator.model_->nsensor);
-//   mju_fill(estimator.weight_force_, 1.0, 4);
+//   mju_fill(estimator.scale_sensor_.data(), 1.0, estimator.model_->nsensor);
+//   mju_fill(estimator.scale_force_.data(), 1.0, 4);
 
 //   // cost (pre)
 //   double cost_random = estimator.Cost(pool);
 
 //   // optimize
 //   estimator.band_copy_ = true;
-//   estimator.Optimize(estimator.configuration_length_, pool);
-//   estimator.Optimize(estimator.configuration_length_, pool);
+//   estimator.Optimize(pool);
+//   estimator.Optimize(pool);
 
 //   // error
 //   std::vector<double> configuration_error(nq * T);

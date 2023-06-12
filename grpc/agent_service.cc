@@ -34,6 +34,8 @@ using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
+using ::agent::GetTaskParametersRequest;
+using ::agent::GetTaskParametersResponse;
 using ::agent::InitRequest;
 using ::agent::InitResponse;
 using ::agent::PlannerStepRequest;
@@ -212,6 +214,15 @@ grpc::Status AgentService::SetTaskParameters(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::SetTaskParameters(request, &agent_);
+}
+
+grpc::Status AgentService::GetTaskParameters(
+    grpc::ServerContext* context, const GetTaskParametersRequest* request,
+    GetTaskParametersResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetTaskParameters(request, &agent_, response);
 }
 
 grpc::Status AgentService::SetCostWeights(

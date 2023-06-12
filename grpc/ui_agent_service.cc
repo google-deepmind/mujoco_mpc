@@ -36,10 +36,12 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
-using ::agent::GetStateRequest;
-using ::agent::GetStateResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
+using ::agent::GetStateRequest;
+using ::agent::GetStateResponse;
+using ::agent::GetTaskParametersRequest;
+using ::agent::GetTaskParametersResponse;
 using ::agent::InitRequest;
 using ::agent::InitResponse;
 using ::agent::PlannerStepRequest;
@@ -157,6 +159,15 @@ grpc::Status UiAgentService::SetTaskParameters(
   return RunBeforeStep(context, [request](mjpc::Agent* agent,
                                           const mjModel* model, mjData* data) {
     return grpc_agent_util::SetTaskParameters(request, agent);
+  });
+}
+
+grpc::Status UiAgentService::GetTaskParameters(
+    grpc::ServerContext* context, const GetTaskParametersRequest* request,
+    GetTaskParametersResponse* response) {
+  return RunBeforeStep(context, [request, response](mjpc::Agent* agent,
+                                          const mjModel* model, mjData* data) {
+    return grpc_agent_util::GetTaskParameters(request, agent, response);
   });
 }
 

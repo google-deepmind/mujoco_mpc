@@ -34,6 +34,9 @@ service Agent {
   // Set a task parameters.
   rpc SetTaskParameters(SetTaskParametersRequest)
       returns (SetTaskParametersResponse);
+  // Get a task parameters.
+  rpc GetTaskParameters(GetTaskParametersRequest)
+      returns (GetTaskParametersResponse);
   // Set cost weights.
   rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
   // Get cost term values.
@@ -124,6 +127,12 @@ message SetTaskParametersRequest {
   map<string, TaskParameterValue> parameters = 1;
 }
 message SetTaskParametersResponse {}
+
+message GetTaskParametersRequest {}
+
+message GetTaskParametersResponse {
+  map<string, TaskParameterValue> parameters = 1;
+}
 
 message SetCostWeightsRequest {
   bool reset_to_defaults = 1;

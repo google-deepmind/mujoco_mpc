@@ -16,10 +16,11 @@
 """Python interface for the to interface with MuJoCo MPC agents."""
 
 import atexit
+import contextlib
 import pathlib
 import subprocess
 import tempfile
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 import grpc
 import mujoco
@@ -32,7 +33,7 @@ from utilities import find_free_port
 from mujoco_mpc.proto import agent_pb2
 from mujoco_mpc.proto import agent_pb2_grpc
 
-class Agent:
+class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.
 
   Attributes:
@@ -49,6 +50,7 @@ class Agent:
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       server_binary_path: Optional[str] = None,
+      extra_flags: Sequence[str] = (),
       real_time_speed: float = 1.0,
   ):
     self.task_id = task_id
@@ -60,12 +62,13 @@ class Agent:
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
         [str(server_binary_path), f"--mjpc_port={self.port}"]
+        + list(extra_flags)
     )
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
-    grpc.channel_ready_future(self.channel).result(timeout=10)
+    grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
     self.init(
         task_id,
@@ -73,6 +76,9 @@ class Agent:
         send_as="mjb",
         real_time_speed=real_time_speed,
     )
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.close()
 
   def close(self):
     self.channel.close()
@@ -240,6 +246,19 @@ class Agent:
         request.parameters[name].numeric = value
     self.stub.SetTaskParameters(request)
 
+  def get_task_parameters(self) -> dict[str, float|str]:
+    """Returns the agent's task parameters."""
+    response = self.stub.GetTaskParameters(
+        agent_pb2.GetTaskParametersRequest()
+    )
+    result = {}
+    for (name, value) in response.parameters.items():
+      if value.selection:
+        result[name] = value.selection
+      else:
+        result[name] = value.numeric
+    return result
+
   def set_cost_weights(
       self, weights: dict[str, float], reset_to_defaults: bool = False
   ):
@@ -254,6 +273,16 @@ class Agent:
         cost_weights=weights, reset_to_defaults=reset_to_defaults
     )
     self.stub.SetCostWeights(request)
+
+  def get_cost_weights(self) -> dict[str, float]:
+    """Returns the agent's cost weights."""
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    return {
+        name: value_weight.weight
+        for name, value_weight in terms.values_weights.items()
+    }
 
   def get_mode(self) -> str:
     return self.stub.GetMode(agent_pb2.GetModeRequest()).mode

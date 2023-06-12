@@ -33,6 +33,8 @@
 #include "grpc/ui_agent_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
+ABSL_FLAG(int32_t, mjpc_workers, -1,
+          "Not used. Here for compatibility with agent_server.cc");
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);

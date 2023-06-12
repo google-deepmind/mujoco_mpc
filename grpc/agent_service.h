@@ -34,8 +34,10 @@ namespace agent_grpc {
 
 class AgentService final : public agent::Agent::Service {
  public:
-  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks)
-      : thread_pool_(mjpc::NumAvailableHardwareThreads()),
+  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks,
+                        int num_workers = -1)
+      : thread_pool_(num_workers == -1 ? mjpc::NumAvailableHardwareThreads()
+                                       : num_workers),
         tasks_(std::move(tasks)) {}
   ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
@@ -75,6 +77,11 @@ class AgentService final : public agent::Agent::Service {
       grpc::ServerContext* context,
       const agent::SetTaskParametersRequest* request,
       agent::SetTaskParametersResponse* response) override;
+
+  grpc::Status GetTaskParameters(
+      grpc::ServerContext* context,
+      const agent::GetTaskParametersRequest* request,
+      agent::GetTaskParametersResponse* response) override;
 
   grpc::Status SetCostWeights(
       grpc::ServerContext* context,

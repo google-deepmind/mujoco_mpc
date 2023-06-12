@@ -16,11 +16,6 @@
 
 #include "grpc/estimator_service.h"
 
-#include <memory>
-#include <string_view>
-
-#include "testing/base/public/gmock.h"
-#include "testing/base/public/gunit.h"
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
@@ -29,9 +24,15 @@
 #include <grpcpp/support/channel_arguments.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include <memory>
+#include <string_view>
+
 #include "grpc/estimator.grpc.pb.h"
 #include "grpc/estimator.pb.h"
-#include "third_party/mujoco_mpc/grpc/estimator.proto.h" // TODO(taylor): remove?
+#include "testing/base/public/gmock.h"
+#include "testing/base/public/gunit.h"
+#include "third_party/mujoco_mpc/grpc/estimator.proto.h"  // TODO(taylor): remove?
 
 namespace estimator_grpc {
 

@@ -42,38 +42,25 @@ class EstimatorService final : public estimator::Estimator::Service {
                     const estimator::InitRequest* request,
                     estimator::InitResponse* response) override;
 
-  grpc::Status SetData(grpc::ServerContext* context,
-                       const estimator::SetDataRequest* request,
-                       estimator::SetDataResponse* response) override;
+  grpc::Status Data(grpc::ServerContext* context,
+                    const estimator::DataRequest* request,
+                    estimator::DataResponse* response) override;
 
-  grpc::Status GetData(grpc::ServerContext* context,
-                       const estimator::GetDataRequest* request,
-                       estimator::GetDataResponse* response) override;
+  grpc::Status Settings(grpc::ServerContext* context,
+                        const estimator::SettingsRequest* request,
+                        estimator::SettingsResponse* response) override;
 
-  grpc::Status SetSettings(grpc::ServerContext* context,
-                           const estimator::SetSettingsRequest* request,
-                           estimator::SetSettingsResponse* response) override;
+  grpc::Status Cost(grpc::ServerContext* context,
+                    const estimator::CostRequest* request,
+                    estimator::CostResponse* response) override;
 
-  grpc::Status GetSettings(grpc::ServerContext* context,
-                           const estimator::GetSettingsRequest* request,
-                           estimator::GetSettingsResponse* response) override;
+  grpc::Status Weights(grpc::ServerContext* context,
+                       const estimator::WeightsRequest* request,
+                       estimator::WeightsResponse* response) override;
 
-  grpc::Status GetCosts(grpc::ServerContext* context,
-                        const estimator::GetCostsRequest* request,
-                        estimator::GetCostsResponse* response) override;
-
-  grpc::Status SetWeights(grpc::ServerContext* context,
-                          const estimator::SetWeightsRequest* request,
-                          estimator::SetWeightsResponse* response) override;
-
-  grpc::Status GetWeights(grpc::ServerContext* context,
-                          const estimator::GetWeightsRequest* request,
-                          estimator::GetWeightsResponse* response) override;
-
-  grpc::Status ShiftTrajectories(
-      grpc::ServerContext* context,
-      const estimator::ShiftTrajectoriesRequest* request,
-      estimator::ShiftTrajectoriesResponse* response) override;
+  grpc::Status Shift(grpc::ServerContext* context,
+                     const estimator::ShiftRequest* request,
+                     estimator::ShiftResponse* response) override;
 
   grpc::Status Reset(grpc::ServerContext* context,
                      const estimator::ResetRequest* request,
@@ -83,12 +70,14 @@ class EstimatorService final : public estimator::Estimator::Service {
                         const estimator::OptimizeRequest* request,
                         estimator::OptimizeResponse* response) override;
 
-  grpc::Status GetStatus(grpc::ServerContext* context,
-                         const estimator::GetStatusRequest* request,
-                         estimator::GetStatusResponse* response) override;
+  grpc::Status Status(grpc::ServerContext* context,
+                      const estimator::StatusRequest* request,
+                      estimator::StatusResponse* response) override;
 
  private:
-  bool Initialized() const { return estimator_.model_ && estimator_.configuration_length_ >= 3; }  // TODO(taylor):
+  bool Initialized() const {
+    return estimator_.model_ && estimator_.configuration_length_ >= 3;
+  }  // TODO(taylor):
 
   // estimator
   mjpc::Estimator estimator_;

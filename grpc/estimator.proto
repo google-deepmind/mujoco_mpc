@@ -20,27 +20,21 @@ service Estimator {
   // Initialize Estimator
   rpc Init(InitRequest) returns (InitResponse);
   // Set Estimator data
-  rpc SetData(SetDataRequest) returns (SetDataResponse);
-  // Get Estimator data
-  rpc GetData(GetDataRequest) returns (GetDataResponse);
-  // Set Estimator settings
-  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse);
-  // Get Estimator settings
-  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
-  // Get Estimator costs
-  rpc GetCosts(GetCostsRequest) returns (GetCostsResponse);
-  // Set Estimator weights
-  rpc SetWeights(SetWeightsRequest) returns (SetWeightsResponse);
-  // Get Estimator weights
-  rpc GetWeights(GetWeightsRequest) returns (GetWeightsResponse);
+  rpc Data(DataRequest) returns (DataResponse);
+  // Estimator settings
+  rpc Settings(SettingsRequest) returns (SettingsResponse);
+  // Estimator costs
+  rpc Cost(CostRequest) returns (CostResponse);
+  // Estimator weights
+  rpc Weights(WeightsRequest) returns (WeightsResponse);
   // Shift Estimator trajectories
-  rpc ShiftTrajectories(ShiftTrajectoriesRequest) returns (ShiftTrajectoriesResponse);
+  rpc Shift(ShiftRequest) returns (ShiftResponse);
   // Reset Estimator
   rpc Reset(ResetRequest) returns (ResetResponse);
   // Optimize Estimator
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
   // Get Estimator status
-  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc Status(StatusRequest) returns (StatusResponse);
 }
 
 message MjModel {
@@ -68,18 +62,12 @@ message Data {
   repeated double force_prediction = 10 [packed = true];
 }
 
-message SetDataRequest {
+message DataRequest {
   int32 index = 1;
   Data data = 2;
 }
 
-message SetDataResponse {}
-
-message GetDataRequest {
-  int32 index = 1;
-}
-
-message GetDataResponse {
+message DataResponse {
   Data data = 1;
 }
 
@@ -90,17 +78,14 @@ message Settings {
   optional bool sensor_flag = 4;
   optional bool force_flag = 5;
   optional int32 smoother_iterations = 6;
+  optional bool skip_prior_weight_update = 7;
 }
 
-message SetSettingsRequest {
+message SettingsRequest {
   Settings settings = 1;
 }
 
-message SetSettingsResponse {}
-
-message GetSettingsRequest {}
-
-message GetSettingsResponse {
+message SettingsResponse {
   Settings settings = 1;
 }
 
@@ -112,9 +97,9 @@ message Cost {
   optional double initial = 5;
 }
 
-message GetCostsRequest {}
+message CostRequest {}
 
-message GetCostsResponse {
+message CostResponse {
   Cost cost = 1;
 }
 
@@ -124,23 +109,19 @@ message Weight {
   repeated double force = 3 [packed = true];
 }
 
-message SetWeightsRequest {
+message WeightsRequest {
   Weight weight = 1;
 }
 
-message SetWeightsResponse {}
-
-message GetWeightsRequest {}
-
-message GetWeightsResponse {
+message WeightsResponse {
   Weight weight = 1;
 }
 
-message ShiftTrajectoriesRequest {
+message ShiftRequest {
   int32 shift = 1;
 }
 
-message ShiftTrajectoriesResponse {
+message ShiftResponse {
   int32 head = 1;
 }
 
@@ -160,9 +141,9 @@ message Status {
   double gradient_norm = 5;
 }
 
-message GetStatusRequest {
+message StatusRequest {
 }
 
-message GetStatusResponse {
+message StatusResponse {
   Status status = 1;
 }

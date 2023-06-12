@@ -1613,6 +1613,9 @@ void Estimator::CostHessian() {
 
 // covariance update
 void Estimator::PriorWeightUpdate(ThreadPool& pool) {
+  // skip 
+  if (skip_update_prior_weight) return;
+  
   // start timer
   auto start = std::chrono::steady_clock::now();
 

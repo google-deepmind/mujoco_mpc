@@ -23,6 +23,7 @@ from typing import Literal, Optional
 
 import grpc
 import mujoco
+import numpy as np
 from numpy import typing as npt
 
 from utilities import find_free_port
@@ -48,7 +49,6 @@ class Estimator:
       configuration_length: int = 3,
       server_binary_path: Optional[str] = None,
   ):
-
     if server_binary_path is None:
       binary_name = "estimator_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
@@ -108,270 +108,125 @@ class Estimator:
     )
     self.stub.Init(init_request)
 
-  def set_configuration(self, configuration: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
+  def data(
+      self,
+      index: int,
+      configuration: Optional[npt.ArrayLike] = [],
+      velocity: Optional[npt.ArrayLike] = [],
+      acceleration: Optional[npt.ArrayLike] = [],
+      action: Optional[npt.ArrayLike] = [],
+      time: Optional[npt.ArrayLike] = [],
+      configuration_prior: Optional[npt.ArrayLike] = [],
+      sensor_measurement: Optional[npt.ArrayLike] = [],
+      sensor_prediction: Optional[npt.ArrayLike] = [],
+      force_measurement: Optional[npt.ArrayLike] = [],
+      force_prediction: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, np.ndarray]:
+    inputs = estimator_pb2.Data(
         configuration=configuration,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_configuration(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.configuration
-
-  def set_velocity(self, velocity: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         velocity=velocity,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_velocity(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.velocity
-
-  def set_acceleration(self, acceleration: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         acceleration=acceleration,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_acceleration(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.acceleration
-
-  def set_action(self, action: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
-        action=action,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_action(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.action
-
-  def set_time(self, time: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         time=time,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_time(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.time
-
-  def set_configuration_prior(self, configuration_prior: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         configuration_prior=configuration_prior,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_configuration_prior(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.configuration_prior
-
-  def set_sensor_measurement(self, sensor_measurement: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         sensor_measurement=sensor_measurement,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_sensor_measurement(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.sensor_measurement
-
-  def set_sensor_prediction(self, sensor_prediction: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         sensor_prediction=sensor_prediction,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_sensor_prediction(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.sensor_prediction
-
-  def set_force_measurement(self, force_measurement: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         force_measurement=force_measurement,
-    )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
-
-  def get_force_measurement(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.force_measurement
-
-  def set_force_prediction(self, force_prediction: npt.ArrayLike, index: int):
-    data = estimator_pb2.Data(
         force_prediction=force_prediction,
     )
-    request = estimator_pb2.SetDataRequest(
-        data=data, index=index
-    )
-    self.stub.SetData(request)
+    request = estimator_pb2.DataRequest(data=inputs, index=index)
+    data = self.stub.Data(request).data
 
-  def get_force_prediction(self, index: int) -> npt.ArrayLike:
-    request = estimator_pb2.GetDataRequest(index=index)
-    return self.stub.GetData(request).data.force_prediction
+    return {
+        "configuration": np.array(data.configuration),
+        "velocity": np.array(data.velocity),
+        "acceleration": np.array(data.acceleration),
+        "time": np.array(data.time),
+        "configuration_prior": np.array(data.configuration_prior),
+        "sensor_measurement": np.array(data.sensor_measurement),
+        "sensor_prediction": np.array(data.sensor_prediction),
+        "force_measurement": np.array(data.force_measurement),
+        "force_prediction": np.array(data.force_prediction),
+    }
 
-  def set_configuration_length(self, configuration_length: int):
-    settings = estimator_pb2.Settings(
+  def settings(
+      self,
+      configuration_length: Optional[int] = None,
+      search_type: Optional[int] = None,
+      prior_flag: Optional[bool] = None,
+      sensor_flag: Optional[bool] = None,
+      force_flag: Optional[bool] = None,
+      smoother_iterations: Optional[int] = None,
+      skip_prior_weight_update: Optional[bool] = None,
+  ) -> dict[str, int | bool]:
+    inputs = estimator_pb2.Settings(
         configuration_length=configuration_length,
-    )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
-    )
-    self.stub.SetSettings(request)
-
-  def get_configuration_length(self) -> int:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.configuration_length
-
-  def set_search_type(self, search_type: int):
-    settings = estimator_pb2.Settings(
         search_type=search_type,
+        prior_flag=prior_flag,
+        sensor_flag=sensor_flag,
+        force_flag=force_flag,
+        smoother_iterations=smoother_iterations,
+        skip_prior_weight_update=skip_prior_weight_update,
     )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
+    request = estimator_pb2.SettingsRequest(
+        settings=inputs,
     )
-    self.stub.SetSettings(request)
+    settings = self.stub.Settings(request).settings
 
-  def get_search_type(self) -> int:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.search_type
+    return {
+        "configuration_length": settings.configuration_length,
+        "search_type": settings.search_type,
+        "prior_flag": settings.prior_flag,
+        "sensor_flag": settings.sensor_flag,
+        "force_flag": settings.force_flag,
+        "smoother_iterations": settings.smoother_iterations,
+        "skip_prior_weight_update": settings.skip_prior_weight_update,
+    }
 
-  def set_prior_flag(self, flag: bool):
-    settings = estimator_pb2.Settings(
-        prior_flag=flag,
+  def weight(
+      self,
+      prior: Optional[float] = None,
+      sensor: Optional[npt.ArrayLike] = [],
+      force: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, float | np.ndarray]:
+    inputs = estimator_pb2.Weight(
+        prior=prior,
+        sensor=sensor,
+        force=force,
     )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
-    )
-    self.stub.SetSettings(request)
+    request = estimator_pb2.WeightsRequest(weight=inputs)
+    weight = self.stub.Weights(request).weight
 
-  def get_prior_flag(self) -> bool:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.prior_flag
+    return {
+        "prior": weight.prior,
+        "sensor": np.array(weight.sensor),
+        "force": np.array(weight.force),
+    }
 
-  def set_sensor_flag(self, flag: bool):
-    settings = estimator_pb2.Settings(
-        sensor_flag=flag,
-    )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
-    )
-    self.stub.SetSettings(request)
+  def cost(self) -> dict[str, float]:
+    request = estimator_pb2.CostRequest()
+    cost = self.stub.Cost(request).cost
+    return {
+        "total": cost.total,
+        "prior": cost.prior,
+        "sensor": cost.sensor,
+        "force": cost.force,
+        "initial": cost.initial,
+    }
 
-  def get_sensor_flag(self) -> bool:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.sensor_flag
+  def status(self) -> dict[str, int]:
+    request = estimator_pb2.StatusRequest()
+    status = self.stub.Status(request).status
+    return {
+        "search_iterations": status.search_iterations,
+        "smoother_iterations": status.smoother_iterations,
+        "step_size": status.step_size,
+        "regularization": status.regularization,
+        "gradient_norm": status.gradient_norm,
+    }
 
-  def set_force_flag(self, flag: bool):
-    settings = estimator_pb2.Settings(
-        force_flag=flag,
-    )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
-    )
-    self.stub.SetSettings(request)
-
-  def get_force_flag(self) -> bool:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.force_flag
-
-  def set_smoother_iterations(self, iterations: int):
-    settings = estimator_pb2.Settings(
-        smoother_iterations=iterations,
-    )
-    request = estimator_pb2.SetSettingsRequest(
-        settings=settings,
-    )
-    self.stub.SetSettings(request)
-
-  def get_smoother_iterations(self) -> int:
-    request = estimator_pb2.GetSettingsRequest()
-    return self.stub.GetSettings(request).settings.smoother_iterations
-
-  def get_cost(self) -> float:
-    request = estimator_pb2.GetCostsRequest()
-    return self.stub.GetCosts(request).cost.total
-
-  def get_cost_prior(self) -> float:
-    request = estimator_pb2.GetCostsRequest()
-    return self.stub.GetCosts(request).cost.prior
-
-  def get_cost_sensor(self) -> float:
-    request = estimator_pb2.GetCostsRequest()
-    return self.stub.GetCosts(request).cost.sensor
-
-  def get_cost_force(self) -> float:
-    request = estimator_pb2.GetCostsRequest()
-    return self.stub.GetCosts(request).cost.force
-
-  def get_cost_initial(self) -> float:
-    request = estimator_pb2.GetCostsRequest()
-    return self.stub.GetCosts(request).cost.initial
-
-  def set_prior_weight(self, weight: float):
-    weights = estimator_pb2.Weight(
-        prior=weight,
-    )
-    request = estimator_pb2.SetWeightsRequest(weight=weights)
-    self.stub.SetWeights(request)
-
-  def get_prior_weight(self) -> float:
-    request = estimator_pb2.GetWeightsRequest()
-    return self.stub.GetWeights(request).weight.prior
-
-  def set_sensor_weight(self, weight: npt.ArrayLike):
-    weights = estimator_pb2.Weight(
-        sensor=weight,
-    )
-    request = estimator_pb2.SetWeightsRequest(weight=weights)
-    self.stub.SetWeights(request)
-
-  def get_sensor_weight(self) -> npt.ArrayLike:
-    request = estimator_pb2.GetWeightsRequest()
-    return self.stub.GetWeights(request).weight.sensor
-
-  def set_force_weight(self, weight: npt.ArrayLike):
-    weights = estimator_pb2.Weight(
-        force=weight,
-    )
-    request = estimator_pb2.SetWeightsRequest(weight=weights)
-    self.stub.SetWeights(request)
-
-  def get_force_weight(self) -> npt.ArrayLike:
-    request = estimator_pb2.GetWeightsRequest()
-    return self.stub.GetWeights(request).weight.force
-
-  def shift_trajectory(self, shift: int) -> int:
-    request = estimator_pb2.ShiftTrajectoriesRequest(shift=shift)
-    return self.stub.ShiftTrajectories(request).head
+  def shift(self, shift: int) -> int:
+    request = estimator_pb2.ShiftRequest(shift=shift)
+    return self.stub.Shift(request).head
 
   def reset(self):
     request = estimator_pb2.ResetRequest()
@@ -380,23 +235,3 @@ class Estimator:
   def optimize(self):
     request = estimator_pb2.OptimizeRequest()
     self.stub.Optimize(request)
-
-  def search_iterations(self) -> int:
-    request = estimator_pb2.GetStatusRequest()
-    return self.stub.GetStatus(request).status.search_iterations
-
-  def smoother_iterations(self) -> int:
-    request = estimator_pb2.GetStatusRequest()
-    return self.stub.GetStatus(request).status.smoother_iterations
-
-  def step_size(self) -> float:
-    request = estimator_pb2.GetStatusRequest()
-    return self.stub.GetStatus(request).status.step_size
-
-  def regularization(self) -> float:
-    request = estimator_pb2.GetStatusRequest()
-    return self.stub.GetStatus(request).status.regularization
-
-  def gradient_norm(self) -> float:
-    request = estimator_pb2.GetStatusRequest()
-    return self.stub.GetStatus(request).status.gradient_norm

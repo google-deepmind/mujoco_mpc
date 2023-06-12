@@ -74,10 +74,18 @@ class EstimatorService final : public estimator::Estimator::Service {
                       const estimator::StatusRequest* request,
                       estimator::StatusResponse* response) override;
 
+  grpc::Status CostHessian(grpc::ServerContext* context,
+                           const estimator::CostHessianRequest* request,
+                           estimator::CostHessianResponse* response) override;
+
+  grpc::Status PriorMatrix(grpc::ServerContext* context,
+                           const estimator::PriorMatrixRequest* request,
+                           estimator::PriorMatrixResponse* response) override;
+
  private:
   bool Initialized() const {
     return estimator_.model_ && estimator_.configuration_length_ >= 3;
-  }  // TODO(taylor):
+  }
 
   // estimator
   mjpc::Estimator estimator_;

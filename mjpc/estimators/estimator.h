@@ -325,7 +325,7 @@ class Estimator {
   std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
 
   // candidate
-  EstimatorTrajectory<double> configuration_copy_;  // nq x T
+  EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
 
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY

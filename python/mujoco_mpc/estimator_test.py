@@ -361,6 +361,58 @@ class EstimatorTest(absltest.TestCase):
     # gradient norm
     self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-3)
 
+  def test_cost_hessian(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # Hessian
+    hessian = estimator.cost_hessian()
+
+    # test dimension
+    dim = configuration_length * model.nv
+    self.assertTrue(hessian.shape == (dim, dim))
+
+  def test_prior_matrix(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # dimension
+    dim = configuration_length * model.nv
+
+    # get uninitialized (zero) matrix
+    prior0 = estimator.prior_matrix()
+
+    # test
+    self.assertTrue(prior0.shape == (dim, dim))
+    self.assertTrue(not prior0.any())
+
+    # random
+    in_prior = np.random.rand(dim, dim)
+    out_prior = estimator.prior_matrix(prior=in_prior)
+
+    # test
+    self.assertTrue(np.linalg.norm(in_prior - out_prior) < 1.0e-4)
+
 
 if __name__ == "__main__":
   absltest.main()

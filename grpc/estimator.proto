@@ -35,6 +35,10 @@ service Estimator {
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
   // Get Estimator status
   rpc Status(StatusRequest) returns (StatusResponse);
+  // Get Estimator cost Hessian
+  rpc CostHessian(CostHessianRequest) returns (CostHessianResponse);
+  // Estimator prior matrix
+  rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
 }
 
 message MjModel {
@@ -53,13 +57,12 @@ message Data {
   repeated double configuration = 1 [packed = true];
   repeated double velocity = 2 [packed = true];
   repeated double acceleration = 3 [packed = true];
-  repeated double action = 4 [packed = true];
-  repeated double time = 5 [packed = true];
-  repeated double configuration_prior = 6 [packed = true];
-  repeated double sensor_measurement = 7 [packed = true];
-  repeated double sensor_prediction = 8 [packed = true];
-  repeated double force_measurement = 9 [packed = true];
-  repeated double force_prediction = 10 [packed = true];
+  repeated double time = 4 [packed = true];
+  repeated double configuration_prior = 5 [packed = true];
+  repeated double sensor_measurement = 6 [packed = true];
+  repeated double sensor_prediction = 7 [packed = true];
+  repeated double force_measurement = 8 [packed = true];
+  repeated double force_prediction = 9 [packed = true];
 }
 
 message DataRequest {
@@ -146,4 +149,20 @@ message StatusRequest {
 
 message StatusResponse {
   Status status = 1;
+}
+
+message CostHessianRequest {}
+
+message CostHessianResponse {
+  repeated double hessian = 1;
+  int32 dimension = 2;
+}
+
+message PriorMatrixRequest {
+  repeated double prior = 1;
+}
+
+message PriorMatrixResponse {
+  repeated double prior = 1;
+  int32 dimension = 2;
 }

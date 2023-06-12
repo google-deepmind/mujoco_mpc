@@ -34,7 +34,7 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // dimension
-  int nq = model->nq, nv = model->nv, nu = model->nu;
+  int nq = model->nq, nv = model->nv;
 
   // length of configuration trajectory
   configuration_length_ =
@@ -984,6 +984,7 @@ void Estimator::JacobianSensor(ThreadPool& pool) {
 }
 
 // force cost
+// TODO(taylor): change from looping over all joint types to just free/ball
 double Estimator::CostForce(double* gradient, double* hessian) {
   // start derivative timer
   auto start = std::chrono::steady_clock::now();
@@ -2196,10 +2197,6 @@ int Estimator::UpdateTrajectories(
     const int* mi = measurement_mask.Get(b);
     sensor_mask_.Set(mi, t);
 
-    // set ctrl
-    const double* ui = ctrl.Get(b);
-    action_.Set(ui, t);
-
     // set time
     const double* ti = time.Get(b);
     time_.Set(ti, t);
@@ -2210,6 +2207,7 @@ int Estimator::UpdateTrajectories(
     mjData* data = data_[0].get();
 
     // set ctrl
+    const double* ui = ctrl.Get(b);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // set qpos

@@ -235,3 +235,17 @@ class Estimator:
   def optimize(self):
     request = estimator_pb2.OptimizeRequest()
     self.stub.Optimize(request)
+
+  def cost_hessian(self) -> np.ndarray:
+    request = estimator_pb2.CostHessianRequest()
+    response = self.stub.CostHessian(request)
+    hessian = np.array(response.hessian).reshape(response.dimension, response.dimension)
+    return hessian
+
+  def prior_matrix(self, prior: Optional[npt.ArrayLike] = None) -> np.ndarray:
+    request = estimator_pb2.PriorMatrixRequest(
+        prior=prior.flatten() if prior is not None else None
+    )
+    response = self.stub.PriorMatrix(request)
+    mat = np.array(response.prior).reshape(response.dimension, response.dimension)
+    return mat

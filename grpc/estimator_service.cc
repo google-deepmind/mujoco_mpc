@@ -28,6 +28,8 @@
 
 namespace estimator_grpc {
 
+using ::estimator::CostHessianRequest;
+using ::estimator::CostHessianResponse;
 using ::estimator::CostRequest;
 using ::estimator::CostResponse;
 using ::estimator::DataRequest;
@@ -36,6 +38,8 @@ using ::estimator::InitRequest;
 using ::estimator::InitResponse;
 using ::estimator::OptimizeRequest;
 using ::estimator::OptimizeResponse;
+using ::estimator::PriorMatrixRequest;
+using ::estimator::PriorMatrixResponse;
 using ::estimator::ResetRequest;
 using ::estimator::ResetResponse;
 using ::estimator::SettingsRequest;
@@ -421,6 +425,57 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
 
   // gradient norm
   status->set_gradient_norm(estimator_.gradient_norm_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::CostHessian(
+    grpc::ServerContext* context, const estimator::CostHessianRequest* request,
+    estimator::CostHessianResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // dimension
+  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+  response->set_dimension(dim);
+
+  // get cost Hessian
+  // TODO(taylor): return only upper triangle?
+  for (int i = 0; i < dim; i++) {
+    for (int j = 0; j < dim; j++) {
+      double data = estimator_.cost_hessian_[dim * i + j];
+      response->add_hessian(data);
+    }
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::PriorMatrix(
+    grpc::ServerContext* context, const estimator::PriorMatrixRequest* request,
+    estimator::PriorMatrixResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // dimension
+  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+  response->set_dimension(dim);
+
+  // set prior matrix
+  // TODO(taylor): loop over upper triangle only
+  if (request->prior_size() == dim * dim) {
+    mju_copy(estimator_.weight_prior_dense_.data(), request->prior().data(),
+             dim * dim);
+  }
+
+  // get prior matrix
+  for (int i = 0; i < dim; i++) {
+    for (int j = 0; j < dim; j++) {
+      response->add_prior(estimator_.weight_prior_dense_[dim * i + j]);
+    }
+  }
 
   return grpc::Status::OK;
 }

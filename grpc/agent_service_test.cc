@@ -179,6 +179,15 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
 
   {
     grpc::ClientContext context;
+    agent::GetTaskParametersRequest request;
+    agent::GetTaskParametersResponse response;
+    grpc::Status status = stub->GetTaskParameters(&context, request, &response);
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(response.parameters().at("Goal").numeric(), -1.0);
+  }
+
+  {
+    grpc::ClientContext context;
     agent::PlannerStepRequest request;
     agent::PlannerStepResponse response;
     grpc::Status status = stub->PlannerStep(&context, request, &response);

@@ -30,6 +30,9 @@
 #include "mjpc/tasks/tasks.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
+ABSL_FLAG(int32_t, mjpc_workers, -1,
+          "number of worker threads for MJPC planning. -1 means use the number "
+          "of available hardware threads.");
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
@@ -42,7 +45,8 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  agent_grpc::AgentService service(mjpc::GetTasks());
+  agent_grpc::AgentService service(mjpc::GetTasks(),
+                                   absl::GetFlag(FLAGS_mjpc_workers));
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

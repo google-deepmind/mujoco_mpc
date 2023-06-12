@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <cstring>
+#include <stdio.h> 
 
 #include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>

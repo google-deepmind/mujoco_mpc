@@ -267,9 +267,6 @@ TEST(BatchReuse, Particle2D) {
     estimator.time_.Set(time_buffer.Get(t), t);
   }
 
-  // set shift
-  int shift = 0;
-
   for (int i = 0; i < horizon_estimator - 1; i++) {
     // times
     EXPECT_NEAR(time_buffer.Get(i)[0] - estimator.time_.Get(i)[0], 0.0, 1.0e-5);
@@ -286,9 +283,6 @@ TEST(BatchReuse, Particle2D) {
             estimator.force_measurement_.Get(i), nv);
     EXPECT_NEAR(mju_norm(error_force.data(), nv), 0.0, 1.0e-5);
   }
-
-  // shift
-  shift++;
 
   // set buffer length
   ctrl_buffer.length_ = horizon_estimator;
@@ -315,9 +309,6 @@ TEST(BatchReuse, Particle2D) {
             estimator.force_measurement_.Get(i), nv);
     EXPECT_NEAR(mju_norm(error_force.data(), nv), 0.0, 1.0e-5);
   }
-
-  // shift
-  shift += 2;
 
   // set buffer length
   ctrl_buffer.length_ = horizon_estimator + 2;

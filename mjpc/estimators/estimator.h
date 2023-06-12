@@ -202,7 +202,6 @@ class Estimator {
   EstimatorTrajectory<double> configuration_; // nq x T
   EstimatorTrajectory<double> velocity_;      // nv x T
   EstimatorTrajectory<double> acceleration_;  // nv x T
-  EstimatorTrajectory<double> action_;        // nu x T
   EstimatorTrajectory<double> time_;          //  1 x T
 
   // prior 

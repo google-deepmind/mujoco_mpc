@@ -108,8 +108,6 @@ TEST(BatchShift, Particle2D) {
              nq * horizon_estimator);
     mju_copy(estimator.configuration_prior_.Data(),
              estimator.configuration_.Data(), nq * horizon_estimator);
-    mju_copy(estimator.action_.Data(), ctrl_buffer.Data(),
-             nu * (horizon_estimator - 1));
     mju_copy(estimator.force_measurement_.Data(), qfrc_actuator_buffer.Data(),
              nv * (horizon_estimator - 1));
     mju_copy(estimator.sensor_measurement_.Data(), sensor_buffer.Data(),
@@ -261,7 +259,6 @@ TEST(BatchReuse, Particle2D) {
 
     if (t >= horizon_estimator - 1) continue;
 
-    estimator.action_.Set(ctrl_buffer.Get(t), t);
     estimator.force_measurement_.Set(qfrc_actuator_buffer.Get(t), t);
     estimator.sensor_measurement_.Set(sensor_buffer.Get(t), t);
     estimator.time_.Set(time_buffer.Get(t), t);

@@ -47,7 +47,6 @@ void Estimator::Initialize(mjModel* model) {
   configuration_.Initialize(nq, configuration_length_);
   velocity_.Initialize(nv, configuration_length_);
   acceleration_.Initialize(nv, configuration_length_);
-  action_.Initialize(nu, configuration_length_);
   time_.Initialize(1, configuration_length_);
 
   // prior
@@ -254,7 +253,6 @@ void Estimator::SetConfigurationLength(int length) {
 
   velocity_.length_ = length;
   acceleration_.length_ = length;
-  action_.length_ = length;
   time_.length_ = length;
 
   configuration_prior_.length_ = length;
@@ -315,7 +313,6 @@ void Estimator::ShiftTrajectoryHead(int shift) {
 
   velocity_.ShiftHeadIndex(shift);
   acceleration_.ShiftHeadIndex(shift);
-  action_.ShiftHeadIndex(shift);
   time_.ShiftHeadIndex(shift);
 
   configuration_prior_.ShiftHeadIndex(shift);
@@ -365,7 +362,6 @@ void Estimator::Reset() {
   configuration_.Reset();
   velocity_.Reset();
   acceleration_.Reset();
-  action_.Reset();
   time_.Reset();
 
   // prior
@@ -2124,16 +2120,13 @@ void Estimator::InitializeTrajectories(
     const int* mi = measurement_mask.Get(buffer_index);
     sensor_mask_.Set(mi, i);
 
-    // set ctrl
-    const double* ui = ctrl.Get(buffer_index);
-    action_.Set(ui, i);
-
     // ----- forward dynamics ----- //
 
     // get data
     mjData* data = data_[0].get();
 
     // set ctrl
+    const double* ui = ctrl.Get(buffer_index);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // set qpos

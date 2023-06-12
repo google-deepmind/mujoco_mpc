@@ -70,45 +70,17 @@ message Data {
 
 message SetDataRequest {
   int32 index = 1;
-  repeated double configuration = 2 [packed = true];
-  repeated double velocity = 3 [packed = true];
-  repeated double acceleration = 4 [packed = true];
-  repeated double action = 5 [packed = true];
-  repeated double time = 6 [packed = true];
-  repeated double configuration_prior = 7 [packed = true];
-  repeated double sensor_measurement = 8 [packed = true];
-  repeated double sensor_prediction = 9 [packed = true];
-  repeated double force_measurement = 10 [packed = true];
-  repeated double force_prediction = 11 [packed = true];
+  Data data = 2;
 }
 
 message SetDataResponse {}
 
 message GetDataRequest {
   int32 index = 1;
-  optional bool configuration = 2;
-  optional bool velocity = 3;
-  optional bool acceleration = 4;
-  optional bool action = 5;
-  optional bool time = 6;
-  optional bool configuration_prior = 7;
-  optional bool sensor_measurement = 8;
-  optional bool sensor_prediction = 9;
-  optional bool force_measurement = 10;
-  optional bool force_prediction = 11;
 }
 
 message GetDataResponse {
-  repeated double configuration = 1 [packed = true];
-  repeated double velocity = 2 [packed = true];
-  repeated double acceleration = 3 [packed = true];
-  repeated double action = 4 [packed = true];
-  repeated double time = 5 [packed = true];
-  repeated double configuration_prior = 6 [packed = true];
-  repeated double sensor_measurement = 7 [packed = true];
-  repeated double sensor_prediction = 8 [packed = true];
-  repeated double force_measurement = 9 [packed = true];
-  repeated double force_prediction = 10 [packed = true];
+  Data data = 1;
 }
 
 message Settings {
@@ -121,56 +93,29 @@ message Settings {
 }
 
 message SetSettingsRequest {
-  optional int32 configuration_length = 1;
-  optional int32 search_type = 2;
-  optional bool prior_flag = 3;
-  optional bool sensor_flag = 4;
-  optional bool force_flag = 5;
-  optional int32 smoother_iterations = 6;
+  Settings settings = 1;
 }
 
 message SetSettingsResponse {}
 
-message GetSettingsRequest {
-  optional bool configuration_length = 1;
-  optional bool search_type = 2;
-  optional bool prior_flag = 3;
-  optional bool sensor_flag = 4;
-  optional bool force_flag = 5;
-  optional bool smoother_iterations = 6;
-}
+message GetSettingsRequest {}
 
 message GetSettingsResponse {
-  optional int32 configuration_length = 1;
-  optional int32 search_type = 2;
-  optional bool prior_flag = 3;
-  optional bool sensor_flag = 4;
-  optional bool force_flag = 5;
-  optional int32 smoother_iterations = 6;
+  Settings settings = 1;
 }
 
 message Cost {
-  optional double cost = 1;
+  optional double total = 1;
   optional double prior = 2;
   optional double sensor = 3;
   optional double force = 4;
   optional double initial = 5;
 }
 
-message GetCostsRequest {
-  optional bool cost = 1;
-  optional bool prior = 2;
-  optional bool sensor = 3;
-  optional bool force = 4;
-  optional bool initial = 5;
-}
+message GetCostsRequest {}
 
 message GetCostsResponse {
-  optional double cost = 1;
-  optional double prior = 2;
-  optional double sensor = 3;
-  optional double force = 4;
-  optional double initial = 5;
+  Cost cost = 1;
 }
 
 message Weight {
@@ -180,23 +125,15 @@ message Weight {
 }
 
 message SetWeightsRequest {
-  optional double prior = 1;
-  repeated double sensor = 2 [packed = true];
-  repeated double force = 3 [packed = true];
+  Weight weight = 1;
 }
 
 message SetWeightsResponse {}
 
-message GetWeightsRequest {
-  optional bool prior = 1;
-  optional bool sensor = 2;
-  optional bool force = 3;
-}
+message GetWeightsRequest {}
 
 message GetWeightsResponse {
-  optional double prior = 1;
-  repeated double sensor = 2 [packed = true];
-  repeated double force = 3 [packed = true];
+  Weight weight = 1;
 }
 
 message ShiftTrajectoriesRequest {
@@ -224,17 +161,8 @@ message Status {
 }
 
 message GetStatusRequest {
-  optional bool search_iterations = 1;
-  optional bool smoother_iterations = 2;
-  optional bool step_size = 3;
-  optional bool regularization = 4;
-  optional bool gradient_norm = 5;
 }
 
 message GetStatusResponse {
-  int32 search_iterations = 1;
-  int32 smoother_iterations = 2;
-  double step_size = 3;
-  double regularization = 4;
-  double gradient_norm = 5;
+  Status status = 1;
 }

@@ -39,47 +39,47 @@ class EstimatorService final : public estimator::Estimator::Service {
 
   grpc::Status Init(grpc::ServerContext* context,
                     const estimator::InitRequest* request,
-                    estimator::InitResponse* response);
+                    estimator::InitResponse* response) override;
 
   grpc::Status Data(grpc::ServerContext* context,
                     const estimator::DataRequest* request,
-                    estimator::DataResponse* response);
+                    estimator::DataResponse* response) override;
 
   grpc::Status Settings(grpc::ServerContext* context,
                         const estimator::SettingsRequest* request,
-                        estimator::SettingsResponse* response);
+                        estimator::SettingsResponse* response) override;
 
   grpc::Status Cost(grpc::ServerContext* context,
                     const estimator::CostRequest* request,
-                    estimator::CostResponse* response);
+                    estimator::CostResponse* response) override;
 
   grpc::Status Weights(grpc::ServerContext* context,
                        const estimator::WeightsRequest* request,
-                       estimator::WeightsResponse* response);
+                       estimator::WeightsResponse* response) override;
 
   grpc::Status Shift(grpc::ServerContext* context,
                      const estimator::ShiftRequest* request,
-                     estimator::ShiftResponse* response);
+                     estimator::ShiftResponse* response) override;
 
   grpc::Status Reset(grpc::ServerContext* context,
                      const estimator::ResetRequest* request,
-                     estimator::ResetResponse* response);
+                     estimator::ResetResponse* response) override;
 
   grpc::Status Optimize(grpc::ServerContext* context,
                         const estimator::OptimizeRequest* request,
-                        estimator::OptimizeResponse* response);
+                        estimator::OptimizeResponse* response) override;
 
   grpc::Status Status(grpc::ServerContext* context,
                       const estimator::StatusRequest* request,
-                      estimator::StatusResponse* response);
+                      estimator::StatusResponse* response) override;
 
   grpc::Status CostHessian(grpc::ServerContext* context,
                            const estimator::CostHessianRequest* request,
-                           estimator::CostHessianResponse* response);
+                           estimator::CostHessianResponse* response) override;
 
   grpc::Status PriorMatrix(grpc::ServerContext* context,
                            const estimator::PriorMatrixRequest* request,
-                           estimator::PriorMatrixResponse* response);
+                           estimator::PriorMatrixResponse* response) override;
 
  private:
   bool Initialized() const {

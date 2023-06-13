@@ -84,6 +84,92 @@ class AgentTest(absltest.TestCase):
     self.assertFalse((observations == 0).all())
     self.assertFalse((actions == 0).all())
 
+  def test_action_averaging_doesnt_change_state(self):
+    # when calling get_action with action averaging, the Agent needs to roll
+    # out physics, but the API should be implemented not to mutate the state
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+    control_timestep = model.opt.timestep * 5
+
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      agent.set_task_parameters({"Goal": 13})
+      agent.reset()
+      environment_reset(model, data)
+      agent.set_state(
+          time=data.time,
+          qpos=data.qpos,
+          qvel=data.qvel,
+          act=data.act,
+          mocap_pos=data.mocap_pos,
+          mocap_quat=data.mocap_quat,
+          userdata=data.userdata,
+      )
+      agent.get_action(averaging_duration=control_timestep)
+      state_after = agent.get_state()
+      self.assertEqual(data.time, state_after.time)
+      np.testing.assert_allclose(data.qpos, state_after.qpos)
+      np.testing.assert_allclose(data.qvel, state_after.qvel)
+      np.testing.assert_allclose(data.act, state_after.act)
+      np.testing.assert_allclose(data.userdata, state_after.userdata)
+
+  def test_action_averaging_improves_control(self):
+    # try controlling the cartpole task at 1/10th frequency with action
+    # repeats, and with action averaging.
+    # expect action averaging to be a bit better
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+    repeats = 10
+    control_timestep = model.opt.timestep * repeats
+
+    def get_action_simple(agent):
+      return agent.get_action()
+
+    def get_action_averaging(agent):
+      return agent.get_action(averaging_duration=control_timestep)
+
+    def run_episode(agent, get_action):
+      agent.set_task_parameters({"Goal": 13})
+      agent.reset()
+      environment_reset(model, data)
+      num_steps = 10
+      total_cost = 0.0
+      for _ in range(num_steps):
+        agent.set_state(
+            time=data.time,
+            qpos=data.qpos,
+            qvel=data.qvel,
+            act=data.act,
+            mocap_pos=data.mocap_pos,
+            mocap_quat=data.mocap_quat,
+            userdata=data.userdata,
+        )
+        agent.planner_step()
+        action = get_action(agent)
+        for _ in range(repeats):
+          environment_step(model, data, action)
+          total_cost += agent.get_total_cost()
+      return total_cost
+
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      averaging_cost = run_episode(agent, get_action_averaging)
+      repeat_cost = run_episode(agent, get_action_simple)
+
+    self.assertLess(averaging_cost, repeat_cost)
+    # averaging actions should be better but not amazingly so.
+    self.assertLess(
+        np.abs(averaging_cost - repeat_cost) / repeat_cost,
+        0.1,
+        "Difference between costs is too large.",
+    )
+
   def test_stepping_on_agent_side(self):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (

@@ -153,7 +153,7 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetAction(request, &agent_, response);
+  return grpc_agent_util::GetAction(request, &agent_, model, data_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(

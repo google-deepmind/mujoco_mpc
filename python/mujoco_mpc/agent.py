@@ -191,16 +191,22 @@ class Agent(contextlib.AbstractContextManager):
   def get_state(self) -> agent_pb2.State:
     return self.stub.GetState(agent_pb2.GetStateRequest()).state
 
-  def get_action(self, time: Optional[float] = None) -> np.ndarray:
+  def get_action(
+      self, time: Optional[float] = None, averaging_duration: float = 0
+  ) -> np.ndarray:
     """Return latest `action` from the `Agent`'s planner.
 
     Args:
       time: `data.time`, i.e. the simulation time.
+      averaging_duration: the duration over which actions should be averaged
+        (e.g. the control timestep).
 
     Returns:
       action: `Agent`'s planner's latest action.
     """
-    get_action_request = agent_pb2.GetActionRequest(time=time)
+    get_action_request = agent_pb2.GetActionRequest(
+        time=time, averaging_duration=averaging_duration
+    )
     get_action_response = self.stub.GetAction(get_action_request)
     return np.array(get_action_response.action)
 

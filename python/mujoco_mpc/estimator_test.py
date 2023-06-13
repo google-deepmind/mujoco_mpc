@@ -439,17 +439,17 @@ class EstimatorTest(absltest.TestCase):
     # test buffer length
     self.assertTrue(length == 1)
 
-    # data from buffer 
+    # data from buffer
     index = 0
     buffer = estimator.buffer(index)
 
-    # test 
+    # test
     self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
     self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
     self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
     self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
 
-    # set sensor 
+    # set sensor
     sensor = np.random.rand(model.nsensordata)
     buffer = estimator.buffer(index, sensor=sensor)
     self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
@@ -459,12 +459,12 @@ class EstimatorTest(absltest.TestCase):
     buffer = estimator.buffer(index, mask=mask)
     self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
 
-    # set ctrl 
+    # set ctrl
     ctrl = np.random.rand(model.nu)
     buffer = estimator.buffer(index, ctrl=ctrl)
     self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
 
-    # set time 
+    # set time
     time = np.random.rand(1)
     buffer = estimator.buffer(index, time=time)
     self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
@@ -481,10 +481,10 @@ class EstimatorTest(absltest.TestCase):
     # test buffer length
     self.assertTrue(length == 2)
 
-    # index 
+    # index
     index = 1
 
-    # set sensor 
+    # set sensor
     sensor = np.random.rand(model.nsensordata)
     buffer = estimator.buffer(index, sensor=sensor)
     self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
@@ -494,18 +494,19 @@ class EstimatorTest(absltest.TestCase):
     buffer = estimator.buffer(index, mask=mask)
     self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
 
-    # set ctrl 
+    # set ctrl
     ctrl = np.random.rand(model.nu)
     buffer = estimator.buffer(index, ctrl=ctrl)
     self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
 
-    # set time 
+    # set time
     time = np.random.rand(1)
     buffer = estimator.buffer(index, time=time)
     self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
 
     # buffer length
     self.assertTrue(buffer["length"] == 2)
+
 
 if __name__ == "__main__":
   absltest.main()

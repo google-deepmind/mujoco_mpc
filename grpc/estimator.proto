@@ -89,6 +89,7 @@ message Settings {
   optional bool force_flag = 5;
   optional int32 smoother_iterations = 6;
   optional bool skip_prior_weight_update = 7;
+  optional bool time_scaling = 8;
 }
 
 message SettingsRequest {

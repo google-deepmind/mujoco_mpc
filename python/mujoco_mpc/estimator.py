@@ -174,6 +174,7 @@ class Estimator:
       force_flag: Optional[bool] = None,
       smoother_iterations: Optional[int] = None,
       skip_prior_weight_update: Optional[bool] = None,
+      time_scaling: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -184,6 +185,7 @@ class Estimator:
         force_flag=force_flag,
         smoother_iterations=smoother_iterations,
         skip_prior_weight_update=skip_prior_weight_update,
+        time_scaling=time_scaling,
     )
 
     # settings request
@@ -203,6 +205,7 @@ class Estimator:
         "force_flag": settings.force_flag,
         "smoother_iterations": settings.smoother_iterations,
         "skip_prior_weight_update": settings.skip_prior_weight_update,
+        "time_scaling": settings.time_scaling,
     }
 
   def weight(
@@ -311,16 +314,16 @@ class Estimator:
 
     # return prior matrix
     return mat
-  
+
   def buffer(
-      self, 
-      index: int, 
-      sensor: Optional[npt.ArrayLike] = [], 
-      mask: Optional[npt.ArrayLike] = [], 
-      ctrl: Optional[npt.ArrayLike] = [], 
+      self,
+      index: int,
+      sensor: Optional[npt.ArrayLike] = [],
+      mask: Optional[npt.ArrayLike] = [],
+      ctrl: Optional[npt.ArrayLike] = [],
       time: Optional[npt.ArrayLike] = [],
   ) -> dict[str, int | np.ndarray]:
-    # assemble buffer 
+    # assemble buffer
     inputs = estimator_pb2.Buffer(
         sensor=sensor,
         mask=mask,
@@ -334,22 +337,26 @@ class Estimator:
     # data response
     response = self.stub.BufferData(request)
 
-    # buffer 
+    # buffer
     buffer = response.buffer
 
-    # return all buffer data at time index 
+    # return all buffer data at time index
     return {
-      "sensor": np.array(buffer.sensor),
-      "mask": np.array(buffer.mask),
-      "ctrl": np.array(buffer.ctrl),
-      "time": np.array(buffer.time),
-      "length": response.length,
+        "sensor": np.array(buffer.sensor),
+        "mask": np.array(buffer.mask),
+        "ctrl": np.array(buffer.ctrl),
+        "time": np.array(buffer.time),
+        "length": response.length,
     }
 
   def update_buffer(
-      self, sensor: npt.ArrayLike, mask: npt.ArrayLike, ctrl: npt.ArrayLike, time: npt.ArrayLike,
+      self,
+      sensor: npt.ArrayLike,
+      mask: npt.ArrayLike,
+      ctrl: npt.ArrayLike,
+      time: npt.ArrayLike,
   ) -> int:
-    # assemble buffer 
+    # assemble buffer
     inputs = estimator_pb2.Buffer(
         sensor=sensor,
         mask=mask,

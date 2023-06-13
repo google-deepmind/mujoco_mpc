@@ -303,6 +303,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_skip_prior_weight_update(estimator_.skip_update_prior_weight);
 
+  // time scaling 
+  if (input.has_time_scaling()) {
+    estimator_.time_scaling_ = input.time_scaling();
+  }
+  output->set_time_scaling(estimator_.time_scaling_);
+
   return grpc::Status::OK;
 }
 

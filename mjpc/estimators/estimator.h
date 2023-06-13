@@ -406,7 +406,7 @@ class Estimator {
   bool reuse_data_ = false;                 // flag for resuing data previously computed
   bool skip_update_prior_weight = false;    // flag for skipping update prior weight
   bool update_prior_weight_ = true;         // flag for updating prior weights
-  bool time_scaling_ = true;                // scale sensor and force costs by time step
+  bool time_scaling_ = false;               // scale sensor and force costs by time step
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

@@ -15,9 +15,6 @@
 #ifndef MJPC_UTILITIES_H_
 #define MJPC_UTILITIES_H_
 
-#include <absl/container/flat_hash_map.h>
-#include <mujoco/mujoco.h>
-
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -27,6 +24,9 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+
+#include <absl/container/flat_hash_map.h>
+#include <mujoco/mujoco.h>
 
 namespace mjpc {
 
@@ -256,23 +256,26 @@ void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
 // find the convex hull of a set of 2D points
 int Hull2D(int* hull, int num_points, const mjtNum* points);
 
+// TODO(etom): move findiff-related functions to a different library.
+
 // finite-difference gradient
 class FiniteDifferenceGradient {
  public:
   // constructor
-  FiniteDifferenceGradient(int dim);
+  explicit FiniteDifferenceGradient(int dim);
 
   // resize memory
   void Resize(int dim);
 
   // compute gradient
-  double* Compute(std::function<double(const double* x)> func,
+  void Compute(std::function<double(const double* x)> func,
                   const double* input, int dim);
 
   // members
-  std::vector<double> gradient_;
+  std::vector<double> gradient;
+  double epsilon = 1.0e-5;
+ private:
   std::vector<double> workspace_;
-  double epsilon_ = 1.0e-5;
 };
 
 // finite-difference Jacobian
@@ -282,40 +285,42 @@ class FiniteDifferenceJacobian {
   FiniteDifferenceJacobian(int num_output, int num_input);
 
   // resize memory
-  void Resize(int num_ouput, int num_input);
+  void Resize(int num_output, int num_input);
 
   // compute Jacobian
-  double* Compute(std::function<void(double* output, const double* input)> func,
+  void Compute(std::function<void(double* output, const double* input)> func,
                   const double* input, int num_output, int num_input);
 
   // members
-  std::vector<double> jacobian_;
-  std::vector<double> jacobian_transpose_;
-  std::vector<double> output_;
-  std::vector<double> output_nominal_;
+  std::vector<double> jacobian;
+  std::vector<double> jacobian_transpose;
+  std::vector<double> output;
+  std::vector<double> output_nominal;
+  double epsilon = 1.0e-5;
+ private:
   std::vector<double> workspace_;
-  double epsilon_ = 1.0e-5;
 };
 
 // finite-difference Hessian
 class FiniteDifferenceHessian {
  public:
   // constructor
-  FiniteDifferenceHessian(int dim);
+  explicit FiniteDifferenceHessian(int dim);
 
   // resize memory
   void Resize(int dim);
 
   // compute
-  double* Compute(std::function<double(const double* x)> func,
+  void Compute(std::function<double(const double* x)> func,
                   const double* input, int dim);
 
   // members
-  std::vector<double> hessian_;
+  std::vector<double> hessian;
+  double epsilon = 1.0e-5;
+ private:
   std::vector<double> workspace1_;
   std::vector<double> workspace2_;
   std::vector<double> workspace3_;
-  double epsilon_ = 1.0e-5;
 };
 
 // set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
@@ -346,11 +351,11 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
 // compute number of nonzeros in band matrix
 int BandMatrixNonZeros(int ntotal, int nband);
 
-// get duration since time point
+// TODO(etom): rename (SecondsSince?)
 double GetDuration(std::chrono::steady_clock::time_point time);
 
 // copy symmetric band matrix block by block
-void SymmetricBandMatrixCopy(double* res, const double* A, int dblock,
+void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
                              int nblock, int ntotal, int num_blocks,
                              int res_start_row, int res_start_col,
                              int mat_start_row, int mat_start_col,

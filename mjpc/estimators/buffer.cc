@@ -14,9 +14,10 @@
 
 #include "mjpc/estimators/buffer.h"
 
+#include <stdio.h>
+#include <algorithm>
 #include <vector>
 #include <cstring>
-#include <stdio.h> 
 
 #include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>
@@ -25,7 +26,7 @@ namespace mjpc {
 
 // initialize
 void Buffer::Initialize(mjModel* model, int max_length) {
-  // sensor 
+  // sensor
   sensor_.Initialize(model->nsensordata, 0);
 
   // sensor mask
@@ -35,41 +36,43 @@ void Buffer::Initialize(mjModel* model, int max_length) {
   mask_.resize(model->nsensor);
   std::fill(mask_.begin(), mask_.end(), 1);
 
-  // ctrl 
+  // ctrl
+  // time
   ctrl_.Initialize(model->nu, 0);
 
-  // time 
   time_.Initialize(1, 0);
 
-  // maximum buffer length 
+  // maximum buffer length
   max_length_ = max_length;
 }
 
+  // sensor
 // reset
 void Buffer::Reset() {
-  // sensor 
   sensor_.Reset();
   sensor_.length_ = 0;
 
   // sensor mask
   sensor_mask_.Reset();
+
+  // TODO(etom): use a public interface:
   sensor_mask_.length_ = 0;
 
   // mask
-  std::fill(mask_.begin(), mask_.end(), 1); // set to true
+  // ctrl
+  std::fill(mask_.begin(), mask_.end(), 1);  // set to true
 
-  // ctrl 
   ctrl_.Reset();
+  // time
   ctrl_.length_ = 0;
 
-  // time 
   time_.Reset();
   time_.length_ = 0;
 }
 
 // update
 void Buffer::Update(mjModel* model, mjData* data) {
-  if (time_.length_ <= max_length_) { // fill buffer
+  if (time_.length_ <= max_length_) {  // fill buffer
     // time
     time_.data_[time_.length_++] = data->time;
 
@@ -82,9 +85,9 @@ void Buffer::Update(mjModel* model, mjData* data) {
     mju_copy(sensor_.data_.data() +
                   sensor_.length_ * model->nsensordata,
               data->sensordata, model->nsensordata);
+    // sensor mask
     sensor_.length_++;
 
-    // sensor mask 
     // TODO(taylor): external method must set mask
     std::memcpy(
         sensor_mask_.data_.data() + sensor_mask_.length_ * model->nsensor,
@@ -101,21 +104,21 @@ void Buffer::Update(mjModel* model, mjData* data) {
 
     // sensor
     sensor_.ShiftHeadIndex(1);
+    // sensor mask
     sensor_.Set(data->sensordata, sensor_.length_ - 1);
 
-    // sensor mask 
     // TODO(taylor): external method must set mask
     sensor_mask_.ShiftHeadIndex(1);
     sensor_mask_.Set(mask_.data(), sensor_.length_ - 1);
   }
+  // update mask
 }
 
- // update mask 
 void Buffer::UpdateMask() {
   // TODO(taylor)
+// print
 }
 
-// print 
 void Buffer::Print() {
   for (int i = 0; i < time_.length_; i++) {
     printf("(%i)\n", i);

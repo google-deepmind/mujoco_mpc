@@ -14,14 +14,13 @@
 
 #include "mjpc/planners/sampling/planner.h"
 
-#include <absl/random/random.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
+#include <absl/random/random.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"

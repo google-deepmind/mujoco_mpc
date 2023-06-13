@@ -30,5 +30,5 @@ __pycache__/
 MUJOCO_LOG.TXT
 MJDATA.TXT
 MJMODEL.TXT
-# Python 
+# Python
 python/dist/

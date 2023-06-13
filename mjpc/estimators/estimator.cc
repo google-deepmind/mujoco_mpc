@@ -712,10 +712,10 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // time index 
+    // time index
     int t = k + 1;
 
-    // mask 
+    // mask
     int* mask = sensor_mask_.Get(t);
 
     // unpack block
@@ -1610,9 +1610,9 @@ void Estimator::CostHessian() {
 
 // covariance update
 void Estimator::PriorWeightUpdate(ThreadPool& pool) {
-  // skip 
+  // skip
   if (skip_update_prior_weight) return;
-  
+
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -1736,22 +1736,24 @@ void Estimator::Optimize(ThreadPool& pool) {
     count_begin = pool.GetCount();
 
     // individual derivatives
-    if (prior_flag_)
+    if (prior_flag_) {
       pool.Schedule([&estimator = *this]() {
         estimator.CostPrior(estimator.cost_gradient_prior_.data(),
                             estimator.cost_hessian_prior_.data());
       });
-    if (sensor_flag_)
+    }
+    if (sensor_flag_) {
       pool.Schedule([&estimator = *this]() {
         estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
                              estimator.cost_hessian_sensor_.data());
       });
-    if (force_flag_)
+    }
+    if (force_flag_) {
       pool.Schedule([&estimator = *this]() {
         estimator.CostForce(estimator.cost_gradient_force_.data(),
                             estimator.cost_hessian_force_.data());
       });
-
+    }
     // wait
     pool.WaitCount(count_begin + prior_flag_ + sensor_flag_ + force_flag_);
 
@@ -2117,7 +2119,7 @@ void Estimator::InitializeTrajectories(
     const double* yi = measurement.Get(buffer_index);
     sensor_measurement_.Set(yi, i);
 
-    // set mask 
+    // set mask
     const int* mi = measurement_mask.Get(buffer_index);
     sensor_mask_.Set(mi, i);
 
@@ -2243,10 +2245,12 @@ void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   if (buffer.Length() >= configuration_length_ - 1) {
     num_new_ = configuration_length_;
     if (!initialized_) {
-      InitializeTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_, buffer.time_);
+      InitializeTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_,
+                             buffer.time_);
       initialized_ = true;
     } else {
-      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_, buffer.time_);
+      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.sensor_mask_,
+                                    buffer.ctrl_, buffer.time_);
     }
     // optimize
     Optimize(pool);

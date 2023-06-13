@@ -54,7 +54,6 @@ extern "C" {
 }
 
 namespace mjpc {
-  
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state) {
   mju_copy(data->qpos, state, model->nq);
@@ -993,12 +992,12 @@ FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) { Resize(dim); }
 // finite-difference gradient resize memory
 void FiniteDifferenceGradient::Resize(int dim) {
   // allocate memory
-  if (dim != gradient_.size()) gradient_.resize(dim);
+  if (dim != gradient.size()) gradient.resize(dim);
   if (dim != workspace_.size()) workspace_.resize(dim);
 }
 
 // compute finite-difference gradient
-double* FiniteDifferenceGradient::Compute(
+void FiniteDifferenceGradient::Compute(
     std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
   Resize(dim);
@@ -1010,20 +1009,19 @@ double* FiniteDifferenceGradient::Compute(
   // finite difference
   for (int i = 0; i < dim; i++) {
     // positive perturbation
-    workspace_[i] += 0.5 * epsilon_;
+    workspace_[i] += 0.5 * epsilon;
     double fp = func(workspace_.data());
 
     // negative
-    workspace_[i] -= 1.0 * epsilon_;
+    workspace_[i] -= 1.0 * epsilon;
     double fn = func(workspace_.data());
 
     // gradient
-    gradient_[i] = (fp - fn) / epsilon_;
+    gradient[i] = (fp - fn) / epsilon;
 
     // reset
     workspace_[i] = input[i];
   }
-  return gradient_.data();
 }
 
 // finite-difference Jacobian constructor
@@ -1036,17 +1034,17 @@ FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
 // finite-difference Jacobian memory resize
 void FiniteDifferenceJacobian::Resize(int num_output, int num_input) {
   // resize
-  if (jacobian_.size() != num_output * num_input)
-    jacobian_.resize(num_output * num_input);
-  if (jacobian_transpose_.size() != num_output * num_input)
-    jacobian_transpose_.resize(num_output * num_input);
-  if (output_.size() != num_output) output_.resize(num_output);
-  if (output_nominal_.size() != num_output) output_nominal_.resize(num_output);
+  if (jacobian.size() != num_output * num_input)
+    jacobian.resize(num_output * num_input);
+  if (jacobian_transpose.size() != num_output * num_input)
+    jacobian_transpose.resize(num_output * num_input);
+  if (output.size() != num_output) output.resize(num_output);
+  if (output_nominal.size() != num_output) output_nominal.resize(num_output);
   if (workspace_.size() != num_input) workspace_.resize(num_input);
 }
 
 // compute Jacobian
-double* FiniteDifferenceJacobian::Compute(
+void FiniteDifferenceJacobian::Compute(
     std::function<void(double* output, const double* input)> func,
     const double* input, int num_output, int num_input) {
   // resize
@@ -1056,31 +1054,29 @@ double* FiniteDifferenceJacobian::Compute(
   mju_copy(workspace_.data(), input, num_input);
 
   // nominal evaluation
-  mju_zero(output_nominal_.data(), num_output);
-  func(output_nominal_.data(), workspace_.data());
+  mju_zero(output_nominal.data(), num_output);
+  func(output_nominal.data(), workspace_.data());
 
   for (int i = 0; i < num_input; i++) {
     // perturb input
-    workspace_[i] += epsilon_;
+    workspace_[i] += epsilon;
 
     // evaluate
-    mju_zero(output_.data(), num_output);
-    func(output_.data(), workspace_.data());
+    mju_zero(output.data(), num_output);
+    func(output.data(), workspace_.data());
 
     // Jacobian
-    double* JT = jacobian_transpose_.data() + i * num_output;
-    mju_sub(JT, output_.data(), output_nominal_.data(), num_output);
-    mju_scl(JT, JT, 1.0 / epsilon_, num_output);
+    double* JT = jacobian_transpose.data() + i * num_output;
+    mju_sub(JT, output.data(), output_nominal.data(), num_output);
+    mju_scl(JT, JT, 1.0 / epsilon, num_output);
 
     // reset workspace
     workspace_[i] = input[i];
   }
 
   // transpose
-  mju_transpose(jacobian_.data(), jacobian_transpose_.data(), num_input,
+  mju_transpose(jacobian.data(), jacobian_transpose.data(), num_input,
                 num_output);
-
-  return jacobian_.data();
 }
 
 // finite-difference Hessian constructor
@@ -1092,14 +1088,14 @@ FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
 // finite-difference Hessian memory resize
 void FiniteDifferenceHessian::Resize(int dim) {
   // resize
-  if (dim * dim != hessian_.size()) hessian_.resize(dim * dim);
+  if (dim * dim != hessian.size()) hessian.resize(dim * dim);
   if (dim != workspace1_.size()) workspace1_.resize(dim);
   if (dim != workspace2_.size()) workspace2_.resize(dim);
   if (dim != workspace3_.size()) workspace3_.resize(dim);
 }
 
 // compute finite-difference Hessian
-double* FiniteDifferenceHessian::Compute(
+void FiniteDifferenceHessian::Compute(
     std::function<double(const double* x)> func, const double* input, int dim) {
   // resize
   Resize(dim);
@@ -1114,26 +1110,25 @@ double* FiniteDifferenceHessian::Compute(
 
   // centered finite-difference
   for (int i = 0; i < dim; i++) {
-    for (int j = 0; j < dim; j++) {
-      if (i > j) continue;  // skip bottom triangle
+    for (int j = i; j < dim; j++) {  // skip bottom triangle
       // workspace 1
-      workspace1_[i] += epsilon_;
-      workspace1_[j] += epsilon_;
+      workspace1_[i] += epsilon;
+      workspace1_[j] += epsilon;
 
       double fij = func(workspace1_.data());
 
       // workspace 2
-      workspace2_[i] += epsilon_;
+      workspace2_[i] += epsilon;
       double fi = func(workspace2_.data());
 
       // workspace 3
-      workspace3_[j] += epsilon_;
+      workspace3_[j] += epsilon;
       double fj = func(workspace3_.data());
 
       // Hessian value
-      double H = (fij - fi - fj + f) / (epsilon_ * epsilon_);
-      hessian_[i * dim + j] = H;
-      hessian_[j * dim + i] = H;
+      double H = (fij - fi - fj + f) / (epsilon * epsilon);
+      hessian[i * dim + j] = H;
+      hessian[j * dim + i] = H;
 
       // reset workspace 1
       workspace1_[i] = input[i];
@@ -1146,8 +1141,6 @@ double* FiniteDifferenceHessian::Compute(
       workspace3_[j] = input[j];
     }
   }
-
-  return hessian_.data();
 }
 
 // set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
@@ -1233,7 +1226,6 @@ void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
 void DifferentiateDifferentiatePos(double* jac1, double* jac2,
                                    const mjModel* model, double dt,
                                    const double* qpos1, const double* qpos2) {
-  int padr, vadr;
   // mjtNum neg[4], dif[4];
 
   // zero Jacobians
@@ -1243,8 +1235,8 @@ void DifferentiateDifferentiatePos(double* jac1, double* jac2,
   // loop over joints
   for (int j = 0; j < model->njnt; j++) {
     // get addresses in qpos and qvel
-    padr = model->jnt_qposadr[j];
-    vadr = model->jnt_dofadr[j];
+    int padr = model->jnt_qposadr[j];
+    int vadr = model->jnt_dofadr[j];
 
     switch (model->jnt_type[j]) {
       case mjJNT_FREE:
@@ -1320,9 +1312,9 @@ int BandMatrixNonZeros(int ntotal, int nband) {
 }
 
 // get duration since time point
-double GetDuration(std::chrono::steady_clock::time_point tp) {
+double GetDuration(std::chrono::steady_clock::time_point time) {
   return std::chrono::duration_cast<std::chrono::microseconds>(
-             std::chrono::steady_clock::now() - tp)
+             std::chrono::steady_clock::now() - time)
       .count();
 }
 

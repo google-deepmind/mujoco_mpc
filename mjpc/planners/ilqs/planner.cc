@@ -14,13 +14,12 @@
 
 #include "mjpc/planners/ilqs/planner.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/linear_solve.h"

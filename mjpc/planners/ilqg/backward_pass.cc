@@ -14,10 +14,9 @@
 
 #include "mjpc/planners/ilqg/backward_pass.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/ilqg/boxqp.h"
 #include "mjpc/planners/ilqg/policy.h"

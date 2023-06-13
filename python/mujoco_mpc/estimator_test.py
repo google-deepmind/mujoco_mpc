@@ -47,7 +47,9 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-3)
+    self.assertTrue(
+        np.linalg.norm(configuration - data["configuration"]) < 1.0e-3
+    )
 
     ## velocity
 
@@ -56,7 +58,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, velocity=velocity)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(velocity - data["velocity"]) < 1.0e-3)
+    self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-3)
 
     ## acceleration
 
@@ -65,7 +67,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, acceleration=acceleration)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(acceleration - data["acceleration"]) < 1.0e-3)
+    self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-3)
 
     ## time
 
@@ -74,7 +76,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, time=time)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(time - data["time"]) < 1.0e-3)
+    self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-3)
 
     ## configuration prior
 
@@ -83,8 +85,9 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, configuration_prior=configuration_prior)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(configuration_prior - data["configuration_prior"]) < 1.0e-3
+    self.assertLess(
+        np.linalg.norm(configuration_prior - data["configuration_prior"]),
+        1.0e-3
     )
 
     ## sensor measurement

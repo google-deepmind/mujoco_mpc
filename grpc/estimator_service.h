@@ -17,13 +17,12 @@
 #ifndef GRPC_ESTIMATOR_SERVICE_H
 #define GRPC_ESTIMATOR_SERVICE_H
 
-#include <grpcpp/server_context.h>
-#include <grpcpp/support/status.h>
-#include <mujoco/mujoco.h>
-
 #include <memory>
 #include <vector>
 
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/status.h>
+#include <mujoco/mujoco.h>
 #include "grpc/estimator.grpc.pb.h"
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"

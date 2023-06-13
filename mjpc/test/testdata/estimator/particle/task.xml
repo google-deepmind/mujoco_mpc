@@ -62,7 +62,7 @@
     <motor name="x_motor" joint="root_x" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
     <motor name="y_motor" joint="root_y" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
   </actuator>
-  
+
   <sensor>
     <jointpos name="joint_x" joint="root_x" />
     <jointpos name="joint_y" joint="root_y" />

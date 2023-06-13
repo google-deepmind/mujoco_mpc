@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string_view>
+#include <vector>
+
 #include "grpc/estimator_service.h"
 
 #include <absl/log/check.h>
@@ -19,9 +22,6 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <string_view>
-#include <vector>
 
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"

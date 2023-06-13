@@ -15,10 +15,11 @@
 #ifndef MJPC_ESTIMATORS_TRAJECTORY_H_
 #define MJPC_ESTIMATORS_TRAJECTORY_H_
 
-#include <mujoco/mujoco.h>
-
+#include <algorithm>
 #include <cstring>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 namespace mjpc {
 
@@ -28,12 +29,10 @@ const int MAX_TRAJECTORY = 128;
 template <typename T>
 class EstimatorTrajectory {
  public:
-  // constructor
-  EstimatorTrajectory() = default;
-  EstimatorTrajectory(int dim, int length) { Initialize(dim, length); };
+  // constructors
+  EstimatorTrajectory() {}
+  EstimatorTrajectory(int dim, int length) { Initialize(dim, length); }
 
-  // destructor
-  virtual ~EstimatorTrajectory() = default;
 
   // initialize
   void Initialize(int dim, int length) {
@@ -57,7 +56,7 @@ class EstimatorTrajectory {
     std::fill(data_.begin(), data_.end(), 0);
   }
 
-  // get element at index
+  // TODO(etom): add consts everywhere, then make the output of Get a const.
   T* Get(int index) {
     // get mapped index
     int map_index = IndexMap(index);

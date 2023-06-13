@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/buffer.h"
@@ -123,7 +123,8 @@ TEST(BatchShift, Particle2D) {
       time_buffer.length_ = (horizon_estimator - 1) + shift;
 
       // update estimator trajectories
-      estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
+      estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,
+                                   time_buffer);
 
       // sensor measurement error
       std::vector<double> sensor_error(ns * (horizon_estimator - 1));
@@ -287,7 +288,8 @@ TEST(BatchReuse, Particle2D) {
   time_buffer.length_ = horizon_estimator;
 
   // update estimator trajectories
-  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
+  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,
+                               time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
     // times
@@ -313,7 +315,8 @@ TEST(BatchReuse, Particle2D) {
   time_buffer.length_ = horizon_estimator + 2;
 
   // update estimator trajectories
-  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer, time_buffer);
+  estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,
+                               time_buffer);
 
   for (int i = 0; i < horizon_estimator - 1; i++) {
     // times
@@ -392,7 +395,7 @@ TEST(Buffer, Particle2D) {
     // update estimator
     estimator.Update(buffer, pool);
 
-    // Hessians 
+    // Hessians
     int dim = model->nv * estimator.configuration_length_;
 
     printf("prior gradient\n");

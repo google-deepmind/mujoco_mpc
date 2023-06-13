@@ -25,6 +25,7 @@
 #include <absl/strings/str_format.h>
 #include <absl/strings/strip.h>
 #include <grpcpp/support/status.h>
+#include <mujoco/mjdata.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
@@ -141,15 +142,39 @@ grpc::Status SetState(const SetStateRequest* request, mjpc::Agent* agent,
 #undef CHECK_SIZE
 
 grpc::Status GetAction(const GetActionRequest* request,
-                       const mjpc::Agent* agent, GetActionResponse* response) {
+                       const mjpc::Agent* agent,
+                       const mjModel* model, mjData* data,
+                       GetActionResponse* response) {
   int nu = agent->GetActionDim();
-  std::vector<double> ret = std::vector<double>(nu);
+  std::vector<double> ret = std::vector<double>(nu, 0);
 
   double time =
       request->has_time() ? request->time() : agent->ActiveState().time();
 
-  agent->ActivePlanner().ActionFromPolicy(
-      ret.data(), &agent->ActiveState().state()[0], time);
+  if (request->averaging_duration() > 0) {
+    agent->ActiveState().CopyTo(model, data);
+    data->time = time;
+    std::vector<double> state_before(mj_stateSize(model, mjSTATE_FULLPHYSICS));
+    mj_getState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
+    double end_time = time + request->averaging_duration();
+    std::vector<double> action(nu);
+    int nactions = 0;
+    while (data->time <= end_time) {
+      agent->ActiveState().Set(model, data);
+      agent->ActivePlanner().ActionFromPolicy(
+          action.data(), &agent->ActiveState().state()[0], data->time);
+      mju_addTo(ret.data(), action.data(), nu);
+      nactions++;
+      mj_step(model, data);
+    }
+    mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
+    // Reset the state to what it was before the stepping
+    mj_setState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
+    agent->ActiveState().Set(model, data);
+  } else {
+    agent->ActivePlanner().ActionFromPolicy(
+        ret.data(), &agent->ActiveState().state()[0], time);
+  }
 
   response->mutable_action()->Assign(ret.begin(), ret.end());
 
@@ -315,7 +340,6 @@ grpc::Status GetMode(const GetModeRequest* request, mjpc::Agent* agent,
   return grpc::Status::OK;
 }
 
-// namespace {
 mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
                              int error_size) {
   static constexpr char file[] = "temporary-filename.xml";
@@ -331,7 +355,6 @@ mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
   return m;
 }
 
-// TODO(taylor): this method doesn't work?
 mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   static constexpr char file[] = "temporary-filename.mjb";
   // mjVFS structs need to be allocated on the heap, because it's ~2MB
@@ -344,8 +367,6 @@ mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   mj_deleteFileVFS(vfs.get(), file);
   return m;
 }
-// }  // namespace
-// TODO(taylor): did we need this namespace?
 
 grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request) {
   std::string_view task_id = request->task_id();

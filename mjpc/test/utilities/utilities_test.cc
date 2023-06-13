@@ -163,20 +163,20 @@ TEST(FiniteDifference, Quadratic) {
 
   // gradient
   FiniteDifferenceGradient fdg(2);
-  double *grad = fdg.Compute(quadratic, input, n);
+  fdg.Compute(quadratic, input, n);
 
-  EXPECT_NEAR(grad[0], 1.0, FD_TOLERANCE);
-  EXPECT_NEAR(grad[1], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdg.gradient[0], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdg.gradient[1], 1.0, FD_TOLERANCE);
 
   // Hessian
   FiniteDifferenceHessian fdh(2);
-  double *hess = fdh.Compute(quadratic, input, n);
+  fdh.Compute(quadratic, input, n);
 
   // test
-  EXPECT_NEAR(hess[0], 1.0, FD_TOLERANCE);
-  EXPECT_NEAR(hess[1], 0.0, FD_TOLERANCE);
-  EXPECT_NEAR(hess[2], 0.0, FD_TOLERANCE);
-  EXPECT_NEAR(hess[3], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdh.hessian[0], 1.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdh.hessian[1], 0.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdh.hessian[2], 0.0, FD_TOLERANCE);
+  EXPECT_NEAR(fdh.hessian[3], 1.0, FD_TOLERANCE);
 }
 
 TEST(FiniteDifference, Jacobian) {
@@ -191,15 +191,15 @@ TEST(FiniteDifference, Jacobian) {
 
   // Jacobian
   FiniteDifferenceJacobian fdj(num_output, num_input);
-  double *jac = fdj.Compute(f, input, num_output, num_input);
+  fdj.Compute(f, input, num_output, num_input);
 
   // test
-  EXPECT_NEAR(jac[0], A[0], FD_TOLERANCE);
-  EXPECT_NEAR(jac[1], A[1], FD_TOLERANCE);
-  EXPECT_NEAR(jac[2], A[2], FD_TOLERANCE);
-  EXPECT_NEAR(jac[3], A[3], FD_TOLERANCE);
-  EXPECT_NEAR(jac[4], A[4], FD_TOLERANCE);
-  EXPECT_NEAR(jac[5], A[5], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[0], A[0], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[1], A[1], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[2], A[2], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[3], A[3], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[4], A[4], FD_TOLERANCE);
+  EXPECT_NEAR(fdj.jacobian[5], A[5], FD_TOLERANCE);
 }
 
 TEST(MatrixInMatrix, Set) {
@@ -319,7 +319,7 @@ TEST(DifferentiateQuaternionTest, SubQuat) {
 
 TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   // model
-  mjModel *model = LoadTestModel("box3D.xml");
+  mjModel *model = LoadTestModel("box.xml");
 
   // random qpos
   double qa[7];
@@ -389,6 +389,7 @@ TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   // ----- test ----- //
   EXPECT_NEAR(mju_norm(error_a, 36) / 36, 0.0, 1.0e-5);
   EXPECT_NEAR(mju_norm(error_b, 36) / 36, 0.0, 1.0e-5);
+  mj_deleteModel(model);
 }
 
 TEST(BandedMatrix, NonZeros) {

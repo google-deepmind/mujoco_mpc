@@ -81,12 +81,17 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
 
   // move
   estimator_model_override_ = std::move(tmp_model);
+  mjModel* model = estimator_model_override_.get();
 
   // initialize estimator
-  estimator_.Initialize(estimator_model_override_.get());
+  estimator_.Initialize(model);
 
   // set estimation horizon
   estimator_.SetConfigurationLength(request->configuration_length());
+
+  // initialize buffer
+  buffer_.Initialize(model->nsensordata, model->nsensor, model->nu,
+                     mjpc::MAX_TRAJECTORY);
 
   return grpc::Status::OK;
 }

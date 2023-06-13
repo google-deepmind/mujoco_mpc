@@ -359,7 +359,11 @@ TEST(Buffer, Particle2D) {
   // ----- simulate ----- //
 
   // buffer
-  Buffer buffer(model, 32);
+  Buffer buffer(model->nsensordata, model->nsensor, model->nu, 32);
+
+  // sensor mask: all sensors measurement available
+  std::vector<int> mask(model->nsensor);
+  std::fill(mask.begin(), mask.end(), 1);
 
   // controller
   auto controller = [](double* ctrl, double time) {
@@ -387,7 +391,7 @@ TEST(Buffer, Particle2D) {
     }
 
     // update buffer
-    buffer.Update(model, data);
+    buffer.Update(data->sensordata, mask.data(), data->ctrl, data->time);
 
     // update estimator
     estimator.Update(buffer, pool);

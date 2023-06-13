@@ -26,6 +26,7 @@
 
 #include "grpc/estimator.grpc.pb.h"
 #include "grpc/estimator.pb.h"
+#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -91,6 +92,9 @@ class EstimatorService final : public estimator::Estimator::Service {
   mjpc::Estimator estimator_;
   mjpc::UniqueMjModel estimator_model_override_ = {nullptr, mj_deleteModel};
 
+  // buffer 
+  mjpc::Buffer buffer_;
+  
   // threadpool
   mjpc::ThreadPool thread_pool_;
 };

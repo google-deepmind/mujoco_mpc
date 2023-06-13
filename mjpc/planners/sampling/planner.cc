@@ -14,14 +14,13 @@
 
 #include "mjpc/planners/sampling/planner.h"
 
-#include <absl/random/random.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
+#include <absl/random/random.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"
@@ -172,9 +171,7 @@ int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
       });
 
   // stop timer
-  rollouts_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                       std::chrono::steady_clock::now() - rollouts_start)
-                       .count();
+  rollouts_compute_time = GetDuration(rollouts_start);
 
   return ncandidates;
 }
@@ -197,10 +194,7 @@ void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
 
   // stop timer
-  policy_update_compute_time =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - policy_update_start)
-        .count();
+  policy_update_compute_time = GetDuration(policy_update_start);
 }
 
 // compute trajectory using nominal policy
@@ -291,10 +285,7 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   }
 
   // end timer
-  IncrementAtomic(noise_compute_time,
-                  std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::steady_clock::now() - noise_start)
-                      .count());
+  IncrementAtomic(noise_compute_time, GetDuration(noise_start));
 }
 
 // compute candidate trajectories

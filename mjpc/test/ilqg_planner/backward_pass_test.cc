@@ -14,8 +14,9 @@
 
 #include "mjpc/planners/ilqg/backward_pass.h"
 
-#include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+
+#include "gtest/gtest.h"
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/model_derivatives.h"
 #include "mjpc/test/lqr.h"

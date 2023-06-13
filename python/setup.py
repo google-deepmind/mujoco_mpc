@@ -86,8 +86,8 @@ class GenerateProtoGrpcCommand(setuptools.Command):
 
     if protoc_returncode != 0:
       raise subprocess.CalledProcessError(
-        returncode=protoc_returncode,
-        cmd=f"`protoc.main({protoc_command_parts})`",
+          returncode=protoc_returncode,
+          cmd=f"`protoc.main({protoc_command_parts})`",
       )
 
     self.spawn([

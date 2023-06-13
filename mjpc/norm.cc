@@ -51,8 +51,8 @@ int NormParameterDimension(int type) {
 }
 
 // evaluate norm; optionally: gradient, Hessian
-double Norm(double* g, double* H, const double* x, const double* params,
-            int n, NormType type) {
+double Norm(double* g, double* H, const double* x, const double* params, int n,
+            NormType type) {
   if (H && !g) {
     mju_error("Called Norm with H and no g");
   }
@@ -72,7 +72,8 @@ double Norm(double* g, double* H, const double* x, const double* params,
       }
       break;
     }
-    case NormType::kQuadratic:  {  // y = 0.5 * x' * x
+
+    case NormType::kQuadratic: {  // y = 0.5 * x' * x
       for (int i = 0; i < n; i++) {
         y += x[i] * x[i];
       }
@@ -157,6 +158,11 @@ double Norm(double* g, double* H, const double* x, const double* params,
           H[i * n + i] = std::cosh(x[i] / p);
         }
       }
+      break;
+    }
+
+    case NormType::kGeodesic: {
+      mju_error("Geodesic norm not implemented\n");
       break;
     }
 

@@ -45,6 +45,10 @@ grpc::Status SetMode(const agent::SetModeRequest* request, mjpc::Agent* agent);
 grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
                      agent::GetModeResponse* response);
 
+mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
+                             int error_size);
+mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb);
+
 // set up the task and model on the agent so that the next call to
 // agent.LoadModel returns any custom model, or the relevant task model.
 grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request);

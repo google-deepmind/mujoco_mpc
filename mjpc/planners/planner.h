@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_OPTIMIZER_H_
-#define MJPC_PLANNERS_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_PLANNER_H_
+#define MJPC_PLANNERS_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
@@ -97,4 +97,4 @@ class RankedPlanner : public Planner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_PLANNER_H_

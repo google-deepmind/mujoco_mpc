@@ -33,6 +33,7 @@
 #include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)
@@ -173,8 +174,8 @@ double* SensorByName(const mjModel* m, const mjData* d,
 
 // get default residual parameter data using string
 double DefaultParameterValue(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
     return 0;
@@ -184,8 +185,8 @@ double DefaultParameterValue(const mjModel* model, std::string_view name) {
 
 // get index to residual parameter data using string
 int ParameterIndex(const mjModel* model, std::string_view name) {
-  int id = mj_name2id(model, mjOBJ_NUMERIC,
-                      absl::StrCat("residual_", name).c_str());
+  int id =
+      mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
 
   if (id == -1) {
     mju_error_s("Parameter '%s' not found", std::string(name).c_str());
@@ -220,7 +221,7 @@ int CostTermByName(const mjModel* m, const std::string& name) {
 void CheckSensorDim(const mjModel* model, int residual_size) {
   int user_sensor_dim = 0;
   bool encountered_nonuser_sensor = false;
-  for (int i=0; i < model->nsensor; i++) {
+  for (int i = 0; i < model->nsensor; i++) {
     if (model->sensor_type[i] == mjSENS_USER) {
       user_sensor_dim += model->sensor_dim[i];
       if (encountered_nonuser_sensor) {
@@ -231,8 +232,10 @@ void CheckSensorDim(const mjModel* model, int residual_size) {
     }
   }
   if (user_sensor_dim != residual_size) {
-    mju_error("mismatch between total user-sensor dimension %d "
-              "and residual size %d", user_sensor_dim, residual_size);
+    mju_error(
+        "mismatch between total user-sensor dimension %d "
+        "and residual size %d",
+        user_sensor_dim, residual_size);
   }
 }
 
@@ -567,11 +570,10 @@ void StateDiff(const mjModel* m, mjtNum* ds, const mjtNum* s1, const mjtNum* s2,
   }
 }
 
-
 // return global height of nearest group 0 geom under given position
 mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
   const mjtByte geomgroup[6] = {1, 0, 0, 0, 0, 0};  // only detect group 0
-  mjtNum down[3] = {0, 0, -1};      // aim ray straight down
+  mjtNum down[3] = {0, 0, -1};                      // aim ray straight down
   const mjtNum height_offset = .5;  // add some height in case of penetration
   const mjtByte flg_static = 1;     // include static geoms
   const int bodyexclude = -1;       // don't exclude any bodies
@@ -587,44 +589,43 @@ mjtNum Ground(const mjModel* model, const mjData* data, const mjtNum pos[3]) {
   return pos[2] + height_offset - dist;
 }
 
-
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
-               const double body[3],
-               const double foot0[3], const double foot1[3],
-               const double foot2[3], const double foot3[3]) {
-    // average foot pos
-    double pos[3];
-    for (int i = 0; i < 3; i++) {
-      pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
-    }
+               const double body[3], const double foot0[3],
+               const double foot1[3], const double foot2[3],
+               const double foot3[3]) {
+  // average foot pos
+  double pos[3];
+  for (int i = 0; i < 3; i++) {
+    pos[i] = 0.25 * (foot0[i] + foot1[i] + foot2[i] + foot3[i]);
+  }
 
-    // compute feet covariance
-    double cov[9] = {0};
-    for (const double* foot : {foot0, foot1, foot2, foot3}) {
-      double dif[3], difTdif[9];
-      mju_sub3(dif, foot, pos);
-      mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
-      mju_addTo(cov, difTdif, 9);
-    }
+  // compute feet covariance
+  double cov[9] = {0};
+  for (const double* foot : {foot0, foot1, foot2, foot3}) {
+    double dif[3], difTdif[9];
+    mju_sub3(dif, foot, pos);
+    mju_sqrMatTD(difTdif, dif, nullptr, 1, 3);
+    mju_addTo(cov, difTdif, 9);
+  }
 
-    // eigendecompose
-    double eigval[3], quat[4], mat[9];
-    mju_eig3(eigval, mat, quat, cov);
+  // eigendecompose
+  double eigval[3], quat[4], mat[9];
+  mju_eig3(eigval, mat, quat, cov);
 
-    // make sure foot-plane normal (z axis) points to body
-    double zaxis[3] = {mat[2], mat[5], mat[8]};
-    double to_body[3];
-    mju_sub3(to_body, body, pos);
-    if (mju_dot3(zaxis, to_body) < 0) {
-      // flip both z and y (rotate around x), to maintain frame handedness
-      for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
-    }
+  // make sure foot-plane normal (z axis) points to body
+  double zaxis[3] = {mat[2], mat[5], mat[8]};
+  double to_body[3];
+  mju_sub3(to_body, body, pos);
+  if (mju_dot3(zaxis, to_body) < 0) {
+    // flip both z and y (rotate around x), to maintain frame handedness
+    for (const int i : {1, 2, 4, 5, 7, 8}) mat[i] *= -1;
+  }
 
-    // copy outputs
-    if (feet_pos) mju_copy3(feet_pos, pos);
-    if (feet_mat) mju_copy(feet_mat, mat, 9);
-    if (feet_quat) mju_mat2Quat(feet_quat, mat);
+  // copy outputs
+  if (feet_pos) mju_copy3(feet_pos, pos);
+  if (feet_mat) mju_copy(feet_mat, mat, 9);
+  if (feet_quat) mju_mat2Quat(feet_quat, mat);
 }
 
 // set x to be the point on the segment [p0 p1] that is nearest to x
@@ -655,10 +656,9 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]) {
 const float CostColors[20][3]{
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
     {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
-    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0},
-    {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5}, {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0},
-    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
+    {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+    {0.3, 0.3, 1.0}, {1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {1.0, 0.5, 0.5},
+    {0.5, 1.0, 0.5}, {0.5, 0.5, 1.0}, {1.0, 1.0, 0.5}, {0.5, 1.0, 1.0},
 };
 
 // plots - vertical line
@@ -760,12 +760,12 @@ void PlotData(mjvFigure* fig, double* bounds, const double* xs,
 
 // add geom to scene
 void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
-              const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]) {
+             const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]) {
   // if no available geoms, return
   if (scene->ngeom >= scene->maxgeom) return;
 
   // add geom
-  mjtNum mat_world[9] = {1, 0, 0,  0, 1, 0,  0, 0, 1};
+  mjtNum mat_world[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
   mjv_initGeom(&scene->geoms[scene->ngeom], type, size, pos,
                mat ? mat : mat_world, rgba);
   scene->geoms[scene->ngeom].category = mjCAT_DECOR;
@@ -773,7 +773,6 @@ void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
   // increment ngeom
   scene->ngeom += 1;
 }
-
 
 // add connector geom to scene
 void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
@@ -786,13 +785,12 @@ void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
   mjv_initGeom(&scene->geoms[scene->ngeom], type,
                /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, rgba);
   scene->geoms[scene->ngeom].category = mjCAT_DECOR;
-  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width,
-                    from[0], from[1], from[2], to[0], to[1], to[2]);
+  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width, from[0], from[1],
+                    from[2], to[0], to[1], to[2]);
 
   // increment ngeom
   scene->ngeom += 1;
 }
-
 
 // number of available hardware threads
 #if defined(__APPLE__) || defined(_WIN32)
@@ -850,12 +848,12 @@ namespace {  // private functions in an anonymous namespace
 
 // 2d vector dot-product
 mjtNum mju_dot2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  return vec1[0]*vec2[0] + vec1[1]*vec2[1];
+  return vec1[0] * vec2[0] + vec1[1] * vec2[1];
 }
 
 // 2d vector squared distance
 mjtNum mju_sqrdist2(const mjtNum vec1[2], const mjtNum vec2[2]) {
-  const mjtNum diff[2] = {vec1[0]-vec2[0], vec1[1]-vec2[1]};
+  const mjtNum diff[2] = {vec1[0] - vec2[0], vec1[1] - vec2[1]};
   return mju_dot2(diff, diff);
 }
 
@@ -889,18 +887,18 @@ void ProjectToSegment2D(mjtNum res[2], const mjtNum query[2],
   mjtNum length = mju_sqrt(mju_dot2(axis, axis));
   axis[0] /= length;
   axis[1] /= length;
-  mjtNum center[2] = {0.5*(v1[0] + v0[0]), 0.5*(v1[1] + v0[1])};
+  mjtNum center[2] = {0.5 * (v1[0] + v0[0]), 0.5 * (v1[1] + v0[1])};
   mjtNum t = mju_dot2(query, axis) - mju_dot2(center, axis);
-  t = mju_clip(t, -length/2, length/2);
-  res[0] = center[0] + t*axis[0];
-  res[1] = center[1] + t*axis[1];
+  t = mju_clip(t, -length / 2, length / 2);
+  res[0] = center[0] + t * axis[0];
+  res[1] = center[1] + t * axis[1];
 }
 
 }  // namespace
 
 // returns point in 2D convex hull that is nearest to query
-void NearestInHull(mjtNum res[2], const mjtNum query[2],
-                   const mjtNum* points, const int* hull, int num_hull) {
+void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
+                   const int* hull, int num_hull) {
   int outside = 0;      // assume query point is inside the hull
   mjtNum best_sqrdist;  // smallest squared distance so far
   for (int i = 0; i < num_hull; i++) {
@@ -951,8 +949,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
   mjtNum best_x = points[0];
   mjtNum best_y = points[1];
   for (int i = 1; i < num_points; i++) {
-    mjtNum x = points[2*i];
-    mjtNum y = points[2*i + 1];
+    mjtNum x = points[2 * i];
+    mjtNum y = points[2 * i + 1];
 
     // accept if larger, use y value to tie-break exact equality
     if (x > best_x || (x == best_x && y > best_y)) {
@@ -970,9 +968,8 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
     int next = -1;
     for (int candidate = 0; candidate < num_points; candidate++) {
       if ((next == -1) ||
-          IsEdgeOutside(points + 2*hull[num_hull - 1],
-                        points + 2*next,
-                        points + 2*candidate)) {
+          IsEdgeOutside(points + 2 * hull[num_hull - 1], points + 2 * next,
+                        points + 2 * candidate)) {
         next = candidate;
       }
     }
@@ -987,6 +984,406 @@ int Hull2D(int* hull, int num_points, const mjtNum* points) {
   }
 
   return num_hull;
+}
+
+// finite-difference gradient constructor
+FiniteDifferenceGradient::FiniteDifferenceGradient(int dim) { Resize(dim); }
+
+// finite-difference gradient resize memory
+void FiniteDifferenceGradient::Resize(int dim) {
+  // allocate memory
+  if (dim != gradient.size()) gradient.resize(dim);
+  if (dim != workspace_.size()) workspace_.resize(dim);
+}
+
+// compute finite-difference gradient
+void FiniteDifferenceGradient::Compute(
+    std::function<double(const double* x)> func, const double* input, int dim) {
+  // resize
+  Resize(dim);
+
+  // ----- compute ----- //
+  // set workspace
+  mju_copy(workspace_.data(), input, dim);
+
+  // finite difference
+  for (int i = 0; i < dim; i++) {
+    // positive perturbation
+    workspace_[i] += 0.5 * epsilon;
+    double fp = func(workspace_.data());
+
+    // negative
+    workspace_[i] -= 1.0 * epsilon;
+    double fn = func(workspace_.data());
+
+    // gradient
+    gradient[i] = (fp - fn) / epsilon;
+
+    // reset
+    workspace_[i] = input[i];
+  }
+}
+
+// finite-difference Jacobian constructor
+FiniteDifferenceJacobian::FiniteDifferenceJacobian(int num_output,
+                                                   int num_input) {
+  // resize
+  Resize(num_output, num_input);
+}
+
+// finite-difference Jacobian memory resize
+void FiniteDifferenceJacobian::Resize(int num_output, int num_input) {
+  // resize
+  if (jacobian.size() != num_output * num_input)
+    jacobian.resize(num_output * num_input);
+  if (jacobian_transpose.size() != num_output * num_input)
+    jacobian_transpose.resize(num_output * num_input);
+  if (output.size() != num_output) output.resize(num_output);
+  if (output_nominal.size() != num_output) output_nominal.resize(num_output);
+  if (workspace_.size() != num_input) workspace_.resize(num_input);
+}
+
+// compute Jacobian
+void FiniteDifferenceJacobian::Compute(
+    std::function<void(double* output, const double* input)> func,
+    const double* input, int num_output, int num_input) {
+  // resize
+  Resize(num_output, num_input);
+
+  // copy workspace
+  mju_copy(workspace_.data(), input, num_input);
+
+  // nominal evaluation
+  mju_zero(output_nominal.data(), num_output);
+  func(output_nominal.data(), workspace_.data());
+
+  for (int i = 0; i < num_input; i++) {
+    // perturb input
+    workspace_[i] += epsilon;
+
+    // evaluate
+    mju_zero(output.data(), num_output);
+    func(output.data(), workspace_.data());
+
+    // Jacobian
+    double* JT = jacobian_transpose.data() + i * num_output;
+    mju_sub(JT, output.data(), output_nominal.data(), num_output);
+    mju_scl(JT, JT, 1.0 / epsilon, num_output);
+
+    // reset workspace
+    workspace_[i] = input[i];
+  }
+
+  // transpose
+  mju_transpose(jacobian.data(), jacobian_transpose.data(), num_input,
+                num_output);
+}
+
+// finite-difference Hessian constructor
+FiniteDifferenceHessian::FiniteDifferenceHessian(int dim) {
+  // resize memory
+  Resize(dim);
+}
+
+// finite-difference Hessian memory resize
+void FiniteDifferenceHessian::Resize(int dim) {
+  // resize
+  if (dim * dim != hessian.size()) hessian.resize(dim * dim);
+  if (dim != workspace1_.size()) workspace1_.resize(dim);
+  if (dim != workspace2_.size()) workspace2_.resize(dim);
+  if (dim != workspace3_.size()) workspace3_.resize(dim);
+}
+
+// compute finite-difference Hessian
+void FiniteDifferenceHessian::Compute(
+    std::function<double(const double* x)> func, const double* input, int dim) {
+  // resize
+  Resize(dim);
+
+  // set workspace
+  mju_copy(workspace1_.data(), input, dim);
+  mju_copy(workspace2_.data(), input, dim);
+  mju_copy(workspace3_.data(), input, dim);
+
+  // evaluate at candidate
+  double f = func(input);
+
+  // centered finite-difference
+  for (int i = 0; i < dim; i++) {
+    for (int j = i; j < dim; j++) {  // skip bottom triangle
+      // workspace 1
+      workspace1_[i] += epsilon;
+      workspace1_[j] += epsilon;
+
+      double fij = func(workspace1_.data());
+
+      // workspace 2
+      workspace2_[i] += epsilon;
+      double fi = func(workspace2_.data());
+
+      // workspace 3
+      workspace3_[j] += epsilon;
+      double fj = func(workspace3_.data());
+
+      // Hessian value
+      double H = (fij - fi - fj + f) / (epsilon * epsilon);
+      hessian[i * dim + j] = H;
+      hessian[j * dim + i] = H;
+
+      // reset workspace 1
+      workspace1_[i] = input[i];
+      workspace1_[j] = input[j];
+
+      // reset workspace 2
+      workspace2_[i] = input[i];
+
+      // reset workspace 3
+      workspace3_[j] = input[j];
+    }
+  }
+}
+
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void SetBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = scale * block[i * cb + j];
+    }
+  }
+}
+
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void AddBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] += scale * block[i * cb + j];
+    }
+  }
+}
+
+// get block (size: rb x cb) from mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void BlockFromMatrix(double* block, const double* mat, int rb, int cb, int rm,
+                     int cm, int ri, int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    double* block_cols = block + i * cb;
+    const double* mat_cols = mat + (ri + i) * cm + ci;
+    mju_copy(block_cols, mat_cols, cb);
+  }
+}
+
+// differentiate mju_subQuat wrt qa, qb
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
+                          const double qb[4]) {
+  // compute 3D velocity
+  double axis[3];
+  mju_subQuat(axis, qa, qb);
+
+  // angle + normalize axis
+  double angle = mju_normalize3(axis);
+  double th2 = 0.5 * angle;
+
+  // coefficients
+  double c0 = th2;
+  double c1 = 1.0 - (mju_abs(th2) < 6e-8 ? 1.0 : th2 / mju_tan(th2));
+
+  // compute Jacobian
+  double jac[9];
+  jac[0] = 1.0 + c1 * (-axis[1] * axis[1] - axis[2] * axis[2]);
+  jac[1] = c1 * axis[0] * axis[1] - c0 * axis[2];
+  jac[2] = c0 * axis[1] + c1 * axis[0] * axis[2];
+  jac[3] = c0 * axis[2] + c1 * axis[0] * axis[1];
+  jac[4] = 1.0 + c1 * (-axis[0] * axis[0] - axis[2] * axis[2]);
+  jac[5] = c1 * axis[1] * axis[2] - c0 * axis[0];
+  jac[6] = c1 * axis[0] * axis[2] - c0 * axis[1];
+  jac[7] = c0 * axis[0] + c1 * axis[1] * axis[2];
+  jac[8] = 1.0 + c1 * (-axis[0] * axis[0] - axis[1] * axis[1]);
+
+  // Jacobian wrt qa
+  if (jaca) {
+    mju_copy(jaca, jac, 9);
+  }
+
+  // Jacobian wrt qb
+  if (jacb) {
+    // jacb = -jaca^T
+    mju_transpose(jacb, jac, 3, 3);
+    mju_scl(jacb, jacb, -1.0, 9);
+  }
+}
+
+// differentiate velocity by finite-differencing two positions wrt to qpos1,
+// qpos2
+void DifferentiateDifferentiatePos(double* jac1, double* jac2,
+                                   const mjModel* model, double dt,
+                                   const double* qpos1, const double* qpos2) {
+  // mjtNum neg[4], dif[4];
+
+  // zero Jacobians
+  if (jac1) mju_zero(jac1, model->nv * model->nv);
+  if (jac2) mju_zero(jac2, model->nv * model->nv);
+
+  // loop over joints
+  for (int j = 0; j < model->njnt; j++) {
+    // get addresses in qpos and qvel
+    int padr = model->jnt_qposadr[j];
+    int vadr = model->jnt_dofadr[j];
+
+    switch (model->jnt_type[j]) {
+      case mjJNT_FREE:
+        for (int i = 0; i < 3; i++) {
+          // qvel[vadr + i] = (qpos2[padr + i] - qpos1[padr + i]) / dt;
+          if (jac1) jac1[(vadr + i) * model->nv + vadr + i] = -1.0 / dt;
+          if (jac2) jac2[(vadr + i) * model->nv + vadr + i] = 1.0 / dt;
+        }
+        vadr += 3;
+        padr += 3;
+
+        // continute with rotations
+        [[fallthrough]];
+
+      case mjJNT_BALL:
+        // mju_negQuat(neg, qpos1 + padr);  // solve:  qpos1 * dif = qpos2
+        // mju_mulQuat(dif, neg, qpos2 + padr);
+        // mju_quat2Vel(qvel + vadr, dif, dt);
+
+        // NOTE: order swap for qpos1, qpos2
+        if (jac1) {
+          // compute subQuat Jacobian block
+          double jac1_blk[9];
+          DifferentiateSubQuat(NULL, jac1_blk, qpos2 + padr, qpos1 + padr);
+
+          // set block in Jacobian
+          SetBlockInMatrix(jac1, jac1_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
+                           vadr, vadr);
+        }
+
+        if (jac2) {
+          // compute subQuat Jacobian block
+          double jac2_blk[9];
+          DifferentiateSubQuat(jac2_blk, NULL, qpos2 + padr, qpos1 + padr);
+
+          // set block in Jacobian
+          SetBlockInMatrix(jac2, jac2_blk, 1.0 / dt, model->nv, model->nv, 3, 3,
+                           vadr, vadr);
+        }
+
+        break;
+
+      case mjJNT_HINGE:
+      case mjJNT_SLIDE:
+        // qvel[vadr] = (qpos2[padr] - qpos1[padr]) / dt;
+        if (jac1) jac1[vadr * model->nv + vadr] = -1.0 / dt;
+        if (jac2) jac2[vadr * model->nv + vadr] = 1.0 / dt;
+    }
+  }
+}
+
+// compute number of nonzeros in band matrix
+int BandMatrixNonZeros(int ntotal, int nband) {
+  // no band
+  if (nband == 0) return 0;
+
+  // diagonal matrix
+  if (nband == 1) return ntotal;
+
+  // initialize number of nonzeros
+  int nnz = 0;
+
+  // diagonal
+  nnz += ntotal;
+
+  // off diagonals
+  for (int k = 1; k < nband; k++) {
+    nnz += 2 * (ntotal - k);
+  }
+
+  // total non-zeros
+  return nnz;
+}
+
+// get duration since time point
+double GetDuration(std::chrono::steady_clock::time_point time) {
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+             std::chrono::steady_clock::now() - time)
+      .count();
+}
+
+// copy symmetric band matrix block by block
+void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
+                             int nblock, int ntotal, int num_blocks,
+                             int res_start_row, int res_start_col,
+                             int mat_start_row, int mat_start_col,
+                             double* scratch) {
+  // check for no blocks to copy
+  if (num_blocks == 0) return;
+
+  // tmp: block from mat
+  double* tmp1 = scratch;
+  double* tmp2 = scratch + dblock * dblock;
+
+  // loop over upper band
+  for (int i = 0; i < num_blocks; i++) {
+    // number of columns to loop over for row
+    int num_cols = mju_min(nblock, num_blocks - i);
+
+    for (int j = i; j < i + num_cols; j++) {
+      // get block from A
+      BlockFromMatrix(tmp1, mat, dblock, dblock, ntotal, ntotal,
+                      (i + mat_start_row) * dblock,
+                      (j + mat_start_col) * dblock);
+
+      // set block in matrix
+      AddBlockInMatrix(res, tmp1, 1.0, ntotal, ntotal, dblock, dblock,
+                       (i + res_start_row) * dblock,
+                       (j + res_start_col) * dblock);
+
+      if (j > i) {
+        mju_transpose(tmp2, tmp1, dblock, dblock);
+        AddBlockInMatrix(res, tmp2, 1.0, ntotal, ntotal, dblock, dblock,
+                         (j + res_start_col) * dblock,
+                         (i + res_start_row) * dblock);
+      }
+    }
+  }
+}
+
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci) {
+  // loop over block rows
+  for (int i = 0; i < rb; i++) {
+    // loop over block columns
+    for (int j = 0; j < cb; j++) {
+      mat[(ri + i) * cm + ci + j] = 0.0;
+    }
+  }
+}
+
+// square dense to block band matrix
+void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
+  // number of block rows / columns
+  int num_blocks = dim / dblock;
+
+  // zero off-band blocks
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = i + nblock; j < num_blocks; j++) {
+      ZeroBlockInMatrix(res, dim, dim, dblock, dblock, i * dblock, j * dblock);
+      if (j > i)
+        ZeroBlockInMatrix(res, dim, dim, dblock, dblock, j * dblock,
+                          i * dblock);
+    }
+  }
 }
 
 }  // namespace mjpc

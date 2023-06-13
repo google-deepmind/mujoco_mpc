@@ -83,6 +83,18 @@ class EstimatorService final : public estimator::Estimator::Service {
                            const estimator::PriorMatrixRequest* request,
                            estimator::PriorMatrixResponse* response) override;
 
+  grpc::Status ResetBuffer(grpc::ServerContext* context,
+                           const estimator::ResetBufferRequest* request,
+                           estimator::ResetBufferResponse* response) override;
+
+  grpc::Status BufferData(grpc::ServerContext* context,
+                          const estimator::BufferDataRequest* request,
+                          estimator::BufferDataResponse* response) override;
+
+  grpc::Status UpdateBuffer(grpc::ServerContext* context,
+                            const estimator::UpdateBufferRequest* request,
+                            estimator::UpdateBufferResponse* response) override;
+
  private:
   bool Initialized() const {
     return estimator_.model_ && estimator_.configuration_length_ >= 3;

@@ -14,9 +14,10 @@
 
 #include "mjpc/planners/gradient/gradient.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/gradient/policy.h"
 #include "mjpc/planners/model_derivatives.h"

@@ -182,9 +182,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   double c_prev = trajectory[0].total_return;
 
   // stop timer
-  nominal_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                     std::chrono::steady_clock::now() - nominal_start)
-                     .count();
+  nominal_time = GetDuration(nominal_start);
 
   // update policy
   double c_best = c_prev;
@@ -200,10 +198,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         dim_sensor, horizon, settings.fd_tolerance, settings.fd_mode, pool);
 
     // stop timer
-    model_derivative_time +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - model_derivative_start)
-            .count();
+    model_derivative_time += GetDuration(model_derivative_start);
 
     // -----cost derivatives ----- //
     // start timer
@@ -219,10 +214,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         horizon, pool);
 
     // stop timer
-    cost_derivative_time +=
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - cost_derivative_start)
-            .count();
+    cost_derivative_time += GetDuration(cost_derivative_start);
 
     // ----- gradient descent ----- //
     // start timer
@@ -246,9 +238,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
                    model->nu * candidate_policy[0].num_spline_points);
 
     // stop timer
-    gradient_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                         std::chrono::steady_clock::now() - gradient_start)
-                         .count();
+    gradient_time += GetDuration(gradient_start);
 
     // check for failure
     if (gd_status != 0) return;
@@ -264,7 +254,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // improvement step sizes
-    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step, num_trajectory - 1);
+    LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
+             num_trajectory - 1);
     linesearch_steps[num_trajectory - 1] = 0.0;
 
     // rollouts (parallel)
@@ -295,9 +286,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     surprise = mju_min(mju_max(0, improvement / expected), 2);
 
     // stop timer
-    rollouts_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                         std::chrono::steady_clock::now() - rollouts_start)
-                         .count();
+    rollouts_time += GetDuration(rollouts_start);
   }
 
   // update nominal policy
@@ -316,10 +305,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  policy_update_time +=
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - policy_update_start)
-          .count();
+  policy_update_time += GetDuration(policy_update_start);
 
   // set timers
   nominal_compute_time = nominal_time;

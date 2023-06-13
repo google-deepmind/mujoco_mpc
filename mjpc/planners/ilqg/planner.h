@@ -15,10 +15,11 @@
 #ifndef MJPC_PLANNERS_ILQG_OPTIMIZER_H_
 #define MJPC_PLANNERS_ILQG_OPTIMIZER_H_
 
+#include <mujoco/mujoco.h>
+
 #include <shared_mutex>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/planners/ilqg/backward_pass.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"
@@ -53,8 +54,8 @@ class iLQGPlanner : public Planner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
-  void ActionFromPolicy(double* action, const double* state,
-                        double time, bool use_previous = false) override;
+  void ActionFromPolicy(double* action, const double* state, double time,
+                        bool use_previous = false) override;
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;

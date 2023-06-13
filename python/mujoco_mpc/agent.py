@@ -18,7 +18,6 @@
 import atexit
 import contextlib
 import pathlib
-import socket
 import subprocess
 import tempfile
 from typing import Literal, Optional, Sequence
@@ -28,25 +27,11 @@ import mujoco
 import numpy as np
 from numpy import typing as npt
 
+from utilities import find_free_port
+
 # INTERNAL IMPORT
 from mujoco_mpc.proto import agent_pb2
 from mujoco_mpc.proto import agent_pb2_grpc
-
-
-def find_free_port() -> int:
-  """Find an available TCP port on the system.
-
-    This function creates a temporary socket, binds it to an available port
-    chosen by the operating system, and returns the chosen port number.
-
-  Returns:
-      int: An available TCP port number.
-  """
-  with socket.socket(family=socket.AF_INET6) as s:
-    s.bind(("", 0))
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    return s.getsockname()[1]
-
 
 class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.

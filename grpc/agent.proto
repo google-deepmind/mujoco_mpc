@@ -150,4 +150,5 @@ message GetModeResponse {
 message SetModeRequest {
   string mode = 1;
 }
+
 message SetModeResponse {}

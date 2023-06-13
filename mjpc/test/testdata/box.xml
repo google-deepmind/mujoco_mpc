@@ -1,0 +1,38 @@
+<mujoco>
+  <option timestep="0.01"> </option>
+  <worldbody>
+    <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
+    <geom type="plane" size="1 1 0.1" rgba=".9 0 0 1"/>
+    <body name="root" pos="0 0 1">
+      <joint type="free"/>
+      <geom type="box" size=".1 .2 .3" rgba="0 .9 0 1"/>
+      <site name="corner0" pos="0.1 0.2 0.3" size="0.01"/>
+      <site name="corner1" pos="-0.1 0.2 0.3" size="0.01"/>
+      <site name="corner2" pos="0.1 -0.2 0.3" size="0.01"/>
+      <site name="corner3" pos="-0.1 -0.2 0.3" size="0.01"/>
+      <site name="corner4" pos="0.1 0.2 -0.3" size="0.01"/>
+      <site name="corner5" pos="-0.1 0.2 -0.3" size="0.01"/>
+      <site name="corner6" pos="0.1 -0.2 -0.3" size="0.01"/>
+      <site name="corner7" pos="-0.1 -0.2 -0.3" size="0.01"/>
+    </body>
+  </worldbody>
+
+  <sensor>
+    <framepos name="position" objtype="body" objname="root"/>
+    <framequat name="quat" objtype="body" objname="root"/>
+    <framelinvel name="linvel" objtype="body" objname="root"/>
+    <frameangvel name="angvel" objtype="body" objname="root"/>
+    <framelinacc name="linacc" objtype="body" objname="root"/>
+    <frameangacc name="angacc" objtype="body" objname="root"/>
+
+    <!-- <framepos name="corner0" objtype="site" objname="corner0"/> -->
+    <!-- <framepos name="corner1" objtype="site" objname="corner1"/>
+    <framepos name="corner2" objtype="site" objname="corner2"/>
+    <framepos name="corner3" objtype="site" objname="corner3"/>
+    <framepos name="corner4" objtype="site" objname="corner4"/>
+    <framepos name="corner5" objtype="site" objname="corner5"/>
+    <framepos name="corner6" objtype="site" objname="corner6"/>
+    <framepos name="corner7" objtype="site" objname="corner7"/>
+    <framelinvel name="boxlinvel" objtype="body" objname="root"/> -->
+  </sensor>
+</mujoco>

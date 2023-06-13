@@ -18,7 +18,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "mjpc/test/finite_difference.h"
+#include "mjpc/utilities.h"
 
 namespace {
 
@@ -41,47 +41,45 @@ constexpr double kPoints[kNPoints][kDims] = {
 
 TEST_P(NormTest, Gradient) {
   // Hessian
-  mjpc::FiniteDifferenceGradient fd;
+  mjpc::FiniteDifferenceGradient fd(kDims);
+  fd.epsilon_ = 1.0e-4;
 
   const double* params = GetParam().params;
   const mjpc::NormType norm_type = GetParam().norm_type;
-  auto eval = [&](const double* x, int n) {
+  auto eval = [&](const double* x) {
     return mjpc::Norm(nullptr, nullptr, x, params, kDims, norm_type);
   };
-  // allocate
-  fd.Allocate(eval, 2, 1.0e-6);
 
   // evaluate
   for (int i = 0; i < kNPoints; ++i) {
     const double *x = kPoints[i];
-    fd.Gradient(x);
+    fd.Compute(eval, x, kDims);
     std::vector<double> g(kDims);
     mjpc::Norm(g.data(), nullptr, x, params, kDims, norm_type);
 
     double abs_max =
         std::abs(*std::max_element(g.begin(), g.end(), AbsCompare));
     EXPECT_THAT(g, testing::Pointwise(testing::DoubleNear(abs_max * 1e-3),
-                                      fd.gradient));
+                                      fd.gradient_));
   }
 }
 
 TEST_P(NormTest, Hessian) {
   // Hessian
-  mjpc::FiniteDifferenceHessian fd;
+  mjpc::FiniteDifferenceHessian fd(kDims);
+  fd.epsilon_ = 1.0e-4;
 
   const double* params = GetParam().params;
   double g[kDims] = {0};
   const mjpc::NormType norm_type = GetParam().norm_type;
-  auto eval = [&](const double* x, int n) {
+  auto eval = [&](const double* x) {
     return mjpc::Norm(nullptr, nullptr, x, params, kDims, norm_type);
   };
-  // allocate
-  fd.Allocate(eval, kDims, 1.0e-4);
 
   // evaluate
   for (int i = 0; i < kNPoints; ++i) {
     const double *x = kPoints[i];
-    fd.Hessian(x);
+    fd.Compute(eval, x, kDims);
     std::vector<double> H;
     H.resize(kDims * kDims);
     mjpc::Norm(g, H.data(), x, params, kDims, norm_type);
@@ -90,7 +88,7 @@ TEST_P(NormTest, Hessian) {
     double abs_max =
         std::abs(*std::max_element(H.begin(), H.end(), AbsCompare));
     EXPECT_THAT(
-        H, testing::Pointwise(testing::DoubleNear(abs_max * 1e-2), fd.hessian));
+        H, testing::Pointwise(testing::DoubleNear(abs_max * 1e-2), fd.hessian_));
   }
 }
 

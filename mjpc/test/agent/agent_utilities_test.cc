@@ -29,7 +29,7 @@ namespace mjpc {
 namespace {
 using ::testing::IsNull;
 
-TEST(UtilitiesTest, State) {
+TEST(AgentUtilitiesTest, State) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");
 
@@ -66,7 +66,7 @@ TEST(UtilitiesTest, State) {
   mj_deleteModel(model);
 }
 
-TEST(UtilitiesTest, CustomNumeric) {
+TEST(AgentUtilitiesTest, CustomNumeric) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");
 
@@ -150,7 +150,7 @@ TEST(UtilitiesTest, CustomNumeric) {
   mj_deleteModel(model);
 }
 
-TEST(UtilitiesTest, CustomText) {
+TEST(AgentUtilitiesTest, CustomText) {
   mjModel* model = LoadTestModel("particle_task.xml");
 
   // lookup a nonexistent custom text field
@@ -163,7 +163,7 @@ TEST(UtilitiesTest, CustomText) {
   mj_deleteModel(model);
 }
 
-TEST(UtilitiesTest, ByName) {
+TEST(AgentUtilitiesTest, ByName) {
   // load model
   mjModel* model = LoadTestModel("particle_task.xml");
 
@@ -219,7 +219,7 @@ TEST(UtilitiesTest, ByName) {
   mj_deleteModel(model);
 }
 
-TEST(UtilitiesTest, Clamp) {
+TEST(AgentUtilitiesTest, Clamp) {
   // bounds
   double bounds[6] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
@@ -234,7 +234,7 @@ TEST(UtilitiesTest, Clamp) {
   EXPECT_NEAR(x[2], 0.0, 1.0e-5);
 }
 
-TEST(UtilitiesTest, PowerSequence) {
+TEST(AgentUtilitiesTest, PowerSequence) {
   // sequence
   double sequence[4] = {0.2, 0.3, 0.4, 0.5};
   int length = 4;
@@ -253,7 +253,7 @@ TEST(UtilitiesTest, PowerSequence) {
   EXPECT_NEAR(sequence[3], 0.5, 1.0e-5);
 }
 
-TEST(UtilitiesTest, FindInterval) {
+TEST(AgentUtilitiesTest, FindInterval) {
   // sequence
   std::vector<double> sequence{-1.0, 0.0, 1.0, 2.0};
   int length = 4;
@@ -280,7 +280,7 @@ TEST(UtilitiesTest, FindInterval) {
   EXPECT_EQ(bounds[1], length - 1);
 }
 
-TEST(UtilitiesTest, LinearInterpolation) {
+TEST(AgentUtilitiesTest, LinearInterpolation) {
   // x
   std::vector<double> x{1.0, 2.0};
   double y[2] = {1.0, 2.0};
@@ -301,7 +301,7 @@ TEST(UtilitiesTest, LinearInterpolation) {
   EXPECT_NEAR(y3, 2.0, 1.0e-5);
 }
 
-TEST(UtilitiesTest, IncrementAtomic) {
+TEST(AgentUtilitiesTest, IncrementAtomic) {
   const double kInitial = 1;
   std::atomic<double> v = kInitial;
   const int kN = 10;

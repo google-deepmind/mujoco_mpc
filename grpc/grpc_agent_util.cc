@@ -315,7 +315,7 @@ grpc::Status GetMode(const GetModeRequest* request, mjpc::Agent* agent,
   return grpc::Status::OK;
 }
 
-namespace {
+// namespace {
 mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
                              int error_size) {
   static constexpr char file[] = "temporary-filename.xml";
@@ -331,6 +331,7 @@ mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
   return m;
 }
 
+// TODO(taylor): this method doesn't work?
 mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   static constexpr char file[] = "temporary-filename.mjb";
   // mjVFS structs need to be allocated on the heap, because it's ~2MB
@@ -343,7 +344,8 @@ mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   mj_deleteFileVFS(vfs.get(), file);
   return m;
 }
-}  // namespace
+// }  // namespace
+// TODO(taylor): did we need this namespace?
 
 grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request) {
   std::string_view task_id = request->task_id();

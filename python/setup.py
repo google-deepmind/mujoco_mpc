@@ -113,7 +113,7 @@ class CopyAgentServerBinaryCommand(setuptools.Command):
 
   def run(self):
     self._copy_binary("agent_server")
-    self._copy_binary("ui_agent_server")
+    # self._copy_binary("ui_agent_server")
 
   def _copy_binary(self, binary_name):
     source_path = Path(f"../build/bin/{binary_name}")
@@ -252,7 +252,7 @@ class BuildCMakeExtension(build_ext.build_ext):
             str(mujoco_mpc_build_dir.resolve()),
             "--target",
             "agent_server",
-            "ui_agent_server",
+            # "ui_agent_server",
             f"-j{os.cpu_count()}",
             "--config",
             build_cfg,
@@ -302,7 +302,7 @@ setuptools.setup(
     package_data={
         "": [
             "mjpc/agent_server",
-            "mjpc/ui_agent_server",
+            # "mjpc/ui_agent_server",
             "mjpc/tasks/**/*.xml",
         ],
     },

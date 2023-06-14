@@ -30,7 +30,7 @@ template <typename T>
 class EstimatorTrajectory {
  public:
   // constructors
-  EstimatorTrajectory() {}
+  EstimatorTrajectory() { Initialize(0, 0); }
   EstimatorTrajectory(int dim, int length) { Initialize(dim, length); }
 
 

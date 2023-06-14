@@ -27,6 +27,8 @@ service Estimator {
   rpc Cost(CostRequest) returns (CostResponse);
   // Estimator weights
   rpc Weights(WeightsRequest) returns (WeightsResponse);
+  // Estimator norms
+  rpc Norms(NormRequest) returns (NormResponse);
   // Shift Estimator trajectories
   rpc Shift(ShiftRequest) returns (ShiftResponse);
   // Reset Estimator
@@ -126,6 +128,21 @@ message WeightsRequest {
 
 message WeightsResponse {
   Weight weight = 1;
+}
+
+message Norm {
+  repeated int32 sensor_type = 1;
+  repeated double sensor_parameters = 2;
+  repeated int32 force_type = 3;
+  repeated double force_parameters = 4;
+}
+
+message NormRequest {
+  Norm norm = 1;
+}
+
+message NormResponse {
+  Norm norm = 1;
 }
 
 message ShiftRequest {

@@ -243,7 +243,7 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5)
 
     ## force
-    in_force_weight = np.random.rand(model.nv)
+    in_force_weight = np.random.rand(4)
     weight = estimator.weight(force=in_force_weight)
     self.assertTrue(np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5)
 
@@ -506,6 +506,42 @@ class EstimatorTest(absltest.TestCase):
 
     # buffer length
     self.assertTrue(buffer["length"] == 2)
+
+  def test_norm(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # get norm data
+    data = estimator.norm()
+
+    # test norm types
+    self.assertTrue((data["sensor_type"] == 0).all())
+    self.assertTrue((data["force_type"][0] == 0).all())
+
+    # test norm paramters
+    self.assertTrue(not data["sensor_parameters"].any())
+    self.assertTrue(not data["force_parameters"].any())
+
+    # set norm data
+    sensor_type = np.array([1, 2, 3, 4])
+    force_parameters = np.random.rand(12)
+    data = estimator.norm(sensor_type=sensor_type, force_parameters=force_parameters)
+
+    # test
+    self.assertTrue((sensor_type == data["sensor_type"]).all())
+    self.assertLess(
+        np.lingalg.norm(force_parameters - data["force_parameters"]), 1.0e-5
+    )
 
 
 if __name__ == "__main__":

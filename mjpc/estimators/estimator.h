@@ -29,7 +29,7 @@
 namespace mjpc {
 
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 128;  // maximum configuration trajectory length
+const int MAX_HISTORY = 256;  // maximum configuration trajectory length
 
 // search type for update
 enum SearchType : int {
@@ -301,17 +301,17 @@ class Estimator {
   double scale_prior_;
 
   // sensor scale
-  std::vector<double> scale_sensor_;           // ns
+  std::vector<double> scale_sensor_;           // num_sensor
 
   // force scale (free, ball, slide, hinge)
   std::vector<double> scale_force_;            // 4
 
   // cost norms
-  std::vector<NormType> norm_sensor_;          // ns
+  std::vector<NormType> norm_sensor_;          // num_sensor
   NormType norm_force_[4];
 
   // cost norm parameters
-  std::vector<double> norm_parameters_sensor_; // ns x 3
+  std::vector<double> norm_parameters_sensor_; // num_sensor x 3
   double norm_parameters_force_[4][3]; // TODO(taylor): std::vector
 
   // norm gradient

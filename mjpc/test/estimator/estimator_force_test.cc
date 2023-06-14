@@ -367,6 +367,7 @@ TEST(ForceCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_force_[0] = 0.0055;
@@ -461,7 +462,8 @@ TEST(ForceCost, Particle) {
         double time_scale = timestep * timestep * timestep * timestep;
 
         // add weighted norm
-        cost += weight[jnt_type] / dof * time_scale *
+        cost += weight[jnt_type] / dof * time_scale /
+                (configuration_length - 2) *
                 Norm(NULL, NULL, rti, params[jnt_type], dof, norms[jnt_type]);
 
         // shift
@@ -573,6 +575,7 @@ TEST(ForceCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_force_[0] = 0.00125;
@@ -687,7 +690,7 @@ TEST(ForceCost, Box) {
             double time_scale = timestep * timestep * timestep * timestep;
 
             // add weighted norm
-            cost += weight[i] / dof * time_scale *
+            cost += weight[i] / dof * time_scale / (configuration_length - 2) *
                     Norm(NULL, NULL, rti, params[i], dof, norms[i]);
 
             // shift

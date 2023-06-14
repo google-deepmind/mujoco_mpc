@@ -503,7 +503,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int dim = model_->nv * configuration_length_;
 
   // total scaling
-  double scale = scale_prior_ / dim;
+  double scale = scale_prior_ / dim / configuration_length_;
 
   // unpack
   double* r = residual_prior_.data();
@@ -757,7 +757,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       }
 
       // total scaling
-      double scale = weight / nsi * time_scale;
+      double scale = weight / nsi * time_scale / (configuration_length_ - 2);
 
       // ----- cost ----- //
       cost +=
@@ -1037,7 +1037,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
           (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
 
       // total scaling
-      double scale = weight / dof * time_scale;
+      double scale = weight / dof * time_scale / (configuration_length_ - 2);
 
       // norm
       NormType norm = norm_force_[jnt_type];
@@ -1842,9 +1842,6 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // cost
       cost_candidate = Cost(pool);
-
-      // update iteration
-      iteration_search++;
     }
 
     // increment

@@ -234,6 +234,35 @@ class Estimator:
         "force": np.array(weight.force),
     }
 
+  def norm(
+      self,
+      sensor_type: Optional[npt.ArrayLike] = [],
+      sensor_parameters: Optional[npt.ArrayLike] = [],
+      force_type: Optional[npt.ArrayLike] = [],
+      force_parameters: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, np.ndarray]:
+    # assemble input norm data
+    inputs = estimator_pb2.Norm(
+        sensor_type=sensor_type,
+        sensor_parameters=sensor_parameters,
+        force_type=force_type,
+        force_parameters=force_parameters,
+    )
+
+    # norm request
+    request = estimator_pb2.NormRequest(norm=inputs)
+
+    # norm response
+    norm = self.stub.Norms(request).norm
+
+    # return all norm data
+    return {
+        "sensor_type": norm.sensor_type,
+        "sensor_parameters": np.array(norm.sensor_parameters),
+        "force_type": np.array(norm.force_type),
+        "force_parameters": np.array(norm.force_parameters),
+    }
+
   def cost(self) -> dict[str, float]:
     # cost request
     request = estimator_pb2.CostRequest()

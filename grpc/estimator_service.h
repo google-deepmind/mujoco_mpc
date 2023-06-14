@@ -59,6 +59,10 @@ class EstimatorService final : public estimator::Estimator::Service {
                        const estimator::WeightsRequest* request,
                        estimator::WeightsResponse* response) override;
 
+  grpc::Status Norms(grpc::ServerContext* context,
+                     const estimator::NormRequest* request,
+                     estimator::NormResponse* response) override;
+
   grpc::Status Shift(grpc::ServerContext* context,
                      const estimator::ShiftRequest* request,
                      estimator::ShiftResponse* response) override;

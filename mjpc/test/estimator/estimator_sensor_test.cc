@@ -383,6 +383,7 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_sensor_[0] = 0.00125;
@@ -492,7 +493,8 @@ TEST(MeasurementCost, Particle) {
             }
 
             // add weighted norm
-            cost += weight[i] / dim_sensori * time_scale *
+            cost += weight[i] / dim_sensori * time_scale /
+                    (configuration_length - 2) *
                     Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori,
                          norms[i]);
 
@@ -605,6 +607,7 @@ TEST(MeasurementCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_sensor_[0] = 0.00125;
@@ -735,7 +738,7 @@ TEST(MeasurementCost, Box) {
 
         // add weighted norm
         cost +=
-            weight[i] / dim_sensori * time_scale *
+            weight[i] / dim_sensori * time_scale / (configuration_length - 2) *
             Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori, norms[i]);
 
         // shift

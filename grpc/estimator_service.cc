@@ -40,6 +40,8 @@ using ::estimator::OptimizeRequest;
 using ::estimator::OptimizeResponse;
 using ::estimator::PriorMatrixRequest;
 using ::estimator::PriorMatrixResponse;
+using ::estimator::ResetBufferRequest;
+using ::estimator::ResetBufferResponse;
 using ::estimator::ResetRequest;
 using ::estimator::ResetResponse;
 using ::estimator::SettingsRequest;
@@ -48,13 +50,10 @@ using ::estimator::ShiftRequest;
 using ::estimator::ShiftResponse;
 using ::estimator::StatusRequest;
 using ::estimator::StatusResponse;
-using ::estimator::WeightsRequest;
-using ::estimator::WeightsResponse;
-using ::estimator::ResetBufferRequest;
-using ::estimator::ResetBufferResponse;
 using ::estimator::UpdateBufferRequest;
 using ::estimator::UpdateBufferResponse;
-
+using ::estimator::WeightsRequest;
+using ::estimator::WeightsResponse;
 
 EstimatorService::~EstimatorService() {}
 
@@ -95,8 +94,7 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
   estimator_.SetConfigurationLength(request->configuration_length());
 
   // initialize buffer
-  buffer_.Initialize(estimator_.dim_sensor_, estimator_.num_sensor_,
-                     model->nu,
+  buffer_.Initialize(estimator_.dim_sensor_, estimator_.num_sensor_, model->nu,
                      (request->has_buffer_length() ? request->buffer_length()
                                                    : mjpc::MAX_TRAJECTORY));
 
@@ -303,7 +301,7 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_skip_prior_weight_update(estimator_.skip_update_prior_weight);
 
-  // time scaling 
+  // time scaling
   if (input.has_time_scaling()) {
     estimator_.time_scaling_ = input.time_scaling();
   }
@@ -357,20 +355,21 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   output->set_prior(estimator_.scale_prior_);
 
   // sensor
-  int ns = estimator_.dim_sensor_;
-  if (input.sensor_size() == ns) {
-    mju_copy(estimator_.scale_sensor_.data(), input.sensor().data(), ns);
+  int num_sensor = estimator_.num_sensor_;
+  if (input.sensor_size() == num_sensor) {
+    mju_copy(estimator_.scale_sensor_.data(), input.sensor().data(),
+             num_sensor);
   }
-  for (int i = 0; i < ns; i++) {
+  for (int i = 0; i < num_sensor; i++) {
     output->add_sensor(estimator_.scale_sensor_[i]);
   }
 
   // force
-  int nv = estimator_.model_->nv;
-  if (input.force_size() == nv) {
-    mju_copy(estimator_.scale_force_.data(), input.force().data(), nv);
+  int num_jnt = 4;
+  if (input.force_size() == num_jnt) {
+    mju_copy(estimator_.scale_force_.data(), input.force().data(), num_jnt);
   }
-  for (int i = 0; i < nv; i++) {
+  for (int i = 0; i < num_jnt; i++) {
     output->add_force(estimator_.scale_force_[i]);
   }
 
@@ -505,7 +504,7 @@ grpc::Status EstimatorService::ResetBuffer(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // reset 
+  // reset
   buffer_.Reset();
 
   return grpc::Status::OK;
@@ -518,63 +517,63 @@ grpc::Status EstimatorService::BufferData(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // valid index 
+  // valid index
   int index = request->index();
   if (index < 0 || index >= buffer_.Length()) {
     // TODO(taylor): does this need a warning/error message or StatusCode?
     return grpc::Status::CANCELLED;
   }
 
-  // buffer 
+  // buffer
   estimator::Buffer input = request->buffer();
   estimator::Buffer* output = response->mutable_buffer();
 
-  // set sensor 
+  // set sensor
   int ns = estimator_.dim_sensor_;
   if (input.sensor_size() == ns) {
     buffer_.sensor_.Set(input.sensor().data(), index);
   }
 
-  // get sensor 
+  // get sensor
   double* sensor = buffer_.sensor_.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor(sensor[i]);
   }
 
-  // set mask 
+  // set mask
   int num_sensor = estimator_.num_sensor_;
   if (input.mask_size() == num_sensor) {
     buffer_.sensor_mask_.Set(input.mask().data(), index);
   }
 
-  // get mask 
+  // get mask
   int* mask = buffer_.sensor_mask_.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_mask(mask[i]);
   }
 
-  // set ctrl 
+  // set ctrl
   int nu = estimator_.model_->nu;
   if (input.ctrl_size() == nu) {
     buffer_.ctrl_.Set(input.ctrl().data(), index);
   }
 
-  // get ctrl 
+  // get ctrl
   double* ctrl = buffer_.ctrl_.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
 
-  // set time 
+  // set time
   if (input.time_size() == 1) {
     buffer_.time_.Set(input.time().data(), index);
   }
 
-  // get time 
+  // get time
   double* time = buffer_.time_.Get(index);
   output->add_time(time[0]);
 
-  // get length 
+  // get length
   response->set_length(buffer_.Length());
 
   return grpc::Status::OK;
@@ -587,20 +586,24 @@ grpc::Status EstimatorService::UpdateBuffer(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // buffer 
+  // buffer
   estimator::Buffer buffer = request->buffer();
 
   // check for all data
   if (buffer.sensor_size() != estimator_.dim_sensor_)
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor."};
-  if (buffer.mask_size() != estimator_.num_sensor_) return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor mask."};
-  if (buffer.ctrl_size() != estimator_.model_->nu) return {grpc::StatusCode::FAILED_PRECONDITION, "Missing ctrl."};
-  if (buffer.time_size() != 1) return {grpc::StatusCode::FAILED_PRECONDITION, "Missing time."};
+  if (buffer.mask_size() != estimator_.num_sensor_)
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor mask."};
+  if (buffer.ctrl_size() != estimator_.model_->nu)
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing ctrl."};
+  if (buffer.time_size() != 1)
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing time."};
 
-  // update 
-  buffer_.Update(buffer.sensor().data(), buffer.mask().data(), buffer.ctrl().data(), buffer.time().data()[0]);
+  // update
+  buffer_.Update(buffer.sensor().data(), buffer.mask().data(),
+                 buffer.ctrl().data(), buffer.time().data()[0]);
 
-  // get length 
+  // get length
   response->set_length(buffer_.Length());
 
   return grpc::Status::OK;

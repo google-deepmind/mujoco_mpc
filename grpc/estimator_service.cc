@@ -430,7 +430,7 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
 
   // set force parameters
   int nfp = 12;
-  if (input.sensor_parameters_size() == nfp) {
+  if (input.force_parameters_size() == nfp) {
     mju_copy(estimator_.norm_parameters_force_[0],
              input.force_parameters().data() + 0, 3);
     mju_copy(estimator_.norm_parameters_force_[1],

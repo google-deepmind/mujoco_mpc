@@ -182,6 +182,13 @@ void Estimator::Initialize(mjModel* model) {
   // cost norm parameters
   norm_parameters_sensor_.resize(num_sensor_ * 3);
 
+  // TODO(taylor): initialize norm parameters from xml
+  std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(), 0.0);
+  mju_zero(norm_parameters_force_[0], 3);
+  mju_zero(norm_parameters_force_[1], 3);
+  mju_zero(norm_parameters_force_[2], 3);
+  mju_zero(norm_parameters_force_[3], 3);
+
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
   norm_gradient_force_.resize(nv * MAX_HISTORY);

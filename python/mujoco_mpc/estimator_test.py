@@ -47,9 +47,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(configuration - data["configuration"]) < 1.0e-3
-    )
+    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-3)
 
     ## velocity
 
@@ -86,8 +84,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertLess(
-        np.linalg.norm(configuration_prior - data["configuration_prior"]),
-        1.0e-3
+        np.linalg.norm(configuration_prior - data["configuration_prior"]), 1.0e-3
     )
 
     ## sensor measurement
@@ -528,8 +525,8 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.norm()
 
     # test norm types
-    self.assertTrue((data["sensor_type"] == 0).all())
-    self.assertTrue((data["force_type"][0] == 0).all())
+    self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
+    self.assertTrue((data["force_type"] == np.zeros(4)).all())
 
     # test norm paramters
     self.assertTrue(not data["sensor_parameters"].any())
@@ -537,14 +534,26 @@ class EstimatorTest(absltest.TestCase):
 
     # set norm data
     sensor_type = np.array([1, 2, 3, 4])
+    sensor_parameters = np.random.rand(3 * model.nsensor)
+    force_type = np.array([5, 6, 7, 8])
     force_parameters = np.random.rand(12)
-    data = estimator.norm(sensor_type=sensor_type, force_parameters=force_parameters)
+    data = estimator.norm(
+        sensor_type=sensor_type,
+        sensor_parameters=sensor_parameters,
+        force_type=force_type,
+        force_parameters=force_parameters,
+    )
 
     # test
     self.assertTrue((sensor_type == data["sensor_type"]).all())
     self.assertLess(
-        np.lingalg.norm(force_parameters - data["force_parameters"]), 1.0e-5
+        np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
     )
+    self.assertTrue((force_type == data["force_type"]).all())
+    self.assertLess(np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5)
+
+    print(force_parameters)
+    print(data["force_parameters"])
 
 
 if __name__ == "__main__":

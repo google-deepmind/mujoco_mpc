@@ -15,11 +15,10 @@
 #ifndef MJPC_PLANNERS_ILQG_OPTIMIZER_H_
 #define MJPC_PLANNERS_ILQG_OPTIMIZER_H_
 
-#include <mujoco/mujoco.h>
-
 #include <shared_mutex>
 #include <vector>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/planners/ilqg/backward_pass.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"

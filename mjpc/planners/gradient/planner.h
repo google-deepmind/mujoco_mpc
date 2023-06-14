@@ -15,13 +15,12 @@
 #ifndef MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
 #define MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
 
-#include <mujoco/mujoco.h>
-
 #include <cstdlib>
 #include <memory>
 #include <shared_mutex>
 #include <vector>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/gradient/gradient.h"
 #include "mjpc/planners/gradient/policy.h"

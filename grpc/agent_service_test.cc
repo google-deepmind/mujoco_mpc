@@ -31,7 +31,6 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
-#include "third_party/mujoco_mpc/grpc/agent.proto.h" // TODO(etom): remove?
 #include "mjpc/tasks/tasks.h"
 
 namespace agent_grpc {

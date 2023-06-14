@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mujoco/mujoco.h>
 
 #include <vector>
 
 #include "gtest/gtest.h"
+#include <mujoco/mujoco.h>
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/test/load.h"
 #include "mjpc/threadpool.h"
@@ -30,7 +30,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // dimensions
@@ -95,8 +95,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv, qvel.data() + nv,
-          nv * (T - 1));
+  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+          qvel.data() + nv, nv * (T - 1));
 
   // velocity test
   EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)) / (nv * (T - 1)),
@@ -122,7 +122,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
-  // threadpool 
+  // threadpool
   ThreadPool pool(2);
 
   // dimensions
@@ -149,9 +149,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // rollout
   for (int t = 0; t < T; t++) {
-    // control 
+    // control
     mju_zero(data->ctrl, model->nu);
-    
+
     // forward computes instantaneous qacc
     mj_forward(model, data);
 
@@ -172,7 +172,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // final cache
   mju_copy(qpos.data() + T * nq, data->qpos, nq);
   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  
+
   mj_forward(model, data);
   mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
@@ -188,8 +188,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv, qvel.data() + nv,
-          nv * (T - 1));
+  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+          qvel.data() + nv, nv * (T - 1));
 
   // velocity test
   EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)) / (nv * (T - 1)),

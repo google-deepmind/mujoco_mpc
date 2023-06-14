@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/estimator.h"
@@ -34,8 +34,8 @@ TEST(BatchOptimize, Particle2D) {
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
-  // threadpool 
-  ThreadPool pool(9);
+  // threadpool
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -82,7 +82,7 @@ TEST(BatchOptimize, Particle2D) {
   // final cache
   mju_copy(qpos.data() + T * nq, data->qpos, nq);
   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  
+
   mj_forward(model, data);
   mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
@@ -97,7 +97,7 @@ TEST(BatchOptimize, Particle2D) {
   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
   mju_copy(estimator.sensor_measurement_.Data(), sensordata.data(), ns * T);
 
-  // set weights 
+  // set weights
   estimator.scale_prior_ = 1.0;
   estimator.scale_sensor_[0] = 1.0;
   estimator.scale_force_[0] = 1.0;
@@ -122,24 +122,27 @@ TEST(BatchOptimize, Particle2D) {
   // cost
   double cost_random = estimator.Cost(pool);
 
-  // change verbosity 
+  // change verbosity
   estimator.verbose_optimize_ = true;
 
   // optimize
   estimator.Optimize(pool);
 
-  // error 
+  // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+          qpos.data(), nq * T);
 
   // test cost decrease
   EXPECT_LE(estimator.cost_, cost_random);
 
   // test gradient tolerance
-  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0, estimator.gradient_tolerance_);
+  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0,
+              estimator.gradient_tolerance_);
 
   // test recovered configuration trajectory
-  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
+              1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -156,7 +159,7 @@ TEST(BatchOptimize, Box3D) {
   int ns = model->nsensordata;
 
   // pool 
-  int num_thread = 9;
+  int num_thread = 1;
   ThreadPool pool(num_thread);
 
   // ----- simulate ----- //
@@ -182,7 +185,7 @@ TEST(BatchOptimize, Box3D) {
 
   // rollout
   for (int t = 0; t < T; t++) {
-    // control 
+    // control
     mju_zero(data->ctrl, model->nu);
 
     // forward computes instantaneous qacc
@@ -205,7 +208,7 @@ TEST(BatchOptimize, Box3D) {
   // final cache
   mju_copy(qpos.data() + T * nq, data->qpos, nq);
   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  
+
   mj_forward(model, data);
   mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
@@ -246,16 +249,19 @@ TEST(BatchOptimize, Box3D) {
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
+  mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+          qpos.data(), nq * T);
 
   // test cost decrease 
   EXPECT_LE(estimator.cost_, estimator.cost_initial_);
 
-  // test gradient tolerance 
-  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0, 1.0e-3);
+  // test gradient tolerance
+  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0,
+              1.0e-3);
 
   // test configuration trajectory error
-  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
+              1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -280,15 +286,15 @@ TEST(BatchOptimize, Box3D) {
 //   // trajectories
 //   int T = 64;
 //   printf("T: %i\n", T);
-  
-//   // pool 
+
+//   // pool
 //   int num_thread = 10;
 //   ThreadPool pool(num_thread);
 
 //   printf("num thread: %i\n", num_thread);
 
 //   // ----- simulate ----- //
-  
+
 //   std::vector<double> qpos(nq * (T + 1));
 //   std::vector<double> qvel(nv * (T + 1));
 //   std::vector<double> qacc(nv * T);
@@ -301,7 +307,7 @@ TEST(BatchOptimize, Box3D) {
 
 //   // rollout
 //   for (int t = 0; t < T; t++) {
-//     // control 
+//     // control
 //     mju_zero(data->ctrl, model->nu);
 
 //     // forward computes instantaneous qacc
@@ -324,7 +330,7 @@ TEST(BatchOptimize, Box3D) {
 //   // final cache
 //   mju_copy(qpos.data() + T * nq, data->qpos, nq);
 //   mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  
+
 //   mj_forward(model, data);
 //   mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
@@ -336,7 +342,7 @@ TEST(BatchOptimize, Box3D) {
 //   estimator.SetConfigurationLength(T);
 //   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
 //   mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
-//   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
+//   mju_copy(estimator.force_measurement_.Data(),qfrc_actuator.data(), nv * T);
 //   mju_copy(estimator.sensor_measurement_.Data(), sensordata.data(), ns * T);
 
 //   // ----- random perturbation ----- //
@@ -359,7 +365,7 @@ TEST(BatchOptimize, Box3D) {
 //     mj_integratePos(model, q, noise.data(), 1.0);
 //   }
 
-//   // change verbosity 
+//   // change verbosity
 //   estimator.verbose_optimize_ = true;
 //   estimator.verbose_prior_ = true;
 
@@ -384,16 +390,19 @@ TEST(BatchOptimize, Box3D) {
 
 //   // error
 //   std::vector<double> configuration_error(nq * T);
-//   mju_sub(configuration_error.data(), estimator.configuration_.Data(), qpos.data(), nq * T);
+//   mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+//   qpos.data(), nq * T);
 
-//   // test cost decrease 
+//   // test cost decrease
 //   EXPECT_LE(estimator.cost_, cost_random);
 
-//   // test gradient tolerance 
-//   // EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0, 1.0e-2);
+//   // test gradient tolerance
+//   // EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv *
+//   T), 0.0, 1.0e-2);
 
 //   // // test configuration trajectory error
-//   // EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0, 1.0e-2);
+//   // EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T),
+//   0.0, 1.0e-2);
 
 //   // delete data + model
 //   mj_deleteData(data);

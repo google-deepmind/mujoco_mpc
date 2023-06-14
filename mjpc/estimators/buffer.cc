@@ -14,9 +14,10 @@
 
 #include "mjpc/estimators/buffer.h"
 
+#include <stdio.h>
+#include <algorithm>
 #include <vector>
 #include <cstring>
-#include <stdio.h> 
 
 #include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>
@@ -38,31 +39,32 @@ void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl, int max_le
   // ctrl 
   ctrl_.Initialize(dim_ctrl, 0);
 
-  // time 
   time_.Initialize(1, 0);
 
-  // maximum buffer length 
+  // maximum buffer length
   max_length_ = max_length;
 }
 
+  // sensor
 // reset
 void Buffer::Reset() {
-  // sensor 
   sensor_.Reset();
   sensor_.length_ = 0;
 
   // sensor mask
   sensor_mask_.Reset();
+
+  // TODO(etom): use a public interface:
   sensor_mask_.length_ = 0;
 
   // mask
-  std::fill(mask_.begin(), mask_.end(), 1); // set to true
+  // ctrl
+  std::fill(mask_.begin(), mask_.end(), 1);  // set to true
 
-  // ctrl 
   ctrl_.Reset();
+  // time
   ctrl_.length_ = 0;
 
-  // time 
   time_.Reset();
   time_.length_ = 0;
 }
@@ -84,7 +86,6 @@ void Buffer::Update(const double* sensor, const int* mask, const double* ctrl,
     mju_copy(sensor_.data_.data() + sensor_.length_ * ns, sensor, ns);
     sensor_.length_++;
 
-    // sensor mask 
     // TODO(taylor): external method must set mask
     int num_sensor = sensor_mask_.dim_;
     std::memcpy(sensor_mask_.data_.data() + sensor_mask_.length_ * num_sensor,
@@ -103,25 +104,22 @@ void Buffer::Update(const double* sensor, const int* mask, const double* ctrl,
     sensor_.ShiftHeadIndex(1);
     sensor_.Set(sensor, sensor_.length_ - 1);
 
-    // sensor mask 
     // TODO(taylor): external method must set mask
     sensor_mask_.ShiftHeadIndex(1);
     sensor_mask_.Set(mask, sensor_.length_ - 1);
   }
+  // update mask
 }
 
- // update mask 
 void Buffer::UpdateMask() {
   // TODO(taylor)
+// print
 }
 
-// print 
 void Buffer::Print() {
   for (int i = 0; i < time_.length_; i++) {
-    printf("(%i)\n", i);
-    printf("\n");
-    printf("time = %.4f\n", *time_.Get(i));
-    printf("\n");
+    printf("(%i)\n\n", i);
+    printf("time = %.4f\n\n", *time_.Get(i));
     printf("sensor = ");
     mju_printMat(sensor_.Get(i), 1, sensor_.dim_);
     printf("sensor mask = ");

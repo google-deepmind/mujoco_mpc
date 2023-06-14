@@ -106,7 +106,7 @@ TEST(PriorResidual, Particle) {
   // error
   std::vector<double> jacobian_error(dim_vel * dim_vel);
   mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(),
-          fd.jacobian_.data(), dim_vel * dim_vel);
+          fd.jacobian.data(), dim_vel * dim_vel);
 
   // test
   EXPECT_NEAR(
@@ -211,7 +211,7 @@ TEST(PriorResidual, Box) {
   // error
   std::vector<double> jacobian_error(dim_vel * dim_vel);
   mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(),
-          fd.jacobian_.data(), dim_vel * dim_vel);
+          fd.jacobian.data(), dim_vel * dim_vel);
 
   // test
   EXPECT_NEAR(
@@ -339,13 +339,13 @@ TEST(PriorCost, Particle) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(dim_vel * dim_vel);
   mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
-          fdh.hessian_.data(), dim_vel * dim_vel);
+          fdh.hessian.data(), dim_vel * dim_vel);
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
@@ -475,7 +475,7 @@ TEST(PriorCost, Box) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // delete data + model
@@ -607,17 +607,17 @@ TEST(ApproximatePriorCost, Particle) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(dim_vel * dim_vel);
   mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
-          fdh.hessian_.data(), dim_vel * dim_vel);
+          fdh.hessian.data(), dim_vel * dim_vel);
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
-  
+
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);
@@ -747,7 +747,7 @@ TEST(ApproximatePriorCost, Box) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // delete data + model

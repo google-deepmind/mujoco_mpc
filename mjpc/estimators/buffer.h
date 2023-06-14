@@ -15,9 +15,9 @@
 #ifndef MJPC_ESTIMATORS_BUFFER_H_
 #define MJPC_ESTIMATORS_BUFFER_H_
 
-#include <mujoco/mujoco.h>
-
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/trajectory.h"
 
@@ -29,9 +29,13 @@ class Buffer {
  public:
   // constructor
   Buffer() = default;
+<<<<<<< HEAD
   Buffer(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
     Initialize(dim_sensor, num_sensor, dim_ctrl, max_length);
   };
+=======
+  Buffer(mjModel* model, int max_length) { Initialize(model, max_length); }
+>>>>>>> upstream/main
 
   // destructor
   ~Buffer() = default;
@@ -46,7 +50,7 @@ class Buffer {
   void Update(const double* sensor, const int* mask, const double* ctrl,
               double time);
 
-  // update mask 
+  // update mask
   void UpdateMask();
 
   // print
@@ -58,7 +62,7 @@ class Buffer {
   // sensor
   EstimatorTrajectory<double> sensor_;
 
-  // mask 
+  // mask
   // note: std::vector<bool> is weird...
   EstimatorTrajectory<int> sensor_mask_;
   std::vector<int> mask_;

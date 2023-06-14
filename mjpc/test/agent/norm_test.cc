@@ -42,7 +42,7 @@ constexpr double kPoints[kNPoints][kDims] = {
 TEST_P(NormTest, Gradient) {
   // Hessian
   mjpc::FiniteDifferenceGradient fd(kDims);
-  fd.epsilon_ = 1.0e-4;
+  fd.epsilon = 1.0e-4;
 
   const double* params = GetParam().params;
   const mjpc::NormType norm_type = GetParam().norm_type;
@@ -60,14 +60,14 @@ TEST_P(NormTest, Gradient) {
     double abs_max =
         std::abs(*std::max_element(g.begin(), g.end(), AbsCompare));
     EXPECT_THAT(g, testing::Pointwise(testing::DoubleNear(abs_max * 1e-3),
-                                      fd.gradient_));
+                                      fd.gradient));
   }
 }
 
 TEST_P(NormTest, Hessian) {
   // Hessian
   mjpc::FiniteDifferenceHessian fd(kDims);
-  fd.epsilon_ = 1.0e-4;
+  fd.epsilon = 1.0e-4;
 
   const double* params = GetParam().params;
   double g[kDims] = {0};
@@ -87,8 +87,8 @@ TEST_P(NormTest, Hessian) {
     // test Hessian
     double abs_max =
         std::abs(*std::max_element(H.begin(), H.end(), AbsCompare));
-    EXPECT_THAT(
-        H, testing::Pointwise(testing::DoubleNear(abs_max * 1e-2), fd.hessian_));
+    EXPECT_THAT(H, testing::Pointwise(testing::DoubleNear(abs_max * 1e-2),
+                                      fd.hessian));
   }
 }
 

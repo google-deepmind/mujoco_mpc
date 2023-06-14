@@ -15,11 +15,10 @@
 #ifndef MJPC_ESTIMATORS_ESTIMATOR_H_
 #define MJPC_ESTIMATORS_ESTIMATOR_H_
 
-#include <mujoco/mujoco.h>
-
 #include <mutex>
 #include <vector>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
@@ -38,7 +37,7 @@ enum SearchType : int {
   kNumSearch,
 };
 
-// maximum / minimum regularization 
+// maximum / minimum regularization
 const double MAX_REGULARIZATION = 1.0e6;
 const double MIN_REGULARIZATION = 1.0e-6;
 
@@ -57,9 +56,9 @@ class Estimator {
   ~Estimator() {}
 
   // initialize
-  void Initialize(mjModel* model); // TODO(taylor): const
+  void Initialize(mjModel* model);  // TODO(taylor): const
 
-  // set configuration length 
+  // set configuration length
   void SetConfigurationLength(int length);
 
   // shift trajectory heads
@@ -80,7 +79,7 @@ class Estimator {
   // prior Jacobian block
   void BlockPrior(int index);
 
-  // prior Jacobian 
+  // prior Jacobian
   void JacobianPrior(ThreadPool& pool);
 
   // sensor cost
@@ -95,7 +94,7 @@ class Estimator {
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
   void BlockSensor(int index);
 
-  // sensor Jacobian 
+  // sensor Jacobian
   void JacobianSensor(ThreadPool& pool);
 
   // force cost
@@ -110,7 +109,7 @@ class Estimator {
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
   void BlockForce(int index);
 
-  // force Jacobian 
+  // force Jacobian
   void JacobianForce(ThreadPool& pool);
 
   // compute sensor and force predictions via inverse dynamics
@@ -133,40 +132,40 @@ class Estimator {
   // compute total cost
   double Cost(ThreadPool& pool);
 
-  // compute total gradient 
+  // compute total gradient
   void CostGradient();
 
-  // compute total Hessian 
+  // compute total Hessian
   void CostHessian();
 
-  // prior weight update 
+  // prior weight update
   void PriorWeightUpdate(ThreadPool& pool);
 
-  // optimize trajectory estimate 
+  // optimize trajectory estimate
   void Optimize(ThreadPool& pool);
 
-  // regularize Hessian 
+  // regularize Hessian
   void Regularize();
 
-  // search direction 
+  // search direction
   void SearchDirection();
 
-  // print optimize status 
+  // print optimize status
   void PrintOptimize();
 
   // print cost
   void PrintCost();
 
-  // print update prior weight status 
+  // print update prior weight status
   void PrintPriorWeightUpdate();
 
-  // reset timers 
+  // reset timers
   void ResetTimers();
 
-  // get qpos estimate 
+  // get qpos estimate
   double* GetPosition();
 
-  // get qvel estimate 
+  // get qvel estimate
   double* GetVelocity();
 
   // initialize trajectories
@@ -181,10 +180,10 @@ class Estimator {
                          const EstimatorTrajectory<double>& ctrl,
                          const EstimatorTrajectory<double>& time);
 
-  // update 
+  // update
   void Update(const Buffer& buffer, ThreadPool& pool);
 
-  // get terms from GUI 
+  // get terms from GUI
   void GetGUI();
 
   // set terms to GUI
@@ -197,21 +196,21 @@ class Estimator {
   std::vector<UniqueMjData> data_;
 
   // trajectories
-  int configuration_length_;                  // T
-  int prediction_length_;                     // T - 2
-  EstimatorTrajectory<double> configuration_; // nq x T
-  EstimatorTrajectory<double> velocity_;      // nv x T
-  EstimatorTrajectory<double> acceleration_;  // nv x T
-  EstimatorTrajectory<double> time_;          //  1 x T
+  int configuration_length_;                   // T
+  int prediction_length_;                      // T - 2
+  EstimatorTrajectory<double> configuration_;  // nq x T
+  EstimatorTrajectory<double> velocity_;       // nv x T
+  EstimatorTrajectory<double> acceleration_;   // nv x T
+  EstimatorTrajectory<double> time_;           //  1 x T
 
-  // prior 
+  // prior
   EstimatorTrajectory<double> configuration_prior_;  // nq x T
 
   // sensor
   int dim_sensor_;                                   // ns
   int num_sensor_;
   EstimatorTrajectory<double> sensor_measurement_;   // ns x T
-  EstimatorTrajectory<double> sensor_prediction_;    // ns x T  
+  EstimatorTrajectory<double> sensor_prediction_;    // ns x T
   EstimatorTrajectory<int> sensor_mask_;             // num_sensor x T
 
   // forces
@@ -264,10 +263,10 @@ class Estimator {
   EstimatorTrajectory<double> block_acceleration_current_configuration_;  // (nv * nv) x T
   EstimatorTrajectory<double> block_acceleration_next_configuration_;     // (nv * nv) x T
 
-  // cost 
+  // cost
   double cost_prior_;
   double cost_sensor_;
-  double cost_force_; 
+  double cost_force_;
   double cost_;
   double cost_initial_;
 
@@ -330,10 +329,10 @@ class Estimator {
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY
 
-  // regularization 
+  // regularization
   double regularization_;
 
-  // search type 
+  // search type
   SearchType search_type_;
   double step_size_;
 
@@ -378,19 +377,19 @@ class Estimator {
   bool sensor_flag_ = true;
   bool force_flag_ = true;
 
-  // state index 
+  // state index
   int state_index_;
 
-  // status 
+  // status
   int iterations_smoother_;                 // total smoother iterations after Optimize
-  int iterations_line_search_;              // total line search iterations 
+  int iterations_line_search_;              // total line search iterations
   bool hessian_factor_ = false;             // prior reset status
   int cost_count_;
   int num_new_;                             // number of new elements
   double gradient_norm_;                    // norm of cost gradient
-  
+
   bool initialized_ = false;                // flag for initialization
-  
+
   // settings
   int max_line_search_ = 10;                // maximum number of line search iterations
   int max_smoother_iterations_ = 10;        // maximum number of smoothing iterations
@@ -424,20 +423,20 @@ class Estimator {
 
   // weights
   double gui_scale_prior_;
-  std::vector<double> gui_weight_sensor_;          
+  std::vector<double> gui_weight_sensor_;
   std::vector<double> gui_weight_force_;
 
-  // costs 
+  // costs
   double gui_cost_prior_;
   double gui_cost_sensor_;
-  double gui_cost_force_; 
+  double gui_cost_force_;
   double gui_cost_;
 
-  // status 
+  // status
   double gui_regularization_;
   double gui_step_size_;
 
-  // timers 
+  // timers
 
   // mutex
   std::mutex mutex_;

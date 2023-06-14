@@ -110,11 +110,11 @@ grpc::Status UiAgentService::SetState(grpc::ServerContext* context,
 grpc::Status UiAgentService::GetAction(grpc::ServerContext* context,
                                        const GetActionRequest* request,
                                        GetActionResponse* response) {
-  return RunBeforeStep(
-      context, [request, response](mjpc::Agent* agent, const mjModel* model,
-                                   mjData* data) {
-        return grpc_agent_util::GetAction(request, agent, response);
-      });
+  return RunBeforeStep(context, [request, response](mjpc::Agent* agent,
+                                                    const mjModel* model,
+                                                    mjData* data) {
+    return grpc_agent_util::GetAction(request, agent, model, data, response);
+  });
 }
 
 grpc::Status UiAgentService::GetCostValuesAndWeights(

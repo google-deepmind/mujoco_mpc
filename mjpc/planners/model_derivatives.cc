@@ -14,10 +14,9 @@
 
 #include "mjpc/planners/model_derivatives.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 

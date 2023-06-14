@@ -82,7 +82,17 @@ message SetStateRequest {
 message SetStateResponse {}
 
 message GetActionRequest {
+  // The time at which the plan should be evaluated, in seconds. If not set, the
+  // current time (from the last call to SetState) will be used.
+  // Note: for feedback controllers like iLQG, it's probably wrong to request
+  // the action in a future time, and instead the state should be set before
+  // calling GetAction.
   optional float time = 1;
+
+  // If not zero, physics will be rolled out for the given duration (in seconds)
+  // and actions will be averaged over that period.
+  // During the rollout, the task's Transition will not be called.
+  optional float averaging_duration = 2;
 }
 
 message GetActionResponse {

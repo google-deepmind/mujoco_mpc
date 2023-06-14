@@ -18,6 +18,7 @@
 import atexit
 import contextlib
 import pathlib
+import socket
 import subprocess
 import tempfile
 from typing import Literal, Optional, Sequence
@@ -27,11 +28,25 @@ import mujoco
 import numpy as np
 from numpy import typing as npt
 
-from utilities import find_free_port
-
 # INTERNAL IMPORT
 from mujoco_mpc.proto import agent_pb2
 from mujoco_mpc.proto import agent_pb2_grpc
+
+
+def find_free_port() -> int:
+  """Find an available TCP port on the system.
+
+    This function creates a temporary socket, binds it to an available port
+    chosen by the operating system, and returns the chosen port number.
+
+  Returns:
+      int: An available TCP port number.
+  """
+  with socket.socket(family=socket.AF_INET6) as s:
+    s.bind(("", 0))
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    return s.getsockname()[1]
+
 
 class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.
@@ -176,16 +191,22 @@ class Agent(contextlib.AbstractContextManager):
   def get_state(self) -> agent_pb2.State:
     return self.stub.GetState(agent_pb2.GetStateRequest()).state
 
-  def get_action(self, time: Optional[float] = None) -> np.ndarray:
+  def get_action(
+      self, time: Optional[float] = None, averaging_duration: float = 0
+  ) -> np.ndarray:
     """Return latest `action` from the `Agent`'s planner.
 
     Args:
       time: `data.time`, i.e. the simulation time.
+      averaging_duration: the duration over which actions should be averaged
+        (e.g. the control timestep).
 
     Returns:
       action: `Agent`'s planner's latest action.
     """
-    get_action_request = agent_pb2.GetActionRequest(time=time)
+    get_action_request = agent_pb2.GetActionRequest(
+        time=time, averaging_duration=averaging_duration
+    )
     get_action_response = self.stub.GetAction(get_action_request)
     return np.array(get_action_response.action)
 

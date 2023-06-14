@@ -96,7 +96,7 @@ TEST(GradientTest, Gradient) {
 
   // test gradient
   for (int i = 0; i < dim_action; i++) {
-    EXPECT_NEAR(fd_action.gradient_[i], gd.Qu[i], 1.0e-3);
+    EXPECT_NEAR(fd_action.gradient[i], gd.Qu[i], 1.0e-3);
   }
 
   // ----- finite difference ----- //
@@ -115,7 +115,7 @@ TEST(GradientTest, Gradient) {
 
   // test gradient
   for (int i = 0; i < dim_initial_state; i++) {
-    EXPECT_NEAR(fd_initial_state.gradient_[i], gd.Vx[i], 1.0e-3);
+    EXPECT_NEAR(fd_initial_state.gradient[i], gd.Vx[i], 1.0e-3);
   }
 }
 

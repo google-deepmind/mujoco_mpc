@@ -80,7 +80,7 @@ TEST(MeasurementResidual, Particle) {
 
     // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
-      // time index 
+      // time index
       int t = k + 1;
 
       // unpack
@@ -151,7 +151,7 @@ TEST(MeasurementResidual, Particle) {
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
   mju_sub(jacobian_error.data(), estimator.jacobian_sensor_.data(),
-          fd.jacobian_.data(), dim_res * dim_vel);
+          fd.jacobian.data(), dim_res * dim_vel);
 
   // test
   EXPECT_NEAR(
@@ -233,7 +233,7 @@ TEST(MeasurementResidual, Box) {
 
     // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
-      // time index 
+      // time index
       int t = k + 1;
 
       // unpack
@@ -304,7 +304,7 @@ TEST(MeasurementResidual, Box) {
   // error
   std::vector<double> jacobian_error(dim_res * dim_vel);
   mju_sub(jacobian_error.data(), estimator.jacobian_sensor_.data(),
-          fd.jacobian_.data(), dim_res * dim_vel);
+          fd.jacobian.data(), dim_res * dim_vel);
 
   // test
   EXPECT_NEAR(
@@ -437,7 +437,7 @@ TEST(MeasurementCost, Particle) {
 
         // loop over predictions
         for (int k = 0; k < configuration_length - 2; k++) {
-          // time index 
+          // time index
           int t = k + 1;
 
           // unpack
@@ -479,7 +479,7 @@ TEST(MeasurementCost, Particle) {
             // time scaling
             double time_scale = 1.0;
 
-            // stage 
+            // stage
             int stage = model->sensor_needstage[i];
 
             // time step
@@ -544,13 +544,13 @@ TEST(MeasurementCost, Particle) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(dim_vel * dim_vel);
   mju_sub(hessian_error.data(), estimator.cost_hessian_sensor_.data(),
-          fdh.hessian_.data(), dim_vel * dim_vel);
+          fdh.hessian.data(), dim_vel * dim_vel);
   EXPECT_NEAR(
       mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
       0.0, 1.0e-3);
@@ -681,7 +681,7 @@ TEST(MeasurementCost, Box) {
 
     // loop over predictions
     for (int k = 0; k < configuration_length - 2; k++) {
-      // time index 
+      // time index
       int t = k + 1;
 
       // unpack
@@ -723,7 +723,7 @@ TEST(MeasurementCost, Box) {
         // time scaling
         double time_scale = 1.0;
 
-        // stage 
+        // stage
         int stage = model->sensor_needstage[i];
 
         // time step
@@ -784,7 +784,7 @@ TEST(MeasurementCost, Box) {
   // gradient
   std::vector<double> gradient_error(dim_vel);
   mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
-          fdg.gradient_.data(), dim_vel);
+          fdg.gradient.data(), dim_vel);
   EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-2);
 
   // delete data + model

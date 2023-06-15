@@ -452,19 +452,19 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
 
   // set force type
   if (input.force_type_size() > 0) {
-    CHECK_SIZE("force_type", mjpc::NUM_FORCE_COSTS, input.force_type_size());
+    CHECK_SIZE("force_type", mjpc::NUM_FORCE_TERMS, input.force_type_size());
     std::memcpy(estimator_.norm_force_, input.force_type().data(),
-                mjpc::NUM_FORCE_COSTS * sizeof(int));
+                mjpc::NUM_FORCE_TERMS * sizeof(int));
   }
 
   // get force type
   mjpc::NormType* force_type = estimator_.norm_force_;
-  for (int i = 0; i < mjpc::NUM_FORCE_COSTS; i++) {
+  for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
     output->add_force_type((int)force_type[i]);
   }
 
   // set force parameters
-  int nfp = mjpc::NUM_FORCE_COSTS * mjpc::MAX_NORM_PARAMETERS;
+  int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
     mju_copy(estimator_.norm_parameters_force_.data(),

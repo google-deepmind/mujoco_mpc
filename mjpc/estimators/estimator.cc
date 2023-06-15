@@ -149,7 +149,7 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // force scale
-  scale_force_.resize(NUM_FORCE_COSTS);
+  scale_force_.resize(NUM_FORCE_TERMS);
 
   scale_force_[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
@@ -181,7 +181,7 @@ void Estimator::Initialize(mjModel* model) {
 
   // cost norm parameters
   norm_parameters_sensor_.resize(num_sensor_ * MAX_NORM_PARAMETERS);
-  norm_parameters_force_.resize(NUM_FORCE_COSTS * MAX_NORM_PARAMETERS);
+  norm_parameters_force_.resize(NUM_FORCE_TERMS * MAX_NORM_PARAMETERS);
 
   // TODO(taylor): initialize norm parameters from xml
   std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(),

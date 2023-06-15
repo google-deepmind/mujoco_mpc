@@ -25,20 +25,19 @@
 namespace mjpc {
 
 // initialize
-void Buffer::Initialize(mjModel* model, int max_length) {
-  // sensor
-  sensor_.Initialize(model->nsensordata, 0);
+void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
+  // sensor 
+  sensor_.Initialize(dim_sensor, 0);
 
   // sensor mask
-  sensor_mask_.Initialize(model->nsensor, 0);
+  sensor_mask_.Initialize(num_sensor, 0);
 
   // mask (for single time step)
-  mask_.resize(model->nsensor);
+  mask_.resize(num_sensor);
   std::fill(mask_.begin(), mask_.end(), 1);
 
-  // ctrl
-  // time
-  ctrl_.Initialize(model->nu, 0);
+  // ctrl 
+  ctrl_.Initialize(dim_ctrl, 0);
 
   time_.Initialize(1, 0);
 
@@ -71,45 +70,43 @@ void Buffer::Reset() {
 }
 
 // update
-void Buffer::Update(mjModel* model, mjData* data) {
+void Buffer::Update(const double* sensor, const int* mask, const double* ctrl,
+                    double time) {
   if (time_.length_ <= max_length_) {  // fill buffer
     // time
-    time_.data_[time_.length_++] = data->time;
+    time_.data_[time_.length_++] = time;
 
     // ctrl
-    mju_copy(ctrl_.data_.data() + ctrl_.length_ * model->nu,
-              data->ctrl, model->nu);
+    int nu = ctrl_.dim_;
+    mju_copy(ctrl_.data_.data() + ctrl_.length_ * nu, ctrl, nu);
     ctrl_.length_++;
 
     // sensor
-    mju_copy(sensor_.data_.data() +
-                  sensor_.length_ * model->nsensordata,
-              data->sensordata, model->nsensordata);
-    // sensor mask
+    int ns = sensor_.dim_;
+    mju_copy(sensor_.data_.data() + sensor_.length_ * ns, sensor, ns);
     sensor_.length_++;
 
     // TODO(taylor): external method must set mask
-    std::memcpy(
-        sensor_mask_.data_.data() + sensor_mask_.length_ * model->nsensor,
-        mask_.data(), model->nsensor * sizeof(int));
+    int num_sensor = sensor_mask_.dim_;
+    std::memcpy(sensor_mask_.data_.data() + sensor_mask_.length_ * num_sensor,
+                mask, num_sensor * sizeof(int));
     sensor_mask_.length_++;
   } else {  // update buffer
     // time
     time_.ShiftHeadIndex(1);
-    time_.Set(&data->time, time_.length_ - 1);
+    time_.Set(&time, time_.length_ - 1);
 
     // ctrl
     ctrl_.ShiftHeadIndex(1);
-    ctrl_.Set(data->ctrl, ctrl_.length_ - 1);
+    ctrl_.Set(ctrl, ctrl_.length_ - 1);
 
     // sensor
     sensor_.ShiftHeadIndex(1);
-    // sensor mask
-    sensor_.Set(data->sensordata, sensor_.length_ - 1);
+    sensor_.Set(sensor, sensor_.length_ - 1);
 
     // TODO(taylor): external method must set mask
     sensor_mask_.ShiftHeadIndex(1);
-    sensor_mask_.Set(mask_.data(), sensor_.length_ - 1);
+    sensor_mask_.Set(mask, sensor_.length_ - 1);
   }
   // update mask
 }
@@ -121,10 +118,8 @@ void Buffer::UpdateMask() {
 
 void Buffer::Print() {
   for (int i = 0; i < time_.length_; i++) {
-    printf("(%i)\n", i);
-    printf("\n");
-    printf("time = %.4f\n", *time_.Get(i));
-    printf("\n");
+    printf("(%i)\n\n", i);
+    printf("time = %.4f\n\n", *time_.Get(i));
     printf("sensor = ");
     mju_printMat(sensor_.Get(i), 1, sensor_.dim_);
     printf("sensor mask = ");

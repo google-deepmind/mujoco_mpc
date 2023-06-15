@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
-
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
+
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/estimator.h"
@@ -35,7 +35,7 @@ TEST(BatchOptimize, Particle2D) {
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
   // threadpool
-  ThreadPool pool(9);
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -122,9 +122,6 @@ TEST(BatchOptimize, Particle2D) {
   // cost
   double cost_random = estimator.Cost(pool);
 
-  // change verbosity
-  estimator.verbose_optimize_ = true;
-
   // optimize
   estimator.Optimize(pool);
 
@@ -151,29 +148,21 @@ TEST(BatchOptimize, Particle2D) {
 
 TEST(BatchOptimize, Box3D) {
   // load model
-  mjModel* model = LoadTestModel("estimator/box/task1.xml");
+  mjModel* model = LoadTestModel("estimator/box/task2.xml");
   mjData* data = mj_makeData(model);
 
   // dimension
   int nq = model->nq, nv = model->nv, nu = model->nu;
   int ns = model->nsensordata;
 
-  printf("Box dimensions:\n");
-  printf("nq: %i\n", nq);
-  printf("nv: %i\n", nv);
-  printf("nu: %i\n", nu);
-  printf("ns: %i\n", ns);
-
   // pool
-  int num_thread = 9;
+  int num_thread = 1;
   ThreadPool pool(num_thread);
 
-  printf("num thread: %i\n", num_thread);
-
   // ----- simulate ----- //
+
   // trajectories
   int T = 32;
-  printf("T: %i\n", T);
   std::vector<double> qpos(nq * (T + 1));
   std::vector<double> qvel(nv * (T + 1));
   std::vector<double> qacc(nv * T);
@@ -226,6 +215,7 @@ TEST(BatchOptimize, Box3D) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
   mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.configuration_prior_.Data(), qpos.data(), nq * T);
   mju_copy(estimator.force_measurement_.Data(), qfrc_actuator.data(), nv * T);
@@ -244,18 +234,12 @@ TEST(BatchOptimize, Box3D) {
     // add noise
     for (int i = 0; i < nv; i++) {
       absl::BitGen gen_;
-      noise[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      noise[i] = 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
 
     // integrate configuration
     mj_integratePos(model, q, noise.data(), 1.0);
   }
-
-  // cost (pre)
-  double cost_random = estimator.Cost(pool);
-
-  // change verbosity
-  estimator.verbose_optimize_ = true;
 
   // optimize
   estimator.Optimize(pool);
@@ -266,7 +250,7 @@ TEST(BatchOptimize, Box3D) {
           qpos.data(), nq * T);
 
   // test cost decrease
-  EXPECT_LE(estimator.cost_, cost_random);
+  EXPECT_LE(estimator.cost_, estimator.cost_initial_);
 
   // test gradient tolerance
   EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0,
@@ -336,7 +320,8 @@ TEST(BatchOptimize, Box3D) {
 
 //     // step using mj_Euler since mj_forward has been called
 //     // see mj_ step implementation here
-//     // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+//     //
+//     https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
 //     mj_Euler(model, data);
 //   }
 

@@ -383,6 +383,7 @@ TEST(MeasurementCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_sensor_[0] = 0.00125;
@@ -397,17 +398,17 @@ TEST(MeasurementCost, Particle) {
   estimator.norm_sensor_[3] = kL2;
 
   // parameters
-  estimator.norm_parameters_sensor_[0 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[0 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[0 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[0 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[1 * 3 + 0] = 0.1;
-  estimator.norm_parameters_sensor_[1 * 3 + 0] = 2.2;
+  estimator.norm_parameters_sensor_[1 * MAX_NORM_PARAMETERS + 0] = 0.1;
+  estimator.norm_parameters_sensor_[1 * MAX_NORM_PARAMETERS + 0] = 2.2;
 
-  // estimator.norm_parameters_sensor_[2 * 3 + 0] = 0.01;
-  // estimator.norm_parameters_sensor_[2 * 3 + 1] = 0.1;
+  // estimator.norm_parameters_sensor_[2 * MAX_NORM_PARAMETERS + 0] = 0.01;
+  // estimator.norm_parameters_sensor_[2 * MAX_NORM_PARAMETERS + 1] = 0.1;
 
-  estimator.norm_parameters_sensor_[3 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[3 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[3 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[3 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -492,9 +493,11 @@ TEST(MeasurementCost, Particle) {
             }
 
             // add weighted norm
-            cost += weight[i] / dim_sensori * time_scale *
-                    Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori,
-                         norms[i]);
+            cost +=
+                weight[i] / dim_sensori * time_scale /
+                (configuration_length - 2) *
+                Norm(NULL, NULL, rki, params.data() + MAX_NORM_PARAMETERS * i,
+                     dim_sensori, norms[i]);
 
             // shift
             shift += dim_sensori;
@@ -605,6 +608,7 @@ TEST(MeasurementCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
+  estimator.time_scaling_ = true;
 
   // weights
   estimator.scale_sensor_[0] = 0.00125;
@@ -623,23 +627,23 @@ TEST(MeasurementCost, Box) {
   estimator.norm_sensor_[5] = kSmoothAbsLoss;
 
   // parameters
-  estimator.norm_parameters_sensor_[0 * 3 + 1] = 1.0;
-  estimator.norm_parameters_sensor_[0 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[0 * MAX_NORM_PARAMETERS + 1] = 1.0;
+  estimator.norm_parameters_sensor_[0 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[1 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[1 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[1 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[1 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[2 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[2 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[2 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[2 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[3 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[3 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[3 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[3 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[4 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[4 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[4 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[4 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
-  estimator.norm_parameters_sensor_[5 * 3 + 0] = 1.0;
-  estimator.norm_parameters_sensor_[5 * 3 + 1] = 2.0;
+  estimator.norm_parameters_sensor_[5 * MAX_NORM_PARAMETERS + 0] = 1.0;
+  estimator.norm_parameters_sensor_[5 * MAX_NORM_PARAMETERS + 1] = 2.0;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -734,9 +738,10 @@ TEST(MeasurementCost, Box) {
         }
 
         // add weighted norm
-        cost +=
-            weight[i] / dim_sensori * time_scale *
-            Norm(NULL, NULL, rki, params.data() + 3 * i, dim_sensori, norms[i]);
+        cost += weight[i] / dim_sensori * time_scale /
+                (configuration_length - 2) *
+                Norm(NULL, NULL, rki, params.data() + MAX_NORM_PARAMETERS * i,
+                     dim_sensori, norms[i]);
 
         // shift
         shift += dim_sensori;

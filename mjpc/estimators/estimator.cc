@@ -149,7 +149,7 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // force scale
-  scale_force_.resize(4);
+  scale_force_.resize(NUM_FORCE_TERMS);
 
   scale_force_[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
@@ -180,7 +180,13 @@ void Estimator::Initialize(mjModel* model) {
       (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_hinge");
 
   // cost norm parameters
-  norm_parameters_sensor_.resize(num_sensor_ * 3);
+  norm_parameters_sensor_.resize(num_sensor_ * MAX_NORM_PARAMETERS);
+  norm_parameters_force_.resize(NUM_FORCE_TERMS * MAX_NORM_PARAMETERS);
+
+  // TODO(taylor): initialize norm parameters from xml
+  std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(),
+            0.0);
+  std::fill(norm_parameters_sensor_.begin(), norm_parameters_force_.end(), 0.0);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -503,7 +509,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int dim = model_->nv * configuration_length_;
 
   // total scaling
-  double scale = scale_prior_ / dim;
+  double scale = scale_prior_ / dim / configuration_length_;
 
   // unpack
   double* r = residual_prior_.data();
@@ -757,15 +763,15 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       }
 
       // total scaling
-      double scale = weight / nsi * time_scale;
+      double scale = weight / nsi * time_scale / (configuration_length_ - 2);
 
       // ----- cost ----- //
       cost +=
           scale * Norm(gradient ? norm_gradient_sensor_.data() + shift : NULL,
                        hessian ? norm_blocks_sensor_.data() + shift_mat : NULL,
                        residual_sensor_.data() + shift,
-                       norm_parameters_sensor_.data() + 3 * i, nsi,
-                       norm_sensor_[i]);
+                       norm_parameters_sensor_.data() + MAX_NORM_PARAMETERS * i,
+                       nsi, norm_sensor_[i]);
 
       // stop cost timer
       timer_cost_sensor_ += GetDuration(start_cost);
@@ -1037,7 +1043,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
           (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
 
       // total scaling
-      double scale = weight / dof * time_scale;
+      double scale = weight / dof * time_scale / (configuration_length_ - 2);
 
       // norm
       NormType norm = norm_force_[jnt_type];
@@ -1047,7 +1053,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
           scale * Norm(gradient ? norm_gradient_force_.data() + shift : NULL,
                        hessian ? norm_blocks_force_.data() + shift_mat : NULL,
                        residual_force_.data() + shift,
-                       norm_parameters_force_[jnt_type], dof, norm);
+                       norm_parameters_force_.data() + MAX_NORM_PARAMETERS * i,
+                       dof, norm);
 
       // stop cost timer
       timer_cost_force_ += GetDuration(start_cost);
@@ -1793,8 +1800,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     double cost_candidate = cost_;
     int iteration_search = 0;
     step_size_ = 1.0;
-    regularization_ =
-        mju_max(MIN_REGULARIZATION, regularization_ / regularization_scaling_);
+    regularization_ = mju_max(MIN_REGULARIZATION, regularization_);
 
     // initial search direction
     SearchDirection();
@@ -1845,9 +1851,6 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // cost
       cost_candidate = Cost(pool);
-
-      // update iteration
-      iteration_search++;
     }
 
     // increment

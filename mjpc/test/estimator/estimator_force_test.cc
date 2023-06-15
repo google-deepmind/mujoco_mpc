@@ -373,13 +373,11 @@ TEST(ForceCost, Particle) {
   estimator.scale_force_[0] = 0.0055;
   estimator.scale_force_[1] = 0.0325;
   estimator.scale_force_[2] = 0.00025;
-  estimator.scale_force_[3] = 0.125;
 
   // norms
   estimator.norm_force_[0] = kQuadratic;
   estimator.norm_force_[1] = kQuadratic;
   estimator.norm_force_[2] = kQuadratic;
-  estimator.norm_force_[3] = kQuadratic;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -581,24 +579,15 @@ TEST(ForceCost, Box) {
   // weights
   estimator.scale_force_[0] = 0.00125;
   estimator.scale_force_[1] = 0.0125;
-  estimator.scale_force_[2] = 0.000125;
-  estimator.scale_force_[3] = 0.125;
 
   // norms
   estimator.norm_force_[0] = kQuadratic;
   estimator.norm_force_[1] = kL2;
-  estimator.norm_force_[2] = kSmoothAbs2Loss;
-  estimator.norm_force_[3] = kPowerLoss;
 
   // parameters
   // estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 0]
   estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 1 + 0] = 0.1;
   estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 1 + 1] = 0.075;
-
-  estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 2 + 0] = 0.027;
-  estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 2 + 1] = 0.06;
-
-  estimator.norm_parameters_force_[MAX_NORM_PARAMETERS * 3 + 0] = 0.15;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -667,38 +656,23 @@ TEST(ForceCost, Box) {
       // inverse dynamics error
       mju_sub(rk, data->qfrc_inverse, f1, nv);
 
-      // loop over sensors
-      int shift = 0;
+      // force residual
+      double* rt_pos = rk;
+      double* rt_rot = rk + 3;
 
-      for (int i = 0; i < model->njnt; i++) {
-        // joint type
-        int jnt_type = model->jnt_type[i];
+      // time scaling
+      double timestep = model->opt.timestep;
+      double time_scale = timestep * timestep * timestep * timestep;
 
-        // dof
-        int dof;
-        if (jnt_type == mjJNT_FREE) {
-          dof = 6;
-        } else if (jnt_type == mjJNT_BALL) {
-          dof = 3;
-        } else {  // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
-          dof = 1;
-        }
+      // add weighted norm for free-joint position
+      cost += weight[0] / 3 * time_scale / (configuration_length - 2) *
+              Norm(NULL, NULL, rt_pos, params.data() + MAX_NORM_PARAMETERS * 0,
+                    3, norms[0]);
 
-        // force residual
-        double* rti = rk + shift;
-
-        // time scaling
-        double timestep = model->opt.timestep;
-        double time_scale = timestep * timestep * timestep * timestep;
-
-        // add weighted norm
-        cost += weight[i] / dof * time_scale / (configuration_length - 2) *
-                Norm(NULL, NULL, rti, params.data() + MAX_NORM_PARAMETERS * i,
-                     dof, norms[i]);
-
-        // shift
-        shift += dof;
-      }
+      // add weighted norm for free-joint position
+      cost += weight[1] / 3 * time_scale / (configuration_length - 2) *
+              Norm(NULL, NULL, rt_rot, params.data() + MAX_NORM_PARAMETERS * 1,
+                    3, norms[1]);
     }
 
     return cost;

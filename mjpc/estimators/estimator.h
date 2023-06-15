@@ -30,7 +30,7 @@ namespace mjpc {
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
 const int MAX_HISTORY = 256;  // maximum configuration trajectory length
 
-const int NUM_FORCE_TERMS = 4;
+const int NUM_FORCE_TERMS = 3;
 const int MAX_NORM_PARAMETERS = 3;
 
 // search type for update
@@ -211,7 +211,9 @@ class Estimator {
 
   // sensor
   int dim_sensor_;                                   // ns
-  int num_sensor_;
+  int num_sensor_;                                   // num_sensor 
+  int num_free_;
+  std::vector<bool> free_dof_;                       // flag indicating free joint dof
   EstimatorTrajectory<double> sensor_measurement_;   // ns x T
   EstimatorTrajectory<double> sensor_prediction_;    // ns x T
   EstimatorTrajectory<int> sensor_mask_;             // num_sensor x T
@@ -294,6 +296,7 @@ class Estimator {
   std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
   std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch2_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // prior weights
   std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)

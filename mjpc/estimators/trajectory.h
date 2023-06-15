@@ -56,7 +56,6 @@ class EstimatorTrajectory {
     std::fill(data_.begin(), data_.end(), 0);
   }
 
-  // TODO(etom): add consts everywhere, then make the output of Get a const.
   T* Get(int index) {
     // get mapped index
     int map_index = IndexMap(index);
@@ -82,7 +81,6 @@ class EstimatorTrajectory {
     T* data_element = data_.data() + dim_ * map_index;
 
     // set element
-    // mju_copy(data_element, element, dim_);
     std::memcpy(data_element, element, dim_ * sizeof(T));
   }
 

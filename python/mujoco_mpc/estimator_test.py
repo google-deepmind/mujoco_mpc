@@ -243,7 +243,7 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5)
 
     ## force
-    in_force_weight = np.random.rand(4)
+    in_force_weight = np.random.rand(3)
     weight = estimator.weight(force=in_force_weight)
     self.assertTrue(np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5)
 
@@ -526,7 +526,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test norm types
     self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
-    self.assertTrue((data["force_type"] == np.zeros(4)).all())
+    self.assertTrue((data["force_type"] == np.zeros(3)).all())
 
     # test norm paramters
     self.assertTrue(not data["sensor_parameters"].any())
@@ -535,8 +535,8 @@ class EstimatorTest(absltest.TestCase):
     # set norm data
     sensor_type = np.array([1, 2, 3, 4])
     sensor_parameters = np.random.rand(3 * model.nsensor)
-    force_type = np.array([5, 6, 7, 8])
-    force_parameters = np.random.rand(12)
+    force_type = np.array([5, 6, 7])
+    force_parameters = np.random.rand(9)
     data = estimator.norm(
         sensor_type=sensor_type,
         sensor_parameters=sensor_parameters,

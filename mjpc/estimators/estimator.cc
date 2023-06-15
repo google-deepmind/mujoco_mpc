@@ -149,7 +149,7 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // force scale
-  scale_force_.resize(4);
+  scale_force_.resize(NUM_FORCE_COSTS);
 
   scale_force_[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
@@ -180,14 +180,13 @@ void Estimator::Initialize(mjModel* model) {
       (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_hinge");
 
   // cost norm parameters
-  norm_parameters_sensor_.resize(num_sensor_ * 3);
+  norm_parameters_sensor_.resize(num_sensor_ * MAX_NORM_PARAMETERS);
+  norm_parameters_force_.resize(NUM_FORCE_COSTS * MAX_NORM_PARAMETERS);
 
   // TODO(taylor): initialize norm parameters from xml
-  std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(), 0.0);
-  mju_zero(norm_parameters_force_[0], 3);
-  mju_zero(norm_parameters_force_[1], 3);
-  mju_zero(norm_parameters_force_[2], 3);
-  mju_zero(norm_parameters_force_[3], 3);
+  std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(),
+            0.0);
+  std::fill(norm_parameters_sensor_.begin(), norm_parameters_force_.end(), 0.0);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -771,8 +770,8 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
           scale * Norm(gradient ? norm_gradient_sensor_.data() + shift : NULL,
                        hessian ? norm_blocks_sensor_.data() + shift_mat : NULL,
                        residual_sensor_.data() + shift,
-                       norm_parameters_sensor_.data() + 3 * i, nsi,
-                       norm_sensor_[i]);
+                       norm_parameters_sensor_.data() + MAX_NORM_PARAMETERS * i,
+                       nsi, norm_sensor_[i]);
 
       // stop cost timer
       timer_cost_sensor_ += GetDuration(start_cost);
@@ -1054,7 +1053,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
           scale * Norm(gradient ? norm_gradient_force_.data() + shift : NULL,
                        hessian ? norm_blocks_force_.data() + shift_mat : NULL,
                        residual_force_.data() + shift,
-                       norm_parameters_force_[jnt_type], dof, norm);
+                       norm_parameters_force_.data() + MAX_NORM_PARAMETERS * i,
+                       dof, norm);
 
       // stop cost timer
       timer_cost_force_ += GetDuration(start_cost);

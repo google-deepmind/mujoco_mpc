@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <mujoco/mujoco.h>
 
 #include <vector>
 
 #include "gtest/gtest.h"
-#include <mujoco/mujoco.h>
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/test/load.h"
 #include "mjpc/threadpool.h"

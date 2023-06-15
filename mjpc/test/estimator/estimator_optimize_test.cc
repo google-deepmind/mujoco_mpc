@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
-
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
+
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/estimator.h"
@@ -122,9 +122,6 @@ TEST(BatchOptimize, Particle2D) {
   // cost
   double cost_random = estimator.Cost(pool);
 
-  // change verbosity
-  estimator.verbose_optimize_ = true;
-
   // optimize
   estimator.Optimize(pool);
 
@@ -158,12 +155,12 @@ TEST(BatchOptimize, Box3D) {
   int nq = model->nq, nv = model->nv, nu = model->nu;
   int ns = model->nsensordata;
 
-  // pool 
+  // pool
   int num_thread = 1;
   ThreadPool pool(num_thread);
 
   // ----- simulate ----- //
-  
+
   // trajectories
   int T = 32;
   std::vector<double> qpos(nq * (T + 1));
@@ -252,7 +249,7 @@ TEST(BatchOptimize, Box3D) {
   mju_sub(configuration_error.data(), estimator.configuration_.Data(),
           qpos.data(), nq * T);
 
-  // test cost decrease 
+  // test cost decrease
   EXPECT_LE(estimator.cost_, estimator.cost_initial_);
 
   // test gradient tolerance
@@ -323,7 +320,8 @@ TEST(BatchOptimize, Box3D) {
 
 //     // step using mj_Euler since mj_forward has been called
 //     // see mj_ step implementation here
-//     // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+//     //
+//     https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
 //     mj_Euler(model, data);
 //   }
 

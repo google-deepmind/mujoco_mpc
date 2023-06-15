@@ -451,49 +451,30 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   }
 
   // set force type
-  int nj = 4;
   if (input.force_type_size() > 0) {
-    CHECK_SIZE("force_type", nj, input.force_type_size());
+    CHECK_SIZE("force_type", mjpc::NUM_FORCE_COSTS, input.force_type_size());
     std::memcpy(estimator_.norm_force_, input.force_type().data(),
-                nj * sizeof(int));
+                mjpc::NUM_FORCE_COSTS * sizeof(int));
   }
 
   // get force type
   mjpc::NormType* force_type = estimator_.norm_force_;
-  for (int i = 0; i < nj; i++) {
+  for (int i = 0; i < mjpc::NUM_FORCE_COSTS; i++) {
     output->add_force_type((int)force_type[i]);
   }
 
   // set force parameters
-  int nfp = 12;
+  int nfp = mjpc::NUM_FORCE_COSTS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    mju_copy(estimator_.norm_parameters_force_[0],
-             input.force_parameters().data() + 0, 3);
-    mju_copy(estimator_.norm_parameters_force_[1],
-             input.force_parameters().data() + 3, 3);
-    mju_copy(estimator_.norm_parameters_force_[2],
-             input.force_parameters().data() + 6, 3);
-    mju_copy(estimator_.norm_parameters_force_[3],
-             input.force_parameters().data() + 9, 3);
+    mju_copy(estimator_.norm_parameters_force_.data(),
+             input.force_parameters().data(), nfp);
   }
 
   // get force parameters
-  double* fp0 = estimator_.norm_parameters_force_[0];
-  for (int i = 0; i < 3; i++) {
-    output->add_force_parameters(fp0[i]);
-  }
-  double* fp1 = estimator_.norm_parameters_force_[1];
-  for (int i = 0; i < 3; i++) {
-    output->add_force_parameters(fp1[i]);
-  }
-  double* fp2 = estimator_.norm_parameters_force_[2];
-  for (int i = 0; i < 3; i++) {
-    output->add_force_parameters(fp2[i]);
-  }
-  double* fp3 = estimator_.norm_parameters_force_[3];
-  for (int i = 0; i < 3; i++) {
-    output->add_force_parameters(fp3[i]);
+  double* force_parameters = estimator_.norm_parameters_force_.data();
+  for (int i = 0; i < nfp; i++) {
+    output->add_force_parameters(force_parameters[i]);
   }
 
   return grpc::Status::OK;

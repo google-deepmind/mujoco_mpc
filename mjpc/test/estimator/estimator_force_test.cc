@@ -669,7 +669,7 @@ TEST(ForceCost, Box) {
               Norm(NULL, NULL, rt_pos, params.data() + MAX_NORM_PARAMETERS * 0,
                     3, norms[0]);
 
-      // add weighted norm for free-joint position
+      // add weighted norm for free-joint rotation
       cost += weight[1] / 3 * time_scale / (configuration_length - 2) *
               Norm(NULL, NULL, rt_rot, params.data() + MAX_NORM_PARAMETERS * 1,
                     3, norms[1]);

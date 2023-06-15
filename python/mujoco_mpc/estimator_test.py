@@ -552,9 +552,6 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue((force_type == data["force_type"]).all())
     self.assertLess(np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5)
 
-    print(force_parameters)
-    print(data["force_parameters"])
-
 
 if __name__ == "__main__":
   absltest.main()

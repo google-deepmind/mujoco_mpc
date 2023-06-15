@@ -139,7 +139,6 @@ class Estimator:
       configuration: Optional[npt.ArrayLike] = [],
       velocity: Optional[npt.ArrayLike] = [],
       acceleration: Optional[npt.ArrayLike] = [],
-      action: Optional[npt.ArrayLike] = [],
       time: Optional[npt.ArrayLike] = [],
       configuration_prior: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
@@ -419,3 +418,27 @@ class Estimator:
 
     # reset buffer response
     self.stub.ResetBuffer(request)
+
+  def print_cost(self):
+    # get costs
+    cost = self.cost()
+
+    # print
+    print("cost:")
+    print("  [total] = ", cost["total"])
+    print("   - prior = ", cost["prior"])
+    print("   - sensor = ", cost["sensor"])
+    print("   - force = ", cost["force"])
+    print("  (initial = ", cost["initial"], ")")
+
+  def print_status(self):
+    # get status
+    status = self.status()
+
+    # print
+    print("status:")
+    print("- search iterations = ", status["search_iterations"])
+    print("- smoother iterations = ", status["smoother_iterations"])
+    print("- step size = ", status["step_size"])
+    print("- regularization = ", status["regularization"])
+    print("- gradient norm = ", status["gradient_norm"])

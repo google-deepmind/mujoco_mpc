@@ -25,8 +25,9 @@
 namespace mjpc {
 
 // initialize
-void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
-  // sensor 
+void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl,
+                        int max_length) {
+  // sensor
   sensor_.Initialize(dim_sensor, 0);
 
   // sensor mask
@@ -36,7 +37,7 @@ void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl, int max_le
   mask_.resize(num_sensor);
   std::fill(mask_.begin(), mask_.end(), 1);
 
-  // ctrl 
+  // ctrl
   ctrl_.Initialize(dim_ctrl, 0);
 
   time_.Initialize(1, 0);

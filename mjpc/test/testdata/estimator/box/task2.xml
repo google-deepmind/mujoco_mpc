@@ -1,6 +1,6 @@
 <mujoco>
   <option timestep="0.01"> </option>
-  
+
   <custom>
     <numeric name="estimator_configuration_length" data="32" />
   </custom>
@@ -20,7 +20,7 @@
       <site name="corner8" type="sphere" size="0.01" pos="-.1 -.2 -.3"/>
     </body>
   </worldbody>
-  
+
   <sensor>
     <framepos name="position" objtype="body" objname="root" />
   </sensor>

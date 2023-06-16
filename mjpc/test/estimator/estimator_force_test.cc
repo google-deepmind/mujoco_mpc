@@ -156,7 +156,7 @@ TEST(ForceResidual, Particle) {
 
   // test
   EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
+      mju_norm(jacobian_error.data(), dim_res * dim_vel) / (dim_res * dim_vel),
       0.0, 1.0e-3);
 
   // delete data + model

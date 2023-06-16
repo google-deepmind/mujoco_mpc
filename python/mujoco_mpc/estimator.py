@@ -60,8 +60,8 @@ class Estimator:
   def __init__(
       self,
       model: mujoco.MjModel,
-      configuration_length: int = 3,
-      buffer_length: int = None,
+      configuration_length: int,
+      buffer_length: Optional[int] = None,
       server_binary_path: Optional[str] = None,
   ):
     # server
@@ -95,8 +95,8 @@ class Estimator:
   def init(
       self,
       model: mujoco.MjModel,
-      configuration_length: int = 3,
-      buffer_length: int = None,
+      configuration_length: int,
+      buffer_length: Optional[int] = None,
       send_as: Literal["xml"] = "xml",
   ):
     """Initialize the estimator for estimation horizon `configuration_length`.

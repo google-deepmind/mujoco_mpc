@@ -107,9 +107,9 @@ class EstimatorService final : public estimator::Estimator::Service {
   mjpc::Estimator estimator_;
   mjpc::UniqueMjModel estimator_model_override_ = {nullptr, mj_deleteModel};
 
-  // buffer 
+  // buffer
   mjpc::Buffer buffer_;
-  
+
   // threadpool
   mjpc::ThreadPool thread_pool_;
 };

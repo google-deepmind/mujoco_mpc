@@ -28,7 +28,7 @@
 namespace mjpc {
 
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 256;  // maximum configuration trajectory length
+const int MAX_HISTORY = 128;  // maximum configuration trajectory length
 
 const int NUM_FORCE_TERMS = 3;
 const int MAX_NORM_PARAMETERS = 3;

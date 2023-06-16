@@ -88,6 +88,12 @@ EstimatorService::~EstimatorService() {}
 grpc::Status EstimatorService::Init(grpc::ServerContext* context,
                                     const estimator::InitRequest* request,
                                     estimator::InitResponse* response) {
+  // check configuration length
+  if (request->configuration_length() < 3 ||
+      request->configuration_length() > mjpc::MAX_TRAJECTORY) {
+    return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
+  }
+
   // ----- initialize with model ----- //
   mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
 

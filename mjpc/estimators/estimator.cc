@@ -519,7 +519,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int dim = model_->nv * configuration_length_;
 
   // total scaling
-  double scale = scale_prior_ / dim / configuration_length_;
+  double scale = scale_prior_ / dim;
 
   // unpack
   double* r = residual_prior_.data();
@@ -1949,6 +1949,9 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // cost
       cost_candidate = Cost(pool);
+
+      // update iteration
+      iteration_search++;
     }
 
     // increment

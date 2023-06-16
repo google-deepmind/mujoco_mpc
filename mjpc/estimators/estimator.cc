@@ -53,11 +53,23 @@ void Estimator::Initialize(mjModel* model) {
   configuration_prior_.Initialize(nq, configuration_length_);
 
   // sensor
-  dim_sensor_ = model->nsensordata;  // TODO(taylor): grab from model
-  num_sensor_ = model->nsensor;      // TODO(taylor): grab from model
+  dim_sensor_ = model->nsensordata;  // TODO(taylor): grab from xml
+  num_sensor_ = model->nsensor;      // TODO(taylor): grab from xml
   sensor_measurement_.Initialize(dim_sensor_, configuration_length_);
   sensor_prediction_.Initialize(dim_sensor_, configuration_length_);
   sensor_mask_.Initialize(num_sensor_, configuration_length_);
+
+  // free joint dof flag 
+  free_dof_.resize(model->nv);
+  std::fill(free_dof_.begin(), free_dof_.end(), false);
+
+  // number of free joints 
+  num_free_ = 0;
+  for (int i = 0; i < model->njnt; i++) {
+    if (model->jnt_type[i] == mjJNT_FREE) num_free_++;
+    int adr = model->jnt_dofadr[i];
+    std::fill(free_dof_.begin() + adr, free_dof_.begin() + adr + 6, true);
+  }
 
   // force
   force_measurement_.Initialize(nv, configuration_length_);
@@ -152,32 +164,28 @@ void Estimator::Initialize(mjModel* model) {
   scale_force_.resize(NUM_FORCE_TERMS);
 
   scale_force_[0] =
-      GetNumberOrDefault(1.0, model, "estimator_scale_force_free");
+      GetNumberOrDefault(1.0, model, "estimator_scale_force_free_position");
   scale_force_[1] =
-      GetNumberOrDefault(1.0, model, "estimator_scale_force_ball");
+      GetNumberOrDefault(1.0, model, "estimator_scale_force_free_rotation");
   scale_force_[2] =
-      GetNumberOrDefault(1.0, model, "estimator_scale_force_slide");
-  scale_force_[3] =
-      GetNumberOrDefault(1.0, model, "estimator_scale_force_hinge");
+      GetNumberOrDefault(1.0, model, "estimator_scale_force_nonfree");
 
   // cost norms
   // TODO(taylor): only grab measurement sensors
   norm_sensor_.resize(num_sensor_);
 
-  // TODO(taylor): method for xml to initial weight
+  // TODO(taylor): method for xml to initial norm
   for (int i = 0; i < num_sensor_; i++) {
     norm_sensor_[i] =
         (NormType)GetNumberOrDefault(0, model, "estimator_norm_sensor");
   }
 
   norm_force_[0] =
-      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_free");
+      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_free_position");
   norm_force_[1] =
-      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_ball");
+      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_free_rotation");
   norm_force_[2] =
-      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_slide");
-  norm_force_[3] =
-      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_hinge");
+      (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_nonfree");
 
   // cost norm parameters
   norm_parameters_sensor_.resize(num_sensor_ * MAX_NORM_PARAMETERS);
@@ -186,7 +194,7 @@ void Estimator::Initialize(mjModel* model) {
   // TODO(taylor): initialize norm parameters from xml
   std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(),
             0.0);
-  std::fill(norm_parameters_sensor_.begin(), norm_parameters_force_.end(), 0.0);
+  std::fill(norm_parameters_force_.begin(), norm_parameters_force_.end(), 0.0);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -210,6 +218,7 @@ void Estimator::Initialize(mjModel* model) {
 
   scratch0_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch2_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
@@ -477,6 +486,7 @@ void Estimator::Reset() {
 
   std::fill(scratch0_force_.begin(), scratch0_force_.end(), 0.0);
   std::fill(scratch1_force_.begin(), scratch1_force_.end(), 0.0);
+  std::fill(scratch2_force_.begin(), scratch2_force_.end(), 0.0);
 
   // candidate
   configuration_copy_.Reset();
@@ -822,7 +832,6 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 }
 
 // sensor residual
-// TODO(taylor): skip residual computation based on sensor_mask_
 void Estimator::ResidualSensor() {
   // start timer
   auto start = std::chrono::steady_clock::now();
@@ -990,7 +999,6 @@ void Estimator::JacobianSensor(ThreadPool& pool) {
 }
 
 // force cost
-// TODO(taylor): change from looping over all joint types to just free/ball
 double Estimator::CostForce(double* gradient, double* hessian) {
   // start derivative timer
   auto start = std::chrono::steady_clock::now();
@@ -999,11 +1007,13 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   int dim_update = model_->nv * configuration_length_;
   int nv = model_->nv;
 
+  // time scaling
+  double timestep = model_->opt.timestep;
+  double time_scale =
+      (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
+
   // initialize
   double cost = 0.0;
-  int shift = 0;
-  int shift_mat = 0;
-  int dof;
 
   // zero memory
   if (gradient) mju_zero(gradient, dim_update);
@@ -1011,90 +1021,179 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
+    // unpack residual 
+    double* residual = residual_force_.data() + nv * k;
+
     // unpack block
     double* block = block_force_configurations_.Get(k);
 
-    // shift by joint
-    int shift_joint = 0;
+    // ----- free joints ----- //
+    
+    // scaling 
+    double scale_free_pos = scale_force_[0] / 3 * time_scale / (configuration_length_ - 2);
+    double scale_free_rot = scale_force_[1] / 3 * time_scale / (configuration_length_ - 2);
 
-    // loop over joints
+    // loop over free joints
     for (int i = 0; i < model_->njnt; i++) {
+      // check joint type 
+      if (model_->jnt_type[i] != mjJNT_FREE) continue;
+
       // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
-      // joint type
-      int jnt_type = model_->jnt_type[i];
+      // get dof address
+      int adr = model_->jnt_dofadr[i];
 
-      // dof
-      if (jnt_type == mjJNT_FREE) {
-        dof = 6;
-      } else if (jnt_type == mjJNT_BALL) {
-        dof = 3;
-      } else {  // jnt_type == mjJNT_SLIDE | mjJNT_HINGE
-        dof = 1;
-      }
+      // unpack residual and blocks
+      double* residual_pos = residual + adr;
+      double* residual_rot = residual + adr + 3;
 
-      // weight
-      double weight = scale_force_[jnt_type];
-
-      // time scaling
-      double timestep = model_->opt.timestep;
-      double time_scale =
-          (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
-
-      // total scaling
-      double scale = weight / dof * time_scale / (configuration_length_ - 2);
-
-      // norm
-      NormType norm = norm_force_[jnt_type];
-
-      // add weighted norm
+      // cost free position
       cost +=
-          scale * Norm(gradient ? norm_gradient_force_.data() + shift : NULL,
-                       hessian ? norm_blocks_force_.data() + shift_mat : NULL,
-                       residual_force_.data() + shift,
-                       norm_parameters_force_.data() + MAX_NORM_PARAMETERS * i,
-                       dof, norm);
+          scale_free_pos *
+          Norm(gradient ? norm_gradient_force_.data() + nv * k : NULL,
+               hessian ? norm_blocks_force_.data() + nv * nv * k : NULL,
+               residual_pos,
+               norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0, 3,
+               norm_force_[0]);
+
+      // cost free rotation
+      cost +=
+          scale_free_rot *
+          Norm(gradient ? norm_gradient_force_.data() + nv * k + 3 : NULL,
+               hessian ? norm_blocks_force_.data() + nv * nv * k + 3 * 3 : NULL,
+               residual_rot,
+               norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 1, 3,
+               norm_force_[1]);
 
       // stop cost timer
       timer_cost_force_ += GetDuration(start_cost);
 
-      // gradient wrt configuration: dridq012' * dndri
+      // ----- derivatives ----- //
       if (gradient) {
-        // joint block
-        double* blocki = block + (3 * nv) * shift_joint;
+        // unpacks block
+        double* block_pos = block + (3 * nv) * adr;
+        double* block_rot = block + (3 * nv) * (adr + 3);
+
+        // -- position -- // 
 
         // scratch = dridq012' * dndri
-        mju_mulMatTVec(scratch0_force_.data(), blocki,
-                       norm_gradient_force_.data() + shift, dof, 3 * nv);
+        mju_mulMatTVec(scratch0_force_.data(), block_pos,
+                       norm_gradient_force_.data() + nv * k, 3, 3 * nv);
 
         // add
-        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_pos, 3 * nv);
+
+        // -- rotation -- // 
+
+        // scratch = dridq012' * dndri
+        mju_mulMatTVec(scratch0_force_.data(), block_rot,
+                       norm_gradient_force_.data() + nv * k + 3, 3, 3 * nv);
+
+        // add
+        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_rot, 3 * nv);
       }
 
-      // Hessian (Gauss-Newton) wrt configuration: drdq * d2ndr2 * drdq
       if (hessian) {
-        // joint block
-        double* blocki = block + (3 * nv) * shift_joint;
+        // unpacks block
+        double* block_pos = block + (3 * nv) * adr;
+        double* block_rot = block + (3 * nv) * (adr + 3);
 
+        // -- position -- //
         // step 1: tmp0 = d2ndri2 * dridq012
         double* tmp0 = scratch0_force_.data();
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + shift_mat, blocki, dof,
-                      dof, 3 * nv);
+        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k, block_pos, 3,
+                      3, 3 * nv);
 
         // step 2: tmp1 = dridq' * tmp0
         double* tmp1 = scratch1_force_.data();
-        mju_mulMatTMat(tmp1, blocki, tmp0, dof, 3 * nv, 3 * nv);
+        mju_mulMatTMat(tmp1, block_pos, tmp0, 3, 3 * nv, 3 * nv);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
+        AddBlockInMatrix(hessian, tmp1, scale_free_pos, dim_update, dim_update, 3 * nv,
+                         3 * nv, nv * k, nv * k);
+
+        // -- rotation -- //
+        // step 1: tmp0 = d2ndri2 * dridq012
+        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k + 3 * 3, block_rot, 3,
+                      3, 3 * nv);
+
+        // step 2: tmp1 = dridq' * tmp0
+        mju_mulMatTMat(tmp1, block_rot, tmp0, 3, 3 * nv, 3 * nv);
+
+        // add
+        AddBlockInMatrix(hessian, tmp1, scale_free_rot, dim_update, dim_update, 3 * nv,
                          3 * nv, nv * k, nv * k);
       }
+    }
 
-      // shift
-      shift += dof;
-      shift_mat += dof * dof;
-      shift_joint += dof;
+    // ----- ball, hinge, and slide joints ----- //
+    
+    // start cost timer
+    auto start_cost = std::chrono::steady_clock::now();
+
+    // non-free dimension
+    int dim_nonfree = nv - num_free_ * 6;
+
+    // skip
+    if (dim_nonfree == 0) continue;
+
+    // residual 
+    double* residual_nonfree = scratch2_force_.data();
+    double* block_nonfree = scratch2_force_.data() + dim_nonfree;
+
+    // assemble residual and Jacobian, skipping free-joint rows
+    int shift = 0;
+    for (int i = 0; i < nv; i++) {
+      if (!free_dof_[i]) {
+        // assemble residual
+        residual_nonfree[shift] = residual[i];
+
+        // assemble Jacobian
+        mju_copy(block_nonfree + shift * (3 * nv), block + i * (3 * nv),
+                 3 * nv);
+        // shift
+        shift += 1;
+      }
+    }
+
+    // scaling
+    double scale_nonfree = scale_force_[2] / dim_nonfree * time_scale / (configuration_length_ - 2);
+
+    // add weighted norm
+    cost += scale_nonfree *
+            Norm(gradient ? norm_gradient_force_.data() : NULL,
+                 hessian ? norm_blocks_force_.data() : NULL, residual_nonfree,
+                 norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 2,
+                 dim_nonfree, norm_force_[2]);
+
+    // stop cost timer
+    timer_cost_force_ += GetDuration(start_cost);
+
+    // ----- derivatives ----- //
+
+    if (gradient) {
+      // scratch = dridq012' * dndri
+      mju_mulMatTVec(scratch0_force_.data(), block_nonfree,
+                      norm_gradient_force_.data(), dim_nonfree, 3 * nv);
+
+      // add
+      mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_nonfree, 3 * nv);
+    }
+
+    if (hessian) {
+      // step 1: tmp0 = d2ndri2 * dridq012
+      double* tmp0 = scratch0_force_.data();
+      mju_mulMatMat(tmp0, norm_blocks_force_.data(), block_nonfree, dim_nonfree,
+                    dim_nonfree, 3 * nv);
+
+      // step 2: tmp1 = dridq' * tmp0
+      double* tmp1 = scratch1_force_.data();
+      mju_mulMatTMat(tmp1, block_nonfree, tmp0, dim_nonfree, 3 * nv, 3 * nv);
+
+      // add
+      AddBlockInMatrix(hessian, tmp1, scale_nonfree, dim_update, dim_update, 3 * nv,
+                       3 * nv, nv * k, nv * k);
     }
   }
 
@@ -1385,7 +1484,6 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 }
 
 // update configuration trajectory
-// TODO(taylor): const configuration
 void Estimator::UpdateConfiguration(
     EstimatorTrajectory<double>& candidate,
     const EstimatorTrajectory<double>& configuration,

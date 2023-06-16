@@ -24,7 +24,6 @@
 namespace mjpc {
 
 // buffer containing: sensor, ctrl, and time data
-// TODO(taylor): sensor mask (bool)
 class Buffer {
  public:
   // constructor
@@ -59,7 +58,6 @@ class Buffer {
   EstimatorTrajectory<double> sensor_;
 
   // mask
-  // note: std::vector<bool> is weird...
   EstimatorTrajectory<int> sensor_mask_;
   std::vector<int> mask_;
 

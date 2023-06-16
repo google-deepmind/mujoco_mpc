@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstring>
-#include <string_view>
-#include <vector>
-
 #include "grpc/estimator_service.h"
 
 #include <absl/log/check.h>
@@ -26,6 +22,10 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include <cstring>
+#include <string_view>
+#include <vector>
 
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"
@@ -74,15 +74,14 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
 }
 }  // namespace
 
-#define CHECK_SIZE(name, n1, n2) \
-{ \
-  auto expr = (CheckSize(name, n1, n2)); \
-if (!(expr).ok()) { \
-  return grpc::Status( \
-    grpc::StatusCode::INVALID_ARGUMENT, \
-    (expr).ToString()); \
-  } \
-}
+#define CHECK_SIZE(name, n1, n2)                              \
+  {                                                           \
+    auto expr = (CheckSize(name, n1, n2));                    \
+    if (!(expr).ok()) {                                       \
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
+                          (expr).ToString());                 \
+    }                                                         \
+  }
 
 EstimatorService::~EstimatorService() {}
 
@@ -400,12 +399,12 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   }
 
   // force
-  int num_jnt = 4;
   if (input.force_size() > 0) {
-    CHECK_SIZE("scale_force", num_jnt, input.force_size());
-    mju_copy(estimator_.scale_force_.data(), input.force().data(), num_jnt);
+    CHECK_SIZE("scale_force", mjpc::NUM_FORCE_TERMS, input.force_size());
+    mju_copy(estimator_.scale_force_.data(), input.force().data(),
+             mjpc::NUM_FORCE_TERMS);
   }
-  for (int i = 0; i < num_jnt; i++) {
+  for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
     output->add_force(estimator_.scale_force_[i]);
   }
 
@@ -439,14 +438,16 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
 
   // set sensor parameters
   if (input.sensor_parameters_size() > 0) {
-    CHECK_SIZE("sensor_parameters", 3 * num_sensor, input.sensor_parameters_size());
+    CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
+               input.sensor_parameters_size());
     mju_copy(estimator_.norm_parameters_sensor_.data(),
-             input.sensor_parameters().data(), num_sensor * 3);
+             input.sensor_parameters().data(),
+             num_sensor * mjpc::MAX_NORM_PARAMETERS);
   }
 
-  // get sensor parameters 
+  // get sensor parameters
   double* sensor_parameters = estimator_.norm_parameters_sensor_.data();
-  for (int i = 0; i < 3 * num_sensor; i++) {
+  for (int i = 0; i < mjpc::MAX_NORM_PARAMETERS * num_sensor; i++) {
     output->add_sensor_parameters(sensor_parameters[i]);
   }
 

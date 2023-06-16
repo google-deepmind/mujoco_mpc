@@ -211,7 +211,7 @@ class Estimator {
 
   // sensor
   int dim_sensor_;                                   // ns
-  int num_sensor_;                                   // num_sensor 
+  int num_sensor_;                                   // num_sensor
   int num_free_;
   std::vector<bool> free_dof_;                       // flag indicating free joint dof
   EstimatorTrajectory<double> sensor_measurement_;   // ns x T

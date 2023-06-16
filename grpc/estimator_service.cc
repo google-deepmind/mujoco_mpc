@@ -14,6 +14,10 @@
 
 #include "grpc/estimator_service.h"
 
+#include <cstring>
+#include <string_view>
+#include <vector>
+
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -22,10 +26,6 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <cstring>
-#include <string_view>
-#include <vector>
 
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"
@@ -397,8 +397,8 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   int num_sensor = estimator_.num_sensor_;
   if (input.sensor_size() > 0) {
     CHECK_SIZE("scale_sensor", num_sensor, input.sensor_size());
-    mju_copy(estimator_.scale_sensor_.data(), input.sensor().data(),
-             num_sensor);
+    estimator_.scale_sensor_.assign(input.sensor().begin(),
+                                    input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor(estimator_.scale_sensor_[i]);
@@ -407,8 +407,7 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   // force
   if (input.force_size() > 0) {
     CHECK_SIZE("scale_force", mjpc::NUM_FORCE_TERMS, input.force_size());
-    mju_copy(estimator_.scale_force_.data(), input.force().data(),
-             mjpc::NUM_FORCE_TERMS);
+    estimator_.scale_force_.assign(input.force().begin(), input.force().end());
   }
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
     output->add_force(estimator_.scale_force_[i]);
@@ -432,56 +431,58 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   int num_sensor = estimator_.num_sensor_;
   if (input.sensor_type_size() > 0) {
     CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
-    std::memcpy(estimator_.norm_sensor_.data(), input.sensor_type().data(),
-                num_sensor * sizeof(int));
+    estimator_.norm_sensor_.clear();
+    estimator_.norm_sensor_.reserve(num_sensor);
+    for (const auto& sensor_type : input.sensor_type()) {
+      estimator_.norm_sensor_.push_back(
+          static_cast<mjpc::NormType>(sensor_type));
+    }
   }
 
   // get sensor type
-  mjpc::NormType* sensor_type = estimator_.norm_sensor_.data();
-  for (int i = 0; i < num_sensor; i++) {
-    output->add_sensor_type((int)sensor_type[i]);
+  for (const auto& sensor_type : estimator_.norm_sensor_) {
+    output->add_sensor_type(sensor_type);
   }
 
   // set sensor parameters
   if (input.sensor_parameters_size() > 0) {
     CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
                input.sensor_parameters_size());
-    mju_copy(estimator_.norm_parameters_sensor_.data(),
-             input.sensor_parameters().data(),
-             num_sensor * mjpc::MAX_NORM_PARAMETERS);
+    estimator_.norm_parameters_sensor_.assign(input.sensor_parameters().begin(),
+                                              input.sensor_parameters().end());
   }
 
   // get sensor parameters
-  double* sensor_parameters = estimator_.norm_parameters_sensor_.data();
-  for (int i = 0; i < mjpc::MAX_NORM_PARAMETERS * num_sensor; i++) {
-    output->add_sensor_parameters(sensor_parameters[i]);
+  for (const auto& sensor_parameters : estimator_.norm_parameters_sensor_) {
+    output->add_sensor_parameters(sensor_parameters);
   }
 
   // set force type
   if (input.force_type_size() > 0) {
     CHECK_SIZE("force_type", mjpc::NUM_FORCE_TERMS, input.force_type_size());
-    std::memcpy(estimator_.norm_force_, input.force_type().data(),
-                mjpc::NUM_FORCE_TERMS * sizeof(int));
+    for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
+      estimator_.norm_force_[i] =
+          static_cast<mjpc::NormType>(input.force_type(i));
+    }
   }
 
   // get force type
   mjpc::NormType* force_type = estimator_.norm_force_;
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-    output->add_force_type((int)force_type[i]);
+    output->add_force_type(force_type[i]);
   }
 
   // set force parameters
   int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    mju_copy(estimator_.norm_parameters_force_.data(),
-             input.force_parameters().data(), nfp);
+    estimator_.norm_parameters_force_.assign(
+        input.force_parameters().begin(), input.force_parameters().end());
   }
 
   // get force parameters
-  double* force_parameters = estimator_.norm_parameters_force_.data();
   for (int i = 0; i < nfp; i++) {
-    output->add_force_parameters(force_parameters[i]);
+    output->add_force_parameters(estimator_.norm_parameters_force_[i]);
   }
 
   return grpc::Status::OK;
@@ -595,8 +596,8 @@ grpc::Status EstimatorService::PriorMatrix(
   // TODO(taylor): loop over upper triangle only
   if (request->prior_size() > 0) {
     CHECK_SIZE("prior_matrix", dim * dim, request->prior_size());
-    mju_copy(estimator_.weight_prior_dense_.data(), request->prior().data(),
-             dim * dim);
+    estimator_.weight_prior_dense_.assign(request->prior().begin(),
+                                          request->prior().end());
   }
 
   // get prior matrix

@@ -59,11 +59,11 @@ void Estimator::Initialize(mjModel* model) {
   sensor_prediction_.Initialize(dim_sensor_, configuration_length_);
   sensor_mask_.Initialize(num_sensor_, configuration_length_);
 
-  // free joint dof flag 
+  // free joint dof flag
   free_dof_.resize(model->nv);
   std::fill(free_dof_.begin(), free_dof_.end(), false);
 
-  // number of free joints 
+  // number of free joints
   num_free_ = 0;
   for (int i = 0; i < model->njnt; i++) {
     if (model->jnt_type[i] == mjJNT_FREE) num_free_++;
@@ -1021,21 +1021,23 @@ double Estimator::CostForce(double* gradient, double* hessian) {
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
-    // unpack residual 
+    // unpack residual
     double* residual = residual_force_.data() + nv * k;
 
     // unpack block
     double* block = block_force_configurations_.Get(k);
 
     // ----- free joints ----- //
-    
-    // scaling 
-    double scale_free_pos = scale_force_[0] / 3 * time_scale / (configuration_length_ - 2);
-    double scale_free_rot = scale_force_[1] / 3 * time_scale / (configuration_length_ - 2);
+
+    // scaling
+    double scale_free_pos =
+        scale_force_[0] / 3 * time_scale / (configuration_length_ - 2);
+    double scale_free_rot =
+        scale_force_[1] / 3 * time_scale / (configuration_length_ - 2);
 
     // loop over free joints
     for (int i = 0; i < model_->njnt; i++) {
-      // check joint type 
+      // check joint type
       if (model_->jnt_type[i] != mjJNT_FREE) continue;
 
       // start cost timer
@@ -1075,23 +1077,25 @@ double Estimator::CostForce(double* gradient, double* hessian) {
         double* block_pos = block + (3 * nv) * adr;
         double* block_rot = block + (3 * nv) * (adr + 3);
 
-        // -- position -- // 
+        // -- position -- //
 
         // scratch = dridq012' * dndri
         mju_mulMatTVec(scratch0_force_.data(), block_pos,
                        norm_gradient_force_.data() + nv * k, 3, 3 * nv);
 
         // add
-        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_pos, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_pos,
+                     3 * nv);
 
-        // -- rotation -- // 
+        // -- rotation -- //
 
         // scratch = dridq012' * dndri
         mju_mulMatTVec(scratch0_force_.data(), block_rot,
                        norm_gradient_force_.data() + nv * k + 3, 3, 3 * nv);
 
         // add
-        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_rot, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_rot,
+                     3 * nv);
       }
 
       if (hessian) {
@@ -1102,33 +1106,33 @@ double Estimator::CostForce(double* gradient, double* hessian) {
         // -- position -- //
         // step 1: tmp0 = d2ndri2 * dridq012
         double* tmp0 = scratch0_force_.data();
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k, block_pos, 3,
-                      3, 3 * nv);
+        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k, block_pos,
+                      3, 3, 3 * nv);
 
         // step 2: tmp1 = dridq' * tmp0
         double* tmp1 = scratch1_force_.data();
         mju_mulMatTMat(tmp1, block_pos, tmp0, 3, 3 * nv, 3 * nv);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, scale_free_pos, dim_update, dim_update, 3 * nv,
-                         3 * nv, nv * k, nv * k);
+        AddBlockInMatrix(hessian, tmp1, scale_free_pos, dim_update, dim_update,
+                         3 * nv, 3 * nv, nv * k, nv * k);
 
         // -- rotation -- //
         // step 1: tmp0 = d2ndri2 * dridq012
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k + 3 * 3, block_rot, 3,
-                      3, 3 * nv);
+        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k + 3 * 3,
+                      block_rot, 3, 3, 3 * nv);
 
         // step 2: tmp1 = dridq' * tmp0
         mju_mulMatTMat(tmp1, block_rot, tmp0, 3, 3 * nv, 3 * nv);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, scale_free_rot, dim_update, dim_update, 3 * nv,
-                         3 * nv, nv * k, nv * k);
+        AddBlockInMatrix(hessian, tmp1, scale_free_rot, dim_update, dim_update,
+                         3 * nv, 3 * nv, nv * k, nv * k);
       }
     }
 
     // ----- ball, hinge, and slide joints ----- //
-    
+
     // start cost timer
     auto start_cost = std::chrono::steady_clock::now();
 
@@ -1138,7 +1142,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
     // skip
     if (dim_nonfree == 0) continue;
 
-    // residual 
+    // residual
     double* residual_nonfree = scratch2_force_.data();
     double* block_nonfree = scratch2_force_.data() + dim_nonfree;
 
@@ -1158,7 +1162,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
     }
 
     // scaling
-    double scale_nonfree = scale_force_[2] / dim_nonfree * time_scale / (configuration_length_ - 2);
+    double scale_nonfree = scale_force_[2] / dim_nonfree * time_scale /
+                           (configuration_length_ - 2);
 
     // add weighted norm
     cost += scale_nonfree *
@@ -1178,7 +1183,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                       norm_gradient_force_.data(), dim_nonfree, 3 * nv);
 
       // add
-      mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_nonfree, 3 * nv);
+      mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_nonfree,
+                   3 * nv);
     }
 
     if (hessian) {
@@ -1192,8 +1198,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
       mju_mulMatTMat(tmp1, block_nonfree, tmp0, dim_nonfree, 3 * nv, 3 * nv);
 
       // add
-      AddBlockInMatrix(hessian, tmp1, scale_nonfree, dim_update, dim_update, 3 * nv,
-                       3 * nv, nv * k, nv * k);
+      AddBlockInMatrix(hessian, tmp1, scale_nonfree, dim_update, dim_update,
+                       3 * nv, 3 * nv, nv * k, nv * k);
     }
   }
 

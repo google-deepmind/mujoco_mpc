@@ -7,8 +7,9 @@
 
   <worldbody>
     <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
+    <camera pos="0.000 -2.655 2.655" xyaxes="1.000 -0.000 0.000 0.000 0.707 0.707"/>
     <geom type="plane" size="1 1 0.1" rgba=".9 0 0 1"/>
-    <body name="root" pos="0 0 0.5">
+    <body name="root" pos="0 0 0">
       <joint type="free"/>
       <geom type="box" size=".1 .2 .3" rgba="0 .9 0 1"/>
       <site name="corner1" type="sphere" size="0.01" pos=".1 .2 .3"/>
@@ -32,13 +33,5 @@
     <framepos name="corner6" objtype="site" objname="corner6"/>
     <framepos name="corner7" objtype="site" objname="corner7"/>
     <framepos name="corner8" objtype="site" objname="corner8"/>
-    <!-- <framelinvel name="vel_corner1" objtype="site" objname="corner1"/>
-    <framelinvel name="vel_corner2" objtype="site" objname="corner2"/>
-    <framelinvel name="vel_corner3" objtype="site" objname="corner3"/>
-    <framelinvel name="vel_corner4" objtype="site" objname="corner4"/>
-    <framelinvel name="vel_corner5" objtype="site" objname="corner5"/>
-    <framelinvel name="vel_corner6" objtype="site" objname="corner6"/>
-    <framelinvel name="vel_corner7" objtype="site" objname="corner7"/>
-    <framelinvel name="vel_corner8" objtype="site" objname="corner8"/> -->
   </sensor>
 </mujoco>

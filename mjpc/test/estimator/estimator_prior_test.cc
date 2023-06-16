@@ -299,7 +299,7 @@ TEST(PriorCost, Particle) {
     mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
+    return 0.5 * weight / dim_res / configuration_length *
            mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
@@ -438,7 +438,7 @@ TEST(PriorCost, Box) {
     mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
+    return 0.5 * weight / dim_res / configuration_length *
            mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
@@ -565,7 +565,7 @@ TEST(ApproximatePriorCost, Particle) {
                       3 * nv, 0, 1, true);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
+    return 0.5 * weight / dim_res / configuration_length *
            mju_dot(residual.data(), scratch.data(), dim_res);
   };
 
@@ -712,7 +712,7 @@ TEST(ApproximatePriorCost, Box) {
                       3 * nv, 0, 1, true);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
+    return 0.5 * weight / dim_res / configuration_length *
            mju_dot(residual.data(), scratch.data(), dim_res);
   };
 

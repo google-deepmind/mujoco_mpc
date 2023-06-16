@@ -28,7 +28,10 @@
 namespace mjpc {
 
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 128;  // maximum configuration trajectory length
+const int MAX_HISTORY = 256;  // maximum configuration trajectory length
+
+const int NUM_FORCE_TERMS = 3;
+const int MAX_NORM_PARAMETERS = 3;
 
 // search type for update
 enum SearchType : int {
@@ -208,7 +211,9 @@ class Estimator {
 
   // sensor
   int dim_sensor_;                                   // ns
-  int num_sensor_;
+  int num_sensor_;                                   // num_sensor
+  int num_free_;
+  std::vector<bool> free_dof_;                       // flag indicating free joint dof
   EstimatorTrajectory<double> sensor_measurement_;   // ns x T
   EstimatorTrajectory<double> sensor_prediction_;    // ns x T
   EstimatorTrajectory<int> sensor_mask_;             // num_sensor x T
@@ -291,6 +296,7 @@ class Estimator {
   std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
   std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch2_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // prior weights
   std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
@@ -300,18 +306,18 @@ class Estimator {
   double scale_prior_;
 
   // sensor scale
-  std::vector<double> scale_sensor_;           // ns
+  std::vector<double> scale_sensor_;           // num_sensor
 
   // force scale (free, ball, slide, hinge)
-  std::vector<double> scale_force_;            // 4
+  std::vector<double> scale_force_;            // NUM_FORCE_TERMS
 
   // cost norms
-  std::vector<NormType> norm_sensor_;          // ns
-  NormType norm_force_[4];
+  std::vector<NormType> norm_sensor_;          // num_sensor
+  NormType norm_force_[NUM_FORCE_TERMS];       // NUM_FORCE_TERMS
 
   // cost norm parameters
-  std::vector<double> norm_parameters_sensor_;  // ns x 3
-  double norm_parameters_force_[4][3];  // TODO(taylor): std::vector
+  std::vector<double> norm_parameters_sensor_; // num_sensor x MAX_NORM_PARAMETERS
+  std::vector<double> norm_parameters_force_;  // NUM_FORCE_TERMS x MAX_NORM_PARAMETERS
 
   // norm gradient
   std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
@@ -405,7 +411,7 @@ class Estimator {
   bool reuse_data_ = false;                 // flag for resuing data previously computed
   bool skip_update_prior_weight = false;    // flag for skipping update prior weight
   bool update_prior_weight_ = true;         // flag for updating prior weights
-  bool time_scaling_ = true;                // scale sensor and force costs by time step
+  bool time_scaling_ = false;               // scale sensor and force costs by time step
 
   // finite-difference settings
   struct FiniteDifferenceSettings {

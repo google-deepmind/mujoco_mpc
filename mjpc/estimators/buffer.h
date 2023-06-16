@@ -24,24 +24,26 @@
 namespace mjpc {
 
 // buffer containing: sensor, ctrl, and time data
-// TODO(taylor): sensor mask (bool)
 class Buffer {
  public:
   // constructor
   Buffer() = default;
-  Buffer(mjModel* model, int max_length) { Initialize(model, max_length); }
+  Buffer(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
+    Initialize(dim_sensor, num_sensor, dim_ctrl, max_length);
+  };
 
   // destructor
   ~Buffer() = default;
 
   // initialize
-  void Initialize(mjModel* model, int max_length);
+  void Initialize(int dim_sensor, int num_sensor, int dim_ctrl, int max_length);
 
   // reset
   void Reset();
 
   // update
-  void Update(mjModel* model, mjData* data);
+  void Update(const double* sensor, const int* mask, const double* ctrl,
+              double time);
 
   // update mask
   void UpdateMask();
@@ -56,7 +58,6 @@ class Buffer {
   EstimatorTrajectory<double> sensor_;
 
   // mask
-  // note: std::vector<bool> is weird...
   EstimatorTrajectory<int> sensor_mask_;
   std::vector<int> mask_;
 

@@ -25,6 +25,7 @@
 #include <mujoco/mujoco.h>
 #include "grpc/estimator.grpc.pb.h"
 #include "grpc/estimator.pb.h"
+#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -57,6 +58,10 @@ class EstimatorService final : public estimator::Estimator::Service {
                        const estimator::WeightsRequest* request,
                        estimator::WeightsResponse* response) override;
 
+  grpc::Status Norms(grpc::ServerContext* context,
+                     const estimator::NormRequest* request,
+                     estimator::NormResponse* response) override;
+
   grpc::Status Shift(grpc::ServerContext* context,
                      const estimator::ShiftRequest* request,
                      estimator::ShiftResponse* response) override;
@@ -81,6 +86,18 @@ class EstimatorService final : public estimator::Estimator::Service {
                            const estimator::PriorMatrixRequest* request,
                            estimator::PriorMatrixResponse* response) override;
 
+  grpc::Status ResetBuffer(grpc::ServerContext* context,
+                           const estimator::ResetBufferRequest* request,
+                           estimator::ResetBufferResponse* response) override;
+
+  grpc::Status BufferData(grpc::ServerContext* context,
+                          const estimator::BufferDataRequest* request,
+                          estimator::BufferDataResponse* response) override;
+
+  grpc::Status UpdateBuffer(grpc::ServerContext* context,
+                            const estimator::UpdateBufferRequest* request,
+                            estimator::UpdateBufferResponse* response) override;
+
  private:
   bool Initialized() const {
     return estimator_.model_ && estimator_.configuration_length_ >= 3;
@@ -89,6 +106,9 @@ class EstimatorService final : public estimator::Estimator::Service {
   // estimator
   mjpc::Estimator estimator_;
   mjpc::UniqueMjModel estimator_model_override_ = {nullptr, mj_deleteModel};
+
+  // buffer
+  mjpc::Buffer buffer_;
 
   // threadpool
   mjpc::ThreadPool thread_pool_;

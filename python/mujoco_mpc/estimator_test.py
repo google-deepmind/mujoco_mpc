@@ -47,9 +47,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(configuration - data["configuration"]) < 1.0e-3
-    )
+    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-3)
 
     ## velocity
 
@@ -86,8 +84,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertLess(
-        np.linalg.norm(configuration_prior - data["configuration_prior"]),
-        1.0e-3
+        np.linalg.norm(configuration_prior - data["configuration_prior"]), 1.0e-3
     )
 
     ## sensor measurement
@@ -246,7 +243,7 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5)
 
     ## force
-    in_force_weight = np.random.rand(model.nv)
+    in_force_weight = np.random.rand(3)
     weight = estimator.weight(force=in_force_weight)
     self.assertTrue(np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5)
 
@@ -415,6 +412,145 @@ class EstimatorTest(absltest.TestCase):
 
     # test
     self.assertTrue(np.linalg.norm(in_prior - out_prior) < 1.0e-4)
+
+  def test_buffer(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # data for buffer
+    sensor = np.random.rand(model.nsensordata)
+    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
+    ctrl = np.random.rand(model.nu)
+    time = np.random.rand(1)
+
+    # update buffer
+    length = estimator.update_buffer(sensor, mask, ctrl, time)
+
+    # test buffer length
+    self.assertTrue(length == 1)
+
+    # data from buffer
+    index = 0
+    buffer = estimator.buffer(index)
+
+    # test
+    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
+    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
+    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
+    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
+
+    # set sensor
+    sensor = np.random.rand(model.nsensordata)
+    buffer = estimator.buffer(index, sensor=sensor)
+    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
+
+    # set mask
+    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
+    buffer = estimator.buffer(index, mask=mask)
+    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
+
+    # set ctrl
+    ctrl = np.random.rand(model.nu)
+    buffer = estimator.buffer(index, ctrl=ctrl)
+    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
+
+    # set time
+    time = np.random.rand(1)
+    buffer = estimator.buffer(index, time=time)
+    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
+
+    # data for buffer
+    sensor = np.random.rand(model.nsensordata)
+    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
+    ctrl = np.random.rand(model.nu)
+    time = np.random.rand(1)
+
+    # update buffer
+    length = estimator.update_buffer(sensor, mask, ctrl, time)
+
+    # test buffer length
+    self.assertTrue(length == 2)
+
+    # index
+    index = 1
+
+    # set sensor
+    sensor = np.random.rand(model.nsensordata)
+    buffer = estimator.buffer(index, sensor=sensor)
+    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
+
+    # set mask
+    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
+    buffer = estimator.buffer(index, mask=mask)
+    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
+
+    # set ctrl
+    ctrl = np.random.rand(model.nu)
+    buffer = estimator.buffer(index, ctrl=ctrl)
+    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
+
+    # set time
+    time = np.random.rand(1)
+    buffer = estimator.buffer(index, time=time)
+    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
+
+    # buffer length
+    self.assertTrue(buffer["length"] == 2)
+
+  def test_norm(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # get norm data
+    data = estimator.norm()
+
+    # test norm types
+    self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
+    self.assertTrue((data["force_type"] == np.zeros(3)).all())
+
+    # test norm paramters
+    self.assertTrue(not data["sensor_parameters"].any())
+    self.assertTrue(not data["force_parameters"].any())
+
+    # set norm data
+    sensor_type = np.array([1, 2, 3, 4])
+    sensor_parameters = np.random.rand(3 * model.nsensor)
+    force_type = np.array([5, 6, 7])
+    force_parameters = np.random.rand(9)
+    data = estimator.norm(
+        sensor_type=sensor_type,
+        sensor_parameters=sensor_parameters,
+        force_type=force_type,
+        force_parameters=force_parameters,
+    )
+
+    # test
+    self.assertTrue((sensor_type == data["sensor_type"]).all())
+    self.assertLess(
+        np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
+    )
+    self.assertTrue((force_type == data["force_type"]).all())
+    self.assertLess(np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5)
 
 
 if __name__ == "__main__":

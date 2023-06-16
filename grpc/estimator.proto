@@ -27,6 +27,8 @@ service Estimator {
   rpc Cost(CostRequest) returns (CostResponse);
   // Estimator weights
   rpc Weights(WeightsRequest) returns (WeightsResponse);
+  // Estimator norms
+  rpc Norms(NormRequest) returns (NormResponse);
   // Shift Estimator trajectories
   rpc Shift(ShiftRequest) returns (ShiftResponse);
   // Reset Estimator
@@ -39,6 +41,12 @@ service Estimator {
   rpc CostHessian(CostHessianRequest) returns (CostHessianResponse);
   // Estimator prior matrix
   rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
+  // Reset Buffer
+  rpc ResetBuffer(ResetBufferRequest) returns (ResetBufferResponse);
+  // Buffer data
+  rpc BufferData(BufferDataRequest) returns (BufferDataResponse);
+  // Update Buffer
+  rpc UpdateBuffer(UpdateBufferRequest) returns (UpdateBufferResponse);
 }
 
 message MjModel {
@@ -49,6 +57,7 @@ message MjModel {
 message InitRequest {
   optional MjModel model = 1;
   optional int32 configuration_length = 2;
+  optional int32 buffer_length = 3;
 }
 
 message InitResponse {}
@@ -82,6 +91,7 @@ message Settings {
   optional bool force_flag = 5;
   optional int32 smoother_iterations = 6;
   optional bool skip_prior_weight_update = 7;
+  optional bool time_scaling = 8;
 }
 
 message SettingsRequest {
@@ -91,6 +101,9 @@ message SettingsRequest {
 message SettingsResponse {
   Settings settings = 1;
 }
+
+// TODO(etom): we want a breakdown of the cost into the different sensors and
+// forces
 
 message Cost {
   optional double total = 1;
@@ -106,6 +119,9 @@ message CostResponse {
   Cost cost = 1;
 }
 
+// TODO(etom): all the protos below use a dict of arrays, but they should use an
+// array of dicts.
+
 message Weight {
   optional double prior = 1;
   repeated double sensor = 2 [packed = true];
@@ -118,6 +134,21 @@ message WeightsRequest {
 
 message WeightsResponse {
   Weight weight = 1;
+}
+
+message Norm {
+  repeated int32 sensor_type = 1;
+  repeated double sensor_parameters = 2;
+  repeated int32 force_type = 3;
+  repeated double force_parameters = 4;
+}
+
+message NormRequest {
+  Norm norm = 1;
+}
+
+message NormResponse {
+  Norm norm = 1;
 }
 
 message ShiftRequest {
@@ -144,8 +175,7 @@ message Status {
   double gradient_norm = 5;
 }
 
-message StatusRequest {
-}
+message StatusRequest {}
 
 message StatusResponse {
   Status status = 1;
@@ -165,4 +195,33 @@ message PriorMatrixRequest {
 message PriorMatrixResponse {
   repeated double prior = 1;
   int32 dimension = 2;
+}
+
+message ResetBufferRequest {}
+
+message ResetBufferResponse {}
+
+message Buffer {
+  repeated double sensor = 1;
+  repeated int32 mask = 2;
+  repeated double ctrl = 3;
+  repeated double time = 4;
+}
+
+message BufferDataRequest {
+  int32 index = 1;
+  Buffer buffer = 2;
+}
+
+message BufferDataResponse {
+  int32 length = 1;
+  Buffer buffer = 2;
+}
+
+message UpdateBufferRequest {
+  Buffer buffer = 1;
+}
+
+message UpdateBufferResponse {
+  int32 length = 1;
 }

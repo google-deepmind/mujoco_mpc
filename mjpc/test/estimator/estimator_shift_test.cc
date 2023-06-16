@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
-
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
+
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/buffer.h"
@@ -362,7 +362,11 @@ TEST(Buffer, Particle2D) {
   // ----- simulate ----- //
 
   // buffer
-  Buffer buffer(model, 32);
+  Buffer buffer(model->nsensordata, model->nsensor, model->nu, 32);
+
+  // sensor mask: all sensors measurement available
+  std::vector<int> mask(model->nsensor);
+  std::fill(mask.begin(), mask.end(), 1);
 
   // controller
   auto controller = [](double* ctrl, double time) {
@@ -375,8 +379,6 @@ TEST(Buffer, Particle2D) {
 
   // rollout
   for (int t = 0; t < 2 * horizon_estimator; t++) {
-    printf("t = %i\n", t);
-
     // set control
     controller(data->ctrl, data->time);
 
@@ -390,44 +392,13 @@ TEST(Buffer, Particle2D) {
     }
 
     // update buffer
-    buffer.Update(model, data);
+    buffer.Update(data->sensordata, mask.data(), data->ctrl, data->time);
 
     // update estimator
     estimator.Update(buffer, pool);
 
-    // Hessians
-    int dim = model->nv * estimator.configuration_length_;
-
-    printf("prior gradient\n");
-    mju_printMat(estimator.cost_gradient_prior_.data(), 1, dim);
-
-    printf("prior Hessian\n");
-    mju_printMat(estimator.cost_hessian_prior_.data(), dim, dim);
-
-    printf("sensor gradient\n");
-    mju_printMat(estimator.cost_gradient_sensor_.data(), 1, dim);
-
-    printf("sensor Hessian\n");
-    mju_printMat(estimator.cost_hessian_sensor_.data(), dim, dim);
-
-    printf("force gradient\n");
-    mju_printMat(estimator.cost_gradient_force_.data(), 1, dim);
-
-    printf("force Hessian\n");
-    mju_printMat(estimator.cost_hessian_force_.data(), dim, dim);
-
-    printf("total gradient\n");
-    mju_printMat(estimator.cost_gradient_.data(), 1, dim);
-
-    printf("total Hessian\n");
-    mju_printMat(estimator.cost_hessian_.data(), dim, dim);
-
     // test
     if (t >= horizon_estimator - 1) {
-      // printf("  cost = %.4f [initial = %.4f]\n", estimator.cost_,
-      //      estimator.cost_initial_);
-      // printf("  iterations = %i\n", estimator.iterations_smoother_);
-
       EXPECT_LE(estimator.cost_, estimator.cost_initial_);
     }
   }

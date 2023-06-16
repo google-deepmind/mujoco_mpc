@@ -59,10 +59,12 @@ class Estimator:
 
   def __init__(
       self,
-      model: Optional[mujoco.MjModel] = None,
-      configuration_length: int = 3,
+      model: mujoco.MjModel,
+      configuration_length: int,
+      buffer_length: Optional[int] = None,
       server_binary_path: Optional[str] = None,
   ):
+    # server
     if server_binary_path is None:
       binary_name = "estimator_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
@@ -76,9 +78,12 @@ class Estimator:
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = estimator_pb2_grpc.EstimatorStub(self.channel)
+
+    # initialize
     self.init(
         model,
         configuration_length,
+        buffer_length=buffer_length,
         send_as="xml",
     )
 
@@ -89,8 +94,9 @@ class Estimator:
 
   def init(
       self,
-      model: Optional[mujoco.MjModel] = None,
-      configuration_length: int = 3,
+      model: mujoco.MjModel,
+      configuration_length: int,
+      buffer_length: Optional[int] = None,
       send_as: Literal["xml"] = "xml",
   ):
     """Initialize the estimator for estimation horizon `configuration_length`.
@@ -103,6 +109,7 @@ class Estimator:
       send_as: The serialization format for sending the model over gRPC; "xml".
     """
 
+    # setup model
     def model_to_xml(model: mujoco.MjModel) -> str:
       tmp = tempfile.NamedTemporaryFile()
       mujoco.mj_saveLastXML(tmp.name, model)
@@ -116,10 +123,14 @@ class Estimator:
       print("Failed to find xml.")
       model_message = None
 
+    # initialize request
     init_request = estimator_pb2.InitRequest(
         model=model_message,
         configuration_length=configuration_length,
+        buffer_length=buffer_length,
     )
+
+    # initialize response
     self.stub.Init(init_request)
 
   def data(
@@ -128,7 +139,6 @@ class Estimator:
       configuration: Optional[npt.ArrayLike] = [],
       velocity: Optional[npt.ArrayLike] = [],
       acceleration: Optional[npt.ArrayLike] = [],
-      action: Optional[npt.ArrayLike] = [],
       time: Optional[npt.ArrayLike] = [],
       configuration_prior: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
@@ -136,6 +146,7 @@ class Estimator:
       force_measurement: Optional[npt.ArrayLike] = [],
       force_prediction: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
+    # assemble inputs
     inputs = estimator_pb2.Data(
         configuration=configuration,
         velocity=velocity,
@@ -147,9 +158,14 @@ class Estimator:
         force_measurement=force_measurement,
         force_prediction=force_prediction,
     )
+
+    # data request
     request = estimator_pb2.DataRequest(data=inputs, index=index)
+
+    # data response
     data = self.stub.Data(request).data
 
+    # return all data
     return {
         "configuration": np.array(data.configuration),
         "velocity": np.array(data.velocity),
@@ -171,7 +187,9 @@ class Estimator:
       force_flag: Optional[bool] = None,
       smoother_iterations: Optional[int] = None,
       skip_prior_weight_update: Optional[bool] = None,
+      time_scaling: Optional[bool] = None,
   ) -> dict[str, int | bool]:
+    # assemble settings
     inputs = estimator_pb2.Settings(
         configuration_length=configuration_length,
         search_type=search_type,
@@ -180,12 +198,18 @@ class Estimator:
         force_flag=force_flag,
         smoother_iterations=smoother_iterations,
         skip_prior_weight_update=skip_prior_weight_update,
+        time_scaling=time_scaling,
     )
+
+    # settings request
     request = estimator_pb2.SettingsRequest(
         settings=inputs,
     )
+
+    # settings response
     settings = self.stub.Settings(request).settings
 
+    # return all settings
     return {
         "configuration_length": settings.configuration_length,
         "search_type": settings.search_type,
@@ -194,6 +218,7 @@ class Estimator:
         "force_flag": settings.force_flag,
         "smoother_iterations": settings.smoother_iterations,
         "skip_prior_weight_update": settings.skip_prior_weight_update,
+        "time_scaling": settings.time_scaling,
     }
 
   def weight(
@@ -202,23 +227,63 @@ class Estimator:
       sensor: Optional[npt.ArrayLike] = [],
       force: Optional[npt.ArrayLike] = [],
   ) -> dict[str, float | np.ndarray]:
+    # assemble input weights
     inputs = estimator_pb2.Weight(
         prior=prior,
         sensor=sensor,
         force=force,
     )
+
+    # weight request
     request = estimator_pb2.WeightsRequest(weight=inputs)
+
+    # weight response
     weight = self.stub.Weights(request).weight
 
+    # return all weights
     return {
         "prior": weight.prior,
         "sensor": np.array(weight.sensor),
         "force": np.array(weight.force),
     }
 
+  def norm(
+      self,
+      sensor_type: Optional[npt.ArrayLike] = [],
+      sensor_parameters: Optional[npt.ArrayLike] = [],
+      force_type: Optional[npt.ArrayLike] = [],
+      force_parameters: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, np.ndarray]:
+    # assemble input norm data
+    inputs = estimator_pb2.Norm(
+        sensor_type=sensor_type,
+        sensor_parameters=sensor_parameters,
+        force_type=force_type,
+        force_parameters=force_parameters,
+    )
+
+    # norm request
+    request = estimator_pb2.NormRequest(norm=inputs)
+
+    # norm response
+    norm = self.stub.Norms(request).norm
+
+    # return all norm data
+    return {
+        "sensor_type": norm.sensor_type,
+        "sensor_parameters": np.array(norm.sensor_parameters),
+        "force_type": np.array(norm.force_type),
+        "force_parameters": np.array(norm.force_parameters),
+    }
+
   def cost(self) -> dict[str, float]:
+    # cost request
     request = estimator_pb2.CostRequest()
+
+    # cost response
     cost = self.stub.Cost(request).cost
+
+    # return all costs
     return {
         "total": cost.total,
         "prior": cost.prior,
@@ -228,8 +293,13 @@ class Estimator:
     }
 
   def status(self) -> dict[str, int]:
+    # status request
     request = estimator_pb2.StatusRequest()
+
+    # status response
     status = self.stub.Status(request).status
+
+    # return all status
     return {
         "search_iterations": status.search_iterations,
         "smoother_iterations": status.smoother_iterations,
@@ -239,27 +309,136 @@ class Estimator:
     }
 
   def shift(self, shift: int) -> int:
+    # shift request
     request = estimator_pb2.ShiftRequest(shift=shift)
+
+    # return head (for testing)
     return self.stub.Shift(request).head
 
   def reset(self):
+    # reset request
     request = estimator_pb2.ResetRequest()
+
+    # reset response
     self.stub.Reset(request)
 
   def optimize(self):
+    # optimize request
     request = estimator_pb2.OptimizeRequest()
+
+    # optimize response
     self.stub.Optimize(request)
 
   def cost_hessian(self) -> np.ndarray:
+    # Hessian request
     request = estimator_pb2.CostHessianRequest()
+
+    # Hessian response
     response = self.stub.CostHessian(request)
+
+    # reshape Hessian to (dimension, dimension)
     hessian = np.array(response.hessian).reshape(response.dimension, response.dimension)
+
+    # return Hessian matrix
     return hessian
 
   def prior_matrix(self, prior: Optional[npt.ArrayLike] = None) -> np.ndarray:
+    # prior request
     request = estimator_pb2.PriorMatrixRequest(
         prior=prior.flatten() if prior is not None else None
     )
+
+    # prior response
     response = self.stub.PriorMatrix(request)
+
+    # reshape prior to (dimension, dimension)
     mat = np.array(response.prior).reshape(response.dimension, response.dimension)
+
+    # return prior matrix
     return mat
+
+  def buffer(
+      self,
+      index: int,
+      sensor: Optional[npt.ArrayLike] = [],
+      mask: Optional[npt.ArrayLike] = [],
+      ctrl: Optional[npt.ArrayLike] = [],
+      time: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, int | np.ndarray]:
+    # assemble buffer
+    inputs = estimator_pb2.Buffer(
+        sensor=sensor,
+        mask=mask,
+        ctrl=ctrl,
+        time=time,
+    )
+
+    # data request
+    request = estimator_pb2.BufferDataRequest(index=index, buffer=inputs)
+
+    # data response
+    response = self.stub.BufferData(request)
+
+    # buffer
+    buffer = response.buffer
+
+    # return all buffer data at time index
+    return {
+        "sensor": np.array(buffer.sensor),
+        "mask": np.array(buffer.mask),
+        "ctrl": np.array(buffer.ctrl),
+        "time": np.array(buffer.time),
+        "length": response.length,
+    }
+
+  def update_buffer(
+      self,
+      sensor: npt.ArrayLike,
+      mask: npt.ArrayLike,
+      ctrl: npt.ArrayLike,
+      time: npt.ArrayLike,
+  ) -> int:
+    # assemble buffer
+    inputs = estimator_pb2.Buffer(
+        sensor=sensor,
+        mask=mask,
+        ctrl=ctrl,
+        time=time,
+    )
+
+    # update request
+    request = estimator_pb2.UpdateBufferRequest(buffer=inputs)
+
+    # return current buffer length
+    return self.stub.UpdateBuffer(request).length
+
+  def reset_buffer(self):
+    # reset buffer request
+    request = estimator_pb2.ResetBufferRequest()
+
+    # reset buffer response
+    self.stub.ResetBuffer(request)
+
+  def print_cost(self):
+    # get costs
+    cost = self.cost()
+
+    # print
+    print("cost:")
+    print("  [total] = ", cost["total"])
+    print("   - prior = ", cost["prior"])
+    print("   - sensor = ", cost["sensor"])
+    print("   - force = ", cost["force"])
+    print("  (initial = ", cost["initial"], ")")
+
+  def print_status(self):
+    # get status
+    status = self.status()
+
+    # print
+    print("status:")
+    print("- search iterations = ", status["search_iterations"])
+    print("- smoother iterations = ", status["smoother_iterations"])
+    print("- step size = ", status["step_size"])
+    print("- regularization = ", status["regularization"])
+    print("- gradient norm = ", status["gradient_norm"])

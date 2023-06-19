@@ -28,7 +28,7 @@
 namespace mjpc {
 
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 128;  // maximum configuration trajectory length
+const int MAX_HISTORY = 256;  // maximum configuration trajectory length
 
 const int NUM_FORCE_TERMS = 3;
 const int MAX_NORM_PARAMETERS = 3;
@@ -211,7 +211,7 @@ class Estimator {
 
   // sensor
   int dim_sensor_;                                   // ns
-  int num_sensor_;                                   // num_sensor
+  int num_sensor_;                                   // num_sensor 
   int num_free_;
   std::vector<bool> free_dof_;                       // flag indicating free joint dof
   EstimatorTrajectory<double> sensor_measurement_;   // ns x T

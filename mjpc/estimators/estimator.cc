@@ -248,7 +248,7 @@ void Estimator::Initialize(mjModel* model) {
 
   // settings
   band_covariance_ =
-      (bool)GetNumberOrDefault(0, model, "estimator_band_covariance");
+      (bool)GetNumberOrDefault(1, model, "estimator_band_covariance");
 
   // reset
   Reset();

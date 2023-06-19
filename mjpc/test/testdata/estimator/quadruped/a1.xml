@@ -1,5 +1,6 @@
 <mujoco model="Unitree A1">
-  <compiler angle="radian" meshdir="assets" texturedir="assets"/>
+  <!-- TODO(taylor): save menagerie assets to build/mjpc/test/testdata.. -->
+  <compiler angle="radian" meshdir="../../../../../build/mjpc/tasks/quadruped/assets" texturedir="../../../../../build/mjpc/tasks/quadruped/assets"/>
 
   <option cone="elliptic" impratio="10"/>
 

@@ -23,7 +23,7 @@
 
 namespace mjpc {
 
-const int MAX_TRAJECTORY = 128;
+const int MAX_TRAJECTORY = 256;
 
 // trajectory
 template <typename T>

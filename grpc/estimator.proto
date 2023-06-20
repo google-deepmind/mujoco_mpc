@@ -35,6 +35,8 @@ service Estimator {
   rpc Reset(ResetRequest) returns (ResetResponse);
   // Optimize Estimator
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
+  // Update Estimator
+  rpc Update(UpdateRequest) returns (UpdateResponse);
   // Get Estimator status
   rpc Status(StatusRequest) returns (StatusResponse);
   // Get Estimator cost Hessian
@@ -92,6 +94,7 @@ message Settings {
   optional int32 smoother_iterations = 6;
   optional bool skip_prior_weight_update = 7;
   optional bool time_scaling = 8;
+  optional bool update_prior_weight = 9;
 }
 
 message SettingsRequest {
@@ -166,6 +169,10 @@ message ResetResponse {}
 message OptimizeRequest {}
 
 message OptimizeResponse {}
+
+message UpdateRequest {}
+
+message UpdateResponse {}
 
 message Status {
   int32 search_iterations = 1;

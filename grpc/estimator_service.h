@@ -74,6 +74,10 @@ class EstimatorService final : public estimator::Estimator::Service {
                         const estimator::OptimizeRequest* request,
                         estimator::OptimizeResponse* response) override;
 
+  grpc::Status Update(grpc::ServerContext* context,
+                      const estimator::UpdateRequest* request,
+                      estimator::UpdateResponse* response) override;
+
   grpc::Status Status(grpc::ServerContext* context,
                       const estimator::StatusRequest* request,
                       estimator::StatusResponse* response) override;

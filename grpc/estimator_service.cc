@@ -56,6 +56,8 @@ using ::estimator::ShiftRequest;
 using ::estimator::ShiftResponse;
 using ::estimator::StatusRequest;
 using ::estimator::StatusResponse;
+using ::estimator::UpdateRequest;
+using ::estimator::UpdateResponse;
 using ::estimator::UpdateBufferRequest;
 using ::estimator::UpdateBufferResponse;
 using ::estimator::WeightsRequest;
@@ -89,8 +91,8 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
                                     const estimator::InitRequest* request,
                                     estimator::InitResponse* response) {
   // check configuration length
-  if (request->configuration_length() < 3 ||
-      request->configuration_length() > mjpc::MAX_TRAJECTORY) {
+  if (request->configuration_length() < mjpc::MIN_HISTORY ||
+      request->configuration_length() > mjpc::MAX_HISTORY) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
   }
 
@@ -98,7 +100,18 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
   mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
 
   // convert message
-  if (request->has_model() && request->model().has_xml()) {
+  if (request->has_model() && request->model().has_mjb()) {
+    std::string_view mjb = request->model().mjb();
+    static constexpr char file[] = "temporary-filename.mjb";
+    // mjVFS structs need to be allocated on the heap, because it's ~2MB
+    auto vfs = std::make_unique<mjVFS>();
+    mj_defaultVFS(vfs.get());
+    mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
+    int file_idx = mj_findFileVFS(vfs.get(), file);
+    memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+    tmp_model = {mj_loadModel(file, vfs.get()), mj_deleteModel};
+    mj_deleteFileVFS(vfs.get(), file);
+  } else if (request->has_model() && request->model().has_xml()) {
     std::string_view model_xml = request->model().xml();
     char load_error[1024] = "";
 
@@ -283,7 +296,8 @@ grpc::Status EstimatorService::Settings(
     int configuration_length = (int)(input.configuration_length());
 
     // check for valid length
-    if (configuration_length < 3) {
+    if (configuration_length < mjpc::MIN_HISTORY ||
+        configuration_length > mjpc::MAX_HISTORY) {
       return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
     }
 
@@ -345,6 +359,12 @@ grpc::Status EstimatorService::Settings(
     estimator_.time_scaling_ = input.time_scaling();
   }
   output->set_time_scaling(estimator_.time_scaling_);
+
+  // update prior weight 
+  if (input.has_update_prior_weight()) {
+    estimator_.update_prior_weight_ = input.update_prior_weight();
+  }
+  output->set_update_prior_weight(estimator_.update_prior_weight_);
 
   return grpc::Status::OK;
 }
@@ -526,6 +546,19 @@ grpc::Status EstimatorService::Optimize(
 
   // optimize
   estimator_.Optimize(thread_pool_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::Update(grpc::ServerContext* context,
+                                      const estimator::UpdateRequest* request,
+                                      estimator::UpdateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // update
+  estimator_.Update(buffer_, thread_pool_);
 
   return grpc::Status::OK;
 }

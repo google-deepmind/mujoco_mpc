@@ -63,6 +63,7 @@ class Estimator:
       configuration_length: int,
       buffer_length: Optional[int] = None,
       server_binary_path: Optional[str] = None,
+      send_as: Literal["mjb", "xml"] = "xml",
   ):
     # server
     if server_binary_path is None:
@@ -84,7 +85,7 @@ class Estimator:
         model,
         configuration_length,
         buffer_length=buffer_length,
-        send_as="xml",
+        send_as=send_as,
     )
 
   def close(self):
@@ -97,7 +98,7 @@ class Estimator:
       model: mujoco.MjModel,
       configuration_length: int,
       buffer_length: Optional[int] = None,
-      send_as: Literal["xml"] = "xml",
+      send_as: Literal["mjb", "xml"] = "xml",
   ):
     """Initialize the estimator for estimation horizon `configuration_length`.
 
@@ -110,6 +111,12 @@ class Estimator:
     """
 
     # setup model
+    def model_to_mjb(model: mujoco.MjModel) -> bytes:
+      buffer_size = mujoco.mj_sizeModel(model)
+      buffer = np.empty(shape=buffer_size, dtype=np.uint8)
+      mujoco.mj_saveModel(model, None, buffer)
+      return buffer.tobytes()
+    
     def model_to_xml(model: mujoco.MjModel) -> str:
       tmp = tempfile.NamedTemporaryFile()
       mujoco.mj_saveLastXML(tmp.name, model)
@@ -118,9 +125,11 @@ class Estimator:
       return xml_string
 
     if model is not None:
-      model_message = estimator_pb2.MjModel(xml=model_to_xml(model))
+      if send_as == "mjb":
+        model_message = estimator_pb2.MjModel(mjb=model_to_mjb(model))
+      else:
+        model_message = estimator_pb2.MjModel(xml=model_to_xml(model))
     else:
-      print("Failed to find xml.")
       model_message = None
 
     # initialize request
@@ -188,6 +197,7 @@ class Estimator:
       smoother_iterations: Optional[int] = None,
       skip_prior_weight_update: Optional[bool] = None,
       time_scaling: Optional[bool] = None,
+      update_prior_weight: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -199,6 +209,7 @@ class Estimator:
         smoother_iterations=smoother_iterations,
         skip_prior_weight_update=skip_prior_weight_update,
         time_scaling=time_scaling,
+        update_prior_weight=update_prior_weight,
     )
 
     # settings request
@@ -219,6 +230,7 @@ class Estimator:
         "smoother_iterations": settings.smoother_iterations,
         "skip_prior_weight_update": settings.skip_prior_weight_update,
         "time_scaling": settings.time_scaling,
+        "update_prior_weight": settings.update_prior_weight,
     }
 
   def weight(
@@ -328,6 +340,13 @@ class Estimator:
 
     # optimize response
     self.stub.Optimize(request)
+
+  def update(self):
+    # update request
+    request = estimator_pb2.UpdateRequest()
+
+    # update response
+    self.stub.Update(request)
 
   def cost_hessian(self) -> np.ndarray:
     # Hessian request

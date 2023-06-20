@@ -2216,6 +2216,9 @@ void Estimator::InitializeTrajectories(
   configuration_.Set(model_->qpos0, 0);
   configuration_.Set(model_->qpos0, 1);
 
+  // get data
+  mjData* data = data_[0].get();
+
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
   // new time
   for (int i = 1; i < configuration_length_ - 1; i++) {
@@ -2235,9 +2238,6 @@ void Estimator::InitializeTrajectories(
 
     // ----- forward dynamics ----- //
 
-    // get data
-    mjData* data = data_[0].get();
-
     // set ctrl
     const double* ui = ctrl.Get(buffer_index);
     mju_copy(data->ctrl, ui, model_->nu);
@@ -2250,6 +2250,9 @@ void Estimator::InitializeTrajectories(
     // set qvel
     mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
 
+    // set time 
+    data->time = time.Get(buffer_index)[0];
+
     // step dynamics
     mj_step(model_, data);
 
@@ -2259,6 +2262,9 @@ void Estimator::InitializeTrajectories(
     // copy configuration
     configuration_.Set(data->qpos, i + 1);
   }
+
+  // set last time 
+  time_.Set(&data->time, configuration_length_ - 1);
 
   // copy configuration to prior
   mju_copy(configuration_prior_.Data(), configuration_.Data(),
@@ -2292,6 +2298,9 @@ int Estimator::UpdateTrajectories(
   // shift trajectory heads
   ShiftTrajectoryHead(num_new);
 
+  // get data
+  mjData* data = data_[0].get();
+
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
   // new time
   for (int i = 0; i < num_new; i++) {
@@ -2315,9 +2324,6 @@ int Estimator::UpdateTrajectories(
 
     // ----- forward dynamics ----- //
 
-    // get data
-    mjData* data = data_[0].get();
-
     // set ctrl
     const double* ui = ctrl.Get(b);
     mju_copy(data->ctrl, ui, model_->nu);
@@ -2330,6 +2336,9 @@ int Estimator::UpdateTrajectories(
     // set qvel
     mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
 
+    // set time 
+    data->time = time.Get(b)[0];
+    
     // step dynamics
     mj_step(model_, data);
 
@@ -2339,6 +2348,9 @@ int Estimator::UpdateTrajectories(
     // copy configuration
     configuration_.Set(data->qpos, t + 1);
   }
+
+  // set last time 
+  time_.Set(&data->time, configuration_length_ - 1);
 
   // copy configuration to prior
   mju_copy(configuration_prior_.Data(), configuration_.Data(),

@@ -22,6 +22,24 @@ import pathlib
 
 
 class EstimatorTest(absltest.TestCase):
+  
+  def test_initialized(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/quadruped/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, 
+        configuration_length=configuration_length,
+        send_as="mjb"
+    )
+
+    estimator.data(0)["configuration"]
 
   def test_data(self):
     # load model

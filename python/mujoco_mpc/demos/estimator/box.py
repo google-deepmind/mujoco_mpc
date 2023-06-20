@@ -23,7 +23,7 @@ import numpy as np
 import pathlib
 
 import mujoco
-from mujoco_mpc.grpc import estimator as estimator_lib
+from mujoco_mpc import estimator as estimator_lib
 
 # %matplotlib inline
 np.set_printoptions(precision=5, suppress=True, linewidth=100)

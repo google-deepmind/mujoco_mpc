@@ -34,6 +34,8 @@ class Trajectory {
   Trajectory() = default;
   Trajectory(const Trajectory& other) = default;
   Trajectory& operator=(const Trajectory& other) = default;
+  Trajectory(Trajectory&& other) = default;
+  Trajectory& operator=(Trajectory&& other) = default;
 
   // ----- methods -----//
 

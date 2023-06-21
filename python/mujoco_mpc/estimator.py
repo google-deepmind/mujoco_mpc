@@ -116,7 +116,7 @@ class Estimator:
       buffer = np.empty(shape=buffer_size, dtype=np.uint8)
       mujoco.mj_saveModel(model, None, buffer)
       return buffer.tobytes()
-    
+
     def model_to_xml(model: mujoco.MjModel) -> str:
       tmp = tempfile.NamedTemporaryFile()
       mujoco.mj_saveLastXML(tmp.name, model)
@@ -149,6 +149,7 @@ class Estimator:
       velocity: Optional[npt.ArrayLike] = [],
       acceleration: Optional[npt.ArrayLike] = [],
       time: Optional[npt.ArrayLike] = [],
+      ctrl: Optional[npt.ArrayLike] = [],
       configuration_prior: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
       sensor_prediction: Optional[npt.ArrayLike] = [],
@@ -161,6 +162,7 @@ class Estimator:
         velocity=velocity,
         acceleration=acceleration,
         time=time,
+        ctrl=ctrl,
         configuration_prior=configuration_prior,
         sensor_measurement=sensor_measurement,
         sensor_prediction=sensor_prediction,
@@ -180,6 +182,7 @@ class Estimator:
         "velocity": np.array(data.velocity),
         "acceleration": np.array(data.acceleration),
         "time": np.array(data.time),
+        "ctrl": np.array(data.ctrl),
         "configuration_prior": np.array(data.configuration_prior),
         "sensor_measurement": np.array(data.sensor_measurement),
         "sensor_prediction": np.array(data.sensor_prediction),
@@ -341,12 +344,36 @@ class Estimator:
     # optimize response
     self.stub.Optimize(request)
 
-  def update(self):
+  def update(self) -> int:
     # update request
     request = estimator_pb2.UpdateRequest()
 
     # update response
-    self.stub.Update(request)
+    response = self.stub.Update(request)
+
+    # return num new
+    return response.num_new
+
+  def initial_state(
+      self, qpos: Optional[npt.ArrayLike] = [], qvel: Optional[npt.ArrayLike] = []
+  ) -> dict[str, np.ndarray]:
+    # assemble state input
+    inputs = estimator_pb2.State(
+        qpos=qpos,
+        qvel=qvel,
+    )
+
+    # initial state request
+    request = estimator_pb2.InitialStateRequest(state=inputs)
+
+    # initial state response
+    response = self.stub.InitialState(request)
+
+    # return qpos, qvel
+    return {
+        "qpos": np.array(response.state.qpos),
+        "qvel": np.array(response.state.qvel),
+    }
 
   def cost_hessian(self) -> np.ndarray:
     # Hessian request

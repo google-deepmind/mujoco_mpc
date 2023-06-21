@@ -22,7 +22,7 @@ import pathlib
 
 
 class EstimatorTest(absltest.TestCase):
-  
+
   def test_initialized(self):
     # load model
     model_path = (
@@ -34,9 +34,7 @@ class EstimatorTest(absltest.TestCase):
     # initialize
     configuration_length = 5
     estimator = estimator_lib.Estimator(
-        model=model, 
-        configuration_length=configuration_length,
-        send_as="mjb"
+        model=model, configuration_length=configuration_length, send_as="mjb"
     )
 
     estimator.data(0)["configuration"]
@@ -65,7 +63,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-3)
+    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-5)
 
     ## velocity
 
@@ -74,7 +72,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, velocity=velocity)
 
     # test that input and output match
-    self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-3)
+    self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-5)
 
     ## acceleration
 
@@ -83,7 +81,7 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, acceleration=acceleration)
 
     # test that input and output match
-    self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-3)
+    self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-5)
 
     ## time
 
@@ -92,7 +90,16 @@ class EstimatorTest(absltest.TestCase):
     data = estimator.data(index, time=time)
 
     # test that input and output match
-    self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-3)
+    self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-5)
+
+    ## ctrl
+
+    # set
+    ctrl = np.random.rand(model.nu)
+    data = estimator.data(index, ctrl=ctrl)
+
+    # test that input and output match
+    self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
 
     ## configuration prior
 
@@ -102,7 +109,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertLess(
-        np.linalg.norm(configuration_prior - data["configuration_prior"]), 1.0e-3
+        np.linalg.norm(configuration_prior - data["configuration_prior"]), 1.0e-5
     )
 
     ## sensor measurement
@@ -113,7 +120,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertTrue(
-        np.linalg.norm(sensor_measurement - data["sensor_measurement"]) < 1.0e-3
+        np.linalg.norm(sensor_measurement - data["sensor_measurement"]) < 1.0e-5
     )
 
     ## sensor prediction
@@ -124,7 +131,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertTrue(
-        np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-3
+        np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-5
     )
 
     ## force measurement
@@ -135,7 +142,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertTrue(
-        np.linalg.norm(force_measurement - data["force_measurement"]) < 1.0e-3
+        np.linalg.norm(force_measurement - data["force_measurement"]) < 1.0e-5
     )
 
     ## force prediction
@@ -146,7 +153,7 @@ class EstimatorTest(absltest.TestCase):
 
     # test that input and output match
     self.assertTrue(
-        np.linalg.norm(force_prediction - data["force_prediction"]) < 1.0e-3
+        np.linalg.norm(force_prediction - data["force_prediction"]) < 1.0e-5
     )
 
   def test_settings(self):
@@ -346,6 +353,38 @@ class EstimatorTest(absltest.TestCase):
 
     # optimize
     # estimator.optimize()
+
+  def test_initial_state(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # initial state
+    data = estimator.initial_state()
+
+    # test
+    self.assertTrue((data["qpos"] == np.zeros(2)).all())
+    self.assertTrue((data["qvel"] == np.zeros(2)).all())
+
+    # random values
+    qpos = np.random.rand(model.nq)
+    qvel = np.random.rand(model.nv)
+
+    # initial state
+    data = estimator.initial_state(qpos=qpos, qvel=qvel)
+
+    # test
+    self.assertLess(np.linalg.norm(qpos - data["qpos"]), 1.0e-5)
+    self.assertLess(np.linalg.norm(qvel - data["qvel"]), 1.0e-5)
 
   def test_status(self):
     # load model

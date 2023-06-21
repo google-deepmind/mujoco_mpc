@@ -2,18 +2,18 @@
   <!-- TODO(taylor): save menagerie assets to build/mjpc/test/testdata.. -->
   <compiler angle="radian" meshdir="../../../../../build/mjpc/tasks/quadruped/assets" texturedir="../../../../../build/mjpc/tasks/quadruped/assets"/>
 
-  <option cone="elliptic" impratio="10"/>
+  <option timestep="0.01" cone="elliptic" impratio="10"/>
 
   <default>
     <default class="a1">
       <geom friction="0.6" margin="0.001" condim="1"/>
-      <!-- <joint axis="0 1 0" damping="2" armature="0.01" frictionloss="0.2" limited="true"/> -->
-      <joint axis="0 1 0" damping="0" armature="0.01" frictionloss="0.2" limited="true"/>
+      <joint axis="0 1 0" damping="2" armature="0.01" frictionloss="0.2" limited="true"/>
+      <!-- <joint axis="0 1 0" damping="0" armature="0.01" frictionloss="0.2" limited="true"/> -->
 
       <position kp="50" ctrllimited="true" forcelimited="true" forcerange="-33.5 33.5"/>
       <default class="abduction">
-        <!-- <joint axis="1 0 0" damping="1" range="-0.802851 0.802851"/> -->
-        <joint axis="1 0 0" damping="0" range="-0.802851 0.802851"/>
+        <joint axis="1 0 0" damping="1" range="-0.802851 0.802851"/>
+        <!-- <joint axis="1 0 0" damping="0" range="-0.802851 0.802851"/> -->
         <position ctrlrange="-0.802851 0.802851"/>
       </default>
       <default class="hip">

@@ -184,7 +184,7 @@ class Estimator {
                          const EstimatorTrajectory<double>& time);
 
   // update
-  void Update(const Buffer& buffer, ThreadPool& pool);
+  int Update(const Buffer& buffer, ThreadPool& pool);
 
   // get terms from GUI
   void GetGUI();
@@ -198,13 +198,16 @@ class Estimator {
   // data
   std::vector<UniqueMjData> data_;
 
-  // trajectories
+  // -- trajectories -- //
   int configuration_length_;                   // T
   int prediction_length_;                      // T - 2
   EstimatorTrajectory<double> configuration_;  // nq x T
   EstimatorTrajectory<double> velocity_;       // nv x T
   EstimatorTrajectory<double> acceleration_;   // nv x T
   EstimatorTrajectory<double> time_;           //  1 x T
+
+  // ctrl 
+  EstimatorTrajectory<double> ctrl_;           // nu x T
 
   // prior
   EstimatorTrajectory<double> configuration_prior_;  // nq x T
@@ -342,6 +345,10 @@ class Estimator {
   SearchType search_type_;
   double step_size_;
 
+  // initial state 
+  std::vector<double> qpos0_;
+  std::vector<double> qvel0_;
+
   // timing
   double timer_total_;
   double timer_inverse_dynamics_derivatives_;
@@ -399,7 +406,7 @@ class Estimator {
   // settings
   int max_line_search_ = 10;                // maximum number of line search iterations
   int max_smoother_iterations_ = 10;        // maximum number of smoothing iterations
-  double gradient_tolerance_ = 1.0e-5;      // small gradient tolerance
+  double gradient_tolerance_ = 1.0e-10;     // small gradient tolerance
   bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost
   bool verbose_prior_ = false;              // flag for printing prior weight update status
@@ -416,7 +423,7 @@ class Estimator {
   // finite-difference settings
   struct FiniteDifferenceSettings {
     double tolerance = 1.0e-5;
-    bool flg_actuation = 0;
+    bool flg_actuation = 1;
   } finite_difference_;
 
   // ----- GUI terms ----- //

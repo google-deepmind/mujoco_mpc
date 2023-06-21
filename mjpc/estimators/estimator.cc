@@ -43,11 +43,14 @@ void Estimator::Initialize(mjModel* model) {
   // number of predictions
   prediction_length_ = configuration_length_ - 2;
 
-  // trajectories
+  // -- trajectories -- //
   configuration_.Initialize(nq, configuration_length_);
   velocity_.Initialize(nv, configuration_length_);
   acceleration_.Initialize(nv, configuration_length_);
   time_.Initialize(1, configuration_length_);
+
+  // ctrl 
+  ctrl_.Initialize(model->nu, configuration_length_);
 
   // prior
   configuration_prior_.Initialize(nq, configuration_length_);
@@ -233,6 +236,12 @@ void Estimator::Initialize(mjModel* model) {
   search_type_ =
       (SearchType)GetNumberOrDefault(0, model, "estimator_search_type");
 
+  // initial state 
+  qpos0_.resize(model->nq);
+  mju_copy(qpos0_.data(), model->qpos0, model->nq);
+  qvel0_.resize(model->nv);
+  mju_zero(qvel0_.data(), model->nv);
+
   // timer
   timer_prior_step_.resize(MAX_HISTORY);
   timer_sensor_step_.resize(MAX_HISTORY);
@@ -269,6 +278,8 @@ void Estimator::SetConfigurationLength(int length) {
   velocity_.length_ = length;
   acceleration_.length_ = length;
   time_.length_ = length;
+
+  ctrl_.length_ = length;
 
   configuration_prior_.length_ = length;
 
@@ -330,6 +341,8 @@ void Estimator::ShiftTrajectoryHead(int shift) {
   acceleration_.ShiftHeadIndex(shift);
   time_.ShiftHeadIndex(shift);
 
+  ctrl_.ShiftHeadIndex(shift);
+
   configuration_prior_.ShiftHeadIndex(shift);
 
   sensor_measurement_.ShiftHeadIndex(shift);
@@ -378,6 +391,8 @@ void Estimator::Reset() {
   velocity_.Reset();
   acceleration_.Reset();
   time_.Reset();
+
+  ctrl_.Reset();
 
   // prior
   configuration_prior_.Reset();
@@ -493,6 +508,10 @@ void Estimator::Reset() {
 
   // search direction
   std::fill(search_direction_.begin(), search_direction_.end(), 0.0);
+
+  // initial state 
+  mju_copy(qpos0_.data(), model_->qpos0, model_->nq);
+  mju_zero(qvel0_.data(), model_->nv);
 
   // timer
   std::fill(timer_prior_step_.begin(), timer_prior_step_.end(), 0.0);
@@ -1383,7 +1402,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv, ns = dim_sensor_;
+  int nq = model_->nq, nv = model_->nv, nu = model_->nu, ns = dim_sensor_;
 
   // start index
   int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
@@ -1394,7 +1413,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
     // schedule
-    pool.Schedule([&estimator = *this, nq, nv, ns, k]() {
+    pool.Schedule([&estimator = *this, nq, nv, ns, nu, k]() {
       // time index
       int t = k + 1;
 
@@ -1402,6 +1421,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       double* qt = estimator.configuration_.Get(t);
       double* vt = estimator.velocity_.Get(t);
       double* at = estimator.acceleration_.Get(t);
+      double* ct = estimator.ctrl_.Get(t);
 
       // data
       mjData* d = estimator.data_[k].get();
@@ -1410,6 +1430,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       mju_copy(d->qpos, qt, nq);
       mju_copy(d->qvel, vt, nv);
       mju_copy(d->qacc, at, nv);
+      mju_copy(d->ctrl, ct, nu);
 
       // inverse dynamics
       mj_inverse(estimator.model_, d);
@@ -1438,7 +1459,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv;
+  int nq = model_->nq, nv = model_->nv, nu = model_->nu;
 
   // pool count
   int count_before = pool.GetCount();
@@ -1449,7 +1470,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
     // schedule
-    pool.Schedule([&estimator = *this, nq, nv, k]() {
+    pool.Schedule([&estimator = *this, nq, nv, nu, k]() {
       // time index
       int t = k + 1;
 
@@ -1457,6 +1478,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       double* q = estimator.configuration_.Get(t);
       double* v = estimator.velocity_.Get(t);
       double* a = estimator.acceleration_.Get(t);
+      double* c = estimator.ctrl_.Get(t);
 
       double* dqds = estimator.block_sensor_configuration_.Get(k);
       double* dvds = estimator.block_sensor_velocity_.Get(k);
@@ -1466,10 +1488,11 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       double* dadf = estimator.block_force_acceleration_.Get(k);
       mjData* data = estimator.data_[k].get();  // TODO(taylor): WorkerID
 
-      // set (state, acceleration)
+      // set (state, acceleration) + ctrl
       mju_copy(data->qpos, q, nq);
       mju_copy(data->qvel, v, nv);
       mju_copy(data->qacc, a, nv);
+      mju_copy(data->ctrl, c, nu);
 
       // finite-difference derivatives
       mjd_inverseFD(estimator.model_, data,
@@ -1944,9 +1967,6 @@ void Estimator::Optimize(ThreadPool& pool) {
             mju_error("Invalid search type.\n");
             break;
         }
-
-        // count
-        iteration_search++;
       }
 
       // candidate
@@ -1968,6 +1988,10 @@ void Estimator::Optimize(ThreadPool& pool) {
 
     // update cost
     cost_ = cost_candidate;
+
+    // decrease regularization
+    regularization_ = mju_max(
+                MIN_REGULARIZATION, regularization_ / regularization_scaling_);
 
     // print cost
     PrintCost();
@@ -2212,16 +2236,22 @@ void Estimator::InitializeTrajectories(
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // set initial configurations
-  configuration_.Set(model_->qpos0, 0);
-  configuration_.Set(model_->qpos0, 1);
+  // -- set initial configurations -- //
+
+  // set first configuration
+  double* q0 = configuration_.Get(0);
+  mju_copy(q0, qpos0_.data(), model_->nq);
+  mj_integratePos(model_, q0, qvel0_.data(), -1.0 * model_->opt.timestep);
+
+  // set second configuration
+  configuration_.Set(qpos0_.data(), 1);
 
   // get data
   mjData* data = data_[0].get();
 
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
   // new time
-  for (int i = 1; i < configuration_length_ - 1; i++) {
+  for (int i = 0; i < configuration_length_ - 1; i++) {
     // buffer index
     int buffer_index = time.length_ - (configuration_length_ - 1) + i;
 
@@ -2240,6 +2270,7 @@ void Estimator::InitializeTrajectories(
 
     // set ctrl
     const double* ui = ctrl.Get(buffer_index);
+    ctrl_.Set(ui, i);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // set qpos
@@ -2326,6 +2357,7 @@ int Estimator::UpdateTrajectories(
 
     // set ctrl
     const double* ui = ctrl.Get(b);
+    ctrl_.Set(ui, t);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // set qpos
@@ -2338,7 +2370,7 @@ int Estimator::UpdateTrajectories(
 
     // set time 
     data->time = time.Get(b)[0];
-    
+
     // step dynamics
     mj_step(model_, data);
 
@@ -2363,7 +2395,8 @@ int Estimator::UpdateTrajectories(
 }
 
 // update
-void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
+int Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
+  int num_new = 0;
   if (buffer.Length() >= configuration_length_ - 1) {
     num_new_ = configuration_length_;
     if (!initialized_) {
@@ -2374,9 +2407,12 @@ void Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
       num_new_ = UpdateTrajectories(buffer.sensor_, buffer.sensor_mask_,
                                     buffer.ctrl_, buffer.time_);
     }
+    num_new = num_new_;
+
     // optimize
     Optimize(pool);
   }
+  return num_new;
 }
 
 // get terms from GUI

@@ -40,6 +40,8 @@ using ::estimator::DataRequest;
 using ::estimator::DataResponse;
 using ::estimator::InitRequest;
 using ::estimator::InitResponse;
+using ::estimator::InitialStateRequest;
+using ::estimator::InitialStateResponse;
 using ::estimator::NormRequest;
 using ::estimator::NormResponse;
 using ::estimator::OptimizeRequest;
@@ -76,14 +78,14 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
 }
 }  // namespace
 
-#define CHECK_SIZE(name, n1, n2)                              \
-  {                                                           \
-    auto expr = (CheckSize(name, n1, n2));                    \
-    if (!(expr).ok()) {                                       \
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
-                          (expr).ToString());                 \
-    }                                                         \
-  }
+#define CHECK_SIZE(name, n1, n2)                            \
+{                                                           \
+  auto expr = (CheckSize(name, n1, n2));                    \
+  if (!(expr).ok()) {                                       \
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
+                        (expr).ToString());                 \
+  }                                                         \
+}
 
 EstimatorService::~EstimatorService() {}
 
@@ -212,6 +214,19 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // get time
   double* time = estimator_.time_.Get(index);
   output->add_time(time[0]);
+
+  // set ctrl 
+  int nu = estimator_.model_->nu;
+  if (input.ctrl_size() > 0) {
+    CHECK_SIZE("ctrl", nu, input.ctrl_size());
+    estimator_.ctrl_.Set(input.ctrl().data(), index);
+  }
+
+  // get ctrl 
+  double* ctrl = estimator_.ctrl_.Get(index);
+  for (int i = 0; i < nu; i++) {
+    output->add_ctrl(ctrl[i]);
+  }
 
   // set configuration prior
   if (input.configuration_prior_size() > 0) {
@@ -558,7 +573,48 @@ grpc::Status EstimatorService::Update(grpc::ServerContext* context,
   }
 
   // update
-  estimator_.Update(buffer_, thread_pool_);
+  int num_new = estimator_.Update(buffer_, thread_pool_);
+
+  // set num new
+  response->set_num_new(num_new);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::InitialState(grpc::ServerContext* context,
+                                      const estimator::InitialStateRequest* request,
+                                      estimator::InitialStateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // input output
+  estimator::State input = request->state();
+  estimator::State* output = response->mutable_state();
+
+  // set qpos
+  int nq = estimator_.model_->nq;
+  if (input.qpos_size() > 0) {
+    CHECK_SIZE("qpos", nq, input.qpos_size());
+    estimator_.qpos0_.assign(input.qpos().begin(), input.qpos().end());
+  }
+
+  // get qpos 
+  for (int i = 0; i < nq; i++) {
+    output->add_qpos(estimator_.qpos0_[i]);
+  }
+
+  // qvel
+  int nv = estimator_.model_->nv;
+  if (input.qvel_size() > 0) {
+    CHECK_SIZE("qvel", nv, input.qvel_size());
+    estimator_.qvel0_.assign(input.qvel().begin(), input.qvel().end());
+  }
+
+  // get qvel
+  for (int i = 0; i < nv; i++) {
+    output->add_qvel(estimator_.qvel0_[i]);
+  }
 
   return grpc::Status::OK;
 }
@@ -727,6 +783,8 @@ grpc::Status EstimatorService::BufferData(
 
   return grpc::Status::OK;
 }
+
+#undef CHECK_SIZE
 
 grpc::Status EstimatorService::UpdateBuffer(
     grpc::ServerContext* context, const estimator::UpdateBufferRequest* request,

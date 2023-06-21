@@ -37,6 +37,8 @@ service Estimator {
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
   // Update Estimator
   rpc Update(UpdateRequest) returns (UpdateResponse);
+  // Set Estimator initial state
+  rpc InitialState(InitialStateRequest) returns (InitialStateResponse);
   // Get Estimator status
   rpc Status(StatusRequest) returns (StatusResponse);
   // Get Estimator cost Hessian
@@ -69,11 +71,12 @@ message Data {
   repeated double velocity = 2 [packed = true];
   repeated double acceleration = 3 [packed = true];
   repeated double time = 4 [packed = true];
-  repeated double configuration_prior = 5 [packed = true];
-  repeated double sensor_measurement = 6 [packed = true];
-  repeated double sensor_prediction = 7 [packed = true];
-  repeated double force_measurement = 8 [packed = true];
-  repeated double force_prediction = 9 [packed = true];
+  repeated double ctrl = 5 [packed = true];
+  repeated double configuration_prior = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated double force_measurement = 9 [packed = true];
+  repeated double force_prediction = 10 [packed = true];
 }
 
 message DataRequest {
@@ -141,9 +144,9 @@ message WeightsResponse {
 
 message Norm {
   repeated int32 sensor_type = 1;
-  repeated double sensor_parameters = 2;
-  repeated int32 force_type = 3;
-  repeated double force_parameters = 4;
+  repeated double sensor_parameters = 2 [packed = true];
+  repeated int32 force_type = 3 [packed = true];
+  repeated double force_parameters = 4 [packed = true];
 }
 
 message NormRequest {
@@ -172,7 +175,22 @@ message OptimizeResponse {}
 
 message UpdateRequest {}
 
-message UpdateResponse {}
+message UpdateResponse {
+  int32 num_new = 1;
+}
+
+message State {
+  repeated double qpos = 1 [packed = true];
+  repeated double qvel = 2 [packed = true];
+}
+
+message InitialStateRequest {
+  State state = 1;
+}
+
+message InitialStateResponse {
+  State state = 1;
+}
 
 message Status {
   int32 search_iterations = 1;
@@ -196,11 +214,11 @@ message CostHessianResponse {
 }
 
 message PriorMatrixRequest {
-  repeated double prior = 1;
+  repeated double prior = 1 [packed = true];
 }
 
 message PriorMatrixResponse {
-  repeated double prior = 1;
+  repeated double prior = 1 [packed = true];
   int32 dimension = 2;
 }
 
@@ -209,10 +227,10 @@ message ResetBufferRequest {}
 message ResetBufferResponse {}
 
 message Buffer {
-  repeated double sensor = 1;
-  repeated int32 mask = 2;
-  repeated double ctrl = 3;
-  repeated double time = 4;
+  repeated double sensor = 1 [packed = true];
+  repeated int32 mask = 2 [packed = true];
+  repeated double ctrl = 3 [packed = true];
+  repeated double time = 4 [packed = true];
 }
 
 message BufferDataRequest {

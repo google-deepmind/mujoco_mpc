@@ -69,9 +69,11 @@ void Estimator::Initialize(mjModel* model) {
   // number of free joints
   num_free_ = 0;
   for (int i = 0; i < model->njnt; i++) {
-    if (model->jnt_type[i] == mjJNT_FREE) num_free_++;
-    int adr = model->jnt_dofadr[i];
-    std::fill(free_dof_.begin() + adr, free_dof_.begin() + adr + 6, true);
+    if (model->jnt_type[i] == mjJNT_FREE) {
+      num_free_++;
+      int adr = model->jnt_dofadr[i];
+      std::fill(free_dof_.begin() + adr, free_dof_.begin() + adr + 6, true);
+    }
   }
 
   // force
@@ -2173,6 +2175,7 @@ void Estimator::PrintCost() {
     printf("  prior: %.3f\n", cost_prior_);
     printf("  sensor: %.3f\n", cost_sensor_);
     printf("  force: %.3f\n", cost_force_);
+    printf("  [initial: %.3f]\n", cost_initial_);
   }
 }
 
@@ -2246,17 +2249,33 @@ void Estimator::InitializeTrajectories(
   // set second configuration
   configuration_.Set(qpos0_.data(), 1);
 
-  // get data
+  // set initial time 
+  time_.Set(time.Get(0), 0);
+
+  // data
   mjData* data = data_[0].get();
+
+  // set state 
+  mju_copy(data->qpos, qpos0_.data(), model_->nq);
+  mju_copy(data->qvel, qvel0_.data(), model_->nv);
+  data->time = time.Get(1)[0];
 
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
   // new time
-  for (int i = 0; i < configuration_length_ - 1; i++) {
+  for (int i = 1; i < configuration_length_ - 1; i++) {
     // buffer index
     int buffer_index = time.length_ - (configuration_length_ - 1) + i;
 
-    // time
-    time_.Set(time.Get(buffer_index), i);
+    // get time
+    time_.Set(&data->time, i);
+
+    // set/get ctrl
+    const double* ui = ctrl.Get(buffer_index);
+    ctrl_.Set(ui, i);
+    mju_copy(data->ctrl, ui, model_->nu);
+
+    // step dynamics
+    mj_step(model_, data);
 
     // set measurement
     const double* yi = measurement.Get(buffer_index);
@@ -2265,27 +2284,6 @@ void Estimator::InitializeTrajectories(
     // set mask
     const int* mi = measurement_mask.Get(buffer_index);
     sensor_mask_.Set(mi, i);
-
-    // ----- forward dynamics ----- //
-
-    // set ctrl
-    const double* ui = ctrl.Get(buffer_index);
-    ctrl_.Set(ui, i);
-    mju_copy(data->ctrl, ui, model_->nu);
-
-    // set qpos
-    double* q0 = configuration_.Get(i - 1);
-    double* q1 = configuration_.Get(i);
-    mju_copy(data->qpos, q1, model_->nq);
-
-    // set qvel
-    mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
-
-    // set time 
-    data->time = time.Get(buffer_index)[0];
-
-    // step dynamics
-    mj_step(model_, data);
 
     // copy qfrc_actuator
     force_measurement_.Set(data->qfrc_actuator, i);

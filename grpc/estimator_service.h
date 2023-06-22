@@ -70,6 +70,15 @@ class EstimatorService final : public estimator::Estimator::Service {
                      const estimator::ResetRequest* request,
                      estimator::ResetResponse* response) override;
 
+  grpc::Status InitializeData(
+      grpc::ServerContext* context,
+      const estimator::InitializeDataRequest* request,
+      estimator::InitializeDataResponse* response) override;
+
+  grpc::Status UpdateData(grpc::ServerContext* context,
+                          const estimator::UpdateDataRequest* request,
+                          estimator::UpdateDataResponse* response) override;
+
   grpc::Status Optimize(grpc::ServerContext* context,
                         const estimator::OptimizeRequest* request,
                         estimator::OptimizeResponse* response) override;

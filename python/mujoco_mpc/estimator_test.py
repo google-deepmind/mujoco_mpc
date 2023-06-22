@@ -134,6 +134,17 @@ class EstimatorTest(absltest.TestCase):
         np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-5
     )
 
+    ## sensor mask 
+
+    # set
+    sensor_mask = np.array([1, 0, 1, 0])
+    data = estimator.data(index, sensor_mask=sensor_mask)
+
+    # test that input and output match
+    self.assertTrue(
+      np.linalg.norm(sensor_mask - data["sensor_mask"]) < 1.0e-5
+    )
+
     ## force measurement
 
     # set
@@ -609,6 +620,7 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue((force_type == data["force_type"]).all())
     self.assertLess(np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5)
 
+  # TODO(taylor): test initialize_data, update_data() 
 
 if __name__ == "__main__":
   absltest.main()

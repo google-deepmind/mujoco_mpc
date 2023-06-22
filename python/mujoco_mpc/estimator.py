@@ -153,6 +153,7 @@ class Estimator:
       configuration_prior: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
       sensor_prediction: Optional[npt.ArrayLike] = [],
+      sensor_mask: Optional[npt.ArrayLike] = [],
       force_measurement: Optional[npt.ArrayLike] = [],
       force_prediction: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
@@ -166,6 +167,7 @@ class Estimator:
         configuration_prior=configuration_prior,
         sensor_measurement=sensor_measurement,
         sensor_prediction=sensor_prediction,
+        sensor_mask=sensor_mask,
         force_measurement=force_measurement,
         force_prediction=force_prediction,
     )
@@ -186,6 +188,7 @@ class Estimator:
         "configuration_prior": np.array(data.configuration_prior),
         "sensor_measurement": np.array(data.sensor_measurement),
         "sensor_prediction": np.array(data.sensor_prediction),
+        "sensor_mask": np.array(data.sensor_mask),
         "force_measurement": np.array(data.force_measurement),
         "force_prediction": np.array(data.force_prediction),
     }
@@ -402,6 +405,21 @@ class Estimator:
 
     # return prior matrix
     return mat
+  
+  def initialize_data(self):
+    # data request 
+    request = estimator_pb2.InitializeDataRequest()
+
+    # data response 
+    self.stub.InitializeData(request)
+
+  def update_data(self,
+                  num_new: int):
+    # data request 
+    request = estimator_pb2.UpdateDataRequest(num_new=num_new)
+
+    # data response 
+    self.stub.UpdateData(request)
 
   def buffer(
       self,

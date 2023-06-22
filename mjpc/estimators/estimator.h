@@ -178,6 +178,11 @@ class Estimator {
                               const EstimatorTrajectory<double>& time);
 
   // update trajectories
+  int UpdateTrajectories_(int num_new,
+                         const EstimatorTrajectory<double>& measurement,
+                         const EstimatorTrajectory<int>& measurement_mask,
+                         const EstimatorTrajectory<double>& ctrl,
+                         const EstimatorTrajectory<double>& time);
   int UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
                          const EstimatorTrajectory<int>& measurement_mask,
                          const EstimatorTrajectory<double>& ctrl,

@@ -33,6 +33,10 @@ service Estimator {
   rpc Shift(ShiftRequest) returns (ShiftResponse);
   // Reset Estimator
   rpc Reset(ResetRequest) returns (ResetResponse);
+  // Initialize Estimator data
+  rpc InitializeData(InitializeDataRequest) returns (InitializeDataResponse);
+  // Update Estimator data
+  rpc UpdateData(UpdateDataRequest) returns (UpdateDataResponse);
   // Optimize Estimator
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
   // Update Estimator
@@ -75,8 +79,9 @@ message Data {
   repeated double configuration_prior = 6 [packed = true];
   repeated double sensor_measurement = 7 [packed = true];
   repeated double sensor_prediction = 8 [packed = true];
-  repeated double force_measurement = 9 [packed = true];
-  repeated double force_prediction = 10 [packed = true];
+  repeated int32 sensor_mask = 9 [packed = true];
+  repeated double force_measurement = 10 [packed = true];
+  repeated double force_prediction = 11 [packed = true];
 }
 
 message DataRequest {
@@ -168,6 +173,16 @@ message ShiftResponse {
 message ResetRequest {}
 
 message ResetResponse {}
+
+message InitializeDataRequest {}
+
+message InitializeDataResponse {}
+
+message UpdateDataRequest {
+  int32 num_new = 1;
+}
+
+message UpdateDataResponse {}
 
 message OptimizeRequest {}
 

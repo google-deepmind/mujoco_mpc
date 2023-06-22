@@ -40,6 +40,8 @@ using ::estimator::DataRequest;
 using ::estimator::DataResponse;
 using ::estimator::InitRequest;
 using ::estimator::InitResponse;
+using ::estimator::InitializeDataRequest;
+using ::estimator::InitializeDataResponse;
 using ::estimator::InitialStateRequest;
 using ::estimator::InitialStateResponse;
 using ::estimator::NormRequest;
@@ -62,6 +64,8 @@ using ::estimator::UpdateRequest;
 using ::estimator::UpdateResponse;
 using ::estimator::UpdateBufferRequest;
 using ::estimator::UpdateBufferResponse;
+using ::estimator::UpdateDataRequest;
+using ::estimator::UpdateDataResponse;
 using ::estimator::WeightsRequest;
 using ::estimator::WeightsResponse;
 
@@ -265,6 +269,19 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   double* sensor_prediction = estimator_.sensor_prediction_.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_prediction(sensor_prediction[i]);
+  }
+
+  // set sensor mask 
+  int num_sensor = estimator_.num_sensor_;
+  if (input.sensor_mask_size() > 0) {
+    CHECK_SIZE("sensor_mask", num_sensor, input.sensor_mask_size());
+    estimator_.sensor_mask_.Set(input.sensor_mask().data(), index);
+  }
+
+  // get sensor mask 
+  int* sensor_mask = estimator_.sensor_mask_.Get(index);
+  for (int i = 0; i < num_sensor; i++) {
+    output->add_sensor_mask(sensor_mask[i]);
   }
 
   // set force measurement
@@ -548,6 +565,40 @@ grpc::Status EstimatorService::Reset(grpc::ServerContext* context,
 
   // reset
   estimator_.Reset();
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::InitializeData(
+    grpc::ServerContext* context, const estimator::InitializeDataRequest* request,
+    estimator::InitializeDataResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // initialize trajectories with buffer data
+  estimator_.InitializeTrajectories(buffer_.sensor_, buffer_.sensor_mask_,
+                                    buffer_.ctrl_, buffer_.time_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::UpdateData(
+    grpc::ServerContext* context, const estimator::UpdateDataRequest* request,
+    estimator::UpdateDataResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // check for valid number of new elements
+  int num_new = request->num_new();
+  if (num_new < 1 || num_new > buffer_.Length()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "num_new invalid."};
+  }
+
+  // update trajectories with num_new most recent elements from buffer
+  estimator_.UpdateTrajectories_(num_new, buffer_.sensor_, buffer_.sensor_mask_,
+                                 buffer_.ctrl_, buffer_.time_);
 
   return grpc::Status::OK;
 }

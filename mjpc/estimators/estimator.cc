@@ -2304,25 +2304,13 @@ void Estimator::InitializeTrajectories(
 }
 
 // update trajectories
-int Estimator::UpdateTrajectories(
-    const EstimatorTrajectory<double>& measurement,
+int Estimator::UpdateTrajectories_(
+    int num_new, const EstimatorTrajectory<double>& measurement,
     const EstimatorTrajectory<int>& measurement_mask,
     const EstimatorTrajectory<double>& ctrl,
     const EstimatorTrajectory<double>& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
-
-  // lastest buffer time
-  double time_buffer_last = *time.Get(time.length_ - 1);
-
-  // latest estimator time
-  double time_estimator_last =
-      *time_.Get(time_.length_ - 2);  // index to latest measurement time
-
-  // compute number of new elements
-  int num_new =
-      std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
-                 model_->opt.timestep);
 
   // shift trajectory heads
   ShiftTrajectoryHead(num_new);
@@ -2388,6 +2376,29 @@ int Estimator::UpdateTrajectories(
 
   // stop timer
   timer_update_trajectory_ += GetDuration(start);
+
+  return num_new;
+}
+
+// update trajectories
+int Estimator::UpdateTrajectories(
+    const EstimatorTrajectory<double>& measurement,
+    const EstimatorTrajectory<int>& measurement_mask,
+    const EstimatorTrajectory<double>& ctrl,
+    const EstimatorTrajectory<double>& time) {
+  // lastest buffer time
+  double time_buffer_last = *time.Get(time.length_ - 1);
+
+  // latest estimator time
+  double time_estimator_last =
+      *time_.Get(time_.length_ - 2);  // index to latest measurement time
+
+  // compute number of new elements
+  int num_new =
+      std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
+                 model_->opt.timestep);
+
+  UpdateTrajectories_(num_new, measurement, measurement_mask, ctrl, time);
 
   return num_new;
 }

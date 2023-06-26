@@ -2239,6 +2239,9 @@ void Estimator::InitializeTrajectories(
   // start timer
   auto start = std::chrono::steady_clock::now();
 
+  // set num new 
+  num_new_ = configuration_length_;
+
   // -- set initial configurations -- //
 
   // set first configuration
@@ -2311,6 +2314,9 @@ int Estimator::UpdateTrajectories_(
     const EstimatorTrajectory<double>& time) {
   // start timer
   auto start = std::chrono::steady_clock::now();
+
+  // set number of new elements 
+  num_new_ = num_new;
 
   // shift trajectory heads
   ShiftTrajectoryHead(num_new);

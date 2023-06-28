@@ -204,6 +204,7 @@ class Estimator:
       skip_prior_weight_update: Optional[bool] = None,
       time_scaling: Optional[bool] = None,
       update_prior_weight: Optional[bool] = None,
+      regularization_initial: Optional[float] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -216,6 +217,7 @@ class Estimator:
         skip_prior_weight_update=skip_prior_weight_update,
         time_scaling=time_scaling,
         update_prior_weight=update_prior_weight,
+        regularization_initial=regularization_initial,
     )
 
     # settings request
@@ -237,6 +239,7 @@ class Estimator:
         "skip_prior_weight_update": settings.skip_prior_weight_update,
         "time_scaling": settings.time_scaling,
         "update_prior_weight": settings.update_prior_weight,
+        "regularization_initial": settings.regularization_initial,
     }
 
   def weight(

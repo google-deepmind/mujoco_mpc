@@ -41,8 +41,8 @@ enum SearchType : int {
 };
 
 // maximum / minimum regularization
-const double MAX_REGULARIZATION = 1.0e6;
-const double MIN_REGULARIZATION = 1.0e-6;
+const double MAX_REGULARIZATION = 1.0e12;
+const double MIN_REGULARIZATION = 1.0e-12;
 
 // batch estimator
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
@@ -409,16 +409,16 @@ class Estimator {
   bool initialized_ = false;                // flag for initialization
 
   // settings
-  int max_line_search_ = 10;                // maximum number of line search iterations
-  int max_smoother_iterations_ = 10;        // maximum number of smoothing iterations
+  int max_line_search_ = 1000;                // maximum number of line search iterations
+  int max_smoother_iterations_ = 100;        // maximum number of smoothing iterations
   double gradient_tolerance_ = 1.0e-10;     // small gradient tolerance
   bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost
   bool verbose_prior_ = false;              // flag for printing prior weight update status
   bool band_covariance_ = true;             // approximate covariance for prior
   double step_scaling_ = 0.5;               // step size scaling
-  double regularization_initial_ = 1.0e-5;  // initial regularization
-  double regularization_scaling_ = 10.0;    // regularization scaling
+  double regularization_initial_ = 1.0e-12;  // initial regularization
+  double regularization_scaling_ = 2.0;    // regularization scaling
   bool band_copy_ = true;                   // copy band matrices by block
   bool reuse_data_ = false;                 // flag for resuing data previously computed
   bool skip_update_prior_weight = false;    // flag for skipping update prior weight
@@ -427,7 +427,7 @@ class Estimator {
 
   // finite-difference settings
   struct FiniteDifferenceSettings {
-    double tolerance = 1.0e-5;
+    double tolerance = 1.0e-7;
     bool flg_actuation = 1;
   } finite_difference_;
 

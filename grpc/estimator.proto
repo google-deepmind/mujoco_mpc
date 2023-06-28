@@ -103,6 +103,7 @@ message Settings {
   optional bool skip_prior_weight_update = 7;
   optional bool time_scaling = 8;
   optional bool update_prior_weight = 9;
+  optional double regularization_initial = 10;
 }
 
 message SettingsRequest {

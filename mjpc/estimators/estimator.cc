@@ -1019,386 +1019,8 @@ void Estimator::JacobianSensor(ThreadPool& pool) {
   }
 }
 
-// force cost
-double Estimator::CostForce(double* gradient, double* hessian) {
-  // start derivative timer
-  auto start = std::chrono::steady_clock::now();
-
-  // update dimension
-  int dim_update = model_->nv * configuration_length_;
-  int nv = model_->nv;
-
-  // time scaling
-  double timestep = model_->opt.timestep;
-  double time_scale =
-      (time_scaling_ ? timestep * timestep * timestep * timestep : 1.0);
-
-  // initialize
-  double cost = 0.0;
-
-  // zero memory
-  if (gradient) mju_zero(gradient, dim_update);
-  if (hessian) mju_zero(hessian, dim_update * dim_update);
-
-  // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
-    // unpack residual
-    double* residual = residual_force_.data() + nv * k;
-
-    // unpack block
-    double* block = block_force_configurations_.Get(k);
-
-    // ----- free joints ----- //
-
-    // scaling
-    double scale_free_pos =
-        scale_force_[0] / 3 * time_scale / (configuration_length_ - 2);
-    double scale_free_rot =
-        scale_force_[1] / 3 * time_scale / (configuration_length_ - 2);
-
-    // loop over free joints
-    for (int i = 0; i < model_->njnt; i++) {
-      // check joint type
-      if (model_->jnt_type[i] != mjJNT_FREE) continue;
-
-      // start cost timer
-      auto start_cost = std::chrono::steady_clock::now();
-
-      // get dof address
-      int adr = model_->jnt_dofadr[i];
-
-      // unpack residual and blocks
-      double* residual_pos = residual + adr;
-      double* residual_rot = residual + adr + 3;
-
-      // cost free position
-      cost +=
-          scale_free_pos *
-          Norm(gradient ? norm_gradient_force_.data() + nv * k : NULL,
-               hessian ? norm_blocks_force_.data() + nv * nv * k : NULL,
-               residual_pos,
-               norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0, 3,
-               norm_force_[0]);
-
-      // cost free rotation
-      cost +=
-          scale_free_rot *
-          Norm(gradient ? norm_gradient_force_.data() + nv * k + 3 : NULL,
-               hessian ? norm_blocks_force_.data() + nv * nv * k + 3 * 3 : NULL,
-               residual_rot,
-               norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 1, 3,
-               norm_force_[1]);
-
-      // stop cost timer
-      timer_cost_force_ += GetDuration(start_cost);
-
-      // ----- derivatives ----- //
-      if (gradient) {
-        // unpacks block
-        double* block_pos = block + (3 * nv) * adr;
-        double* block_rot = block + (3 * nv) * (adr + 3);
-
-        // -- position -- //
-
-        // scratch = dridq012' * dndri
-        mju_mulMatTVec(scratch0_force_.data(), block_pos,
-                       norm_gradient_force_.data() + nv * k, 3, 3 * nv);
-
-        // add
-        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_pos,
-                     3 * nv);
-
-        // -- rotation -- //
-
-        // scratch = dridq012' * dndri
-        mju_mulMatTVec(scratch0_force_.data(), block_rot,
-                       norm_gradient_force_.data() + nv * k + 3, 3, 3 * nv);
-
-        // add
-        mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_free_rot,
-                     3 * nv);
-      }
-
-      if (hessian) {
-        // unpacks block
-        double* block_pos = block + (3 * nv) * adr;
-        double* block_rot = block + (3 * nv) * (adr + 3);
-
-        // -- position -- //
-        // step 1: tmp0 = d2ndri2 * dridq012
-        double* tmp0 = scratch0_force_.data();
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k, block_pos,
-                      3, 3, 3 * nv);
-
-        // step 2: tmp1 = dridq' * tmp0
-        double* tmp1 = scratch1_force_.data();
-        mju_mulMatTMat(tmp1, block_pos, tmp0, 3, 3 * nv, 3 * nv);
-
-        // add
-        AddBlockInMatrix(hessian, tmp1, scale_free_pos, dim_update, dim_update,
-                         3 * nv, 3 * nv, nv * k, nv * k);
-
-        // -- rotation -- //
-        // step 1: tmp0 = d2ndri2 * dridq012
-        mju_mulMatMat(tmp0, norm_blocks_force_.data() + nv * nv * k + 3 * 3,
-                      block_rot, 3, 3, 3 * nv);
-
-        // step 2: tmp1 = dridq' * tmp0
-        mju_mulMatTMat(tmp1, block_rot, tmp0, 3, 3 * nv, 3 * nv);
-
-        // add
-        AddBlockInMatrix(hessian, tmp1, scale_free_rot, dim_update, dim_update,
-                         3 * nv, 3 * nv, nv * k, nv * k);
-      }
-    }
-
-    // ----- ball, hinge, and slide joints ----- //
-
-    // start cost timer
-    auto start_cost = std::chrono::steady_clock::now();
-
-    // non-free dimension
-    int dim_nonfree = nv - num_free_ * 6;
-
-    // skip
-    if (dim_nonfree == 0) continue;
-
-    // residual
-    double* residual_nonfree = scratch2_force_.data();
-    double* block_nonfree = scratch2_force_.data() + dim_nonfree;
-
-    // assemble residual and Jacobian, skipping free-joint rows
-    int shift = 0;
-    for (int i = 0; i < nv; i++) {
-      if (!free_dof_[i]) {
-        // assemble residual
-        residual_nonfree[shift] = residual[i];
-
-        // assemble Jacobian
-        mju_copy(block_nonfree + shift * (3 * nv), block + i * (3 * nv),
-                 3 * nv);
-        // shift
-        shift += 1;
-      }
-    }
-
-    // scaling
-    double scale_nonfree = scale_force_[2] / dim_nonfree * time_scale /
-                           (configuration_length_ - 2);
-
-    // add weighted norm
-    cost += scale_nonfree *
-            Norm(gradient ? norm_gradient_force_.data() : NULL,
-                 hessian ? norm_blocks_force_.data() : NULL, residual_nonfree,
-                 norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 2,
-                 dim_nonfree, norm_force_[2]);
-
-    // stop cost timer
-    timer_cost_force_ += GetDuration(start_cost);
-
-    // ----- derivatives ----- //
-
-    if (gradient) {
-      // scratch = dridq012' * dndri
-      mju_mulMatTVec(scratch0_force_.data(), block_nonfree,
-                      norm_gradient_force_.data(), dim_nonfree, 3 * nv);
-
-      // add
-      mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale_nonfree,
-                   3 * nv);
-    }
-
-    if (hessian) {
-      // step 1: tmp0 = d2ndri2 * dridq012
-      double* tmp0 = scratch0_force_.data();
-      mju_mulMatMat(tmp0, norm_blocks_force_.data(), block_nonfree, dim_nonfree,
-                    dim_nonfree, 3 * nv);
-
-      // step 2: tmp1 = dridq' * tmp0
-      double* tmp1 = scratch1_force_.data();
-      mju_mulMatTMat(tmp1, block_nonfree, tmp0, dim_nonfree, 3 * nv, 3 * nv);
-
-      // add
-      AddBlockInMatrix(hessian, tmp1, scale_nonfree, dim_update, dim_update,
-                       3 * nv, 3 * nv, nv * k, nv * k);
-    }
-  }
-
-  // stop timer
-  timer_cost_force_derivatives_ += GetDuration(start);
-
-  return cost;
-}
-
-// force residual
-void Estimator::ResidualForce() {
-  // start timer
-  auto start = std::chrono::steady_clock::now();
-
-  // dimension
-  int nv = model_->nv;
-
-  // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
-    // time index
-    int t = k + 1;
-
-    // terms
-    double* rk = residual_force_.data() + k * nv;
-    double* ft_actuator = force_measurement_.Get(t);
-    double* ft_inverse_ = force_prediction_.Get(t);
-
-    // force difference
-    mju_sub(rk, ft_inverse_, ft_actuator, nv);
-  }
-
-  // stop timer
-  timer_residual_force_ += GetDuration(start);
-}
-
-// set block in force Jacobian
-void Estimator::SetBlockForce(int index) {
-  // velocity dimension
-  int nv = model_->nv;
-
-  // residual dimension
-  int dim_residual = nv * prediction_length_;
-
-  // update dimension
-  int dim_update = nv * configuration_length_;
-
-  // reset Jacobian to zero
-  mju_zero(jacobian_force_.data() + index * nv * dim_update, nv * dim_update);
-
-  // indices
-  int row = index * nv;
-  int col_previous = index * nv;
-  int col_current = (index + 1) * nv;
-  int col_next = (index + 2) * nv;
-
-  // ----- configuration previous ----- //
-  // unpack
-  double* dfdq0 = block_force_previous_configuration_.Get(index);
-
-  // set
-  SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual, dim_update,
-                   nv, nv, row, col_previous);
-
-  // ----- configuration current ----- //
-
-  // unpack
-  double* dfdq1 = block_force_current_configuration_.Get(index);
-
-  // set
-  SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual, dim_update,
-                   nv, nv, row, col_current);
-
-  // ----- configuration next ----- //
-
-  // unpack
-  double* dfdq2 = block_force_next_configuration_.Get(index);
-
-  // set
-  AddBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual, dim_update,
-                   nv, nv, row, col_next);
-}
-
-// force Jacobian (dfdq0, dfdq1, dfdq2)
-void Estimator::BlockForce(int index) {
-  // velocity dimension
-  int nv = model_->nv;
-
-  // dqdf
-  double* dqdf = block_force_configuration_.Get(index);
-
-  // dvdf
-  double* dvdf = block_force_velocity_.Get(index);
-
-  // dadf
-  double* dadf = block_force_acceleration_.Get(index);
-
-  // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
-
-  // unpack
-  double* dfdq0 = block_force_previous_configuration_.Get(index);
-  double* tmp = block_force_scratch_.Get(index);
-
-  // dfdq0 <- dvdf' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
-  mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
-
-  // dfdq0 += dadf' * dadq0
-  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
-  mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
-  mju_addTo(dfdq0, tmp, nv * nv);
-
-  // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 -- //
-
-  // unpack
-  double* dfdq1 = block_force_current_configuration_.Get(index);
-
-  // dfdq1 <- dqdf'
-  mju_transpose(dfdq1, dqdf, nv, nv);
-
-  // dfdq1 += dvdf' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.Get(index);
-  mju_mulMatTMat(tmp, dvdf, dvdq1, nv, nv, nv);
-  mju_addTo(dfdq1, tmp, nv * nv);
-
-  // dfdq1 += dadf' * dadq1
-  double* dadq1 = block_acceleration_current_configuration_.Get(index);
-  mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
-  mju_addTo(dfdq1, tmp, nv * nv);
-
-  // -- configuration next: dfdq2 = dfda * dadq2 -- //
-
-  // unpack
-  double* dfdq2 = block_force_next_configuration_.Get(index);
-
-  // dfdq2 <- dadf' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.Get(index);
-  mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
-
-  // -- assemble dfdq012 block -- //
-
-  // unpack
-  double* dfdq012 = block_force_configurations_.Get(index);
-
-  // set dfdq0
-  SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
-
-  // set dfdq1
-  SetBlockInMatrix(dfdq012, dfdq1, 1.0, nv, 3 * nv, nv, nv, 0, 1 * nv);
-
-  // set dfdq0
-  SetBlockInMatrix(dfdq012, dfdq2, 1.0, nv, 3 * nv, nv, nv, 0, 2 * nv);
-}
-
-// force Jacobian
-void Estimator::JacobianForce(ThreadPool& pool) {
-  // start index
-  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
-
-  // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
-    // schedule by time step
-    pool.Schedule([&estimator = *this, start_index, k]() {
-      // start Jacobian timer
-      auto jacobian_force_start = std::chrono::steady_clock::now();
-
-      // block
-      if (k >= start_index) estimator.BlockForce(k);
-
-      // assemble
-      if (!estimator.band_covariance_) estimator.SetBlockForce(k);
-
-      // stop Jacobian timer
-      estimator.timer_force_step_[k] = GetDuration(jacobian_force_start);
-    });
-  }
-}
-
 // compute force
+// TODO(taylor): combine with Jacobian method
 void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   // compute sensor and force predictions
   auto start = std::chrono::steady_clock::now();
@@ -1929,7 +1551,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     double cost_candidate = cost_;
     int iteration_search = 0;
     step_size_ = 1.0;
-    regularization_ = mju_max(MIN_REGULARIZATION, regularization_);
+    regularization_ = regularization_initial_; //(MIN_REGULARIZATION, regularization_);
 
     // initial search direction
     SearchDirection();
@@ -1944,6 +1566,9 @@ void Estimator::Optimize(ThreadPool& pool) {
 
         // restore velocity, acceleration
         ConfigurationToVelocityAcceleration();
+
+        // evaluate cost 
+        cost_ = Cost(pool);
 
         printf("line search failure\n");
 
@@ -2461,6 +2086,255 @@ void Estimator::SetGUI() {
   gui_step_size_ = step_size_;
 
   // timers
+}
+
+
+
+
+// force cost
+double Estimator::CostForce(double* gradient, double* hessian) {
+  // start timer
+  auto start = std::chrono::steady_clock::now();
+
+  // update dimension
+  int dim_update = model_->nv * configuration_length_;
+  int nv = model_->nv;
+
+  // ----- cost ----- //
+
+  // initialize
+  double cost = 0.0;
+
+  // zero memory
+  if (gradient) mju_zero(gradient, dim_update);
+  if (hessian) mju_zero(hessian, dim_update * dim_update);
+
+  // loop over predictions
+  for (int k = 0; k < prediction_length_; k++) {
+    // unpack block
+    double* block = block_force_configurations_.Get(k);
+
+    // start cost timer
+    auto start_cost = std::chrono::steady_clock::now();
+
+    // time scaling, accounts for finite difference division by timestep
+    double time_scale = 1.0;
+
+    // total scaling
+    double scale = scale_force_[0] / nv * time_scale / prediction_length_;
+
+    // ----- cost ----- //
+    cost +=
+        scale * Norm(gradient ? norm_gradient_force_.data() : NULL,
+                      hessian ? norm_blocks_force_.data() : NULL,
+                      residual_force_.data() + k * nv,
+                      norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0,
+                      nv, norm_force_[0]);
+
+    // stop cost timer
+    timer_cost_force_ += GetDuration(start_cost);
+
+    // gradient wrt configuration: dridq012' * dndri
+    if (gradient) {
+      // scratch = dridq012' * dndri
+      mju_mulMatTVec(scratch0_force_.data(), block,
+                      norm_gradient_force_.data(), nv, 3 * nv);
+
+      // add
+      mju_addToScl(gradient + k * nv, scratch0_force_.data(), scale, 3 * nv);
+    }
+
+    // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+    if (hessian) {
+      // step 1: tmp0 = d2ndri2 * dridq
+      double* tmp0 = scratch0_force_.data();
+      mju_mulMatMat(tmp0, norm_blocks_force_.data(), block, nv,
+                    nv, 3 * nv);
+
+      // step 2: hessian = dridq' * tmp
+      double* tmp1 = scratch1_force_.data();
+      mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
+
+      // add
+      AddBlockInMatrix(hessian, tmp1, scale, dim_update, dim_update, 3 * nv,
+                        3 * nv, nv * k, nv * k);
+    }
+  }
+
+  // stop timer
+  timer_cost_force_derivatives_ += GetDuration(start);
+
+  return cost;
+}
+
+// force residual
+void Estimator::ResidualForce() {
+  // start timer
+  auto start = std::chrono::steady_clock::now();
+
+  // dimension 
+  int nv = model_->nv;
+
+  // loop over predictions
+  for (int k = 0; k < prediction_length_; k++) {
+    // time index
+    int t = k + 1;
+
+    // terms
+    double* rk = residual_force_.data() + k * nv;
+    double* ft_actuator = force_measurement_.Get(t);
+    double* ft_inverse = force_prediction_.Get(t);
+
+    // force difference
+    mju_sub(rk, ft_inverse, ft_actuator, nv);
+  }
+
+  // stop timer
+  timer_residual_force_ += GetDuration(start);
+}
+
+// set block in force Jacobian
+void Estimator::SetBlockForce(int index) {
+  // velocity dimension
+  int nv = model_->nv;
+
+  // residual dimension
+  int dim_residual = nv * prediction_length_;
+
+  // update dimension
+  int dim_update = nv * configuration_length_;
+
+  // reset Jacobian to zero
+  mju_zero(jacobian_force_.data() + index * nv * dim_update, nv * dim_update);
+
+  // indices
+  int row = index * nv;
+  int col_previous = index * nv;
+  int col_current = (index + 1) * nv;
+  int col_next = (index + 2) * nv;
+
+  // ----- configuration previous ----- //
+
+  // unpack
+  double* dfdq0 = block_force_previous_configuration_.Get(index);
+
+  // set
+  SetBlockInMatrix(jacobian_force_.data(), dfdq0, 1.0, dim_residual,
+                   dim_update, nv, nv, row, col_previous);
+
+  // ----- configuration current ----- //
+
+  // unpack
+  double* dfdq1 = block_force_current_configuration_.Get(index);
+
+  // set
+  SetBlockInMatrix(jacobian_force_.data(), dfdq1, 1.0, dim_residual,
+                   dim_update, nv, nv, row, col_current);
+
+  // ----- configuration next ----- //
+
+  // unpack
+  double* dfdq2 = block_force_next_configuration_.Get(index);
+
+  // set
+  SetBlockInMatrix(jacobian_force_.data(), dfdq2, 1.0, dim_residual,
+                   dim_update, nv, nv, row, col_next);
+}
+
+// force Jacobian blocks (dfdq0, dfdq1, dfdq2)
+void Estimator::BlockForce(int index) {
+  // dimensions
+  int nv = model_->nv;
+
+  // dqdf
+  double* dqdf = block_force_configuration_.Get(index);
+
+  // dvdf
+  double* dvdf = block_force_velocity_.Get(index);
+
+  // dadf
+  double* dadf = block_force_acceleration_.Get(index);
+
+  // -- configuration previous: dfdq0 = dfdv * dvdq0 + dfda * dadq0 -- //
+
+  // unpack
+  double* dfdq0 = block_force_previous_configuration_.Get(index);
+  double* tmp = block_force_scratch_.Get(index);
+
+  // dfdq0 <- dvdf' * dvdq0
+  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
+  mju_mulMatTMat(dfdq0, dvdf, dvdq0, nv, nv, nv);
+
+  // dfdq0 += dadf' * dadq0
+  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
+  mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
+  mju_addTo(dfdq0, tmp, nv * nv);
+
+  // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 --
+
+  // unpack
+  double* dfdq1 = block_force_current_configuration_.Get(index);
+
+  // dfdq1 <- dqdf'
+  mju_transpose(dfdq1, dqdf, nv, nv);
+
+  // dfdq1 += dvdf' * dvdq1
+  double* dvdq1 = block_velocity_current_configuration_.Get(index);
+  mju_mulMatTMat(tmp, dvdf, dvdq1, nv, nv, nv);
+  mju_addTo(dfdq1, tmp, nv * nv);
+
+  // dfdq1 += dadf' * dadq1
+  double* dadq1 = block_acceleration_current_configuration_.Get(index);
+  mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
+  mju_addTo(dfdq1, tmp, nv * nv);
+
+  // -- configuration next: dfdq2 = dfda * dadq2 -- //
+
+  // unpack
+  double* dfdq2 = block_force_next_configuration_.Get(index);
+
+  // dfdq2 = dadf' * dadq2
+  double* dadq2 = block_acceleration_next_configuration_.Get(index);
+  mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
+
+  // -- assemble dfdq012 block -- //
+
+  // unpack
+  double* dfdq012 = block_force_configurations_.Get(index);
+
+  // set dfdq0
+  SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
+
+  // set dfdq1
+  SetBlockInMatrix(dfdq012, dfdq1, 1.0, nv, 3 * nv, nv, nv, 0, 1 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dfdq012, dfdq2, 1.0, nv, 3 * nv, nv, nv, 0, 2 * nv);
+}
+
+// force Jacobian
+// note: pool wait is called outside this function
+void Estimator::JacobianForce(ThreadPool& pool) {
+  // start index
+  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+
+  // loop over predictions
+  for (int k = 0; k < prediction_length_; k++) {
+    // schedule by time step
+    pool.Schedule([&estimator = *this, start_index, k]() {
+      // start Jacobian timer
+      auto jacobian_force_start = std::chrono::steady_clock::now();
+
+      // block
+      if (k >= start_index) estimator.BlockForce(k);
+
+      // assemble
+      if (!estimator.band_covariance_) estimator.SetBlockForce(k);
+
+      // stop Jacobian timer
+      estimator.timer_force_step_[k] = GetDuration(jacobian_force_start);
+    });
+  }
 }
 
 }  // namespace mjpc

@@ -317,6 +317,79 @@ TEST(DifferentiateQuaternionTest, SubQuat) {
   EXPECT_NEAR(mju_norm(error_b, 9) / 9, 0.0, 1.0e-5);
 }
 
+TEST(DifferentiateQuaternionTest, DifferentiatePosBox2D) {
+  // model
+  mjModel *model = LoadTestModel("estimator/box/task2D.xml");
+
+  // random qpos
+  double qa[3];
+  double qb[3];
+
+  for (int i = 0; i < 3; i++) {
+    absl::BitGen gen_;
+    qa[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    qb[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // subQuat
+  double v[3];
+  mj_differentiatePos(model, v, model->opt.timestep, qa, qb);
+
+  double eps = 1.0e-6;
+  double Ja[9];      // Jacobian wrt to qa
+  double Jb[9];      // Jacobian wrt to qb
+  double JaT[9];     // Jacobian wrt to qa transposed
+  double JbT[9];     // Jacobian wrt to qb transposed
+  double dv[3];       // differentiatePos perturbation
+  double dq[3];       // qpos perturbation
+  double qa_copy[3];  // qa copy
+  double qb_copy[3];  // qb copy
+
+  for (int i = 0; i < 3; i++) {
+    // perturbation
+    mju_zero(dq, 3);
+    dq[i] = 1.0;
+
+    // Jacobian qa
+    mju_copy(qa_copy, qa, model->nq);
+    mj_integratePos(model, qa_copy, dq, eps);
+    mj_differentiatePos(model, dv, model->opt.timestep, qa_copy, qb);
+
+    mju_sub(JaT + i * 3, dv, v, 3);
+    mju_scl(JaT + i * 3, JaT + i * 3, 1.0 / eps, 3);
+
+    // Jacobian qb
+    mju_copy(qb_copy, qb, 3);
+    mj_integratePos(model, qb_copy, dq, eps);
+    mj_differentiatePos(model, dv, model->opt.timestep, qa, qb_copy);
+
+    mju_sub(JbT + i * 3, dv, v, 3);
+    mju_scl(JbT + i * 3, JbT + i * 3, 1.0 / eps, 3);
+  }
+
+  // transpose result
+  mju_transpose(Ja, JaT, 3, 3);
+  mju_transpose(Jb, JbT, 3, 3);
+
+  // ----- utilities ----- //
+  double Ga[9];  // quaternion to 3D velocity Jacobian wrt to qa
+  double Gb[9];  // quaternion to 3D velocity Jacobian wrt to qa
+
+  // compute Jacobians
+  DifferentiateDifferentiatePos(Ga, Gb, model, model->opt.timestep, qa, qb);
+
+  // ----- error ----- //
+  double error_a[9];
+  double error_b[9];
+  mju_sub(error_a, Ja, Ga, 9);
+  mju_sub(error_b, Jb, Gb, 9);
+
+  // ----- test ----- //
+  EXPECT_NEAR(mju_norm(error_a, 9), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(error_b, 9), 0.0, 1.0e-5);
+  mj_deleteModel(model);
+}
+
 TEST(DifferentiateQuaternionTest, DifferentiatePos) {
   // model
   mjModel *model = LoadTestModel("box.xml");

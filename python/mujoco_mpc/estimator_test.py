@@ -221,6 +221,11 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(skip_prior_weight_update=in_skip)
     self.assertTrue(in_skip == settings["skip_prior_weight_update"])
 
+    # get/set regularization initial 
+    regularization = 2.1 
+    settings = estimator.settings(regularization_initial=regularization)
+    self.assertTrue(np.abs(regularization - settings["regularization_initial"]) < 1.0e-6)
+
   def test_costs(self):
     # load model
     model_path = (
@@ -424,7 +429,7 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.abs(status["step_size"] - 1.0) < 1.0e-5)
 
     # regularization
-    self.assertTrue(np.abs(status["regularization"] - 1.0e-5) < 1.0e-6)
+    self.assertTrue(np.abs(status["regularization"] - estimator.settings()["regularization_initial"]) < 1.0e-6)
 
     # gradient norm
     self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-3)

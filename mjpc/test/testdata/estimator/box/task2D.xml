@@ -32,7 +32,10 @@
       <material name="site" rgba=".5 .5 .5 .3"/>
   </asset>
 
-  <option timestep="0.01"/>
+  <option timestep="0.005"/>
+  <default>
+    <geom solimp="0 0.95 0.001"/>
+  </default>
 
   <worldbody>
     <light name="light" pos="0 0 1"/>
@@ -43,10 +46,14 @@
       <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
       <joint name="rotation" type="hinge" pos="0 0 0" axis="0 1 0" />
       <geom name="pointmass" type="box" size=".05 .05 .05" material="self" mass="1.0"/>
-      <site name="corner0" type="sphere" size="0.005" pos="-0.05 -0.05 -0.05"/>
+      <!-- <site name="corner0" type="sphere" size="0.005" pos="-0.05 -0.05 -0.05"/>
       <site name="corner1" type="sphere" size="0.005" pos="0.05 -0.05 -0.05"/>
       <site name="corner2" type="sphere" size="0.005" pos="-0.05 -0.05 0.05"/>
       <site name="corner3" type="sphere" size="0.005" pos="0.05 -0.05 0.05"/>
+      <site name="side0" type="sphere" size="0.005" pos="-0.05 -0.05 0.0"/>
+      <site name="side1" type="sphere" size="0.005" pos="0.0 -0.05 -0.05"/>
+      <site name="side2" type="sphere" size="0.005" pos="0.0 -0.05 0.05"/>
+      <site name="side3" type="sphere" size="0.005" pos="0.05 -0.05 0.0"/> -->
     </body>
     <camera pos="0.096 -0.599 0.286" xyaxes="1.000 0.003 -0.000 -0.001 0.188 0.982"/>
   </worldbody>
@@ -61,5 +68,16 @@
     <jointpos name="joint_x" joint="root_x" />
     <jointpos name="joint_z" joint="root_z" />
     <jointpos name="joint_r" joint="rotation" />
+    <jointvel name="vel_x" joint="root_x" />
+    <jointvel name="vel_z" joint="root_z" />
+    <jointvel name="vel_r" joint="rotation" />
+    <!-- <framepos name="corner0" objtype="site" objname="corner0"/>
+    <framepos name="corner1" objtype="site" objname="corner1"/>
+    <framepos name="corner2" objtype="site" objname="corner2"/>
+    <framepos name="corner3" objtype="site" objname="corner3"/>
+    <framepos name="side0" objtype="site" objname="side0"/>
+    <framepos name="side1" objtype="site" objname="side1"/>
+    <framepos name="side2" objtype="site" objname="side2"/>
+    <framepos name="side3" objtype="site" objname="side3"/> -->
   </sensor>
 </mujoco>

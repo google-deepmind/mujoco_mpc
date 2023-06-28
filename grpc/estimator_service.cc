@@ -398,6 +398,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_update_prior_weight(estimator_.update_prior_weight_);
 
+  // regularization initialization 
+  if (input.has_regularization_initial()) {
+    estimator_.regularization_initial_ = input.regularization_initial();
+  }
+  output->set_regularization_initial(estimator_.regularization_initial_);
+
   return grpc::Status::OK;
 }
 
@@ -407,6 +413,10 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
+
+  // evaluate cost 
+  estimator_.cost_ = estimator_.Cost(thread_pool_);
+
   // costs
   estimator::Cost* cost = response->mutable_cost();
 

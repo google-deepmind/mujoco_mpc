@@ -57,13 +57,22 @@
 
   <sensor>
     <!-- body position -->
-    <framepos name="torso" objtype="site" objname="torso" />
+    <framepos name="torso_pos" objtype="site" objname="torso" />
+
+    <!-- body velocity -->
+    <framelinvel name="torso_linvel" objtype="site" objname="torso" />
 
     <!-- feet positions -->
-    <framepos name="FR" objtype="site" objname="FR" />
-    <framepos name="FL" objtype="site" objname="FL" />
-    <framepos name="RR" objtype="site" objname="RR" />
-    <framepos name="RL" objtype="site" objname="RL" />
+    <framepos name="FR_pos" objtype="site" objname="FR" />
+    <framepos name="FL_pos" objtype="site" objname="FL" />
+    <framepos name="RR_pos" objtype="site" objname="RR" />
+    <framepos name="RL_pos" objtype="site" objname="RL" />
+
+    <!-- feet velocities -->
+    <framelinvel name="FR_linvel" objtype="site" objname="FR" />
+    <framelinvel name="FL_linvel" objtype="site" objname="FL" />
+    <framelinvel name="RR_linvel" objtype="site" objname="RR" />
+    <framelinvel name="RL_linvel" objtype="site" objname="RL" />
 
     <!-- joints positions -->
     <jointpos name="pos_FR_hip_joint" joint="FR_hip_joint" />

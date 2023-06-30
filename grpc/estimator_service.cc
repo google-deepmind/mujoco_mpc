@@ -32,6 +32,8 @@
 
 namespace estimator_grpc {
 
+using ::estimator::CostGradientRequest;
+using ::estimator::CostGradientResponse;
 using ::estimator::CostHessianRequest;
 using ::estimator::CostHessianResponse;
 using ::estimator::CostRequest;
@@ -60,6 +62,8 @@ using ::estimator::ShiftRequest;
 using ::estimator::ShiftResponse;
 using ::estimator::StatusRequest;
 using ::estimator::StatusResponse;
+using ::estimator::TimingRequest;
+using ::estimator::TimingResponse;
 using ::estimator::UpdateRequest;
 using ::estimator::UpdateResponse;
 using ::estimator::UpdateBufferRequest;
@@ -404,6 +408,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_regularization_initial(estimator_.regularization_initial_);
 
+  // gradient tolerance 
+  if (input.has_gradient_tolerance()) {
+    estimator_.gradient_tolerance_ = input.gradient_tolerance();
+  }
+  output->set_gradient_tolerance(estimator_.gradient_tolerance_);
+
   return grpc::Status::OK;
 }
 
@@ -704,6 +714,65 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
 
   // gradient norm
   status->set_gradient_norm(estimator_.gradient_norm_);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
+                                      const estimator::TimingRequest* request,
+                                      estimator::TimingResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // double timer_total = 1;
+  // double timer_inverse_dynamics_derivatives = 2;
+  // double timer_velacc_derivatives = 3;
+  // double timer_jacobian_prior = 4;
+  // double timer_jacobian_sensor = 5;
+  // double timer_jacobian_force = 6;
+  // double timer_jacobian_total = 7;
+  // double timer_cost_prior_derivatives = 8;
+  // double timer_cost_sensor_derivatives = 9;
+  // double timer_cost_force_derivatives = 10;
+  // double timer_cost_total_derivatives = 11;
+  // double timer_cost_gradient = 12;
+  // double timer_cost_hessian = 13;
+  // double timer_cost_derivatives = 14;
+  // double timer_cost = 15;
+  // double timer_cost_prior = 16;
+  // double timer_cost_sensor = 17;
+  // double timer_cost_force = 18;
+  // double timer_cost_config_to_velacc = 19;
+  // double timer_cost_prediction = 20;
+  // double timer_residual_prior = 21;
+  // double timer_residual_sensor = 22;
+  // double timer_residual_force = 23;
+  // double timer_search_direction = 24;
+  // double timer_search = 25;
+  // double timer_configuration_update = 26;
+  // double timer_optimize = 27;
+  // double timer_prior_weight_update = 28;
+  // double timer_prior_set_weight = 29;
+  // double timer_update_trajectory = 30;
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EstimatorService::CostGradient(
+    grpc::ServerContext* context, const estimator::CostGradientRequest* request,
+    estimator::CostGradientResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // dimension
+  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+
+  // get cost gradient
+  for (int i = 0; i < dim; i++) {
+    response->add_gradient(estimator_.cost_gradient_[i]);
+  }
 
   return grpc::Status::OK;
 }

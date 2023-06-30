@@ -205,6 +205,7 @@ class Estimator:
       time_scaling: Optional[bool] = None,
       update_prior_weight: Optional[bool] = None,
       regularization_initial: Optional[float] = None,
+      gradient_tolerance: Optional[float] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -218,6 +219,7 @@ class Estimator:
         time_scaling=time_scaling,
         update_prior_weight=update_prior_weight,
         regularization_initial=regularization_initial,
+        gradient_tolerance=gradient_tolerance,
     )
 
     # settings request
@@ -240,6 +242,7 @@ class Estimator:
         "time_scaling": settings.time_scaling,
         "update_prior_weight": settings.update_prior_weight,
         "regularization_initial": settings.regularization_initial,
+        "gradient_tolerance": settings.gradient_tolerance,
     }
 
   def weight(
@@ -380,6 +383,16 @@ class Estimator:
         "qpos": np.array(response.state.qpos),
         "qvel": np.array(response.state.qvel),
     }
+  
+  def cost_gradient(self) -> np.ndarray:
+    # gradient request
+    request = estimator_pb2.CostGradientRequest()
+
+    # gradient response
+    response = self.stub.CostGradient(request)
+
+    # return gradient vector
+    return np.array(response.gradient)
 
   def cost_hessian(self) -> np.ndarray:
     # Hessian request

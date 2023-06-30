@@ -1551,7 +1551,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     double cost_candidate = cost_;
     int iteration_search = 0;
     step_size_ = 1.0;
-    regularization_ = regularization_initial_; //(MIN_REGULARIZATION, regularization_);
+    regularization_ = regularization_initial_; //#(MIN_REGULARIZATION, regularization_);
 
     // initial search direction
     SearchDirection();

@@ -2,7 +2,7 @@
   <!-- TODO(taylor): save menagerie assets to build/mjpc/test/testdata.. -->
   <compiler angle="radian" meshdir="../../../../../build/mjpc/tasks/quadruped/assets" texturedir="../../../../../build/mjpc/tasks/quadruped/assets"/>
 
-  <option timestep="0.01" cone="elliptic" impratio="10"/>
+  <option timestep="0.005" cone="elliptic" impratio="10"/>
 
   <default>
     <default class="a1">

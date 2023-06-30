@@ -226,6 +226,11 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(regularization_initial=regularization)
     self.assertTrue(np.abs(regularization - settings["regularization_initial"]) < 1.0e-6)
 
+    # get/set gradient tolerance 
+    gradient_tolerance = 1.23456
+    settings = estimator.settings(gradient_tolerance=gradient_tolerance)
+    self.assertTrue(np.abs(gradient_tolerance - settings["gradient_tolerance"]) < 1.0e-6)
+
   def test_costs(self):
     # load model
     model_path = (
@@ -433,6 +438,27 @@ class EstimatorTest(absltest.TestCase):
 
     # gradient norm
     self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-3)
+
+  def test_cost_gradient(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    estimator = estimator_lib.Estimator(
+        model=model, configuration_length=configuration_length
+    )
+
+    # gradient
+    gradient = estimator.cost_gradient()
+
+    # test dimension
+    dim = configuration_length * model.nv
+    self.assertTrue(gradient.size == dim)
 
   def test_cost_hessian(self):
     # load model

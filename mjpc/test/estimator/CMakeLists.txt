@@ -13,16 +13,16 @@
 # limitations under the License.
 
 test(estimator_force_test)
-target_link_libraries(estimator_force_test load gmock)
+target_link_libraries(estimator_force_test load simulation gmock)
 
 test(estimator_optimize_test)
-target_link_libraries(estimator_optimize_test load gmock)
+target_link_libraries(estimator_optimize_test load simulation gmock)
 
 test(estimator_prior_test)
-target_link_libraries(estimator_prior_test load gmock)
+target_link_libraries(estimator_prior_test load simulation gmock)
 
 test(estimator_sensor_test)
-target_link_libraries(estimator_sensor_test load gmock)
+target_link_libraries(estimator_sensor_test load simulation gmock)
 
 test(estimator_shift_test)
 target_link_libraries(estimator_shift_test load gmock)

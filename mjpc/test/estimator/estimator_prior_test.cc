@@ -18,210 +18,11 @@
 #include "gtest/gtest.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/test/load.h"
+#include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {
-
-TEST(PriorResidual, Particle) {
-  // load model
-  mjModel* model = LoadTestModel("estimator/particle/task.xml");
-  mjData* data = mj_makeData(model);
-
-  // dimension
-  int nq = model->nq, nv = model->nv;
-
-  // ----- configurations ----- //
-  int T = 5;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      absl::BitGen gen_;
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-  }
-
-  // ----- estimator ----- //
-  Estimator estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
-
-  // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
-
-  // ----- residual ----- //
-  auto residual_prior = [&prior, &configuration_length = T, &model, nq, nv](
-                            double* residual, const double* update) {
-    // integrated quaternion
-    std::vector<double> qint(nq);
-
-    // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
-      // terms
-      double* rt = residual + t * nv;
-      double* qt_prior = prior.data() + t * nq;
-
-      // configuration difference
-      mj_differentiatePos(model, rt, 1.0, qt_prior, update + t * nq);
-    }
-  };
-
-  // initialize memory
-  std::vector<double> residual(dim_vel);
-  std::vector<double> update(dim_vel);
-  mju_copy(update.data(), configuration.data(), dim_pos);
-
-  // evaluate
-  residual_prior(residual.data(), update.data());
-  estimator.ResidualPrior();
-
-  // error
-  std::vector<double> residual_error(dim_vel);
-  mju_sub(residual_error.data(), estimator.residual_prior_.data(),
-          residual.data(), dim_vel);
-
-  // test
-  EXPECT_NEAR(mju_norm(residual_error.data(), dim_vel) / (dim_vel), 0.0,
-              1.0e-5);
-
-  // ----- Jacobian ----- //
-
-  // finite-difference
-  FiniteDifferenceJacobian fd(dim_vel, dim_vel);
-  fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
-
-  // estimator
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
-
-  // error
-  std::vector<double> jacobian_error(dim_vel * dim_vel);
-  mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(),
-          fd.jacobian.data(), dim_vel * dim_vel);
-
-  // test
-  EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
-
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
-
-TEST(PriorResidual, Box) {
-  // load model
-  mjModel* model = LoadTestModel("estimator/box/task0.xml");
-  mjData* data = mj_makeData(model);
-
-  // dimension
-  int nq = model->nq, nv = model->nv;
-
-  // ----- configurations ----- //
-  int T = 4;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      absl::BitGen gen_;
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-    // normalize quaternion
-    mju_normalize4(configuration.data() + nq * t + 3);
-    mju_normalize4(prior.data() + nq * t + 3);
-  }
-
-  // ----- estimator ----- //
-  Estimator estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
-
-  // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
-
-  // ----- residual ----- //
-  auto residual_prior = [&configuration, &prior, &configuration_length = T,
-                         &model, nq,
-                         nv](double* residual, const double* update) {
-    // integrated quaternion
-    std::vector<double> qint(nq);
-
-    // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
-      // terms
-      double* rt = residual + t * nv;
-      double* qt_prior = prior.data() + t * nq;
-      double* qt = configuration.data() + t * nq;
-
-      // ----- integrate ----- //
-      mju_copy(qint.data(), qt, nq);
-      const double* dq = update + t * nv;
-      mj_integratePos(model, qint.data(), dq, 1.0);
-
-      // configuration difference
-      mj_differentiatePos(model, rt, 1.0, qt_prior, qint.data());
-    }
-  };
-
-  // initialize memory
-  std::vector<double> residual(dim_vel);
-  std::vector<double> update(dim_vel);
-  mju_zero(update.data(), dim_vel);
-
-  // evaluate
-  residual_prior(residual.data(), update.data());
-  estimator.ResidualPrior();
-
-  // error
-  std::vector<double> residual_error(dim_vel);
-  mju_sub(residual_error.data(), estimator.residual_prior_.data(),
-          residual.data(), dim_vel);
-
-  // test
-  EXPECT_NEAR(mju_norm(residual_error.data(), dim_vel) / (dim_vel), 0.0,
-              1.0e-5);
-
-  // ----- Jacobian ----- //
-
-  // finite-difference
-  FiniteDifferenceJacobian fd(dim_vel, dim_vel);
-  fd.Compute(residual_prior, update.data(), dim_vel, dim_vel);
-
-  // estimator
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
-
-  // error
-  std::vector<double> jacobian_error(dim_vel * dim_vel);
-  mju_sub(jacobian_error.data(), estimator.jacobian_prior_.data(),
-          fd.jacobian.data(), dim_vel * dim_vel);
-
-  // test
-  EXPECT_NEAR(
-      mju_norm(jacobian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
-
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
 
 TEST(PriorCost, Particle) {
   // load model
@@ -233,58 +34,65 @@ TEST(PriorCost, Particle) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // ----- configurations ----- //
-  int T = 5;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  absl::BitGen gen_;
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-  }
+  // ----- rollout ----- //
+  int T = 10;
+  Simulation sim(model, T);
+  auto controller = [](double* ctrl, double time) {
+    ctrl[0] = mju_sin(10 * time);
+    ctrl[1] = 10 * mju_cos(10 * time);
+  };
+  sim.Rollout(controller);
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 7.3;
-  estimator.band_covariance_ = false;
+  estimator.scale_prior_ = 5.0;
+  estimator.band_prior_ = false;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
 
-  // ----- random covariance ----- //
-  std::vector<double> P(dim_vel * dim_vel);
-  std::vector<double> F(dim_vel * dim_vel);
+  // corrupt configurations
+  absl::BitGen gen_;
+  for (int t = 0; t < T; t++) {
+    double* q = estimator.configuration_.Get(t);
+    for (int i = 0; i < nq; i++) {
+      q[i] += absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+  }
+
+  // ----- random prior ----- //
+  int nvar = nv * T;
+  std::vector<double> P(nvar * nvar);
+  std::vector<double> F(nvar * nvar);
 
   // P = F' F
-  for (int i = 0; i < dim_vel * dim_vel; i++) {
+  for (int i = 0; i < nvar * nvar; i++) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
+  mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
+
+  // set prior
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&prior, &configuration_length = T,
-                     &weight = estimator.scale_prior_, nq, &P = P,
-                     nv](const double* configuration) {
+  auto cost_prior = [&estimator = estimator](const double* configuration) {
     // dimension
-    int dim_res = nv * configuration_length;
+    int nq = estimator.model_->nq;
+    int nv = estimator.model_->nv;
+    int T = estimator.configuration_length_;
+    int nvar = estimator.model_->nv * estimator.configuration_length_;
 
     // residual
-    std::vector<double> residual(dim_res);
+    std::vector<double> residual(nvar);
 
     // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
+    for (int t = 0; t < T; t++) {
       // terms
       double* rt = residual.data() + t * nv;
-      double* qt_prior = prior.data() + t * nq;
+      double* qt_prior = estimator.configuration_prior_.Get(t);
       const double* qt = configuration + t * nq;
 
       // configuration difference
@@ -294,26 +102,27 @@ TEST(PriorCost, Particle) {
     // ----- 0.5 * w * r' * P * r ----- //
 
     // scratch
-    std::vector<double> scratch(dim_res);
-    mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
+    std::vector<double> scratch(nvar);
+    mju_mulMatVec(scratch.data(), estimator.weight_prior_dense_.data(),
+                  residual.data(), nvar, nvar);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
-           mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * estimator.scale_prior_ / nvar *
+           mju_dot(residual.data(), scratch.data(), nvar);
   };
 
   // ----- lambda ----- //
 
   // cost
-  double cost_lambda = cost_prior(configuration.data());
+  double cost_lambda = cost_prior(estimator.configuration_.Data());
 
   // gradient
-  FiniteDifferenceGradient fdg(dim_vel);
-  fdg.Compute(cost_prior, configuration.data(), dim_vel);
+  FiniteDifferenceGradient fdg(nvar);
+  fdg.Compute(cost_prior, estimator.configuration_.Data(), nvar);
 
   // Hessian
-  FiniteDifferenceHessian fdh(dim_vel);
-  fdh.Compute(cost_prior, configuration.data(), dim_vel);
+  FiniteDifferenceHessian fdh(nvar);
+  fdh.Compute(cost_prior, estimator.configuration_.Data(), nvar);
 
   // ----- estimator ----- //
   estimator.ResidualPrior();
@@ -322,9 +131,7 @@ TEST(PriorCost, Particle) {
     estimator.SetBlockPrior(t);
   }
 
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
-           dim_vel * dim_vel);
-
+  // evaluate cost
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
                           estimator.cost_hessian_prior_.data());
@@ -332,22 +139,99 @@ TEST(PriorCost, Particle) {
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
-  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
+  EXPECT_NEAR(cost_estimator - cost_lambda, 0.0, 1.0e-4);
 
   // gradient
-  std::vector<double> gradient_error(dim_vel);
+  std::vector<double> gradient_error(nvar);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+          fdg.gradient.data(), nvar);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
-  std::vector<double> hessian_error(dim_vel * dim_vel);
+  std::vector<double> hessian_error(nvar * nvar);
   mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
-          fdh.hessian.data(), dim_vel * dim_vel);
-  EXPECT_NEAR(
-      mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
+          fdh.hessian.data(), nvar * nvar);
+  EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
+              1.0e-3);
+
+  // ----- band prior ----- //
+
+  // remove off band elements
+  DenseToBlockBand(P.data(), nvar, nv, 3);
+
+  // set prior
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(), nvar * nvar);
+
+  // change settings
+  estimator.band_prior_ = true;
+
+  // ----- cost ----- //
+  auto cost_band_prior = [&estimator = estimator](const double* configuration) {
+    // dimension
+    int nq = estimator.model_->nq;
+    int nv = estimator.model_->nv;
+    int T = estimator.configuration_length_;
+    int nvar = estimator.model_->nv * estimator.configuration_length_;
+
+    // residual
+    std::vector<double> residual(nvar);
+
+    // loop over configurations
+    for (int t = 0; t < T; t++) {
+      // terms
+      double* rt = residual.data() + t * nv;
+      double* qt_prior = estimator.configuration_prior_.Get(t);
+      const double* qt = configuration + t * nq;
+
+      // configuration difference
+      mju_sub(rt, qt, qt_prior, nv);
+    }
+
+    // ----- 0.5 * w * r' * P * r ----- //
+
+    // scratch
+    std::vector<double> scratch(nvar);
+    mju_bandMulMatVec(scratch.data(), estimator.weight_prior_band_.data(),
+                      residual.data(), nvar, 3 * nv, 0, 1, true);
+
+    // weighted cost
+    return 0.5 * estimator.scale_prior_ / nvar *
+           mju_dot(residual.data(), scratch.data(), nvar);
+  };
+
+  // ----- lambda ----- //
+
+  // cost
+  double cost_band_lambda = cost_band_prior(estimator.configuration_.Data());
+
+  // gradient
+  fdg.Compute(cost_band_prior, estimator.configuration_.Data(), nvar);
+
+  // Hessian
+  fdh.Compute(cost_band_prior, estimator.configuration_.Data(), nvar);
+
+  // ----- estimator ----- //
+
+  // evaluate cost
+  int cost_band_estimator =
+      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
+                          estimator.cost_hessian_prior_.data());
+
+  // ----- error ----- //
+
+  // cost
+  EXPECT_NEAR(cost_band_estimator - cost_band_lambda, 0.0, 1.0e-4);
+
+  // gradient
+  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+          fdg.gradient.data(), nvar);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
+
+  // Hessian
+  mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
+          fdh.hessian.data(), nvar * nvar);
+  EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
+              1.0e-3);
 
   // delete data + model
   mj_deleteData(data);
@@ -362,196 +246,79 @@ TEST(PriorCost, Box) {
   // dimension
   int nq = model->nq, nv = model->nv;
 
-  // ----- configurations ----- //
-  int T = 5;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  absl::BitGen gen_;
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-    // normalize quaternion
-    mju_normalize4(configuration.data() + nq * t + 3);
-    mju_normalize4(prior.data() + nq * t + 3);
-  }
-
-  // ----- estimator ----- //
-  Estimator estimator;
-
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 7.3;
-  estimator.band_covariance_ = false;
-
-  // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
-
-  // ----- random covariance ----- //
-  std::vector<double> P(dim_vel * dim_vel);
-  std::vector<double> F(dim_vel * dim_vel);
-
-  // P = F' F
-  for (int i = 0; i < dim_vel * dim_vel; i++) {
-    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
-  }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
-
-  // ----- cost ----- //
-  auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
-                     &weight = estimator.scale_prior_, nq, &P = P,
-                     nv](const double* update) {
-    // residual
-    int dim_res = nv * configuration_length;
-    std::vector<double> residual(dim_res);
-
-    // integrated quaternion
-    std::vector<double> qint(nq);
-
-    // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
-      // terms
-      double* rt = residual.data() + t * nv;
-      double* qt_prior = prior.data() + t * nq;
-      double* qt = configuration.data() + t * nq;
-
-      // ----- integrate ----- //
-      mju_copy(qint.data(), qt, nq);
-      const double* dq = update + t * nv;
-      mj_integratePos(model, qint.data(), dq, 1.0);
-
-      // configuration difference
-      mj_differentiatePos(model, rt, 1.0, qt_prior, qint.data());
-    }
-
-    // ----- 0.5 * w * r' * P * r ----- //
-
-    // scratch
-    std::vector<double> scratch(dim_res);
-    mju_mulMatVec(scratch.data(), P.data(), residual.data(), dim_res, dim_res);
-
-    // weighted cost
-    return 0.5 * weight / dim_res *
-           mju_dot(residual.data(), scratch.data(), dim_res);
-  };
-
-  // ----- lambda ----- //
-
-  // cost
-  std::vector<double> update(dim_vel);
-  mju_zero(update.data(), dim_vel);
-  double cost_lambda = cost_prior(update.data());
-
-  // gradient
-  FiniteDifferenceGradient fdg(dim_vel);
-  fdg.Compute(cost_prior, update.data(), dim_vel);
-
-  // ----- estimator ----- //
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
-           dim_vel * dim_vel);  // copy random covariance
-
-  estimator.ResidualPrior();
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
-
-  double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
-
-  // ----- error ----- //
-
-  // cost
-  double cost_error = cost_estimator - cost_lambda;
-  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
-
-  // gradient
-  std::vector<double> gradient_error(dim_vel);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
-
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
-
-TEST(ApproximatePriorCost, Particle) {
-  // load model
-  // note: needs to be a linear system to satisfy Gauss-Newton Hessian
-  // approximation
-  mjModel* model = LoadTestModel("estimator/particle/task.xml");
-  mjData* data = mj_makeData(model);
-
-  // dimension
-  int nq = model->nq, nv = model->nv;
-
-  // ----- configurations ----- //
-  int T = 5;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  absl::BitGen gen_;
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-  }
+  // ----- rollout ----- //
+  int T = 10;
+  Simulation sim(model, T);
+  auto controller = [](double* ctrl, double time) {};
+  double qvel[6] = {0.1, 0.2, -0.3, 0.25, -0.35, 0.1};
+  sim.SetState(data->qpos, qvel);
+  sim.Rollout(controller);
 
   // ----- estimator ----- //
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 7.3;
-  estimator.skip_update_prior_weight = true;
+  estimator.scale_prior_ = 5.0;
+  estimator.band_prior_ = false;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
+  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
 
-  // ----- random covariance ----- //
-  std::vector<double> P(dim_vel * dim_vel);
-  std::vector<double> F(dim_vel * dim_vel);
+  // corrupt configurations
+  absl::BitGen gen_;
+  double dq[6];
+  for (int t = 0; t < T; t++) {
+    double* q = estimator.configuration_.Get(t);
+    for (int i = 0; i < nq; i++) {
+      dq[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
+    mj_integratePos(model, q, dq, model->opt.timestep);
+  }
+
+  // ----- random prior ----- //
+  int nvar = nv * T;
+  std::vector<double> P(nvar * nvar);
+  std::vector<double> F(nvar * nvar);
 
   // P = F' F
-  for (int i = 0; i < dim_vel * dim_vel; i++) {
+  for (int i = 0; i < nvar * nvar; i++) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
-  DenseToBlockBand(P.data(), dim_vel, nv, 3);
+  mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
+  std::vector<double> P_band(nvar * nvar);
+  mju_dense2Band(P_band.data(), P.data(), nvar, 3 * nv, 0);
 
-  // convert to band
-  // TODO(taylor): P_band nnz initialize (and copy below)
-  int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
-  std::vector<double> P_band(nnz);
-  mju_dense2Band(P_band.data(), P.data(), dim_vel, 3 * nv, 0);
+  // set prior
+  mju_copy(estimator.weight_prior_band_.data(), P_band.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&prior, &configuration_length = T,
-                     &weight = estimator.scale_prior_, nq, &P_band = P_band,
-                     nv](const double* configuration) {
+  auto cost_prior = [&estimator = estimator](const double* update) {
     // dimension
-    int dim_res = nv * configuration_length;
+    int nq = estimator.model_->nq;
+    int nv = estimator.model_->nv;
+    int T = estimator.configuration_length_;
+    int nvar = estimator.model_->nv * estimator.configuration_length_;
+
+    // configuration + update
+    std::vector<double> configuration(nq * T);
+    mju_copy(configuration.data(), estimator.configuration_.Data(), nq * T);
+    for (int t = 0; t < T; t++) {
+      double* q = configuration.data() + nq * t;
+      const double* dq = update + nv * t;
+      mj_integratePos(estimator.model_, q, dq, 1.0);
+    }
+
 
     // residual
-    std::vector<double> residual(dim_res);
+    std::vector<double> residual(nvar);
 
     // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
+    for (int t = 0; t < T; t++) {
       // terms
       double* rt = residual.data() + t * nv;
-      double* qt_prior = prior.data() + t * nq;
-      const double* qt = configuration + t * nq;
+      double* qt_prior = estimator.configuration_prior_.Get(t);
+      const double* qt = configuration.data() + t * nq;
 
       // configuration difference
       mju_sub(rt, qt, qt_prior, nv);
@@ -560,40 +327,40 @@ TEST(ApproximatePriorCost, Particle) {
     // ----- 0.5 * w * r' * P * r ----- //
 
     // scratch
-    std::vector<double> scratch(dim_res);
-    mju_bandMulMatVec(scratch.data(), P_band.data(), residual.data(), dim_res,
-                      3 * nv, 0, 1, true);
+    std::vector<double> scratch(nvar);
+    mju_mulMatVec(scratch.data(), estimator.weight_prior_dense_.data(),
+                  residual.data(), nvar, nvar);
 
     // weighted cost
-    return 0.5 * weight / dim_res *
-           mju_dot(residual.data(), scratch.data(), dim_res);
+    return 0.5 * estimator.scale_prior_ / nvar *
+           mju_dot(residual.data(), scratch.data(), nvar);
   };
 
   // ----- lambda ----- //
+  
+  // update 
+  std::vector<double> update(nv * T);
+  mju_zero(update.data(), nv * T);
 
   // cost
-  double cost_lambda = cost_prior(configuration.data());
+  double cost_lambda = cost_prior(update.data());
 
   // gradient
-  FiniteDifferenceGradient fdg(dim_vel);
-  fdg.Compute(cost_prior, configuration.data(), dim_vel);
+  FiniteDifferenceGradient fdg(nvar);
+  fdg.Compute(cost_prior, update.data(), nvar);
 
   // Hessian
-  FiniteDifferenceHessian fdh(dim_vel);
-  fdh.Compute(cost_prior, configuration.data(), dim_vel);
+  FiniteDifferenceHessian fdh(nvar);
+  fdh.Compute(cost_prior, update.data(), nvar);
 
   // ----- estimator ----- //
-  estimator.band_covariance_ = true;
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
-           dim_vel * dim_vel);  // copy random covariance
-  mju_copy(estimator.weight_prior_band_.data(), P_band.data(),
-           nnz);  // copy random covariance
   estimator.ResidualPrior();
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
     estimator.SetBlockPrior(t);
   }
 
+  // evaluate cost
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
                           estimator.cost_hessian_prior_.data());
@@ -601,155 +368,13 @@ TEST(ApproximatePriorCost, Particle) {
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
-  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
+  EXPECT_NEAR(cost_estimator - cost_lambda, 0.0, 1.0e-4);
 
   // gradient
-  std::vector<double> gradient_error(dim_vel);
+  std::vector<double> gradient_error(nvar);
   mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
-
-  // Hessian
-  std::vector<double> hessian_error(dim_vel * dim_vel);
-  mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
-          fdh.hessian.data(), dim_vel * dim_vel);
-  EXPECT_NEAR(
-      mju_norm(hessian_error.data(), dim_vel * dim_vel) / (dim_vel * dim_vel),
-      0.0, 1.0e-3);
-
-  // delete data + model
-  mj_deleteData(data);
-  mj_deleteModel(model);
-}
-
-TEST(ApproximatePriorCost, Box) {
-  // load model
-  mjModel* model = LoadTestModel("estimator/box/task0.xml");
-  mjData* data = mj_makeData(model);
-
-  // dimension
-  int nq = model->nq, nv = model->nv;
-
-  // ----- configurations ----- //
-  int T = 5;
-  int dim_pos = nq * T;
-  int dim_vel = nv * T;
-  std::vector<double> configuration(dim_pos);
-  std::vector<double> prior(dim_pos);
-
-  // random initialization
-  absl::BitGen gen_;
-  for (int t = 0; t < T; t++) {
-    for (int i = 0; i < nq; i++) {
-      configuration[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-      prior[nq * t + i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
-    }
-    // normalize quaternion
-    mju_normalize4(configuration.data() + nq * t + 3);
-    mju_normalize4(prior.data() + nq * t + 3);
-  }
-
-  // ----- estimator ----- //
-  Estimator estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 7.3;
-  estimator.skip_update_prior_weight = true;
-
-  // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
-  mju_copy(estimator.configuration_prior_.Data(), prior.data(), dim_pos);
-
-  // ----- random covariance ----- //
-  std::vector<double> P(dim_vel * dim_vel);
-  std::vector<double> F(dim_vel * dim_vel);
-
-  // P = F' F
-  for (int i = 0; i < dim_vel * dim_vel; i++) {
-    F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
-  }
-  mju_mulMatTMat(P.data(), F.data(), F.data(), dim_vel, dim_vel, dim_vel);
-  DenseToBlockBand(P.data(), dim_vel, nv, 3);
-
-  // convert to band
-  // TODO(taylor): P_band nnz initialize (and copy below)
-  int nnz = BandMatrixNonZeros(dim_vel, 3 * nv);
-  std::vector<double> P_band(nnz);
-  mju_dense2Band(P_band.data(), P.data(), dim_vel, 3 * nv, 0);
-
-  // ----- cost ----- //
-  auto cost_prior = [&configuration, &prior, &configuration_length = T, &model,
-                     &weight = estimator.scale_prior_, nq, &P_band = P_band,
-                     nv](const double* update) {
-    // residual
-    int dim_res = nv * configuration_length;
-    std::vector<double> residual(dim_res);
-
-    // integrated quaternion
-    std::vector<double> qint(nq);
-
-    // loop over configurations
-    for (int t = 0; t < configuration_length; t++) {
-      // terms
-      double* rt = residual.data() + t * nv;
-      double* qt_prior = prior.data() + t * nq;
-      double* qt = configuration.data() + t * nq;
-
-      // ----- integrate ----- //
-      mju_copy(qint.data(), qt, nq);
-      const double* dq = update + t * nv;
-      mj_integratePos(model, qint.data(), dq, 1.0);
-
-      // configuration difference
-      mj_differentiatePos(model, rt, 1.0, qt_prior, qint.data());
-    }
-
-    // ----- 0.5 * w * r' * P * r ----- //
-
-    // scratch
-    std::vector<double> scratch(dim_res);
-    mju_bandMulMatVec(scratch.data(), P_band.data(), residual.data(), dim_res,
-                      3 * nv, 0, 1, true);
-
-    // weighted cost
-    return 0.5 * weight / dim_res *
-           mju_dot(residual.data(), scratch.data(), dim_res);
-  };
-
-  // ----- lambda ----- //
-
-  // cost
-  std::vector<double> update(dim_vel);
-  mju_zero(update.data(), dim_vel);
-  double cost_lambda = cost_prior(update.data());
-
-  // gradient
-  FiniteDifferenceGradient fdg(dim_vel);
-  fdg.Compute(cost_prior, update.data(), dim_vel);
-
-  // ----- estimator ----- //
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(), dim_vel * dim_vel);
-  mju_copy(estimator.weight_prior_band_.data(), P_band.data(), nnz);
-  estimator.ResidualPrior();
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
-  double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(), NULL);
-
-  // ----- error ----- //
-
-  // cost
-  double cost_error = cost_estimator - cost_lambda;
-  EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
-
-  // gradient
-  std::vector<double> gradient_error(dim_vel);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
-          fdg.gradient.data(), dim_vel);
-  EXPECT_NEAR(mju_norm(gradient_error.data(), dim_vel) / dim_vel, 0.0, 1.0e-3);
+          fdg.gradient.data(), nvar);
+  EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // delete data + model
   mj_deleteData(data);

@@ -1,5 +1,5 @@
 <mujoco>
-  <option timestep="0.01"> </option>
+  <option timestep="0.005"> </option>
 
   <custom>
     <numeric name="estimator_configuration_length" data="32" />

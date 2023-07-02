@@ -415,7 +415,7 @@ class Estimator {
   bool verbose_optimize_ = false;           // flag for printing optimize status
   bool verbose_cost_ = false;               // flag for printing cost
   bool verbose_prior_ = false;              // flag for printing prior weight update status
-  bool band_covariance_ = true;             // approximate covariance for prior
+  bool band_prior_ = true;                  // approximate covariance for prior
   double step_scaling_ = 0.5;               // step size scaling
   double regularization_initial_ = 1.0e-12;  // initial regularization
   double regularization_scaling_ = 2.0;    // regularization scaling

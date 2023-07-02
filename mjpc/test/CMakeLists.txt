@@ -55,6 +55,13 @@ target_compile_definitions(lqr PUBLIC MJSTATIC)
 target_link_libraries(lqr PUBLIC mujoco::mujoco)
 target_include_directories(lqr PRIVATE ${mujoco_SOURCE_DIR}/include gmock)
 
+# simulation
+add_library(simulation STATIC simulation.h simulation.cc)
+target_include_directories(simulation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+target_compile_definitions(simulation PUBLIC MJSTATIC)
+target_link_libraries(simulation PUBLIC mujoco::mujoco)
+target_include_directories(simulation PRIVATE ${mujoco_SOURCE_DIR}/include gmock)
+
 enable_testing()
 
 add_subdirectory(agent)

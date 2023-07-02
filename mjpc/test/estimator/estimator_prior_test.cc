@@ -251,11 +251,10 @@ TEST(PriorCost, Particle) {
 
   // ----- estimator ----- //
   Estimator estimator;
-  estimator.band_covariance_ = false;
-
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
+  estimator.band_covariance_ = false;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -317,14 +316,14 @@ TEST(PriorCost, Particle) {
   fdh.Compute(cost_prior, configuration.data(), dim_vel);
 
   // ----- estimator ----- //
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
-           dim_vel * dim_vel);  // copy random covariance
-
   estimator.ResidualPrior();
   for (int t = 0; t < estimator.configuration_length_; t++) {
     estimator.BlockPrior(t);
     estimator.SetBlockPrior(t);
   }
+
+  mju_copy(estimator.weight_prior_dense_.data(), P.data(),
+           dim_vel * dim_vel);
 
   double cost_estimator =
       estimator.CostPrior(estimator.cost_gradient_prior_.data(),
@@ -384,11 +383,11 @@ TEST(PriorCost, Box) {
 
   // ----- estimator ----- //
   Estimator estimator;
-  estimator.band_covariance_ = false;
 
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
+  estimator.band_covariance_ = false;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -514,6 +513,7 @@ TEST(ApproximatePriorCost, Particle) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
+  estimator.skip_update_prior_weight = true;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);
@@ -655,6 +655,7 @@ TEST(ApproximatePriorCost, Box) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior_ = 7.3;
+  estimator.skip_update_prior_weight = true;
 
   // copy configuration, prior
   mju_copy(estimator.configuration_.Data(), configuration.data(), dim_pos);

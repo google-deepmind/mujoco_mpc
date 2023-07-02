@@ -571,7 +571,7 @@ grpc::Status EstimatorService::Shift(grpc::ServerContext* context,
   estimator_.ShiftTrajectoryHead(request->shift());
 
   // get head index
-  response->set_head(estimator_.configuration_.head_index_);
+  response->set_head(estimator_.configuration_.Head());
 
   return grpc::Status::OK;
 }

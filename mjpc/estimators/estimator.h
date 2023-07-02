@@ -59,7 +59,7 @@ class Estimator {
   ~Estimator() {}
 
   // initialize
-  void Initialize(mjModel* model);  // TODO(taylor): const
+  void Initialize(mjModel* model);
 
   // set configuration length
   void SetConfigurationLength(int length);

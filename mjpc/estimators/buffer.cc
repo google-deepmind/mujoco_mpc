@@ -50,65 +50,65 @@ void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl,
 // reset
 void Buffer::Reset() {
   sensor_.Reset();
-  sensor_.length_ = 0;
+  sensor_.SetLength(0);
 
   // sensor mask
   sensor_mask_.Reset();
-
-  // TODO(etom): use a public interface:
-  sensor_mask_.length_ = 0;
+  sensor_mask_.SetLength(0);
 
   // mask
   // ctrl
   std::fill(mask_.begin(), mask_.end(), 1);  // set to true
-
   ctrl_.Reset();
-  // time
-  ctrl_.length_ = 0;
+  ctrl_.SetLength(0);
 
+  // time
   time_.Reset();
-  time_.length_ = 0;
+  time_.SetLength(0);
 }
 
 // update
 void Buffer::Update(const double* sensor, const int* mask, const double* ctrl,
                     double time) {
-  if (time_.length_ <= max_length_) {  // fill buffer
+  if (time_.Length() <= max_length_) {  // fill buffer
     // time
-    time_.data_[time_.length_++] = time;
+    time_.Data()[time_.Length()] = time;
+    time_.SetLength(time_.Length() + 1);
 
     // ctrl
-    int nu = ctrl_.dim_;
-    mju_copy(ctrl_.data_.data() + ctrl_.length_ * nu, ctrl, nu);
-    ctrl_.length_++;
+    int nu = ctrl_.Dimension();
+    mju_copy(ctrl_.Data() + ctrl_.Length() * nu, ctrl, nu);
+    ctrl_.SetLength(ctrl_.Length() + 1);
 
     // sensor
-    int ns = sensor_.dim_;
-    mju_copy(sensor_.data_.data() + sensor_.length_ * ns, sensor, ns);
-    sensor_.length_++;
+    int ns = sensor_.Dimension();
+    mju_copy(sensor_.Data() + sensor_.Length() * ns, sensor, ns);
+    sensor_.SetLength(sensor_.Length() + 1);
 
     // TODO(taylor): external method must set mask
-    int num_sensor = sensor_mask_.dim_;
-    std::memcpy(sensor_mask_.data_.data() + sensor_mask_.length_ * num_sensor,
+    int num_sensor = sensor_mask_.Dimension();
+    std::memcpy(sensor_mask_.Data() + sensor_mask_.Length() * num_sensor,
                 mask, num_sensor * sizeof(int));
-    sensor_mask_.length_++;
+    sensor_mask_.SetLength(sensor_mask_.Length() + 1);
+
   } else {  // update buffer
     // time
-    time_.ShiftHeadIndex(1);
-    time_.Set(&time, time_.length_ - 1);
+    time_.Shift(1);
+    time_.Set(&time, time_.Length() - 1);
 
     // ctrl
-    ctrl_.ShiftHeadIndex(1);
-    ctrl_.Set(ctrl, ctrl_.length_ - 1);
+    ctrl_.Shift(1);
+    ctrl_.Set(ctrl, ctrl_.Length() - 1);
 
     // sensor
-    sensor_.ShiftHeadIndex(1);
-    sensor_.Set(sensor, sensor_.length_ - 1);
+    sensor_.Shift(1);
+    sensor_.Set(sensor, sensor_.Length() - 1);
 
     // TODO(taylor): external method must set mask
-    sensor_mask_.ShiftHeadIndex(1);
-    sensor_mask_.Set(mask, sensor_.length_ - 1);
+    sensor_mask_.Shift(1);
+    sensor_mask_.Set(mask, sensor_.Length() - 1);
   }
+
   // update mask
 }
 
@@ -118,22 +118,22 @@ void Buffer::UpdateMask() {
 }
 
 void Buffer::Print() {
-  for (int i = 0; i < time_.length_; i++) {
+  for (int i = 0; i < time_.Length(); i++) {
     printf("(%i)\n\n", i);
     printf("time = %.4f\n\n", *time_.Get(i));
     printf("sensor = ");
-    mju_printMat(sensor_.Get(i), 1, sensor_.dim_);
+    mju_printMat(sensor_.Get(i), 1, sensor_.Dimension());
     printf("sensor mask = ");
-    for (int j = 0; j < sensor_mask_.dim_; j++)
+    for (int j = 0; j < sensor_mask_.Dimension(); j++)
       printf("%i ", sensor_mask_.Get(i)[j]);
     printf("\n");
     printf("ctrl = ");
-    mju_printMat(ctrl_.Get(i), 1, ctrl_.dim_);
+    mju_printMat(ctrl_.Get(i), 1, ctrl_.Dimension());
     printf("\n");
   }
 }
 
 // length
-int Buffer::Length() const { return time_.length_; }
+int Buffer::Length() const { return time_.Length(); }
 
 }  // namespace mjpc

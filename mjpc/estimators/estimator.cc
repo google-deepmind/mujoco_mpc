@@ -273,54 +273,54 @@ void Estimator::SetConfigurationLength(int length) {
   prediction_length_ = configuration_length_ - 2;
 
   // update trajectory lengths
-  configuration_.length_ = length;
-  configuration_copy_.length_ = length;
+  configuration_.SetLength(length);
+  configuration_copy_.SetLength(length);
 
-  velocity_.length_ = length;
-  acceleration_.length_ = length;
-  time_.length_ = length;
+  velocity_.SetLength(length);
+  acceleration_.SetLength(length);
+  time_.SetLength(length);
 
-  ctrl_.length_ = length;
+  ctrl_.SetLength(length);
 
-  configuration_prior_.length_ = length;
+  configuration_prior_.SetLength(length);
 
-  sensor_measurement_.length_ = length;
-  sensor_prediction_.length_ = length;
-  sensor_mask_.length_ = length;
+  sensor_measurement_.SetLength(length);
+  sensor_prediction_.SetLength(length);
+  sensor_mask_.SetLength(length);
 
-  force_measurement_.length_ = length;
-  force_prediction_.length_ = length;
+  force_measurement_.SetLength(length);
+  force_prediction_.SetLength(length);
 
-  block_prior_current_configuration_.length_ = length;
+  block_prior_current_configuration_.SetLength(length);
 
-  block_sensor_configuration_.length_ = prediction_length_;
-  block_sensor_velocity_.length_ = prediction_length_;
-  block_sensor_acceleration_.length_ = prediction_length_;
+  block_sensor_configuration_.SetLength(prediction_length_);
+  block_sensor_velocity_.SetLength(prediction_length_);
+  block_sensor_acceleration_.SetLength(prediction_length_);
 
-  block_sensor_previous_configuration_.length_ = prediction_length_;
-  block_sensor_current_configuration_.length_ = prediction_length_;
-  block_sensor_next_configuration_.length_ = prediction_length_;
-  block_sensor_configurations_.length_ = prediction_length_;
+  block_sensor_previous_configuration_.SetLength(prediction_length_);
+  block_sensor_current_configuration_.SetLength(prediction_length_);
+  block_sensor_next_configuration_.SetLength(prediction_length_);
+  block_sensor_configurations_.SetLength(prediction_length_);
 
-  block_sensor_scratch_.length_ = prediction_length_;
+  block_sensor_scratch_.SetLength(prediction_length_);
 
-  block_force_configuration_.length_ = prediction_length_;
-  block_force_velocity_.length_ = prediction_length_;
-  block_force_acceleration_.length_ = prediction_length_;
+  block_force_configuration_.SetLength(prediction_length_);
+  block_force_velocity_.SetLength(prediction_length_);
+  block_force_acceleration_.SetLength(prediction_length_);
 
-  block_force_previous_configuration_.length_ = prediction_length_;
-  block_force_current_configuration_.length_ = prediction_length_;
-  block_force_next_configuration_.length_ = prediction_length_;
-  block_force_configurations_.length_ = prediction_length_;
+  block_force_previous_configuration_.SetLength(prediction_length_);
+  block_force_current_configuration_.SetLength(prediction_length_);
+  block_force_next_configuration_.SetLength(prediction_length_);
+  block_force_configurations_.SetLength(prediction_length_);
 
-  block_force_scratch_.length_ = prediction_length_;
+  block_force_scratch_.SetLength(prediction_length_);
 
-  block_velocity_previous_configuration_.length_ = length - 1;
-  block_velocity_current_configuration_.length_ = length - 1;
+  block_velocity_previous_configuration_.SetLength(length - 1);
+  block_velocity_current_configuration_.SetLength(length - 1);
 
-  block_acceleration_previous_configuration_.length_ = prediction_length_;
-  block_acceleration_current_configuration_.length_ = prediction_length_;
-  block_acceleration_next_configuration_.length_ = prediction_length_;
+  block_acceleration_previous_configuration_.SetLength(prediction_length_);
+  block_acceleration_current_configuration_.SetLength(prediction_length_);
+  block_acceleration_next_configuration_.SetLength(prediction_length_);
 
   // state index
   state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
@@ -335,54 +335,54 @@ void Estimator::SetConfigurationLength(int length) {
 // shift trajectory heads
 void Estimator::ShiftTrajectoryHead(int shift) {
   // update trajectory lengths
-  configuration_.ShiftHeadIndex(shift);
-  configuration_copy_.ShiftHeadIndex(shift);
+  configuration_.Shift(shift);
+  configuration_copy_.Shift(shift);
 
-  velocity_.ShiftHeadIndex(shift);
-  acceleration_.ShiftHeadIndex(shift);
-  time_.ShiftHeadIndex(shift);
+  velocity_.Shift(shift);
+  acceleration_.Shift(shift);
+  time_.Shift(shift);
 
-  ctrl_.ShiftHeadIndex(shift);
+  ctrl_.Shift(shift);
 
-  configuration_prior_.ShiftHeadIndex(shift);
+  configuration_prior_.Shift(shift);
 
-  sensor_measurement_.ShiftHeadIndex(shift);
-  sensor_prediction_.ShiftHeadIndex(shift);
-  sensor_mask_.ShiftHeadIndex(shift);
+  sensor_measurement_.Shift(shift);
+  sensor_prediction_.Shift(shift);
+  sensor_mask_.Shift(shift);
 
-  force_measurement_.ShiftHeadIndex(shift);
-  force_prediction_.ShiftHeadIndex(shift);
+  force_measurement_.Shift(shift);
+  force_prediction_.Shift(shift);
 
-  block_prior_current_configuration_.ShiftHeadIndex(shift);
+  block_prior_current_configuration_.Shift(shift);
 
-  block_sensor_configuration_.ShiftHeadIndex(shift);
-  block_sensor_velocity_.ShiftHeadIndex(shift);
-  block_sensor_acceleration_.ShiftHeadIndex(shift);
+  block_sensor_configuration_.Shift(shift);
+  block_sensor_velocity_.Shift(shift);
+  block_sensor_acceleration_.Shift(shift);
 
-  block_sensor_previous_configuration_.ShiftHeadIndex(shift);
-  block_sensor_current_configuration_.ShiftHeadIndex(shift);
-  block_sensor_next_configuration_.ShiftHeadIndex(shift);
-  block_sensor_configurations_.ShiftHeadIndex(shift);
+  block_sensor_previous_configuration_.Shift(shift);
+  block_sensor_current_configuration_.Shift(shift);
+  block_sensor_next_configuration_.Shift(shift);
+  block_sensor_configurations_.Shift(shift);
 
-  block_sensor_scratch_.ShiftHeadIndex(shift);
+  block_sensor_scratch_.Shift(shift);
 
-  block_force_configuration_.ShiftHeadIndex(shift);
-  block_force_velocity_.ShiftHeadIndex(shift);
-  block_force_acceleration_.ShiftHeadIndex(shift);
+  block_force_configuration_.Shift(shift);
+  block_force_velocity_.Shift(shift);
+  block_force_acceleration_.Shift(shift);
 
-  block_force_previous_configuration_.ShiftHeadIndex(shift);
-  block_force_current_configuration_.ShiftHeadIndex(shift);
-  block_force_next_configuration_.ShiftHeadIndex(shift);
-  block_force_configurations_.ShiftHeadIndex(shift);
+  block_force_previous_configuration_.Shift(shift);
+  block_force_current_configuration_.Shift(shift);
+  block_force_next_configuration_.Shift(shift);
+  block_force_configurations_.Shift(shift);
 
-  block_force_scratch_.ShiftHeadIndex(shift);
+  block_force_scratch_.Shift(shift);
 
-  block_velocity_previous_configuration_.ShiftHeadIndex(shift);
-  block_velocity_current_configuration_.ShiftHeadIndex(shift);
+  block_velocity_previous_configuration_.Shift(shift);
+  block_velocity_current_configuration_.Shift(shift);
 
-  block_acceleration_previous_configuration_.ShiftHeadIndex(shift);
-  block_acceleration_current_configuration_.ShiftHeadIndex(shift);
-  block_acceleration_next_configuration_.ShiftHeadIndex(shift);
+  block_acceleration_previous_configuration_.Shift(shift);
+  block_acceleration_current_configuration_.Shift(shift);
+  block_acceleration_next_configuration_.Shift(shift);
 }
 
 // reset memory
@@ -404,7 +404,9 @@ void Estimator::Reset() {
 
   // sensor mask
   sensor_mask_.Reset();
-  std::fill(sensor_mask_.data_.begin(), sensor_mask_.data_.end(), 1);
+  for (int i = 0; i < num_sensor_ * configuration_length_; i++) {
+    sensor_mask_.Data()[i] = 1;
+  }
 
   // force
   force_measurement_.Reset();
@@ -1876,7 +1878,7 @@ void Estimator::InitializeTrajectories(
   // new time
   for (int i = 1; i < configuration_length_ - 1; i++) {
     // buffer index
-    int buffer_index = time.length_ - (configuration_length_ - 1) + i;
+    int buffer_index = time.Length() - (configuration_length_ - 1) + i;
 
     // get time
     time_.Set(&data->time, i);
@@ -1940,7 +1942,7 @@ int Estimator::UpdateTrajectories_(
     int t = i + configuration_length_ - num_new - 1;
 
     // buffer index
-    int b = i + measurement.length_ - num_new;
+    int b = i + measurement.Length() - num_new;
 
     // set measurement
     const double* yi = measurement.Get(b);
@@ -2002,11 +2004,11 @@ int Estimator::UpdateTrajectories(
     const EstimatorTrajectory<double>& ctrl,
     const EstimatorTrajectory<double>& time) {
   // lastest buffer time
-  double time_buffer_last = *time.Get(time.length_ - 1);
+  double time_buffer_last = *time.Get(time.Length() - 1);
 
   // latest estimator time
   double time_estimator_last =
-      *time_.Get(time_.length_ - 2);  // index to latest measurement time
+      *time_.Get(time_.Length() - 2);  // index to latest measurement time
 
   // compute number of new elements
   int num_new =

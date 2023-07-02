@@ -56,7 +56,9 @@ TEST(BatchShift, Particle2D) {
   EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
   EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
   EstimatorTrajectory<int> mask_buffer(model->nsensor, horizon_buffer + 1);
-  std::fill(mask_buffer.data_.begin(), mask_buffer.data_.end(), 1);
+  for (int i = 0; i < model->nsensor * (horizon_buffer + 1); i++) {
+    mask_buffer.Data()[i] = 1;
+  }
   EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
@@ -118,9 +120,9 @@ TEST(BatchShift, Particle2D) {
     // shift
     for (int shift = 0; shift < 5; shift++) {
       // set buffer length
-      ctrl_buffer.length_ = (horizon_estimator - 1) + shift;
-      sensor_buffer.length_ = (horizon_estimator - 1) + shift;
-      time_buffer.length_ = (horizon_estimator - 1) + shift;
+      ctrl_buffer.SetLength((horizon_estimator - 1) + shift);
+      sensor_buffer.SetLength((horizon_estimator - 1) + shift);
+      time_buffer.SetLength((horizon_estimator - 1) + shift);
 
       // update estimator trajectories
       estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,
@@ -199,7 +201,9 @@ TEST(BatchReuse, Particle2D) {
   EstimatorTrajectory<double> qfrc_actuator_buffer(nv, horizon_buffer);
   EstimatorTrajectory<double> sensor_buffer(ns, horizon_buffer + 1);
   EstimatorTrajectory<int> mask_buffer(model->nsensor, horizon_buffer + 1);
-  std::fill(mask_buffer.data_.begin(), mask_buffer.data_.end(), 1);
+  for (int i = 0; i < model->nsensor * (horizon_buffer + 1); i++) {
+    mask_buffer.Data()[i] = 1;
+  }
   EstimatorTrajectory<double> time_buffer(1, horizon_buffer + 1);
 
   // reset
@@ -283,9 +287,9 @@ TEST(BatchReuse, Particle2D) {
   }
 
   // set buffer length
-  ctrl_buffer.length_ = horizon_estimator;
-  sensor_buffer.length_ = horizon_estimator;
-  time_buffer.length_ = horizon_estimator;
+  ctrl_buffer.SetLength(horizon_estimator);
+  sensor_buffer.SetLength(horizon_estimator);
+  time_buffer.SetLength(horizon_estimator);
 
   // update estimator trajectories
   estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,
@@ -310,9 +314,9 @@ TEST(BatchReuse, Particle2D) {
   }
 
   // set buffer length
-  ctrl_buffer.length_ = horizon_estimator + 2;
-  sensor_buffer.length_ = horizon_estimator + 2;
-  time_buffer.length_ = horizon_estimator + 2;
+  ctrl_buffer.SetLength(horizon_estimator + 2);
+  sensor_buffer.SetLength(horizon_estimator + 2);
+  time_buffer.SetLength(horizon_estimator + 2);
 
   // update estimator trajectories
   estimator.UpdateTrajectories(sensor_buffer, mask_buffer, ctrl_buffer,

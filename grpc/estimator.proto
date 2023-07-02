@@ -48,9 +48,9 @@ service Estimator {
   // Get Estimator timing 
   rpc Timing(TimingRequest) returns (TimingResponse);
   // Get Estimator cost gradient
-  rpc CostGradient(CostGradientRequest) returns (CostGradientResponse);
+  rpc TotalGradient(CostGradientRequest) returns (CostGradientResponse);
   // Get Estimator cost Hessian
-  rpc CostHessian(CostHessianRequest) returns (CostHessianResponse);
+  rpc TotalHessian(CostHessianRequest) returns (CostHessianResponse);
   // Estimator prior matrix
   rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
   // Reset Buffer
@@ -80,7 +80,7 @@ message Data {
   repeated double acceleration = 3 [packed = true];
   repeated double time = 4 [packed = true];
   repeated double ctrl = 5 [packed = true];
-  repeated double configuration_prior = 6 [packed = true];
+  repeated double configuration_previous = 6 [packed = true];
   repeated double sensor_measurement = 7 [packed = true];
   repeated double sensor_prediction = 8 [packed = true];
   repeated int32 sensor_mask = 9 [packed = true];

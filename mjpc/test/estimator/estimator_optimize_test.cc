@@ -53,22 +53,22 @@ TEST(BatchOptimize, Particle2D) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), sim.qfrc_actuator.Data(), nv * T);
-  mju_copy(estimator.sensor_measurement_.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // set weights
-  estimator.scale_prior_ = 1.0;
-  estimator.scale_sensor_[0] = 1.0;
-  estimator.scale_force_[0] = 1.0;
+  estimator.scale_prior = 1.0;
+  estimator.scale_sensor[0] = 1.0;
+  estimator.scale_force[0] = 1.0;
 
   // ----- random perturbation ----- //
 
   // randomly perturb
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.Data() + t * nq;
+    double* q = estimator.configuration.Data() + t * nq;
 
     // add noise
     for (int i = 0; i < nq; i++) {
@@ -82,15 +82,15 @@ TEST(BatchOptimize, Particle2D) {
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+  mju_sub(configuration_error.data(), estimator.configuration.Data(),
           sim.qpos.Data(), nq * T);
 
   // test cost decrease
-  EXPECT_LE(estimator.cost_, estimator.cost_initial_);
+  EXPECT_LE(estimator.cost, estimator.cost_initial);
 
   // test gradient tolerance
-  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0,
-              estimator.gradient_tolerance_);
+  EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
+              estimator.gradient_tolerance);
 
   // test recovered configuration trajectory
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
@@ -129,19 +129,19 @@ TEST(BatchOptimize, Box3D) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.time_scaling_ = false;
-  estimator.gradient_tolerance_ = 1.0e-3;
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), sim.qfrc_actuator.Data(), nv * T);
-  mju_copy(estimator.sensor_measurement_.Data(), sim.sensor.Data(), ns * T);
+  estimator.time_scaling = false;
+  estimator.gradient_tolerance = 1.0e-3;
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // ----- random perturbation ----- //
 
   // loop over configurations
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     double dq[6];
     // add noise
     for (int i = 0; i < nv; i++) {
@@ -157,15 +157,15 @@ TEST(BatchOptimize, Box3D) {
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+  mju_sub(configuration_error.data(), estimator.configuration.Data(),
           sim.qpos.Data(), nq * T);
 
   // test cost decrease
-  EXPECT_LE(estimator.cost_, estimator.cost_initial_);
+  EXPECT_LE(estimator.cost, estimator.cost_initial);
 
   // test gradient tolerance
-  EXPECT_NEAR(mju_norm(estimator.cost_gradient_.data(), nv * T) / (nv * T), 0.0,
-              estimator.gradient_tolerance_);
+  EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
+              estimator.gradient_tolerance);
 
   // test configuration trajectory error
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
@@ -214,20 +214,20 @@ TEST(BatchOptimize, Quadruped) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.time_scaling_ = true;
-  estimator.verbose_optimize_ = verbose;
-  estimator.verbose_prior_ = verbose;
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), sim.qfrc_actuator.Data(), nv * T);
-  mju_copy(estimator.sensor_measurement_.Data(), sim.sensor.Data(), ns * T);
+  estimator.time_scaling = true;
+  estimator.verbose_optimize = verbose;
+  estimator.verbose_prior = verbose;
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // ----- random perturbation ----- //
 
   // loop over configurations
   for (int t = 0; t < T; t++) {
     // unpack
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     std::vector<double> noise(nv);
     // add noise
     for (int i = 0; i < nv; i++) {
@@ -239,23 +239,23 @@ TEST(BatchOptimize, Quadruped) {
   }
 
   // settings
-  estimator.max_smoother_iterations_ = 1;
-  estimator.max_line_search_ = 10;
+  estimator.max_smoother_iterations = 1;
+  estimator.max_line_search = 10;
 
   // set weights
-  mju_fill(estimator.scale_sensor_.data(), 1.0, estimator.model_->nsensor);
-  mju_fill(estimator.scale_force_.data(), 1.0, 4);
+  mju_fill(estimator.scale_sensor.data(), 1.0, model->nsensor);
+  mju_fill(estimator.scale_force.data(), 1.0, 4);
 
   // optimize
   estimator.Optimize(pool);
 
   // error
   std::vector<double> configuration_error(nq * T);
-  mju_sub(configuration_error.data(), estimator.configuration_.Data(),
+  mju_sub(configuration_error.data(), estimator.configuration.Data(),
           sim.qpos.Data(), nq * T);
 
   // test cost decrease
-  EXPECT_LE(estimator.cost_, estimator.cost_initial_);
+  EXPECT_LE(estimator.cost, estimator.cost_initial);
 
   // delete data + model
   mj_deleteData(data);

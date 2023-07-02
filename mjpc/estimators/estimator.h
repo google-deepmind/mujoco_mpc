@@ -65,13 +65,153 @@ class Estimator {
   void SetConfigurationLength(int length);
 
   // shift trajectory heads
-  void ShiftTrajectoryHead(int shift);
+  void Shift(int shift);
 
   // reset memory
   void Reset();
 
+  // evaluate configurations
+  void ConfigurationEvaluation(ThreadPool& pool);
+
+  // compute total cost
+  double Cost(double* gradient, double* hessian, ThreadPool& pool);
+
+  // optimize trajectory estimate
+  void Optimize(ThreadPool& pool);
+
+  // initialize trajectories
+  void InitializeTrajectories(const EstimatorTrajectory<double>& measurement,
+                              const EstimatorTrajectory<int>& measurement_mask,
+                              const EstimatorTrajectory<double>& ctrl,
+                              const EstimatorTrajectory<double>& time);
+
+  // update trajectories
+  int UpdateTrajectories_(int num_new,
+                          const EstimatorTrajectory<double>& measurement,
+                          const EstimatorTrajectory<int>& measurement_mask,
+                          const EstimatorTrajectory<double>& ctrl,
+                          const EstimatorTrajectory<double>& time);
+  int UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
+                         const EstimatorTrajectory<int>& measurement_mask,
+                         const EstimatorTrajectory<double>& ctrl,
+                         const EstimatorTrajectory<double>& time);
+
+  // update
+  int Update(const Buffer& buffer, ThreadPool& pool);
+
+  // get configuration length 
+  int ConfigurationLength() { return configuration_length_; }
+  
+  // get prediction length
+  int PredictionLength() { return prediction_length_; }
+
+  // trajectories
+  EstimatorTrajectory<double> configuration;           // nq x T
+  EstimatorTrajectory<double> configuration_previous;  // nq x T
+  EstimatorTrajectory<double> velocity;                // nv x T
+  EstimatorTrajectory<double> acceleration;            // nv x T
+  EstimatorTrajectory<double> time;                    //  1 x T
+  EstimatorTrajectory<double> ctrl;                    // nu x T
+  EstimatorTrajectory<double> sensor_measurement;      // ns x T
+  EstimatorTrajectory<double> sensor_prediction;       // ns x T
+  EstimatorTrajectory<int> sensor_mask;                // num_sensor x T
+  EstimatorTrajectory<double> force_measurement;       // nv x T
+  EstimatorTrajectory<double> force_prediction;        // nv x T
+  
+  // cost
+  double cost_prior;
+  double cost_sensor;
+  double cost_force;
+  double cost;
+  double cost_initial;
+
+  // cost gradient
+  std::vector<double> cost_gradient;          // nv * MAX_HISTORY
+
+  // cost Hessian
+  std::vector<double> cost_hessian;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+
+  // prior weights
+  std::vector<double> weight_prior;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior_band;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+
+  // scale
+  double scale_prior;
+  std::vector<double> scale_sensor;           // num_sensor
+  std::vector<double> scale_force;            // NUM_FORCE_TERMS
+
+  // norms
+  std::vector<NormType> norm_sensor;          // num_sensor
+  NormType norm_force[NUM_FORCE_TERMS];       // NUM_FORCE_TERMS
+
+  // norm parameters
+  std::vector<double> norm_parameters_sensor; // num_sensor x MAX_NORM_PARAMETERS
+  std::vector<double> norm_parameters_force;  // NUM_FORCE_TERMS x MAX_NORM_PARAMETERS
+
+  // status
+  int iterations_smoother_;                 // total smoother iterations after Optimize
+  int iterations_line_search_;              // total line search iterations
+  double gradient_norm_;                    // norm of cost gradient
+  double regularization_;
+  double step_size_;
+
+  // settings
+  bool prior_flag = true;
+  bool sensor_flag = true;
+  bool force_flag = true;
+  int max_line_search = 1000;                // maximum number of line search iterations
+  int max_smoother_iterations = 100;        // maximum number of smoothing iterations
+  double gradient_tolerance = 1.0e-10;     // small gradient tolerance
+  bool verbose_optimize = false;           // flag for printing optimize status
+  bool verbose_cost = false;               // flag for printing cost
+  bool verbose_prior = false;              // flag for printing prior weight update status
+  bool band_prior = true;                  // approximate covariance for prior
+  double step_scaling = 0.5;               // step size scaling
+  double regularization_initial = 1.0e-12;  // initial regularization
+  double regularization_scaling = 2.0;    // regularization scaling
+  bool band_copy = true;                   // copy band matrices by block
+  bool reuse_data = false;                 // flag for resuing data previously computed
+  bool skip_update_prior_weight = false;    // flag for skipping update prior weight
+  bool update_prior_weight = true;         // flag for updating prior weights
+  bool time_scaling = false;               // scale sensor and force costs by time step
+  SearchType search_type;                  // search type (line search, curve search)
+
+  // finite-difference settings
+  struct FiniteDifferenceSettings {
+    double tolerance = 1.0e-7;
+    bool flg_actuation = 1;
+  } finite_difference;
+
+ private:
+  // convert sequence of configurations to velocities, accelerations
+  void ConfigurationToVelocityAcceleration();
+
+  // compute sensor and force predictions via inverse dynamics
+  void InverseDynamicsPrediction(ThreadPool& pool);
+
+  // compute finite-difference velocity, acceleration derivatives
+  void VelocityAccelerationDerivatives();
+
+  // compute inverse dynamics derivatives (via finite difference)
+  void InverseDynamicsDerivatives(ThreadPool& pool);
+
+  // evaluate configurations derivatives
+  void ConfigurationDerivative(ThreadPool& pool);
+
   // prior cost
   double CostPrior(double* gradient, double* hessian);
+
+  // sensor cost
+  double CostSensor(double* gradient, double* hessian);
+
+  // force cost
+  double CostForce(double* gradient, double* hessian);
+
+  // compute total gradient
+  void TotalGradient();
+
+  // compute total Hessian
+  void TotalHessian();
 
   // prior residual
   void ResidualPrior();
@@ -85,9 +225,6 @@ class Estimator {
   // prior Jacobian
   void JacobianPrior(ThreadPool& pool);
 
-  // sensor cost
-  double CostSensor(double* gradient, double* hessian);
-
   // sensor residual
   void ResidualSensor();
 
@@ -99,10 +236,7 @@ class Estimator {
 
   // sensor Jacobian
   void JacobianSensor(ThreadPool& pool);
-
-  // force cost
-  double CostForce(double* gradient, double* hessian);
-
+  
   // force residual
   void ResidualForce();
 
@@ -115,43 +249,22 @@ class Estimator {
   // force Jacobian
   void JacobianForce(ThreadPool& pool);
 
-  // compute sensor and force predictions via inverse dynamics
-  void InverseDynamicsPrediction(ThreadPool& pool);
-
-  // compute inverse dynamics derivatives (via finite difference)
-  void InverseDynamicsDerivatives(ThreadPool& pool);
-
-  // update configuration trajectory
-  void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
-                           const EstimatorTrajectory<double>& configuration,
-                           const double* search_direction, double step_size);
-
-  // convert sequence of configurations to velocities, accelerations
-  void ConfigurationToVelocityAcceleration();
-
-  // compute finite-difference velocity, acceleration derivatives
-  void VelocityAccelerationDerivatives();
-
-  // compute total cost
-  double Cost(ThreadPool& pool);
-
-  // compute total gradient
-  void CostGradient();
-
-  // compute total Hessian
-  void CostHessian();
-
-  // prior weight update
-  void PriorWeightUpdate(ThreadPool& pool);
-
-  // optimize trajectory estimate
-  void Optimize(ThreadPool& pool);
-
   // regularize Hessian
   void Regularize();
 
   // search direction
   void SearchDirection();
+
+   // update configuration trajectory
+  void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
+                           const EstimatorTrajectory<double>& configuration,
+                           const double* search_direction, double step_size);
+
+  // prior weight update
+  void PriorWeightUpdate(ThreadPool& pool);
+
+  // reset timers
+  void ResetTimers();
 
   // print optimize status
   void PrintOptimize();
@@ -162,73 +275,24 @@ class Estimator {
   // print update prior weight status
   void PrintPriorWeightUpdate();
 
-  // reset timers
-  void ResetTimers();
-
-  // get qpos estimate
-  double* GetPosition();
-
-  // get qvel estimate
-  double* GetVelocity();
-
-  // initialize trajectories
-  void InitializeTrajectories(const EstimatorTrajectory<double>& measurement,
-                              const EstimatorTrajectory<int>& measurement_mask,
-                              const EstimatorTrajectory<double>& ctrl,
-                              const EstimatorTrajectory<double>& time);
-
-  // update trajectories
-  int UpdateTrajectories_(int num_new,
-                         const EstimatorTrajectory<double>& measurement,
-                         const EstimatorTrajectory<int>& measurement_mask,
-                         const EstimatorTrajectory<double>& ctrl,
-                         const EstimatorTrajectory<double>& time);
-  int UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
-                         const EstimatorTrajectory<int>& measurement_mask,
-                         const EstimatorTrajectory<double>& ctrl,
-                         const EstimatorTrajectory<double>& time);
-
-  // update
-  int Update(const Buffer& buffer, ThreadPool& pool);
-
-  // get terms from GUI
-  void GetGUI();
-
-  // set terms to GUI
-  void SetGUI();
-
   // model
   mjModel* model_;
 
   // data
   std::vector<UniqueMjData> data_;
 
-  // -- trajectories -- //
+  // lengths
   int configuration_length_;                   // T
   int prediction_length_;                      // T - 2
-  EstimatorTrajectory<double> configuration_;  // nq x T
-  EstimatorTrajectory<double> velocity_;       // nv x T
-  EstimatorTrajectory<double> acceleration_;   // nv x T
-  EstimatorTrajectory<double> time_;           //  1 x T
 
-  // ctrl 
-  EstimatorTrajectory<double> ctrl_;           // nu x T
-
-  // prior
-  EstimatorTrajectory<double> configuration_prior_;  // nq x T
-
-  // sensor
+  // dimensions
   int dim_sensor_;                                   // ns
   int num_sensor_;                                   // num_sensor 
-  int num_free_;
+  int num_free_;                                     // number of free joints
   std::vector<bool> free_dof_;                       // flag indicating free joint dof
-  EstimatorTrajectory<double> sensor_measurement_;   // ns x T
-  EstimatorTrajectory<double> sensor_prediction_;    // ns x T
-  EstimatorTrajectory<int> sensor_mask_;             // num_sensor x T
 
-  // forces
-  EstimatorTrajectory<double> force_measurement_;    // nv x T
-  EstimatorTrajectory<double> force_prediction_;     // nv x T
+  // configuration copy
+  EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
 
   // residual
   std::vector<double> residual_prior_;       // nv x T
@@ -276,24 +340,25 @@ class Estimator {
   EstimatorTrajectory<double> block_acceleration_current_configuration_;  // (nv * nv) x T
   EstimatorTrajectory<double> block_acceleration_next_configuration_;     // (nv * nv) x T
 
-  // cost
-  double cost_prior_;
-  double cost_sensor_;
-  double cost_force_;
-  double cost_;
-  double cost_initial_;
+  // norm gradient
+  std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
+  std::vector<double> norm_gradient_force_;    // nv * MAX_HISTORY
+
+  // norm Hessian
+  std::vector<double> norm_hessian_sensor_;    // (ns * ns * MAX_HISTORY)
+  std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x MAX_HISTORY
+  std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY  
 
   // cost gradient
   std::vector<double> cost_gradient_prior_;    // nv * MAX_HISTORY
   std::vector<double> cost_gradient_sensor_;   // nv * MAX_HISTORY
   std::vector<double> cost_gradient_force_;    // nv * MAX_HISTORY
-  std::vector<double> cost_gradient_;          // nv * MAX_HISTORY
 
   // cost Hessian
   std::vector<double> cost_hessian_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> cost_hessian_band_;      // BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv)
   std::vector<double> cost_hessian_factor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
@@ -305,159 +370,58 @@ class Estimator {
   std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch2_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-
-  // prior weights
-  std::vector<double> weight_prior_dense_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch_prior_weight_;   // 2 * nv * nv
-
-  double scale_prior_;
-
-  // sensor scale
-  std::vector<double> scale_sensor_;           // num_sensor
-
-  // force scale (free, ball, slide, hinge)
-  std::vector<double> scale_force_;            // NUM_FORCE_TERMS
-
-  // cost norms
-  std::vector<NormType> norm_sensor_;          // num_sensor
-  NormType norm_force_[NUM_FORCE_TERMS];       // NUM_FORCE_TERMS
-
-  // cost norm parameters
-  std::vector<double> norm_parameters_sensor_; // num_sensor x MAX_NORM_PARAMETERS
-  std::vector<double> norm_parameters_force_;  // NUM_FORCE_TERMS x MAX_NORM_PARAMETERS
-
-  // norm gradient
-  std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
-  std::vector<double> norm_gradient_force_;    // nv * MAX_HISTORY
-
-  // norm Hessian
-  std::vector<double> norm_hessian_sensor_;    // (ns * ns * MAX_HISTORY)
-  std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x MAX_HISTORY
-  std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY
-
-  // candidate
-  EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
 
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY
-
-  // regularization
-  double regularization_;
-
-  // search type
-  SearchType search_type_;
-  double step_size_;
 
   // initial state 
   std::vector<double> qpos0_;
   std::vector<double> qvel0_;
 
-  // timing
-  double timer_total_;
-  double timer_inverse_dynamics_derivatives_;
-  double timer_velacc_derivatives_;
-  double timer_jacobian_prior_;
-  double timer_jacobian_sensor_;
-  double timer_jacobian_force_;
-  double timer_jacobian_total_;
-  double timer_cost_prior_derivatives_;
-  double timer_cost_sensor_derivatives_;
-  double timer_cost_force_derivatives_;
-  double timer_cost_total_derivatives_;
-  double timer_cost_gradient_;
-  double timer_cost_hessian_;
-  double timer_cost_derivatives_;
-  double timer_cost_;
-  double timer_cost_prior_;
-  double timer_cost_sensor_;
-  double timer_cost_force_;
-  double timer_cost_config_to_velacc_;
-  double timer_cost_prediction_;
-  double timer_residual_prior_;
-  double timer_residual_sensor_;
-  double timer_residual_force_;
-  double timer_search_direction_;
-  double timer_search_;
-  double timer_configuration_update_;
-  double timer_optimize_;
-  double timer_prior_weight_update_;
-  double timer_prior_set_weight_;
-  double timer_update_trajectory_;
-
-  std::vector<double> timer_prior_step_;
-  std::vector<double> timer_sensor_step_;
-  std::vector<double> timer_force_step_;
-
-  // cost flags
-  bool prior_flag_ = true;
-  bool sensor_flag_ = true;
-  bool force_flag_ = true;
-
-  // state index
-  int state_index_;
-
-  // status
-  int iterations_smoother_;                 // total smoother iterations after Optimize
-  int iterations_line_search_;              // total line search iterations
+  // status 
   bool hessian_factor_ = false;             // prior reset status
-  int cost_count_;
-  int num_new_;                             // number of new elements
-  double gradient_norm_;                    // norm of cost gradient
-
+  int cost_count_;                          // number of cost evaluations
+  int num_new_;                             // number of new trajectory elements
   bool initialized_ = false;                // flag for initialization
 
-  // settings
-  int max_line_search_ = 1000;                // maximum number of line search iterations
-  int max_smoother_iterations_ = 100;        // maximum number of smoothing iterations
-  double gradient_tolerance_ = 1.0e-10;     // small gradient tolerance
-  bool verbose_optimize_ = false;           // flag for printing optimize status
-  bool verbose_cost_ = false;               // flag for printing cost
-  bool verbose_prior_ = false;              // flag for printing prior weight update status
-  bool band_prior_ = true;                  // approximate covariance for prior
-  double step_scaling_ = 0.5;               // step size scaling
-  double regularization_initial_ = 1.0e-12;  // initial regularization
-  double regularization_scaling_ = 2.0;    // regularization scaling
-  bool band_copy_ = true;                   // copy band matrices by block
-  bool reuse_data_ = false;                 // flag for resuing data previously computed
-  bool skip_update_prior_weight = false;    // flag for skipping update prior weight
-  bool update_prior_weight_ = true;         // flag for updating prior weights
-  bool time_scaling_ = false;               // scale sensor and force costs by time step
-
-  // finite-difference settings
-  struct FiniteDifferenceSettings {
-    double tolerance = 1.0e-7;
-    bool flg_actuation = 1;
-  } finite_difference_;
-
-  // ----- GUI terms ----- //
-
-  // TODO(taylor): initialize all properly
-
-  // settings
-  int gui_configuration_length_;
-  int gui_max_smoother_iterations_;
-
-  // weights
-  double gui_scale_prior_;
-  std::vector<double> gui_weight_sensor_;
-  std::vector<double> gui_weight_force_;
-
-  // costs
-  double gui_cost_prior_;
-  double gui_cost_sensor_;
-  double gui_cost_force_;
-  double gui_cost_;
-
-  // status
-  double gui_regularization_;
-  double gui_step_size_;
-
   // timers
+  struct EstimatorTimers {
+    double inverse_dynamics_derivatives;
+    double velacc_derivatives;
+    double jacobian_prior;
+    double jacobian_sensor;
+    double jacobian_force;
+    double jacobian_total;
+    double cost_prior_derivatives;
+    double cost_sensor_derivatives;
+    double cost_force_derivatives;
+    double cost_total_derivatives;
+    double cost_gradient;
+    double cost_hessian;
+    double cost_derivatives;
+    double cost;
+    double cost_prior;
+    double cost_sensor;
+    double cost_force;
+    double cost_config_to_velacc;
+    double cost_prediction;
+    double residual_prior;
+    double residual_sensor;
+    double residual_force;
+    double search_direction;
+    double search;
+    double configuration_update;
+    double optimize;
+    double prior_weight_update;
+    double prior_set_weight;
+    double update_trajectory;
+    std::vector<double> prior_step;
+    std::vector<double> sensor_step;
+    std::vector<double> force_step;
+  } timer_;
 
-  // mutex
-  std::mutex mutex_;
+  // ----- GUI ----- //
 };
 
 }  // namespace mjpc

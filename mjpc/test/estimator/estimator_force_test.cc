@@ -51,36 +51,32 @@ TEST(ForceCost, Particle) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.scale_force_[0] = 1.0e-4;
-  estimator.scale_force_[1] = 2.0e-4;
-  estimator.scale_force_[2] = 3.0e-4;
+  estimator.scale_force[0] = 1.0e-4;
+  estimator.scale_force[1] = 2.0e-4;
+  estimator.scale_force[2] = 3.0e-4;
 
   // TODO(taylor): test norms
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&estimator =
-                                    estimator](const double* configuration) {
-    // model + data
-    mjModel* model = estimator.model_;
-    mjData* data = mj_makeData(model);
-
+  auto cost_inverse_dynamics = [&estimator = estimator, &model = model,
+                                &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * estimator.prediction_length_;
+    int nres = nv * estimator.PredictionLength();
 
     // velocity
     std::vector<double> v1(nv);
@@ -96,7 +92,7 @@ TEST(ForceCost, Particle) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.prediction_length_; k++) {
+    for (int k = 0; k < estimator.PredictionLength(); k++) {
       // time index
       int t = k + 1;
 
@@ -105,7 +101,7 @@ TEST(ForceCost, Particle) {
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
-      double* f1 = estimator.force_measurement_.Get(t);
+      double* f1 = estimator.force_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -128,14 +124,14 @@ TEST(ForceCost, Particle) {
 
       // weight
       double weight =
-          estimator.scale_force_[0] / nv / estimator.prediction_length_;
+          estimator.scale_force[0] / nv / estimator.PredictionLength();
 
       // parameters
       double* pk =
-          estimator.norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0;
+          estimator.norm_parameters_force.data() + MAX_NORM_PARAMETERS * 0;
 
       // norm
-      NormType normk = estimator.norm_force_[0];
+      NormType normk = estimator.norm_force[0];
 
       // add weighted norm
       cost += weight * Norm(NULL, NULL, rk, pk, nv, normk);
@@ -151,31 +147,23 @@ TEST(ForceCost, Particle) {
   int nvar = nv * T;
 
   // cost
-  double cost_lambda = cost_inverse_dynamics(estimator.configuration_.Data());
+  double cost_lambda = cost_inverse_dynamics(estimator.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_inverse_dynamics, estimator.configuration_.Data(), nvar);
+  fdg.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_inverse_dynamics, estimator.configuration_.Data(), nvar);
+  fdh.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
-  estimator.ResidualForce();
-  for (int k = 0; k < estimator.prediction_length_; k++) {
-    estimator.BlockForce(k);
-    estimator.SetBlockForce(k);
-  }
-
   // cost
-  double cost_estimator =
-      estimator.CostForce(estimator.cost_gradient_force_.data(),
-                          estimator.cost_hessian_force_.data());
+  estimator.prior_flag = false;
+  estimator.sensor_flag = false;
+  estimator.force_flag = true;
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -185,13 +173,13 @@ TEST(ForceCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_force_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian_force_.data(),
+  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
           fdh.hessian.data(), nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
@@ -226,21 +214,21 @@ TEST(ForceCost, Box) {
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.scale_force_[0] = 1.0e-4;
-  estimator.scale_force_[1] = 2.0e-4;
-  estimator.scale_force_[2] = 3.0e-4;
+  estimator.scale_force[0] = 1.0e-4;
+  estimator.scale_force[1] = 2.0e-4;
+  estimator.scale_force[2] = 3.0e-4;
 
   // TODO(taylor): test norms
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement_.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
       dq[i] = 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
@@ -249,19 +237,16 @@ TEST(ForceCost, Box) {
   }
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&estimator = estimator](const double* update) {
-    // model + data
-    mjModel* model = estimator.model_;
-    mjData* data = mj_makeData(model);
-
+  auto cost_inverse_dynamics = [&estimator = estimator, &model = model,
+                                &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * estimator.prediction_length_;
-    int T = estimator.configuration_length_;
+    int nres = nv * estimator.PredictionLength();
+    int T = estimator.ConfigurationLength();
 
-    // configuration 
+    // configuration
     std::vector<double> configuration(nq * T);
-    mju_copy(configuration.data(), estimator.configuration_.Data(), nq * T);
+    mju_copy(configuration.data(), estimator.configuration.Data(), nq * T);
     for (int t = 0; t < T; t++) {
       double* q = configuration.data() + t * nq;
       const double* dq = update + t * nv;
@@ -282,7 +267,7 @@ TEST(ForceCost, Box) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.prediction_length_; k++) {
+    for (int k = 0; k < estimator.PredictionLength(); k++) {
       // time index
       int t = k + 1;
 
@@ -291,7 +276,7 @@ TEST(ForceCost, Box) {
       const double* q0 = configuration.data() + (t - 1) * nq;
       const double* q1 = configuration.data() + (t + 0) * nq;
       const double* q2 = configuration.data() + (t + 1) * nq;
-      double* f1 = estimator.force_measurement_.Get(t);
+      double* f1 = estimator.force_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -314,14 +299,14 @@ TEST(ForceCost, Box) {
 
       // weight
       double weight =
-          estimator.scale_force_[0] / nv / estimator.prediction_length_;
+          estimator.scale_force[0] / nv / estimator.PredictionLength();
 
       // parameters
       double* pk =
-          estimator.norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0;
+          estimator.norm_parameters_force.data() + MAX_NORM_PARAMETERS * 0;
 
       // norm
-      NormType normk = estimator.norm_force_[0];
+      NormType normk = estimator.norm_force[0];
 
       // add weighted norm
       cost += weight * Norm(NULL, NULL, rk, pk, nv, normk);
@@ -336,7 +321,7 @@ TEST(ForceCost, Box) {
   // problem dimension
   int nvar = nv * T;
 
-  // update 
+  // update
   std::vector<double> update(nvar);
   mju_zero(update.data(), nvar);
 
@@ -352,20 +337,13 @@ TEST(ForceCost, Box) {
   fdh.Compute(cost_inverse_dynamics, update.data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
-  estimator.ResidualForce();
-  for (int k = 0; k < estimator.prediction_length_; k++) {
-    estimator.BlockForce(k);
-    estimator.SetBlockForce(k);
-  }
 
   // cost
-  double cost_estimator =
-      estimator.CostForce(estimator.cost_gradient_force_.data(),
-                          estimator.cost_hessian_force_.data());
+  estimator.prior_flag = false;
+  estimator.sensor_flag = false;
+  estimator.force_flag = true;
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -374,7 +352,7 @@ TEST(ForceCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_force_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 
@@ -382,8 +360,6 @@ TEST(ForceCost, Box) {
   mj_deleteData(data);
   mj_deleteModel(model);
 }
-
-
 
 }  // namespace
 }  // namespace mjpc

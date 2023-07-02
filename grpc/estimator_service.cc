@@ -179,11 +179,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   int nq = estimator_.model_->nq;
   if (input.configuration_size() > 0) {
     CHECK_SIZE("configuration", nq, input.configuration_size());
-    estimator_.configuration_.Set(input.configuration().data(), index);
+    estimator_.configuration.Set(input.configuration().data(), index);
   }
 
   // get configuration
-  double* configuration = estimator_.configuration_.Get(index);
+  double* configuration = estimator_.configuration.Get(index);
   for (int i = 0; i < nq; i++) {
     output->add_configuration(configuration[i]);
   }
@@ -192,11 +192,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   int nv = estimator_.model_->nv;
   if (input.velocity_size() > 0) {
     CHECK_SIZE("velocity", nv, input.velocity_size());
-    estimator_.velocity_.Set(input.velocity().data(), index);
+    estimator_.velocity.Set(input.velocity().data(), index);
   }
 
   // get velocity
-  double* velocity = estimator_.velocity_.Get(index);
+  double* velocity = estimator_.velocity.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_velocity(velocity[i]);
   }
@@ -204,11 +204,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set acceleration
   if (input.acceleration_size() > 0) {
     CHECK_SIZE("acceleration", nv, input.acceleration_size());
-    estimator_.acceleration_.Set(input.acceleration().data(), index);
+    estimator_.acceleration.Set(input.acceleration().data(), index);
   }
 
   // get acceleration
-  double* acceleration = estimator_.acceleration_.Get(index);
+  double* acceleration = estimator_.acceleration.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_acceleration(acceleration[i]);
   }
@@ -216,35 +216,35 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set time
   if (input.time_size() > 0) {
     CHECK_SIZE("time", 1, input.time_size());
-    estimator_.time_.Set(input.time().data(), index);
+    estimator_.time.Set(input.time().data(), index);
   }
 
   // get time
-  double* time = estimator_.time_.Get(index);
+  double* time = estimator_.time.Get(index);
   output->add_time(time[0]);
 
   // set ctrl 
   int nu = estimator_.model_->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    estimator_.ctrl_.Set(input.ctrl().data(), index);
+    estimator_.ctrl.Set(input.ctrl().data(), index);
   }
 
   // get ctrl 
-  double* ctrl = estimator_.ctrl_.Get(index);
+  double* ctrl = estimator_.ctrl.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
 
-  // set configuration prior
+  // set previous configuration
   if (input.configuration_prior_size() > 0) {
-    CHECK_SIZE("configuration_prior", nq, input.configuration_prior_size());
-    estimator_.configuration_prior_.Set(input.configuration_prior().data(),
+    CHECK_SIZE("configuration_previous", nq, input.configuration_prior_size());
+    estimator_.configuration_previous.Set(input.configuration_previous().data(),
                                         index);
   }
 
-  // get configuration prior
-  double* prior = estimator_.configuration_prior_.Get(index);
+  // get configuration previous
+  double* prior = estimator_.configuration_previous.Get(index);
   for (int i = 0; i < nq; i++) {
     output->add_configuration_prior(prior[i]);
   }
@@ -253,12 +253,12 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   int ns = estimator_.dim_sensor_;
   if (input.sensor_measurement_size() > 0) {
     CHECK_SIZE("sensor_measurement", ns, input.sensor_measurement_size());
-    estimator_.sensor_measurement_.Set(input.sensor_measurement().data(),
+    estimator_.sensor_measurement.Set(input.sensor_measurement().data(),
                                        index);
   }
 
   // get sensor measurement
-  double* sensor_measurement = estimator_.sensor_measurement_.Get(index);
+  double* sensor_measurement = estimator_.sensor_measurement.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_measurement(sensor_measurement[i]);
   }
@@ -266,11 +266,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set sensor prediction
   if (input.sensor_prediction_size() > 0) {
     CHECK_SIZE("sensor_prediction", ns, input.sensor_prediction_size());
-    estimator_.sensor_prediction_.Set(input.sensor_prediction().data(), index);
+    estimator_.sensor_prediction.Set(input.sensor_prediction().data(), index);
   }
 
   // get sensor prediction
-  double* sensor_prediction = estimator_.sensor_prediction_.Get(index);
+  double* sensor_prediction = estimator_.sensor_prediction.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_prediction(sensor_prediction[i]);
   }
@@ -279,11 +279,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   int num_sensor = estimator_.num_sensor_;
   if (input.sensor_mask_size() > 0) {
     CHECK_SIZE("sensor_mask", num_sensor, input.sensor_mask_size());
-    estimator_.sensor_mask_.Set(input.sensor_mask().data(), index);
+    estimator_.sensor_mask.Set(input.sensor_mask().data(), index);
   }
 
   // get sensor mask 
-  int* sensor_mask = estimator_.sensor_mask_.Get(index);
+  int* sensor_mask = estimator_.sensor_mask.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor_mask(sensor_mask[i]);
   }
@@ -291,11 +291,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set force measurement
   if (input.force_measurement_size() > 0) {
     CHECK_SIZE("force_measurement", nv, input.force_measurement_size());
-    estimator_.force_measurement_.Set(input.force_measurement().data(), index);
+    estimator_.force_measurement.Set(input.force_measurement().data(), index);
   }
 
   // get force measurement
-  double* force_measurement = estimator_.force_measurement_.Get(index);
+  double* force_measurement = estimator_.force_measurement.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_measurement(force_measurement[i]);
   }
@@ -303,11 +303,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set force prediction
   if (input.force_prediction_size() > 0) {
     CHECK_SIZE("force_prediction", nv, input.force_prediction_size());
-    estimator_.force_prediction_.Set(input.force_prediction().data(), index);
+    estimator_.force_prediction.Set(input.force_prediction().data(), index);
   }
 
   // get force prediction
-  double* force_prediction = estimator_.force_prediction_.Get(index);
+  double* force_prediction = estimator_.force_prediction.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_prediction(force_prediction[i]);
   }
@@ -353,21 +353,21 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.search_type_ = search_type;
+    estimator_.search_type = search_type;
   }
-  output->set_search_type(estimator_.search_type_);
+  output->set_search_type(estimator_.search_type);
 
   // prior flag
-  if (input.has_prior_flag()) estimator_.prior_flag_ = input.prior_flag();
-  output->set_prior_flag(estimator_.prior_flag_);
+  if (input.has_prior_flag()) estimator_.prior_flag = input.prior_flag();
+  output->set_prior_flag(estimator_.prior_flag);
 
   // sensor flag
-  if (input.has_sensor_flag()) estimator_.sensor_flag_ = input.sensor_flag();
-  output->set_sensor_flag(estimator_.sensor_flag_);
+  if (input.has_sensor_flag()) estimator_.sensor_flag = input.sensor_flag();
+  output->set_sensor_flag(estimator_.sensor_flag);
 
   // force flag
-  if (input.has_force_flag()) estimator_.force_flag_ = input.force_flag();
-  output->set_force_flag(estimator_.force_flag_);
+  if (input.has_force_flag()) estimator_.force_flag = input.force_flag();
+  output->set_force_flag(estimator_.force_flag);
 
   // smoother iterations
   if (input.has_smoother_iterations()) {
@@ -380,9 +380,9 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.max_smoother_iterations_ = input.smoother_iterations();
+    estimator_.max_smoother_iterations = input.smoother_iterations();
   }
-  output->set_smoother_iterations(estimator_.max_smoother_iterations_);
+  output->set_smoother_iterations(estimator_.max_smoother_iterations);
 
   // skip prior weight update
   if (input.has_skip_prior_weight_update()) {
@@ -392,27 +392,27 @@ grpc::Status EstimatorService::Settings(
 
   // time scaling
   if (input.has_time_scaling()) {
-    estimator_.time_scaling_ = input.time_scaling();
+    estimator_.time_scaling = input.time_scaling();
   }
-  output->set_time_scaling(estimator_.time_scaling_);
+  output->set_time_scaling(estimator_.time_scaling);
 
   // update prior weight 
   if (input.has_update_prior_weight()) {
-    estimator_.update_prior_weight_ = input.update_prior_weight();
+    estimator_.update_prior_weight = input.update_prior_weight();
   }
-  output->set_update_prior_weight(estimator_.update_prior_weight_);
+  output->set_update_prior_weight(estimator_.update_prior_weight);
 
   // regularization initialization 
   if (input.has_regularization_initial()) {
-    estimator_.regularization_initial_ = input.regularization_initial();
+    estimator_.regularization_initial = input.regularization_initial();
   }
-  output->set_regularization_initial(estimator_.regularization_initial_);
+  output->set_regularization_initial(estimator_.regularization_initial);
 
   // gradient tolerance 
   if (input.has_gradient_tolerance()) {
-    estimator_.gradient_tolerance_ = input.gradient_tolerance();
+    estimator_.gradient_tolerance = input.gradient_tolerance();
   }
-  output->set_gradient_tolerance(estimator_.gradient_tolerance_);
+  output->set_gradient_tolerance(estimator_.gradient_tolerance);
 
   return grpc::Status::OK;
 }
@@ -425,25 +425,25 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   }
 
   // evaluate cost 
-  estimator_.cost_ = estimator_.Cost(thread_pool_);
+  estimator_.cost = estimator_.Cost(thread_pool_);
 
   // costs
   estimator::Cost* cost = response->mutable_cost();
 
   // cost
-  cost->set_total(estimator_.cost_);
+  cost->set_total(estimator_.cost);
 
   // prior cost
-  cost->set_prior(estimator_.cost_prior_);
+  cost->set_prior(estimator_.cost_prior);
 
   // sensor cost
-  cost->set_sensor(estimator_.cost_sensor_);
+  cost->set_sensor(estimator_.cost_sensor);
 
   // force cost
-  cost->set_force(estimator_.cost_force_);
+  cost->set_force(estimator_.cost_force);
 
   // initial cost
-  cost->set_initial(estimator_.cost_initial_);
+  cost->set_initial(estimator_.cost_initial);
 
   return grpc::Status::OK;
 }
@@ -461,28 +461,28 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
 
   // prior
   if (input.has_prior()) {
-    estimator_.scale_prior_ = input.prior();
+    estimator_.scale_prior = input.prior();
   }
-  output->set_prior(estimator_.scale_prior_);
+  output->set_prior(estimator_.scale_prior);
 
   // sensor
   int num_sensor = estimator_.num_sensor_;
   if (input.sensor_size() > 0) {
     CHECK_SIZE("scale_sensor", num_sensor, input.sensor_size());
-    estimator_.scale_sensor_.assign(input.sensor().begin(),
+    estimator_.scale_sensor.assign(input.sensor().begin(),
                                     input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
-    output->add_sensor(estimator_.scale_sensor_[i]);
+    output->add_sensor(estimator_.scale_sensor[i]);
   }
 
   // force
   if (input.force_size() > 0) {
     CHECK_SIZE("scale_force", mjpc::NUM_FORCE_TERMS, input.force_size());
-    estimator_.scale_force_.assign(input.force().begin(), input.force().end());
+    estimator_.scale_force.assign(input.force().begin(), input.force().end());
   }
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-    output->add_force(estimator_.scale_force_[i]);
+    output->add_force(estimator_.scale_force[i]);
   }
 
   return grpc::Status::OK;
@@ -503,16 +503,16 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   int num_sensor = estimator_.num_sensor_;
   if (input.sensor_type_size() > 0) {
     CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
-    estimator_.norm_sensor_.clear();
-    estimator_.norm_sensor_.reserve(num_sensor);
+    estimator_.norm_sensor.clear();
+    estimator_.norm_sensor.reserve(num_sensor);
     for (const auto& sensor_type : input.sensor_type()) {
-      estimator_.norm_sensor_.push_back(
+      estimator_.norm_sensor.push_back(
           static_cast<mjpc::NormType>(sensor_type));
     }
   }
 
   // get sensor type
-  for (const auto& sensor_type : estimator_.norm_sensor_) {
+  for (const auto& sensor_type : estimator_.norm_sensor) {
     output->add_sensor_type(sensor_type);
   }
 
@@ -520,12 +520,12 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   if (input.sensor_parameters_size() > 0) {
     CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
                input.sensor_parameters_size());
-    estimator_.norm_parameters_sensor_.assign(input.sensor_parameters().begin(),
+    estimator_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
                                               input.sensor_parameters().end());
   }
 
   // get sensor parameters
-  for (const auto& sensor_parameters : estimator_.norm_parameters_sensor_) {
+  for (const auto& sensor_parameters : estimator_.norm_parameters_sensor) {
     output->add_sensor_parameters(sensor_parameters);
   }
 
@@ -533,13 +533,13 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   if (input.force_type_size() > 0) {
     CHECK_SIZE("force_type", mjpc::NUM_FORCE_TERMS, input.force_type_size());
     for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-      estimator_.norm_force_[i] =
+      estimator_.norm_force[i] =
           static_cast<mjpc::NormType>(input.force_type(i));
     }
   }
 
   // get force type
-  mjpc::NormType* force_type = estimator_.norm_force_;
+  mjpc::NormType* force_type = estimator_.norm_force;
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
     output->add_force_type(force_type[i]);
   }
@@ -548,13 +548,13 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    estimator_.norm_parameters_force_.assign(
+    estimator_.norm_parameters_force.assign(
         input.force_parameters().begin(), input.force_parameters().end());
   }
 
   // get force parameters
   for (int i = 0; i < nfp; i++) {
-    output->add_force_parameters(estimator_.norm_parameters_force_[i]);
+    output->add_force_parameters(estimator_.norm_parameters_force[i]);
   }
 
   return grpc::Status::OK;
@@ -568,10 +568,10 @@ grpc::Status EstimatorService::Shift(grpc::ServerContext* context,
   }
 
   // shift
-  estimator_.ShiftTrajectoryHead(request->shift());
+  estimator_.Shift(request->shift());
 
   // get head index
-  response->set_head(estimator_.configuration_.Head());
+  response->set_head(estimator_.configuration.Head());
 
   return grpc::Status::OK;
 }
@@ -597,8 +597,8 @@ grpc::Status EstimatorService::InitializeData(
   }
 
   // initialize trajectories with buffer data
-  estimator_.InitializeTrajectories(buffer_.sensor_, buffer_.sensor_mask_,
-                                    buffer_.ctrl_, buffer_.time_);
+  estimator_.InitializeTrajectories(buffer_.sensor_, buffer_.sensor_mask,
+                                    buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
 }
@@ -617,8 +617,8 @@ grpc::Status EstimatorService::UpdateData(
   }
 
   // update trajectories with num_new most recent elements from buffer
-  estimator_.UpdateTrajectories_(num_new, buffer_.sensor_, buffer_.sensor_mask_,
-                                 buffer_.ctrl_, buffer_.time_);
+  estimator_.UpdateTrajectories_(num_new, buffer_.sensor_, buffer_.sensor_mask,
+                                 buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
 }
@@ -759,7 +759,7 @@ grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::CostGradient(
+grpc::Status EstimatorService::TotalGradient(
     grpc::ServerContext* context, const estimator::CostGradientRequest* request,
     estimator::CostGradientResponse* response) {
   if (!Initialized()) {
@@ -771,13 +771,13 @@ grpc::Status EstimatorService::CostGradient(
 
   // get cost gradient
   for (int i = 0; i < dim; i++) {
-    response->add_gradient(estimator_.cost_gradient_[i]);
+    response->add_gradient(estimator_.cost_gradient[i]);
   }
 
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::CostHessian(
+grpc::Status EstimatorService::TotalHessian(
     grpc::ServerContext* context, const estimator::CostHessianRequest* request,
     estimator::CostHessianResponse* response) {
   if (!Initialized()) {
@@ -792,7 +792,7 @@ grpc::Status EstimatorService::CostHessian(
   // TODO(taylor): return only upper triangle?
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      double data = estimator_.cost_hessian_[dim * i + j];
+      double data = estimator_.cost_hessian[dim * i + j];
       response->add_hessian(data);
     }
   }
@@ -815,14 +815,14 @@ grpc::Status EstimatorService::PriorMatrix(
   // TODO(taylor): loop over upper triangle only
   if (request->prior_size() > 0) {
     CHECK_SIZE("prior_matrix", dim * dim, request->prior_size());
-    estimator_.weight_prior_dense_.assign(request->prior().begin(),
+    estimator_.weight_prior.assign(request->prior().begin(),
                                           request->prior().end());
   }
 
   // get prior matrix
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_prior(estimator_.weight_prior_dense_[dim * i + j]);
+      response->add_prior(estimator_.weight_prior[dim * i + j]);
     }
   }
 
@@ -876,11 +876,11 @@ grpc::Status EstimatorService::BufferData(
   int num_sensor = estimator_.num_sensor_;
   if (input.mask_size() > 0) {
     CHECK_SIZE("mask", num_sensor, input.mask_size());
-    buffer_.sensor_mask_.Set(input.mask().data(), index);
+    buffer_.sensor_mask.Set(input.mask().data(), index);
   }
 
   // get mask
-  int* mask = buffer_.sensor_mask_.Get(index);
+  int* mask = buffer_.sensor_mask.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_mask(mask[i]);
   }
@@ -889,11 +889,11 @@ grpc::Status EstimatorService::BufferData(
   int nu = estimator_.model_->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    buffer_.ctrl_.Set(input.ctrl().data(), index);
+    buffer_.ctrl.Set(input.ctrl().data(), index);
   }
 
   // get ctrl
-  double* ctrl = buffer_.ctrl_.Get(index);
+  double* ctrl = buffer_.ctrl.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
@@ -901,11 +901,11 @@ grpc::Status EstimatorService::BufferData(
   // set time
   if (input.time_size() > 0) {
     CHECK_SIZE("time", 1, input.time_size());
-    buffer_.time_.Set(input.time().data(), index);
+    buffer_.time.Set(input.time().data(), index);
   }
 
   // get time
-  double* time = buffer_.time_.Get(index);
+  double* time = buffer_.time.Get(index);
   output->add_time(time[0]);
 
   // get length

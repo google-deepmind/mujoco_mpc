@@ -33,6 +33,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // dimensions
   int nq = model->nq, nv = model->nv;
 
+  // pool 
+  ThreadPool pool(1);
+
   // ----- simulate ----- //
 
   // controller
@@ -75,29 +78,29 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * T);
+  mju_copy(estimator.configuration.Data(), qpos.data(), nq * T);
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationEvaluation(pool);
 
   // velocity error
   std::vector<double> velocity_error(nv * (T - 1));
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
   EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.velocity_.Data(), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.velocity.Data(), nv), 0.0, 1.0e-5);
 
   // acceleration error
   std::vector<double> acceleration_error(nv * (T - 2));
-  mju_sub(acceleration_error.data(), estimator.acceleration_.Data() + nv,
+  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
   // acceleration test
   EXPECT_NEAR(mju_norm(acceleration_error.data(), nv * (T - 2)), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.acceleration_.Data(), nv), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.acceleration_.Data() + nv * (T - 1), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.acceleration.Data(), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.acceleration.Data() + nv * (T - 1), nv), 0.0, 1.0e-5);
 
   // delete data + model
   mj_deleteData(data);
@@ -111,6 +114,9 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+
+  // pool 
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
   // trajectories
@@ -165,14 +171,14 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // initialize
   Estimator estimator;
   estimator.Initialize(model);
-  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * (T + 1));
+  mju_copy(estimator.configuration.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationEvaluation(pool);
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
@@ -181,7 +187,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // acceleration error
   std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration_.Data() + nv,
+  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
   // acceleration test

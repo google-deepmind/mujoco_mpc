@@ -150,7 +150,7 @@ class Estimator:
       acceleration: Optional[npt.ArrayLike] = [],
       time: Optional[npt.ArrayLike] = [],
       ctrl: Optional[npt.ArrayLike] = [],
-      configuration_prior: Optional[npt.ArrayLike] = [],
+      configuration_previous: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
       sensor_prediction: Optional[npt.ArrayLike] = [],
       sensor_mask: Optional[npt.ArrayLike] = [],
@@ -164,7 +164,7 @@ class Estimator:
         acceleration=acceleration,
         time=time,
         ctrl=ctrl,
-        configuration_prior=configuration_prior,
+        configuration_previous=configuration_previous,
         sensor_measurement=sensor_measurement,
         sensor_prediction=sensor_prediction,
         sensor_mask=sensor_mask,
@@ -185,7 +185,7 @@ class Estimator:
         "acceleration": np.array(data.acceleration),
         "time": np.array(data.time),
         "ctrl": np.array(data.ctrl),
-        "configuration_prior": np.array(data.configuration_prior),
+        "configuration_previous": np.array(data.configuration_previous),
         "sensor_measurement": np.array(data.sensor_measurement),
         "sensor_prediction": np.array(data.sensor_prediction),
         "sensor_mask": np.array(data.sensor_mask),
@@ -389,7 +389,7 @@ class Estimator:
     request = estimator_pb2.CostGradientRequest()
 
     # gradient response
-    response = self.stub.CostGradient(request)
+    response = self.stub.TotalGradient(request)
 
     # return gradient vector
     return np.array(response.gradient)
@@ -399,7 +399,7 @@ class Estimator:
     request = estimator_pb2.CostHessianRequest()
 
     # Hessian response
-    response = self.stub.CostHessian(request)
+    response = self.stub.TotalHessian(request)
 
     # reshape Hessian to (dimension, dimension)
     hessian = np.array(response.hessian).reshape(response.dimension, response.dimension)

@@ -52,36 +52,32 @@ TEST(MeasurementCost, Particle) {
   estimator.SetConfigurationLength(T);
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.sensor_measurement_.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // weights
-  estimator.scale_sensor_[0] = 1.1e-1;
-  estimator.scale_sensor_[1] = 2.2e-1;
-  estimator.scale_sensor_[2] = 3.3e-1;
-  estimator.scale_sensor_[3] = 4.4e-1;
+  estimator.scale_sensor[0] = 1.1e-1;
+  estimator.scale_sensor[1] = 2.2e-1;
+  estimator.scale_sensor[2] = 3.3e-1;
+  estimator.scale_sensor[3] = 4.4e-1;
 
   // TODO(taylor): test difference norms
 
   // ----- cost ----- //
-  auto cost_measurement = [&estimator =
-                               estimator](const double* configuration) {
-    // model + data
-    mjModel* model = estimator.model_;
-    mjData* data = mj_makeData(model);
-
+  auto cost_measurement = [&estimator = estimator, &model = model,
+                           &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.prediction_length_;
+    int nres = ns * estimator.PredictionLength();
 
     // velocity
     std::vector<double> v1(nv);
@@ -97,7 +93,7 @@ TEST(MeasurementCost, Particle) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.prediction_length_; k++) {
+    for (int k = 0; k < estimator.PredictionLength(); k++) {
       // time index
       int t = k + 1;
 
@@ -106,7 +102,7 @@ TEST(MeasurementCost, Particle) {
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
-      double* y1 = estimator.sensor_measurement_.Get(t);
+      double* y1 = estimator.sensor_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -139,14 +135,14 @@ TEST(MeasurementCost, Particle) {
 
         // weight
         double weight =
-            estimator.scale_sensor_[i] / nsi / estimator.prediction_length_;
+            estimator.scale_sensor[i] / nsi / estimator.PredictionLength();
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor_.data() + MAX_NORM_PARAMETERS * i;
+            estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
 
         // norm
-        NormType normi = estimator.norm_sensor_[i];
+        NormType normi = estimator.norm_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -165,31 +161,23 @@ TEST(MeasurementCost, Particle) {
   // ----- lambda ----- //
 
   // cost
-  double cost_lambda = cost_measurement(estimator.configuration_.Data());
+  double cost_lambda = cost_measurement(estimator.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_measurement, estimator.configuration_.Data(), nvar);
+  fdg.Compute(cost_measurement, estimator.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_measurement, estimator.configuration_.Data(), nvar);
+  fdh.Compute(cost_measurement, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
-  estimator.ResidualSensor();
-  for (int k = 0; k < estimator.prediction_length_; k++) {
-    estimator.BlockSensor(k);
-    estimator.SetBlockSensor(k);
-  }
-
+  estimator.prior_flag = false;
+  estimator.sensor_flag = true;
+  estimator.force_flag = false;
   // cost
-  double cost_estimator =
-      estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
-                           estimator.cost_hessian_sensor_.data());
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -199,13 +187,13 @@ TEST(MeasurementCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian_sensor_.data(),
+  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
           fdh.hessian.data(), nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar) / (nvar * nvar), 0.0,
               1.0e-4);
@@ -242,13 +230,13 @@ TEST(MeasurementCost, Box) {
   estimator.SetConfigurationLength(T);
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.sensor_measurement_.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
       dq[i] = 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
@@ -257,36 +245,33 @@ TEST(MeasurementCost, Box) {
   }
 
   // weights
-  estimator.scale_sensor_[0] = 1.1e-2;
-  estimator.scale_sensor_[1] = 2.2e-2;
-  estimator.scale_sensor_[2] = 3.3e-2;
-  estimator.scale_sensor_[3] = 1.0e-2;
-  estimator.scale_sensor_[4] = 2.0e-2;
-  estimator.scale_sensor_[5] = 3.0e-2;
-  estimator.scale_sensor_[6] = 4.0e-2;
-  estimator.scale_sensor_[7] = 5.0e-2;
-  estimator.scale_sensor_[8] = 6.0e-2;
-  estimator.scale_sensor_[9] = 7.0e-2;
-  estimator.scale_sensor_[10] = 8.0e-2;
-  estimator.scale_sensor_[11] = 9.0e-2;
-  estimator.scale_sensor_[12] = 10.0e-2;
+  estimator.scale_sensor[0] = 1.1e-2;
+  estimator.scale_sensor[1] = 2.2e-2;
+  estimator.scale_sensor[2] = 3.3e-2;
+  estimator.scale_sensor[3] = 1.0e-2;
+  estimator.scale_sensor[4] = 2.0e-2;
+  estimator.scale_sensor[5] = 3.0e-2;
+  estimator.scale_sensor[6] = 4.0e-2;
+  estimator.scale_sensor[7] = 5.0e-2;
+  estimator.scale_sensor[8] = 6.0e-2;
+  estimator.scale_sensor[9] = 7.0e-2;
+  estimator.scale_sensor[10] = 8.0e-2;
+  estimator.scale_sensor[11] = 9.0e-2;
+  estimator.scale_sensor[12] = 10.0e-2;
 
   // TODO(taylor): test difference norms
 
   // ----- cost ----- //
-  auto cost_measurement = [&estimator = estimator](const double* update) {
-    // model + data
-    mjModel* model = estimator.model_;
-    mjData* data = mj_makeData(model);
-
+  auto cost_measurement = [&estimator = estimator, &model = model,
+                           &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.prediction_length_;
-    int T = estimator.configuration_length_;
+    int nres = ns * estimator.PredictionLength();
+    int T = estimator.ConfigurationLength();
 
-    // configuration 
+    // configuration
     std::vector<double> configuration(nq * T);
-    mju_copy(configuration.data(), estimator.configuration_.Data(), nq * T);
+    mju_copy(configuration.data(), estimator.configuration.Data(), nq * T);
     for (int t = 0; t < T; t++) {
       double* q = configuration.data() + t * nq;
       const double* dq = update + t * nv;
@@ -307,7 +292,7 @@ TEST(MeasurementCost, Box) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.prediction_length_; k++) {
+    for (int k = 0; k < estimator.PredictionLength(); k++) {
       // time index
       int t = k + 1;
 
@@ -316,7 +301,7 @@ TEST(MeasurementCost, Box) {
       const double* q0 = configuration.data() + (t - 1) * nq;
       const double* q1 = configuration.data() + (t + 0) * nq;
       const double* q2 = configuration.data() + (t + 1) * nq;
-      double* y1 = estimator.sensor_measurement_.Get(t);
+      double* y1 = estimator.sensor_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -349,14 +334,14 @@ TEST(MeasurementCost, Box) {
 
         // weight
         double weight =
-            estimator.scale_sensor_[i] / nsi / estimator.prediction_length_;
+            estimator.scale_sensor[i] / nsi / estimator.PredictionLength();
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor_.data() + MAX_NORM_PARAMETERS * i;
+            estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
 
         // norm
-        NormType normi = estimator.norm_sensor_[i];
+        NormType normi = estimator.norm_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -374,7 +359,7 @@ TEST(MeasurementCost, Box) {
 
   // ----- lambda ----- //
 
-  // update 
+  // update
   std::vector<double> update(nv * T);
   mju_zero(update.data(), nv * T);
 
@@ -390,20 +375,13 @@ TEST(MeasurementCost, Box) {
   fdh.Compute(cost_measurement, update.data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ConfigurationToVelocityAcceleration();
-  estimator.InverseDynamicsPrediction(pool);
-  estimator.InverseDynamicsDerivatives(pool);
-  estimator.VelocityAccelerationDerivatives();
-  estimator.ResidualSensor();
-  for (int k = 0; k < estimator.prediction_length_; k++) {
-    estimator.BlockSensor(k);
-    estimator.SetBlockSensor(k);
-  }
 
   // cost
-  double cost_estimator =
-      estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
-                           estimator.cost_hessian_sensor_.data());
+  estimator.prior_flag = false;
+  estimator.sensor_flag = true;
+  estimator.force_flag = false;
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -413,7 +391,7 @@ TEST(MeasurementCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_sensor_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 

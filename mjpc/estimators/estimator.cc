@@ -44,23 +44,23 @@ void Estimator::Initialize(mjModel* model) {
   prediction_length_ = configuration_length_ - 2;
 
   // -- trajectories -- //
-  configuration_.Initialize(nq, configuration_length_);
-  velocity_.Initialize(nv, configuration_length_);
-  acceleration_.Initialize(nv, configuration_length_);
-  time_.Initialize(1, configuration_length_);
+  configuration.Initialize(nq, configuration_length_);
+  velocity.Initialize(nv, configuration_length_);
+  acceleration.Initialize(nv, configuration_length_);
+  time.Initialize(1, configuration_length_);
 
   // ctrl
-  ctrl_.Initialize(model->nu, configuration_length_);
+  ctrl.Initialize(model->nu, configuration_length_);
 
   // prior
-  configuration_prior_.Initialize(nq, configuration_length_);
+  configuration_previous.Initialize(nq, configuration_length_);
 
   // sensor
   dim_sensor_ = model->nsensordata;  // TODO(taylor): grab from xml
   num_sensor_ = model->nsensor;      // TODO(taylor): grab from xml
-  sensor_measurement_.Initialize(dim_sensor_, configuration_length_);
-  sensor_prediction_.Initialize(dim_sensor_, configuration_length_);
-  sensor_mask_.Initialize(num_sensor_, configuration_length_);
+  sensor_measurement.Initialize(dim_sensor_, configuration_length_);
+  sensor_prediction.Initialize(dim_sensor_, configuration_length_);
+  sensor_mask.Initialize(num_sensor_, configuration_length_);
 
   // free joint dof flag
   free_dof_.resize(model->nv);
@@ -77,8 +77,8 @@ void Estimator::Initialize(mjModel* model) {
   }
 
   // force
-  force_measurement_.Initialize(nv, configuration_length_);
-  force_prediction_.Initialize(nv, configuration_length_);
+  force_measurement.Initialize(nv, configuration_length_);
+  force_prediction.Initialize(nv, configuration_length_);
 
   // residual
   residual_prior_.resize(nv * MAX_HISTORY);
@@ -140,66 +140,66 @@ void Estimator::Initialize(mjModel* model) {
   cost_gradient_prior_.resize(nv * MAX_HISTORY);
   cost_gradient_sensor_.resize(nv * MAX_HISTORY);
   cost_gradient_force_.resize(nv * MAX_HISTORY);
-  cost_gradient_.resize(nv * MAX_HISTORY);
+  cost_gradient.resize(nv * MAX_HISTORY);
 
   // cost Hessian
   cost_hessian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_sensor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  cost_hessian.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_band_.resize(BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv));
   cost_hessian_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // prior weights
-  scale_prior_ = GetNumberOrDefault(1.0, model, "estimator_scale_prior");
-  weight_prior_dense_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scale_prior = GetNumberOrDefault(1.0, model, "estimator_scale_prior");
+  weight_prior.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  weight_prior_band.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch_prior_weight_.resize(2 * nv * nv);
 
   // sensor scale
   // TODO(taylor): only grab measurement sensors
-  scale_sensor_.resize(num_sensor_);
+  scale_sensor.resize(num_sensor_);
 
   // TODO(taylor): method for xml to initial weight
   for (int i = 0; i < num_sensor_; i++) {
-    scale_sensor_[i] = GetNumberOrDefault(1.0, model, "estimator_scale_sensor");
+    scale_sensor[i] = GetNumberOrDefault(1.0, model, "estimator_scale_sensor");
   }
 
   // force scale
-  scale_force_.resize(NUM_FORCE_TERMS);
+  scale_force.resize(NUM_FORCE_TERMS);
 
-  scale_force_[0] =
+  scale_force[0] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free_position");
-  scale_force_[1] =
+  scale_force[1] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_free_rotation");
-  scale_force_[2] =
+  scale_force[2] =
       GetNumberOrDefault(1.0, model, "estimator_scale_force_nonfree");
 
   // cost norms
   // TODO(taylor): only grab measurement sensors
-  norm_sensor_.resize(num_sensor_);
+  norm_sensor.resize(num_sensor_);
 
   // TODO(taylor): method for xml to initial norm
   for (int i = 0; i < num_sensor_; i++) {
-    norm_sensor_[i] =
+    norm_sensor[i] =
         (NormType)GetNumberOrDefault(0, model, "estimator_norm_sensor");
   }
 
-  norm_force_[0] = (NormType)GetNumberOrDefault(
+  norm_force[0] = (NormType)GetNumberOrDefault(
       0, model, "estimator_norm_force_free_position");
-  norm_force_[1] = (NormType)GetNumberOrDefault(
+  norm_force[1] = (NormType)GetNumberOrDefault(
       0, model, "estimator_norm_force_free_rotation");
-  norm_force_[2] =
+  norm_force[2] =
       (NormType)GetNumberOrDefault(0, model, "estimator_norm_force_nonfree");
 
   // cost norm parameters
-  norm_parameters_sensor_.resize(num_sensor_ * MAX_NORM_PARAMETERS);
-  norm_parameters_force_.resize(NUM_FORCE_TERMS * MAX_NORM_PARAMETERS);
+  norm_parameters_sensor.resize(num_sensor_ * MAX_NORM_PARAMETERS);
+  norm_parameters_force.resize(NUM_FORCE_TERMS * MAX_NORM_PARAMETERS);
 
   // TODO(taylor): initialize norm parameters from xml
-  std::fill(norm_parameters_sensor_.begin(), norm_parameters_sensor_.end(),
+  std::fill(norm_parameters_sensor.begin(), norm_parameters_sensor.end(),
             0.0);
-  std::fill(norm_parameters_force_.begin(), norm_parameters_force_.end(), 0.0);
+  std::fill(norm_parameters_force.begin(), norm_parameters_force.end(), 0.0);
 
   // norm gradient
   norm_gradient_sensor_.resize(dim_sensor_ * MAX_HISTORY);
@@ -232,10 +232,10 @@ void Estimator::Initialize(mjModel* model) {
   search_direction_.resize(nv * MAX_HISTORY);
 
   // regularization
-  regularization_ = regularization_initial_;
+  regularization_ = regularization_initial;
 
   // search type
-  search_type_ =
+  search_type =
       (SearchType)GetNumberOrDefault(0, model, "estimator_search_type");
 
   // initial state
@@ -245,20 +245,17 @@ void Estimator::Initialize(mjModel* model) {
   mju_zero(qvel0_.data(), model->nv);
 
   // timer
-  timer_prior_step_.resize(MAX_HISTORY);
-  timer_sensor_step_.resize(MAX_HISTORY);
-  timer_force_step_.resize(MAX_HISTORY);
+  timer_.prior_step.resize(MAX_HISTORY);
+  timer_.sensor_step.resize(MAX_HISTORY);
+  timer_.force_step.resize(MAX_HISTORY);
 
   // status
   hessian_factor_ = false;
   num_new_ = configuration_length_;
   gradient_norm_ = 0.0;
 
-  // state index
-  state_index_ = configuration_length_ - 1;
-
   // settings
-  band_prior_ = (bool)GetNumberOrDefault(1, model, "estimator_band_covariance");
+  band_prior = (bool)GetNumberOrDefault(1, model, "estimator_band_covariance");
 
   // reset
   Reset();
@@ -273,23 +270,23 @@ void Estimator::SetConfigurationLength(int length) {
   prediction_length_ = configuration_length_ - 2;
 
   // update trajectory lengths
-  configuration_.SetLength(length);
+  configuration.SetLength(length);
   configuration_copy_.SetLength(length);
 
-  velocity_.SetLength(length);
-  acceleration_.SetLength(length);
-  time_.SetLength(length);
+  velocity.SetLength(length);
+  acceleration.SetLength(length);
+  time.SetLength(length);
 
-  ctrl_.SetLength(length);
+  ctrl.SetLength(length);
 
-  configuration_prior_.SetLength(length);
+  configuration_previous.SetLength(length);
 
-  sensor_measurement_.SetLength(length);
-  sensor_prediction_.SetLength(length);
-  sensor_mask_.SetLength(length);
+  sensor_measurement.SetLength(length);
+  sensor_prediction.SetLength(length);
+  sensor_mask.SetLength(length);
 
-  force_measurement_.SetLength(length);
-  force_prediction_.SetLength(length);
+  force_measurement.SetLength(length);
+  force_prediction.SetLength(length);
 
   block_prior_current_configuration_.SetLength(length);
 
@@ -322,9 +319,6 @@ void Estimator::SetConfigurationLength(int length) {
   block_acceleration_current_configuration_.SetLength(prediction_length_);
   block_acceleration_next_configuration_.SetLength(prediction_length_);
 
-  // state index
-  state_index_ = mju_max(1, mju_min(state_index_, configuration_length_ - 1));
-
   // status
   num_new_ = configuration_length_;
   initialized_ = false;
@@ -333,25 +327,25 @@ void Estimator::SetConfigurationLength(int length) {
 }
 
 // shift trajectory heads
-void Estimator::ShiftTrajectoryHead(int shift) {
+void Estimator::Shift(int shift) {
   // update trajectory lengths
-  configuration_.Shift(shift);
+  configuration.Shift(shift);
   configuration_copy_.Shift(shift);
 
-  velocity_.Shift(shift);
-  acceleration_.Shift(shift);
-  time_.Shift(shift);
+  velocity.Shift(shift);
+  acceleration.Shift(shift);
+  time.Shift(shift);
 
-  ctrl_.Shift(shift);
+  ctrl.Shift(shift);
 
-  configuration_prior_.Shift(shift);
+  configuration_previous.Shift(shift);
 
-  sensor_measurement_.Shift(shift);
-  sensor_prediction_.Shift(shift);
-  sensor_mask_.Shift(shift);
+  sensor_measurement.Shift(shift);
+  sensor_prediction.Shift(shift);
+  sensor_mask.Shift(shift);
 
-  force_measurement_.Shift(shift);
-  force_prediction_.Shift(shift);
+  force_measurement.Shift(shift);
+  force_prediction.Shift(shift);
 
   block_prior_current_configuration_.Shift(shift);
 
@@ -388,29 +382,29 @@ void Estimator::ShiftTrajectoryHead(int shift) {
 // reset memory
 void Estimator::Reset() {
   // trajectories
-  configuration_.Reset();
-  velocity_.Reset();
-  acceleration_.Reset();
-  time_.Reset();
+  configuration.Reset();
+  velocity.Reset();
+  acceleration.Reset();
+  time.Reset();
 
-  ctrl_.Reset();
+  ctrl.Reset();
 
   // prior
-  configuration_prior_.Reset();
+  configuration_previous.Reset();
 
   // sensor
-  sensor_measurement_.Reset();
-  sensor_prediction_.Reset();
+  sensor_measurement.Reset();
+  sensor_prediction.Reset();
 
   // sensor mask
-  sensor_mask_.Reset();
+  sensor_mask.Reset();
   for (int i = 0; i < num_sensor_ * configuration_length_; i++) {
-    sensor_mask_.Data()[i] = 1;
+    sensor_mask.Data()[i] = 1;
   }
 
   // force
-  force_measurement_.Reset();
-  force_prediction_.Reset();
+  force_measurement.Reset();
+  force_prediction.Reset();
 
   // residual
   std::fill(residual_prior_.begin(), residual_prior_.end(), 0.0);
@@ -459,29 +453,29 @@ void Estimator::Reset() {
   block_acceleration_next_configuration_.Reset();
 
   // cost
-  cost_prior_ = 0.0;
-  cost_sensor_ = 0.0;
-  cost_force_ = 0.0;
-  cost_ = 0.0;
-  cost_initial_ = 0.0;
+  cost_prior = 0.0;
+  cost_sensor = 0.0;
+  cost_force = 0.0;
+  cost = 0.0;
+  cost_initial = 0.0;
 
   // cost gradient
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
   std::fill(cost_gradient_sensor_.begin(), cost_gradient_sensor_.end(), 0.0);
   std::fill(cost_gradient_force_.begin(), cost_gradient_force_.end(), 0.0);
-  std::fill(cost_gradient_.begin(), cost_gradient_.end(), 0.0);
+  std::fill(cost_gradient.begin(), cost_gradient.end(), 0.0);
 
   // cost Hessian
   std::fill(cost_hessian_prior_.begin(), cost_hessian_prior_.end(), 0.0);
   std::fill(cost_hessian_sensor_.begin(), cost_hessian_sensor_.end(), 0.0);
   std::fill(cost_hessian_force_.begin(), cost_hessian_force_.end(), 0.0);
-  std::fill(cost_hessian_.begin(), cost_hessian_.end(), 0.0);
+  std::fill(cost_hessian.begin(), cost_hessian.end(), 0.0);
   std::fill(cost_hessian_band_.begin(), cost_hessian_band_.end(), 0.0);
   std::fill(cost_hessian_factor_.begin(), cost_hessian_factor_.end(), 0.0);
 
   // weight
-  std::fill(weight_prior_dense_.begin(), weight_prior_dense_.end(), 0.0);
-  std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
+  std::fill(weight_prior.begin(), weight_prior.end(), 0.0);
+  std::fill(weight_prior_band.begin(), weight_prior_band.end(), 0.0);
   std::fill(scratch_prior_weight_.begin(), scratch_prior_weight_.end(), 0.0);
 
   // norm gradient
@@ -517,9 +511,9 @@ void Estimator::Reset() {
   mju_zero(qvel0_.data(), model_->nv);
 
   // timer
-  std::fill(timer_prior_step_.begin(), timer_prior_step_.end(), 0.0);
-  std::fill(timer_sensor_step_.begin(), timer_sensor_step_.end(), 0.0);
-  std::fill(timer_force_step_.begin(), timer_force_step_.end(), 0.0);
+  std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
+  std::fill(timer_.sensor_step.begin(), timer_.sensor_step.end(), 0.0);
+  std::fill(timer_.force_step.begin(), timer_.force_step.end(), 0.0);
 
   // timing
   ResetTimers();
@@ -531,6 +525,52 @@ void Estimator::Reset() {
   initialized_ = false;
 }
 
+// evaluate configurations
+void Estimator::ConfigurationEvaluation(ThreadPool& pool) {
+  // finite-difference velocities, accelerations
+  ConfigurationToVelocityAcceleration();
+
+  // compute sensor and force predictions
+  InverseDynamicsPrediction(pool);
+}
+
+// configurations derivatives
+void Estimator::ConfigurationDerivative(ThreadPool& pool) {
+  // operations
+  int nprior = prior_flag * configuration_length_;
+  int nsensor = sensor_flag * prediction_length_;
+  int nforce = force_flag * prediction_length_;
+
+  // inverse dynamics derivatives
+  InverseDynamicsDerivatives(pool);
+
+  // velocity, acceleration derivatives
+  VelocityAccelerationDerivatives();
+
+  // -- Jacobians -- //
+  auto timer_jacobian_start = std::chrono::steady_clock::now();
+
+  // pool count
+  int count_begin = pool.GetCount();
+
+  // individual derivatives
+  if (prior_flag) JacobianPrior(pool);
+  if (sensor_flag) JacobianSensor(pool);
+  if (force_flag) JacobianForce(pool);
+
+  // wait
+  pool.WaitCount(count_begin + nprior + nsensor + nforce);
+
+  // reset count
+  pool.ResetCount();
+
+  // timers
+  timer_.jacobian_prior += mju_sum(timer_.prior_step.data(), nprior);
+  timer_.jacobian_sensor += mju_sum(timer_.sensor_step.data(), nsensor);
+  timer_.jacobian_force += mju_sum(timer_.force_step.data(), nforce);
+  timer_.jacobian_total += GetDuration(timer_jacobian_start);
+}
+
 // prior cost
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // start timer
@@ -540,17 +580,20 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int nv = model_->nv;
   int dim = model_->nv * configuration_length_;
 
+  // residual
+  ResidualPrior();
+
   // total scaling
-  double scale = scale_prior_ / dim;
+  double scale = scale_prior / dim;
 
   // unpack
   double* r = residual_prior_.data();
   double* P =
-      (band_prior_ ? weight_prior_band_.data() : weight_prior_dense_.data());
+      (band_prior ? weight_prior_band.data() : weight_prior.data());
   double* tmp = scratch0_prior_.data();
 
   // compute cost
-  if (band_prior_) {  // approximate covariance
+  if (band_prior) {  // approximate covariance
     // dimensions
     int ntotal = dim;
     int nband = 3 * model_->nv;
@@ -567,7 +610,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   double cost = 0.5 * scale * mju_dot(r, tmp, dim);
 
   // stop cost timer
-  timer_cost_prior_ += GetDuration(start);
+  timer_.cost_prior += GetDuration(start);
 
   // derivatives
   if (!gradient && !hessian) return cost;
@@ -588,7 +631,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     }
 
     // cost Hessian wrt configuration (sparse)
-    if (hessian && band_prior_) {
+    if (hessian && band_prior) {
       // number of columns to loop over for row
       int num_cols = mju_min(3, configuration_length_ - t);
 
@@ -607,7 +650,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
             scratch1_prior_.data() + 4 * nv * nv * shift + 3 * nv * nv;
 
         // get matrices
-        BlockFromMatrix(bbij, weight_prior_dense_.data(), nv, nv, dim, dim,
+        BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim,
                         t * nv, j * nv);
         const double* bdi = block_prior_current_configuration_.Get(t);
         const double* bdj = block_prior_current_configuration_.Get(j);
@@ -633,7 +676,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   }
 
   // serial method for dense computation
-  if (hessian && !band_prior_) {
+  if (hessian && !band_prior) {
     // unpack
     double* J = jacobian_prior_.data();
 
@@ -648,7 +691,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   }
 
   // stop derivatives timer
-  timer_cost_prior_derivatives_ += GetDuration(start);
+  timer_.cost_prior_derivatives += GetDuration(start);
 
   return cost;
 }
@@ -665,15 +708,15 @@ void Estimator::ResidualPrior() {
   for (int t = 0; t < configuration_length_; t++) {
     // terms
     double* rt = residual_prior_.data() + t * nv;
-    double* qt_prior = configuration_prior_.Get(t);
-    double* qt = configuration_.Get(t);
+    double* qt_prior = configuration_previous.Get(t);
+    double* qt = configuration.Get(t);
 
     // configuration difference
     mj_differentiatePos(model_, rt, 1.0, qt_prior, qt);
   }
 
   // stop timer
-  timer_residual_prior_ += GetDuration(start);
+  timer_.residual_prior += GetDuration(start);
 }
 
 // set block in prior Jacobian
@@ -695,8 +738,8 @@ void Estimator::SetBlockPrior(int index) {
 // prior Jacobian blocks
 void Estimator::BlockPrior(int index) {
   // unpack
-  double* qt = configuration_.Get(index);
-  double* qt_prior = configuration_prior_.Get(index);
+  double* qt = configuration.Get(index);
+  double* qt_prior = configuration_previous.Get(index);
   double* block = block_prior_current_configuration_.Get(index);
 
   // compute Jacobian
@@ -707,7 +750,7 @@ void Estimator::BlockPrior(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianPrior(ThreadPool& pool) {
   // start index
-  int start_index = reuse_data_ * mju_max(0, configuration_length_ - num_new_);
+  int start_index = reuse_data * mju_max(0, configuration_length_ - num_new_);
 
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
@@ -720,10 +763,10 @@ void Estimator::JacobianPrior(ThreadPool& pool) {
       if (t >= start_index) estimator.BlockPrior(t);
 
       // assemble
-      if (!estimator.band_prior_) estimator.SetBlockPrior(t);
+      if (!estimator.band_prior) estimator.SetBlockPrior(t);
 
       // stop Jacobian timer
-      estimator.timer_prior_step_[t] = GetDuration(jacobian_prior_start);
+      estimator.timer_.prior_step[t] = GetDuration(jacobian_prior_start);
     });
   }
 }
@@ -736,6 +779,9 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
   int nv = model_->nv, ns = dim_sensor_;
+
+  // residual
+  ResidualSensor();
 
   // ----- cost ----- //
 
@@ -751,11 +797,11 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
     // time index
     int t = k + 1;
 
-    // residual 
+    // residual
     double* rk = residual_sensor_.data() + ns * k;
 
     // mask
-    int* mask = sensor_mask_.Get(t);
+    int* mask = sensor_mask.Get(t);
 
     // unpack block
     double* block = block_sensor_configurations_.Get(k);
@@ -774,17 +820,17 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       // dimension
       int nsi = model_->sensor_dim[i];
 
-      // sensor residual 
+      // sensor residual
       double* rki = rk + shift;
 
       // weight
-      double weight = scale_sensor_[i] / nsi / prediction_length_;
+      double weight = scale_sensor[i] / nsi / prediction_length_;
 
-      // parameters 
-      double* pi = norm_parameters_sensor_.data() + MAX_NORM_PARAMETERS * i;
+      // parameters
+      double* pi = norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
 
-      // norm 
-      NormType normi = norm_sensor_[i];
+      // norm
+      NormType normi = norm_sensor[i];
 
       // ----- cost ----- //
       cost += weight * Norm(gradient ? norm_gradient_sensor_.data() : NULL,
@@ -792,7 +838,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                             pi, nsi, normi);
 
       // stop cost timer
-      timer_cost_sensor_ += GetDuration(start_cost);
+      timer_.cost_sensor += GetDuration(start_cost);
 
       // gradient wrt configuration: dridq012' * dndri
       if (gradient) {
@@ -804,7 +850,8 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
                        norm_gradient_sensor_.data(), nsi, 3 * nv);
 
         // add
-        mju_addToScl(gradient + k * nv, scratch0_sensor_.data(), weight, 3 * nv);
+        mju_addToScl(gradient + k * nv, scratch0_sensor_.data(), weight,
+                     3 * nv);
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -814,8 +861,8 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
 
         // step 1: tmp0 = d2ndri2 * dridq
         double* tmp0 = scratch0_sensor_.data();
-        mju_mulMatMat(tmp0, norm_blocks_sensor_.data(), blocki, nsi,
-                      nsi, 3 * nv);
+        mju_mulMatMat(tmp0, norm_blocks_sensor_.data(), blocki, nsi, nsi,
+                      3 * nv);
 
         // step 2: hessian = dridq' * tmp
         double* tmp1 = scratch1_sensor_.data();
@@ -832,7 +879,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   }
 
   // stop timer
-  timer_cost_sensor_derivatives_ += GetDuration(start);
+  timer_.cost_sensor_derivatives += GetDuration(start);
 
   return cost;
 }
@@ -849,15 +896,15 @@ void Estimator::ResidualSensor() {
 
     // terms
     double* rk = residual_sensor_.data() + k * dim_sensor_;
-    double* yt_sensor = sensor_measurement_.Get(t);
-    double* yt_model = sensor_prediction_.Get(t);
+    double* yt_sensor = sensor_measurement.Get(t);
+    double* yt_model = sensor_prediction.Get(t);
 
     // sensor difference
     mju_sub(rk, yt_model, yt_sensor, dim_sensor_);
   }
 
   // stop timer
-  timer_residual_sensor_ += GetDuration(start);
+  timer_.residual_sensor += GetDuration(start);
 }
 
 // set block in sensor Jacobian
@@ -983,7 +1030,7 @@ void Estimator::BlockSensor(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianSensor(ThreadPool& pool) {
   // start index
-  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
@@ -996,10 +1043,10 @@ void Estimator::JacobianSensor(ThreadPool& pool) {
       if (k >= start_index) estimator.BlockSensor(k);
 
       // assemble
-      if (!estimator.band_prior_) estimator.SetBlockSensor(k);
+      if (!estimator.band_prior) estimator.SetBlockSensor(k);
 
       // stop Jacobian timer
-      estimator.timer_sensor_step_[k] = GetDuration(jacobian_sensor_start);
+      estimator.timer_.sensor_step[k] = GetDuration(jacobian_sensor_start);
     });
   }
 }
@@ -1014,7 +1061,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   int nq = model_->nq, nv = model_->nv, nu = model_->nu, ns = dim_sensor_;
 
   // start index
-  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data * mju_max(0, prediction_length_ - num_new_);
 
   // pool count
   int count_before = pool.GetCount();
@@ -1027,10 +1074,10 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       int t = k + 1;
 
       // terms
-      double* qt = estimator.configuration_.Get(t);
-      double* vt = estimator.velocity_.Get(t);
-      double* at = estimator.acceleration_.Get(t);
-      double* ct = estimator.ctrl_.Get(t);
+      double* qt = estimator.configuration.Get(t);
+      double* vt = estimator.velocity.Get(t);
+      double* at = estimator.acceleration.Get(t);
+      double* ct = estimator.ctrl.Get(t);
 
       // data
       mjData* d = estimator.data_[k].get();
@@ -1045,11 +1092,11 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       mj_inverse(estimator.model_, d);
 
       // copy sensor
-      double* st = estimator.sensor_prediction_.Get(t);
+      double* st = estimator.sensor_prediction.Get(t);
       mju_copy(st, d->sensordata, ns);
 
       // copy force
-      double* ft = estimator.force_prediction_.Get(t);
+      double* ft = estimator.force_prediction.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
     });
   }
@@ -1059,7 +1106,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   pool.ResetCount();
 
   // stop timer
-  timer_cost_prediction_ += GetDuration(start);
+  timer_.cost_prediction += GetDuration(start);
 }
 
 // compute inverse dynamics derivatives (via finite difference)
@@ -1074,7 +1121,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   int count_before = pool.GetCount();
 
   // start index
-  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
@@ -1084,10 +1131,10 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       int t = k + 1;
 
       // unpack
-      double* q = estimator.configuration_.Get(t);
-      double* v = estimator.velocity_.Get(t);
-      double* a = estimator.acceleration_.Get(t);
-      double* c = estimator.ctrl_.Get(t);
+      double* q = estimator.configuration.Get(t);
+      double* v = estimator.velocity.Get(t);
+      double* a = estimator.acceleration.Get(t);
+      double* c = estimator.ctrl.Get(t);
 
       double* dqds = estimator.block_sensor_configuration_.Get(k);
       double* dvds = estimator.block_sensor_velocity_.Get(k);
@@ -1105,9 +1152,9 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
 
       // finite-difference derivatives
       mjd_inverseFD(estimator.model_, data,
-                    estimator.finite_difference_.tolerance,
-                    estimator.finite_difference_.flg_actuation, dqdf, dvdf,
-                    dadf, dqds, dvds, dads, NULL);
+                    estimator.finite_difference.tolerance,
+                    estimator.finite_difference.flg_actuation, dqdf, dvdf, dadf,
+                    dqds, dvds, dads, NULL);
     });
   }
 
@@ -1118,7 +1165,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   pool.ResetCount();
 
   // stop timer
-  timer_inverse_dynamics_derivatives_ += GetDuration(start);
+  timer_.inverse_dynamics_derivatives += GetDuration(start);
 }
 
 // update configuration trajectory
@@ -1149,7 +1196,7 @@ void Estimator::UpdateConfiguration(
   }
 
   // stop timer
-  timer_configuration_update_ += GetDuration(start);
+  timer_.configuration_update += GetDuration(start);
 }
 
 // convert sequence of configurations to velocities and accelerations
@@ -1162,7 +1209,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
 
   // start index
   int start_index =
-      reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
+      reuse_data * mju_max(0, (configuration_length_ - 1) - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {
@@ -1170,27 +1217,27 @@ void Estimator::ConfigurationToVelocityAcceleration() {
     int t = k + 1;
 
     // previous and current configurations
-    const double* q0 = configuration_.Get(t - 1);
-    const double* q1 = configuration_.Get(t);
+    const double* q0 = configuration.Get(t - 1);
+    const double* q1 = configuration.Get(t);
 
     // compute velocity
-    double* v1 = velocity_.Get(t);
+    double* v1 = velocity.Get(t);
     mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
 
     // compute acceleration
     if (t > 1) {
       // previous velocity
-      const double* v0 = velocity_.Get(t - 1);
+      const double* v0 = velocity.Get(t - 1);
 
       // compute acceleration
-      double* a1 = acceleration_.Get(t - 1);
+      double* a1 = acceleration.Get(t - 1);
       mju_sub(a1, v1, v0, nv);
       mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
     }
   }
 
   // stop time
-  timer_cost_config_to_velacc_ += GetDuration(start);
+  timer_.cost_config_to_velacc += GetDuration(start);
 }
 
 // compute finite-difference velocity, acceleration derivatives
@@ -1203,7 +1250,7 @@ void Estimator::VelocityAccelerationDerivatives() {
 
   // start index
   int start_index =
-      reuse_data_ * mju_max(0, (configuration_length_ - 1) - num_new_);
+      reuse_data * mju_max(0, (configuration_length_ - 1) - num_new_);
 
   // loop over configurations
   for (int k = start_index; k < configuration_length_ - 1; k++) {
@@ -1211,8 +1258,8 @@ void Estimator::VelocityAccelerationDerivatives() {
     int t = k + 1;
 
     // unpack
-    double* q1 = configuration_.Get(t - 1);
-    double* q2 = configuration_.Get(t);
+    double* q1 = configuration.Get(t - 1);
+    double* q2 = configuration.Get(t);
     double* dv2dq1 = block_velocity_previous_configuration_.Get(k);
     double* dv2dq2 = block_velocity_current_configuration_.Get(k);
 
@@ -1246,45 +1293,75 @@ void Estimator::VelocityAccelerationDerivatives() {
   }
 
   // stop timer
-  timer_velacc_derivatives_ += GetDuration(start);
+  timer_.velacc_derivatives += GetDuration(start);
 }
 
 // compute total cost
-double Estimator::Cost(ThreadPool& pool) {
+// TODO(taylor): fix timers
+double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // finite-difference velocities, accelerations
-  ConfigurationToVelocityAcceleration();
+  // evaluate configurations
+  ConfigurationEvaluation(pool);
 
-  // compute sensor and force predictions
-  InverseDynamicsPrediction(pool);
+  // derivatives
+  if (gradient || hessian) {
+    ConfigurationDerivative(pool);
+  }
 
-  // residuals
-  if (prior_flag_) ResidualPrior();
-  if (sensor_flag_) ResidualSensor();
-  if (force_flag_) ResidualForce();
+  // pool count
+  int count_begin = pool.GetCount();
 
-  // costs
-  cost_prior_ = (prior_flag_ ? CostPrior(NULL, NULL) : 0.0);
-  cost_sensor_ = (sensor_flag_ ? CostSensor(NULL, NULL) : 0.0);
-  cost_force_ = (force_flag_ ? CostForce(NULL, NULL) : 0.0);
+  bool gradient_flag = (gradient ? true : false);
+  bool hessian_flag = (hessian ? true : false);
+
+  // individual derivatives
+  if (prior_flag) {
+    pool.Schedule([&estimator = *this, gradient_flag, hessian_flag]() {
+      estimator.cost_prior = estimator.CostPrior(
+          gradient_flag ? estimator.cost_gradient_prior_.data() : NULL,
+          hessian_flag ? estimator.cost_hessian_prior_.data() : NULL);
+    });
+  }
+  if (sensor_flag) {
+    pool.Schedule([&estimator = *this, gradient_flag, hessian_flag]() {
+      estimator.cost_sensor = estimator.CostSensor(
+          gradient_flag ? estimator.cost_gradient_sensor_.data() : NULL,
+          hessian_flag ? estimator.cost_hessian_sensor_.data() : NULL);
+    });
+  }
+  if (force_flag) {
+    pool.Schedule([&estimator = *this, gradient_flag, hessian_flag]() {
+      estimator.cost_force = estimator.CostForce(
+          gradient_flag ? estimator.cost_gradient_force_.data() : NULL,
+          hessian_flag ? estimator.cost_hessian_force_.data() : NULL);
+    });
+  }
+
+  // wait
+  pool.WaitCount(count_begin + prior_flag + sensor_flag + force_flag);
+  pool.ResetCount();
 
   // total cost
-  double cost = cost_prior_ + cost_sensor_ + cost_force_;
+  double cost = cost_prior + cost_sensor + cost_force;
+
+  // total gradient, hessian
+  if (gradient) TotalGradient();
+  if (hessian) TotalHessian();
 
   // counter
   cost_count_++;
 
   // stop timer
-  timer_cost_ += GetDuration(start);
+  timer_.cost += GetDuration(start);
 
   // total cost
   return cost;
 }
 
 // compute total gradient
-void Estimator::CostGradient() {
+void Estimator::TotalGradient() {
   // start gradient timer
   auto start = std::chrono::steady_clock::now();
 
@@ -1292,23 +1369,23 @@ void Estimator::CostGradient() {
   int dim = configuration_length_ * model_->nv;
 
   // unpack
-  double* gradient = cost_gradient_.data();
+  double* gradient = cost_gradient.data();
 
   // individual gradients
-  if (prior_flag_) {
+  if (prior_flag) {
     mju_copy(gradient, cost_gradient_prior_.data(), dim);
   } else {
     mju_zero(gradient, dim);
   }
-  if (sensor_flag_) mju_addTo(gradient, cost_gradient_sensor_.data(), dim);
-  if (force_flag_) mju_addTo(gradient, cost_gradient_force_.data(), dim);
+  if (sensor_flag) mju_addTo(gradient, cost_gradient_sensor_.data(), dim);
+  if (force_flag) mju_addTo(gradient, cost_gradient_force_.data(), dim);
 
   // stop gradient timer
-  timer_cost_gradient_ += GetDuration(start);
+  timer_.cost_gradient += GetDuration(start);
 }
 
 // compute total Hessian
-void Estimator::CostHessian() {
+void Estimator::TotalHessian() {
   // start Hessian timer
   auto start = std::chrono::steady_clock::now();
 
@@ -1316,39 +1393,39 @@ void Estimator::CostHessian() {
   int dim = configuration_length_ * model_->nv;
 
   // unpack
-  double* hessian = cost_hessian_.data();
+  double* hessian = cost_hessian.data();
 
-  if (band_copy_) {
+  if (band_copy) {
     // zero memory
     mju_zero(hessian, dim * dim);
 
     // individual Hessians
-    if (prior_flag_)
+    if (prior_flag)
       SymmetricBandMatrixCopy(hessian, cost_hessian_prior_.data(), model_->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_prior_.data());
-    if (sensor_flag_)
+    if (sensor_flag)
       SymmetricBandMatrixCopy(hessian, cost_hessian_sensor_.data(), model_->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_sensor_.data());
-    if (force_flag_)
+    if (force_flag)
       SymmetricBandMatrixCopy(hessian, cost_hessian_force_.data(), model_->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_force_.data());
   } else {
     // individual Hessians
-    if (prior_flag_) {
+    if (prior_flag) {
       mju_copy(hessian, cost_hessian_prior_.data(), dim * dim);
     } else {
       mju_zero(hessian, dim * dim);
     }
-    if (sensor_flag_)
+    if (sensor_flag)
       mju_addTo(hessian, cost_hessian_sensor_.data(), dim * dim);
-    if (force_flag_) mju_addTo(hessian, cost_hessian_force_.data(), dim * dim);
+    if (force_flag) mju_addTo(hessian, cost_hessian_force_.data(), dim * dim);
   }
 
   // stop Hessian timer
-  timer_cost_hessian_ += GetDuration(start);
+  timer_.cost_hessian += GetDuration(start);
 }
 
 // covariance update
@@ -1368,32 +1445,32 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
   auto start_set_weight = std::chrono::steady_clock::now();
 
   // weight
-  double* weight = weight_prior_dense_.data();
+  double* weight = weight_prior.data();
 
   // Hessian
-  double* hessian = cost_hessian_.data();
+  double* hessian = cost_hessian.data();
 
   // zero memory
   mju_zero(weight, ntotal * ntotal);
 
   // copy Hessian block to upper left
-  if (configuration_length_ - num_new_ > 0 && update_prior_weight_) {
+  if (configuration_length_ - num_new_ > 0 && update_prior_weight) {
     SymmetricBandMatrixCopy(weight, hessian, nv, nv, ntotal,
                             configuration_length_ - num_new_, 0, 0, num_new_,
                             num_new_, scratch_prior_weight_.data());
   }
 
   // set s * I to lower right
-  for (int i = update_prior_weight_ * nv * (configuration_length_ - num_new_);
+  for (int i = update_prior_weight * nv * (configuration_length_ - num_new_);
        i < ntotal; i++) {
-    weight[ntotal * i + i] = scale_prior_;
+    weight[ntotal * i + i] = scale_prior;
   }
 
   // stop timer
-  timer_prior_set_weight_ += GetDuration(start_set_weight);
+  timer_.prior_set_weight += GetDuration(start_set_weight);
 
   // stop timer
-  timer_prior_weight_update_ += GetDuration(start);
+  timer_.prior_weight_update += GetDuration(start);
 
   // status
   PrintPriorWeightUpdate();
@@ -1408,11 +1485,6 @@ void Estimator::Optimize(ThreadPool& pool) {
   int nconfig = model_->nq * configuration_length_;
   int nvar = model_->nv * configuration_length_;
 
-  // operations
-  int nprior = prior_flag_ * configuration_length_;
-  int nsensor = sensor_flag_ * prediction_length_;
-  int nforce = force_flag_ * prediction_length_;
-
   // reset timers
   ResetTimers();
 
@@ -1421,8 +1493,8 @@ void Estimator::Optimize(ThreadPool& pool) {
 
   // initial cost
   cost_count_ = 0;
-  cost_ = Cost(pool);
-  cost_initial_ = cost_;
+  cost = Cost(NULL, NULL, pool);
+  cost_initial = cost;
 
   // print initial cost
   PrintCost();
@@ -1434,127 +1506,104 @@ void Estimator::Optimize(ThreadPool& pool) {
   iterations_line_search_ = 0;
 
   // iterations
-  for (; iterations_smoother_ < max_smoother_iterations_;
+  for (; iterations_smoother_ < max_smoother_iterations;
        iterations_smoother_++) {
     // ----- cost derivatives ----- //
 
-    // start timer (total cost derivatives)
-    auto cost_derivatives_start = std::chrono::steady_clock::now();
+    // // start timer (total cost derivatives)
+    // auto cost_derivatives_start = std::chrono::steady_clock::now();
 
-    // inverse dynamics derivatives
-    InverseDynamicsDerivatives(pool);
+    // // configuration derivatives
+    // ConfigurationDerivative(pool);
 
-    // velocity, acceleration derivatives
-    VelocityAccelerationDerivatives();
+    // // -- cost derivatives -- //
 
-    // -- Jacobians -- //
-    auto timer_jacobian_start = std::chrono::steady_clock::now();
+    // // start timer
+    // auto start_cost_total_derivatives = std::chrono::steady_clock::now();
 
-    // pool count
-    int count_begin = pool.GetCount();
+    // // pool count
+    // int count_begin = pool.GetCount();
 
-    // individual derivatives
-    if (prior_flag_) JacobianPrior(pool);
-    if (sensor_flag_) JacobianSensor(pool);
-    if (force_flag_) JacobianForce(pool);
+    // // individual derivatives
+    // if (prior_flag) {
+    //   pool.Schedule([&estimator = *this]() {
+    //     estimator.CostPrior(estimator.cost_gradient_prior_.data(),
+    //                         estimator.cost_hessian_prior_.data());
+    //   });
+    // }
+    // if (sensor_flag) {
+    //   pool.Schedule([&estimator = *this]() {
+    //     estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
+    //                          estimator.cost_hessian_sensor_.data());
+    //   });
+    // }
+    // if (force_flag) {
+    //   pool.Schedule([&estimator = *this]() {
+    //     estimator.CostForce(estimator.cost_gradient_force_.data(),
+    //                         estimator.cost_hessian_force_.data());
+    //   });
+    // }
+    // // wait
+    // pool.WaitCount(count_begin + prior_flag + sensor_flag + force_flag);
 
-    // wait
-    pool.WaitCount(count_begin + nprior + nsensor + nforce);
+    // // pool reset
+    // pool.ResetCount();
 
-    // reset count
-    pool.ResetCount();
-
-    // timers
-    timer_jacobian_prior_ += mju_sum(timer_prior_step_.data(), nprior);
-    timer_jacobian_sensor_ += mju_sum(timer_sensor_step_.data(), nsensor);
-    timer_jacobian_force_ += mju_sum(timer_force_step_.data(), nforce);
-    timer_jacobian_total_ += GetDuration(timer_jacobian_start);
-
-    // -- cost derivatives -- //
-
-    // start timer
-    auto start_cost_total_derivatives = std::chrono::steady_clock::now();
-
-    // pool count
-    count_begin = pool.GetCount();
-
-    // individual derivatives
-    if (prior_flag_) {
-      pool.Schedule([&estimator = *this]() {
-        estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                            estimator.cost_hessian_prior_.data());
-      });
-    }
-    if (sensor_flag_) {
-      pool.Schedule([&estimator = *this]() {
-        estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
-                             estimator.cost_hessian_sensor_.data());
-      });
-    }
-    if (force_flag_) {
-      pool.Schedule([&estimator = *this]() {
-        estimator.CostForce(estimator.cost_gradient_force_.data(),
-                            estimator.cost_hessian_force_.data());
-      });
-    }
-    // wait
-    pool.WaitCount(count_begin + prior_flag_ + sensor_flag_ + force_flag_);
-
-    // pool reset
-    pool.ResetCount();
+    Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
     // reset num_new_
     num_new_ = configuration_length_;  // update all data now
 
     // stop timer
-    timer_cost_total_derivatives_ += GetDuration(start_cost_total_derivatives);
+    // timer_.cost_total_derivatives +=
+    // GetDuration(start_cost_total_derivatives);
 
     // gradient
-    double* gradient = cost_gradient_.data();
-    CostGradient();
+    double* gradient = cost_gradient.data();
+    // TotalGradient();
 
     // gradient tolerance check
     gradient_norm_ = mju_norm(gradient, nvar) / nvar;
-    if (gradient_norm_ < gradient_tolerance_) {
+    if (gradient_norm_ < gradient_tolerance) {
       break;
     }
 
     // Hessian
-    CostHessian();
+    // TotalHessian();
 
     // stop timer
-    timer_cost_derivatives_ += GetDuration(cost_derivatives_start);
+    // timer_.cost_derivatives += GetDuration(cost_derivatives_start);
 
     // ----- line / curve search ----- //
     // start timer
     auto line_search_start = std::chrono::steady_clock::now();
 
     // copy configuration
-    mju_copy(configuration_copy_.Data(), configuration_.Data(), nconfig);
+    mju_copy(configuration_copy_.Data(), configuration.Data(), nconfig);
 
     // initialize
-    double cost_candidate = cost_;
+    double cost_candidate = cost;
     int iteration_search = 0;
     step_size_ = 1.0;
     regularization_ =
-        regularization_initial_;  // #(MIN_REGULARIZATION, regularization_);
+        regularization_initial;  // #(MIN_REGULARIZATION, regularization_);
 
     // initial search direction
     SearchDirection();
 
     // backtracking until cost decrease
     // TODO(taylor): Armijo, Wolfe conditions
-    while (cost_candidate >= cost_) {
+    while (cost_candidate >= cost) {
       // check for max iterations
-      if (iteration_search > max_line_search_) {
+      if (iteration_search > max_line_search) {
         // reset configuration
-        mju_copy(configuration_.Data(), configuration_copy_.Data(), nconfig);
+        mju_copy(configuration.Data(), configuration_copy_.Data(), nconfig);
 
         // restore velocity, acceleration
         ConfigurationToVelocityAcceleration();
 
         // evaluate cost
-        cost_ = Cost(pool);
+        cost = Cost(NULL, NULL, pool);
 
         printf("line search failure\n");
 
@@ -1564,15 +1613,15 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // search type
       if (iteration_search > 0) {
-        switch (search_type_) {
+        switch (search_type) {
           case SearchType::kLineSearch:
             // decrease step size
-            step_size_ *= step_scaling_;
+            step_size_ *= step_scaling;
             break;
           case SearchType::kCurveSearch:
             // increase regularization
             regularization_ = mju_min(
-                MAX_REGULARIZATION, regularization_ * regularization_scaling_);
+                MAX_REGULARIZATION, regularization_ * regularization_scaling);
             // recompute search direction
             SearchDirection();
             break;
@@ -1583,11 +1632,11 @@ void Estimator::Optimize(ThreadPool& pool) {
       }
 
       // candidate
-      UpdateConfiguration(configuration_, configuration_copy_,
+      UpdateConfiguration(configuration, configuration_copy_,
                           search_direction_.data(), -1.0 * step_size_);
 
       // cost
-      cost_candidate = Cost(pool);
+      cost_candidate = Cost(NULL, NULL, pool);
 
       // update iteration
       iteration_search++;
@@ -1597,26 +1646,21 @@ void Estimator::Optimize(ThreadPool& pool) {
     iterations_line_search_ += iteration_search;
 
     // end timer
-    timer_search_ += GetDuration(line_search_start);
+    timer_.search += GetDuration(line_search_start);
 
     // update cost
-    cost_ = cost_candidate;
+    cost = cost_candidate;
 
     // decrease regularization
     regularization_ =
-        mju_max(MIN_REGULARIZATION, regularization_ / regularization_scaling_);
+        mju_max(MIN_REGULARIZATION, regularization_ / regularization_scaling);
 
     // print cost
     PrintCost();
   }
 
-  // ----- GUI update ----- //
-  // update costs
-  // set timers
-  // set status
-
   // stop timer
-  timer_optimize_ = GetDuration(start_optimize);
+  timer_.optimize = GetDuration(start_optimize);
 
   // status
   PrintOptimize();
@@ -1627,10 +1671,9 @@ void Estimator::Regularize() {
   // dimension
   int nvar = configuration_length_ * model_->nv;
 
-  // regularize
-  // TODO(taylor): LM reg.
+  // H + reg * I
   for (int j = 0; j < nvar; j++) {
-    cost_hessian_[j * nvar + j] += regularization_;
+    cost_hessian[j * nvar + j] += regularization_;
   }
 }
 
@@ -1651,16 +1694,16 @@ void Estimator::SearchDirection() {
 
   // unpack
   double* direction = search_direction_.data();
-  double* gradient = cost_gradient_.data();
-  double* hessian = cost_hessian_.data();
+  double* gradient = cost_gradient.data();
+  double* hessian = cost_hessian.data();
   double* hessian_band = cost_hessian_band_.data();
 
   // -- linear system solver -- //
 
   // select solver
-  if (band_prior_) {  // band solver
+  if (band_prior) {  // band solver
     // dense to band
-    mju_dense2Band(hessian_band, cost_hessian_.data(), ntotal, nband, ndense);
+    mju_dense2Band(hessian_band, cost_hessian.data(), ntotal, nband, ndense);
 
     // factorize
     mju_cholFactorBand(hessian_band, ntotal, nband, ndense, 0.0, 0.0);
@@ -1683,12 +1726,12 @@ void Estimator::SearchDirection() {
   }
 
   // end timer
-  timer_search_direction_ += GetDuration(search_direction_start);
+  timer_.search_direction += GetDuration(search_direction_start);
 }
 
 // print Optimize status
 void Estimator::PrintOptimize() {
-  if (!verbose_optimize_) return;
+  if (!verbose_optimize) return;
 
   // title
   printf("Estimator::Optimize Status:\n\n");
@@ -1699,71 +1742,71 @@ void Estimator::PrintOptimize() {
   PrintPriorWeightUpdate();
 
   printf("\n");
-  printf("  cost (initial): %.3f (ms) \n", 1.0e-3 * timer_cost_ / cost_count_);
-  printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_cost_prior_ / cost_count_);
+  printf("  cost (initial): %.3f (ms) \n", 1.0e-3 * timer_.cost / cost_count_);
+  printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior / cost_count_);
   printf("    - sensor: %.3f (ms) \n",
-         1.0e-3 * timer_cost_sensor_ / cost_count_);
-  printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_cost_force_ / cost_count_);
+         1.0e-3 * timer_.cost_sensor / cost_count_);
+  printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force / cost_count_);
   printf("    - qpos -> qvel, qacc: %.3f (ms) \n",
-         1.0e-3 * timer_cost_config_to_velacc_ / cost_count_);
+         1.0e-3 * timer_.cost_config_to_velacc / cost_count_);
   printf("    - prediction: %.3f (ms) \n",
-         1.0e-3 * timer_cost_prediction_ / cost_count_);
+         1.0e-3 * timer_.cost_prediction / cost_count_);
   printf("    - residual prior: %.3f (ms) \n",
-         1.0e-3 * timer_residual_prior_ / cost_count_);
+         1.0e-3 * timer_.residual_prior / cost_count_);
   printf("    - residual sensor: %.3f (ms) \n",
-         1.0e-3 * timer_residual_sensor_ / cost_count_);
+         1.0e-3 * timer_.residual_sensor / cost_count_);
   printf("    - residual force: %.3f (ms) \n",
-         1.0e-3 * timer_residual_force_ / cost_count_);
+         1.0e-3 * timer_.residual_force / cost_count_);
   printf("\n");
   printf("  cost derivatives [total]: %.3f (ms) \n",
-         1.0e-3 * timer_cost_derivatives_);
+         1.0e-3 * timer_.cost_derivatives);
   printf("    - inverse dynamics derivatives: %.3f (ms) \n",
-         1.0e-3 * timer_inverse_dynamics_derivatives_);
+         1.0e-3 * timer_.inverse_dynamics_derivatives);
   printf("    - vel., acc. derivatives: %.3f (ms) \n",
-         1.0e-3 * timer_velacc_derivatives_);
+         1.0e-3 * timer_.velacc_derivatives);
   printf("    - jacobian [total]: %.3f (ms) \n",
-         1.0e-3 * timer_jacobian_total_);
-  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_jacobian_prior_);
-  printf("      < sensor: %.3f (ms) \n", 1.0e-3 * timer_jacobian_sensor_);
-  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_jacobian_force_);
+         1.0e-3 * timer_.jacobian_total);
+  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_.jacobian_prior);
+  printf("      < sensor: %.3f (ms) \n", 1.0e-3 * timer_.jacobian_sensor);
+  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_.jacobian_force);
   printf("    - gradient, hessian [total]: %.3f (ms) \n",
-         1.0e-3 * timer_cost_total_derivatives_);
-  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_cost_prior_derivatives_);
+         1.0e-3 * timer_.cost_total_derivatives);
+  printf("      < prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior_derivatives);
   printf("      < sensor: %.3f (ms) \n",
-         1.0e-3 * timer_cost_sensor_derivatives_);
-  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_cost_force_derivatives_);
+         1.0e-3 * timer_.cost_sensor_derivatives);
+  printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force_derivatives);
   printf("      < gradient assemble: %.3f (ms) \n",
-         1.0e-3 * timer_cost_gradient_);
+         1.0e-3 * timer_.cost_gradient);
   printf("      < hessian assemble: %.3f (ms) \n",
-         1.0e-3 * timer_cost_hessian_);
+         1.0e-3 * timer_.cost_hessian);
   printf("\n");
-  printf("  search [total]: %.3f (ms) \n", 1.0e-3 * timer_search_);
-  printf("    - direction: %.3f (ms) \n", 1.0e-3 * timer_search_direction_);
+  printf("  search [total]: %.3f (ms) \n", 1.0e-3 * timer_.search);
+  printf("    - direction: %.3f (ms) \n", 1.0e-3 * timer_.search_direction);
   printf("    - cost: %.3f (ms) \n",
-         1.0e-3 * (timer_cost_ - timer_cost_ / cost_count_));
+         1.0e-3 * (timer_.cost - timer_.cost / cost_count_));
   printf("      < prior: %.3f (ms) \n",
-         1.0e-3 * (timer_cost_prior_ - timer_cost_prior_ / cost_count_));
+         1.0e-3 * (timer_.cost_prior - timer_.cost_prior / cost_count_));
   printf("      < sensor: %.3f (ms) \n",
-         1.0e-3 * (timer_cost_sensor_ - timer_cost_sensor_ / cost_count_));
+         1.0e-3 * (timer_.cost_sensor - timer_.cost_sensor / cost_count_));
   printf("      < force: %.3f (ms) \n",
-         1.0e-3 * (timer_cost_force_ - timer_cost_force_ / cost_count_));
+         1.0e-3 * (timer_.cost_force - timer_.cost_force / cost_count_));
   printf("      < qpos -> qvel, qacc: %.3f (ms) \n",
-         1.0e-3 * (timer_cost_config_to_velacc_ -
-                   timer_cost_config_to_velacc_ / cost_count_));
+         1.0e-3 * (timer_.cost_config_to_velacc -
+                   timer_.cost_config_to_velacc / cost_count_));
   printf(
       "      < prediction: %.3f (ms) \n",
-      1.0e-3 * (timer_cost_prediction_ - timer_cost_prediction_ / cost_count_));
+      1.0e-3 * (timer_.cost_prediction - timer_.cost_prediction / cost_count_));
   printf(
       "      < residual prior: %.3f (ms) \n",
-      1.0e-3 * (timer_residual_prior_ - timer_residual_prior_ / cost_count_));
+      1.0e-3 * (timer_.residual_prior - timer_.residual_prior / cost_count_));
   printf(
       "      < residual sensor: %.3f (ms) \n",
-      1.0e-3 * (timer_residual_sensor_ - timer_residual_sensor_ / cost_count_));
+      1.0e-3 * (timer_.residual_sensor - timer_.residual_sensor / cost_count_));
   printf(
       "      < residual force: %.3f (ms) \n",
-      1.0e-3 * (timer_residual_force_ - timer_residual_force_ / cost_count_));
+      1.0e-3 * (timer_.residual_force - timer_.residual_force / cost_count_));
   printf("\n");
-  printf("  TOTAL: %.3f (ms) \n", 1.0e-3 * (timer_optimize_));
+  printf("  TOTAL: %.3f (ms) \n", 1.0e-3 * (timer_.optimize));
   printf("\n");
 
   // status
@@ -1774,72 +1817,66 @@ void Estimator::PrintOptimize() {
 
   // cost
   printf("Cost:\n");
-  printf("  initial: %.3f\n", cost_initial_);
-  printf("  final: %.3f\n", cost_);
+  printf("  initial: %.3f\n", cost_initial);
+  printf("  final: %.3f\n", cost);
   printf("\n");
 }
 
 // print cost
 void Estimator::PrintCost() {
-  if (verbose_cost_) {
-    printf("cost (total): %.3f\n", cost_);
-    printf("  prior: %.3f\n", cost_prior_);
-    printf("  sensor: %.3f\n", cost_sensor_);
-    printf("  force: %.3f\n", cost_force_);
-    printf("  [initial: %.3f]\n", cost_initial_);
+  if (verbose_cost) {
+    printf("cost (total): %.3f\n", cost);
+    printf("  prior: %.3f\n", cost_prior);
+    printf("  sensor: %.3f\n", cost_sensor);
+    printf("  force: %.3f\n", cost_force);
+    printf("  [initial: %.3f]\n", cost_initial);
   }
 }
 
 // print prior weight update status
 // print Optimize status
 void Estimator::PrintPriorWeightUpdate() {
-  if (!verbose_prior_) return;
+  if (!verbose_prior) return;
 
   // timing
   printf("  prior weight update [total]: %.3f (ms) \n",
-         1.0e-3 * timer_prior_weight_update_);
-  printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_prior_set_weight_);
+         1.0e-3 * timer_.prior_weight_update);
+  printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_.prior_set_weight);
   printf("\n");
 }
 
 // reset timers
 void Estimator::ResetTimers() {
-  timer_inverse_dynamics_derivatives_ = 0.0;
-  timer_velacc_derivatives_ = 0.0;
-  timer_jacobian_prior_ = 0.0;
-  timer_jacobian_sensor_ = 0.0;
-  timer_jacobian_force_ = 0.0;
-  timer_jacobian_total_ = 0.0;
-  timer_cost_prior_derivatives_ = 0.0;
-  timer_cost_sensor_derivatives_ = 0.0;
-  timer_cost_force_derivatives_ = 0.0;
-  timer_cost_total_derivatives_ = 0.0;
-  timer_cost_gradient_ = 0.0;
-  timer_cost_hessian_ = 0.0;
-  timer_cost_derivatives_ = 0.0;
-  timer_cost_ = 0.0;
-  timer_cost_prior_ = 0.0;
-  timer_cost_sensor_ = 0.0;
-  timer_cost_force_ = 0.0;
-  timer_cost_config_to_velacc_ = 0.0;
-  timer_cost_prediction_ = 0.0;
-  timer_residual_prior_ = 0.0;
-  timer_residual_sensor_ = 0.0;
-  timer_residual_force_ = 0.0;
-  timer_search_direction_ = 0.0;
-  timer_search_ = 0.0;
-  timer_configuration_update_ = 0.0;
-  timer_optimize_ = 0.0;
-  timer_prior_weight_update_ = 0.0;
-  timer_prior_set_weight_ = 0.0;
-  timer_update_trajectory_ = 0.0;
+  timer_.inverse_dynamics_derivatives = 0.0;
+  timer_.velacc_derivatives = 0.0;
+  timer_.jacobian_prior = 0.0;
+  timer_.jacobian_sensor = 0.0;
+  timer_.jacobian_force = 0.0;
+  timer_.jacobian_total = 0.0;
+  timer_.cost_prior_derivatives = 0.0;
+  timer_.cost_sensor_derivatives = 0.0;
+  timer_.cost_force_derivatives = 0.0;
+  timer_.cost_total_derivatives = 0.0;
+  timer_.cost_gradient = 0.0;
+  timer_.cost_hessian = 0.0;
+  timer_.cost_derivatives = 0.0;
+  timer_.cost = 0.0;
+  timer_.cost_prior = 0.0;
+  timer_.cost_sensor = 0.0;
+  timer_.cost_force = 0.0;
+  timer_.cost_config_to_velacc = 0.0;
+  timer_.cost_prediction = 0.0;
+  timer_.residual_prior = 0.0;
+  timer_.residual_sensor = 0.0;
+  timer_.residual_force = 0.0;
+  timer_.search_direction = 0.0;
+  timer_.search = 0.0;
+  timer_.configuration_update = 0.0;
+  timer_.optimize = 0.0;
+  timer_.prior_weight_update = 0.0;
+  timer_.prior_set_weight = 0.0;
+  timer_.update_trajectory = 0.0;
 }
-
-// get qpos estimate
-double* Estimator::GetPosition() { return configuration_.Get(state_index_); }
-
-// get qvel estimate
-double* Estimator::GetVelocity() { return velocity_.Get(state_index_); }
 
 // initialize trajectories
 void Estimator::InitializeTrajectories(
@@ -1856,15 +1893,15 @@ void Estimator::InitializeTrajectories(
   // -- set initial configurations -- //
 
   // set first configuration
-  double* q0 = configuration_.Get(0);
+  double* q0 = configuration.Get(0);
   mju_copy(q0, qpos0_.data(), model_->nq);
   mj_integratePos(model_, q0, qvel0_.data(), -1.0 * model_->opt.timestep);
 
   // set second configuration
-  configuration_.Set(qpos0_.data(), 1);
+  configuration.Set(qpos0_.data(), 1);
 
   // set initial time
-  time_.Set(time.Get(0), 0);
+  this->time.Set(time.Get(0), 0);
 
   // data
   mjData* data = data_[0].get();
@@ -1881,11 +1918,11 @@ void Estimator::InitializeTrajectories(
     int buffer_index = time.Length() - (configuration_length_ - 1) + i;
 
     // get time
-    time_.Set(&data->time, i);
+    this->time.Set(&data->time, i);
 
     // set/get ctrl
     const double* ui = ctrl.Get(buffer_index);
-    ctrl_.Set(ui, i);
+    this->ctrl.Set(ui, i);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // step dynamics
@@ -1893,28 +1930,28 @@ void Estimator::InitializeTrajectories(
 
     // set measurement
     const double* yi = measurement.Get(buffer_index);
-    sensor_measurement_.Set(yi, i);
+    sensor_measurement.Set(yi, i);
 
     // set mask
     const int* mi = measurement_mask.Get(buffer_index);
-    sensor_mask_.Set(mi, i);
+    sensor_mask.Set(mi, i);
 
     // copy qfrc_actuator
-    force_measurement_.Set(data->qfrc_actuator, i);
+    force_measurement.Set(data->qfrc_actuator, i);
 
     // copy configuration
-    configuration_.Set(data->qpos, i + 1);
+    configuration.Set(data->qpos, i + 1);
   }
 
   // set last time
-  time_.Set(&data->time, configuration_length_ - 1);
+  this->time.Set(&data->time, configuration_length_ - 1);
 
   // copy configuration to prior
-  mju_copy(configuration_prior_.Data(), configuration_.Data(),
+  mju_copy(configuration_previous.Data(), configuration.Data(),
            model_->nq * configuration_length_);
 
   // stop timer
-  timer_update_trajectory_ += GetDuration(start);
+  timer_.update_trajectory += GetDuration(start);
 }
 
 // update trajectories
@@ -1930,7 +1967,7 @@ int Estimator::UpdateTrajectories_(
   num_new_ = num_new;
 
   // shift trajectory heads
-  ShiftTrajectoryHead(num_new);
+  Shift(num_new);
 
   // get data
   mjData* data = data_[0].get();
@@ -1946,26 +1983,26 @@ int Estimator::UpdateTrajectories_(
 
     // set measurement
     const double* yi = measurement.Get(b);
-    sensor_measurement_.Set(yi, t);
+    sensor_measurement.Set(yi, t);
 
     // set measurement mask
     const int* mi = measurement_mask.Get(b);
-    sensor_mask_.Set(mi, t);
+    sensor_mask.Set(mi, t);
 
     // set time
     const double* ti = time.Get(b);
-    time_.Set(ti, t);
+    this->time.Set(ti, t);
 
     // ----- forward dynamics ----- //
 
     // set ctrl
     const double* ui = ctrl.Get(b);
-    ctrl_.Set(ui, t);
+    this->ctrl.Set(ui, t);
     mju_copy(data->ctrl, ui, model_->nu);
 
     // set qpos
-    double* q0 = configuration_.Get(t - 1);
-    double* q1 = configuration_.Get(t);
+    double* q0 = configuration.Get(t - 1);
+    double* q1 = configuration.Get(t);
     mju_copy(data->qpos, q1, model_->nq);
 
     // set qvel
@@ -1978,21 +2015,21 @@ int Estimator::UpdateTrajectories_(
     mj_step(model_, data);
 
     // copy qfrc_actuator
-    force_measurement_.Set(data->qfrc_actuator, t);
+    force_measurement.Set(data->qfrc_actuator, t);
 
     // copy configuration
-    configuration_.Set(data->qpos, t + 1);
+    configuration.Set(data->qpos, t + 1);
   }
 
   // set last time
-  time_.Set(&data->time, configuration_length_ - 1);
+  this->time.Set(&data->time, configuration_length_ - 1);
 
   // copy configuration to prior
-  mju_copy(configuration_prior_.Data(), configuration_.Data(),
+  mju_copy(configuration_previous.Data(), configuration.Data(),
            model_->nq * configuration_length_);
 
   // stop timer
-  timer_update_trajectory_ += GetDuration(start);
+  timer_.update_trajectory += GetDuration(start);
 
   return num_new;
 }
@@ -2008,7 +2045,7 @@ int Estimator::UpdateTrajectories(
 
   // latest estimator time
   double time_estimator_last =
-      *time_.Get(time_.Length() - 2);  // index to latest measurement time
+      *time.Get(time.Length() - 2);  // index to latest measurement time
 
   // compute number of new elements
   int num_new =
@@ -2026,12 +2063,12 @@ int Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
   if (buffer.Length() >= configuration_length_ - 1) {
     num_new_ = configuration_length_;
     if (!initialized_) {
-      InitializeTrajectories(buffer.sensor_, buffer.sensor_mask_, buffer.ctrl_,
-                             buffer.time_);
+      InitializeTrajectories(buffer.sensor, buffer.sensor_mask, buffer.ctrl,
+                             buffer.time);
       initialized_ = true;
     } else {
-      num_new_ = UpdateTrajectories(buffer.sensor_, buffer.sensor_mask_,
-                                    buffer.ctrl_, buffer.time_);
+      num_new_ = UpdateTrajectories(buffer.sensor, buffer.sensor_mask,
+                                    buffer.ctrl, buffer.time);
     }
     num_new = num_new_;
 
@@ -2039,39 +2076,6 @@ int Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
     Optimize(pool);
   }
   return num_new;
-}
-
-// get terms from GUI
-void Estimator::GetGUI() {
-  // lock
-  const std::lock_guard<std::mutex> lock(mutex_);
-
-  // settings
-  configuration_length_ = gui_configuration_length_;
-  max_smoother_iterations_ = gui_max_smoother_iterations_;
-
-  // weights
-  scale_prior_ = gui_scale_prior_;
-  scale_sensor_ = gui_weight_sensor_;
-  scale_force_ = gui_weight_force_;
-}
-
-// set terms to GUI
-void Estimator::SetGUI() {
-  // lock
-  const std::lock_guard<std::mutex> lock(mutex_);
-
-  // costs
-  gui_cost_prior_ = cost_prior_;
-  gui_cost_sensor_ = cost_sensor_;
-  gui_cost_force_ = cost_force_;
-  gui_cost_ = cost_;
-
-  // status
-  gui_regularization_ = regularization_;
-  gui_step_size_ = step_size_;
-
-  // timers
 }
 
 // force cost
@@ -2082,6 +2086,9 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   // update dimension
   int dim_update = model_->nv * configuration_length_;
   int nv = model_->nv;
+
+  // residual
+  ResidualForce();
 
   // ----- cost ----- //
 
@@ -2100,17 +2107,17 @@ double Estimator::CostForce(double* gradient, double* hessian) {
     // start cost timer
     auto start_cost = std::chrono::steady_clock::now();
 
-    // residual 
+    // residual
     double* rk = residual_force_.data() + k * nv;
 
     // weight
-    double weight = scale_force_[0] / nv / prediction_length_;
+    double weight = scale_force[0] / nv / prediction_length_;
 
     // parameters
-    double* pk = norm_parameters_force_.data() + MAX_NORM_PARAMETERS * 0;
+    double* pk = norm_parameters_force.data() + MAX_NORM_PARAMETERS * 0;
 
     // norm
-    NormType normk = norm_force_[0];
+    NormType normk = norm_force[0];
 
     // ----- cost ----- //
     cost += weight * Norm(gradient ? norm_gradient_force_.data() : NULL,
@@ -2118,7 +2125,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
                           nv, normk);
 
     // stop cost timer
-    timer_cost_force_ += GetDuration(start_cost);
+    timer_.cost_force += GetDuration(start_cost);
 
     // gradient wrt configuration: dridq012' * dndri
     if (gradient) {
@@ -2147,7 +2154,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   }
 
   // stop timer
-  timer_cost_force_derivatives_ += GetDuration(start);
+  timer_.cost_force_derivatives += GetDuration(start);
 
   return cost;
 }
@@ -2167,15 +2174,15 @@ void Estimator::ResidualForce() {
 
     // terms
     double* rk = residual_force_.data() + k * nv;
-    double* ft_actuator = force_measurement_.Get(t);
-    double* ft_inverse = force_prediction_.Get(t);
+    double* ft_actuator = force_measurement.Get(t);
+    double* ft_inverse = force_prediction.Get(t);
 
     // force difference
     mju_sub(rk, ft_inverse, ft_actuator, nv);
   }
 
   // stop timer
-  timer_residual_force_ += GetDuration(start);
+  timer_.residual_force += GetDuration(start);
 }
 
 // set block in force Jacobian
@@ -2301,7 +2308,7 @@ void Estimator::BlockForce(int index) {
 // note: pool wait is called outside this function
 void Estimator::JacobianForce(ThreadPool& pool) {
   // start index
-  int start_index = reuse_data_ * mju_max(0, prediction_length_ - num_new_);
+  int start_index = reuse_data * mju_max(0, prediction_length_ - num_new_);
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
@@ -2314,10 +2321,10 @@ void Estimator::JacobianForce(ThreadPool& pool) {
       if (k >= start_index) estimator.BlockForce(k);
 
       // assemble
-      if (!estimator.band_prior_) estimator.SetBlockForce(k);
+      if (!estimator.band_prior) estimator.SetBlockForce(k);
 
       // stop Jacobian timer
-      estimator.timer_force_step_[k] = GetDuration(jacobian_force_start);
+      estimator.timer_.force_step[k] = GetDuration(jacobian_force_start);
     });
   }
 }

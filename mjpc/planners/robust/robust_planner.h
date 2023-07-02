@@ -67,7 +67,7 @@ class RobustPlanner : public Planner {
 
   // state
   std::vector<double> state_;
-  double time_;
+  double time;
   std::vector<double> mocap_;
   std::vector<double> userdata_;
 };

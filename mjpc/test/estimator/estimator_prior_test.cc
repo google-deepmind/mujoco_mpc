@@ -47,17 +47,17 @@ TEST(PriorCost, Particle) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 5.0;
-  estimator.band_prior_ = false;
+  estimator.scale_prior = 5.0;
+  estimator.band_prior = false;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
@@ -75,15 +75,15 @@ TEST(PriorCost, Particle) {
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
 
   // set prior
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(), nvar * nvar);
+  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&estimator = estimator](const double* configuration) {
+  auto cost_prior = [&estimator = estimator, &model = model](const double* configuration) {
     // dimension
-    int nq = estimator.model_->nq;
-    int nv = estimator.model_->nv;
-    int T = estimator.configuration_length_;
-    int nvar = estimator.model_->nv * estimator.configuration_length_;
+    int nq = model->nq;
+    int nv = model->nv;
+    int T = estimator.ConfigurationLength();
+    int nvar = nv * T;
 
     // residual
     std::vector<double> residual(nvar);
@@ -92,7 +92,7 @@ TEST(PriorCost, Particle) {
     for (int t = 0; t < T; t++) {
       // terms
       double* rt = residual.data() + t * nv;
-      double* qt_prior = estimator.configuration_prior_.Get(t);
+      double* qt_prior = estimator.configuration_previous.Get(t);
       const double* qt = configuration + t * nq;
 
       // configuration difference
@@ -103,38 +103,37 @@ TEST(PriorCost, Particle) {
 
     // scratch
     std::vector<double> scratch(nvar);
-    mju_mulMatVec(scratch.data(), estimator.weight_prior_dense_.data(),
+    mju_mulMatVec(scratch.data(), estimator.weight_prior.data(),
                   residual.data(), nvar, nvar);
 
     // weighted cost
-    return 0.5 * estimator.scale_prior_ / nvar *
+    return 0.5 * estimator.scale_prior / nvar *
            mju_dot(residual.data(), scratch.data(), nvar);
   };
 
   // ----- lambda ----- //
 
   // cost
-  double cost_lambda = cost_prior(estimator.configuration_.Data());
+  double cost_lambda = cost_prior(estimator.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_prior, estimator.configuration_.Data(), nvar);
+  fdg.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_prior, estimator.configuration_.Data(), nvar);
+  fdh.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ResidualPrior();
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
+  ThreadPool pool(1);
 
   // evaluate cost
+  estimator.prior_flag = true;
+  estimator.sensor_flag = false;
+  estimator.force_flag = false;
   double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                          estimator.cost_hessian_prior_.data());
+      estimator.Cost(estimator.cost_gradient.data(),
+                          estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -143,13 +142,13 @@ TEST(PriorCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
+  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
           fdh.hessian.data(), nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
@@ -160,18 +159,19 @@ TEST(PriorCost, Particle) {
   DenseToBlockBand(P.data(), nvar, nv, 3);
 
   // set prior
-  mju_copy(estimator.weight_prior_dense_.data(), P.data(), nvar * nvar);
+  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
 
   // change settings
-  estimator.band_prior_ = true;
+  estimator.band_prior = true;
 
   // ----- cost ----- //
-  auto cost_band_prior = [&estimator = estimator](const double* configuration) {
+  auto cost_band_prior = [&estimator = estimator,
+                          &model = model](const double* configuration) {
     // dimension
-    int nq = estimator.model_->nq;
-    int nv = estimator.model_->nv;
-    int T = estimator.configuration_length_;
-    int nvar = estimator.model_->nv * estimator.configuration_length_;
+    int nq = model->nq;
+    int nv = model->nv;
+    int T = estimator.ConfigurationLength();
+    int nvar = nv * T;
 
     // residual
     std::vector<double> residual(nvar);
@@ -180,7 +180,7 @@ TEST(PriorCost, Particle) {
     for (int t = 0; t < T; t++) {
       // terms
       double* rt = residual.data() + t * nv;
-      double* qt_prior = estimator.configuration_prior_.Get(t);
+      double* qt_prior = estimator.configuration_previous.Get(t);
       const double* qt = configuration + t * nq;
 
       // configuration difference
@@ -191,31 +191,34 @@ TEST(PriorCost, Particle) {
 
     // scratch
     std::vector<double> scratch(nvar);
-    mju_bandMulMatVec(scratch.data(), estimator.weight_prior_band_.data(),
+    mju_bandMulMatVec(scratch.data(), estimator.weight_prior_band.data(),
                       residual.data(), nvar, 3 * nv, 0, 1, true);
 
     // weighted cost
-    return 0.5 * estimator.scale_prior_ / nvar *
+    return 0.5 * estimator.scale_prior / nvar *
            mju_dot(residual.data(), scratch.data(), nvar);
   };
 
   // ----- lambda ----- //
 
   // cost
-  double cost_band_lambda = cost_band_prior(estimator.configuration_.Data());
+  double cost_band_lambda = cost_band_prior(estimator.configuration.Data());
 
   // gradient
-  fdg.Compute(cost_band_prior, estimator.configuration_.Data(), nvar);
+  fdg.Compute(cost_band_prior, estimator.configuration.Data(), nvar);
 
   // Hessian
-  fdh.Compute(cost_band_prior, estimator.configuration_.Data(), nvar);
+  fdh.Compute(cost_band_prior, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
 
   // evaluate cost
+  estimator.prior_flag = true;
+  estimator.sensor_flag = false;
+  estimator.force_flag = false;
   int cost_band_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                          estimator.cost_hessian_prior_.data());
+      estimator.Cost(estimator.cost_gradient.data(),
+                          estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -223,12 +226,12 @@ TEST(PriorCost, Particle) {
   EXPECT_NEAR(cost_band_estimator - cost_band_lambda, 0.0, 1.0e-4);
 
   // gradient
-  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
-  mju_sub(hessian_error.data(), estimator.cost_hessian_prior_.data(),
+  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
           fdh.hessian.data(), nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
@@ -258,18 +261,18 @@ TEST(PriorCost, Box) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.scale_prior_ = 5.0;
-  estimator.band_prior_ = false;
+  estimator.scale_prior = 5.0;
+  estimator.band_prior = false;
 
   // copy configuration, prior
-  mju_copy(estimator.configuration_.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.configuration_prior_.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   double dq[6];
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration_.Get(t);
+    double* q = estimator.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       dq[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
@@ -290,25 +293,24 @@ TEST(PriorCost, Box) {
   mju_dense2Band(P_band.data(), P.data(), nvar, 3 * nv, 0);
 
   // set prior
-  mju_copy(estimator.weight_prior_band_.data(), P_band.data(), nvar * nvar);
+  mju_copy(estimator.weight_prior_band.data(), P_band.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&estimator = estimator](const double* update) {
+  auto cost_prior = [&estimator = estimator, &model = model](const double* update) {
     // dimension
-    int nq = estimator.model_->nq;
-    int nv = estimator.model_->nv;
-    int T = estimator.configuration_length_;
-    int nvar = estimator.model_->nv * estimator.configuration_length_;
+    int nq = model->nq;
+    int nv = model->nv;
+    int T = estimator.ConfigurationLength();
+    int nvar = nv * T;
 
     // configuration + update
     std::vector<double> configuration(nq * T);
-    mju_copy(configuration.data(), estimator.configuration_.Data(), nq * T);
+    mju_copy(configuration.data(), estimator.configuration.Data(), nq * T);
     for (int t = 0; t < T; t++) {
       double* q = configuration.data() + nq * t;
       const double* dq = update + nv * t;
-      mj_integratePos(estimator.model_, q, dq, 1.0);
+      mj_integratePos(model, q, dq, 1.0);
     }
-
 
     // residual
     std::vector<double> residual(nvar);
@@ -317,7 +319,7 @@ TEST(PriorCost, Box) {
     for (int t = 0; t < T; t++) {
       // terms
       double* rt = residual.data() + t * nv;
-      double* qt_prior = estimator.configuration_prior_.Get(t);
+      double* qt_prior = estimator.configuration_previous.Get(t);
       const double* qt = configuration.data() + t * nq;
 
       // configuration difference
@@ -328,17 +330,17 @@ TEST(PriorCost, Box) {
 
     // scratch
     std::vector<double> scratch(nvar);
-    mju_mulMatVec(scratch.data(), estimator.weight_prior_dense_.data(),
+    mju_mulMatVec(scratch.data(), estimator.weight_prior.data(),
                   residual.data(), nvar, nvar);
 
     // weighted cost
-    return 0.5 * estimator.scale_prior_ / nvar *
+    return 0.5 * estimator.scale_prior / nvar *
            mju_dot(residual.data(), scratch.data(), nvar);
   };
 
   // ----- lambda ----- //
-  
-  // update 
+
+  // update
   std::vector<double> update(nv * T);
   mju_zero(update.data(), nv * T);
 
@@ -354,16 +356,15 @@ TEST(PriorCost, Box) {
   fdh.Compute(cost_prior, update.data(), nvar);
 
   // ----- estimator ----- //
-  estimator.ResidualPrior();
-  for (int t = 0; t < estimator.configuration_length_; t++) {
-    estimator.BlockPrior(t);
-    estimator.SetBlockPrior(t);
-  }
+  ThreadPool pool(1);
 
   // evaluate cost
+  estimator.prior_flag = true;
+  estimator.sensor_flag = false;
+  estimator.force_flag = false;
   double cost_estimator =
-      estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-                          estimator.cost_hessian_prior_.data());
+      estimator.Cost(estimator.cost_gradient.data(),
+                          estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -372,7 +373,7 @@ TEST(PriorCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient_prior_.data(),
+  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
           fdg.gradient.data(), nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 

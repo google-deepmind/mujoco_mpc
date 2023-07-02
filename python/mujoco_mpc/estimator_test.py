@@ -101,15 +101,15 @@ class EstimatorTest(absltest.TestCase):
     # test that input and output match
     self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
 
-    ## configuration prior
+    ## configuration prev
 
     # set
-    configuration_prior = np.random.rand(model.nq)
-    data = estimator.data(index, configuration_prior=configuration_prior)
+    configuration_previous = np.random.rand(model.nq)
+    data = estimator.data(index, configuration_previous=configuration_previous)
 
     # test that input and output match
     self.assertLess(
-        np.linalg.norm(configuration_prior - data["configuration_prior"]), 1.0e-5
+        np.linalg.norm(configuration_previous - data["configuration_previous"]), 1.0e-5
     )
 
     ## sensor measurement

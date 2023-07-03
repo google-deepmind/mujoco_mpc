@@ -119,6 +119,7 @@ message Settings {
   optional bool skip_update_prior_weight = 19;
   optional bool update_prior_weight = 20;
   optional bool time_scaling = 21;
+  optional double search_direction_tolerance = 22;
 }
 
 message SettingsRequest {
@@ -229,6 +230,8 @@ message Status {
   double step_size = 3;
   double regularization = 4;
   double gradient_norm = 5;
+  double search_direction_norm = 6;
+  int32 solve_status = 7;
 }
 
 message StatusRequest {}

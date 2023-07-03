@@ -493,6 +493,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_time_scaling(estimator_.settings.time_scaling);
 
+  // search direction tolerance 
+  if (input.has_search_direction_tolerance()) {
+    estimator_.settings.search_direction_tolerance = input.search_direction_tolerance();
+  }
+  output->set_search_direction_tolerance(estimator_.settings.search_direction_tolerance);
+
   return grpc::Status::OK;
 }
 
@@ -796,6 +802,12 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
 
   // gradient norm
   status->set_gradient_norm(estimator_.GradientNorm());
+
+  // search direction norm 
+  status->set_search_direction_norm(estimator_.SearchDirectionNorm());
+
+  // solve status 
+  status->set_solve_status((int)estimator_.SolveStatus());
 
   return grpc::Status::OK;
 }

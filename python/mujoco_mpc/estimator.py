@@ -222,6 +222,7 @@ class Estimator:
       skip_update_prior_weight: Optional[bool] = None,
       update_prior_weight: Optional[bool] = None,
       time_scaling: Optional[bool] = None,
+      search_direction_tolerance: Optional[float] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -246,6 +247,7 @@ class Estimator:
         skip_update_prior_weight=skip_update_prior_weight,
         update_prior_weight=update_prior_weight,
         time_scaling=time_scaling,
+        search_direction_tolerance=search_direction_tolerance,
     )
 
     # settings request
@@ -279,6 +281,7 @@ class Estimator:
         "skip_update_prior_weight": settings.skip_update_prior_weight,
         "update_prior_weight": settings.update_prior_weight,
         "time_scaling": settings.time_scaling,
+        "search_direction_tolerance": settings.search_direction_tolerance,
     }
 
   def weight(
@@ -366,6 +369,8 @@ class Estimator:
         "step_size": status.step_size,
         "regularization": status.regularization,
         "gradient_norm": status.gradient_norm,
+        "search_direction_norm": status.search_direction_norm,
+        "solve_status": status.solve_status,
     }
 
   def shift(self, shift: int) -> int:
@@ -560,6 +565,22 @@ class Estimator:
     print("- step size = ", status["step_size"])
     print("- regularization = ", status["regularization"])
     print("- gradient norm = ", status["gradient_norm"])
+
+    def status_code(code):
+      if code == 0:
+        return "UNSOLVED"
+      elif code == 1:
+        return "SEARCH_FAILURE"
+      elif code == 2:
+        return "MAX_ITERATIONS_FAILURE"
+      elif code == 3:
+        return "SMALL_DIRECTION_FAILURE"
+      elif code == 4:
+        return "SOLVED"
+      else:
+        return "CODE_ERROR"
+      
+    print("- solve status = ", status_code(status["solve_status"]))
 
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""

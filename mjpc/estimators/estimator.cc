@@ -252,6 +252,8 @@ void Estimator::Initialize(mjModel* model) {
   hessian_factor_ = false;
   num_new_ = configuration_length_;
   gradient_norm_ = 0.0;
+  search_direction_norm_ = 0.0;
+  solve_status_ = kUnsolved;
 
   // settings
   settings.band_prior =
@@ -324,6 +326,7 @@ void Estimator::SetConfigurationLength(int length) {
   initialized_ = false;
   step_size_ = 1.0;
   gradient_norm_ = 0.0;
+  search_direction_norm_ = 0.0;
 }
 
 // shift trajectory heads
@@ -523,6 +526,7 @@ void Estimator::Reset() {
   iterations_search_ = 0;
   cost_count_ = 0;
   initialized_ = false;
+  solve_status_ = kUnsolved;
 }
 
 // evaluate configurations
@@ -1359,7 +1363,10 @@ double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   cost_count_++;
 
   // stop timer
-  timer_.cost += GetDuration(start);
+  timer_.cost_total_derivatives += GetDuration(start);
+
+  // total cost timer
+  timer_.cost = timer_.cost_prior + timer_.cost_sensor + timer_.cost_force;
 
   // total cost
   return cost;
@@ -1490,6 +1497,9 @@ void Estimator::Optimize(ThreadPool& pool) {
   // start timer
   auto start_optimize = std::chrono::steady_clock::now();
 
+  // set status 
+  solve_status_ = kUnsolved;
+
   // dimensions
   int nconfig = model->nq * configuration_length_;
   int nvar = model->nv * configuration_length_;
@@ -1517,71 +1527,20 @@ void Estimator::Optimize(ThreadPool& pool) {
   // iterations
   for (; iterations_smoother_ < settings.max_smoother_iterations;
        iterations_smoother_++) {
-    // ----- cost derivatives ----- //
-
-    // // start timer (total cost derivatives)
-    // auto cost_derivatives_start = std::chrono::steady_clock::now();
-
-    // // configuration derivatives
-    // ConfigurationDerivative(pool);
-
-    // // -- cost derivatives -- //
-
-    // // start timer
-    // auto start_cost_total_derivatives = std::chrono::steady_clock::now();
-
-    // // pool count
-    // int count_begin = pool.GetCount();
-
-    // // individual derivatives
-    // if (prior_flag) {
-    //   pool.Schedule([&estimator = *this]() {
-    //     estimator.CostPrior(estimator.cost_gradient_prior_.data(),
-    //                         estimator.cost_hessian_prior_.data());
-    //   });
-    // }
-    // if (sensor_flag) {
-    //   pool.Schedule([&estimator = *this]() {
-    //     estimator.CostSensor(estimator.cost_gradient_sensor_.data(),
-    //                          estimator.cost_hessian_sensor_.data());
-    //   });
-    // }
-    // if (force_flag) {
-    //   pool.Schedule([&estimator = *this]() {
-    //     estimator.CostForce(estimator.cost_gradient_force_.data(),
-    //                         estimator.cost_hessian_force_.data());
-    //   });
-    // }
-    // // wait
-    // pool.WaitCount(count_begin + prior_flag + sensor_flag + force_flag);
-
-    // // pool reset
-    // pool.ResetCount();
-
+    // evalute cost derivatives
     Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
     // reset num_new_
     num_new_ = configuration_length_;  // update all data now
 
-    // stop timer
-    // timer_.cost_total_derivatives +=
-    // GetDuration(start_cost_total_derivatives);
-
-    // gradient
+    // -- gradient -- //
     double* gradient = cost_gradient.data();
-    // TotalGradient();
 
     // gradient tolerance check
     gradient_norm_ = mju_norm(gradient, nvar) / nvar;
     if (gradient_norm_ < settings.gradient_tolerance) {
       break;
     }
-
-    // Hessian
-    // TotalHessian();
-
-    // stop timer
-    // timer_.cost_derivatives += GetDuration(cost_derivatives_start);
 
     // ----- line / curve search ----- //
     // start timer
@@ -1596,24 +1555,29 @@ void Estimator::Optimize(ThreadPool& pool) {
     step_size_ = 1.0;
     regularization_ = settings.regularization_initial;
 
-    // initial search direction
+    // -- search direction -- //
     SearchDirection();
+    if (search_direction_norm_ < settings.search_direction_tolerance) {
+      // restore previous iteration
+      Restore(pool);
+
+      // set solve status 
+      solve_status_ = kSmallDirectionFailure;
+
+      // failure
+      return;
+    }
 
     // backtracking until cost decrease
     // TODO(taylor): Armijo, Wolfe conditions
     while (cost_candidate >= cost) {
       // check for max iterations
       if (iteration_search > settings.max_search_iterations) {
-        // reset configuration
-        mju_copy(configuration.Data(), configuration_copy_.Data(), nconfig);
+        // restore previous iteration
+        Restore(pool);
 
-        // restore velocity, acceleration
-        ConfigurationToVelocityAcceleration();
-
-        // evaluate cost
-        cost = Cost(NULL, NULL, pool);
-
-        printf("line search failure\n");
+        // set solve status 
+        solve_status_ = kMaxIterationsFailure;
 
         // failure
         return;
@@ -1633,6 +1597,16 @@ void Estimator::Optimize(ThreadPool& pool) {
                         regularization_ * settings.regularization_scaling);
             // recompute search direction
             SearchDirection();
+            if (search_direction_norm_ < settings.search_direction_tolerance) {
+              // restore previous iteration 
+              Restore(pool);
+
+              // set solve status 
+              solve_status_ = kSmallDirectionFailure;
+
+              // failure
+              return;
+            }
             break;
           default:
             mju_error("Invalid search type.\n");
@@ -1670,6 +1644,9 @@ void Estimator::Optimize(ThreadPool& pool) {
 
   // stop timer
   timer_.optimize = GetDuration(start_optimize);
+
+  // set solve status 
+  solve_status_ = kSolved;
 
   // status
   PrintOptimize();
@@ -1733,6 +1710,9 @@ void Estimator::SearchDirection() {
   if (!hessian_factor_) {
     hessian_factor_ = true;
   }
+
+  // search direction norm 
+  search_direction_norm_ = InfinityNorm(direction, ntotal);
 
   // end timer
   timer_.search_direction += GetDuration(search_direction_start);
@@ -2094,6 +2074,16 @@ int Estimator::Update(const Buffer& buffer, ThreadPool& pool) {
     Optimize(pool);
   }
   return num_new;
+}
+
+// restore previous iteration 
+void Estimator::Restore(ThreadPool& pool) {
+  // reset configuration
+  mju_copy(configuration.Data(), configuration_copy_.Data(),
+           model->nv * configuration_length_);
+
+  // evaluate cost for previous iteration
+  cost = Cost(NULL, NULL, pool);
 }
 
 // force cost

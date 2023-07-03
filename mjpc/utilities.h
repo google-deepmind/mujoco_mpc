@@ -369,6 +369,14 @@ void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
 // square dense to block band matrix
 void DenseToBlockBand(double* res, int dim, int dblock, int nblock);
 
+// infinity norm 
+template <typename T> 
+T InfinityNorm(T* x, int n) {
+  return std::abs(*std::max_element(x, x + n, [](T a, T b) -> bool {
+    return (std::abs(a) < std::abs(b));
+  }));
+}
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

@@ -34,6 +34,15 @@ const int MAX_HISTORY = 256;  // maximum configuration trajectory length
 const int NUM_FORCE_TERMS = 3;
 const int MAX_NORM_PARAMETERS = 3;
 
+// estimator status 
+enum EstimatorStatus : int {
+  kUnsolved = 0,
+  kSearchFailure,
+  kMaxIterationsFailure,
+  kSmallDirectionFailure,
+  kSolved,
+};
+
 // search type for update
 enum SearchType : int {
   kLineSearch = 0,
@@ -100,6 +109,9 @@ class Estimator {
   // update
   int Update(const Buffer& buffer, ThreadPool& pool);
 
+  // restore previous solution 
+  void Restore(ThreadPool& pool);
+
   // get configuration length 
   int ConfigurationLength() const { return configuration_length_; }
   
@@ -118,6 +130,8 @@ class Estimator {
   double GradientNorm() const { return gradient_norm_; }
   double Regularization() const { return regularization_; }
   double StepSize() const { return step_size_; }
+  double SearchDirectionNorm() const { return search_direction_norm_; }
+  EstimatorStatus SolveStatus() const { return solve_status_; }
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -171,26 +185,27 @@ class Estimator {
 
   // settings
   struct EstimatorSettings {
-    bool prior_flag = true;                  // flag for prior cost computation
-    bool sensor_flag = true;                 // flag for sensor cost computation
-    bool force_flag = true;                  // flag for force cost computation
-    int max_search_iterations = 1000;        // maximum number of line search iterations
-    int max_smoother_iterations = 100;       // maximum number of smoothing iterations
-    double gradient_tolerance = 1.0e-10;     // small gradient tolerance
-    bool verbose_iteration = false;          // flag for printing optimize iteration
-    bool verbose_optimize = false;           // flag for printing optimize status
-    bool verbose_cost = false;               // flag for printing cost
-    bool verbose_prior = false;              // flag for printing prior weight update status
-    bool band_prior = true;                  // approximate covariance for prior
-    SearchType search_type = kCurveSearch;   // search type (line search, curve search)
-    double step_scaling = 0.5;               // step size scaling
-    double regularization_initial = 1.0e-12; // initial regularization
-    double regularization_scaling = 2.0;     // regularization scaling
-    bool band_copy = true;                   // copy band matrices by block
-    bool reuse_data = false;                 // flag for resuing data previously computed
-    bool skip_update_prior_weight = false;   // flag for skipping update prior weight
-    bool update_prior_weight = true;         // flag for updating prior weights
-    bool time_scaling = false;               // scale sensor and force costs by time step
+    bool prior_flag = true;                      // flag for prior cost computation
+    bool sensor_flag = true;                     // flag for sensor cost computation
+    bool force_flag = true;                      // flag for force cost computation
+    int max_search_iterations = 1000;            // maximum number of line search iterations
+    int max_smoother_iterations = 100;           // maximum number of smoothing iterations
+    double gradient_tolerance = 1.0e-10;         // small gradient tolerance
+    bool verbose_iteration = false;              // flag for printing optimize iteration
+    bool verbose_optimize = false;               // flag for printing optimize status
+    bool verbose_cost = false;                   // flag for printing cost
+    bool verbose_prior = false;                  // flag for printing prior weight update status
+    bool band_prior = true;                      // approximate covariance for prior
+    SearchType search_type = kCurveSearch;       // search type (line search, curve search)
+    double step_scaling = 0.5;                   // step size scaling
+    double regularization_initial = 1.0e-12;     // initial regularization
+    double regularization_scaling = 2.0;         // regularization scaling
+    bool band_copy = true;                       // copy band matrices by block
+    bool reuse_data = false;                     // flag for resuing data previously computed
+    bool skip_update_prior_weight = false;       // flag for skipping update prior weight
+    bool update_prior_weight = true;             // flag for updating prior weights
+    bool time_scaling = false;                   // scale sensor and force costs by time step
+    double search_direction_tolerance = 1.0e-8;  // search direction tolerance
   } settings;
   
   // finite-difference settings
@@ -404,6 +419,8 @@ class Estimator {
   double gradient_norm_;                    // norm of cost gradient
   double regularization_;                   // regularization
   double step_size_;                        // step size for line search
+  double search_direction_norm_;            // search direction norm
+  EstimatorStatus solve_status_;            // estimator status
 
   // timers
   struct EstimatorTimers {

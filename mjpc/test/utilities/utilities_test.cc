@@ -596,5 +596,17 @@ TEST(BandMatrix, Copy) {
               0.0, 1.0e-3);
 }
 
+TEST(Norm, Infinity) {
+  // double
+  double x[] = {1.0, 2.0, -3.0};
+  double rx = InfinityNorm(x, 3);
+  EXPECT_NEAR(rx, 3.0, 1.0e-5);
+
+  // int
+  int y[] = {1, 2, -3};
+  int ry = InfinityNorm(y, 3);
+  EXPECT_EQ(ry, 3);
+}
+
 }  // namespace
 }  // namespace mjpc

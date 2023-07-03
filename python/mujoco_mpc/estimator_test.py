@@ -284,6 +284,11 @@ class EstimatorTest(absltest.TestCase):
     update_prior_weight = False
     settings = estimator.settings(update_prior_weight=update_prior_weight)
     self.assertTrue(update_prior_weight == settings["update_prior_weight"])
+
+    # get/set search direction tolerance
+    search_direction_tolerance = 3.3 
+    settings = estimator.settings(search_direction_tolerance=search_direction_tolerance)
+    self.assertTrue(np.abs(search_direction_tolerance - settings["search_direction_tolerance"]) < 1.0e-5)
    
   def test_costs(self):
     # load model
@@ -491,7 +496,13 @@ class EstimatorTest(absltest.TestCase):
     self.assertTrue(np.abs(status["regularization"] - estimator.settings()["regularization_initial"]) < 1.0e-6)
 
     # gradient norm
-    self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-3)
+    self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-5)
+
+    # search direction norm 
+    self.assertTrue(np.abs(status["search_direction_norm"]) < 1.0e-5)
+
+    # solve status 
+    self.assertTrue(status["solve_status"] == 0)
 
   def test_cost_gradient(self):
     # load model

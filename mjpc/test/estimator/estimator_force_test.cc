@@ -159,9 +159,9 @@ TEST(ForceCost, Particle) {
 
   // ----- estimator ----- //
   // cost
-  estimator.prior_flag = false;
-  estimator.sensor_flag = false;
-  estimator.force_flag = true;
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = true;
   double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
                                          estimator.cost_hessian.data(), pool);
 
@@ -339,9 +339,9 @@ TEST(ForceCost, Box) {
   // ----- estimator ----- //
 
   // cost
-  estimator.prior_flag = false;
-  estimator.sensor_flag = false;
-  estimator.force_flag = true;
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = true;
   double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
                                          estimator.cost_hessian.data(), pool);
 

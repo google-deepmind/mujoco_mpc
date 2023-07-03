@@ -48,7 +48,7 @@ TEST(PriorCost, Particle) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior = 5.0;
-  estimator.band_prior = false;
+  estimator.settings.band_prior = false;
 
   // copy configuration, prior
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -128,9 +128,9 @@ TEST(PriorCost, Particle) {
   ThreadPool pool(1);
 
   // evaluate cost
-  estimator.prior_flag = true;
-  estimator.sensor_flag = false;
-  estimator.force_flag = false;
+  estimator.settings.prior_flag = true;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   double cost_estimator =
       estimator.Cost(estimator.cost_gradient.data(),
                           estimator.cost_hessian.data(), pool);
@@ -162,7 +162,7 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
 
   // change settings
-  estimator.band_prior = true;
+  estimator.settings.band_prior = true;
 
   // ----- cost ----- //
   auto cost_band_prior = [&estimator = estimator,
@@ -213,9 +213,9 @@ TEST(PriorCost, Particle) {
   // ----- estimator ----- //
 
   // evaluate cost
-  estimator.prior_flag = true;
-  estimator.sensor_flag = false;
-  estimator.force_flag = false;
+  estimator.settings.prior_flag = true;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   int cost_band_estimator =
       estimator.Cost(estimator.cost_gradient.data(),
                           estimator.cost_hessian.data(), pool);
@@ -262,7 +262,7 @@ TEST(PriorCost, Box) {
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.scale_prior = 5.0;
-  estimator.band_prior = false;
+  estimator.settings.band_prior = false;
 
   // copy configuration, prior
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -359,9 +359,9 @@ TEST(PriorCost, Box) {
   ThreadPool pool(1);
 
   // evaluate cost
-  estimator.prior_flag = true;
-  estimator.sensor_flag = false;
-  estimator.force_flag = false;
+  estimator.settings.prior_flag = true;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   double cost_estimator =
       estimator.Cost(estimator.cost_gradient.data(),
                           estimator.cost_hessian.data(), pool);

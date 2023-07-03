@@ -90,7 +90,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // test gradient tolerance
   EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
-              estimator.gradient_tolerance);
+              1.0e-5);
 
   // test recovered configuration trajectory
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
@@ -129,8 +129,8 @@ TEST(BatchOptimize, Box3D) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.time_scaling = false;
-  estimator.gradient_tolerance = 1.0e-3;
+  estimator.settings.time_scaling = false;
+  estimator.settings.gradient_tolerance = 1.0e-3;
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
@@ -165,7 +165,7 @@ TEST(BatchOptimize, Box3D) {
 
   // test gradient tolerance
   EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
-              estimator.gradient_tolerance);
+              estimator.settings.gradient_tolerance);
 
   // test configuration trajectory error
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
@@ -214,9 +214,9 @@ TEST(BatchOptimize, Quadruped) {
   Estimator estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.time_scaling = true;
-  estimator.verbose_optimize = verbose;
-  estimator.verbose_prior = verbose;
+  estimator.settings.time_scaling = true;
+  estimator.settings.verbose_optimize = verbose;
+  estimator.settings.verbose_prior = verbose;
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
@@ -239,8 +239,8 @@ TEST(BatchOptimize, Quadruped) {
   }
 
   // settings
-  estimator.max_smoother_iterations = 1;
-  estimator.max_search_iterations = 10;
+  estimator.settings.max_smoother_iterations = 1;
+  estimator.settings.max_search_iterations = 10;
 
   // set weights
   mju_fill(estimator.scale_sensor.data(), 1.0, model->nsensor);

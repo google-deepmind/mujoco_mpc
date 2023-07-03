@@ -172,9 +172,9 @@ TEST(MeasurementCost, Particle) {
   fdh.Compute(cost_measurement, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  estimator.prior_flag = false;
-  estimator.sensor_flag = true;
-  estimator.force_flag = false;
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = true;
+  estimator.settings.force_flag = false;
   // cost
   double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
                                          estimator.cost_hessian.data(), pool);
@@ -377,9 +377,9 @@ TEST(MeasurementCost, Box) {
   // ----- estimator ----- //
 
   // cost
-  estimator.prior_flag = false;
-  estimator.sensor_flag = true;
-  estimator.force_flag = false;
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = true;
+  estimator.settings.force_flag = false;
   double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
                                          estimator.cost_hessian.data(), pool);
 

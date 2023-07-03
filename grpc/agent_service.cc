@@ -91,6 +91,12 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
   agent_.SetTaskByIndex(task_index);
 
   auto load_model = agent_.LoadModel();
+  if (!load_model.model) {
+    return grpc::Status(
+        grpc::StatusCode::INTERNAL,
+        absl::StrCat("Failed to load model: ", load_model.error));
+  }
+
   agent_.Initialize(load_model.model.get());
   agent_.Allocate();
   agent_.Reset();

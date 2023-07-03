@@ -579,7 +579,7 @@ void Estimator::ConfigurationDerivative(ThreadPool& pool) {
 // prior cost
 double Estimator::CostPrior(double* gradient, double* hessian) {
   // start timer
-  auto start = std::chrono::steady_clock::now();
+  auto start_cost = std::chrono::steady_clock::now();
 
   // residual dimension
   int nv = model->nv;
@@ -619,11 +619,13 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
     cost = 0.5 * scale * mju_dot(r, tmp, dim);
 
     // stop cost timer
-    timer_.cost_prior += GetDuration(start);
+    timer_.cost_prior += GetDuration(start_cost);
   }
 
   // derivatives
   if (!gradient && !hessian) return cost;
+
+  auto start_derivatives = std::chrono::steady_clock::now();
 
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
@@ -701,7 +703,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   }
 
   // stop derivatives timer
-  timer_.cost_prior_derivatives += GetDuration(start);
+  timer_.cost_prior_derivatives += GetDuration(start_derivatives);
 
   return cost;
 }
@@ -1324,6 +1326,9 @@ double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
     ConfigurationDerivative(pool);
   }
 
+  // start cost derivative timer
+  auto start_cost_derivatives = std::chrono::steady_clock::now();
+
   // pool count
   int count_begin = pool.GetCount();
 
@@ -1378,6 +1383,7 @@ double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   // cost derivative time
   if (gradient || hessian) {
     timer_.cost_derivatives += GetDuration(start);
+    timer_.cost_total_derivatives += GetDuration(start_cost_derivatives);
   }
 
   // reset skip flag 
@@ -1528,8 +1534,6 @@ void Estimator::Optimize(ThreadPool& pool) {
   // initial cost
   cost_count_ = 0;
   cost = Cost(NULL, NULL, pool);
-  printf("cost initial\n");
-  fflush(stdout);
   cost_initial = cost;
 
   // print initial cost
@@ -1547,9 +1551,6 @@ void Estimator::Optimize(ThreadPool& pool) {
     // evalute cost derivatives
     cost_skip_ = true;
     Cost(cost_gradient.data(), cost_hessian.data(), pool);
-
-    printf("cost gradient\n");
-    fflush(stdout);
 
     // start timer
     auto start_search = std::chrono::steady_clock::now();
@@ -1650,9 +1651,6 @@ void Estimator::Optimize(ThreadPool& pool) {
       // cost
       cost_skip_ = false;
       cost_candidate = Cost(NULL, NULL, pool);
-
-      printf("cost search\n");
-      fflush(stdout);
 
       // update iteration
       iteration_search++;
@@ -1788,20 +1786,20 @@ void Estimator::PrintOptimize() {
 
   printf("\n");
   printf("  cost : %.3f (ms) \n", 1.0e-3 * timer_.cost / cost_count_);
-  // printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior / cost_count_);
-  // printf("    - sensor: %.3f (ms) \n",
-  //        1.0e-3 * timer_.cost_sensor / cost_count_);
-  // printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force / cost_count_);
-  // printf("    - qpos -> qvel, qacc: %.3f (ms) \n",
-  //        1.0e-3 * timer_.cost_config_to_velacc / cost_count_);
-  // printf("    - prediction: %.3f (ms) \n",
-  //        1.0e-3 * timer_.cost_prediction / cost_count_);
-  // printf("    - residual prior: %.3f (ms) \n",
-  //        1.0e-3 * timer_.residual_prior / cost_count_);
-  // printf("    - residual sensor: %.3f (ms) \n",
-  //        1.0e-3 * timer_.residual_sensor / cost_count_);
-  // printf("    - residual force: %.3f (ms) \n",
-  //        1.0e-3 * timer_.residual_force / cost_count_);
+  printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior / cost_count_);
+  printf("    - sensor: %.3f (ms) \n",
+         1.0e-3 * timer_.cost_sensor / cost_count_);
+  printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force / cost_count_);
+  printf("    - qpos -> qvel, qacc: %.3f (ms) \n",
+         1.0e-3 * timer_.cost_config_to_velacc / cost_count_);
+  printf("    - prediction: %.3f (ms) \n",
+         1.0e-3 * timer_.cost_prediction / cost_count_);
+  printf("    - residual prior: %.3f (ms) \n",
+         1.0e-3 * timer_.residual_prior / cost_count_);
+  printf("    - residual sensor: %.3f (ms) \n",
+         1.0e-3 * timer_.residual_sensor / cost_count_);
+  printf("    - residual force: %.3f (ms) \n",
+         1.0e-3 * timer_.residual_force / cost_count_);
   printf("    [cost_count = %i]\n", cost_count_);
   printf("\n");
   printf("  cost derivatives [total]: %.3f (ms) \n",
@@ -1830,27 +1828,27 @@ void Estimator::PrintOptimize() {
   printf("    - direction: %.3f (ms) \n", 1.0e-3 * timer_.search_direction);
   printf("    - cost: %.3f (ms) \n",
          1.0e-3 * (timer_.cost - timer_.cost / cost_count_));
-  // printf("      < prior: %.3f (ms) \n",
-  //        1.0e-3 * (timer_.cost_prior - timer_.cost_prior / cost_count_));
-  // printf("      < sensor: %.3f (ms) \n",
-  //        1.0e-3 * (timer_.cost_sensor - timer_.cost_sensor / cost_count_));
-  // printf("      < force: %.3f (ms) \n",
-  //        1.0e-3 * (timer_.cost_force - timer_.cost_force / cost_count_));
-  // printf("      < qpos -> qvel, qacc: %.3f (ms) \n",
-  //        1.0e-3 * (timer_.cost_config_to_velacc -
-  //                  timer_.cost_config_to_velacc / cost_count_));
-  // printf(
-  //     "      < prediction: %.3f (ms) \n",
-  //     1.0e-3 * (timer_.cost_prediction - timer_.cost_prediction / cost_count_));
-  // printf(
-  //     "      < residual prior: %.3f (ms) \n",
-  //     1.0e-3 * (timer_.residual_prior - timer_.residual_prior / cost_count_));
-  // printf(
-  //     "      < residual sensor: %.3f (ms) \n",
-  //     1.0e-3 * (timer_.residual_sensor - timer_.residual_sensor / cost_count_));
-  // printf(
-  //     "      < residual force: %.3f (ms) \n",
-  //     1.0e-3 * (timer_.residual_force - timer_.residual_force / cost_count_));
+  printf("      < prior: %.3f (ms) \n",
+         1.0e-3 * (timer_.cost_prior - timer_.cost_prior / cost_count_));
+  printf("      < sensor: %.3f (ms) \n",
+         1.0e-3 * (timer_.cost_sensor - timer_.cost_sensor / cost_count_));
+  printf("      < force: %.3f (ms) \n",
+         1.0e-3 * (timer_.cost_force - timer_.cost_force / cost_count_));
+  printf("      < qpos -> qvel, qacc: %.3f (ms) \n",
+         1.0e-3 * (timer_.cost_config_to_velacc -
+                   timer_.cost_config_to_velacc / cost_count_));
+  printf(
+      "      < prediction: %.3f (ms) \n",
+      1.0e-3 * (timer_.cost_prediction - timer_.cost_prediction / cost_count_));
+  printf(
+      "      < residual prior: %.3f (ms) \n",
+      1.0e-3 * (timer_.residual_prior - timer_.residual_prior / cost_count_));
+  printf(
+      "      < residual sensor: %.3f (ms) \n",
+      1.0e-3 * (timer_.residual_sensor - timer_.residual_sensor / cost_count_));
+  printf(
+      "      < residual force: %.3f (ms) \n",
+      1.0e-3 * (timer_.residual_force - timer_.residual_force / cost_count_));
   printf("\n");
   printf("  TOTAL: %.3f (ms) \n", 1.0e-3 * (timer_.optimize));
   printf("\n");
@@ -1865,6 +1863,7 @@ void Estimator::PrintOptimize() {
   printf("  search direction norm: %.6f\n", search_direction_norm_);
   printf("  cost difference: %.6f\n", cost_difference_);
   printf("  solve status: %s\n", StatusString(solve_status_).c_str());
+  printf("  cost count: %i\n", cost_count_);
   printf("\n");
 
   // cost
@@ -1873,7 +1872,7 @@ void Estimator::PrintOptimize() {
   printf("    - prior: %.3f\n", cost_prior);
   printf("    - sensor: %.3f\n", cost_sensor);
   printf("    - force: %.3f\n", cost_force);
-  printf("  <initial: %.3f\n>", cost_initial);
+  printf("  <initial: %.3f>\n", cost_initial);
   printf("\n");
 
   fflush(stdout);

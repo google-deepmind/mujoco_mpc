@@ -499,6 +499,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_search_direction_tolerance(estimator_.settings.search_direction_tolerance);
 
+  // cost tolerance 
+  if (input.has_cost_tolerance()) {
+    estimator_.settings.cost_tolerance = input.cost_tolerance();
+  }
+  output->set_cost_tolerance(estimator_.settings.cost_tolerance);
+
   return grpc::Status::OK;
 }
 
@@ -808,6 +814,9 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
 
   // solve status 
   status->set_solve_status((int)estimator_.SolveStatus());
+
+  // cost difference 
+  status->set_cost_difference(estimator_.CostDifference());
 
   return grpc::Status::OK;
 }

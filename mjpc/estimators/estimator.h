@@ -40,6 +40,8 @@ enum EstimatorStatus : int {
   kSearchFailure,
   kMaxIterationsFailure,
   kSmallDirectionFailure,
+  kMaxRegularizationFailure,
+  kCostDifferenceFailure,
   kSolved,
 };
 
@@ -132,6 +134,7 @@ class Estimator {
   double StepSize() const { return step_size_; }
   double SearchDirectionNorm() const { return search_direction_norm_; }
   EstimatorStatus SolveStatus() const { return solve_status_; }
+  double CostDifference() const { return cost_difference_; }
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -155,6 +158,7 @@ class Estimator {
   double cost_force;
   double cost;
   double cost_initial;
+  double cost_previous;
 
   // cost gradient
   std::vector<double> cost_gradient;          // nv * MAX_HISTORY
@@ -206,6 +210,7 @@ class Estimator {
     bool update_prior_weight = true;             // flag for updating prior weights
     bool time_scaling = false;                   // scale sensor and force costs by time step
     double search_direction_tolerance = 1.0e-8;  // search direction tolerance
+    double cost_tolerance = 1.0e-8;              // cost difference tolernace
   } settings;
   
   // finite-difference settings
@@ -412,6 +417,7 @@ class Estimator {
   int cost_count_;                          // number of cost evaluations
   int num_new_;                             // number of new trajectory elements
   bool initialized_ = false;                // flag for initialization
+  bool cost_skip_ = false;                  // flag for only evaluating cost derivatives
 
   // status (external)
   int iterations_smoother_;                 // total smoother iterations after Optimize
@@ -421,6 +427,7 @@ class Estimator {
   double step_size_;                        // step size for line search
   double search_direction_norm_;            // search direction norm
   EstimatorStatus solve_status_;            // estimator status
+  double cost_difference_;                  // cost difference: abs(cost - cost_previous)
 
   // timers
   struct EstimatorTimers {
@@ -460,6 +467,9 @@ class Estimator {
 
   // ----- GUI ----- //
 };
+
+// estimator status string
+std::string StatusString(int code);
 
 }  // namespace mjpc
 

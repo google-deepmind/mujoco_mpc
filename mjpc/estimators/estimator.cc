@@ -461,6 +461,7 @@ void Estimator::Reset() {
   cost_force = 0.0;
   cost = 0.0;
   cost_initial = 0.0;
+  cost_previous = 1.0e32;
 
   // cost gradient
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
@@ -584,9 +585,6 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   int nv = model->nv;
   int dim = model->nv * configuration_length_;
 
-  // residual
-  ResidualPrior();
-
   // total scaling
   double scale = scale_prior / dim;
 
@@ -596,25 +594,33 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
       (settings.band_prior ? weight_prior_band.data() : weight_prior.data());
   double* tmp = scratch0_prior_.data();
 
+  // initial cost 
+  double cost = cost_prior;
+
   // compute cost
-  if (settings.band_prior) {  // approximate covariance
-    // dimensions
-    int ntotal = dim;
-    int nband = 3 * model->nv;
-    int ndense = 0;
+  if (!cost_skip_) {
+    // residual
+    ResidualPrior();
 
-    // multiply: tmp = P * r
-    mju_bandMulMatVec(tmp, P, r, ntotal, nband, ndense, 1, true);
-  } else {  // exact covariance
-    // multiply: tmp = P * r
-    mju_mulMatVec(tmp, P, r, dim, dim);
+    if (settings.band_prior) {  // approximate covariance
+      // dimensions
+      int ntotal = dim;
+      int nband = 3 * model->nv;
+      int ndense = 0;
+
+      // multiply: tmp = P * r
+      mju_bandMulMatVec(tmp, P, r, ntotal, nband, ndense, 1, true);
+    } else {  // exact covariance
+      // multiply: tmp = P * r
+      mju_mulMatVec(tmp, P, r, dim, dim);
+    }
+
+    // weighted quadratic: 0.5 * w * r' * tmp
+    cost = 0.5 * scale * mju_dot(r, tmp, dim);
+
+    // stop cost timer
+    timer_.cost_prior += GetDuration(start);
   }
-
-  // weighted quadratic: 0.5 * w * r' * tmp
-  double cost = 0.5 * scale * mju_dot(r, tmp, dim);
-
-  // stop cost timer
-  timer_.cost_prior += GetDuration(start);
 
   // derivatives
   if (!gradient && !hessian) return cost;
@@ -786,7 +792,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   int nv = model->nv, ns = dim_sensor_;
 
   // residual
-  ResidualSensor();
+  if (!cost_skip_) ResidualSensor();
 
   // ----- cost ----- //
 
@@ -1307,11 +1313,11 @@ void Estimator::VelocityAccelerationDerivatives() {
 // compute total cost
 // TODO(taylor): fix timers
 double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
-  // start timer
+   // start timer
   auto start = std::chrono::steady_clock::now();
 
   // evaluate configurations
-  ConfigurationEvaluation(pool);
+  if (!cost_skip_) ConfigurationEvaluation(pool);
 
   // derivatives
   if (gradient || hessian) {
@@ -1360,14 +1366,23 @@ double Estimator::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   if (hessian) TotalHessian();
 
   // counter
-  cost_count_++;
+  if (!cost_skip_) cost_count_++;
 
-  // stop timer
-  timer_.cost_total_derivatives += GetDuration(start);
+  // -- stop timer -- //
 
-  // total cost timer
-  timer_.cost = timer_.cost_prior + timer_.cost_sensor + timer_.cost_force;
+  // cost time
+  if (!cost_skip_) {
+    timer_.cost += GetDuration(start);
+  }
 
+  // cost derivative time
+  if (gradient || hessian) {
+    timer_.cost_derivatives += GetDuration(start);
+  }
+
+  // reset skip flag 
+  cost_skip_ = false;
+  
   // total cost
   return cost;
 }
@@ -1513,6 +1528,8 @@ void Estimator::Optimize(ThreadPool& pool) {
   // initial cost
   cost_count_ = 0;
   cost = Cost(NULL, NULL, pool);
+  printf("cost initial\n");
+  fflush(stdout);
   cost_initial = cost;
 
   // print initial cost
@@ -1528,7 +1545,14 @@ void Estimator::Optimize(ThreadPool& pool) {
   for (; iterations_smoother_ < settings.max_smoother_iterations;
        iterations_smoother_++) {
     // evalute cost derivatives
+    cost_skip_ = true;
     Cost(cost_gradient.data(), cost_hessian.data(), pool);
+
+    printf("cost gradient\n");
+    fflush(stdout);
+
+    // start timer
+    auto start_search = std::chrono::steady_clock::now();
 
     // reset num_new_
     num_new_ = configuration_length_;  // update all data now
@@ -1543,9 +1567,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     }
 
     // ----- line / curve search ----- //
-    // start timer
-    auto line_search_start = std::chrono::steady_clock::now();
-
+    
     // copy configuration
     mju_copy(configuration_copy_.Data(), configuration.Data(), nconfig);
 
@@ -1556,11 +1578,21 @@ void Estimator::Optimize(ThreadPool& pool) {
     regularization_ = settings.regularization_initial;
 
     // -- search direction -- //
-    SearchDirection();
-    if (search_direction_norm_ < settings.search_direction_tolerance) {
-      // restore previous iteration
-      Restore(pool);
 
+    // check regularization
+    if (regularization_ >= MAX_REGULARIZATION - 1.0e-6) {
+      // set solve status 
+      solve_status_ = kMaxRegularizationFailure;
+
+      // failure 
+      return;
+    }
+
+    // compute initial search direction
+    SearchDirection();
+
+    // check small search direction
+    if (search_direction_norm_ < settings.search_direction_tolerance) {
       // set solve status 
       solve_status_ = kSmallDirectionFailure;
 
@@ -1573,9 +1605,6 @@ void Estimator::Optimize(ThreadPool& pool) {
     while (cost_candidate >= cost) {
       // check for max iterations
       if (iteration_search > settings.max_search_iterations) {
-        // restore previous iteration
-        Restore(pool);
-
         // set solve status 
         solve_status_ = kMaxIterationsFailure;
 
@@ -1595,12 +1624,12 @@ void Estimator::Optimize(ThreadPool& pool) {
             regularization_ =
                 mju_min(MAX_REGULARIZATION,
                         regularization_ * settings.regularization_scaling);
+
             // recompute search direction
             SearchDirection();
-            if (search_direction_norm_ < settings.search_direction_tolerance) {
-              // restore previous iteration 
-              Restore(pool);
 
+            // check small search direction
+            if (search_direction_norm_ < settings.search_direction_tolerance) {
               // set solve status 
               solve_status_ = kSmallDirectionFailure;
 
@@ -1619,7 +1648,11 @@ void Estimator::Optimize(ThreadPool& pool) {
                           search_direction_.data(), -1.0 * step_size_);
 
       // cost
+      cost_skip_ = false;
       cost_candidate = Cost(NULL, NULL, pool);
+
+      printf("cost search\n");
+      fflush(stdout);
 
       // update iteration
       iteration_search++;
@@ -1628,15 +1661,29 @@ void Estimator::Optimize(ThreadPool& pool) {
     // increment
     iterations_search_ += iteration_search;
 
-    // end timer
-    timer_.search += GetDuration(line_search_start);
-
     // update cost
+    cost_previous = cost;
     cost = cost_candidate;
 
+    // check cost difference 
+    cost_difference_ = std::abs(cost - cost_previous);
+    if (cost_difference_ < settings.cost_tolerance) {
+      // set status 
+      solve_status_ = kCostDifferenceFailure;
+
+      // failure 
+      return;
+    }
+
     // decrease regularization
-    regularization_ = mju_max(
-        MIN_REGULARIZATION, regularization_ / settings.regularization_scaling);
+    if (settings.search_type == kCurveSearch) {
+      regularization_ =
+          mju_max(MIN_REGULARIZATION,
+                  regularization_ / settings.regularization_scaling);
+    }
+
+    // end timer
+    timer_.search += GetDuration(start_search);
 
     // print cost
     PrintCost();
@@ -1646,7 +1693,11 @@ void Estimator::Optimize(ThreadPool& pool) {
   timer_.optimize = GetDuration(start_optimize);
 
   // set solve status 
-  solve_status_ = kSolved;
+  if (iterations_smoother_ >= settings.max_smoother_iterations) {
+    solve_status_ = kMaxIterationsFailure;
+  } else {
+    solve_status_ = kSolved;
+  }
 
   // status
   PrintOptimize();
@@ -1736,21 +1787,22 @@ void Estimator::PrintOptimize() {
   PrintPriorWeightUpdate();
 
   printf("\n");
-  printf("  cost (initial): %.3f (ms) \n", 1.0e-3 * timer_.cost / cost_count_);
-  printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior / cost_count_);
-  printf("    - sensor: %.3f (ms) \n",
-         1.0e-3 * timer_.cost_sensor / cost_count_);
-  printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force / cost_count_);
-  printf("    - qpos -> qvel, qacc: %.3f (ms) \n",
-         1.0e-3 * timer_.cost_config_to_velacc / cost_count_);
-  printf("    - prediction: %.3f (ms) \n",
-         1.0e-3 * timer_.cost_prediction / cost_count_);
-  printf("    - residual prior: %.3f (ms) \n",
-         1.0e-3 * timer_.residual_prior / cost_count_);
-  printf("    - residual sensor: %.3f (ms) \n",
-         1.0e-3 * timer_.residual_sensor / cost_count_);
-  printf("    - residual force: %.3f (ms) \n",
-         1.0e-3 * timer_.residual_force / cost_count_);
+  printf("  cost : %.3f (ms) \n", 1.0e-3 * timer_.cost / cost_count_);
+  // printf("    - prior: %.3f (ms) \n", 1.0e-3 * timer_.cost_prior / cost_count_);
+  // printf("    - sensor: %.3f (ms) \n",
+  //        1.0e-3 * timer_.cost_sensor / cost_count_);
+  // printf("    - force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force / cost_count_);
+  // printf("    - qpos -> qvel, qacc: %.3f (ms) \n",
+  //        1.0e-3 * timer_.cost_config_to_velacc / cost_count_);
+  // printf("    - prediction: %.3f (ms) \n",
+  //        1.0e-3 * timer_.cost_prediction / cost_count_);
+  // printf("    - residual prior: %.3f (ms) \n",
+  //        1.0e-3 * timer_.residual_prior / cost_count_);
+  // printf("    - residual sensor: %.3f (ms) \n",
+  //        1.0e-3 * timer_.residual_sensor / cost_count_);
+  // printf("    - residual force: %.3f (ms) \n",
+  //        1.0e-3 * timer_.residual_force / cost_count_);
+  printf("    [cost_count = %i]\n", cost_count_);
   printf("\n");
   printf("  cost derivatives [total]: %.3f (ms) \n",
          1.0e-3 * timer_.cost_derivatives);
@@ -1778,41 +1830,50 @@ void Estimator::PrintOptimize() {
   printf("    - direction: %.3f (ms) \n", 1.0e-3 * timer_.search_direction);
   printf("    - cost: %.3f (ms) \n",
          1.0e-3 * (timer_.cost - timer_.cost / cost_count_));
-  printf("      < prior: %.3f (ms) \n",
-         1.0e-3 * (timer_.cost_prior - timer_.cost_prior / cost_count_));
-  printf("      < sensor: %.3f (ms) \n",
-         1.0e-3 * (timer_.cost_sensor - timer_.cost_sensor / cost_count_));
-  printf("      < force: %.3f (ms) \n",
-         1.0e-3 * (timer_.cost_force - timer_.cost_force / cost_count_));
-  printf("      < qpos -> qvel, qacc: %.3f (ms) \n",
-         1.0e-3 * (timer_.cost_config_to_velacc -
-                   timer_.cost_config_to_velacc / cost_count_));
-  printf(
-      "      < prediction: %.3f (ms) \n",
-      1.0e-3 * (timer_.cost_prediction - timer_.cost_prediction / cost_count_));
-  printf(
-      "      < residual prior: %.3f (ms) \n",
-      1.0e-3 * (timer_.residual_prior - timer_.residual_prior / cost_count_));
-  printf(
-      "      < residual sensor: %.3f (ms) \n",
-      1.0e-3 * (timer_.residual_sensor - timer_.residual_sensor / cost_count_));
-  printf(
-      "      < residual force: %.3f (ms) \n",
-      1.0e-3 * (timer_.residual_force - timer_.residual_force / cost_count_));
+  // printf("      < prior: %.3f (ms) \n",
+  //        1.0e-3 * (timer_.cost_prior - timer_.cost_prior / cost_count_));
+  // printf("      < sensor: %.3f (ms) \n",
+  //        1.0e-3 * (timer_.cost_sensor - timer_.cost_sensor / cost_count_));
+  // printf("      < force: %.3f (ms) \n",
+  //        1.0e-3 * (timer_.cost_force - timer_.cost_force / cost_count_));
+  // printf("      < qpos -> qvel, qacc: %.3f (ms) \n",
+  //        1.0e-3 * (timer_.cost_config_to_velacc -
+  //                  timer_.cost_config_to_velacc / cost_count_));
+  // printf(
+  //     "      < prediction: %.3f (ms) \n",
+  //     1.0e-3 * (timer_.cost_prediction - timer_.cost_prediction / cost_count_));
+  // printf(
+  //     "      < residual prior: %.3f (ms) \n",
+  //     1.0e-3 * (timer_.residual_prior - timer_.residual_prior / cost_count_));
+  // printf(
+  //     "      < residual sensor: %.3f (ms) \n",
+  //     1.0e-3 * (timer_.residual_sensor - timer_.residual_sensor / cost_count_));
+  // printf(
+  //     "      < residual force: %.3f (ms) \n",
+  //     1.0e-3 * (timer_.residual_force - timer_.residual_force / cost_count_));
   printf("\n");
   printf("  TOTAL: %.3f (ms) \n", 1.0e-3 * (timer_.optimize));
   printf("\n");
 
   // status
   printf("Status:\n");
-  printf("  iterations line search: %i\n", iterations_search_);
-  printf("  iterations smoother: %i\n", iterations_smoother_);
+  printf("  search iterations: %i\n", iterations_search_);
+  printf("  smoother iterations: %i\n", iterations_smoother_);
+  printf("  step size: %.6f\n", step_size_);
+  printf("  regularization: %.6f\n", regularization_);
+  printf("  gradient norm: %.6f\n", gradient_norm_);
+  printf("  search direction norm: %.6f\n", search_direction_norm_);
+  printf("  cost difference: %.6f\n", cost_difference_);
+  printf("  solve status: %s\n", StatusString(solve_status_).c_str());
   printf("\n");
 
   // cost
   printf("Cost:\n");
-  printf("  initial: %.3f\n", cost_initial);
   printf("  final: %.3f\n", cost);
+  printf("    - prior: %.3f\n", cost_prior);
+  printf("    - sensor: %.3f\n", cost_sensor);
+  printf("    - force: %.3f\n", cost_force);
+  printf("  <initial: %.3f\n>", cost_initial);
   printf("\n");
 
   fflush(stdout);
@@ -2096,7 +2157,7 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   int nv = model->nv;
 
   // residual
-  ResidualForce();
+  if (!cost_skip_) ResidualForce();
 
   // ----- cost ----- //
 
@@ -2335,6 +2396,28 @@ void Estimator::JacobianForce(ThreadPool& pool) {
       // stop Jacobian timer
       estimator.timer_.force_step[k] = GetDuration(jacobian_force_start);
     });
+  }
+}
+
+// estimator status string
+std::string StatusString(int code) {
+  switch (code) {
+    case kUnsolved:
+      return "UNSOLVED";
+    case kSearchFailure:
+      return "SEACH_FAILURE";
+    case kMaxIterationsFailure:
+      return "MAX_ITERATIONS_FAILURE";
+    case kSmallDirectionFailure:
+      return "SMALL_DIRECTION_FAILURE";
+    case kMaxRegularizationFailure:
+      return "MAX_REGULARIZATION_FAILURE";
+    case kCostDifferenceFailure:
+      return "COST_DIFFERENCE_FAILURE";
+    case kSolved:
+      return "SOLVED";
+    default:
+      return "STATUS_CODE_ERROR";
   }
 }
 

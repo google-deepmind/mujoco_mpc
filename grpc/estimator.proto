@@ -120,6 +120,7 @@ message Settings {
   optional bool update_prior_weight = 20;
   optional bool time_scaling = 21;
   optional double search_direction_tolerance = 22;
+  optional double cost_tolerance = 23;
 }
 
 message SettingsRequest {
@@ -232,6 +233,7 @@ message Status {
   double gradient_norm = 5;
   double search_direction_norm = 6;
   int32 solve_status = 7;
+  double cost_difference = 8;
 }
 
 message StatusRequest {}

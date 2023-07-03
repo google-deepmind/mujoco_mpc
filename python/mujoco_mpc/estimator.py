@@ -223,6 +223,7 @@ class Estimator:
       update_prior_weight: Optional[bool] = None,
       time_scaling: Optional[bool] = None,
       search_direction_tolerance: Optional[float] = None,
+      cost_tolerance: Optional[float] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -248,6 +249,7 @@ class Estimator:
         update_prior_weight=update_prior_weight,
         time_scaling=time_scaling,
         search_direction_tolerance=search_direction_tolerance,
+        cost_tolerance=cost_tolerance,
     )
 
     # settings request
@@ -282,6 +284,7 @@ class Estimator:
         "update_prior_weight": settings.update_prior_weight,
         "time_scaling": settings.time_scaling,
         "search_direction_tolerance": settings.search_direction_tolerance,
+        "cost_tolerance": settings.cost_tolerance,
     }
 
   def weight(
@@ -371,6 +374,7 @@ class Estimator:
         "gradient_norm": status.gradient_norm,
         "search_direction_norm": status.search_direction_norm,
         "solve_status": status.solve_status,
+        "cost_difference": status.cost_difference,
     }
 
   def shift(self, shift: int) -> int:
@@ -576,6 +580,10 @@ class Estimator:
       elif code == 3:
         return "SMALL_DIRECTION_FAILURE"
       elif code == 4:
+        return "MAX_REGULARIZATION_FAILURE"
+      elif code == 5:
+        return "COST_DIFFERENCE_FAILURE"
+      elif code == 6:
         return "SOLVED"
       else:
         return "CODE_ERROR"

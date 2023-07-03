@@ -290,6 +290,11 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(search_direction_tolerance=search_direction_tolerance)
     self.assertTrue(np.abs(search_direction_tolerance - settings["search_direction_tolerance"]) < 1.0e-5)
    
+    # get/set cost tolerance 
+    cost_tolerance = 1.0e-3 
+    settings = estimator.settings(cost_tolerance=cost_tolerance)
+    self.assertTrue(np.abs(cost_tolerance - settings["cost_tolerance"]) < 1.0e-5)
+
   def test_costs(self):
     # load model
     model_path = (
@@ -503,6 +508,9 @@ class EstimatorTest(absltest.TestCase):
 
     # solve status 
     self.assertTrue(status["solve_status"] == 0)
+
+    # cost difference 
+    self.assertTrue(np.abs(status["cost_difference"]) < 1.0e-5)
 
   def test_cost_gradient(self):
     # load model

@@ -1834,6 +1834,8 @@ void Estimator::PrintOptimize() {
   printf("  initial: %.3f\n", cost_initial);
   printf("  final: %.3f\n", cost);
   printf("\n");
+
+  fflush(stdout);
 }
 
 // print cost
@@ -1844,6 +1846,7 @@ void Estimator::PrintCost() {
     printf("  sensor: %.3f\n", cost_sensor);
     printf("  force: %.3f\n", cost_force);
     printf("  [initial: %.3f]\n", cost_initial);
+    fflush(stdout);
   }
 }
 
@@ -1857,6 +1860,7 @@ void Estimator::PrintPriorWeightUpdate() {
          1.0e-3 * timer_.prior_weight_update);
   printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_.prior_set_weight);
   printf("\n");
+  fflush(stdout);
 }
 
 // reset timers

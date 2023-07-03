@@ -343,6 +343,89 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_configuration_length(estimator_.ConfigurationLength());
 
+  // prior flag
+  if (input.has_prior_flag())
+    estimator_.settings.prior_flag = input.prior_flag();
+  output->set_prior_flag(estimator_.settings.prior_flag);
+
+  // sensor flag
+  if (input.has_sensor_flag())
+    estimator_.settings.sensor_flag = input.sensor_flag();
+  output->set_sensor_flag(estimator_.settings.sensor_flag);
+
+  // force flag
+  if (input.has_force_flag())
+    estimator_.settings.force_flag = input.force_flag();
+  output->set_force_flag(estimator_.settings.force_flag);
+
+  // max search iterations
+  if (input.has_max_search_iterations()) {
+    // unpack
+    int iterations = input.max_search_iterations();
+
+    // test valid
+    if (iterations < 1) {
+      return {grpc::StatusCode::OUT_OF_RANGE, "Invalid search iterations."};
+    }
+
+    // set
+    estimator_.settings.max_search_iterations = input.max_search_iterations();
+  }
+  output->set_max_search_iterations(estimator_.settings.max_search_iterations);
+
+  // max smoother iterations
+  if (input.has_max_smoother_iterations()) {
+    // unpack
+    int iterations = input.max_smoother_iterations();
+
+    // test valid
+    if (iterations < 1) {
+      return {grpc::StatusCode::OUT_OF_RANGE, "Invalid smoother iterations."};
+    }
+
+    // set
+    estimator_.settings.max_smoother_iterations =
+        input.max_smoother_iterations();
+  }
+  output->set_max_smoother_iterations(
+      estimator_.settings.max_smoother_iterations);
+
+  // gradient tolerance
+  if (input.has_gradient_tolerance()) {
+    estimator_.settings.gradient_tolerance = input.gradient_tolerance();
+  }
+  output->set_gradient_tolerance(estimator_.settings.gradient_tolerance);
+
+  // verbose iteration
+  if (input.has_verbose_iteration()) {
+    estimator_.settings.verbose_iteration = input.verbose_iteration();
+  }
+  output->set_verbose_iteration(estimator_.settings.verbose_iteration);
+
+  // verbose optimize
+  if (input.has_verbose_optimize()) {
+    estimator_.settings.verbose_optimize = input.verbose_optimize();
+  }
+  output->set_verbose_optimize(estimator_.settings.verbose_optimize);
+
+  // verbose cost
+  if (input.has_verbose_cost()) {
+    estimator_.settings.verbose_cost = input.verbose_cost();
+  }
+  output->set_verbose_cost(estimator_.settings.verbose_cost);
+
+  // verbose prior
+  if (input.has_verbose_prior()) {
+    estimator_.settings.verbose_prior = input.verbose_prior();
+  }
+  output->set_verbose_prior(estimator_.settings.verbose_prior);
+
+  // band prior
+  if (input.has_band_prior()) {
+    estimator_.settings.band_prior = input.band_prior();
+  }
+  output->set_band_prior(estimator_.settings.band_prior);
+
   // search type
   if (input.has_search_type()) {
     // unpack
@@ -354,66 +437,61 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.search_type = search_type;
+    estimator_.settings.search_type = search_type;
   }
-  output->set_search_type(estimator_.search_type);
+  output->set_search_type((int)estimator_.settings.search_type);
 
-  // prior flag
-  if (input.has_prior_flag()) estimator_.prior_flag = input.prior_flag();
-  output->set_prior_flag(estimator_.prior_flag);
-
-  // sensor flag
-  if (input.has_sensor_flag()) estimator_.sensor_flag = input.sensor_flag();
-  output->set_sensor_flag(estimator_.sensor_flag);
-
-  // force flag
-  if (input.has_force_flag()) estimator_.force_flag = input.force_flag();
-  output->set_force_flag(estimator_.force_flag);
-
-  // smoother iterations
-  if (input.has_smoother_iterations()) {
-    // unpack
-    int iterations = input.smoother_iterations();
-
-    // test valid
-    if (iterations < 1) {
-      return {grpc::StatusCode::OUT_OF_RANGE, "Invalid smoother iterations."};
-    }
-
-    // set
-    estimator_.max_smoother_iterations = input.smoother_iterations();
+  // step scaling
+  if (input.has_step_scaling()) {
+    estimator_.settings.step_scaling = input.step_scaling();
   }
-  output->set_smoother_iterations(estimator_.max_smoother_iterations);
-
-  // skip prior weight update
-  if (input.has_skip_prior_weight_update()) {
-    estimator_.skip_update_prior_weight = input.skip_prior_weight_update();
-  }
-  output->set_skip_prior_weight_update(estimator_.skip_update_prior_weight);
-
-  // time scaling
-  if (input.has_time_scaling()) {
-    estimator_.time_scaling = input.time_scaling();
-  }
-  output->set_time_scaling(estimator_.time_scaling);
-
-  // update prior weight
-  if (input.has_update_prior_weight()) {
-    estimator_.update_prior_weight = input.update_prior_weight();
-  }
-  output->set_update_prior_weight(estimator_.update_prior_weight);
+  output->set_step_scaling(estimator_.settings.step_scaling);
 
   // regularization initialization
   if (input.has_regularization_initial()) {
-    estimator_.regularization_initial = input.regularization_initial();
+    estimator_.settings.regularization_initial = input.regularization_initial();
   }
-  output->set_regularization_initial(estimator_.regularization_initial);
+  output->set_regularization_initial(
+      estimator_.settings.regularization_initial);
 
-  // gradient tolerance
-  if (input.has_gradient_tolerance()) {
-    estimator_.gradient_tolerance = input.gradient_tolerance();
+  // regularization scaling
+  if (input.has_regularization_scaling()) {
+    estimator_.settings.regularization_scaling = input.regularization_scaling();
   }
-  output->set_gradient_tolerance(estimator_.gradient_tolerance);
+  output->set_regularization_scaling(
+      estimator_.settings.regularization_scaling);
+
+  // band copy
+  if (input.has_band_copy()) {
+    estimator_.settings.band_copy = input.band_copy();
+  }
+  output->set_band_copy(estimator_.settings.band_copy);
+
+  // reuse_data
+  if (input.has_reuse_data()) {
+    estimator_.settings.reuse_data = input.reuse_data();
+  }
+  output->set_reuse_data(estimator_.settings.reuse_data);
+
+  // skip prior weight update
+  if (input.has_skip_update_prior_weight()) {
+    estimator_.settings.skip_update_prior_weight =
+        input.skip_update_prior_weight();
+  }
+  output->set_skip_update_prior_weight(
+      estimator_.settings.skip_update_prior_weight);
+
+  // update prior weight
+  if (input.has_update_prior_weight()) {
+    estimator_.settings.update_prior_weight = input.update_prior_weight();
+  }
+  output->set_update_prior_weight(estimator_.settings.update_prior_weight);
+
+  // time scaling
+  if (input.has_time_scaling()) {
+    estimator_.settings.time_scaling = input.time_scaling();
+  }
+  output->set_time_scaling(estimator_.settings.time_scaling);
 
   return grpc::Status::OK;
 }
@@ -705,19 +783,19 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
   estimator::Status* status = response->mutable_status();
 
   // search iterations
-  status->set_search_iterations(estimator_.iterations_line_search_);
+  status->set_search_iterations(estimator_.IterationsSearch());
 
   // smoother iterations
-  status->set_smoother_iterations(estimator_.iterations_smoother_);
+  status->set_smoother_iterations(estimator_.IterationsSmoother());
 
   // step size
-  status->set_step_size(estimator_.step_size_);
+  status->set_step_size(estimator_.StepSize());
 
   // regularization
-  status->set_regularization(estimator_.regularization_);
+  status->set_regularization(estimator_.Regularization());
 
   // gradient norm
-  status->set_gradient_norm(estimator_.gradient_norm_);
+  status->set_gradient_norm(estimator_.GradientNorm());
 
   return grpc::Status::OK;
 }

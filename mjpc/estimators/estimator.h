@@ -27,6 +27,7 @@
 
 namespace mjpc {
 
+// ----- defaults ----- //
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
 const int MAX_HISTORY = 256;  // maximum configuration trajectory length
 
@@ -44,7 +45,7 @@ enum SearchType : int {
 const double MAX_REGULARIZATION = 1.0e12;
 const double MIN_REGULARIZATION = 1.0e-12;
 
-// batch estimator
+// ----- batch estimator ----- //
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
 class Estimator {
  public:
@@ -111,6 +112,13 @@ class Estimator {
   // get dimension of sensors 
   int SensorDimension() const { return dim_sensor_; }
 
+  // get status
+  int IterationsSmoother() const { return iterations_smoother_; }
+  int IterationsSearch() const { return iterations_search_; }
+  double GradientNorm() const { return gradient_norm_; }
+  double Regularization() const { return regularization_; }
+  double StepSize() const { return step_size_; }
+
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
   EstimatorTrajectory<double> configuration_previous;  // nq x T
@@ -161,34 +169,30 @@ class Estimator {
   std::vector<double> qpos0;
   std::vector<double> qvel0;
 
-  // status
-  int iterations_smoother_;                 // total smoother iterations after Optimize
-  int iterations_line_search_;              // total line search iterations
-  double gradient_norm_;                    // norm of cost gradient
-  double regularization_;
-  double step_size_;
-
   // settings
-  bool prior_flag = true;
-  bool sensor_flag = true;
-  bool force_flag = true;
-  int max_line_search = 1000;                // maximum number of line search iterations
-  int max_smoother_iterations = 100;        // maximum number of smoothing iterations
-  double gradient_tolerance = 1.0e-10;     // small gradient tolerance
-  bool verbose_optimize = false;           // flag for printing optimize status
-  bool verbose_cost = false;               // flag for printing cost
-  bool verbose_prior = false;              // flag for printing prior weight update status
-  bool band_prior = true;                  // approximate covariance for prior
-  double step_scaling = 0.5;               // step size scaling
-  double regularization_initial = 1.0e-12;  // initial regularization
-  double regularization_scaling = 2.0;    // regularization scaling
-  bool band_copy = true;                   // copy band matrices by block
-  bool reuse_data = false;                 // flag for resuing data previously computed
-  bool skip_update_prior_weight = false;    // flag for skipping update prior weight
-  bool update_prior_weight = true;         // flag for updating prior weights
-  bool time_scaling = false;               // scale sensor and force costs by time step
-  SearchType search_type;                  // search type (line search, curve search)
-
+  struct EstimatorSettings {
+    bool prior_flag = true;                  // flag for prior cost computation
+    bool sensor_flag = true;                 // flag for sensor cost computation
+    bool force_flag = true;                  // flag for force cost computation
+    int max_search_iterations = 1000;        // maximum number of line search iterations
+    int max_smoother_iterations = 100;       // maximum number of smoothing iterations
+    double gradient_tolerance = 1.0e-10;     // small gradient tolerance
+    bool verbose_iteration = false;          // flag for printing optimize iteration
+    bool verbose_optimize = false;           // flag for printing optimize status
+    bool verbose_cost = false;               // flag for printing cost
+    bool verbose_prior = false;              // flag for printing prior weight update status
+    bool band_prior = true;                  // approximate covariance for prior
+    SearchType search_type = kCurveSearch;   // search type (line search, curve search)
+    double step_scaling = 0.5;               // step size scaling
+    double regularization_initial = 1.0e-12; // initial regularization
+    double regularization_scaling = 2.0;     // regularization scaling
+    bool band_copy = true;                   // copy band matrices by block
+    bool reuse_data = false;                 // flag for resuing data previously computed
+    bool skip_update_prior_weight = false;   // flag for skipping update prior weight
+    bool update_prior_weight = true;         // flag for updating prior weights
+    bool time_scaling = false;               // scale sensor and force costs by time step
+  } settings;
+  
   // finite-difference settings
   struct FiniteDifferenceSettings {
     double tolerance = 1.0e-7;
@@ -279,6 +283,9 @@ class Estimator {
   // reset timers
   void ResetTimers();
 
+  // print optimize iteration
+  void PrintIteration();
+
   // print optimize status
   void PrintOptimize();
 
@@ -296,10 +303,10 @@ class Estimator {
   int prediction_length_;                      // T - 2
 
   // dimensions
-  int dim_sensor_;                                   // ns
-  int num_sensor_;                                   // num_sensor 
-  int num_free_;                                     // number of free joints
-  std::vector<bool> free_dof_;                       // flag indicating free joint dof
+  int dim_sensor_;                             // ns
+  int num_sensor_;                             // num_sensor 
+  int num_free_;                               // number of free joints
+  std::vector<bool> free_dof_;                 // flag indicating free joint dof
 
   // configuration copy
   EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
@@ -385,11 +392,18 @@ class Estimator {
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY
 
-  // status 
+  // status (internal)
   bool hessian_factor_ = false;             // prior reset status
   int cost_count_;                          // number of cost evaluations
   int num_new_;                             // number of new trajectory elements
   bool initialized_ = false;                // flag for initialization
+
+  // status (external)
+  int iterations_smoother_;                 // total smoother iterations after Optimize
+  int iterations_search_;                   // total line search iterations
+  double gradient_norm_;                    // norm of cost gradient
+  double regularization_;                   // regularization
+  double step_size_;                        // step size for line search
 
   // timers
   struct EstimatorTimers {

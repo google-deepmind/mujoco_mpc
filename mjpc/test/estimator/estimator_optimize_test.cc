@@ -240,7 +240,7 @@ TEST(BatchOptimize, Quadruped) {
 
   // settings
   estimator.max_smoother_iterations = 1;
-  estimator.max_line_search = 10;
+  estimator.max_search_iterations = 10;
 
   // set weights
   mju_fill(estimator.scale_sensor.data(), 1.0, model->nsensor);

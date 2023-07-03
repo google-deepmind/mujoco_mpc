@@ -190,12 +190,6 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(configuration_length=in_configuration_length)
     self.assertTrue(in_configuration_length == settings["configuration_length"])
 
-    # get/set search type
-    in_search_type = 1
-    settings = estimator.settings(search_type=in_search_type)
-
-    self.assertTrue(in_search_type == settings["search_type"])
-
     # get/set prior flag
     in_prior_flag = False
     settings = estimator.settings(prior_flag=in_prior_flag)
@@ -211,26 +205,86 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(force_flag=in_force_flag)
     self.assertTrue(in_force_flag == settings["force_flag"])
 
+    # get/set search iterations
+    in_search_iterations = 25
+    settings = estimator.settings(max_search_iterations=in_search_iterations)
+    self.assertTrue(in_search_iterations == settings["max_search_iterations"])
+
     # get/set smoother iterations
-    in_iterations = 25
-    settings = estimator.settings(smoother_iterations=in_iterations)
-    self.assertTrue(in_iterations == settings["smoother_iterations"])
-
-    # get/set skip prior weight update
-    in_skip = True
-    settings = estimator.settings(skip_prior_weight_update=in_skip)
-    self.assertTrue(in_skip == settings["skip_prior_weight_update"])
-
-    # get/set regularization initial 
-    regularization = 2.1 
-    settings = estimator.settings(regularization_initial=regularization)
-    self.assertTrue(np.abs(regularization - settings["regularization_initial"]) < 1.0e-6)
+    in_smoother_iterations = 25
+    settings = estimator.settings(max_smoother_iterations=in_smoother_iterations)
+    self.assertTrue(in_smoother_iterations == settings["max_smoother_iterations"])
 
     # get/set gradient tolerance 
     gradient_tolerance = 1.23456
     settings = estimator.settings(gradient_tolerance=gradient_tolerance)
     self.assertTrue(np.abs(gradient_tolerance - settings["gradient_tolerance"]) < 1.0e-6)
 
+    # get/set verbose iteration
+    verbose_iteration = True 
+    settings = estimator.settings(verbose_iteration=verbose_iteration)
+    self.assertTrue(verbose_iteration == settings["verbose_iteration"])
+
+    # get/set verbose optimize
+    verbose_optimize = True 
+    settings = estimator.settings(verbose_optimize=verbose_optimize)
+    self.assertTrue(verbose_optimize == settings["verbose_optimize"])
+
+    # get/set verbose cost
+    verbose_cost = True 
+    settings = estimator.settings(verbose_cost=verbose_cost)
+    self.assertTrue(verbose_cost == settings["verbose_cost"])
+
+    # get/set verbose prior
+    verbose_prior = True 
+    settings = estimator.settings(verbose_prior=verbose_prior)
+    self.assertTrue(verbose_prior == settings["verbose_prior"])
+
+    # get/set band prior
+    band_prior = False 
+    settings = estimator.settings(band_prior=band_prior)
+    self.assertTrue(band_prior == settings["band_prior"])
+
+    # get/set search type
+    in_search_type = 0
+    settings = estimator.settings(search_type=in_search_type)
+    self.assertTrue(in_search_type == settings["search_type"])
+
+    # get/set step scaling 
+    in_step_scaling = 2.5 
+    settings = estimator.settings(step_scaling=in_step_scaling)
+    self.assertTrue(np.abs(in_step_scaling - settings["step_scaling"]) < 1.0e-4)
+
+    # get/set regularization initial 
+    in_regularization_initial = 3.0e1
+    settings = estimator.settings(regularization_initial=in_regularization_initial)
+    self.assertTrue(np.abs(in_regularization_initial - settings["regularization_initial"]) < 1.0e-4)
+
+    # get/set regularization scaling 
+    in_regularization_scaling = 7.1
+    settings = estimator.settings(regularization_scaling=in_regularization_scaling)
+    self.assertTrue(np.abs(in_regularization_scaling - settings["regularization_scaling"]) < 1.0e-4)
+
+    # get/set band copy 
+    in_band_copy = False 
+    settings = estimator.settings(band_copy=in_band_copy) 
+    self.assertTrue(in_band_copy == settings["band_copy"])
+
+    # get/set reuse_data 
+    in_reuse_data = True 
+    settings = estimator.settings(reuse_data=in_reuse_data) 
+    self.assertTrue(in_reuse_data == settings["reuse_data"])
+
+    # get/set skip prior weight update
+    in_skip = True
+    settings = estimator.settings(skip_update_prior_weight=in_skip)
+    self.assertTrue(in_skip == settings["skip_update_prior_weight"])
+
+    # get/set update prior weight
+    update_prior_weight = False
+    settings = estimator.settings(update_prior_weight=update_prior_weight)
+    self.assertTrue(update_prior_weight == settings["update_prior_weight"])
+   
   def test_costs(self):
     # load model
     model_path = (

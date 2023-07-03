@@ -26,7 +26,7 @@ namespace mjpc {
 // initialize estimator
 void Estimator::Initialize(mjModel* model) {
   // model
-  model_ = model;
+  this->model = model;
 
   // data
   for (int i = 0; i < MAX_HISTORY; i++) {
@@ -239,10 +239,10 @@ void Estimator::Initialize(mjModel* model) {
       (SearchType)GetNumberOrDefault(0, model, "estimator_search_type");
 
   // initial state
-  qpos0_.resize(model->nq);
-  mju_copy(qpos0_.data(), model->qpos0, model->nq);
-  qvel0_.resize(model->nv);
-  mju_zero(qvel0_.data(), model->nv);
+  qpos0.resize(model->nq);
+  mju_copy(qpos0.data(), model->qpos0, model->nq);
+  qvel0.resize(model->nv);
+  mju_zero(qvel0.data(), model->nv);
 
   // timer
   timer_.prior_step.resize(MAX_HISTORY);
@@ -507,8 +507,8 @@ void Estimator::Reset() {
   std::fill(search_direction_.begin(), search_direction_.end(), 0.0);
 
   // initial state
-  mju_copy(qpos0_.data(), model_->qpos0, model_->nq);
-  mju_zero(qvel0_.data(), model_->nv);
+  mju_copy(qpos0.data(), model->qpos0, model->nq);
+  mju_zero(qvel0.data(), model->nv);
 
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
@@ -577,8 +577,8 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   auto start = std::chrono::steady_clock::now();
 
   // residual dimension
-  int nv = model_->nv;
-  int dim = model_->nv * configuration_length_;
+  int nv = model->nv;
+  int dim = model->nv * configuration_length_;
 
   // residual
   ResidualPrior();
@@ -596,7 +596,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   if (band_prior) {  // approximate covariance
     // dimensions
     int ntotal = dim;
-    int nband = 3 * model_->nv;
+    int nband = 3 * model->nv;
     int ndense = 0;
 
     // multiply: tmp = P * r
@@ -702,7 +702,7 @@ void Estimator::ResidualPrior() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
@@ -712,7 +712,7 @@ void Estimator::ResidualPrior() {
     double* qt = configuration.Get(t);
 
     // configuration difference
-    mj_differentiatePos(model_, rt, 1.0, qt_prior, qt);
+    mj_differentiatePos(model, rt, 1.0, qt_prior, qt);
   }
 
   // stop timer
@@ -722,7 +722,7 @@ void Estimator::ResidualPrior() {
 // set block in prior Jacobian
 void Estimator::SetBlockPrior(int index) {
   // dimension
-  int nv = model_->nv, dim = model_->nv * configuration_length_;
+  int nv = model->nv, dim = model->nv * configuration_length_;
 
   // reset Jacobian to zero
   mju_zero(jacobian_prior_.data() + index * nv * dim, nv * dim);
@@ -743,7 +743,7 @@ void Estimator::BlockPrior(int index) {
   double* block = block_prior_current_configuration_.Get(index);
 
   // compute Jacobian
-  DifferentiateDifferentiatePos(NULL, block, model_, 1.0, qt_prior, qt);
+  DifferentiateDifferentiatePos(NULL, block, model, 1.0, qt_prior, qt);
 }
 
 // prior Jacobian
@@ -777,8 +777,8 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
   auto start = std::chrono::steady_clock::now();
 
   // update dimension
-  int dim_update = model_->nv * configuration_length_;
-  int nv = model_->nv, ns = dim_sensor_;
+  int dim_update = model->nv * configuration_length_;
+  int nv = model->nv, ns = dim_sensor_;
 
   // residual
   ResidualSensor();
@@ -818,7 +818,7 @@ double Estimator::CostSensor(double* gradient, double* hessian) {
       if (!mask[i]) continue;
 
       // dimension
-      int nsi = model_->sensor_dim[i];
+      int nsi = model->sensor_dim[i];
 
       // sensor residual
       double* rki = rk + shift;
@@ -910,7 +910,7 @@ void Estimator::ResidualSensor() {
 // set block in sensor Jacobian
 void Estimator::SetBlockSensor(int index) {
   // velocity dimension
-  int nv = model_->nv, ns = dim_sensor_;
+  int nv = model->nv, ns = dim_sensor_;
 
   // residual dimension
   int dim_residual = ns * prediction_length_;
@@ -958,7 +958,7 @@ void Estimator::SetBlockSensor(int index) {
 // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
 void Estimator::BlockSensor(int index) {
   // dimensions
-  int nv = model_->nv, ns = dim_sensor_;
+  int nv = model->nv, ns = dim_sensor_;
 
   // dqds
   double* dqds = block_sensor_configuration_.Get(index);
@@ -1058,7 +1058,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv, nu = model_->nu, ns = dim_sensor_;
+  int nq = model->nq, nv = model->nv, nu = model->nu, ns = dim_sensor_;
 
   // start index
   int start_index = reuse_data * mju_max(0, prediction_length_ - num_new_);
@@ -1089,7 +1089,7 @@ void Estimator::InverseDynamicsPrediction(ThreadPool& pool) {
       mju_copy(d->ctrl, ct, nu);
 
       // inverse dynamics
-      mj_inverse(estimator.model_, d);
+      mj_inverse(estimator.model, d);
 
       // copy sensor
       double* st = estimator.sensor_prediction.Get(t);
@@ -1115,7 +1115,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv, nu = model_->nu;
+  int nq = model->nq, nv = model->nv, nu = model->nu;
 
   // pool count
   int count_before = pool.GetCount();
@@ -1151,7 +1151,7 @@ void Estimator::InverseDynamicsDerivatives(ThreadPool& pool) {
       mju_copy(data->ctrl, c, nu);
 
       // finite-difference derivatives
-      mjd_inverseFD(estimator.model_, data,
+      mjd_inverseFD(estimator.model, data,
                     estimator.finite_difference.tolerance,
                     estimator.finite_difference.flg_actuation, dqdf, dvdf, dadf,
                     dqds, dvds, dads, NULL);
@@ -1177,7 +1177,7 @@ void Estimator::UpdateConfiguration(
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model_->nq, nv = model_->nv;
+  int nq = model->nq, nv = model->nv;
 
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
@@ -1192,7 +1192,7 @@ void Estimator::UpdateConfiguration(
     const double* dqt = search_direction + t * nv;
 
     // integrate
-    mj_integratePos(model_, ct, dqt, step_size);
+    mj_integratePos(model, ct, dqt, step_size);
   }
 
   // stop timer
@@ -1205,7 +1205,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // start index
   int start_index =
@@ -1222,7 +1222,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
 
     // compute velocity
     double* v1 = velocity.Get(t);
-    mj_differentiatePos(model_, v1, model_->opt.timestep, q0, q1);
+    mj_differentiatePos(model, v1, model->opt.timestep, q0, q1);
 
     // compute acceleration
     if (t > 1) {
@@ -1232,7 +1232,7 @@ void Estimator::ConfigurationToVelocityAcceleration() {
       // compute acceleration
       double* a1 = acceleration.Get(t - 1);
       mju_sub(a1, v1, v0, nv);
-      mju_scl(a1, a1, 1.0 / model_->opt.timestep, nv);
+      mju_scl(a1, a1, 1.0 / model->opt.timestep, nv);
     }
   }
 
@@ -1246,7 +1246,7 @@ void Estimator::VelocityAccelerationDerivatives() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // start index
   int start_index =
@@ -1264,7 +1264,7 @@ void Estimator::VelocityAccelerationDerivatives() {
     double* dv2dq2 = block_velocity_current_configuration_.Get(k);
 
     // compute velocity Jacobians
-    DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model_, model_->opt.timestep,
+    DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model, model->opt.timestep,
                                   q1, q2);
 
     // compute acceleration Jacobians
@@ -1280,15 +1280,15 @@ void Estimator::VelocityAccelerationDerivatives() {
 
       // dadq0 = -dv1dq0 / h
       mju_copy(dadq0, dv1dq0, nv * nv);
-      mju_scl(dadq0, dadq0, -1.0 / model_->opt.timestep, nv * nv);
+      mju_scl(dadq0, dadq0, -1.0 / model->opt.timestep, nv * nv);
 
       // dadq1 = dv2dq1 / h - dv1dq1 / h = (dv2dq1 - dv1dq1) / h
       mju_sub(dadq1, dv2dq1, dv1dq1, nv * nv);
-      mju_scl(dadq1, dadq1, 1.0 / model_->opt.timestep, nv * nv);
+      mju_scl(dadq1, dadq1, 1.0 / model->opt.timestep, nv * nv);
 
       // dadq2 = dv2dq2 / h
       mju_copy(dadq2, dv2dq2, nv * nv);
-      mju_scl(dadq2, dadq2, 1.0 / model_->opt.timestep, nv * nv);
+      mju_scl(dadq2, dadq2, 1.0 / model->opt.timestep, nv * nv);
     }
   }
 
@@ -1366,7 +1366,7 @@ void Estimator::TotalGradient() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int dim = configuration_length_ * model_->nv;
+  int dim = configuration_length_ * model->nv;
 
   // unpack
   double* gradient = cost_gradient.data();
@@ -1390,7 +1390,7 @@ void Estimator::TotalHessian() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int dim = configuration_length_ * model_->nv;
+  int dim = configuration_length_ * model->nv;
 
   // unpack
   double* hessian = cost_hessian.data();
@@ -1401,15 +1401,15 @@ void Estimator::TotalHessian() {
 
     // individual Hessians
     if (prior_flag)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_prior_.data(), model_->nv,
+      SymmetricBandMatrixCopy(hessian, cost_hessian_prior_.data(), model->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_prior_.data());
     if (sensor_flag)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_sensor_.data(), model_->nv,
+      SymmetricBandMatrixCopy(hessian, cost_hessian_sensor_.data(), model->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_sensor_.data());
     if (force_flag)
-      SymmetricBandMatrixCopy(hessian, cost_hessian_force_.data(), model_->nv,
+      SymmetricBandMatrixCopy(hessian, cost_hessian_force_.data(), model->nv,
                               3, dim, configuration_length_, 0, 0, 0, 0,
                               scratch0_force_.data());
   } else {
@@ -1437,7 +1437,7 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nv = model_->nv;
+  int nv = model->nv;
   int ntotal = nv * configuration_length_;
 
   // ----- update prior weights ----- //
@@ -1482,8 +1482,8 @@ void Estimator::Optimize(ThreadPool& pool) {
   auto start_optimize = std::chrono::steady_clock::now();
 
   // dimensions
-  int nconfig = model_->nq * configuration_length_;
-  int nvar = model_->nv * configuration_length_;
+  int nconfig = model->nq * configuration_length_;
+  int nvar = model->nv * configuration_length_;
 
   // reset timers
   ResetTimers();
@@ -1669,7 +1669,7 @@ void Estimator::Optimize(ThreadPool& pool) {
 // regularize Hessian
 void Estimator::Regularize() {
   // dimension
-  int nvar = configuration_length_ * model_->nv;
+  int nvar = configuration_length_ * model->nv;
 
   // H + reg * I
   for (int j = 0; j < nvar; j++) {
@@ -1683,8 +1683,8 @@ void Estimator::SearchDirection() {
   auto search_direction_start = std::chrono::steady_clock::now();
 
   // dimensions
-  int ntotal = configuration_length_ * model_->nv;
-  int nband = 3 * model_->nv;
+  int ntotal = configuration_length_ * model->nv;
+  int nband = 3 * model->nv;
   int ndense = 0;
 
   // regularize
@@ -1894,11 +1894,11 @@ void Estimator::InitializeTrajectories(
 
   // set first configuration
   double* q0 = configuration.Get(0);
-  mju_copy(q0, qpos0_.data(), model_->nq);
-  mj_integratePos(model_, q0, qvel0_.data(), -1.0 * model_->opt.timestep);
+  mju_copy(q0, qpos0.data(), model->nq);
+  mj_integratePos(model, q0, qvel0.data(), -1.0 * model->opt.timestep);
 
   // set second configuration
-  configuration.Set(qpos0_.data(), 1);
+  configuration.Set(qpos0.data(), 1);
 
   // set initial time
   this->time.Set(time.Get(0), 0);
@@ -1907,8 +1907,8 @@ void Estimator::InitializeTrajectories(
   mjData* data = data_[0].get();
 
   // set state
-  mju_copy(data->qpos, qpos0_.data(), model_->nq);
-  mju_copy(data->qvel, qvel0_.data(), model_->nv);
+  mju_copy(data->qpos, qpos0.data(), model->nq);
+  mju_copy(data->qvel, qvel0.data(), model->nv);
   data->time = time.Get(1)[0];
 
   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
@@ -1923,10 +1923,10 @@ void Estimator::InitializeTrajectories(
     // set/get ctrl
     const double* ui = ctrl.Get(buffer_index);
     this->ctrl.Set(ui, i);
-    mju_copy(data->ctrl, ui, model_->nu);
+    mju_copy(data->ctrl, ui, model->nu);
 
     // step dynamics
-    mj_step(model_, data);
+    mj_step(model, data);
 
     // set measurement
     const double* yi = measurement.Get(buffer_index);
@@ -1948,7 +1948,7 @@ void Estimator::InitializeTrajectories(
 
   // copy configuration to prior
   mju_copy(configuration_previous.Data(), configuration.Data(),
-           model_->nq * configuration_length_);
+           model->nq * configuration_length_);
 
   // stop timer
   timer_.update_trajectory += GetDuration(start);
@@ -1998,21 +1998,21 @@ int Estimator::UpdateTrajectories_(
     // set ctrl
     const double* ui = ctrl.Get(b);
     this->ctrl.Set(ui, t);
-    mju_copy(data->ctrl, ui, model_->nu);
+    mju_copy(data->ctrl, ui, model->nu);
 
     // set qpos
     double* q0 = configuration.Get(t - 1);
     double* q1 = configuration.Get(t);
-    mju_copy(data->qpos, q1, model_->nq);
+    mju_copy(data->qpos, q1, model->nq);
 
     // set qvel
-    mj_differentiatePos(model_, data->qvel, model_->opt.timestep, q0, q1);
+    mj_differentiatePos(model, data->qvel, model->opt.timestep, q0, q1);
 
     // set time
     data->time = time.Get(b)[0];
 
     // step dynamics
-    mj_step(model_, data);
+    mj_step(model, data);
 
     // copy qfrc_actuator
     force_measurement.Set(data->qfrc_actuator, t);
@@ -2026,7 +2026,7 @@ int Estimator::UpdateTrajectories_(
 
   // copy configuration to prior
   mju_copy(configuration_previous.Data(), configuration.Data(),
-           model_->nq * configuration_length_);
+           model->nq * configuration_length_);
 
   // stop timer
   timer_.update_trajectory += GetDuration(start);
@@ -2050,7 +2050,7 @@ int Estimator::UpdateTrajectories(
   // compute number of new elements
   int num_new =
       std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
-                 model_->opt.timestep);
+                 model->opt.timestep);
 
   UpdateTrajectories_(num_new, measurement, measurement_mask, ctrl, time);
 
@@ -2084,8 +2084,8 @@ double Estimator::CostForce(double* gradient, double* hessian) {
   auto start = std::chrono::steady_clock::now();
 
   // update dimension
-  int dim_update = model_->nv * configuration_length_;
-  int nv = model_->nv;
+  int dim_update = model->nv * configuration_length_;
+  int nv = model->nv;
 
   // residual
   ResidualForce();
@@ -2165,7 +2165,7 @@ void Estimator::ResidualForce() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
@@ -2188,7 +2188,7 @@ void Estimator::ResidualForce() {
 // set block in force Jacobian
 void Estimator::SetBlockForce(int index) {
   // velocity dimension
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // residual dimension
   int dim_residual = nv * prediction_length_;
@@ -2236,7 +2236,7 @@ void Estimator::SetBlockForce(int index) {
 // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
 void Estimator::BlockForce(int index) {
   // dimensions
-  int nv = model_->nv;
+  int nv = model->nv;
 
   // dqdf
   double* dqdf = block_force_configuration_.Get(index);

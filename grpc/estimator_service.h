@@ -125,7 +125,7 @@ class EstimatorService final : public estimator::Estimator::Service {
 
  private:
   bool Initialized() const {
-    return estimator_.model_ && estimator_.configuration_length_ >= 3;
+    return estimator_.model && estimator_.ConfigurationLength() >= 3;
   }
 
   // estimator

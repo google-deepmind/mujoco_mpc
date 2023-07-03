@@ -100,10 +100,16 @@ class Estimator {
   int Update(const Buffer& buffer, ThreadPool& pool);
 
   // get configuration length 
-  int ConfigurationLength() { return configuration_length_; }
+  int ConfigurationLength() const { return configuration_length_; }
   
   // get prediction length
-  int PredictionLength() { return prediction_length_; }
+  int PredictionLength() const { return prediction_length_; }
+
+  // get number of sensors 
+  int NumberSensors() const { return num_sensor_; }
+
+  // get dimension of sensors 
+  int SensorDimension() const { return dim_sensor_; }
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -118,6 +124,9 @@ class Estimator {
   EstimatorTrajectory<double> force_measurement;       // nv x T
   EstimatorTrajectory<double> force_prediction;        // nv x T
   
+  // model
+  mjModel* model;
+
   // cost
   double cost_prior;
   double cost_sensor;
@@ -132,7 +141,7 @@ class Estimator {
   std::vector<double> cost_hessian;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // prior weights
-  std::vector<double> weight_prior;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> weight_prior_band;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // scale
@@ -147,6 +156,10 @@ class Estimator {
   // norm parameters
   std::vector<double> norm_parameters_sensor; // num_sensor x MAX_NORM_PARAMETERS
   std::vector<double> norm_parameters_force;  // NUM_FORCE_TERMS x MAX_NORM_PARAMETERS
+
+  // initial state
+  std::vector<double> qpos0;
+  std::vector<double> qvel0;
 
   // status
   int iterations_smoother_;                 // total smoother iterations after Optimize
@@ -275,9 +288,6 @@ class Estimator {
   // print update prior weight status
   void PrintPriorWeightUpdate();
 
-  // model
-  mjModel* model_;
-
   // data
   std::vector<UniqueMjData> data_;
 
@@ -374,10 +384,6 @@ class Estimator {
 
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY
-
-  // initial state 
-  std::vector<double> qpos0_;
-  std::vector<double> qvel0_;
 
   // status 
   bool hessian_factor_ = false;             // prior reset status

@@ -14,10 +14,6 @@
 
 #include "grpc/estimator_service.h"
 
-#include <cstring>
-#include <string_view>
-#include <vector>
-
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -26,6 +22,10 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include <cstring>
+#include <string_view>
+#include <vector>
 
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"
@@ -40,12 +40,12 @@ using ::estimator::CostRequest;
 using ::estimator::CostResponse;
 using ::estimator::DataRequest;
 using ::estimator::DataResponse;
-using ::estimator::InitRequest;
-using ::estimator::InitResponse;
 using ::estimator::InitializeDataRequest;
 using ::estimator::InitializeDataResponse;
 using ::estimator::InitialStateRequest;
 using ::estimator::InitialStateResponse;
+using ::estimator::InitRequest;
+using ::estimator::InitResponse;
 using ::estimator::NormRequest;
 using ::estimator::NormResponse;
 using ::estimator::OptimizeRequest;
@@ -64,12 +64,12 @@ using ::estimator::StatusRequest;
 using ::estimator::StatusResponse;
 using ::estimator::TimingRequest;
 using ::estimator::TimingResponse;
-using ::estimator::UpdateRequest;
-using ::estimator::UpdateResponse;
 using ::estimator::UpdateBufferRequest;
 using ::estimator::UpdateBufferResponse;
 using ::estimator::UpdateDataRequest;
 using ::estimator::UpdateDataResponse;
+using ::estimator::UpdateRequest;
+using ::estimator::UpdateResponse;
 using ::estimator::WeightsRequest;
 using ::estimator::WeightsResponse;
 
@@ -86,14 +86,14 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
 }
 }  // namespace
 
-#define CHECK_SIZE(name, n1, n2)                            \
-{                                                           \
-  auto expr = (CheckSize(name, n1, n2));                    \
-  if (!(expr).ok()) {                                       \
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
-                        (expr).ToString());                 \
-  }                                                         \
-}
+#define CHECK_SIZE(name, n1, n2)                              \
+  {                                                           \
+    auto expr = (CheckSize(name, n1, n2));                    \
+    if (!(expr).ok()) {                                       \
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
+                          (expr).ToString());                 \
+    }                                                         \
+  }
 
 EstimatorService::~EstimatorService() {}
 
@@ -151,7 +151,8 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
   estimator_.SetConfigurationLength(request->configuration_length());
 
   // initialize buffer
-  buffer_.Initialize(estimator_.dim_sensor_, estimator_.num_sensor_, model->nu,
+  buffer_.Initialize(estimator_.SensorDimension(), estimator_.NumberSensors(),
+                     model->nu,
                      (request->has_buffer_length() ? request->buffer_length()
                                                    : mjpc::MAX_TRAJECTORY));
 
@@ -167,7 +168,7 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
 
   // valid index
   int index = (int)(request->index());
-  if (index < 0 || index >= estimator_.configuration_length_) {
+  if (index < 0 || index >= estimator_.ConfigurationLength()) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid index."};
   }
 
@@ -176,7 +177,7 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   estimator::Data* output = response->mutable_data();
 
   // set configuration
-  int nq = estimator_.model_->nq;
+  int nq = estimator_.model->nq;
   if (input.configuration_size() > 0) {
     CHECK_SIZE("configuration", nq, input.configuration_size());
     estimator_.configuration.Set(input.configuration().data(), index);
@@ -189,7 +190,7 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   }
 
   // set velocity
-  int nv = estimator_.model_->nv;
+  int nv = estimator_.model->nv;
   if (input.velocity_size() > 0) {
     CHECK_SIZE("velocity", nv, input.velocity_size());
     estimator_.velocity.Set(input.velocity().data(), index);
@@ -223,38 +224,38 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   double* time = estimator_.time.Get(index);
   output->add_time(time[0]);
 
-  // set ctrl 
-  int nu = estimator_.model_->nu;
+  // set ctrl
+  int nu = estimator_.model->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
     estimator_.ctrl.Set(input.ctrl().data(), index);
   }
 
-  // get ctrl 
+  // get ctrl
   double* ctrl = estimator_.ctrl.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
 
   // set previous configuration
-  if (input.configuration_prior_size() > 0) {
-    CHECK_SIZE("configuration_previous", nq, input.configuration_prior_size());
+  if (input.configuration_previous_size() > 0) {
+    CHECK_SIZE("configuration_previous", nq,
+               input.configuration_previous_size());
     estimator_.configuration_previous.Set(input.configuration_previous().data(),
-                                        index);
+                                          index);
   }
 
   // get configuration previous
   double* prior = estimator_.configuration_previous.Get(index);
   for (int i = 0; i < nq; i++) {
-    output->add_configuration_prior(prior[i]);
+    output->add_configuration_previous(prior[i]);
   }
 
   // set sensor measurement
-  int ns = estimator_.dim_sensor_;
+  int ns = estimator_.SensorDimension();
   if (input.sensor_measurement_size() > 0) {
     CHECK_SIZE("sensor_measurement", ns, input.sensor_measurement_size());
-    estimator_.sensor_measurement.Set(input.sensor_measurement().data(),
-                                       index);
+    estimator_.sensor_measurement.Set(input.sensor_measurement().data(), index);
   }
 
   // get sensor measurement
@@ -275,14 +276,14 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
     output->add_sensor_prediction(sensor_prediction[i]);
   }
 
-  // set sensor mask 
-  int num_sensor = estimator_.num_sensor_;
+  // set sensor mask
+  int num_sensor = estimator_.NumberSensors();
   if (input.sensor_mask_size() > 0) {
     CHECK_SIZE("sensor_mask", num_sensor, input.sensor_mask_size());
     estimator_.sensor_mask.Set(input.sensor_mask().data(), index);
   }
 
-  // get sensor mask 
+  // get sensor mask
   int* sensor_mask = estimator_.sensor_mask.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor_mask(sensor_mask[i]);
@@ -338,9 +339,9 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.configuration_length_ = configuration_length;
+    estimator_.SetConfigurationLength(configuration_length);
   }
-  output->set_configuration_length(estimator_.configuration_length_);
+  output->set_configuration_length(estimator_.ConfigurationLength());
 
   // search type
   if (input.has_search_type()) {
@@ -396,19 +397,19 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_time_scaling(estimator_.time_scaling);
 
-  // update prior weight 
+  // update prior weight
   if (input.has_update_prior_weight()) {
     estimator_.update_prior_weight = input.update_prior_weight();
   }
   output->set_update_prior_weight(estimator_.update_prior_weight);
 
-  // regularization initialization 
+  // regularization initialization
   if (input.has_regularization_initial()) {
     estimator_.regularization_initial = input.regularization_initial();
   }
   output->set_regularization_initial(estimator_.regularization_initial);
 
-  // gradient tolerance 
+  // gradient tolerance
   if (input.has_gradient_tolerance()) {
     estimator_.gradient_tolerance = input.gradient_tolerance();
   }
@@ -424,8 +425,10 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // evaluate cost 
-  estimator_.cost = estimator_.Cost(thread_pool_);
+  // evaluate cost
+  estimator_.cost =
+      estimator_.Cost(estimator_.cost_gradient.data(),
+                      estimator_.cost_hessian.data(), thread_pool_);
 
   // costs
   estimator::Cost* cost = response->mutable_cost();
@@ -466,11 +469,11 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   output->set_prior(estimator_.scale_prior);
 
   // sensor
-  int num_sensor = estimator_.num_sensor_;
+  int num_sensor = estimator_.NumberSensors();
   if (input.sensor_size() > 0) {
     CHECK_SIZE("scale_sensor", num_sensor, input.sensor_size());
     estimator_.scale_sensor.assign(input.sensor().begin(),
-                                    input.sensor().end());
+                                   input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor(estimator_.scale_sensor[i]);
@@ -500,7 +503,7 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   estimator::Norm* output = response->mutable_norm();
 
   // set sensor type
-  int num_sensor = estimator_.num_sensor_;
+  int num_sensor = estimator_.NumberSensors();
   if (input.sensor_type_size() > 0) {
     CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
     estimator_.norm_sensor.clear();
@@ -521,7 +524,7 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
     CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
                input.sensor_parameters_size());
     estimator_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
-                                              input.sensor_parameters().end());
+                                             input.sensor_parameters().end());
   }
 
   // get sensor parameters
@@ -548,8 +551,8 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    estimator_.norm_parameters_force.assign(
-        input.force_parameters().begin(), input.force_parameters().end());
+    estimator_.norm_parameters_force.assign(input.force_parameters().begin(),
+                                            input.force_parameters().end());
   }
 
   // get force parameters
@@ -590,14 +593,15 @@ grpc::Status EstimatorService::Reset(grpc::ServerContext* context,
 }
 
 grpc::Status EstimatorService::InitializeData(
-    grpc::ServerContext* context, const estimator::InitializeDataRequest* request,
+    grpc::ServerContext* context,
+    const estimator::InitializeDataRequest* request,
     estimator::InitializeDataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // initialize trajectories with buffer data
-  estimator_.InitializeTrajectories(buffer_.sensor_, buffer_.sensor_mask,
+  estimator_.InitializeTrajectories(buffer_.sensor, buffer_.sensor_mask,
                                     buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
@@ -617,7 +621,7 @@ grpc::Status EstimatorService::UpdateData(
   }
 
   // update trajectories with num_new most recent elements from buffer
-  estimator_.UpdateTrajectories_(num_new, buffer_.sensor_, buffer_.sensor_mask,
+  estimator_.UpdateTrajectories_(num_new, buffer_.sensor, buffer_.sensor_mask,
                                  buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
@@ -652,9 +656,9 @@ grpc::Status EstimatorService::Update(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::InitialState(grpc::ServerContext* context,
-                                      const estimator::InitialStateRequest* request,
-                                      estimator::InitialStateResponse* response) {
+grpc::Status EstimatorService::InitialState(
+    grpc::ServerContext* context, const estimator::InitialStateRequest* request,
+    estimator::InitialStateResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -664,27 +668,27 @@ grpc::Status EstimatorService::InitialState(grpc::ServerContext* context,
   estimator::State* output = response->mutable_state();
 
   // set qpos
-  int nq = estimator_.model_->nq;
+  int nq = estimator_.model->nq;
   if (input.qpos_size() > 0) {
     CHECK_SIZE("qpos", nq, input.qpos_size());
-    estimator_.qpos0_.assign(input.qpos().begin(), input.qpos().end());
+    estimator_.qpos0.assign(input.qpos().begin(), input.qpos().end());
   }
 
-  // get qpos 
+  // get qpos
   for (int i = 0; i < nq; i++) {
-    output->add_qpos(estimator_.qpos0_[i]);
+    output->add_qpos(estimator_.qpos0[i]);
   }
 
   // qvel
-  int nv = estimator_.model_->nv;
+  int nv = estimator_.model->nv;
   if (input.qvel_size() > 0) {
     CHECK_SIZE("qvel", nv, input.qvel_size());
-    estimator_.qvel0_.assign(input.qvel().begin(), input.qvel().end());
+    estimator_.qvel0.assign(input.qvel().begin(), input.qvel().end());
   }
 
   // get qvel
   for (int i = 0; i < nv; i++) {
-    output->add_qvel(estimator_.qvel0_[i]);
+    output->add_qvel(estimator_.qvel0[i]);
   }
 
   return grpc::Status::OK;
@@ -767,7 +771,7 @@ grpc::Status EstimatorService::TotalGradient(
   }
 
   // dimension
-  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
 
   // get cost gradient
   for (int i = 0; i < dim; i++) {
@@ -785,7 +789,7 @@ grpc::Status EstimatorService::TotalHessian(
   }
 
   // dimension
-  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
   response->set_dimension(dim);
 
   // get cost Hessian
@@ -808,7 +812,7 @@ grpc::Status EstimatorService::PriorMatrix(
   }
 
   // dimension
-  int dim = estimator_.model_->nv * estimator_.configuration_length_;
+  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
   response->set_dimension(dim);
 
   // set prior matrix
@@ -816,7 +820,7 @@ grpc::Status EstimatorService::PriorMatrix(
   if (request->prior_size() > 0) {
     CHECK_SIZE("prior_matrix", dim * dim, request->prior_size());
     estimator_.weight_prior.assign(request->prior().begin(),
-                                          request->prior().end());
+                                   request->prior().end());
   }
 
   // get prior matrix
@@ -860,20 +864,20 @@ grpc::Status EstimatorService::BufferData(
   estimator::Buffer* output = response->mutable_buffer();
 
   // set sensor
-  int ns = estimator_.dim_sensor_;
+  int ns = estimator_.SensorDimension();
   if (input.sensor_size() > 0) {
     CHECK_SIZE("sensor", ns, input.sensor_size());
-    buffer_.sensor_.Set(input.sensor().data(), index);
+    buffer_.sensor.Set(input.sensor().data(), index);
   }
 
   // get sensor
-  double* sensor = buffer_.sensor_.Get(index);
+  double* sensor = buffer_.sensor.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor(sensor[i]);
   }
 
   // set mask
-  int num_sensor = estimator_.num_sensor_;
+  int num_sensor = estimator_.NumberSensors();
   if (input.mask_size() > 0) {
     CHECK_SIZE("mask", num_sensor, input.mask_size());
     buffer_.sensor_mask.Set(input.mask().data(), index);
@@ -886,7 +890,7 @@ grpc::Status EstimatorService::BufferData(
   }
 
   // set ctrl
-  int nu = estimator_.model_->nu;
+  int nu = estimator_.model->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
     buffer_.ctrl.Set(input.ctrl().data(), index);
@@ -927,11 +931,11 @@ grpc::Status EstimatorService::UpdateBuffer(
   estimator::Buffer buffer = request->buffer();
 
   // check for all data
-  if (buffer.sensor_size() != estimator_.dim_sensor_)
+  if (buffer.sensor_size() != estimator_.SensorDimension())
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor."};
-  if (buffer.mask_size() != estimator_.num_sensor_)
+  if (buffer.mask_size() != estimator_.NumberSensors())
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor mask."};
-  if (buffer.ctrl_size() != estimator_.model_->nu)
+  if (buffer.ctrl_size() != estimator_.model->nu)
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing ctrl."};
   if (buffer.time_size() != 1)
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing time."};

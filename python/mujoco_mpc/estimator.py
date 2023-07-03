@@ -16,9 +16,11 @@
 """Python interface for interface with Estimator."""
 
 import atexit
+import os
 import pathlib
 import socket
 import subprocess
+import sys
 import tempfile
 from typing import Literal, Optional
 
@@ -64,15 +66,19 @@ class Estimator:
       buffer_length: Optional[int] = None,
       server_binary_path: Optional[str] = None,
       send_as: Literal["mjb", "xml"] = "xml",
+      colab_logging: bool = True,
   ):
     # server
     if server_binary_path is None:
       binary_name = "estimator_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
+    self._colab_logging = colab_logging
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--mjpc_port={self.port}"]
+        [str(server_binary_path), f"--mjpc_port={self.port}"],
+        stdout=subprocess.PIPE if colab_logging else None,
     )
+    os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
@@ -140,7 +146,7 @@ class Estimator:
     )
 
     # initialize response
-    self.stub.Init(init_request)
+    self._wait(self.stub.Init.future(init_request))
 
   def data(
       self,
@@ -176,7 +182,7 @@ class Estimator:
     request = estimator_pb2.DataRequest(data=inputs, index=index)
 
     # data response
-    data = self.stub.Data(request).data
+    data = self._wait(self.stub.Data.future(request)).data
 
     # return all data
     return {
@@ -248,7 +254,7 @@ class Estimator:
     )
 
     # settings response
-    settings = self.stub.Settings(request).settings
+    settings = self._wait(self.stub.Settings.future(request)).settings
 
     # return all settings
     return {
@@ -292,7 +298,7 @@ class Estimator:
     request = estimator_pb2.WeightsRequest(weight=inputs)
 
     # weight response
-    weight = self.stub.Weights(request).weight
+    weight = self._wait(self.stub.Weights.future(request)).weight
 
     # return all weights
     return {
@@ -320,7 +326,7 @@ class Estimator:
     request = estimator_pb2.NormRequest(norm=inputs)
 
     # norm response
-    norm = self.stub.Norms(request).norm
+    norm = self._wait(self.stub.Norms.future(request)).norm
 
     # return all norm data
     return {
@@ -335,7 +341,7 @@ class Estimator:
     request = estimator_pb2.CostRequest()
 
     # cost response
-    cost = self.stub.Cost(request).cost
+    cost = self._wait(self.stub.Cost.future(request)).cost
 
     # return all costs
     return {
@@ -351,7 +357,7 @@ class Estimator:
     request = estimator_pb2.StatusRequest()
 
     # status response
-    status = self.stub.Status(request).status
+    status = self._wait(self.stub.Status.future(request)).status
 
     # return all status
     return {
@@ -367,28 +373,29 @@ class Estimator:
     request = estimator_pb2.ShiftRequest(shift=shift)
 
     # return head (for testing)
-    return self.stub.Shift(request).head
+    return self._wait(self.stub.Shift.future(request)).head
+  
 
   def reset(self):
     # reset request
     request = estimator_pb2.ResetRequest()
 
     # reset response
-    self.stub.Reset(request)
+    self._wait(self.stub.Reset.future(request))
 
   def optimize(self):
     # optimize request
     request = estimator_pb2.OptimizeRequest()
 
     # optimize response
-    self.stub.Optimize(request)
+    self._wait(self.stub.Optimize.future(request))
 
   def update(self) -> int:
     # update request
     request = estimator_pb2.UpdateRequest()
 
     # update response
-    response = self.stub.Update(request)
+    response = self._wait(self.stub.Update.future(request))
 
     # return num new
     return response.num_new
@@ -406,7 +413,7 @@ class Estimator:
     request = estimator_pb2.InitialStateRequest(state=inputs)
 
     # initial state response
-    response = self.stub.InitialState(request)
+    response = self._wait(self.stub.InitialState.future(request))
 
     # return qpos, qvel
     return {
@@ -419,7 +426,7 @@ class Estimator:
     request = estimator_pb2.CostGradientRequest()
 
     # gradient response
-    response = self.stub.TotalGradient(request)
+    response = self._wait(self.stub.TotalGradient.future(request))
 
     # return gradient vector
     return np.array(response.gradient)
@@ -429,7 +436,7 @@ class Estimator:
     request = estimator_pb2.CostHessianRequest()
 
     # Hessian response
-    response = self.stub.TotalHessian(request)
+    response = self._wait(self.stub.TotalHessian.future(request))
 
     # reshape Hessian to (dimension, dimension)
     hessian = np.array(response.hessian).reshape(response.dimension, response.dimension)
@@ -444,7 +451,7 @@ class Estimator:
     )
 
     # prior response
-    response = self.stub.PriorMatrix(request)
+    response = self._wait(self.stub.PriorMatrix.future(request))
 
     # reshape prior to (dimension, dimension)
     mat = np.array(response.prior).reshape(response.dimension, response.dimension)
@@ -457,7 +464,7 @@ class Estimator:
     request = estimator_pb2.InitializeDataRequest()
 
     # data response 
-    self.stub.InitializeData(request)
+    self._wait(self.stub.InitializeData.future(request))
 
   def update_data(self,
                   num_new: int):
@@ -465,7 +472,7 @@ class Estimator:
     request = estimator_pb2.UpdateDataRequest(num_new=num_new)
 
     # data response 
-    self.stub.UpdateData(request)
+    self._wait(self.stub.UpdateData.future(request))
 
   def buffer(
       self,
@@ -487,7 +494,7 @@ class Estimator:
     request = estimator_pb2.BufferDataRequest(index=index, buffer=inputs)
 
     # data response
-    response = self.stub.BufferData(request)
+    response = self._wait(self.stub.BufferData.future(request))
 
     # buffer
     buffer = response.buffer
@@ -520,14 +527,15 @@ class Estimator:
     request = estimator_pb2.UpdateBufferRequest(buffer=inputs)
 
     # return current buffer length
-    return self.stub.UpdateBuffer(request).length
+    return self._wait(self.stub.UpdateBuffer.future(request)).length
+  
 
   def reset_buffer(self):
     # reset buffer request
     request = estimator_pb2.ResetBufferRequest()
 
     # reset buffer response
-    self.stub.ResetBuffer(request)
+    self._wait(self.stub.ResetBuffer.future(request))
 
   def print_cost(self):
     # get costs
@@ -552,3 +560,14 @@ class Estimator:
     print("- step size = ", status["step_size"])
     print("- regularization = ", status["regularization"])
     print("- gradient norm = ", status["gradient_norm"])
+
+  def _wait(self, future):
+    """Waits for the future to complete, while printing out subprocess stdout."""
+    if self._colab_logging:
+      while True:
+        line = self.server_process.stdout.readline()
+        if line:
+          sys.stdout.write(line.decode('utf-8'))
+        if future.done():
+          break
+    return future.result()

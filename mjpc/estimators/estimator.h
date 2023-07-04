@@ -114,6 +114,7 @@ class Estimator {
   // restore previous solution 
   void Restore(ThreadPool& pool);
 
+  // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
@@ -179,7 +180,6 @@ class Estimator {
 
   // prior weights
   std::vector<double> weight_prior;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> weight_prior_band;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // scale
   double scale_prior;
@@ -337,6 +337,9 @@ class Estimator {
 
   // configuration copy
   EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
+
+  // prior weights
+  std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // residual
   std::vector<double> residual_prior_;       // nv x T

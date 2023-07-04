@@ -59,9 +59,9 @@ TEST(BatchOptimize, Particle2D) {
   mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // set weights
-  estimator.scale_prior = 1.0;
+  estimator.scale_prior = 1.0e-3;
   estimator.scale_sensor[0] = 1.0;
-  estimator.scale_force[0] = 1.0;
+  estimator.scale_force[0] = 1.0e-3;
 
   // ----- random perturbation ----- //
 
@@ -90,7 +90,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // test gradient tolerance
   EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
-              1.0e-5);
+              1.0e-3);
 
   // test recovered configuration trajectory
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,

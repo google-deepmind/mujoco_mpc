@@ -140,7 +140,7 @@ void Estimator::Initialize(mjModel* model) {
   cost_gradient_prior_.resize(nv * MAX_HISTORY);
   cost_gradient_sensor_.resize(nv * MAX_HISTORY);
   cost_gradient_force_.resize(nv * MAX_HISTORY);
-  cost_gradient.resize(nv * MAX_HISTORY);
+  cost_gradient_.resize(nv * MAX_HISTORY);
 
   // cost Hessian
   cost_hessian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
@@ -153,7 +153,7 @@ void Estimator::Initialize(mjModel* model) {
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "estimator_scale_prior");
   weight_prior.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  weight_prior_band.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch_prior_weight_.resize(2 * nv * nv);
 
   // sensor scale
@@ -472,7 +472,7 @@ void Estimator::Reset() {
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
   std::fill(cost_gradient_sensor_.begin(), cost_gradient_sensor_.end(), 0.0);
   std::fill(cost_gradient_force_.begin(), cost_gradient_force_.end(), 0.0);
-  std::fill(cost_gradient.begin(), cost_gradient.end(), 0.0);
+  std::fill(cost_gradient_.begin(), cost_gradient_.end(), 0.0);
 
   // cost Hessian
   std::fill(cost_hessian_prior_.begin(), cost_hessian_prior_.end(), 0.0);
@@ -484,7 +484,7 @@ void Estimator::Reset() {
 
   // weight
   std::fill(weight_prior.begin(), weight_prior.end(), 0.0);
-  std::fill(weight_prior_band.begin(), weight_prior_band.end(), 0.0);
+  std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
   std::fill(scratch_prior_weight_.begin(), scratch_prior_weight_.end(), 0.0);
 
   // norm
@@ -614,7 +614,7 @@ double Estimator::CostPrior(double* gradient, double* hessian) {
   // unpack
   double* r = residual_prior_.data();
   double* P =
-      (settings.band_prior ? weight_prior_band.data() : weight_prior.data());
+      (settings.band_prior ? weight_prior_band_.data() : weight_prior.data());
   double* tmp = scratch0_prior_.data();
 
   // initial cost
@@ -1413,7 +1413,7 @@ void Estimator::TotalGradient() {
   int dim = configuration_length_ * model->nv;
 
   // unpack
-  double* gradient = cost_gradient.data();
+  double* gradient = cost_gradient_.data();
 
   // individual gradients
   if (settings.prior_flag) {
@@ -1427,7 +1427,7 @@ void Estimator::TotalGradient() {
     mju_addTo(gradient, cost_gradient_force_.data(), dim);
 
   // stop gradient timer
-  timer_.cost_gradient += GetDuration(start);
+  timer_.cost_gradient_ += GetDuration(start);
 }
 
 // compute total Hessian
@@ -1493,7 +1493,7 @@ void Estimator::PriorWeightUpdate(ThreadPool& pool) {
 
   // weight
   double* weight = weight_prior.data();
-  double* weight_band = weight_prior_band.data();
+  double* weight_band = weight_prior_band_.data();
 
   // Hessian
   // double* hessian = cost_hessian.data();
@@ -1565,7 +1565,7 @@ void Estimator::Optimize(ThreadPool& pool) {
        iterations_smoother_++) {
     // evalute cost derivatives
     cost_skip_ = true;
-    Cost(cost_gradient.data(), cost_hessian.data(), pool);
+    Cost(cost_gradient_.data(), cost_hessian.data(), pool);
 
     // start timer
     auto start_search = std::chrono::steady_clock::now();
@@ -1574,7 +1574,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     num_new_ = configuration_length_;  // update all data now
 
     // -- gradient -- //
-    double* gradient = cost_gradient.data();
+    double* gradient = cost_gradient_.data();
 
     // gradient tolerance check
     gradient_norm_ = mju_norm(gradient, nvar) / nvar;
@@ -1744,7 +1744,7 @@ void Estimator::SearchDirection() {
 
   // unpack
   double* direction = search_direction_.data();
-  double* gradient = cost_gradient.data();
+  double* gradient = cost_gradient_.data();
   double* hessian = cost_hessian.data();
   double* hessian_band = cost_hessian_band_.data();
 
@@ -1835,7 +1835,7 @@ void Estimator::PrintOptimize() {
          1.0e-3 * timer_.cost_sensor_derivatives);
   printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force_derivatives);
   printf("      < gradient assemble: %.3f (ms) \n",
-         1.0e-3 * timer_.cost_gradient);
+         1.0e-3 * timer_.cost_gradient_);
   printf("      < hessian assemble: %.3f (ms) \n",
          1.0e-3 * timer_.cost_hessian);
   printf("\n");
@@ -1930,7 +1930,7 @@ void Estimator::ResetTimers() {
   timer_.cost_sensor_derivatives = 0.0;
   timer_.cost_force_derivatives = 0.0;
   timer_.cost_total_derivatives = 0.0;
-  timer_.cost_gradient = 0.0;
+  timer_.cost_gradient_ = 0.0;
   timer_.cost_hessian = 0.0;
   timer_.cost_derivatives = 0.0;
   timer_.cost = 0.0;

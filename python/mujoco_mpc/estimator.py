@@ -224,6 +224,11 @@ class Estimator:
       time_scaling: Optional[bool] = None,
       search_direction_tolerance: Optional[float] = None,
       cost_tolerance: Optional[float] = None,
+      assemble_prior_jacobian: Optional[bool] = None,
+      assemble_sensor_jacobian: Optional[bool] = None,
+      assemble_force_jacobian: Optional[bool] = None,
+      assemble_sensor_norm_hessian: Optional[bool] = None,
+      assemble_force_norm_hessian: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -250,6 +255,11 @@ class Estimator:
         time_scaling=time_scaling,
         search_direction_tolerance=search_direction_tolerance,
         cost_tolerance=cost_tolerance,
+        assemble_prior_jacobian=assemble_prior_jacobian,
+        assemble_sensor_jacobian=assemble_sensor_jacobian,
+        assemble_force_jacobian=assemble_force_jacobian,
+        assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
+        assemble_force_norm_hessian=assemble_force_norm_hessian,
     )
 
     # settings request
@@ -285,6 +295,11 @@ class Estimator:
         "time_scaling": settings.time_scaling,
         "search_direction_tolerance": settings.search_direction_tolerance,
         "cost_tolerance": settings.cost_tolerance,
+        "assemble_prior_jacobian": settings.assemble_prior_jacobian,
+        "assemble_sensor_jacobian": settings.assemble_sensor_jacobian,
+        "assemble_force_jacobian": settings.assemble_force_jacobian,
+        "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
+        "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
     }
 
   def weight(
@@ -342,9 +357,11 @@ class Estimator:
         "force_parameters": np.array(norm.force_parameters),
     }
 
-  def cost(self) -> dict[str, float]:
+  def cost(
+      self, derivatives: Optional[bool] = False, internals: Optional[bool] = False
+  ) -> dict[str, float]:
     # cost request
-    request = estimator_pb2.CostRequest()
+    request = estimator_pb2.CostRequest(derivatives=derivatives, internals=internals)
 
     # cost response
     cost = self._wait(self.stub.Cost.future(request)).cost
@@ -356,6 +373,44 @@ class Estimator:
         "sensor": cost.sensor,
         "force": cost.force,
         "initial": cost.initial,
+        "gradient": np.array(cost.gradient) if derivatives else [],
+        "hessian": np.array(cost.hessian).reshape(cost.nvar, cost.nvar)
+        if derivatives
+        else [],
+        "residual_prior": np.array(cost.residual_prior) if internals else [],
+        "residual_sensor": np.array(cost.residual_sensor) if internals else [],
+        "residual_force": np.array(cost.residual_force) if internals else [],
+        "jacobian_prior": np.array(cost.jacobian_prior).reshape(cost.nvar, cost.nvar)
+        if internals
+        else [],
+        "jacobian_sensor": np.array(cost.jacobian_sensor).reshape(
+            cost.nsensor, cost.nvar
+        )
+        if internals
+        else [],
+        "jacobian_force": np.array(cost.jacobian_force).reshape(cost.nforce, cost.nvar)
+        if internals
+        else [],
+        "norm_gradient_sensor": np.array(cost.norm_gradient_sensor)
+        if internals
+        else [],
+        "norm_gradient_force": np.array(cost.norm_gradient_force) if internals else [],
+        "prior_matrix": np.array(cost.prior_matrix).reshape(cost.nvar, cost.nvar)
+        if internals
+        else [],
+        "norm_hessian_sensor": np.array(cost.norm_hessian_sensor).reshape(
+            cost.nsensor, cost.nsensor
+        )
+        if internals
+        else [],
+        "norm_hessian_force": np.array(cost.norm_hessian_force).reshape(
+            cost.nforce, cost.nforce
+        )
+        if internals
+        else [],
+        "nvar": cost.nvar,
+        "nsensor": cost.nsensor,
+        "nforce": cost.nforce,
     }
 
   def status(self) -> dict[str, int]:
@@ -383,7 +438,6 @@ class Estimator:
 
     # return head (for testing)
     return self._wait(self.stub.Shift.future(request)).head
-  
 
   def reset(self):
     # reset request
@@ -429,29 +483,6 @@ class Estimator:
         "qpos": np.array(response.state.qpos),
         "qvel": np.array(response.state.qvel),
     }
-  
-  def cost_gradient(self) -> np.ndarray:
-    # gradient request
-    request = estimator_pb2.CostGradientRequest()
-
-    # gradient response
-    response = self._wait(self.stub.TotalGradient.future(request))
-
-    # return gradient vector
-    return np.array(response.gradient)
-
-  def cost_hessian(self) -> np.ndarray:
-    # Hessian request
-    request = estimator_pb2.CostHessianRequest()
-
-    # Hessian response
-    response = self._wait(self.stub.TotalHessian.future(request))
-
-    # reshape Hessian to (dimension, dimension)
-    hessian = np.array(response.hessian).reshape(response.dimension, response.dimension)
-
-    # return Hessian matrix
-    return hessian
 
   def prior_matrix(self, prior: Optional[npt.ArrayLike] = None) -> np.ndarray:
     # prior request
@@ -467,20 +498,19 @@ class Estimator:
 
     # return prior matrix
     return mat
-  
+
   def initialize_data(self):
-    # data request 
+    # data request
     request = estimator_pb2.InitializeDataRequest()
 
-    # data response 
+    # data response
     self._wait(self.stub.InitializeData.future(request))
 
-  def update_data(self,
-                  num_new: int):
-    # data request 
+  def update_data(self, num_new: int):
+    # data request
     request = estimator_pb2.UpdateDataRequest(num_new=num_new)
 
-    # data response 
+    # data response
     self._wait(self.stub.UpdateData.future(request))
 
   def buffer(
@@ -537,7 +567,6 @@ class Estimator:
 
     # return current buffer length
     return self._wait(self.stub.UpdateBuffer.future(request)).length
-  
 
   def reset_buffer(self):
     # reset buffer request
@@ -587,7 +616,7 @@ class Estimator:
         return "SOLVED"
       else:
         return "CODE_ERROR"
-      
+
     print("- solve status = ", status_code(status["solve_status"]))
 
   def _wait(self, future):
@@ -596,7 +625,7 @@ class Estimator:
       while True:
         line = self.server_process.stdout.readline()
         if line:
-          sys.stdout.write(line.decode('utf-8'))
+          sys.stdout.write(line.decode("utf-8"))
         if future.done():
           break
     return future.result()

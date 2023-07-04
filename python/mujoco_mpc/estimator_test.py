@@ -295,6 +295,31 @@ class EstimatorTest(absltest.TestCase):
     settings = estimator.settings(cost_tolerance=cost_tolerance)
     self.assertTrue(np.abs(cost_tolerance - settings["cost_tolerance"]) < 1.0e-5)
 
+    # get/set assemble prior Jacobian 
+    assemble_prior_jacobian = True
+    settings = estimator.settings(assemble_prior_jacobian=assemble_prior_jacobian)
+    self.assertTrue(assemble_prior_jacobian == settings["assemble_prior_jacobian"])
+
+    # get/set assemble sensor Jacobian 
+    assemble_sensor_jacobian = True
+    settings = estimator.settings(assemble_sensor_jacobian=assemble_sensor_jacobian)
+    self.assertTrue(assemble_sensor_jacobian == settings["assemble_sensor_jacobian"])
+
+    # get/set assemble force Jacobian 
+    assemble_force_jacobian = True
+    settings = estimator.settings(assemble_force_jacobian=assemble_force_jacobian)
+    self.assertTrue(assemble_force_jacobian == settings["assemble_force_jacobian"])
+
+    # get/set assemble sensor norm Hessian
+    assemble_sensor_norm_hessian = True
+    settings = estimator.settings(assemble_sensor_norm_hessian=assemble_sensor_norm_hessian)
+    self.assertTrue(assemble_sensor_norm_hessian == settings["assemble_sensor_norm_hessian"])
+
+    # get/set assemble force norm Hessian
+    assemble_force_norm_hessian = True
+    settings = estimator.settings(assemble_force_norm_hessian=assemble_force_norm_hessian)
+    self.assertTrue(assemble_force_norm_hessian == settings["assemble_force_norm_hessian"])
+
   def test_costs(self):
     # load model
     model_path = (
@@ -511,48 +536,6 @@ class EstimatorTest(absltest.TestCase):
 
     # cost difference 
     self.assertTrue(np.abs(status["cost_difference"]) < 1.0e-5)
-
-  def test_cost_gradient(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    estimator = estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    )
-
-    # gradient
-    gradient = estimator.cost_gradient()
-
-    # test dimension
-    dim = configuration_length * model.nv
-    self.assertTrue(gradient.size == dim)
-
-  def test_cost_hessian(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    estimator = estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    )
-
-    # Hessian
-    hessian = estimator.cost_hessian()
-
-    # test dimension
-    dim = configuration_length * model.nv
-    self.assertTrue(hessian.shape == (dim, dim))
 
   def test_prior_matrix(self):
     # load model

@@ -114,6 +114,17 @@ class Estimator {
   // restore previous solution 
   void Restore(ThreadPool& pool);
 
+  const double* GetResidualPrior() { return residual_prior_.data(); }
+  const double* GetResidualSensor() { return residual_sensor_.data(); }
+  const double* GetResidualForce() { return residual_force_.data(); }
+  const double* GetJacobianPrior() { return jacobian_prior_.data(); }
+  const double* GetJacobianSensor() { return jacobian_sensor_.data(); }
+  const double* GetJacobianForce() { return jacobian_force_.data(); }
+  const double* GetNormGradientSensor() { return norm_gradient_sensor_.data(); }
+  const double* GetNormGradientForce() { return norm_gradient_force_.data(); }
+  const double* GetNormHessianSensor() { return norm_hessian_sensor_.data(); }
+  const double* GetNormHessianForce() { return norm_hessian_force_.data(); }
+  
   // get configuration length 
   int ConfigurationLength() const { return configuration_length_; }
   
@@ -211,6 +222,11 @@ class Estimator {
     bool time_scaling = false;                   // scale sensor and force costs by time step
     double search_direction_tolerance = 1.0e-8;  // search direction tolerance
     double cost_tolerance = 1.0e-8;              // cost difference tolernace
+    bool assemble_prior_jacobian = false;        // assemble dense prior Jacobian 
+    bool assemble_sensor_jacobian = false;       // assemble dense sensor Jacobian
+    bool assemble_force_jacobian = false;        // assemble dense force Jacobian 
+    bool assemble_sensor_norm_hessian = false;   // assemble dense sensor norm Hessian 
+    bool assemble_force_norm_hessian = false;    // assemble dense force norm Hessian
   } settings;
   
   // finite-difference settings
@@ -253,9 +269,6 @@ class Estimator {
   // prior residual
   void ResidualPrior();
 
-  // set block in prior Jacobian
-  void SetBlockPrior(int index);
-
   // prior Jacobian block
   void BlockPrior(int index);
 
@@ -265,9 +278,6 @@ class Estimator {
   // sensor residual
   void ResidualSensor();
 
-  // set block in sensor Jacobian
-  void SetBlockSensor(int index);
-
   // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
   void BlockSensor(int index);
 
@@ -276,9 +286,6 @@ class Estimator {
   
   // force residual
   void ResidualForce();
-
-  // set block in force Jacobian
-  void SetBlockForce(int index);
 
   // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
   void BlockForce(int index);
@@ -376,6 +383,10 @@ class Estimator {
   EstimatorTrajectory<double> block_acceleration_previous_configuration_; // (nv * nv) x T
   EstimatorTrajectory<double> block_acceleration_current_configuration_;  // (nv * nv) x T
   EstimatorTrajectory<double> block_acceleration_next_configuration_;     // (nv * nv) x T
+
+  // norm 
+  std::vector<double> norm_sensor_;            // num_sensor * MAX_HISTORY 
+  std::vector<double> norm_force_;             // MAX_FORCE_TERMS * MAX_HISTORY
 
   // norm gradient
   std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY

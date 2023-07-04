@@ -47,10 +47,6 @@ service Estimator {
   rpc Status(StatusRequest) returns (StatusResponse);
   // Get Estimator timing 
   rpc Timing(TimingRequest) returns (TimingResponse);
-  // Get Estimator cost gradient
-  rpc TotalGradient(CostGradientRequest) returns (CostGradientResponse);
-  // Get Estimator cost Hessian
-  rpc TotalHessian(CostHessianRequest) returns (CostHessianResponse);
   // Estimator prior matrix
   rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
   // Reset Buffer
@@ -121,6 +117,11 @@ message Settings {
   optional bool time_scaling = 21;
   optional double search_direction_tolerance = 22;
   optional double cost_tolerance = 23;
+  optional bool assemble_prior_jacobian = 24;
+  optional bool assemble_sensor_jacobian = 25;
+  optional bool assemble_force_jacobian = 26; 
+  optional bool assemble_sensor_norm_hessian = 27; 
+  optional bool assemble_force_norm_hessian = 28;
 }
 
 message SettingsRequest {
@@ -135,14 +136,33 @@ message SettingsResponse {
 // forces
 
 message Cost {
-  optional double total = 1;
-  optional double prior = 2;
-  optional double sensor = 3;
-  optional double force = 4;
-  optional double initial = 5;
+  double total = 1;
+  double prior = 2;
+  double sensor = 3;
+  double force = 4;
+  double initial = 5;
+  repeated double gradient = 6 [packed = true];
+  repeated double hessian = 7 [packed = true]; 
+  repeated double residual_prior = 8 [packed = true];
+  repeated double residual_sensor = 9 [packed = true];
+  repeated double residual_force = 10 [packed = true];
+  repeated double jacobian_prior = 11 [packed = true];
+  repeated double jacobian_sensor = 12 [packed = true];
+  repeated double jacobian_force = 13 [packed = true];
+  repeated double norm_gradient_sensor = 14 [packed = true];
+  repeated double norm_gradient_force = 15 [packed = true];
+  repeated double prior_matrix = 16 [packed = true];
+  repeated double norm_hessian_sensor = 17 [packed = true];
+  repeated double norm_hessian_force = 18 [packed = true];
+  int32 nvar = 19;
+  int32 nsensor = 20;
+  int32 nforce = 21;
 }
 
-message CostRequest {}
+message CostRequest {
+  optional bool derivatives = 1;
+  optional bool internals = 2;
+}
 
 message CostResponse {
   Cost cost = 1;
@@ -279,19 +299,6 @@ message TimingRequest {}
 
 message TimingResponse {
   Timing timing = 1;
-}
-
-message CostGradientRequest {}
-
-message CostGradientResponse {
-  repeated double gradient = 1;
-}
-
-message CostHessianRequest {}
-
-message CostHessianResponse {
-  repeated double hessian = 1;
-  int32 dimension = 2;
 }
 
 message PriorMatrixRequest {

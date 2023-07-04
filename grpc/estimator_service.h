@@ -99,14 +99,6 @@ class EstimatorService final : public estimator::Estimator::Service {
                       const estimator::TimingRequest* request,
                       estimator::TimingResponse* response) override;
 
-  grpc::Status TotalGradient(grpc::ServerContext* context,
-                            const estimator::CostGradientRequest* request,
-                            estimator::CostGradientResponse* response) override;
-
-  grpc::Status TotalHessian(grpc::ServerContext* context,
-                           const estimator::CostHessianRequest* request,
-                           estimator::CostHessianResponse* response) override;
-
   grpc::Status PriorMatrix(grpc::ServerContext* context,
                            const estimator::PriorMatrixRequest* request,
                            estimator::PriorMatrixResponse* response) override;

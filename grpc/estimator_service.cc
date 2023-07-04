@@ -32,10 +32,6 @@
 
 namespace estimator_grpc {
 
-using ::estimator::CostGradientRequest;
-using ::estimator::CostGradientResponse;
-using ::estimator::CostHessianRequest;
-using ::estimator::CostHessianResponse;
 using ::estimator::CostRequest;
 using ::estimator::CostResponse;
 using ::estimator::DataRequest;
@@ -505,6 +501,36 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_cost_tolerance(estimator_.settings.cost_tolerance);
 
+  // assemble prior Jacobian 
+  if (input.has_assemble_prior_jacobian()) {
+    estimator_.settings.assemble_prior_jacobian = input.assemble_prior_jacobian();
+  }
+  output->set_assemble_prior_jacobian(estimator_.settings.assemble_prior_jacobian);
+
+  // assemble sensor Jacobian 
+  if (input.has_assemble_sensor_jacobian()) {
+    estimator_.settings.assemble_sensor_jacobian = input.assemble_sensor_jacobian();
+  }
+  output->set_assemble_sensor_jacobian(estimator_.settings.assemble_sensor_jacobian);
+
+  // assemble force Jacobian 
+  if (input.has_assemble_force_jacobian()) {
+    estimator_.settings.assemble_force_jacobian = input.assemble_force_jacobian();
+  }
+  output->set_assemble_force_jacobian(estimator_.settings.assemble_force_jacobian);
+
+  // assemble sensor norm hessian 
+  if (input.has_assemble_sensor_norm_hessian()) {
+    estimator_.settings.assemble_sensor_norm_hessian = input.assemble_sensor_norm_hessian();
+  }
+  output->set_assemble_sensor_norm_hessian(estimator_.settings.assemble_sensor_norm_hessian);
+
+  // assemble force norm hessian 
+  if (input.has_assemble_force_norm_hessian()) {
+    estimator_.settings.assemble_force_norm_hessian = input.assemble_force_norm_hessian();
+  }
+  output->set_assemble_force_norm_hessian(estimator_.settings.assemble_force_norm_hessian);
+
   return grpc::Status::OK;
 }
 
@@ -514,11 +540,30 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
+  
+  // cache settings 
+  bool assemble_prior_jacobian = estimator_.settings.assemble_prior_jacobian;
+  bool assemble_sensor_jacobian = estimator_.settings.assemble_sensor_jacobian;
+  bool assemble_force_jacobian = estimator_.settings.assemble_force_jacobian;
+  bool assemble_sensor_norm_hessian = estimator_.settings.assemble_sensor_norm_hessian;
+  bool assemble_force_norm_hessian = estimator_.settings.assemble_force_norm_hessian;
+
+  if (request->internals()) {
+    // compute dense cost internals
+    estimator_.settings.assemble_prior_jacobian = true;
+    estimator_.settings.assemble_sensor_jacobian = true;
+    estimator_.settings.assemble_force_jacobian = true;
+    estimator_.settings.assemble_sensor_norm_hessian = true;
+    estimator_.settings.assemble_force_norm_hessian = true;
+  }
+
+  // compute derivatives
+  bool derivatives = request->derivatives();
 
   // evaluate cost
-  estimator_.cost =
-      estimator_.Cost(estimator_.cost_gradient.data(),
-                      estimator_.cost_hessian.data(), thread_pool_);
+  estimator_.cost = estimator_.Cost(
+      derivatives ? estimator_.cost_gradient.data() : NULL,
+      derivatives ? estimator_.cost_hessian.data() : NULL, thread_pool_);
 
   // costs
   estimator::Cost* cost = response->mutable_cost();
@@ -537,6 +582,123 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
 
   // initial cost
   cost->set_initial(estimator_.cost_initial);
+
+  // derivatives 
+  if (derivatives) {
+    // dimension 
+    int nvar = estimator_.model->nv * estimator_.ConfigurationLength();
+
+    // unpack 
+    double* gradient = estimator_.cost_gradient.data();
+    double* hessian = estimator_.cost_hessian.data();
+
+    // set gradient, Hessian
+    for (int i = 0; i < nvar; i++) {
+      cost->add_gradient(gradient[i]);
+      for (int j = 0; j < nvar; j++) {
+        cost->add_hessian(hessian[i * nvar + j]);
+      }
+    }
+  }
+
+  // dimensions
+  int nv = estimator_.model->nv, ns = estimator_.SensorDimension();
+  int nvar = nv * estimator_.ConfigurationLength();
+  int nsensor = ns * estimator_.PredictionLength();
+  int nforce = nv * estimator_.PredictionLength();
+
+  // set dimensions
+  cost->set_nvar(nvar);
+  cost->set_nsensor(nsensor);
+  cost->set_nforce(nforce);
+
+  // internals
+  if (request->internals()) {
+    // residual prior 
+    const double* residual_prior = estimator_.GetResidualPrior();
+    for (int i = 0; i < nvar; i++) {
+      cost->add_residual_prior(residual_prior[i]);
+    }
+
+    // residual sensor 
+    const double* residual_sensor = estimator_.GetResidualSensor();
+    for (int i = 0; i < nsensor; i++) {
+      cost->add_residual_sensor(residual_sensor[i]);
+    }
+
+    // residual force 
+    const double* residual_force = estimator_.GetResidualForce();
+    for (int i = 0; i < nforce; i++) {
+      cost->add_residual_force(residual_force[i]);
+    }
+
+    // Jacobian prior 
+    const double* jacobian_prior = estimator_.GetJacobianPrior();
+    for (int i = 0; i < nvar; i++) {
+      for (int j = 0; j < nvar; j++) {
+        cost->add_jacobian_prior(jacobian_prior[i * nvar + j]);
+      }
+    }
+
+    // Jacobian sensor 
+    const double* jacobian_sensor = estimator_.GetJacobianSensor();
+    for (int i = 0; i < nsensor; i++) {
+      for (int j = 0; j < nvar; j++) {
+        cost->add_jacobian_sensor(jacobian_sensor[i * nvar + j]);
+      }
+    }
+
+    // Jacobian force 
+    const double* jacobian_force = estimator_.GetJacobianForce();
+    for (int i = 0; i < nforce; i++) {
+      for (int j = 0; j < nvar; j++) {
+        cost->add_jacobian_force(jacobian_force[i * nvar + j]);
+      }
+    }
+
+    // norm gradient sensor 
+    const double* norm_gradient_sensor = estimator_.GetNormGradientSensor();
+    for (int i = 0; i < nsensor; i++) {
+      cost->add_norm_gradient_sensor(norm_gradient_sensor[i]);
+    }
+
+    // norm gradient force 
+    const double* norm_gradient_force = estimator_.GetNormGradientForce();
+    for (int i = 0; i < nforce; i++) {
+      cost->add_norm_gradient_force(norm_gradient_force[i]);
+    }
+
+    // prior matrix 
+    const double* prior_matrix = estimator_.weight_prior.data();
+    for (int i = 0; i < nvar; i++) {
+      for (int j = 0; j < nvar; j++) {
+        cost->add_prior_matrix(prior_matrix[i * nvar + j]);
+      }
+    }
+
+    // norm Hessian sensor 
+    const double* norm_hessian_sensor = estimator_.GetNormHessianSensor();
+    for (int i = 0; i < nsensor; i++) {
+      for (int j = 0; j < nsensor; j++) {
+        cost->add_sensor_norm_hessian(norm_hessian_sensor[i * nsensor + j]);
+      }
+    }
+
+    // norm Hessian force 
+    const double* norm_hessian_force = estimator_.GetNormHessianForce();
+    for (int i = 0; i < nforce; i++) {
+      for (int j = 0; j < nforce; j++) {
+        cost->add_force_norm_hessian(norm_hessian_force[i * nforce + j]);
+      }
+    }
+    
+    // reset settings
+    estimator_.settings.assemble_prior_jacobian = assemble_prior_jacobian;
+    estimator_.settings.assemble_sensor_jacobian = assemble_sensor_jacobian;
+    estimator_.settings.assemble_force_jacobian = assemble_force_jacobian;
+    estimator_.settings.assemble_sensor_norm_hessian = assemble_sensor_norm_hessian;
+    estimator_.settings.assemble_force_norm_hessian = assemble_force_norm_hessian;
+  }
 
   return grpc::Status::OK;
 }
@@ -858,47 +1020,6 @@ grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
   // double timer_prior_weight_update = 28;
   // double timer_prior_set_weight = 29;
   // double timer_update_trajectory = 30;
-
-  return grpc::Status::OK;
-}
-
-grpc::Status EstimatorService::TotalGradient(
-    grpc::ServerContext* context, const estimator::CostGradientRequest* request,
-    estimator::CostGradientResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // dimension
-  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
-
-  // get cost gradient
-  for (int i = 0; i < dim; i++) {
-    response->add_gradient(estimator_.cost_gradient[i]);
-  }
-
-  return grpc::Status::OK;
-}
-
-grpc::Status EstimatorService::TotalHessian(
-    grpc::ServerContext* context, const estimator::CostHessianRequest* request,
-    estimator::CostHessianResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // dimension
-  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
-  response->set_dimension(dim);
-
-  // get cost Hessian
-  // TODO(taylor): return only upper triangle?
-  for (int i = 0; i < dim; i++) {
-    for (int j = 0; j < dim; j++) {
-      double data = estimator_.cost_hessian[dim * i + j];
-      response->add_hessian(data);
-    }
-  }
 
   return grpc::Status::OK;
 }

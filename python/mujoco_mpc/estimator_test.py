@@ -353,6 +353,10 @@ class EstimatorTest(absltest.TestCase):
     # cost initial
     self.assertTrue(np.abs(cost["initial"] - 0.0) < 1.0e-5)
 
+    #TODO(taylor): derivatives 
+
+    #TODO(taylor): internals
+
   def test_weights(self):
     # load model
     model_path = (

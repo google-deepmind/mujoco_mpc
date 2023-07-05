@@ -485,6 +485,13 @@ class Estimator {
 // estimator status string
 std::string StatusString(int code);
 
+// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of mat00
+// TODO(taylor): thread
+void ConditionMatrix(double* res, const double* mat, double* mat00,
+                     double* mat10, double* mat11, double* tmp0, double* tmp1,
+                     int n, int n0, int n1, double* bandfactor = NULL,
+                     int nband = 0);
+
 }  // namespace mjpc
 
 #endif  // MJPC_ESTIMATORS_ESTIMATOR_H_

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include <vector>
@@ -25,6 +26,72 @@
 namespace mjpc {
 namespace {
 
+TEST(RecursivePrior, ConditionMatrixDense) {
+  // dimensions
+  const int n = 3;
+  const int n0 = 1;
+  const int n1 = n - n0;
+
+  // symmetric matrix
+  double mat[n * n] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // scratch
+  double mat00[n0 * n0];
+  double mat10[n1 * n0];
+  double mat11[n1 * n1];
+  double tmp0[n1 * n0];
+  double tmp1[n1 * n1];
+  double res[n1 * n1];
+
+  // condition matrix
+  ConditionMatrix(res, mat, mat00, mat10, mat11, tmp0, tmp1, n, n0, n1);
+
+  // solution
+  double solution[4] = {0.99, 0.099, 0.099, 0.9999};
+
+  // test
+  double error[n1 * n1];
+  mju_sub(error, res, solution, n1 * n1);
+
+  EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
+}
+
+TEST(RecursivePrior, ConditionMatrixBand) {
+  // dimensions
+  const int n = 4;
+  const int n0 = 3;
+  const int n1 = n - n0;
+  const int nband = 2;
+
+  // symmetric matrix
+  double mat[n * n] = {1.0, 0.1, 0.0, 0.0, 0.1, 1.0, 0.1, 0.0,
+                       0.0, 0.1, 1.0, 0.1, 0.0, 0.0, 0.1, 1.0};
+
+  // scratch
+  double mat00[n0 * n0];
+  double mat10[n1 * n0];
+  double mat11[n1 * n1];
+  double tmp0[n1 * n0];
+  double tmp1[n1 * n1];
+  double bandfactor[n0 * n0];
+  double res[n1 * n1];
+
+  // condition matrix
+  ConditionMatrix(res, mat, mat00, mat10, mat11, tmp0, tmp1, n, n0, n1,
+                  bandfactor, nband);
+
+  // solution
+  double solution[n1 * n1] = {0.98989796};
+
+  // test
+  double error[n1 * n1];
+  mju_sub(error, res, solution, n1 * n1);
+
+  EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
+}
+
+TEST(QuaternionInterpolation, Cubic) {}
+
 TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // load model
   mjModel* model = LoadTestModel("estimator/particle/task1D.xml");
@@ -33,7 +100,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // dimensions
   int nq = model->nq, nv = model->nv;
 
-  // pool 
+  // pool
   ThreadPool pool(1);
 
   // ----- simulate ----- //
@@ -68,7 +135,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
     // step using mj_Euler since mj_forward has been called
     // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // https://
+    // github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
 
@@ -100,7 +168,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // acceleration test
   EXPECT_NEAR(mju_norm(acceleration_error.data(), nv * (T - 2)), 0.0, 1.0e-5);
   EXPECT_NEAR(mju_norm(estimator.acceleration.Data(), nv), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.acceleration.Data() + nv * (T - 1), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.acceleration.Data() + nv * (T - 1), nv), 0.0,
+              1.0e-5);
 
   // delete data + model
   mj_deleteData(data);
@@ -115,7 +184,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
 
-  // pool 
+  // pool
   ThreadPool pool(1);
 
   // ----- simulate ----- //

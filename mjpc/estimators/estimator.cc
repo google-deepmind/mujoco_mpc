@@ -140,7 +140,7 @@ void Estimator::Initialize(mjModel* model) {
   cost_gradient_prior_.resize(nv * MAX_HISTORY);
   cost_gradient_sensor_.resize(nv * MAX_HISTORY);
   cost_gradient_force_.resize(nv * MAX_HISTORY);
-  cost_gradient_.resize(nv * MAX_HISTORY);
+  cost_gradient.resize(nv * MAX_HISTORY);
 
   // cost Hessian
   cost_hessian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
@@ -472,7 +472,7 @@ void Estimator::Reset() {
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
   std::fill(cost_gradient_sensor_.begin(), cost_gradient_sensor_.end(), 0.0);
   std::fill(cost_gradient_force_.begin(), cost_gradient_force_.end(), 0.0);
-  std::fill(cost_gradient_.begin(), cost_gradient_.end(), 0.0);
+  std::fill(cost_gradient.begin(), cost_gradient.end(), 0.0);
 
   // cost Hessian
   std::fill(cost_hessian_prior_.begin(), cost_hessian_prior_.end(), 0.0);
@@ -1413,7 +1413,7 @@ void Estimator::TotalGradient() {
   int dim = configuration_length_ * model->nv;
 
   // unpack
-  double* gradient = cost_gradient_.data();
+  double* gradient = cost_gradient.data();
 
   // individual gradients
   if (settings.prior_flag) {
@@ -1427,7 +1427,7 @@ void Estimator::TotalGradient() {
     mju_addTo(gradient, cost_gradient_force_.data(), dim);
 
   // stop gradient timer
-  timer_.cost_gradient_ += GetDuration(start);
+  timer_.cost_gradient += GetDuration(start);
 }
 
 // compute total Hessian
@@ -1565,7 +1565,7 @@ void Estimator::Optimize(ThreadPool& pool) {
        iterations_smoother_++) {
     // evalute cost derivatives
     cost_skip_ = true;
-    Cost(cost_gradient_.data(), cost_hessian.data(), pool);
+    Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
     // start timer
     auto start_search = std::chrono::steady_clock::now();
@@ -1574,7 +1574,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     num_new_ = configuration_length_;  // update all data now
 
     // -- gradient -- //
-    double* gradient = cost_gradient_.data();
+    double* gradient = cost_gradient.data();
 
     // gradient tolerance check
     gradient_norm_ = mju_norm(gradient, nvar) / nvar;
@@ -1744,7 +1744,7 @@ void Estimator::SearchDirection() {
 
   // unpack
   double* direction = search_direction_.data();
-  double* gradient = cost_gradient_.data();
+  double* gradient = cost_gradient.data();
   double* hessian = cost_hessian.data();
   double* hessian_band = cost_hessian_band_.data();
 
@@ -1835,7 +1835,7 @@ void Estimator::PrintOptimize() {
          1.0e-3 * timer_.cost_sensor_derivatives);
   printf("      < force: %.3f (ms) \n", 1.0e-3 * timer_.cost_force_derivatives);
   printf("      < gradient assemble: %.3f (ms) \n",
-         1.0e-3 * timer_.cost_gradient_);
+         1.0e-3 * timer_.cost_gradient);
   printf("      < hessian assemble: %.3f (ms) \n",
          1.0e-3 * timer_.cost_hessian);
   printf("\n");
@@ -1930,7 +1930,7 @@ void Estimator::ResetTimers() {
   timer_.cost_sensor_derivatives = 0.0;
   timer_.cost_force_derivatives = 0.0;
   timer_.cost_total_derivatives = 0.0;
-  timer_.cost_gradient_ = 0.0;
+  timer_.cost_gradient = 0.0;
   timer_.cost_hessian = 0.0;
   timer_.cost_derivatives = 0.0;
   timer_.cost = 0.0;
@@ -2419,6 +2419,46 @@ std::string StatusString(int code) {
     default:
       return "STATUS_CODE_ERROR";
   }
+}
+
+// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of mat00
+// TODO(taylor): thread
+void ConditionMatrix(double* res, const double* mat, double* mat00,
+                     double* mat10, double* mat11, double* tmp0, double* tmp1,
+                     int n, int n0, int n1, double* bandfactor,
+                     int nband) {
+  // unpack mat
+  BlockFromMatrix(mat00, mat, n0, n0, n, n, 0, 0);
+  BlockFromMatrix(mat10, mat, n1, n0, n, n, n0, 0);
+  BlockFromMatrix(mat11, mat, n1, n1, n, n, n0, n0);
+
+  // factorize mat00, solve mat00 \ mat10^T
+  if (nband > 0 && bandfactor) {
+    mju_dense2Band(bandfactor, mat00, n0, nband, 0);
+
+    // factorize mat00
+    mju_cholFactorBand(bandfactor, n0, nband, 0, 0.0, 0.0);
+
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolveBand(tmp0 + n0 * i, bandfactor, mat10 + n0 * i, n0, nband,
+                        0);
+    }
+  } else {
+    // factorize mat00
+    mju_cholFactor(mat00, n0, 0.0);
+
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolve(tmp0 + n0 * i, mat00, mat10 + n0 * i, n0);
+    }
+  }
+
+  // tmp1 = mat10 * (mat00 \ mat01)
+  mju_mulMatMatT(tmp1, tmp0, mat10, n1, n0, n1);
+
+  // res = mat11 - mat10 * (mat00 \ mat01)
+  mju_sub(res, mat11, tmp1, n1 * n1);
 }
 
 }  // namespace mjpc

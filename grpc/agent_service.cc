@@ -195,6 +195,11 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
   }
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
+  // mj_forward is needed because Transition might access properties from
+  // mjData.
+  // For performance, we could consider adding an option to the request for
+  // callers to assume that data_ is up to date before the call.
+  mj_forward(model, data_);
   agent_.ActiveTask()->Transition(model, data_);
   agent_.ActivePlanner().ActionFromPolicy(data_->ctrl, state.state().data(),
                                           state.time(),

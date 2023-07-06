@@ -492,6 +492,21 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
                      int n, int n0, int n1, double* bandfactor = NULL,
                      int nband = 0);
 
+// compute skew symmetric matrix
+void SkewSymmetricMatrix(double* mat, const double* x);
+
+// Jacobians of mju_quatIntegrate wrt quat, vel
+// http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
+// https://arxiv.org/pdf/1812.01537.pdf
+void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
+                                const double* quat, const double* vel,
+                                double scale);
+
+// compute slerp between quat0 and quat1 for t in [0, 1]
+// optionally compute Jacobians wrt quat0, quat1
+void Slerp(double* res, const double* quat0, const double* quat1, double t,
+           double* jac0, double* jac1);
+
 }  // namespace mjpc
 
 #endif  // MJPC_ESTIMATORS_ESTIMATOR_H_

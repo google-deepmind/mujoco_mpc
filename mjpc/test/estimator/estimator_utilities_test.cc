@@ -90,7 +90,235 @@ TEST(RecursivePrior, ConditionMatrixBand) {
   EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
 }
 
-TEST(QuaternionInterpolation, Cubic) {}
+TEST(QuaternionInterpolation, Slerp) {
+  // quaternions 
+  double quat0[4] = {1.0, 0.0, 0.0, 0.0};
+  double quat1[4] = {0.7071, 0.0, 0.7071, 0.0};
+  mju_normalize4(quat1);
+  // printf("quat0 = \n");
+  // mju_printMat(quat0, 1, 4);
+  // printf("quat1 = \n");
+  // mju_printMat(quat1, 1, 4);
+
+  // -- slerp: t = 0 -- //
+  double t = 0.0;
+  double slerp0[4];
+  double jac00[9];
+  double jac01[9];
+  Slerp(slerp0, quat0, quat1, t, jac00, jac01);
+
+  // printf("slerp0 = \n");
+  // mju_printMat(slerp0, 1, 4);
+
+  // test
+  double error[4];
+  mju_sub(error, slerp0, quat0, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-4);
+
+  // -- slerp: t = 1.0 -- //
+  t = 1.0;
+  double slerp1[4];
+  double jac10[9];
+  double jac11[9];
+  Slerp(slerp1, quat0, quat1, t, jac10, jac11);
+
+  // printf("slerp1 = \n");
+  // mju_printMat(slerp1, 1, 4);
+
+  // test
+  mju_sub(error, slerp1, quat1, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-4);
+
+  // -- slerp: t = 0.5 -- //
+  t = 0.5;
+  double slerp05[4];
+  double jac050[9];
+  double jac051[9];
+  Slerp(slerp05, quat0, quat1, t, jac050, jac051);
+
+  // printf("slerp05 = \n");
+  // mju_printMat(slerp05, 1, 4);
+
+  // test
+  double slerp05_solution[4] = {0.92387953, 0.0, 0.38268343, 0.0};
+  mju_sub(error, slerp05, slerp05_solution, 4);
+  EXPECT_NEAR(mju_norm(error, 4), 0.0, 1.0e-4);
+
+  // ----- jacobians ----- // 
+  double jac0fdT[9];
+  double jac1fdT[9];
+  mju_zero(jac0fdT, 9);
+  mju_zero(jac1fdT, 9);
+  double jac0fd[9];
+  double jac1fd[9];
+
+  // -- t = 0.5 -- //
+  t = 0.5;
+
+  // finite difference 
+  double eps = 1.0e-6;
+  double nudge[3];
+  mju_zero(nudge, 3);
+
+  for (int i = 0; i < 3; i++) {
+    // perturb
+    mju_zero(nudge, 3);
+    nudge[i] += eps;
+
+    // quat0 perturb
+    double q0i[4];
+    double slerp0i[4];
+    mju_copy(q0i, quat0, 4);
+    mju_quatIntegrate(q0i, nudge, 1.0);
+    Slerp(slerp0i, q0i, quat1, t, NULL, NULL);
+    double* dif0 = jac0fdT + 3 * i;
+    mju_subQuat(dif0, slerp0i, slerp05);
+    mju_scl(dif0, dif0, 1.0 / eps, 3);
+
+    // quat1 perturb
+    double q1i[4];
+    double slerp1i[4];
+    mju_copy(q1i, quat1, 4);
+    mju_quatIntegrate(q1i, nudge, 1.0);
+    Slerp(slerp1i, quat0, q1i, t, NULL, NULL);
+    double* dif1 = jac1fdT + 3 * i;
+    mju_subQuat(dif1, slerp1i, slerp05);
+    mju_scl(dif1, dif1, 1.0 / eps, 3);
+  }
+
+  // transpose results 
+  mju_transpose(jac0fd, jac0fdT, 3, 3);
+  mju_transpose(jac1fd, jac1fdT, 3, 3);
+
+  // error 
+  double error_jac[9];
+  
+  mju_sub(error_jac, jac050, jac0fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  mju_sub(error_jac, jac051, jac1fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  // printf("jac0fd = \n");
+  // mju_printMat(jac0fd, 3, 3);
+
+  // printf("jac050 = \n");
+  // mju_printMat(jac050, 3, 3);
+
+  // printf("jac1fd = \n");
+  // mju_printMat(jac1fd, 3, 3);
+
+  // printf("jac051 = \n");
+  // mju_printMat(jac051, 3, 3);
+
+  // -- t = 0.0 -- //
+  t = 0.0;
+
+  // finite difference 
+
+  for (int i = 0; i < 3; i++) {
+    // perturb
+    mju_zero(nudge, 3);
+    nudge[i] += eps;
+
+    // quat0 perturb
+    double q0i[4];
+    double slerp0i[4];
+    mju_copy(q0i, quat0, 4);
+    mju_quatIntegrate(q0i, nudge, 1.0);
+    Slerp(slerp0i, q0i, quat1, t, NULL, NULL);
+    double* dif0 = jac0fdT + 3 * i;
+    mju_subQuat(dif0, slerp0i, slerp0);
+    mju_scl(dif0, dif0, 1.0 / eps, 3);
+
+    // quat1 perturb
+    double q1i[4];
+    double slerp1i[4];
+    mju_copy(q1i, quat1, 4);
+    mju_quatIntegrate(q1i, nudge, 1.0);
+    Slerp(slerp1i, quat0, q1i, t, NULL, NULL);
+    double* dif1 = jac1fdT + 3 * i;
+    mju_subQuat(dif1, slerp1i, slerp0);
+    mju_scl(dif1, dif1, 1.0 / eps, 3);
+  }
+
+  // transpose results 
+  mju_transpose(jac0fd, jac0fdT, 3, 3);
+  mju_transpose(jac1fd, jac1fdT, 3, 3);
+
+  // error   
+  mju_sub(error_jac, jac00, jac0fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  mju_sub(error_jac, jac01, jac1fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  // printf("jac0fd = \n");
+  // mju_printMat(jac0fd, 3, 3);
+
+  // printf("jac00 = \n");
+  // mju_printMat(jac00, 3, 3);
+
+  // printf("jac1fd = \n");
+  // mju_printMat(jac1fd, 3, 3);
+
+  // printf("jac01 = \n");
+  // mju_printMat(jac01, 3, 3);
+
+  // -- t = 1.0 -- //
+  t = 1.0;
+
+  // finite difference 
+
+  for (int i = 0; i < 3; i++) {
+    // perturb
+    mju_zero(nudge, 3);
+    nudge[i] += eps;
+
+    // quat0 perturb
+    double q0i[4];
+    double slerp0i[4];
+    mju_copy(q0i, quat0, 4);
+    mju_quatIntegrate(q0i, nudge, 1.0);
+    Slerp(slerp0i, q0i, quat1, t, NULL, NULL);
+    double* dif0 = jac0fdT + 3 * i;
+    mju_subQuat(dif0, slerp0i, slerp1);
+    mju_scl(dif0, dif0, 1.0 / eps, 3);
+
+    // quat1 perturb
+    double q1i[4];
+    double slerp1i[4];
+    mju_copy(q1i, quat1, 4);
+    mju_quatIntegrate(q1i, nudge, 1.0);
+    Slerp(slerp1i, quat0, q1i, t, NULL, NULL);
+    double* dif1 = jac1fdT + 3 * i;
+    mju_subQuat(dif1, slerp1i, slerp1);
+    mju_scl(dif1, dif1, 1.0 / eps, 3);
+  }
+
+  // transpose results 
+  mju_transpose(jac0fd, jac0fdT, 3, 3);
+  mju_transpose(jac1fd, jac1fdT, 3, 3);
+
+  // error   
+  mju_sub(error_jac, jac10, jac0fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  mju_sub(error_jac, jac11, jac1fd, 9);
+  EXPECT_NEAR(mju_norm(error_jac, 9) / 9, 0.0, 1.0e-3);
+
+  // printf("jac0fd = \n");
+  // mju_printMat(jac0fd, 3, 3);
+
+  // printf("jac10 = \n");
+  // mju_printMat(jac10, 3, 3);
+
+  // printf("jac1fd = \n");
+  // mju_printMat(jac1fd, 3, 3);
+
+  // printf("jac11 = \n");
+  // mju_printMat(jac11, 3, 3);
+}
 
 TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // load model

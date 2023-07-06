@@ -2461,4 +2461,109 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
   mju_sub(res, mat11, tmp1, n1 * n1);
 }
 
+// compute skew symmetric matrix
+void SkewSymmetricMatrix(double* mat, const double* x) {
+  mat[0] = 0.0;
+  mat[1] = -x[2];
+  mat[2] = x[1];
+  mat[3] = x[2];
+  mat[4] = 0.0;
+  mat[5] = -x[0];
+  mat[6] = -x[1];
+  mat[7] = x[0];
+  mat[8] = 0.0;
+}
+
+// Jacobians of mju_quatIntegrate wrt quat, vel
+// http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
+// https://arxiv.org/pdf/1812.01537.pdf
+void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
+                                const double* quat, const double* vel,
+                                double scale) {
+  // integrate
+  double quati[4];
+  mju_copy3(quati, quat);
+  mju_quatIntegrate(quati, vel, scale);
+
+  // Jacobian wrt quat
+  if (jacquat) {
+    // quaternion -> rotation matrix
+    double mat[9];
+    mju_quat2Mat(mat, quati);
+    mju_transpose(jacquat, mat, 3, 3);
+  }
+
+  // Jacobian wrt vel
+  if (jacvel) {
+    // scaled vel 
+    double s_vel[3];
+    mju_scl3(s_vel, vel, scale);
+
+    // norm of scaled rotation
+    double n = mju_norm3(s_vel);
+
+    // check small norm
+    if (n < 1.0e-8) {
+      mju_zero(jacvel, 9);
+      return;
+    }
+
+    // coefficients
+    double n2 = n * n;
+    double n3 = n2 * n;
+    double s0 = (1.0 - mju_cos(n)) / n2;
+    double s1 = (n - mju_sin(n)) / n3;
+
+    // skew symmetric matrix
+    double skew[9];
+    SkewSymmetricMatrix(skew, s_vel);
+    double skew2[9];
+    mju_mulMatMat(skew2, skew, skew, 3, 3, 3);
+
+    // jacvel = I - s0 * skew + s1 * skew^2
+    mju_eye(jacvel, 3);
+    mju_addToScl(jacvel, skew, -s0, 9);
+    mju_addToScl(jacvel, skew2, s1, 9);
+  }
+}
+
+// compute slerp between quat0 and quat1 for t in [0, 1]
+// optionally compute Jacobians wrt quat0, quat1
+void Slerp(double* res, const double* quat0, const double* quat1, double t,
+           double* jac0, double* jac1) {
+  // quaternion difference
+  double dq[3];
+  mju_subQuat(dq, quat1, quat0);
+
+  // integrate
+  mju_copy4(res, quat0);
+  mju_quatIntegrate(res, dq, t);
+
+  // slerp Jacobian 
+  if (jac0 || jac1) {
+    // differentiate subQuat 
+    double dvdq0[9];
+    double dvdq1[9];
+    DifferentiateSubQuat(dvdq1, dvdq0, quat1, quat0);
+
+    // differentiate quatIntegratae 
+    double dqdq[9];
+    double dqdv[9];
+    DifferentiateQuatIntegrate(dqdq, dqdv, quat0, dq, t);
+
+    // Jacobian wrt quat0: dqdv * dvdq0 * t + dqdq
+    if (jac0) {
+      mju_mulMatMat(jac0, dqdv, dvdq0, 3, 3, 3);
+      mju_scl(jac0, jac0, t, 9);
+      mju_addTo(jac0, dqdq, 9);
+    }
+
+    // Jacobian wrt quat1: dqdv * dvdq * t
+    if (jac1) {
+      mju_mulMatMat(jac1, dqdv, dvdq1, 3, 3, 3);
+      mju_scl(jac1, jac1, t, 9);
+    }
+  }
+}
+
 }  // namespace mjpc

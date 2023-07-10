@@ -238,6 +238,12 @@ void Estimator::Initialize(mjModel* model) {
   // search direction
   search_direction_.resize(nv * MAX_HISTORY);
 
+  // covariance 
+  covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  prior_matrix_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch0_covariance_.resize(nv * MAX_HISTORY) * (nv * MAX_HISTORY);
+  scratch1_covariance_.resize(nv * MAX_HISTORY) * (nv * MAX_HISTORY);
+
   // regularization
   regularization_ = settings.regularization_initial;
 
@@ -524,6 +530,12 @@ void Estimator::Reset() {
 
   // search direction
   std::fill(search_direction_.begin(), search_direction_.end(), 0.0);
+
+  // covariance 
+  std::fill(covariance_.begin(), covariance_.end(), 0.0);
+  std::fill(prior_matrix_factor_.begin(), prior_matrix_factor_.end(), 0.0);
+  std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
+  std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
 
   // initial state
   mju_copy(qpos0.data(), model->qpos0, model->nq);
@@ -1677,6 +1689,9 @@ void Estimator::Optimize(ThreadPool& pool) {
       // improvement  
       improvement_ = cost - cost_candidate;
 
+      printf("cost = %.6f\n", cost);
+      printf("improvement = %.6f\n", improvement_);
+
       // update iteration
       iteration_search++;
     }
@@ -1727,6 +1742,8 @@ void Estimator::Optimize(ThreadPool& pool) {
 
       // reduction ratio
       reduction_ratio_ = improvement_ / expected_;
+
+      printf("reduction ratio: %.6f\n", reduction_ratio_);
 
       // update regularization
       if (reduction_ratio_ > 0.75) {
@@ -1832,6 +1849,54 @@ void Estimator::SearchDirection() {
 
   // end timer
   timer_.search_direction += GetDuration(search_direction_start);
+}
+
+// covariance 
+void Estimator::Covariance(ThreadPool& pool) {
+  // dimension 
+  int nvar = model->nv * configuration_length_;
+  int nv3 = model->nv * 3;
+
+  // identity 
+  double* I = scratch0_covariance_.data();
+  mju_eye(I, nvar);
+
+  // factorize
+  double* factor = prior_matrix_factor_.data();
+  if (settings.band_prior) {
+    // factorize prior matrix 
+    mju_dense2Band(factor, weight_prior.data(), nvar, nv3, 0);
+    mju_cholFactorBand(factor, nvar, nv3, 0, 0.0, 0.0);
+  } else { 
+    // factorize prior matrix 
+    mju_copy(factor, weight_prior.data(), nvar * nvar);
+    mju_cholFactor(factor, nvar, 0.0);
+  }
+
+  // -- covariance = L \ I --//
+
+  // get initial pool count 
+  int count_begin = pool.GetCount();
+
+  // compute covariance
+  for (int i = 0; i < nvar; i++) {
+    pool.Schedule([&estimator = *this, nvar, nv3, i]() {
+      if (estimator.settings.band_prior) {
+        mju_cholSolveBand(estimator.covariance_.data() + nvar * i,
+                          estimator.prior_matrix_factor_.data(),
+                          estimator.scratch0_covariance_.data() + nvar * i,
+                          nvar, nv3, 0);
+      } else {
+        mju_cholSolve(estimator.covariance_.data() + nvar * i,
+                      estimator.prior_matrix_factor_.data(),
+                      estimator.scratch0_covariance_.data() + nvar * i, nvar);
+      }
+    });
+  }
+
+  // wait 
+  pool.WaitCount(count_begin + nvar);
+  pool.ResetCount();
 }
 
 // print Optimize iteration
@@ -2334,6 +2399,11 @@ void Estimator::ResidualForce() {
 
     // force difference
     mju_sub(rk, ft_inverse, ft_actuator, nv);
+
+    // scale force residual by timestep 
+    if (settings.force_residual_timestep_scale) {
+      mju_scl(rk, rk, model->opt.timestep, nv);
+    }
   }
 
   // stop timer
@@ -2369,6 +2439,11 @@ void Estimator::BlockForce(int index) {
   mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
   mju_addTo(dfdq0, tmp, nv * nv);
 
+  // scale 
+  if (settings.force_residual_timestep_scale) {
+    mju_scl(dfdq0, dfdq0, model->opt.timestep, nv * nv);
+  }
+
   // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 --
 
   // unpack
@@ -2387,6 +2462,11 @@ void Estimator::BlockForce(int index) {
   mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
+  // scale 
+  if (settings.force_residual_timestep_scale) {
+    mju_scl(dfdq1, dfdq1, model->opt.timestep, nv * nv);
+  }
+
   // -- configuration next: dfdq2 = dfda * dadq2 -- //
 
   // unpack
@@ -2395,6 +2475,11 @@ void Estimator::BlockForce(int index) {
   // dfdq2 = dadf' * dadq2
   double* dadq2 = block_acceleration_next_configuration_.Get(index);
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
+
+  // scale 
+  if (settings.force_residual_timestep_scale) {
+    mju_scl(dfdq2, dfdq2, model->opt.timestep, nv * nv);
+  }
 
   // -- assemble dfdq012 block -- //
 

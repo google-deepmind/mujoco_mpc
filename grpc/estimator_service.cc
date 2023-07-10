@@ -531,6 +531,12 @@ grpc::Status EstimatorService::Settings(
   }
   output->set_assemble_force_norm_hessian(estimator_.settings.assemble_force_norm_hessian);
 
+  // force residual timestep scale 
+  if (input.has_force_residual_timestep_scale()) {
+    estimator_.settings.force_residual_timestep_scale = input.force_residual_timestep_scale();
+  }
+  output->set_force_residual_timestep_scale(estimator_.settings.force_residual_timestep_scale);
+
   return grpc::Status::OK;
 }
 
@@ -680,7 +686,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     const double* norm_hessian_sensor = estimator_.GetNormHessianSensor();
     for (int i = 0; i < nsensor; i++) {
       for (int j = 0; j < nsensor; j++) {
-        cost->add_sensor_norm_hessian(norm_hessian_sensor[i * nsensor + j]);
+        cost->add_norm_hessian_sensor(norm_hessian_sensor[i * nsensor + j]);
       }
     }
 
@@ -688,7 +694,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     const double* norm_hessian_force = estimator_.GetNormHessianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nforce; j++) {
-        cost->add_force_norm_hessian(norm_hessian_force[i * nforce + j]);
+        cost->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
       }
     }
     

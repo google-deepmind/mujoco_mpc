@@ -231,6 +231,7 @@ class Estimator {
     bool assemble_force_jacobian = false;         // assemble dense force Jacobian 
     bool assemble_sensor_norm_hessian = false;    // assemble dense sensor norm Hessian 
     bool assemble_force_norm_hessian = false;     // assemble dense force norm Hessian
+    bool force_residual_timestep_scale = true;    // scale force residual by model->opt.timestep
   } settings;
   
   // finite-difference settings
@@ -302,6 +303,9 @@ class Estimator {
 
   // search direction
   void SearchDirection();
+
+  // covariance 
+  void Covariance(ThreadPool& pool);
 
    // update configuration trajectory
   void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
@@ -430,7 +434,13 @@ class Estimator {
   std::vector<double> scratch_expected_;       // nv * MAX_HISTORY
 
   // search direction
-  std::vector<double> search_direction_;            // nv * MAX_HISTORY
+  std::vector<double> search_direction_;       // nv * MAX_HISTORY
+
+  // covariance 
+  std::vector<double> covariance_;             // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> prior_matrix_factor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // status (internal)
   bool hessian_factor_ = false;             // prior reset status

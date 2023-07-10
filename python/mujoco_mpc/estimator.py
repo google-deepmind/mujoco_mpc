@@ -229,6 +229,7 @@ class Estimator:
       assemble_force_jacobian: Optional[bool] = None,
       assemble_sensor_norm_hessian: Optional[bool] = None,
       assemble_force_norm_hessian: Optional[bool] = None,
+      force_residual_timestep_scale: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = estimator_pb2.Settings(
@@ -260,6 +261,7 @@ class Estimator:
         assemble_force_jacobian=assemble_force_jacobian,
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
         assemble_force_norm_hessian=assemble_force_norm_hessian,
+        force_residual_timestep_scale=force_residual_timestep_scale,
     )
 
     # settings request
@@ -300,6 +302,7 @@ class Estimator:
         "assemble_force_jacobian": settings.assemble_force_jacobian,
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
+        "force_residual_timestep_scale": settings.force_residual_timestep_scale,
     }
 
   def weight(
@@ -501,6 +504,14 @@ class Estimator:
 
     # return prior matrix
     return mat
+  
+  def covariance(self) -> np.ndarray:
+    # get prior matrix 
+    pm = self.prior_matrix()
+
+    # covariance = inv(prior_matrix)
+    cm = np.linalg.inv(pm)
+    return cm
 
   def initialize_data(self):
     # data request

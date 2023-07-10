@@ -122,6 +122,7 @@ message Settings {
   optional bool assemble_force_jacobian = 26; 
   optional bool assemble_sensor_norm_hessian = 27; 
   optional bool assemble_force_norm_hessian = 28;
+  optional bool force_residual_timestep_scale = 29;
 }
 
 message SettingsRequest {
@@ -341,3 +342,4 @@ message UpdateBufferRequest {
 message UpdateBufferResponse {
   int32 length = 1;
 }
+

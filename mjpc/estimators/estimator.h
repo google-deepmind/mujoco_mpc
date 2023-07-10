@@ -42,6 +42,7 @@ enum EstimatorStatus : int {
   kSmallDirectionFailure,
   kMaxRegularizationFailure,
   kCostDifferenceFailure,
+  kExpectedDecreaseFailure,
   kSolved,
 };
 
@@ -147,6 +148,9 @@ class Estimator {
   double SearchDirectionNorm() const { return search_direction_norm_; }
   EstimatorStatus SolveStatus() const { return solve_status_; }
   double CostDifference() const { return cost_difference_; }
+  double Improvement() const { return improvement_; } 
+  double Expected() const { return expected_; }
+  double ReductionRatio() const { return reduction_ratio_; }
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -200,33 +204,33 @@ class Estimator {
 
   // settings
   struct EstimatorSettings {
-    bool prior_flag = true;                      // flag for prior cost computation
-    bool sensor_flag = true;                     // flag for sensor cost computation
-    bool force_flag = true;                      // flag for force cost computation
-    int max_search_iterations = 1000;            // maximum number of line search iterations
-    int max_smoother_iterations = 100;           // maximum number of smoothing iterations
-    double gradient_tolerance = 1.0e-10;         // small gradient tolerance
-    bool verbose_iteration = false;              // flag for printing optimize iteration
-    bool verbose_optimize = false;               // flag for printing optimize status
-    bool verbose_cost = false;                   // flag for printing cost
-    bool verbose_prior = false;                  // flag for printing prior weight update status
-    bool band_prior = true;                      // approximate covariance for prior
-    SearchType search_type = kCurveSearch;       // search type (line search, curve search)
-    double step_scaling = 0.5;                   // step size scaling
-    double regularization_initial = 1.0e-12;     // initial regularization
-    double regularization_scaling = 2.0;         // regularization scaling
-    bool band_copy = true;                       // copy band matrices by block
-    bool reuse_data = false;                     // flag for resuing data previously computed
-    bool skip_update_prior_weight = false;       // flag for skipping update prior weight
-    bool update_prior_weight = true;             // flag for updating prior weights
-    bool time_scaling = false;                   // scale sensor and force costs by time step
-    double search_direction_tolerance = 1.0e-8;  // search direction tolerance
-    double cost_tolerance = 1.0e-8;              // cost difference tolernace
-    bool assemble_prior_jacobian = false;        // assemble dense prior Jacobian 
-    bool assemble_sensor_jacobian = false;       // assemble dense sensor Jacobian
-    bool assemble_force_jacobian = false;        // assemble dense force Jacobian 
-    bool assemble_sensor_norm_hessian = false;   // assemble dense sensor norm Hessian 
-    bool assemble_force_norm_hessian = false;    // assemble dense force norm Hessian
+    bool prior_flag = true;                       // flag for prior cost computation
+    bool sensor_flag = true;                      // flag for sensor cost computation
+    bool force_flag = true;                       // flag for force cost computation
+    int max_search_iterations = 1000;             // maximum number of line search iterations
+    int max_smoother_iterations = 100;            // maximum number of smoothing iterations
+    double gradient_tolerance = 1.0e-10;          // small gradient tolerance
+    bool verbose_iteration = false;               // flag for printing optimize iteration
+    bool verbose_optimize = false;                // flag for printing optimize status
+    bool verbose_cost = false;                    // flag for printing cost
+    bool verbose_prior = false;                   // flag for printing prior weight update status
+    bool band_prior = true;                       // approximate covariance for prior
+    SearchType search_type = kCurveSearch;        // search type (line search, curve search)
+    double step_scaling = 0.5;                    // step size scaling
+    double regularization_initial = 1.0e-12;      // initial regularization
+    double regularization_scaling = mju_sqrt(10); // regularization scaling
+    bool band_copy = true;                        // copy band matrices by block
+    bool reuse_data = false;                      // flag for resuing data previously computed
+    bool skip_update_prior_weight = false;        // flag for skipping update prior weight
+    bool update_prior_weight = true;              // flag for updating prior weights
+    bool time_scaling = false;                    // scale sensor and force costs by time step
+    double search_direction_tolerance = 1.0e-8;   // search direction tolerance
+    double cost_tolerance = 1.0e-8;               // cost difference tolernace
+    bool assemble_prior_jacobian = false;         // assemble dense prior Jacobian 
+    bool assemble_sensor_jacobian = false;        // assemble dense sensor Jacobian
+    bool assemble_force_jacobian = false;         // assemble dense force Jacobian 
+    bool assemble_sensor_norm_hessian = false;    // assemble dense sensor norm Hessian 
+    bool assemble_force_norm_hessian = false;     // assemble dense force norm Hessian
   } settings;
   
   // finite-difference settings
@@ -407,11 +411,12 @@ class Estimator {
   std::vector<double> cost_gradient_force_;    // nv * MAX_HISTORY
 
   // cost Hessian
-  std::vector<double> cost_hessian_prior_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_sensor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_band_;      // BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv)
-  std::vector<double> cost_hessian_factor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_prior_;       // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_sensor_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_force_;       // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_band_;        // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_band_factor_; // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_factor_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
 
   // cost scratch
   std::vector<double> scratch0_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
@@ -422,6 +427,7 @@ class Estimator {
   std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch2_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
   std::vector<double> scratch_prior_weight_;   // 2 * nv * nv
+  std::vector<double> scratch_expected_;       // nv * MAX_HISTORY
 
   // search direction
   std::vector<double> search_direction_;            // nv * MAX_HISTORY
@@ -442,6 +448,9 @@ class Estimator {
   double search_direction_norm_;            // search direction norm
   EstimatorStatus solve_status_;            // estimator status
   double cost_difference_;                  // cost difference: abs(cost - cost_previous)
+  double improvement_;                      // cost improvement 
+  double expected_;                         // expected cost improvement
+  double reduction_ratio_;                  // reduction ratio: cost_improvement / expected cost improvement
 
   // timers
   struct EstimatorTimers {

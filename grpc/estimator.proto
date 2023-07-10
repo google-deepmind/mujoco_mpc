@@ -254,6 +254,9 @@ message Status {
   double search_direction_norm = 6;
   int32 solve_status = 7;
   double cost_difference = 8;
+  double improvement = 9;
+  double expected = 10;
+  double reduction_ratio = 11;
 }
 
 message StatusRequest {}

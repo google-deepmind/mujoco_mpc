@@ -430,6 +430,9 @@ class Estimator:
         "search_direction_norm": status.search_direction_norm,
         "solve_status": status.solve_status,
         "cost_difference": status.cost_difference,
+        "improvement": status.improvement,
+        "expected": status.expected,
+        "reduction_ratio": status.reduction_ratio,
     }
 
   def shift(self, shift: int) -> int:
@@ -612,7 +615,9 @@ class Estimator:
         return "MAX_REGULARIZATION_FAILURE"
       elif code == 5:
         return "COST_DIFFERENCE_FAILURE"
-      elif code == 6:
+      elif code == 6: 
+        return "EXPECTED_DECREASE_FAILURE"
+      elif code == 7:
         return "SOLVED"
       else:
         return "CODE_ERROR"

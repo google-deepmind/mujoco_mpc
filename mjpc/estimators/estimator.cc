@@ -147,7 +147,8 @@ void Estimator::Initialize(mjModel* model) {
   cost_hessian_sensor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_band_.resize(BandMatrixNonZeros(nv * MAX_HISTORY, 3 * nv));
+  cost_hessian_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  cost_hessian_band_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   cost_hessian_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // prior weights
@@ -228,6 +229,8 @@ void Estimator::Initialize(mjModel* model) {
   scratch0_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch1_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   scratch2_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+
+  scratch_expected_.resize(nv * MAX_HISTORY);
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
@@ -480,6 +483,7 @@ void Estimator::Reset() {
   std::fill(cost_hessian_force_.begin(), cost_hessian_force_.end(), 0.0);
   std::fill(cost_hessian.begin(), cost_hessian.end(), 0.0);
   std::fill(cost_hessian_band_.begin(), cost_hessian_band_.end(), 0.0);
+  std::fill(cost_hessian_band_factor_.begin(), cost_hessian_band_factor_.end(), 0.0);
   std::fill(cost_hessian_factor_.begin(), cost_hessian_factor_.end(), 0.0);
 
   // weight
@@ -512,6 +516,8 @@ void Estimator::Reset() {
   std::fill(scratch0_force_.begin(), scratch0_force_.end(), 0.0);
   std::fill(scratch1_force_.begin(), scratch1_force_.end(), 0.0);
   std::fill(scratch2_force_.begin(), scratch2_force_.end(), 0.0);
+
+  std::fill(scratch_expected_.begin(), scratch_expected_.end(), 0.0);
 
   // candidate
   configuration_copy_.Reset();
@@ -1592,6 +1598,7 @@ void Estimator::Optimize(ThreadPool& pool) {
     int iteration_search = 0;
     step_size_ = 1.0;
     regularization_ = settings.regularization_initial;
+    improvement_ = -1.0;
 
     // -- search direction -- //
 
@@ -1667,6 +1674,9 @@ void Estimator::Optimize(ThreadPool& pool) {
       cost_skip_ = false;
       cost_candidate = Cost(NULL, NULL, pool);
 
+      // improvement  
+      improvement_ = cost - cost_candidate;
+
       // update iteration
       iteration_search++;
     }
@@ -1688,11 +1698,48 @@ void Estimator::Optimize(ThreadPool& pool) {
       return;
     }
 
-    // decrease regularization
+    // curve search 
     if (settings.search_type == kCurveSearch) {
-      regularization_ =
-          mju_max(MIN_REGULARIZATION,
-                  regularization_ / settings.regularization_scaling);
+      // expected = g' d + 0.5 d' H d
+
+      // expected = g' * d
+      expected_ = mju_dot(cost_gradient.data(), search_direction_.data(), nvar);
+      
+      // tmp = H * d
+      double* tmp = scratch_expected_.data();
+      if (settings.band_prior) {
+        mju_bandMulMatVec(tmp, cost_hessian_band_.data(), search_direction_.data(), nvar, 3 * model->nv, 0, 1, true);
+      } else {
+        mju_mulMatVec(tmp, cost_hessian.data(), search_direction_.data(), nvar, nvar);
+      }
+
+      // expected += 0.5 d' tmp
+      expected_ += 0.5 * mju_dot(search_direction_.data(), tmp, nvar);
+
+      // check for no expected decrease
+      if (expected_ <= 0.0) {
+        // set status 
+        solve_status_ = kExpectedDecreaseFailure;
+
+        // failure 
+        return;
+      }
+
+      // reduction ratio
+      reduction_ratio_ = improvement_ / expected_;
+
+      // update regularization
+      if (reduction_ratio_ > 0.75) {
+        // decrease
+        regularization_ =
+            mju_max(MIN_REGULARIZATION,
+                    regularization_ / settings.regularization_scaling);
+      } else if (reduction_ratio_ < 0.25) {
+        // increase
+        regularization_ =
+            mju_min(MAX_REGULARIZATION,
+                    regularization_ * settings.regularization_scaling);
+      }
     }
 
     // end timer
@@ -1747,6 +1794,7 @@ void Estimator::SearchDirection() {
   double* gradient = cost_gradient.data();
   double* hessian = cost_hessian.data();
   double* hessian_band = cost_hessian_band_.data();
+  double* hessian_band_factor = cost_hessian_band_factor_.data();
 
   // -- linear system solver -- //
 
@@ -1755,11 +1803,15 @@ void Estimator::SearchDirection() {
     // dense to band
     mju_dense2Band(hessian_band, cost_hessian.data(), ntotal, nband, ndense);
 
+    // copy 
+    // TODO(taylor): efficient copy
+    mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal);
+
     // factorize
-    mju_cholFactorBand(hessian_band, ntotal, nband, ndense, 0.0, 0.0);
+    mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense, 0.0, 0.0);
 
     // compute search direction
-    mju_cholSolveBand(direction, hessian_band, gradient, ntotal, nband, ndense);
+    mju_cholSolveBand(direction, hessian_band_factor, gradient, ntotal, nband, ndense);
   } else {  // dense solver
     // factorize
     double* factor = cost_hessian_factor_.data();
@@ -2414,6 +2466,8 @@ std::string StatusString(int code) {
       return "MAX_REGULARIZATION_FAILURE";
     case kCostDifferenceFailure:
       return "COST_DIFFERENCE_FAILURE";
+    case kExpectedDecreaseFailure:
+      return "EXPECTED_DECREASE_FAILURE";
     case kSolved:
       return "SOLVED";
     default:

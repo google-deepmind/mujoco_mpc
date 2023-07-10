@@ -980,6 +980,15 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
   // cost difference 
   status->set_cost_difference(estimator_.CostDifference());
 
+  // improvement 
+  status->set_improvement(estimator_.Improvement());
+
+  // expected
+  status->set_expected(estimator_.Expected());
+
+  // reduction ratio 
+  status->set_reduction_ratio(estimator_.ReductionRatio());
+
   return grpc::Status::OK;
 }
 

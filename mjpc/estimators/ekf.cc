@@ -74,7 +74,7 @@ void EKF::Reset() {
   int nq = model->nq, nv = model->nv, ns = model->nsensordata;
 
   // data
-  mj_resetData(model, data_);
+  // mj_resetData(model, data_);
 
   // state
   mju_copy(state.data(), model->qpos0, nq);
@@ -109,7 +109,7 @@ void EKF::Reset() {
   timer_prediction_ = 0.0;
 
   // scratch
-  std::fill(tmp0_.begin(), tmp1_.end(), 0.0);
+  std::fill(tmp0_.begin(), tmp0_.end(), 0.0);
   std::fill(tmp1_.begin(), tmp1_.end(), 0.0);
   std::fill(tmp2_.begin(), tmp2_.end(), 0.0);
   std::fill(tmp3_.begin(), tmp3_.end(), 0.0);

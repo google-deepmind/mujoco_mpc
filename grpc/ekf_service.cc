@@ -119,7 +119,7 @@ grpc::Status EKFService::Init(grpc::ServerContext* context,
 
   // initialize ekf
   ekf_.Initialize(model);
-  ekf_.Reset();
+  // ekf_.Reset();
 
   return grpc::Status::OK;
 }

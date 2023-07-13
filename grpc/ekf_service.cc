@@ -1,0 +1,233 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "grpc/ekf_service.h"
+
+#include <absl/log/check.h>
+#include <absl/status/status.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_format.h>
+#include <absl/strings/strip.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/status.h>
+#include <mujoco/mujoco.h>
+
+#include <cstring>
+#include <string_view>
+#include <vector>
+
+#include "grpc/ekf.pb.h"
+#include "mjpc/estimators/ekf.h"
+
+namespace ekf_grpc {
+
+using ::ekf::CovarianceRequest;
+using ::ekf::CovarianceResponse;
+using ::ekf::InitRequest;
+using ::ekf::InitResponse;
+using ::ekf::NoiseRequest;
+using ::ekf::NoiseResponse;
+using ::ekf::ResetRequest;
+using ::ekf::ResetResponse;
+using ::ekf::SettingsRequest;
+using ::ekf::SettingsResponse;
+using ::ekf::StateRequest;
+using ::ekf::StateResponse;
+using ::ekf::TimersRequest;
+using ::ekf::TimersResponse;
+using ::ekf::UpdateMeasurementRequest;
+using ::ekf::UpdateMeasurementResponse;
+using ::ekf::UpdatePredictionRequest;
+using ::ekf::UpdatePredictionResponse;
+
+// TODO(taylor): make CheckSize utility function
+namespace {
+absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
+  std::ostringstream error_string;
+  if (model_size != vector_size) {
+    error_string << "expected " << name << " size " << model_size << ", got "
+                 << vector_size;
+    return absl::InvalidArgumentError(error_string.str());
+  }
+  return absl::OkStatus();
+}
+}  // namespace
+
+#define CHECK_SIZE(name, n1, n2)                              \
+  {                                                           \
+    auto expr = (CheckSize(name, n1, n2));                    \
+    if (!(expr).ok()) {                                       \
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, \
+                          (expr).ToString());                 \
+    }                                                         \
+  }
+
+EKFService::~EKFService() {}
+
+grpc::Status EKFService::Init(grpc::ServerContext* context,
+                              const ekf::InitRequest* request,
+                              ekf::InitResponse* response) {
+
+  // ----- initialize with model ----- //
+  mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
+
+  // convert message
+  if (request->has_model() && request->model().has_mjb()) {
+    std::string_view mjb = request->model().mjb();
+    static constexpr char file[] = "temporary-filename.mjb";
+    // mjVFS structs need to be allocated on the heap, because it's ~2MB
+    auto vfs = std::make_unique<mjVFS>();
+    mj_defaultVFS(vfs.get());
+    mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
+    int file_idx = mj_findFileVFS(vfs.get(), file);
+    memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+    tmp_model = {mj_loadModel(file, vfs.get()), mj_deleteModel};
+    mj_deleteFileVFS(vfs.get(), file);
+  } else if (request->has_model() && request->model().has_xml()) {
+    std::string_view model_xml = request->model().xml();
+    char load_error[1024] = "";
+
+    // TODO(taylor): utilize grpc_agent_util method
+    static constexpr char file[] = "temporary-filename.xml";
+    // mjVFS structs need to be allocated on the heap, because it's ~2MB
+    auto vfs = std::make_unique<mjVFS>();
+    mj_defaultVFS(vfs.get());
+    mj_makeEmptyFileVFS(vfs.get(), file, model_xml.size());
+    int file_idx = mj_findFileVFS(vfs.get(), file);
+    memcpy(vfs->filedata[file_idx], model_xml.data(), model_xml.size());
+    tmp_model = {mj_loadXML(file, vfs.get(), load_error, sizeof(load_error)),
+                 mj_deleteModel};
+    mj_deleteFileVFS(vfs.get(), file);
+  } else {
+    mju_error("Failed to create mjModel.");
+  }
+
+  // move
+  ekf_model_override_ = std::move(tmp_model);
+  mjModel* model = ekf_model_override_.get();
+
+  // initialize ekf
+  ekf_.Initialize(model);
+  ekf_.Reset();
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::Reset(grpc::ServerContext* context,
+                               const ekf::ResetRequest* request,
+                               ekf::ResetResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // reset
+  ekf_.Reset();
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::Settings(grpc::ServerContext* context,
+                                  const ekf::SettingsRequest* request,
+                                  ekf::SettingsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // settings
+  ekf::Settings input = request->settings();
+  ekf::Settings* output = response->mutable_settings();
+
+  // epsilon 
+
+  // flg_centered 
+
+  // auto_timestep 
+
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::UpdateMeasurement(
+    grpc::ServerContext* context, const ekf::UpdateMeasurementRequest* request,
+    ekf::UpdateMeasurementResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // measurement update 
+  ekf_.MeasurementUpdate()
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::UpdatePrediction(
+    grpc::ServerContext* context, const ekf::UpdatePredictionRequest* request,
+    ekf::UpdatePredictionResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // prediction update 
+  ekf_.PredictionUpdate();
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::Timers(grpc::ServerContext* context,
+                                const ekf::TimersRequest* request,
+                                ekf::TimersResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // measurement 
+
+  // prediction
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::State(grpc::ServerContext* context,
+                               const ekf::StateRequest* request,
+                               ekf::StateResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::Covariance(grpc::ServerContext* context,
+                                    const ekf::CovarianceRequest* request,
+                                    ekf::CovarianceResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  return grpc::Status::OK;
+}
+
+grpc::Status EKFService::Noise(grpc::ServerContext* context,
+                               const ekf::NoiseRequest* request,
+                               ekf::NoiseResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  return grpc::Status::OK;
+}
+
+#undef CHECK_SIZE
+
+}  // namespace ekf_grpc

@@ -1,0 +1,119 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package ekf;
+
+service EKF {
+  // Initialize EKF
+  rpc Init(InitRequest) returns (InitResponse);
+  // Reset EKF
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // EKF settings
+  rpc Settings(SettingsRequest) returns (SettingsResponse);
+  // EKF measurement update 
+  rpc UpdateMeasurement(UpdateMeasurementRequest) returns (UpdateMeasurementResponse);
+  // EKF prediction update 
+  rpc UpdatePrediction(UpdatePredictionRequest) returns (UpdatePredictionResponse);
+  // EKF timers 
+  rpc Timers(TimersRequest) returns (TimersResponse);
+  // EKF state 
+  rpc State(StateRequest) returns (StateResponse);
+  // EKF covariance 
+  rpc Covariance(CovarianceRequest) returns (CovarianceResponse);
+  // EKF noise 
+  rpc Noise(NoiseRequest) returns (NoiseResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional MjModel model = 1;
+}
+
+message InitResponse {}
+
+message Settings {
+  optional double epsilon = 1;
+  optional bool flg_centered = 2;
+  optional bool auto_timestep = 3;
+}
+
+message SettingsRequest {
+  Settings settings = 1;
+}
+
+message SettingsResponse {
+  Settings settings = 1;
+}
+
+message ResetRequest {}
+
+message ResetResponse {}
+
+message UpdateMeasurementRequest {} 
+
+message UpdateMeasurementResponse {} 
+
+message UpdatePredictionRequest {} 
+
+message UpdatePredictionResponse {}
+
+message TimersRequest {}
+
+message TimersResponse {
+  double measurement = 1;
+  double prediction = 2;
+}
+
+message StateMsg {
+  repeated double state = 1 [packed = true];
+}
+
+message StateRequest {
+  StateMsg state = 1;
+}
+
+message StateResponse {
+  StateMsg state = 1;
+}
+
+message CovarianceMsg {
+  repeated double covariance = 1 [packed = true];
+}
+
+message CovarianceRequest {
+  CovarianceMsg covariance = 1;
+}
+
+message CovarianceResponse {
+  CovarianceMsg covariance = 1;
+}
+
+message NoiseMsg {
+  repeated double process = 1 [packed = true];
+  repeated bool sensor = 2 [packed = true];
+}
+
+message NoiseRequest {
+  NoiseMsg noise = 1;
+}
+
+message NoiseResponse {
+  NoiseMsg noise = 2;
+}

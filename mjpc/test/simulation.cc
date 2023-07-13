@@ -43,8 +43,8 @@ Simulation::Simulation(mjModel* model, int length) {
 
 // set state
 void Simulation::SetState(const double* qpos, const double* qvel) {
-  mju_copy(data_->qpos, qpos, model_->nq);
-  mju_copy(data_->qvel, qvel, model_->nv);
+  if (qpos) mju_copy(data_->qpos, qpos, model_->nq);
+  if (qvel) mju_copy(data_->qvel, qvel, model_->nv);
 }
 
 // rollout

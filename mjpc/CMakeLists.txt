@@ -104,6 +104,8 @@ add_library(
   planners/ilqs/planner.h
   estimators/buffer.cc
   estimators/buffer.h
+  estimators/ekf.cc
+  estimators/ekf.h
   estimators/estimator.cc
   estimators/estimator.h
   estimators/trajectory.h

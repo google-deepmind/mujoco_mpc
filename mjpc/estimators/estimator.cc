@@ -241,8 +241,8 @@ void Estimator::Initialize(mjModel* model) {
   // covariance 
   covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
   prior_matrix_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch0_covariance_.resize(nv * MAX_HISTORY) * (nv * MAX_HISTORY);
-  scratch1_covariance_.resize(nv * MAX_HISTORY) * (nv * MAX_HISTORY);
+  scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
 
   // regularization
   regularization_ = settings.regularization_initial;

@@ -107,7 +107,7 @@ message CovarianceResponse {
 
 message NoiseMsg {
   repeated double process = 1 [packed = true];
-  repeated bool sensor = 2 [packed = true];
+  repeated double sensor = 2 [packed = true];
 }
 
 message NoiseRequest {

@@ -70,27 +70,36 @@ void EKF::Initialize(mjModel* model) {
 
 // reset memory
 void EKF::Reset() {
+  // dimension 
+  int nq = model->nq, nv = model->nv, ns = model->nsensordata;
+
   // data
   mj_resetData(model, data_);
 
   // state
-  mju_copy(state.data(), model->qpos0, model->nq);
-  mju_zero(state.data() + model->nq, model->nv);
+  mju_copy(state.data(), model->qpos0, nq);
+  mju_zero(state.data() + nq, nv);
 
   // covariance
   mju_eye(covariance.data(), nvelocity_);
+
+  // process noise 
+  mju_zero(noise_process.data(), nvelocity_);
+
+  // sensor noise 
+  mju_zero(noise_sensor.data(), ns);
 
   // dynamics Jacobian
   mju_zero(dynamics_jacobian_.data(), nvelocity_ * nvelocity_);
 
   // sensor Jacobian
-  mju_zero(sensor_jacobian_.data(), model->nsensordata * nvelocity_);
+  mju_zero(sensor_jacobian_.data(), ns * nvelocity_);
 
   // Kalman gain
-  mju_zero(kalman_gain_.data(), nvelocity_ * model->nsensordata);
+  mju_zero(kalman_gain_.data(), nvelocity_ * ns);
 
   // sensor error
-  mju_zero(sensor_error_.data(), model->nsensordata);
+  mju_zero(sensor_error_.data(), ns);
 
   // correction
   mju_zero(correction_.data(), nvelocity_);

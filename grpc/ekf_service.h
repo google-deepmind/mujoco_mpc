@@ -27,13 +27,14 @@
 #include "grpc/ekf.grpc.pb.h"
 #include "grpc/ekf.pb.h"
 #include "mjpc/estimators/ekf.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace ekf_grpc {
 
 class EKFService final : public ekf::EKF::Service {
  public:
-  explicit EKFService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  explicit EKFService() : thread_pool_(1) {}
   ~EKFService();
 
   grpc::Status Init(grpc::ServerContext* context,
@@ -79,6 +80,9 @@ class EKFService final : public ekf::EKF::Service {
   // ekf
   mjpc::EKF ekf_;
   mjpc::UniqueMjModel ekf_model_override_ = {nullptr, mj_deleteModel};
+
+  // threadpool
+  mjpc::ThreadPool thread_pool_;
 };
 
 }  // namespace ekf_grpc

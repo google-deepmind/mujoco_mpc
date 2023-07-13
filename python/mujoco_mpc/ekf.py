@@ -149,11 +149,15 @@ class EKF:
 
   def settings(
       self,
-      
+      epsilon: Optional[float] = None,
+      flg_centered: Optional[bool] = None,
+      auto_timestep: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = ekf_pb2.Settings(
-
+      epsilon=epsilon,
+      flg_centered=flg_centered,
+      auto_timestep=auto_timestep,
     )
 
     # settings request
@@ -166,27 +170,102 @@ class EKF:
 
     # return all settings
     return {
-  
+      "epsilon": settings.epsilon,
+      "flg_centered": settings.flg_centered,
+      "auto_timestep": settings.auto_timestep,
     }
 
-  def update_measurement(self):
-    None 
+  def update_measurement(self, 
+                         ctrl: Optional[npt.ArrayLike] = [], 
+                         sensor: Optional[npt.ArrayLike] = []):
+    # request
+    request = ekf_pb2.UpdateMeasurementRequest(
+      ctrl=ctrl,
+      sensor=sensor,
+    )
+
+    # response
+    self._wait(self.stub.UpdateMeasurement.future(request))
 
   def update_prediction(self):
-    None
+    # request
+    request = ekf_pb2.UpdatePredictionRequest()
 
-  def timers(self):
-    None
+    # response
+    self._wait(self.stub.UpdatePrediction.future(request))
 
-  def state(self):
-    None 
+  def timers(self) -> dict[str, float]:
+    # request
+    request = ekf_pb2.TimersRequest()
+
+    # response
+    response = self._wait(self.stub.Timers.future(request))
+
+    # timers 
+    return {
+      "measurement": response.measurement,
+      "prediction": response.prediction,
+    }
+
+  def state(self,
+            state: Optional[npt.ArrayLike]) -> np.ndarray:
+    # input
+    input = ekf_pb2.State(
+        state=state
+    )
+
+    # request
+    request = ekf_pb2.StateRequest(
+      state=input,
+    )
+
+    # response
+    response = self._wait(self.stub.State.future(request)).state
+
+    # return state
+    return np.array(response.state)
  
-  def covariance(self):
-    None
+  def covariance(self,
+                 covariance: Optional[npt.ArrayLike] = None) -> np.ndarray:
+    # input
+    inputs = ekf_pb2.Covariance(
+        covariance=covariance.flatten() if covariance is not None else None,
+    )
+
+    # request
+    request = ekf_pb2.CovarianceRequest(
+      covariance=inputs,
+    )
+
+    # response
+    response = self._wait(self.stub.Covariance.future(request)).covariance
+
+    # return covariance
+    return np.array(response.covariance).reshape(response.dimension, response.dimension)
   
-  def noise(self):
-    None
-    
+  def noise(self,
+            process: Optional[npt.ArrayLike] = [],
+            sensor: Optional[npt.ArrayLike] = []) -> dict[str, np.ndarray]:
+    # inputs
+    inputs = ekf_pb2.Noise(
+        process=process,
+        sensor=sensor,
+    )
+
+    # request
+    request = ekf_pb2.NoiseRequest(
+      noise=inputs,
+    )
+
+    # response
+    response = self._wait(self.stub.Noise.future(request)).noise
+
+    # return noise
+    return {
+      "process": np.array(response.process),
+      "sensor": np.array(response.sensor),
+    }
+
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""
     if self._colab_logging:

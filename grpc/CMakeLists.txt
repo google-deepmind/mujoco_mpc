@@ -35,7 +35,6 @@ findorfetch(
   gRPC
 )
 
-
 find_package(ZLIB REQUIRED)
 set(gRPC_ZLIB_PROVIDER "package" CACHE INTERNAL "")
 
@@ -55,7 +54,8 @@ get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
 get_filename_component(estimator_service_proto "./estimator.proto" ABSOLUTE)
 get_filename_component(estimator_service_proto_path "${estimator_service_proto}" PATH)
-
+get_filename_component(ekf_service_proto "./ekf.proto" ABSOLUTE)
+get_filename_component(ekf_service_proto_path "${ekf_service_proto}" PATH)
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -67,6 +67,11 @@ set(estimator_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.cc")
 set(estimator_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.h")
 set(estimator_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.cc")
 set(estimator_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.h")
+
+set(ekf_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/ekf.pb.cc")
+set(ekf_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/ekf.pb.h")
+set(ekf_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/ekf.grpc.pb.cc")
+set(ekf_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/ekf.grpc.pb.h")
 
 message("We need the following for agent/estimator_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
@@ -105,6 +110,23 @@ add_custom_command(
   "${estimator_service_proto}"
 )
 
+add_custom_command(
+  OUTPUT
+  "${ekf_service_proto_srcs}"
+  "${ekf_service_proto_hdrs}"
+  "${ekf_service_grpc_srcs}"
+  "${ekf_service_grpc_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS
+  --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  -I "${ekf_service_proto_path}"
+  --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+  "${ekf_service_proto}"
+  DEPENDS
+  "${ekf_service_proto}"
+)
+
 # Include generated *.pb.h files
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
@@ -136,6 +158,7 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
+
 target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(AGENT_SERVICE_COMPILE_OPTIONS=${AGENT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
@@ -173,10 +196,10 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
+
 target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
-
 
 add_executable(
   estimator_server
@@ -209,4 +232,37 @@ target_include_directories(estimator_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/
 message(ESTIMATOR_SERVICE_COMPILE_OPTIONS=${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
 target_compile_options(estimator_server PUBLIC ${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
 target_link_options(estimator_server PRIVATE ${ESTIMATOR_SERVICE_LINK_OPTIONS})
+
+add_executable(
+  ekf_server
+  ekf_server.cc
+  ${ekf_service_grpc_srcs}
+  ${ekf_service_grpc_hdrs}
+  ${ekf_service_proto_srcs}
+  ${ekf_service_proto_hdrs}
+  ekf_service.h
+  ekf_service.cc
+)
+
+target_link_libraries(
+  ekf_server
+  # ekf_service_grpc_proto
+  absl::check
+  absl::flags
+  absl::flags_parse
+  absl::log
+  absl::random_random
+  absl::status
+  absl::strings
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  mujoco::mujoco
+  libmjpc
+)
+
+target_include_directories(ekf_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(ESTIMATOR_SERVICE_COMPILE_OPTIONS=${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_compile_options(ekf_server PUBLIC ${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_link_options(ekf_server PRIVATE ${ESTIMATOR_SERVICE_LINK_OPTIONS})
 

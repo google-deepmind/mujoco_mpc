@@ -66,7 +66,10 @@ message ResetRequest {}
 
 message ResetResponse {}
 
-message UpdateMeasurementRequest {} 
+message UpdateMeasurementRequest {
+  repeated double ctrl = 1 [packed = true];
+  repeated double sensor = 2 [packed = true];
+} 
 
 message UpdateMeasurementResponse {} 
 
@@ -81,39 +84,40 @@ message TimersResponse {
   double prediction = 2;
 }
 
-message StateMsg {
+message State {
   repeated double state = 1 [packed = true];
 }
 
 message StateRequest {
-  StateMsg state = 1;
+  State state = 1;
 }
 
 message StateResponse {
-  StateMsg state = 1;
+  State state = 1;
 }
 
-message CovarianceMsg {
+message Covariance {
   repeated double covariance = 1 [packed = true];
+  optional int32 dimension = 2;
 }
 
 message CovarianceRequest {
-  CovarianceMsg covariance = 1;
+  Covariance covariance = 1;
 }
 
 message CovarianceResponse {
-  CovarianceMsg covariance = 1;
+  Covariance covariance = 1;
 }
 
-message NoiseMsg {
+message Noise {
   repeated double process = 1 [packed = true];
   repeated double sensor = 2 [packed = true];
 }
 
 message NoiseRequest {
-  NoiseMsg noise = 1;
+  Noise noise = 1;
 }
 
 message NoiseResponse {
-  NoiseMsg noise = 2;
+  Noise noise = 2;
 }

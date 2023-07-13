@@ -149,11 +149,22 @@ grpc::Status EKFService::Settings(grpc::ServerContext* context,
   ekf::Settings* output = response->mutable_settings();
 
   // epsilon 
+  if (input.has_epsilon()) {
+    ekf_.settings.epsilon = input.epsilon();
+  }
+  output->set_epsilon(ekf_.settings.epsilon);
 
   // flg_centered 
+  if (input.has_flg_centered()) {
+    ekf_.settings.flg_centered = input.flg_centered();
+  }
+  output->set_flg_centered(ekf_.settings.flg_centered);
 
   // auto_timestep 
-
+  if (input.has_auto_timestep()) {
+    ekf_.settings.auto_timestep = input.auto_timestep();
+  }
+  output->set_auto_timestep(ekf_.settings.auto_timestep);
 
   return grpc::Status::OK;
 }
@@ -165,8 +176,8 @@ grpc::Status EKFService::UpdateMeasurement(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // measurement update 
-  ekf_.MeasurementUpdate()
+  // measurement update
+  ekf_.UpdateMeasurement(request->ctrl().data(), request->sensor().data());
 
   return grpc::Status::OK;
 }
@@ -179,7 +190,7 @@ grpc::Status EKFService::UpdatePrediction(
   }
 
   // prediction update 
-  ekf_.PredictionUpdate();
+  ekf_.UpdatePrediction();
 
   return grpc::Status::OK;
 }
@@ -192,8 +203,10 @@ grpc::Status EKFService::Timers(grpc::ServerContext* context,
   }
 
   // measurement 
+  response->set_measurement(ekf_.TimerMeasurement());
 
   // prediction
+  response->set_prediction(ekf_.TimerPrediction());
 
   return grpc::Status::OK;
 }
@@ -203,6 +216,23 @@ grpc::Status EKFService::State(grpc::ServerContext* context,
                                ekf::StateResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // unpack input/output
+  ekf::State input = request->state();
+  ekf::State* output = response->mutable_state();
+
+  // set state
+  int nstate = ekf_.model->nq + ekf_.model->nv;
+  if (input.state_size() > 0) {
+    CHECK_SIZE("state", nstate, input.state_size());
+    mju_copy(ekf_.state.data(), input.state().data(), nstate);
+  }
+
+  // get state
+  double* state = ekf_.state.data();
+  for (int i = 0; i < nstate; i++) {
+    output->add_state(state[i]);
   }
 
   return grpc::Status::OK;
@@ -215,6 +245,29 @@ grpc::Status EKFService::Covariance(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
+  // unpack input/output
+  ekf::Covariance input = request->covariance();
+  ekf::Covariance* output = response->mutable_covariance();
+
+  // dimensions
+  int nvelocity = 2 * ekf_.model->nv;
+  int ncovariance = nvelocity * nvelocity;
+
+  // set dimension 
+  output->set_dimension(nvelocity);
+
+  // set covariance
+  if (input.covariance_size() > 0) {
+    CHECK_SIZE("covariance", ncovariance, input.covariance_size());
+    mju_copy(ekf_.covariance.data(), input.covariance().data(), ncovariance);
+  }
+
+  // get covariance
+  double* covariance = ekf_.covariance.data();
+  for (int i = 0; i < ncovariance; i++) {
+    output->add_covariance(covariance[i]);
+  }
+
   return grpc::Status::OK;
 }
 
@@ -223,6 +276,38 @@ grpc::Status EKFService::Noise(grpc::ServerContext* context,
                                ekf::NoiseResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // unpack input/output
+  ekf::Noise input = request->noise();
+  ekf::Noise* output = response->mutable_noise();
+
+  // dimensions
+  int nprocess = 2 * ekf_.model->nv;
+  int nsensor = ekf_.model->nsensordata;
+
+  // set process noise
+  if (input.process_size() > 0) {
+    CHECK_SIZE("process noise", nprocess, input.process_size());
+    mju_copy(ekf_.noise_process.data(), input.process().data(), nprocess);
+  }
+
+  // get process noise
+  double* process = ekf_.noise_process.data();
+  for (int i = 0; i < nprocess; i++) {
+    output->add_process(process[i]);
+  }
+
+  // set sensor noise
+  if (input.sensor_size() > 0) {
+    CHECK_SIZE("sensor noise", nsensor, input.sensor_size());
+    mju_copy(ekf_.noise_sensor.data(), input.sensor().data(), nsensor);
+  }
+
+  // get sensor noise
+  double* sensor = ekf_.noise_sensor.data();
+  for (int i = 0; i < nsensor; i++) {
+    output->add_sensor(sensor[i]);
   }
 
   return grpc::Status::OK;

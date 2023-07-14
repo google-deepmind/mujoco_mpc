@@ -25,6 +25,7 @@
 #include <absl/strings/str_format.h>
 #include <absl/strings/strip.h>
 #include <grpcpp/support/status.h>
+#include <mujoco/mjdata.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
@@ -37,14 +38,16 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
-using ::agent::ValueAndWeight;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
 using ::agent::GetStateResponse;
+using ::agent::GetTaskParametersRequest;
+using ::agent::GetTaskParametersResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetModeRequest;
 using ::agent::SetStateRequest;
 using ::agent::SetTaskParametersRequest;
+using ::agent::ValueAndWeight;
 
 grpc::Status GetState(const mjModel* model, const mjData* data,
                       GetStateResponse* response) {
@@ -139,15 +142,39 @@ grpc::Status SetState(const SetStateRequest* request, mjpc::Agent* agent,
 #undef CHECK_SIZE
 
 grpc::Status GetAction(const GetActionRequest* request,
-                       const mjpc::Agent* agent, GetActionResponse* response) {
+                       const mjpc::Agent* agent,
+                       const mjModel* model, mjData* data,
+                       GetActionResponse* response) {
   int nu = agent->GetActionDim();
-  std::vector<double> ret = std::vector<double>(nu);
+  std::vector<double> ret = std::vector<double>(nu, 0);
 
   double time =
       request->has_time() ? request->time() : agent->ActiveState().time();
 
-  agent->ActivePlanner().ActionFromPolicy(
-      ret.data(), &agent->ActiveState().state()[0], time);
+  if (request->averaging_duration() > 0) {
+    agent->ActiveState().CopyTo(model, data);
+    data->time = time;
+    std::vector<double> state_before(mj_stateSize(model, mjSTATE_FULLPHYSICS));
+    mj_getState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
+    double end_time = time + request->averaging_duration();
+    std::vector<double> action(nu);
+    int nactions = 0;
+    while (data->time <= end_time) {
+      agent->ActiveState().Set(model, data);
+      agent->ActivePlanner().ActionFromPolicy(
+          action.data(), &agent->ActiveState().state()[0], data->time);
+      mju_addTo(ret.data(), action.data(), nu);
+      nactions++;
+      mj_step(model, data);
+    }
+    mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
+    // Reset the state to what it was before the stepping
+    mj_setState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
+    agent->ActiveState().Set(model, data);
+  } else {
+    agent->ActivePlanner().ActionFromPolicy(
+        ret.data(), &agent->ActiveState().state()[0], time);
+  }
 
   response->mutable_action()->Assign(ret.begin(), ret.end());
 
@@ -240,6 +267,32 @@ grpc::Status SetTaskParameters(const SetTaskParametersRequest* request,
   return grpc::Status::OK;
 }
 
+grpc::Status GetTaskParameters(const GetTaskParametersRequest* request,
+                               mjpc::Agent* agent,
+                               GetTaskParametersResponse* response) {
+  mjModel* agent_model = agent->GetModel();
+  int shift = 0;
+  for (int i = 0; i < agent_model->nnumeric; i++) {
+    std::string_view numeric_name(agent_model->names +
+                                  agent_model->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_select_")) {
+      std::string_view name =
+          absl::StripPrefix(numeric_name, "residual_select_");
+      (*response->mutable_parameters())[name].set_selection(
+          mjpc::ResidualSelection(agent_model, name,
+                                  agent->ActiveTask()->parameters[shift]));
+      shift++;
+    } else if (absl::StartsWith(numeric_name, "residual_")) {
+      std::string_view name = absl::StripPrefix(numeric_name, "residual_");
+      (*response->mutable_parameters())[name].set_numeric(
+          agent->ActiveTask()->parameters[shift]);
+      shift++;
+    }
+  }
+
+  return grpc::Status::OK;
+}
+
 grpc::Status SetCostWeights(const SetCostWeightsRequest* request,
                             mjpc::Agent* agent) {
   if (request->reset_to_defaults()) {
@@ -287,7 +340,6 @@ grpc::Status GetMode(const GetModeRequest* request, mjpc::Agent* agent,
   return grpc::Status::OK;
 }
 
-namespace {
 mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
                              int error_size) {
   static constexpr char file[] = "temporary-filename.xml";
@@ -315,7 +367,6 @@ mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   mj_deleteFileVFS(vfs.get(), file);
   return m;
 }
-}  // namespace
 
 grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request) {
   std::string_view task_id = request->task_id();

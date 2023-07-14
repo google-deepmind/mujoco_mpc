@@ -31,7 +31,6 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
-#include "third_party/mujoco_mpc/grpc/agent.proto.h"
 #include "mjpc/tasks/tasks.h"
 
 namespace agent_grpc {
@@ -175,6 +174,15 @@ TEST_F(AgentServiceTest, Step_AdvancesTime) {
     (*request.mutable_parameters())["Goal"].set_numeric(-1.0);
     agent::SetTaskParametersResponse response;
     EXPECT_TRUE(stub->SetTaskParameters(&context, request, &response).ok());
+  }
+
+  {
+    grpc::ClientContext context;
+    agent::GetTaskParametersRequest request;
+    agent::GetTaskParametersResponse response;
+    grpc::Status status = stub->GetTaskParameters(&context, request, &response);
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(response.parameters().at("Goal").numeric(), -1.0);
   }
 
   {

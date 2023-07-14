@@ -15,10 +15,11 @@
 #ifndef MJPC_PLANNERS_MODEL_DERIVATIVES_H_
 #define MJPC_PLANNERS_MODEL_DERIVATIVES_H_
 
+#include <mujoco/mujoco.h>
+
 #include <cstdlib>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 

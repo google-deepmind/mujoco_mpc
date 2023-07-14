@@ -18,11 +18,13 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang-14
               -DCMAKE_CXX_COMPILER:STRING=clang++-14
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: macos-12
             cmake_args: >-
               -G Ninja
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
           - os: windows-2022
@@ -30,6 +32,7 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang
               -DCMAKE_CXX_COMPILER:STRING=clang++
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"
@@ -61,7 +64,7 @@ jobs:
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
       working-directory: build
-      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test linear_solve_test norm_test rollout_test threadpool_test trajectory_test utilities_test ${{ matrix.additional_targets }}
+      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test linear_solve_test norm_test rollout_test threadpool_test trajectory_test utilities_test estimator_force_test estimator_optimize_test estimator_prior_test estimator_sensor_test estimator_shift_test estimator_trajectory_test estimator_utilities_test ${{ matrix.additional_targets }}
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .

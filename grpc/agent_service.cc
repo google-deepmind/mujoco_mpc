@@ -34,6 +34,8 @@ using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
+using ::agent::GetTaskParametersRequest;
+using ::agent::GetTaskParametersResponse;
 using ::agent::InitRequest;
 using ::agent::InitResponse;
 using ::agent::PlannerStepRequest;
@@ -53,9 +55,12 @@ using ::agent::SetTaskParametersResponse;
 using ::agent::StepRequest;
 using ::agent::StepResponse;
 
+// task used to define desired behaviour
 mjpc::Task* task = nullptr;
+
 // model used for physics
 mjModel* model = nullptr;
+
 // model used for planning, owned by the Agent instance.
 mjModel* agent_model = nullptr;
 
@@ -86,6 +91,12 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
   agent_.SetTaskByIndex(task_index);
 
   auto load_model = agent_.LoadModel();
+  if (!load_model.model) {
+    return grpc::Status(
+        grpc::StatusCode::INTERNAL,
+        absl::StrCat("Failed to load model: ", load_model.error));
+  }
+
   agent_.Initialize(load_model.model.get());
   agent_.Allocate();
   agent_.Reset();
@@ -151,7 +162,7 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetAction(request, &agent_, response);
+  return grpc_agent_util::GetAction(request, &agent_, model, data_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(
@@ -209,6 +220,15 @@ grpc::Status AgentService::SetTaskParameters(
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::SetTaskParameters(request, &agent_);
+}
+
+grpc::Status AgentService::GetTaskParameters(
+    grpc::ServerContext* context, const GetTaskParametersRequest* request,
+    GetTaskParametersResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetTaskParameters(request, &agent_, response);
 }
 
 grpc::Status AgentService::SetCostWeights(

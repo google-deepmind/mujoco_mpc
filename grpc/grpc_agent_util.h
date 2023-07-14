@@ -27,6 +27,7 @@ grpc::Status SetState(const agent::SetStateRequest* request, mjpc::Agent* agent,
                       const mjModel* model, mjData* data);
 grpc::Status GetAction(const agent::GetActionRequest* request,
                        const mjpc::Agent* agent,
+                       const mjModel* model, mjData* data,
                        agent::GetActionResponse* response);
 grpc::Status GetCostValuesAndWeights(
     const agent::GetCostValuesAndWeightsRequest* request,
@@ -35,11 +36,18 @@ grpc::Status GetCostValuesAndWeights(
 grpc::Status Reset(mjpc::Agent* agent, const mjModel* model, mjData* data);
 grpc::Status SetTaskParameters(const agent::SetTaskParametersRequest* request,
                                mjpc::Agent* agent);
+grpc::Status GetTaskParameters(const agent::GetTaskParametersRequest* request,
+                               mjpc::Agent* agent,
+                              agent::GetTaskParametersResponse* response);
 grpc::Status SetCostWeights(const agent::SetCostWeightsRequest* request,
                             mjpc::Agent* agent);
 grpc::Status SetMode(const agent::SetModeRequest* request, mjpc::Agent* agent);
 grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
                      agent::GetModeResponse* response);
+
+mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
+                             int error_size);
+mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb);
 
 // set up the task and model on the agent so that the next call to
 // agent.LoadModel returns any custom model, or the relevant task model.

@@ -18,16 +18,15 @@ target_link_libraries(gradient_planner_test load gmock)
 test(gradient_test)
 target_link_libraries(
   gradient_test
-  finite_difference
   lqr
   gmock
 )
 
 test(zero_test)
-target_link_libraries(zero_test finite_difference gmock)
+target_link_libraries(zero_test gmock)
 
 test(linear_test)
-target_link_libraries(linear_test finite_difference gmock)
+target_link_libraries(linear_test gmock)
 
 test(cubic_test)
-target_link_libraries(cubic_test finite_difference gmock)
+target_link_libraries(cubic_test gmock)

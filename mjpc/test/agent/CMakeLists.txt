@@ -19,13 +19,13 @@ test(agent_utilities_test)
 target_link_libraries(agent_utilities_test load threadpool gmock)
 
 test(cost_derivatives_test)
-target_link_libraries(cost_derivatives_test finite_difference gmock)
+target_link_libraries(cost_derivatives_test gmock)
 
 test(linear_solve_test)
 target_link_libraries(linear_solve_test gmock)
 
 test(norm_test)
-target_link_libraries(norm_test finite_difference gmock)
+target_link_libraries(norm_test gmock)
 
 test(rollout_test)
 target_link_libraries(rollout_test load gmock)

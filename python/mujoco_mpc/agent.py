@@ -16,11 +16,12 @@
 """Python interface for the to interface with MuJoCo MPC agents."""
 
 import atexit
+import contextlib
 import pathlib
 import socket
 import subprocess
 import tempfile
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 import grpc
 import mujoco
@@ -47,7 +48,7 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
-class Agent:
+class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.
 
   Attributes:
@@ -64,6 +65,7 @@ class Agent:
       task_id: str,
       model: Optional[mujoco.MjModel] = None,
       server_binary_path: Optional[str] = None,
+      extra_flags: Sequence[str] = (),
       real_time_speed: float = 1.0,
   ):
     self.task_id = task_id
@@ -75,12 +77,13 @@ class Agent:
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
         [str(server_binary_path), f"--mjpc_port={self.port}"]
+        + list(extra_flags)
     )
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
-    grpc.channel_ready_future(self.channel).result(timeout=10)
+    grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
     self.init(
         task_id,
@@ -88,6 +91,9 @@ class Agent:
         send_as="mjb",
         real_time_speed=real_time_speed,
     )
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.close()
 
   def close(self):
     self.channel.close()
@@ -185,16 +191,22 @@ class Agent:
   def get_state(self) -> agent_pb2.State:
     return self.stub.GetState(agent_pb2.GetStateRequest()).state
 
-  def get_action(self, time: Optional[float] = None) -> np.ndarray:
+  def get_action(
+      self, time: Optional[float] = None, averaging_duration: float = 0
+  ) -> np.ndarray:
     """Return latest `action` from the `Agent`'s planner.
 
     Args:
       time: `data.time`, i.e. the simulation time.
+      averaging_duration: the duration over which actions should be averaged
+        (e.g. the control timestep).
 
     Returns:
       action: `Agent`'s planner's latest action.
     """
-    get_action_request = agent_pb2.GetActionRequest(time=time)
+    get_action_request = agent_pb2.GetActionRequest(
+        time=time, averaging_duration=averaging_duration
+    )
     get_action_response = self.stub.GetAction(get_action_request)
     return np.array(get_action_response.action)
 
@@ -255,6 +267,19 @@ class Agent:
         request.parameters[name].numeric = value
     self.stub.SetTaskParameters(request)
 
+  def get_task_parameters(self) -> dict[str, float|str]:
+    """Returns the agent's task parameters."""
+    response = self.stub.GetTaskParameters(
+        agent_pb2.GetTaskParametersRequest()
+    )
+    result = {}
+    for (name, value) in response.parameters.items():
+      if value.selection:
+        result[name] = value.selection
+      else:
+        result[name] = value.numeric
+    return result
+
   def set_cost_weights(
       self, weights: dict[str, float], reset_to_defaults: bool = False
   ):
@@ -269,6 +294,16 @@ class Agent:
         cost_weights=weights, reset_to_defaults=reset_to_defaults
     )
     self.stub.SetCostWeights(request)
+
+  def get_cost_weights(self) -> dict[str, float]:
+    """Returns the agent's cost weights."""
+    terms = self.stub.GetCostValuesAndWeights(
+        agent_pb2.GetCostValuesAndWeightsRequest()
+    )
+    return {
+        name: value_weight.weight
+        for name, value_weight in terms.values_weights.items()
+    }
 
   def get_mode(self) -> str:
     return self.stub.GetMode(agent_pb2.GetModeRequest()).mode

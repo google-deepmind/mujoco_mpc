@@ -206,9 +206,7 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   }
 
   // end timer
-  nominal_compute_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now() - nominal_start)
-                            .count();
+  nominal_compute_time = GetDuration(nominal_start);
 }
 
 // set action from policy
@@ -363,7 +361,6 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 
-
   // step sizes (log scaling)
   LogScale(linesearch_steps, 1.0, settings.min_linesearch_step,
            num_trajectory_ - 1);
@@ -382,10 +379,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
       settings.fd_tolerance, settings.fd_mode, pool);
 
   // stop timer
-  double model_derivative_time =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - model_derivative_start)
-          .count();
+  double model_derivative_time = GetDuration(model_derivative_start);
 
   // ----- cost derivatives ----- //
   // start timer
@@ -401,10 +395,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
       horizon, pool);
 
   // end timer
-  double cost_derivative_time =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - cost_derivative_start)
-          .count();
+  double cost_derivative_time = GetDuration(cost_derivative_start);
 
   // ----- backward pass ----- //
   // start timer
@@ -508,10 +499,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   }
 
   // end timer
-  double backward_pass_time =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - backward_pass_start)
-          .count();
+  double backward_pass_time = GetDuration(backward_pass_start);
 
   // terminate early if backward pass failure
   if (backward_pass_status == 0) {
@@ -579,9 +567,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  double rollouts_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                             std::chrono::steady_clock::now() - rollouts_start)
-                             .count();
+  double rollouts_time = GetDuration(rollouts_start);
 
   // ----- policy update ----- //
   // start timer
@@ -597,10 +583,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   }
 
   // stop timer
-  double policy_update_time =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - policy_update_start)
-          .count();
+  double policy_update_time = GetDuration(policy_update_start);
 
   // set timers
   model_derivative_compute_time = model_derivative_time;
@@ -697,9 +680,9 @@ void iLQGPlanner::FeedbackRollouts(int horizon, ThreadPool& pool) {
           };
 
       // policy rollout
-      trajectory[i].Rollout(
-          feedback_policy, task, model, data[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon);
+      trajectory[i].Rollout(feedback_policy, task, model,
+                            data[ThreadPool::WorkerId()].get(), state.data(),
+                            time, mocap.data(), userdata.data(), horizon);
     });
   }
   pool.WaitCount(count_before + num_trajectory_);

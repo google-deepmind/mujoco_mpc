@@ -16,6 +16,7 @@
 #define MJPC_UTILITIES_H_
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -164,13 +165,13 @@ void ProjectToSegment(double x[3], const double p0[3], const double p1[3]);
 
 // find frame that best matches 4 feet, z points to body
 void FootFrame(double feet_pos[3], double feet_mat[9], double feet_quat[4],
-               const double body[3],
-               const double foot0[3], const double foot1[3],
-               const double foot2[3], const double foot3[3]);
+               const double body[3], const double foot0[3],
+               const double foot1[3], const double foot2[3],
+               const double foot3[3]);
 
 // default cost colors
 extern const float CostColors[20][3];
-constexpr int kNCostColors = sizeof(CostColors) / (sizeof(float)*3);
+constexpr int kNCostColors = sizeof(CostColors) / (sizeof(float) * 3);
 
 // plots - vertical line
 void PlotVertical(mjvFigure* fig, double time, double min_value,
@@ -195,14 +196,12 @@ void PlotData(mjvFigure* fig, double* bounds, const double* xs,
 
 // add geom to scene
 void AddGeom(mjvScene* scene, mjtGeom type, const mjtNum size[3],
-              const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]);
-
+             const mjtNum pos[3], const mjtNum mat[9], const float rgba[4]);
 
 // add connector geom to scene
 void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
                   const mjtNum from[3], const mjtNum to[3],
                   const float rgba[4]);
-
 
 // number of available hardware threads
 int NumAvailableHardwareThreads();
@@ -227,7 +226,8 @@ inline T* DataAt(std::vector<T>& vec, typename std::vector<T>::size_type elem) {
 // in C++20 atomic::operator+= is built-in for floating point numbers, but this
 // function works in C++11
 inline void IncrementAtomic(std::atomic<double>& v, double a) {
-  for (double t = v.load(); !v.compare_exchange_weak(t, t + a);) {}
+  for (double t = v.load(); !v.compare_exchange_weak(t, t + a);) {
+  }
 }
 
 // get a pointer to a specific element of a vector, or nullptr if out of bounds
@@ -250,11 +250,124 @@ inline UniqueMjModel MakeUniqueMjModel(mjModel* d) {
 }
 
 // returns point in 2D convex hull that is nearest to query
-void NearestInHull(mjtNum res[2], const mjtNum query[2],
-                   const mjtNum* points, const int* hull, int num_hull);
+void NearestInHull(mjtNum res[2], const mjtNum query[2], const mjtNum* points,
+                   const int* hull, int num_hull);
 
 // find the convex hull of a set of 2D points
 int Hull2D(int* hull, int num_points, const mjtNum* points);
+
+// TODO(etom): move findiff-related functions to a different library.
+
+// finite-difference gradient
+class FiniteDifferenceGradient {
+ public:
+  // constructor
+  explicit FiniteDifferenceGradient(int dim);
+
+  // resize memory
+  void Resize(int dim);
+
+  // compute gradient
+  void Compute(std::function<double(const double* x)> func,
+                  const double* input, int dim);
+
+  // members
+  std::vector<double> gradient;
+  double epsilon = 1.0e-5;
+ private:
+  std::vector<double> workspace_;
+};
+
+// finite-difference Jacobian
+class FiniteDifferenceJacobian {
+ public:
+  // constructor
+  FiniteDifferenceJacobian(int num_output, int num_input);
+
+  // resize memory
+  void Resize(int num_output, int num_input);
+
+  // compute Jacobian
+  void Compute(std::function<void(double* output, const double* input)> func,
+                  const double* input, int num_output, int num_input);
+
+  // members
+  std::vector<double> jacobian;
+  std::vector<double> jacobian_transpose;
+  std::vector<double> output;
+  std::vector<double> output_nominal;
+  double epsilon = 1.0e-5;
+ private:
+  std::vector<double> workspace_;
+};
+
+// finite-difference Hessian
+class FiniteDifferenceHessian {
+ public:
+  // constructor
+  explicit FiniteDifferenceHessian(int dim);
+
+  // resize memory
+  void Resize(int dim);
+
+  // compute
+  void Compute(std::function<double(const double* x)> func,
+                  const double* input, int dim);
+
+  // members
+  std::vector<double> hessian;
+  double epsilon = 1.0e-5;
+ private:
+  std::vector<double> workspace1_;
+  std::vector<double> workspace2_;
+  std::vector<double> workspace3_;
+};
+
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void SetBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci);
+
+// set scaled block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void AddBlockInMatrix(double* mat, const double* block, double scale, int rm,
+                      int cm, int rb, int cb, int ri, int ci);
+
+// get block (size: rb x cb) from mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void BlockFromMatrix(double* block, const double* mat, int rb, int cb, int rm,
+                     int cm, int ri, int ci);
+
+// differentiate mju_subQuat wrt qa, qb
+void DifferentiateSubQuat(double jaca[9], double jacb[9], const double qa[4],
+                          const double qb[4]);
+
+// differentiate velocity by finite-differencing two positions wrt to qpos1,
+// qpos2
+void DifferentiateDifferentiatePos(double* jac1, double* jac2,
+                                   const mjModel* model, double dt,
+                                   const double* qpos1, const double* qpos2);
+
+// compute number of nonzeros in band matrix
+int BandMatrixNonZeros(int ntotal, int nband);
+
+// TODO(etom): rename (SecondsSince?)
+double GetDuration(std::chrono::steady_clock::time_point time);
+
+// copy symmetric band matrix block by block
+void SymmetricBandMatrixCopy(double* res, const double* mat, int dblock,
+                             int nblock, int ntotal, int num_blocks,
+                             int res_start_row, int res_start_col,
+                             int mat_start_row, int mat_start_col,
+                             double* scratch);
+
+// zero block (size: rb x cb) in mat (size: rm x cm) given mat upper row
+// and left column indices (ri, ci)
+void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
+                       int ci);
+
+// square dense to block band matrix
+void DenseToBlockBand(double* res, int dim, int dblock, int nblock);
 
 }  // namespace mjpc
 

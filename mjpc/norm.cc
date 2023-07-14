@@ -14,10 +14,10 @@
 
 #include "mjpc/norm.h"
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <cmath>
-
-#include <mujoco/mujoco.h>
 
 namespace mjpc {
 
@@ -143,16 +143,8 @@ double Norm(double* g, double* H, const double* x, const double* params, int n,
     case NormType::kCosh: {  // y = p^2 * (cosh(x / p) - 1)
       for (int i = 0; i < n; i++) {
         y += p * p * (std::cosh(x[i] / p) - 1.0);
-      }
-      if (g) {
-        for (int i = 0; i < n; i++) {
-          g[i] = p * std::sinh(x[i] / p);
-        }
-      }
-      if (H) {
-        for (int i = 0; i < n; i++) {
-          H[i * n + i] = std::cosh(x[i] / p);
-        }
+        if (g) g[i] = p * std::sinh(x[i] / p);
+        if (H) H[i * n + i] = std::cosh(x[i] / p);
       }
       break;
     }

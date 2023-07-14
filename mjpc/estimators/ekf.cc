@@ -79,6 +79,7 @@ void EKF::Reset() {
   // state
   mju_copy(state.data(), model->qpos0, nq);
   mju_zero(state.data() + nq, nv);
+  time = 0.0;
 
   // covariance
   mju_eye(covariance.data(), nvelocity_);
@@ -191,17 +192,17 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
 
   // stop timer (ms)
   timer_measurement_ = 1.0e-3 * GetDuration(start);
+
+  // set time step
+  if (settings.auto_timestep) {
+    model->opt.timestep = 1.0e-3 * (timer_measurement_ + timer_prediction_);
+  }
 }
 
 // update time
 void EKF::UpdatePrediction() {
   // start timer
   auto start = std::chrono::steady_clock::now();
-
-  // set time step
-  if (settings.auto_timestep) {
-    model->opt.timestep = 1.0e-3 * timer_measurement_;
-  }
 
   // integrate state
   // TODO(taylor): integrator option

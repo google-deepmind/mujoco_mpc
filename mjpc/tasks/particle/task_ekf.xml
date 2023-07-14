@@ -1,0 +1,13 @@
+<mujoco model="Particle Control">
+  <include file="../common.xml"/>
+  <include file="particle.xml" />
+
+  <size memory="10K"/>
+
+  <sensor>
+    <framepos name="trace0" objtype="site" objname="tip"/>
+    <framepos name="position" objtype="site" objname="tip"/>
+    <framelinvel name="velocity" objtype="site" objname="tip"/>
+  </sensor>
+
+</mujoco>

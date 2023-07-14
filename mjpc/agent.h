@@ -24,6 +24,7 @@
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
+#include "mjpc/estimators/ekf.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/states/include.h"
 #include "mjpc/states/state.h"
@@ -166,6 +167,13 @@ class Agent {
   int allocate_enabled;
   int plot_enabled;
   int gui_task_id = 0;
+
+  // estimator 
+  EKF ekf;
+  std::vector<double> sensor;
+  std::vector<double> ctrl;
+  std::vector<double> state;
+  double time = 0.0;
 
  private:
   // model

@@ -118,7 +118,7 @@ void Agent::Initialize(const mjModel* model) {
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
 
   // max threads
-  max_threads_ = std::max(1, NumAvailableHardwareThreads() - 3);
+  max_threads_ = std::max(1, NumAvailableHardwareThreads() - 4);
 }
 
 // allocate memory
@@ -147,6 +147,7 @@ void Agent::Reset() {
     planner->Reset(kMaxTrajectoryHorizon);
   }
 
+  // state
   for (const auto& state : states_) {
     state->Reset();
   }

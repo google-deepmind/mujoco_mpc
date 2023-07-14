@@ -67,6 +67,21 @@ void State::Set(const mjModel* model, const mjData* data) {
   }
 }
 
+// set qpos
+void State::SetPos(const mjModel* model, const double* qpos) {
+  mju_copy(state_.data(), qpos, model->nq);
+}
+
+// set qvel
+void State::SetVel(const mjModel* model, const double* qvel) {
+  mju_copy(DataAt(state_, model->nq), qvel, model->nv);
+}
+
+// set time
+void State::SetTime(const mjModel* model, double time) {
+  time_ = time;
+}
+
 void State::CopyTo(double* dst_state, double* dst_mocap,
                    double* dst_userdata, double* dst_time) const {
   const std::shared_lock<std::shared_mutex> lock(mtx_);

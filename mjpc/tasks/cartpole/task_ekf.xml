@@ -1,0 +1,13 @@
+<mujoco model="Cart-Pole Swing-Up">
+  <include file="../common.xml"/>
+  <include file="cartpole.xml" />
+
+  <size memory="4K"/>
+
+  <sensor>
+    <jointpos name="slider_pos" joint="slider"/>
+    <!-- <jointvel name="slider_vel" joint="slider"/> -->
+    <jointpos name="hinge_pos" joint="hinge_1"/>
+    <!-- <jointvel name="hinge_vel" joint="hinge_1"/> -->
+  </sensor>
+</mujoco>

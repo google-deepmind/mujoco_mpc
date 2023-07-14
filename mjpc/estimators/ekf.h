@@ -33,31 +33,32 @@ class EKF {
     Reset();
   }
 
-  // initialize 
+  // initialize
   void Initialize(mjModel* model);
 
-  // reset memory 
+  // reset memory
   void Reset();
 
-  // update measurement 
+  // update measurement
   void UpdateMeasurement(const double* ctrl, const double* sensor);
 
-  // update time 
+  // update time
   void UpdatePrediction();
 
   // get measurement timer (ms)
   double TimerMeasurement() const { return timer_measurement_; };
 
-  // get prediction timer (ms) 
+  // get prediction timer (ms)
   double TimerPrediction() const { return timer_prediction_; };
 
-  // model 
+  // model
   mjModel* model;
 
   // state (nq + nv)
   std::vector<double> state;
+  double time;
 
-  // covariance 
+  // covariance
   std::vector<double> covariance;
 
   // process noise (2nv)
@@ -66,20 +67,20 @@ class EKF {
   // sensor noise (nsensordata)
   std::vector<double> noise_sensor;
 
-  // settings 
+  // settings
   struct Settings {
     double epsilon = 1.0e-6;
     bool flg_centered = false;
     bool auto_timestep = false;
   } settings;
 
- private:
-  // dimensions 
-  int nstate_;
-  int nvelocity_;
-
   // data
   mjData* data_;
+
+ private:
+  // dimensions
+  int nstate_;
+  int nvelocity_;
 
   // dynamics Jacobian (2nv x 2nv)
   std::vector<double> dynamics_jacobian_;
@@ -94,14 +95,14 @@ class EKF {
   // sensor error (nsensordata)
   std::vector<double> sensor_error_;
 
-  // correction (2nv) 
+  // correction (2nv)
   std::vector<double> correction_;
 
   // timer (ms)
   double timer_measurement_;
   double timer_prediction_;
 
-  // scratch 
+  // scratch
   std::vector<double> tmp0_;
   std::vector<double> tmp1_;
   std::vector<double> tmp2_;

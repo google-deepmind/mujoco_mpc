@@ -1,33 +1,7 @@
-<mujoco model="Quadruped">
+<mujoco model="QuadrupedIMU">
   <include file="../common.xml"/>
 
   <size memory="1M"/>
-
-  <custom>
-    <text name="task_transition" data="Quadruped|Biped|Walk|Scramble|Flip" />
-    <numeric name="agent_planner" data="2 " />
-    <numeric name="agent_horizon" data="0.35" />
-    <numeric name="agent_timestep" data="0.01" />
-    <numeric name="sampling_spline_points" data="3" />
-    <numeric name="sampling_trajectories" data="60"/>
-    <numeric name="sampling_exploration" data="0.04" />
-    <numeric name="gradient_spline_points" data="5" />
-
-    <numeric name="residual_select_Gait" data="0"/>
-    <text name="residual_list_Gait" data="Stand|Walk|Trot|Canter|Gallop"/>
-    <numeric name="residual_select_Gait switch" data="1"/>
-    <text name="residual_list_Gait switch" data="Manual|Automatic"/>
-    <numeric name="residual_Cadence" data="2 0 4" />
-    <numeric name="residual_Amplitude" data=".06 0 0.2" />
-    <numeric name="residual_Duty ratio" data="0 0 1"/>
-    <numeric name="residual_Walk speed" data="0 0 4"/>
-    <numeric name="residual_Walk turn" data="0 -2 2"/>
-    <numeric name="residual_select_Flip dir" data="0"/>
-    <text name="residual_list_Flip dir" data="Back Flip|Front Flip"/>
-    <numeric name="residual_select_Biped type" data="0"/>
-    <text name="residual_list_Biped type" data="Foot Stand|Hand Stand"/>
-    <numeric name="residual_Heading" data="0 -3.14 3.14" />
-  </custom>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6"  ambient="0.3 0.3 0.3" specular="0 0 0"/>
@@ -41,7 +15,7 @@
       directional="true" castshadow="false"/>
     <geom name="floor" size="0 0 0.1" pos="0 0 -0.01" type="plane" material="blue_grid"/>
      <body name="goal" mocap="true" pos=".3 0 0.26">
-        <geom size="0.12" contype="0" conaffinity="0" rgba="0 1 0 .5" group="2"/>
+        <geom size="0.12" contype="0" conaffinity="0" rgba="1 0 0 .5" group="2"/>
       </body>
 
       <body name="box" mocap="true" pos="-2.5 0 0">
@@ -87,36 +61,43 @@
   </actuator>
 
   <sensor>
-    <user name="Upright" dim="3" user="6 1 0 3 0.05" />
-    <user name="Height" dim="1" user="6 1 0 3 0.04" />
-    <user name="Position" dim="3" user="2 0.2 0 0.5 0.1" />
-    <user name="Gait" dim="4" user="6 2 0 10 0.03" />
-    <user name="Balance" dim="2" user="2 0.2 0 0.3 0.1" />
-    <user name="Effort" dim="12" user="0 0.03 0.0 0.1" />
-    <user name="Posture" dim="12" user="0 0.02 0.0 0.1" />
-    <user name="Orientation" dim="2" user="0 0 0 .03" />
-    <user name="Angmom" dim="3" user="0 0 0 .03" />
+    <!-- body IMU -->
+    <accelerometer name="linacc_body" site="torso" />
+    <gyro name="angvel_body" site="torso" />
+
+    <!-- FR IMU -->
+    <accelerometer name="linacc_FR" site="FR" />
+    <gyro name="angvel_FR" site="FR" />
+
+    <!-- FL IMU -->
+    <accelerometer name="linacc_FL" site="FL" />
+    <gyro name="angvel_FL" site="FL" />
+
+    <!-- RR IMU -->
+    <accelerometer name="linacc_RR" site="RR" />
+    <gyro name="angvel_RR" site="RR" />
+
+    <!-- RL IMU -->
+    <accelerometer name="linacc_RL" site="RL" />
+    <gyro name="angvel_RL" site="RL" />
+
+    <!-- joints positions -->
+    <jointpos name="pos_FR_hip_joint" joint="FR_hip_joint" />
+    <jointpos name="pos_FR_thigh_joint" joint="FR_thigh_joint" />
+    <jointpos name="pos_FR_calf_joint" joint="FR_calf_joint" />
+    <jointpos name="pos_FL_hip_joint" joint="FL_hip_joint" />
+    <jointpos name="pos_FL_thigh_joint" joint="FL_thigh_joint" />
+    <jointpos name="pos_FL_calf_joint" joint="FL_calf_joint" />
+    <jointpos name="pos_RR_hip_joint" joint="RR_hip_joint" />
+    <jointpos name="pos_RR_thigh_joint" joint="RR_thigh_joint" />
+    <jointpos name="pos_RR_calf_joint" joint="RR_calf_joint" />
+    <jointpos name="pos_RL_hip_joint" joint="RL_hip_joint" />
+    <jointpos name="pos_RL_thigh_joint" joint="RL_thigh_joint" />
+    <jointpos name="pos_RL_calf_joint" joint="RL_calf_joint" />
+
     <framepos      name="trace0" objtype="site" objname="head"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
     <subtreelinvel name="torso_angmom" body="trunk"/>
   </sensor>
-
-  <keyframe>
-    <key name="home"
-         qpos="0 0 0.26
-               1 0 0 0
-               -0.000341931 0.0181576 -0.0268335
-               0.00160968 0.0247957 -0.0270045
-               0.00191398 -0.033048 -0.0675298
-               -0.00199489 -0.0374747 -0.0681862"/>
-    <key name="crouch"
-         qpos="-0.0501827 0.00107117 0.143925
-               1 0 0 0
-               0 0 -0.5
-               0 0 -0.5
-               0 0 -0.5
-               0 0 -0.5"/>
-
-  </keyframe>
 </mujoco>

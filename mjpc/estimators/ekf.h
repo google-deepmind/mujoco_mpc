@@ -77,6 +77,9 @@ class EKF {
   // data
   mjData* data_;
 
+  // correction (2nv)
+  std::vector<double> correction_;
+
  private:
   // dimensions
   int nstate_;
@@ -95,8 +98,6 @@ class EKF {
   // sensor error (nsensordata)
   std::vector<double> sensor_error_;
 
-  // correction (2nv)
-  std::vector<double> correction_;
 
   // timer (ms)
   double timer_measurement_;
@@ -107,6 +108,7 @@ class EKF {
   std::vector<double> tmp1_;
   std::vector<double> tmp2_;
   std::vector<double> tmp3_;
+  std::vector<double> tmp4_;
 };
 
 }  // namespace mjpc

@@ -14,6 +14,8 @@
 
 #include "mjpc/estimators/ekf.h"
 
+#include <mujoco/mujoco.h>
+
 #include <chrono>
 #include <vector>
 
@@ -66,6 +68,7 @@ void EKF::Initialize(mjModel* model) {
   tmp1_.resize(ns * ns);
   tmp2_.resize(ns * nvelocity_);
   tmp3_.resize(nvelocity_ * nvelocity_);
+  tmp4_.resize(nvelocity_ * nvelocity_);
 }
 
 // reset memory
@@ -114,6 +117,7 @@ void EKF::Reset() {
   std::fill(tmp1_.begin(), tmp1_.end(), 0.0);
   std::fill(tmp2_.begin(), tmp2_.end(), 0.0);
   std::fill(tmp3_.begin(), tmp3_.end(), 0.0);
+  std::fill(tmp4_.begin(), tmp4_.end(), 0.0);
 }
 
 // update measurement
@@ -131,14 +135,19 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   // set ctrl
   mju_copy(data_->ctrl, ctrl, nu);
 
+  // forward to get sensor
+  mj_forward(model, data_);
+
   // sensor Jacobian
   mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered, NULL,
                    NULL, sensor_jacobian_.data(), NULL);
 
-  // forward to get sensor
-  mj_forward(model, data_);
+  // // sensor error
+  // printf("sensor = ");
+  // mju_printMat(sensor, 1, ns);
+  // printf("sensordata = ");
+  // mju_printMat(data_->sensordata, 1, ns);
 
-  // sensor error
   mju_sub(sensor_error_.data(), sensor, data_->sensordata, ns);
 
   // -- Kalman gain: P * C' (C * P * C' + R)^-1 -- //
@@ -157,7 +166,11 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   }
 
   // factorize: C * P * C' + R
-  mju_cholFactor(tmp1_.data(), ns, 0.0);
+  int rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
+
+  if (rank < ns) {
+    mju_error("measurement update rank: (%i / %i)\n", rank, ns);
+  }
 
   // -- correction: (P * C') * (C * P * C' + R)^-1 * sensor_error -- //
 
@@ -190,19 +203,25 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   // covariance -= tmp3
   mju_subFrom(covariance.data(), tmp3_.data(), nvelocity_ * nvelocity_);
 
+  // symmetrize 
+  mju_symmetrize(covariance.data(), covariance.data(), nvelocity_);
+
   // stop timer (ms)
   timer_measurement_ = 1.0e-3 * GetDuration(start);
-
-  // set time step
-  if (settings.auto_timestep) {
-    model->opt.timestep = 1.0e-3 * (timer_measurement_ + timer_prediction_);
-  }
 }
 
 // update time
 void EKF::UpdatePrediction() {
   // start timer
   auto start = std::chrono::steady_clock::now();
+
+  // set state
+  mju_copy(data_->qpos, state.data(), model->nq);
+  mju_copy(data_->qvel, state.data() + model->nq, model->nv);
+
+  // dynamics Jacobian
+  mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered,
+                   dynamics_jacobian_.data(), NULL, NULL, NULL);
 
   // integrate state
   // TODO(taylor): integrator option
@@ -214,10 +233,6 @@ void EKF::UpdatePrediction() {
 
   // -- update covariance: P = A * P * A' -- //
 
-  // dynamics Jacobian
-  mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered,
-                   dynamics_jacobian_.data(), NULL, NULL, NULL);
-
   //  tmp = P * A'
   mju_mulMatMatT(tmp3_.data(), covariance.data(), dynamics_jacobian_.data(),
                  nvelocity_, nvelocity_, nvelocity_);
@@ -225,6 +240,14 @@ void EKF::UpdatePrediction() {
   // P = A * tmp
   mju_mulMatMat(covariance.data(), dynamics_jacobian_.data(), tmp3_.data(),
                 nvelocity_, nvelocity_, nvelocity_);
+
+  // process noise 
+  for (int i = 0; i < nvelocity_; i++) {
+    covariance[nvelocity_ * i + i] += noise_process[i];
+  }
+
+  // symmetrize 
+  mju_symmetrize(covariance.data(), covariance.data(), nvelocity_);
 
   // stop timer
   timer_prediction_ = 1.0e-3 * GetDuration(start);

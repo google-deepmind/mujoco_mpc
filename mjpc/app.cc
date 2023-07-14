@@ -57,6 +57,7 @@ const double simRefreshFraction = 0.7;
 
 // model and data
 mjModel* m = nullptr;
+mjModel* m_sim = nullptr;
 mjModel* m_est = nullptr;
 mjData* d = nullptr;
 
@@ -163,8 +164,6 @@ void EstimatorLoop(mj::Simulate& sim) {
     // set time 
     ekf->data_->time = sim.agent->time;
 
-    // scale ctrl 
-
     // measurement update
     ekf->UpdateMeasurement(sim.agent->ctrl.data(), sim.agent->sensor.data());
 
@@ -178,6 +177,8 @@ void EstimatorLoop(mj::Simulate& sim) {
     while (1.0e-3 * mjpc::GetDuration(start) <
            1.0e3 * ekf->model->opt.timestep) {
     }
+    // printf("duration = %f\n", 1.0e-3 * mjpc::GetDuration(start));
+    // printf("timestep = %f\n", 1.0e3 * ekf->model->opt.timestep);
     // printf("estimator update (%f)\n", sim.agent->time);
     // printf("  estimator time = %f\n", ekf->data_->time);
     // ekf->time = sim.agent->time + ekf->model->opt.timestep;
@@ -373,12 +374,12 @@ void PhysicsLoop(mj::Simulate& sim) {
       // printf("x[0, 1] = \n");
       // mju_printMat(d->qpos, 1, m->nq);
       // printf("e[0, 1] = \n");
-      // mju_printMat(sim.agent->ekf.state.data(), 1, m->nq);
+      // mju_printMat(sim.agent->state.data(), 1, m->nq);
 
       // printf("x[2, 3] = \n");
       // mju_printMat(d->qvel, 1, m->nv);
       // printf("e[2, 3] = \n");
-      // mju_printMat(sim.agent->ekf.state.data() + m->nq, 1, m->nv);
+      // mju_printMat(sim.agent->state.data() + m->nq, 1, m->nv);
 
       // printf("timestep = %f\n", sim.agent->ekf.model->opt.timestep);
       // printf("timers = %f\n", 1.0e-3 * (sim.agent->ekf.TimerMeasurement() + sim.agent->ekf.TimerMeasurement()));
@@ -451,6 +452,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   constexpr int kErrorLength = 1024;
   char load_error[kErrorLength] = "";
   m_est = mj_loadXML(file_.c_str(), nullptr, load_error, kErrorLength);
+  m_sim = mj_loadXML(file_.c_str(), nullptr, load_error, kErrorLength);
   // ----------------------------------- //
 
   sim->agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
@@ -484,6 +486,9 @@ void MjpcApp::Start() {
   // set sensor callback
   mjcb_sensor = sensor;
 
+  // set sim model
+  m = m_sim;
+
   // ----- estimator setup ----- //
   mjpc::EKF* ekf = &sim->agent->ekf;
 
@@ -501,14 +506,28 @@ void MjpcApp::Start() {
 
   // set covariance
   mju_eye(ekf->covariance.data(), (2 * m->nv));
-  mju_scl(ekf->covariance.data(), ekf->covariance.data(), 1.0e-4,
+  mju_scl(ekf->covariance.data(), ekf->covariance.data(), 1.0e-5,
           (2 * m->nv) * (2 * m->nv));
 
   // set process noise 
-  std::fill(ekf->noise_process.begin(), ekf->noise_process.end(), 1.0e-4);
+  std::fill(ekf->noise_process.begin(), ekf->noise_process.end(), 1.0e-5);
 
   // set sensor noise
-  std::fill(ekf->noise_sensor.begin(), ekf->noise_sensor.end(), 1.0e-4);
+  std::fill(ekf->noise_sensor.begin(), ekf->noise_sensor.end(), 1.0e-5);
+
+  // printf("state (pre): ");
+  // mju_printMat(ekf->state.data(), 1, m->nq + m->nv);
+
+  // mj_forward(m, d);
+  // ekf->UpdateMeasurement(d->ctrl, d->sensordata);
+
+  // printf("state (post): ");
+  // mju_printMat(ekf->state.data(), 1, m->nq + m->nv);
+
+  // printf("correction: ");
+  // mju_printMat(ekf->correction_.data(), 1, 2 * m->nv);
+
+  // return;
 
   // start physics thread
   mjpc::ThreadPool physics_pool(1);

@@ -30,24 +30,30 @@
       <body name="right_thigh" pos="0 -.05 -0.3">
         <joint name="right_hip" range="-20 100"/>
         <geom name="right_thigh" pos="0 0 -0.225" size="0.05 0.225"/>
+        <site name="right_thigh_site" pos="0 0 0" size="0.01"/>
         <body name="right_leg" pos="0 0 -0.7">
           <joint name="right_knee" pos="0 0 0.25" range="-150 0"/>
           <geom name="right_leg" size="0.04 0.25"/>
+          <site name="right_leg_site" pos="0 0 0" size="0.01"/>
           <body name="right_foot" pos="0.06 0 -0.25">
             <joint name="right_ankle" pos="-0.06 0 0" range="-45 45"/>
             <geom name="right_foot" zaxis="1 0 0" size="0.05 0.1"/>
+            <site name="right_foot_site" pos="0 0 0" size="0.01"/>
           </body>
         </body>
       </body>
       <body name="left_thigh" pos="0 .05 -0.3" >
         <joint name="left_hip" range="-20 100"/>
         <geom name="left_thigh" pos="0 0 -0.225" size="0.05 0.225"/>
+        <site name="left_hip_site" pos="0 0 0" size="0.01"/>
         <body name="left_leg" pos="0 0 -0.7">
           <joint name="left_knee" pos="0 0 0.25" range="-150 0"/>
           <geom name="left_leg" size="0.04 0.25"/>
+          <site name="left_leg_site" pos="0 0 0" size="0.01"/>
           <body name="left_foot" pos="0.06 0 -0.25">
             <joint name="left_ankle" pos="-0.06 0 0" range="-45 45"/>
             <geom name="left_foot" zaxis="1 0 0" size="0.05 0.1"/>
+            <site name="left_foot_site" pos="0 0 0" size="0.01"/>
           </body>
         </body>
       </body>

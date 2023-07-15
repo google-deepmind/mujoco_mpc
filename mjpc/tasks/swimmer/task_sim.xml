@@ -1,0 +1,62 @@
+<mujoco model="Swimmer">
+  <include file="../common.xml" />
+  <include file="swimmer.xml" />
+
+  <custom>
+    <numeric name="agent_planner" data="2" />
+    <numeric name="agent_horizon" data="2" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_integrator" data="2" />
+    <numeric name="agent_policy_width" data="0.0015" />
+    <numeric name="sampling_spline_points" data="10" />
+    <numeric name="sampling_exploration" data="0.05" />
+    <numeric name="gradient_spline_points" data="10" />
+  </custom>
+
+  <worldbody>
+    <body name="target" mocap="true" pos="1 1 .05">
+      <geom name="target" type="sphere" size="0.05" material="target"/>
+      <light name="target_light" diffuse=".7 .7 .7" pos="0 0 0.5"/>
+    </body>
+  </worldbody>
+
+  <sensor>
+    <!-- head IMU -->
+    <!-- <accelerometer name="linacc_head" site="head" />
+    <gyro name="angvel_head" site="head" /> -->
+
+    <!-- site0 IMU -->
+    <!-- <accelerometer name="linacc_site0" site="site_0" />
+    <gyro name="angvel_site0" site="site_0" /> -->
+
+    <!-- site1 IMU -->
+    <!-- <accelerometer name="linacc_site1" site="site_1" />
+    <gyro name="angvel_site1" site="site_1" /> -->
+
+    <!-- site2 IMU -->
+    <!-- <accelerometer name="linacc_site0" site="site_2" />
+    <gyro name="angvel_site2" site="site_2" /> -->
+
+    <!-- site3 IMU -->
+    <!-- <accelerometer name="linacc_site3" site="site_3" />
+    <gyro name="angvel_site3" site="site_3" /> -->
+
+    <!-- site4 IMU -->
+    <!-- <accelerometer name="linacc_site4" site="site_4" />
+    <gyro name="angvel_site4" site="site_4" /> -->
+    
+    <!-- joints -->
+    <jointpos name="rootx" joint="rootx" />
+    <jointpos name="rooty" joint="rooty" />
+    <jointpos name="rootz" joint="rootz" />    
+    <jointpos name="joint0" joint="joint_0" />
+    <jointpos name="joint1" joint="joint_1" />
+    <jointpos name="joint2" joint="joint_2" />
+    <jointpos name="joint3" joint="joint_3" />
+    <jointpos name="joint4" joint="joint_4" />
+
+    <framepos name="trace0" objtype="geom" objname="nose"/>
+    <framepos name="nose" objtype="geom" objname="nose"/>
+    <framepos name="target" objtype="body" objname="target"/>
+  </sensor>
+</mujoco>

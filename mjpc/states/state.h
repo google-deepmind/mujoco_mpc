@@ -53,6 +53,15 @@ class State {
   // set qvel 
   void SetVel(const mjModel* model, const double* qvel);
 
+  // set act 
+  void SetAct(const mjModel* model, const double* act);
+
+  // set mocap
+  void SetMocap(const mjModel* model, const double* mocap_pos, const double* mocap_quat);
+
+  // set user data
+  void SetUserData(const mjModel* model, const double* userdata);
+
   // set time 
   void SetTime(const mjModel* model, double time);
 

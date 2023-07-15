@@ -80,18 +80,20 @@ class EKF {
   // correction (2nv)
   std::vector<double> correction_;
 
- private:
-  // dimensions
-  int nstate_;
-  int nvelocity_;
-
-  // dynamics Jacobian (2nv x 2nv)
-  std::vector<double> dynamics_jacobian_;
-
   // sensor Jacobian (nsensordata x 2nv)
   std::vector<double> sensor_jacobian_;
 
-  // Kalman gain (2nv x nsensordata)
+
+ private:
+  // dimensions
+  int nstate_;
+  int ndstate_;
+
+  // dynamics Jacobian ((2nv + na) x (2nv + na))
+  std::vector<double> dynamics_jacobian_;
+
+
+  // Kalman gain ((2nv + na) x nsensordata)
   // TODO(taylor): unused..
   std::vector<double> kalman_gain_;
 

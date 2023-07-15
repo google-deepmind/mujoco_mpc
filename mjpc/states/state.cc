@@ -77,6 +77,25 @@ void State::SetVel(const mjModel* model, const double* qvel) {
   mju_copy(DataAt(state_, model->nq), qvel, model->nv);
 }
 
+// set act
+void State::SetAct(const mjModel* model, const double* act) {
+  mju_copy(DataAt(state_, model->nq + model->nv), act, model->na);
+}
+
+// set mocap
+void State::SetMocap(const mjModel* model, const double* mocap_pos, const double* mocap_quat) {
+  // mocap
+  for (int i = 0; i < model->nmocap; i++) {
+    mju_copy(DataAt(mocap_, 7 * i), mocap_pos + 3 * i, 3);
+    mju_copy(DataAt(mocap_, 7 * i + 3), mocap_quat + 4 * i, 4);
+  }
+}
+
+// set userdata
+void State::SetUserData(const mjModel* model, const double* userdata) {
+  mju_copy(userdata_.data(), userdata, model->nuserdata);
+}
+
 // set time
 void State::SetTime(const mjModel* model, double time) {
   time_ = time;

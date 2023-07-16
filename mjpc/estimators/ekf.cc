@@ -163,31 +163,35 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   }
 
   // factorize: C * P * C' + R
-  double reg = 0.0;
-  double scl_reg = 10.0;
-  int rank = 0;
-  while (rank < ns) {
-    // regularize
-    if (reg > 0.0) {
-      for (int i = 0; i < ns; i++) {
-        tmp1_[ns * i + i] += (1.0 - 1.0 / scl_reg) * reg;
-      }
-    }
-    // factorize
-    rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
-
-    // check failure
-    if (rank < ns && reg >= 1.0e16) {
-      mju_error("measurement update rank: (%i / %i)\n", rank, ns);
-    }
-
-    // increase regularization
-    if (reg > 0.0) {
-      reg *= scl_reg;
-    } else {
-      reg = 1.0e-6;
-    }
+  int rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
+  if (rank < ns) {
+    mju_error("measurement update rank: (%i / %i)\n", rank, ns);
   }
+
+  // double reg = 0.0;
+  // double scl_reg = 10.0;
+  // while (rank < ns) {
+  //   // regularize
+  //   if (reg > 0.0) {
+  //     for (int i = 0; i < ns; i++) {
+  //       tmp1_[ns * i + i] += (1.0 - 1.0 / scl_reg) * reg;
+  //     }
+  //   }
+  //   // factorize
+  //   rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
+
+  //   // check failure
+  //   if (rank < ns && reg >= 1.0e16) {
+  //     mju_error("measurement update rank: (%i / %i)\n", rank, ns);
+  //   }
+
+  //   // increase regularization
+  //   if (reg > 0.0) {
+  //     reg *= scl_reg;
+  //   } else {
+  //     reg = 1.0e-6;
+  //   }
+  // }
 
 
   // -- correction: (P * C') * (C * P * C' + R)^-1 * sensor_error -- //

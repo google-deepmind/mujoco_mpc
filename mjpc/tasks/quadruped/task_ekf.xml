@@ -62,24 +62,29 @@
 
   <sensor>
     <!-- body IMU -->
-    <accelerometer name="linacc_body" site="torso" />
-    <gyro name="angvel_body" site="torso" />
+    <!-- <accelerometer name="linacc_body" site="torso" />
+    <gyro name="angvel_body" site="torso" /> -->
+    <framepos name="torso_pos" objtype="site" objname="torso" />
 
     <!-- FR IMU -->
-    <accelerometer name="linacc_FR" site="FR" />
-    <gyro name="angvel_FR" site="FR" />
+    <!-- <accelerometer name="linacc_FR" site="FR" />
+    <gyro name="angvel_FR" site="FR" /> -->
+    <framepos name="FR_pos" objtype="site" objname="FR" />
 
     <!-- FL IMU -->
-    <accelerometer name="linacc_FL" site="FL" />
-    <gyro name="angvel_FL" site="FL" />
+    <!-- <accelerometer name="linacc_FL" site="FL" />
+    <gyro name="angvel_FL" site="FL" /> -->
+    <framepos name="FL_pos" objtype="site" objname="FL" />
 
     <!-- RR IMU -->
-    <accelerometer name="linacc_RR" site="RR" />
-    <gyro name="angvel_RR" site="RR" />
+    <!-- <accelerometer name="linacc_RR" site="RR" />
+    <gyro name="angvel_RR" site="RR" /> -->
+    <framepos name="RR_pos" objtype="site" objname="RR" />
 
     <!-- RL IMU -->
-    <accelerometer name="linacc_RL" site="RL" />
-    <gyro name="angvel_RL" site="RL" />
+    <!-- <accelerometer name="linacc_RL" site="RL" />
+    <gyro name="angvel_RL" site="RL" /> -->
+    <framepos name="RL_pos" objtype="site" objname="RL" />
 
     <!-- joints positions -->
     <jointpos name="pos_FR_hip_joint" joint="FR_hip_joint" />
@@ -94,28 +99,6 @@
     <jointpos name="pos_RL_hip_joint" joint="RL_hip_joint" />
     <jointpos name="pos_RL_thigh_joint" joint="RL_thigh_joint" />
     <jointpos name="pos_RL_calf_joint" joint="RL_calf_joint" />
-    
-    <!-- <framepos      name="trace0" objtype="site" objname="head"/> -->
-    <!-- <subtreecom    name="torso_subtreecom" body="trunk"/>
-    <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
-    <subtreelinvel name="torso_angmom" body="trunk"/> -->
+    <subtreecom    name="torso_subtreecom" body="trunk"/>
   </sensor>
-
-  <keyframe>
-    <key name="home"
-         qpos="0 0 0.26
-               1 0 0 0
-               -0.000341931 0.0181576 -0.0268335
-               0.00160968 0.0247957 -0.0270045
-               0.00191398 -0.033048 -0.0675298
-               -0.00199489 -0.0374747 -0.0681862"/>
-    <key name="crouch"
-         qpos="-0.0501827 0.00107117 0.143925
-               1 0 0 0
-               0 0 -0.5
-               0 0 -0.5
-               0 0 -0.5
-               0 0 -0.5"/>
-
-  </keyframe>
 </mujoco>

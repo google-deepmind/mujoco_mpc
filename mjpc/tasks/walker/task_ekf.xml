@@ -11,39 +11,42 @@
     <subtreelinvel name="torso_subtreelinvel" body="torso"/>
     <framezaxis    name="torso_zaxis" objtype="xbody" objname="torso"/> -->
     <!-- torso IMU -->
-    <accelerometer name="linacc_torso" site="torso_site" /> 
-    <gyro name="angvel_torso" site="torso_site" />
+    <!-- <accelerometer name="linacc_torso" site="torso_site" /> 
+    <gyro name="angvel_torso" site="torso_site" /> -->
 
     <!-- right thigh IMU -->
-    <accelerometer name="linacc_right_thigh" site="right_thigh_site" />
-    <gyro name="angvel_right_thigh" site="right_thigh_site" />
+    <!-- <accelerometer name="linacc_right_thigh" site="right_thigh_site" />
+    <gyro name="angvel_right_thigh" site="right_thigh_site" /> -->
 
     <!-- right leg IMU -->
-    <accelerometer name="linacc_right_leg" site="right_leg_site" />
-    <gyro name="angvel_right_leg" site="right_leg_site" />
+    <!-- <accelerometer name="linacc_right_leg" site="right_leg_site" />
+    <gyro name="angvel_right_leg" site="right_leg_site" /> -->
 
     <!-- right foot IMU -->
-    <accelerometer name="linacc_right_foot" site="right_foot_site" />
-    <gyro name="angvel_right_foot" site="right_foot_site" />
+    <!-- <accelerometer name="linacc_right_foot" site="right_foot_site" />
+    <gyro name="angvel_right_foot" site="right_foot_site" /> -->
 
     <!-- left hip IMU -->
-    <accelerometer name="linacc_left_hip" site="left_hip_site" />
-    <gyro name="angvel_left_hip" site="left_hip_site" />
+    <!-- <accelerometer name="linacc_left_hip" site="left_hip_site" />
+    <gyro name="angvel_left_hip" site="left_hip_site" /> -->
 
     <!-- left leg IMU -->
-    <accelerometer name="linacc_left_leg" site="left_leg_site" />
-    <gyro name="angvel_left_leg" site="left_leg_site" />
+    <!-- <accelerometer name="linacc_left_leg" site="left_leg_site" />
+    <gyro name="angvel_left_leg" site="left_leg_site" /> -->
 
     <!-- left foot IMU -->
-    <accelerometer name="linacc_left_foot" site="left_foot_site" />
-    <gyro name="angvel_left_foot" site="left_foot_site" />
+    <!-- <accelerometer name="linacc_left_foot" site="left_foot_site" />
+    <gyro name="angvel_left_foot" site="left_foot_site" /> -->
 
     <!-- joint angles -->
-    <!-- <jointpos name="right_hip" joint="right_hip" /> -->
-    <!-- <jointpos name="right_knee" joint="right_knee" /> -->
-    <!-- <jointpos name="right_ankle" joint="right_ankle" /> -->
-    <!-- <jointpos name="left_hip" joint="left_hip" /> -->
-    <!-- <jointpos name="left_knee" joint="left_knee" /> -->
+    <jointpos name="rootz" joint="rootz" />
+    <jointpos name="rootx" joint="rootx" />
+    <jointpos name="rooty" joint="rooty" />
+    <jointpos name="right_hip" joint="right_hip" />
+    <jointpos name="right_knee" joint="right_knee" />
+    <jointpos name="right_ankle" joint="right_ankle" />
+    <jointpos name="left_hip" joint="left_hip" />
+    <jointpos name="left_knee" joint="left_knee" />
     <jointpos name="left_ankle" joint="left_ankle" />
   </sensor>
 </mujoco>

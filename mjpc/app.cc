@@ -349,7 +349,6 @@ void PhysicsLoop(mj::Simulate& sim) {
     if (sim.uiloadrequest.load() == 0) {
       // sim.agent->ActiveState().Set(m, d);
       
-
       sim.agent->ActiveState().SetPos(m, sim.agent->state.data());
       sim.agent->ActiveState().SetVel(m, sim.agent->state.data() + m->nq);
       sim.agent->ActiveState().SetAct(m, sim.agent->state.data() + m->nq + m->nv);
@@ -357,8 +356,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 
       sim.agent->ActiveState().SetMocap(m, d->mocap_pos, d->mocap_quat);
       sim.agent->ActiveState().SetUserData(m, d->userdata);
-
-      // sim.agent->ActiveState().SetTime(m, sim.agent->ekf.data_->time);
 
       // printf("time (d) = %f\n", d->time);
       // printf("time (d_) = %f\n", sim.agent->ekf.time);
@@ -453,8 +450,8 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   sim->agent->PlotInitialize();
 
   // ----- estimator model ----- //
-  std::string file_ekf = mjpc::GetModelPath("swimmer/task_ekf.xml");
-  std::string file_sim = mjpc::GetModelPath("swimmer/task_sim.xml");
+  std::string file_ekf = mjpc::GetModelPath("quadruped/task_ekf.xml");
+  std::string file_sim = mjpc::GetModelPath("quadruped/task_flat_sim.xml");
   constexpr int kErrorLength = 1024;
   char load_error[kErrorLength] = "";
   m_est = mj_loadXML(file_ekf.c_str(), nullptr, load_error, kErrorLength);
@@ -501,7 +498,7 @@ void MjpcApp::Start() {
   // initialize
   ekf->Initialize(m_est);
   ekf->Reset();
-  ekf->model->opt.timestep = 0.02;
+  ekf->model->opt.timestep = 0.002;
   sim->agent->ctrl.resize(m_est->nu);
   sim->agent->sensor.resize(m_est->nsensordata);
   sim->agent->state.resize(m_est->nq + m_est->nv + m_est->na);
@@ -527,29 +524,19 @@ void MjpcApp::Start() {
   printf("nsensordata (m_est) = %i\n", m_est->nsensordata);
   printf("nq = %i, nv = %i, na = %i\n", ekf->model->nq, ekf->model->nv, ekf->model->na);
 
-  // sensor Jacobian
-  // mj_forward(ekf->model, ekf->data_);
-  // mjd_transitionFD(ekf->model, ekf->data_, ekf->settings.epsilon, ekf->settings.flg_centered, NULL,
-  //                  NULL, ekf->sensor_jacobian_.data(), NULL);
-
-  // return;
 
   // printf("state (pre): ");
   // mju_printMat(ekf->state.data(), 1, m->nq + m->nv + m->na);
 
   // mj_forward(m, d);
-  // ekf->UpdateMeasurement(d->ctrl, d->sensordata);
 
-  // printf("state (post measurement): ");
-  // mju_printMat(ekf->state.data(), 1, m->nq + m->nv);
-
-  // printf("correction: ");
-  // mju_printMat(ekf->correction_.data(), 1, 2 * m->nv);
-
-  // ekf->UpdatePrediction();
-
-  // printf("state (post prediction): ");
-  // mju_printMat(ekf->state.data(), 1, m->nq + m->nv + m->na);
+  // for (int i = 0; i < 2; i++) {
+  //   ekf->UpdateMeasurement(d->ctrl, d->sensordata);
+  //   ekf->UpdatePrediction();
+  //   printf("iteration %i\n", i);
+  //   printf("  timer (measurement) = %f\n", ekf->TimerMeasurement());
+  //   printf("  timer (prediction) = %f\n", ekf->TimerPrediction());
+  // }
 
   // return;
 

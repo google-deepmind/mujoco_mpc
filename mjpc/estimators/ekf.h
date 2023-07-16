@@ -24,6 +24,7 @@
 
 namespace mjpc {
 
+// https://stanford.edu/class/ee363/lectures/kf.pdf
 class EKF {
  public:
   // constructor
@@ -77,12 +78,11 @@ class EKF {
   // data
   mjData* data_;
 
-  // correction (2nv)
+  // correction (2nv + na)
   std::vector<double> correction_;
 
-  // sensor Jacobian (nsensordata x 2nv)
+  // sensor Jacobian (nsensordata x (2nv + na))
   std::vector<double> sensor_jacobian_;
-
 
  private:
   // dimensions

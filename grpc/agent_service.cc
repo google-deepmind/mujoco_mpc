@@ -151,7 +151,9 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
   if (!status.ok()) return status;
 
   mj_forward(model, data_);
+  // Further update the state by calling task's Transition function.
   task->Transition(model, data_);
+  agent_.SetState(data_);
 
   return grpc::Status::OK;
 }

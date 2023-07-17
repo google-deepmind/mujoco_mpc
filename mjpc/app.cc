@@ -498,7 +498,7 @@ void MjpcApp::Start() {
   // initialize
   ekf->Initialize(m_est);
   ekf->Reset();
-  ekf->model->opt.timestep = 0.002;
+  ekf->model->opt.timestep = 0.01;
   sim->agent->ctrl.resize(m_est->nu);
   sim->agent->sensor.resize(m_est->nsensordata);
   sim->agent->state.resize(m_est->nq + m_est->nv + m_est->na);

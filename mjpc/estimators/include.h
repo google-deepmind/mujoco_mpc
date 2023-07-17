@@ -18,6 +18,9 @@
 #include <memory>
 #include <vector>
 
+#include "estimators/ekf.h"
+#include "estimators/estimator.h"
+
 namespace mjpc {
 
 // Estimator names, separated by '\n'.

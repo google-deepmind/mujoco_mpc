@@ -108,6 +108,8 @@ add_library(
   estimators/ekf.h
   estimators/estimator.cc
   estimators/estimator.h
+  estimators/include.cc 
+  estimators/include.h
   estimators/trajectory.h
   app.cc
   app.h

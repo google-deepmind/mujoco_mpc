@@ -11,9 +11,13 @@
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Torso" data="1.35 1.0 1.7" />
     <numeric name="residual_Speed" data="0.5 -3.0 3.0" />
+    <numeric name="estimator_sensor_start_index" data="75" />
+    <numeric name="estimator_sensor_dimension" data="36" />
+    <numeric name="estimator_timestep" data="0.0025" />
   </custom>
 
   <sensor>
+    <!-- cost -->
     <user name="Height" dim="1" user="7 5.0 0 25.0 0.1 4.0" />
     <user name="Pelvis/Feet" dim="1" user="8 1.0 0.0 10.0 0.05" />
     <user name="Balance" dim="2" user="1 5.0 0.0 25.0 0.02 4.0" />
@@ -22,7 +26,39 @@
     <user name="Velocity" dim="2" user="7 0.625 0 25.0 0.2 4.0" />
     <user name="Walk" dim="1" user="7 1.0 0.0 25.0 0.5 3.0" />
     <user name="Control" dim="21" user="3 0.1 0 1.0 0.3" />
+
+    <!-- estimator -->
+    <framepos name="pelvis" objtype="site" objname="tracking[pelvis]" />
+    <framepos name="right_foot" objtype="site" objname="foot_right" />
+    <framepos name="left_foot" objtype="site" objname="foot_left" />
+    <framepos name="right_hand" objtype="site" objname="tracking[rhand]" />
+    <framepos name="left_hand" objtype="site" objname="tracking[lhand]" />
+    <jointpos name="abdomen_z" joint="abdomen_z"/>
+    <jointpos name="abdomen_y" joint="abdomen_y"/>
+    <jointpos name="abdomen_x" joint="abdomen_x"/>
+    <jointpos name="hip_x_right" joint="hip_x_right"/>
+    <jointpos name="hip_z_right" joint="hip_z_right"/>
+    <jointpos name="hip_y_right" joint="hip_y_right"/>
+    <jointpos name="knee_right" joint="knee_right"/>
+    <jointpos name="ankle_y_right" joint="ankle_y_right"/>
+    <jointpos name="ankle_x_right" joint="ankle_x_right"/>
+    <jointpos name="hip_x_left" joint="hip_x_left"/>
+    <jointpos name="hip_z_left" joint="hip_z_left"/>
+    <jointpos name="hip_y_left" joint="hip_y_left"/>
+    <jointpos name="knee_left" joint="knee_left"/>
+    <jointpos name="ankle_y_left" joint="ankle_y_left"/>
+    <jointpos name="ankle_x_left" joint="ankle_x_left"/>
+    <jointpos name="shoulder1_right" joint="shoulder1_right"/>
+    <jointpos name="shoulder2_right" joint="shoulder2_right"/>
+    <jointpos name="elbow_right" joint="elbow_right"/>
+    <jointpos name="shoulder1_left" joint="shoulder1_left"/>
+    <jointpos name="shoulder2_left" joint="shoulder2_left"/>
+    <jointpos name="elbow_left" joint="elbow_left" />
+
+    <!-- trace -->
     <framepos name="trace0" objtype="body" objname="torso"/>
+
+    <!-- residual -->
     <framepos name="torso_position" objtype="body" objname="torso"/>
     <subtreecom name="torso_subcom" body="torso"/>
     <subtreelinvel name="torso_subcomvel" body="torso"/>

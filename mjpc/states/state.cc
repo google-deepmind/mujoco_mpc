@@ -49,21 +49,18 @@ void State::Set(const mjModel* model, const mjData* data) {
     mocap_.resize(7 * model->nmocap);
 
     // state
-    mju_copy(state_.data(), data->qpos, model->nq);
-    mju_copy(DataAt(state_, model->nq), data->qvel, model->nv);
-    mju_copy(DataAt(state_, model->nq + model->nv), data->act, model->na);
+    SetPos(model, data->qpos);
+    SetVel(model, data->qvel);
+    SetAct(model, data->act);
 
     // mocap
-    for (int i = 0; i < model->nmocap; i++) {
-      mju_copy(DataAt(mocap_, 7 * i), data->mocap_pos + 3 * i, 3);
-      mju_copy(DataAt(mocap_, 7 * i + 3), data->mocap_quat + 4 * i, 4);
-    }
+    SetMocap(model, data->mocap_pos, data->mocap_quat);
 
     // userdata
-    mju_copy(userdata_.data(), data->userdata, model->nuserdata);
+    SetUserData(model, data->userdata);
 
     // time
-    time_ = data->time;
+    SetTime(model, data->time);
   }
 }
 

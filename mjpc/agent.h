@@ -130,6 +130,7 @@ class Agent {
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
+  int ActiveEstimator() const { return estimator_; };
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -163,6 +164,7 @@ class Agent {
   // status flags, logically should be bool, but mjUI needs int pointers
   int plan_enabled;
   int action_enabled;
+  int estimator_enabled;
   int visualize_enabled;
   int allocate_enabled;
   int plot_enabled;
@@ -206,6 +208,9 @@ class Agent {
   std::vector<std::unique_ptr<mjpc::State>> states_;
   int state_;
 
+  // estimators 
+  int estimator_;
+
   // task queue for RunBeforeStep
   std::mutex step_jobs_mutex_;
   std::deque<StepJob> step_jobs_;
@@ -224,6 +229,7 @@ class Agent {
   // names
   char task_names_[1024];
   char planner_names_[1024];
+  char estimator_names_[1024];
 
   // plots
   AgentPlots plots_;

@@ -24,17 +24,27 @@
 namespace mjpc {
 
 // initialize
-void EKF::Initialize(mjModel* model) {
+void EKF::Initialize(const mjModel* model) {
   // model
-  this->model = model;
+  if (this->model) mj_deleteModel(this->model);
+  this->model = mj_copyModel(nullptr, model);
 
   // data
   data_ = mj_makeData(model);
 
+  // timestep
+  this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
+                                                 model, "estimator_timestep");
+
   // dimension
   nstate_ = model->nq + model->nv + model->na;
   ndstate_ = 2 * model->nv + model->na;
-  int ns = model->nsensordata;
+  nsensordata_ = GetNumberOrDefault(model->nsensordata, model,
+                                    "estimator_sensor_dimension");
+
+  // sensor start index
+  sensor_start_index_ =
+      GetNumberOrDefault(0, model, "estimator_sensor_start_index");
 
   // state
   state.resize(nstate_);
@@ -46,61 +56,74 @@ void EKF::Initialize(mjModel* model) {
   noise_process.resize(ndstate_);
 
   // sensor noise
-  noise_sensor.resize(ns);
+  noise_sensor.resize(nsensordata_);
 
   // dynamics Jacobian
   dynamics_jacobian_.resize(ndstate_ * ndstate_);
 
   // sensor Jacobian
-  sensor_jacobian_.resize(ns * ndstate_);
+  sensor_jacobian_.resize(model->nsensordata * ndstate_);
 
   // Kalman gain
-  kalman_gain_.resize(ndstate_ * ns);
+  kalman_gain_.resize(ndstate_ * nsensordata_);
 
   // sensor error
-  sensor_error_.resize(ns);
+  sensor_error_.resize(nsensordata_);
 
   // correction
   correction_.resize(ndstate_);
 
   // scratch
-  tmp0_.resize(ndstate_ * ns);
-  tmp1_.resize(ns * ns);
-  tmp2_.resize(ns * ndstate_);
+  tmp0_.resize(ndstate_ * nsensordata_);
+  tmp1_.resize(nsensordata_ * nsensordata_);
+  tmp2_.resize(nsensordata_ * ndstate_);
   tmp3_.resize(ndstate_ * ndstate_);
 }
 
 // reset memory
 void EKF::Reset() {
   // dimension
-  int nq = model->nq, nv = model->nv, na = model->na, ns = model->nsensordata;
+  int nq = model->nq, nv = model->nv, na = model->na;
+
+  // set home keyframe
+  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+  if (home_id >= 0) mj_resetDataKeyframe(model, data_, home_id);
 
   // state
-  mju_copy(state.data(), model->qpos0, nq);
-  mju_zero(state.data() + nq, nv);
-  mju_zero(state.data() + nq + nv, na);
+  mju_copy(state.data(), data_->qpos, nq);
+  mju_copy(state.data() + nq, data_->qvel, nv);
+  mju_copy(state.data() + nq + nv, data_->act, na);
+  data_->time = 0.0;
   time = 0.0;
 
   // covariance
   mju_eye(covariance.data(), ndstate_);
+  double covariance_scl =
+      GetNumberOrDefault(1.0e-5, model, "estimator_covariance_initial_scale");
+  mju_scl(covariance.data(), covariance.data(), covariance_scl,
+          ndstate_ * ndstate_);
 
   // process noise
-  mju_zero(noise_process.data(), ndstate_);
+  double noise_process_scl =
+      GetNumberOrDefault(1.0e-5, model, "estimator_process_noise_scale");
+  std::fill(noise_process.begin(), noise_process.end(), noise_process_scl);
 
   // sensor noise
-  mju_zero(noise_sensor.data(), ns);
+  double noise_sensor_scl =
+      GetNumberOrDefault(1.0e-5, model, "estimator_sensor_noise_scale");
+  std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
   // dynamics Jacobian
   mju_zero(dynamics_jacobian_.data(), ndstate_ * ndstate_);
 
   // sensor Jacobian
-  mju_zero(sensor_jacobian_.data(), ns * ndstate_);
+  mju_zero(sensor_jacobian_.data(), model->nsensordata * ndstate_);
 
   // Kalman gain
-  mju_zero(kalman_gain_.data(), ndstate_ * ns);
+  mju_zero(kalman_gain_.data(), ndstate_ * nsensordata_);
 
   // sensor error
-  mju_zero(sensor_error_.data(), ns);
+  mju_zero(sensor_error_.data(), nsensordata_);
 
   // correction
   mju_zero(correction_.data(), ndstate_);
@@ -122,8 +145,7 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   auto start = std::chrono::steady_clock::now();
 
   // dimensions
-  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
-      ns = model->nsensordata;
+  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
   // set state
   mju_copy(data_->qpos, state.data(), nq);
@@ -136,7 +158,8 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   // forward to get sensor
   mj_forward(model, data_);
 
-  mju_sub(sensor_error_.data(), sensor, data_->sensordata, ns);
+  mju_sub(sensor_error_.data(), sensor + sensor_start_index_,
+          data_->sensordata + sensor_start_index_, nsensordata_);
 
   // -- Kalman gain: P * C' (C * P * C' + R)^-1 -- //
 
@@ -144,32 +167,36 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered, NULL,
                    NULL, sensor_jacobian_.data(), NULL);
 
+  // grab rows
+  double* C = sensor_jacobian_.data() + sensor_start_index_ * ndstate_;
+
   // P * C' = tmp0
-  mju_mulMatMatT(tmp0_.data(), covariance.data(), sensor_jacobian_.data(),
-                 ndstate_, ndstate_, ns);
+  mju_mulMatMatT(tmp0_.data(), covariance.data(), C, ndstate_, ndstate_,
+                 nsensordata_);
 
   // C * P * C' = C * tmp0 = tmp1
-  mju_mulMatMat(tmp1_.data(), sensor_jacobian_.data(), tmp0_.data(), ns,
-                ndstate_, ns);
+  mju_mulMatMat(tmp1_.data(), C, tmp0_.data(), nsensordata_, ndstate_,
+                nsensordata_);
 
   // C * P * C' + R
-  for (int i = 0; i < ns; i++) {
-    tmp1_[ns * i + i] += noise_sensor[i];
+  for (int i = 0; i < nsensordata_; i++) {
+    tmp1_[nsensordata_ * i + i] += noise_sensor[i];
   }
 
   // factorize: C * P * C' + R
-  int rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
-  if (rank < ns) {
-    mju_error("measurement update rank: (%i / %i)\n", rank, ns);
+  int rank = mju_cholFactor(tmp1_.data(), nsensordata_, 0.0);
+  if (rank < nsensordata_) {
+    mju_error("measurement update rank: (%i / %i)\n", rank, nsensordata_);
   }
 
   // -- correction: (P * C') * (C * P * C' + R)^-1 * sensor_error -- //
 
   // tmp2 = (C * P * C' + R) \ sensor_error
-  mju_cholSolve(tmp2_.data(), tmp1_.data(), sensor_error_.data(), ns);
+  mju_cholSolve(tmp2_.data(), tmp1_.data(), sensor_error_.data(), nsensordata_);
 
   // correction = (P * C') * (C * P * C' + R) \ sensor_error = tmp0 * tmp2
-  mju_mulMatVec(correction_.data(), tmp0_.data(), tmp2_.data(), ndstate_, ns);
+  mju_mulMatVec(correction_.data(), tmp0_.data(), tmp2_.data(), ndstate_,
+                nsensordata_);
 
   // -- state update -- //
 
@@ -183,13 +210,13 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
 
   // tmp2 = (C * P * C' + R)^-1 (C * P) = tmp1 \ tmp0'
   for (int i = 0; i < ndstate_; i++) {
-    mju_cholSolve(tmp2_.data() + ns * i, tmp1_.data(), tmp0_.data() + ns * i,
-                  ns);
+    mju_cholSolve(tmp2_.data() + nsensordata_ * i, tmp1_.data(),
+                  tmp0_.data() + nsensordata_ * i, nsensordata_);
   }
 
   // tmp3 = (P * C') * (C * P * C' + R)^-1 (C * P) = tmp0 * tmp2'
-  mju_mulMatMatT(tmp3_.data(), tmp0_.data(), tmp2_.data(), ndstate_, ns,
-                 ndstate_);
+  mju_mulMatMatT(tmp3_.data(), tmp0_.data(), tmp2_.data(), ndstate_,
+                 nsensordata_, ndstate_);
 
   // covariance -= tmp3
   mju_subFrom(covariance.data(), tmp3_.data(), ndstate_ * ndstate_);

@@ -29,13 +29,13 @@ class EKF {
  public:
   // constructor
   EKF() = default;
-  EKF(mjModel* model) {
+  EKF(const mjModel* model) {
     Initialize(model);
     Reset();
   }
 
   // initialize
-  void Initialize(mjModel* model);
+  void Initialize(const mjModel* model);
 
   // reset memory
   void Reset();
@@ -55,17 +55,17 @@ class EKF {
   // model
   mjModel* model;
 
-  // state (nq + nv)
+  // state (nq + nv + na)
   std::vector<double> state;
   double time;
 
   // covariance
   std::vector<double> covariance;
 
-  // process noise (2nv)
+  // process noise (2nv + na)
   std::vector<double> noise_process;
 
-  // sensor noise (nsensordata)
+  // sensor noise (nsensordata_)
   std::vector<double> noise_sensor;
 
   // settings
@@ -88,18 +88,20 @@ class EKF {
   // dimensions
   int nstate_;
   int ndstate_;
+  int nsensordata_;
+
+  // sensor start index 
+  int sensor_start_index_;
 
   // dynamics Jacobian ((2nv + na) x (2nv + na))
   std::vector<double> dynamics_jacobian_;
 
-
-  // Kalman gain ((2nv + na) x nsensordata)
+  // Kalman gain ((2nv + na) x nsensordata_)
   // TODO(taylor): unused..
   std::vector<double> kalman_gain_;
 
-  // sensor error (nsensordata)
+  // sensor error (nsensordata_)
   std::vector<double> sensor_error_;
-
 
   // timer (ms)
   double timer_measurement_;

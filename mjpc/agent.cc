@@ -14,6 +14,16 @@
 
 #include "mjpc/agent.h"
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjui.h>
+#include <mujoco/mjvisualize.h>
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -24,16 +34,8 @@
 #include <string>
 #include <string_view>
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_join.h>
-#include <absl/strings/str_split.h>
-#include <absl/strings/strip.h>
-#include <mujoco/mjmodel.h>
-#include <mujoco/mjui.h>
-#include <mujoco/mjvisualize.h>
-#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
+#include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -76,6 +78,9 @@ void Agent::Initialize(const mjModel* model) {
   // state
   state_ = GetNumberOrDefault(0, model, "agent_state");
 
+  // estimator
+  estimator_ = GetNumberOrDefault(0, model, "agent_estimator");
+
   // integrator
   integrator_ =
       GetNumberOrDefault(model->opt.integrator, model, "agent_integrator");
@@ -102,6 +107,13 @@ void Agent::Initialize(const mjModel* model) {
     state->Initialize(model);
   }
 
+  // initialize estimator 
+  ekf.Initialize(model);
+  ekf.Reset();
+  ctrl.resize(model->nu);
+  sensor.resize(model->nsensordata);
+  state.resize(model->nq + model->nv + model->na);
+
   // status
   plan_enabled = false;
   action_enabled = true;
@@ -115,7 +127,9 @@ void Agent::Initialize(const mjModel* model) {
   // counter
   count_ = 0;
 
+  // names
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
+  mju::strcpy_arr(this->estimator_names_, kEstimatorNames);
 
   // max threads
   max_threads_ = std::max(1, NumAvailableHardwareThreads() - 4);
@@ -151,6 +165,9 @@ void Agent::Reset() {
   for (const auto& state : states_) {
     state->Reset();
   }
+
+  // estimator 
+  ekf.Reset();
 
   // cost
   cost_ = 0.0;
@@ -636,6 +653,22 @@ void Agent::GUI(mjUI& ui) {
 
   // planner
   ActivePlanner().GUI(ui);
+
+  // ----- estimator ------ // 
+  mjuiDef defEstimator[] = {
+    {mjITEM_SEPARATOR, "Estimator Settings", 1},
+    {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
+    {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
+    // {mjITEM_SLIDERNUM, "Timestep", 2, &ekf.model->opt.timestep, "0 1"},
+    // {mjITEM_SELECT, "Integrator", 2, &ekf.mo, "Euler\nRK4\nImplicit\nFastImplicit"},
+    {mjITEM_END}
+  };
+
+  // planner names
+  mju::strcpy_arr(defEstimator[2].other, estimator_names_);
+
+  // add estimator 
+  mjui_add(&ui, defEstimator);
 }
 
 // task-based GUI event

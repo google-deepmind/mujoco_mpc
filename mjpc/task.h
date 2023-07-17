@@ -68,7 +68,7 @@ class BaseResidualFn : public ResidualFn {
   std::vector<int> num_norm_parameter_;
   std::vector<NormType> norm_;
   std::vector<double> weight_;
-  std::vector<double> num_parameter_;
+  std::vector<double> norm_parameter_;
   double risk_;
   std::vector<double> parameters_;
   const Task* task_;
@@ -153,7 +153,7 @@ class Task {
   std::vector<int> num_norm_parameter;
   std::vector<NormType> norm;
   std::vector<double> weight;
-  std::vector<double> num_parameter;
+  std::vector<double> norm_parameter;
   double risk;
 
   // residual parameters

@@ -60,7 +60,7 @@ void Task::Reset(const mjModel* model) {
   num_norm_parameter.resize(kMaxCostTerms);
   norm.resize(kMaxCostTerms);
   weight.resize(kMaxCostTerms);
-  num_parameter.resize(2 * kMaxCostTerms);
+  norm_parameter.resize(2 * kMaxCostTerms);
 
   // check user sensor is first
   if (!(model->sensor_type[0] == mjSENS_USER)) {
@@ -124,7 +124,7 @@ void Task::Reset(const mjModel* model) {
 
     weight[i] = s[1];
     num_norm_parameter[i] = norm_parameter_dimension;
-    mju_copy(DataAt(num_parameter, parameter_shift), s + 4,
+    mju_copy(DataAt(norm_parameter, parameter_shift), s + 4,
              num_norm_parameter[i]);
     parameter_shift += num_norm_parameter[i];
   }
@@ -175,7 +175,7 @@ void BaseResidualFn::CostTerms(double* terms, const double* residual,
     // running cost
     terms[k] =
         (weighted ? weight_[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
-                                           DataAt(num_parameter_, p_shift),
+                                           DataAt(norm_parameter_, p_shift),
                                            dim_norm_residual_[k], norm_[k]);
 
     // shift residual
@@ -216,7 +216,7 @@ void BaseResidualFn::Update() {
   num_norm_parameter_ = task_->num_norm_parameter;
   norm_ = task_->norm;
   weight_ = task_->weight;
-  num_parameter_ = task_->num_parameter;
+  norm_parameter_ = task_->norm_parameter;
   risk_ = task_->risk;
   parameters_ = task_->parameters;
 }
@@ -237,7 +237,7 @@ void ForwardingResidualFn::CostTerms(double* terms, const double* residual,
     // running cost
     terms[k] = (weighted ? task_->weight[k] : 1) *
                Norm(nullptr, nullptr, residual + f_shift,
-                    DataAt(task_->num_parameter, p_shift),
+                    DataAt(task_->norm_parameter, p_shift),
                     task_->dim_norm_residual[k], task_->norm[k]);
 
     // shift residual

@@ -156,12 +156,11 @@ void EstimatorLoop(mj::Simulate& sim) {
       const std::lock_guard<std::mutex> lock(sim.mtx);
       mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
       mju_copy(sim.agent->sensor.data(), d->sensordata, m_est->nsensordata);
-      // mju_copy(ekf->state.data(), d->qpos, m->nq);
-      // mju_copy(ekf->state.data() + m->nq, d->qvel, m->nv);
       sim.agent->time = d->time;
     }
 
     // set time 
+    // TODO(taylor): time sync w/ physics loop
     ekf->data_->time = sim.agent->time;
 
     // measurement update
@@ -177,11 +176,6 @@ void EstimatorLoop(mj::Simulate& sim) {
     while (1.0e-3 * mjpc::GetDuration(start) <
            1.0e3 * ekf->model->opt.timestep) {
     }
-    // printf("duration = %f\n", 1.0e-3 * mjpc::GetDuration(start));
-    // printf("timestep = %f\n", 1.0e3 * ekf->model->opt.timestep);
-    // printf("estimator update (%f)\n", sim.agent->time);
-    // printf("  estimator time = %f\n", ekf->data_->time);
-    // ekf->time = sim.agent->time + ekf->model->opt.timestep;
   }
 }
 
@@ -347,8 +341,10 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
+      // set simulation state
       // sim.agent->ActiveState().Set(m, d);
       
+      // set estimator state
       sim.agent->ActiveState().SetPos(m, sim.agent->state.data());
       sim.agent->ActiveState().SetVel(m, sim.agent->state.data() + m->nq);
       sim.agent->ActiveState().SetAct(m, sim.agent->state.data() + m->nq + m->nv);
@@ -356,38 +352,6 @@ void PhysicsLoop(mj::Simulate& sim) {
 
       sim.agent->ActiveState().SetMocap(m, d->mocap_pos, d->mocap_quat);
       sim.agent->ActiveState().SetUserData(m, d->userdata);
-
-      // printf("time (d) = %f\n", d->time);
-      // printf("time (d_) = %f\n", sim.agent->ekf.time);
-      // printf("time (e) = %f\n", sim.agent->ekf.data_->time);
-
-      // printf("x sim = \n");
-      // mju_printMat(d->qpos, 1, m->nq);
-      // printf("x ekf = \n");
-      // mju_printMat(sim.agent->ekf.state.data(), 1, m->nq);
-
-      // printf("timer measurement = %f\n", 1.0e-3 * sim.agent->ekf.TimerMeasurement());
-      // printf("timer prediction = %f\n", 1.0e-3 * sim.agent->ekf.TimerPrediction());
-
-      // printf("sim time = %f\n", d->time);
-      // printf("est time = %f\n", sim.agent->ekf.data_->time);
-      // printf("x[1] = %f\n", d->qvel[0]);
-      // printf("e[1] = %f\n", sim.agent->ekf.state[1]);
-      // printf("x[0, 1] = \n");
-      // mju_printMat(d->qpos, 1, m->nq);
-      // printf("e[0, 1] = \n");
-      // mju_printMat(sim.agent->state.data(), 1, m->nq);
-
-      // printf("x[2, 3] = \n");
-      // mju_printMat(d->qvel, 1, m->nv);
-      // printf("e[2, 3] = \n");
-      // mju_printMat(sim.agent->state.data() + m->nq, 1, m->nv);
-
-      // printf("timestep = %f\n", sim.agent->ekf.model->opt.timestep);
-      // printf("timers = %f\n", 1.0e-3 * (sim.agent->ekf.TimerMeasurement() + sim.agent->ekf.TimerMeasurement()));
-      
-      // sim.agent->ActiveState().SetPos(m, sim.agent->ekf.state.data());
-      // sim.agent->ActiveState().SetVel(m, sim.agent->ekf.state.data() + m->nq);
     }
   }
 }

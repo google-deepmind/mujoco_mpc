@@ -110,7 +110,6 @@ class EKF {
   std::vector<double> tmp1_;
   std::vector<double> tmp2_;
   std::vector<double> tmp3_;
-  std::vector<double> tmp4_;
 };
 
 }  // namespace mjpc

@@ -68,16 +68,12 @@ void EKF::Initialize(mjModel* model) {
   tmp1_.resize(ns * ns);
   tmp2_.resize(ns * ndstate_);
   tmp3_.resize(ndstate_ * ndstate_);
-  tmp4_.resize(ndstate_ * ndstate_);
 }
 
 // reset memory
 void EKF::Reset() {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na, ns = model->nsensordata;
-
-  // data
-  // mj_resetData(model, data_);
 
   // state
   mju_copy(state.data(), model->qpos0, nq);
@@ -118,7 +114,6 @@ void EKF::Reset() {
   std::fill(tmp1_.begin(), tmp1_.end(), 0.0);
   std::fill(tmp2_.begin(), tmp2_.end(), 0.0);
   std::fill(tmp3_.begin(), tmp3_.end(), 0.0);
-  std::fill(tmp4_.begin(), tmp4_.end(), 0.0);
 }
 
 // update measurement
@@ -167,32 +162,6 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   if (rank < ns) {
     mju_error("measurement update rank: (%i / %i)\n", rank, ns);
   }
-
-  // double reg = 0.0;
-  // double scl_reg = 10.0;
-  // while (rank < ns) {
-  //   // regularize
-  //   if (reg > 0.0) {
-  //     for (int i = 0; i < ns; i++) {
-  //       tmp1_[ns * i + i] += (1.0 - 1.0 / scl_reg) * reg;
-  //     }
-  //   }
-  //   // factorize
-  //   rank = mju_cholFactor(tmp1_.data(), ns, 0.0);
-
-  //   // check failure
-  //   if (rank < ns && reg >= 1.0e16) {
-  //     mju_error("measurement update rank: (%i / %i)\n", rank, ns);
-  //   }
-
-  //   // increase regularization
-  //   if (reg > 0.0) {
-  //     reg *= scl_reg;
-  //   } else {
-  //     reg = 1.0e-6;
-  //   }
-  // }
-
 
   // -- correction: (P * C') * (C * P * C' + R)^-1 * sensor_error -- //
 
@@ -250,8 +219,6 @@ void EKF::UpdatePrediction() {
                    dynamics_jacobian_.data(), NULL, NULL, NULL);
 
   // integrate state
-  // TODO(taylor): integrator option
-  // mj_Euler(model, data_);
   mj_step(model, data_);
 
   // update state

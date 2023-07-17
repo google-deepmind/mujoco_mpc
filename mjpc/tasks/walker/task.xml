@@ -5,7 +5,7 @@
   <size memory="100K"/>
 
   <custom>
-    <numeric name="agent_planner" data="2" />
+    <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.8" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="sampling_spline_points" data="3" />

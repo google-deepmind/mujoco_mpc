@@ -69,7 +69,7 @@ void RobustPlanner::Reset(int horizon) {
   std::fill(state_.begin(), state_.end(), 0.0);
   std::fill(mocap_.begin(), mocap_.end(), 0.0);
   std::fill(userdata_.begin(), userdata_.end(), 0.0);
-  time = 0.0;
+  time_ = 0.0;
 
   for (auto& trajectory : trajectories_) {
     trajectory.Reset(kMaxTrajectoryHorizon);
@@ -78,7 +78,7 @@ void RobustPlanner::Reset(int horizon) {
 
 void RobustPlanner::SetState(const State& state) {
   delegate_->SetState(state);
-  state.CopyTo(state_.data(), mocap_.data(), userdata_.data(), &time);
+  state.CopyTo(state_.data(), mocap_.data(), userdata_.data(), &time_);
 }
 
 void RobustPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
@@ -114,7 +114,7 @@ void RobustPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         };
         trajectory->NoisyRollout(
             sample_policy_i, task_, model_, data_[ThreadPool::WorkerId()].get(),
-            state_.data(), time, mocap_.data(), userdata_.data(),
+            state_.data(), time_, mocap_.data(), userdata_.data(),
             /*xfrc_std=*/xfrc_std_, /*xfrc_rate=*/xfrc_rate_, horizon);
       });
     }

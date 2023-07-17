@@ -53,7 +53,7 @@
 
   <default>
     <default class="torque">
-      <general gainprm="40" ctrllimited="true" ctrlrange="-0.5 0.5"/>
+      <general gainprm="40" ctrllimited="true" ctrlrange="-1 1"/>
     </default>
     <default class="task">
       <site rgba="1 0 0 1" size=".02" group="5"/>

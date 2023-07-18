@@ -79,7 +79,7 @@ class iLQSPlanner : public Planner {
 
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-             int timer_shift, int planning) override;
+             int timer_shift, int planning, int* shift) override;
 
   // ----- planners ----- //
   SamplingPlanner sampling;

@@ -482,7 +482,8 @@ void GradientPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                            int planner_shift, int timer_shift, int planning) {
+                            int planner_shift, int timer_shift, int planning,
+                            int* shift) {
   // bounds
   double planner_bounds[2] = {-6, 6};
 
@@ -562,6 +563,12 @@ void GradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Gradient");
   mju::strcpy_arr(fig_timer->linename[4 + timer_shift], "Rollouts");
   mju::strcpy_arr(fig_timer->linename[5 + timer_shift], "Policy Update");
+
+  // planner shift 
+  shift[0] += 1;
+
+  // timer shift 
+  shift[1] += 6; 
 }
 
 }  // namespace mjpc

@@ -1386,4 +1386,17 @@ void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
   }
 }
 
+// trace of square matrix 
+double Trace(const double* mat, int n) {
+  // initialize
+  double trace = 0.0;
+  
+  // sum diagonal terms 
+  for (int i = 0; i < n; i++) {
+    trace += mat[n * i + i];
+  }
+
+  return trace;
+}
+
 }  // namespace mjpc

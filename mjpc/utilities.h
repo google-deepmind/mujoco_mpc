@@ -377,6 +377,9 @@ T InfinityNorm(T* x, int n) {
   }));
 }
 
+// trace of square matrix 
+double Trace(const double* mat, int n);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

@@ -17,13 +17,13 @@
 #include <memory>
 #include <vector>
 
-#include "estimators/ekf.h"
-#include "estimators/estimator.h"
+#include "mjpc/estimators/ekf.h"
+#include "mjpc/estimators/estimator.h"
 
 namespace mjpc {
 
 const char kEstimatorNames[] =
-    "Full State\n"
-    "EKF";
+    "Ground Truth\n"
+    "Kalman";
 
 }  // namespace mjpc

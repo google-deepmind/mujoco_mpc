@@ -415,7 +415,8 @@ void SamplingPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                            int planner_shift, int timer_shift, int planning) {
+                            int planner_shift, int timer_shift, int planning,
+                            int* shift) {
   // ----- planner ----- //
   double planner_bounds[2] = {-6.0, 6.0};
 
@@ -454,6 +455,12 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Noise");
   mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Rollout");
   mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Policy Update");
+
+  // planner shift 
+  shift[0] += 1;
+
+  // timer shift 
+  shift[1] += 3;
 }
 
 double SamplingPlanner::CandidateScore(int candidate) const {

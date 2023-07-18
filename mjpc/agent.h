@@ -24,7 +24,7 @@
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/estimators/ekf.h"
+#include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/states/include.h"
 #include "mjpc/states/state.h"
@@ -159,12 +159,13 @@ class Agent {
   std::vector<std::string> GetAllModeNames() const;
   std::string GetModeName() const;
 
-  int max_threads() const { return max_threads_;}
+  // threads
+  int planner_threads() const { return planner_threads_;}
+  int estimator_threads() const { return estimator_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
   int plan_enabled;
   int action_enabled;
-  int estimator_enabled;
   int visualize_enabled;
   int allocate_enabled;
   int plot_enabled;
@@ -176,6 +177,10 @@ class Agent {
   std::vector<double> ctrl;
   std::vector<double> state;
   double time = 0.0;
+  double timestep;
+  int integrator;
+  std::vector<double> process_noise;
+  std::vector<double> sensor_noise;
 
  private:
   // model
@@ -235,7 +240,10 @@ class Agent {
   AgentPlots plots_;
 
   // max threads for planning
-  int max_threads_;
+  int planner_threads_;
+
+  // max threads for estimation 
+  int estimator_threads_;
 };
 
 }  // namespace mjpc

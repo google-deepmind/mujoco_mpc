@@ -31,8 +31,8 @@
     <numeric name="residual_Heading" data="0 -3.14 3.14" />
 
     <!-- estimator -->
-    <numeric name="estimator_sensor_start_index" data="42" />
-    <numeric name="estimator_sensor_dimension" data="27" />
+    <numeric name="estimator_sensor_start" data="9" />
+    <numeric name="estimator_number_sensor" data="17" />
     <numeric name="estimator_timestep" data="0.0025" />
   </custom>
 

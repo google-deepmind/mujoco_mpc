@@ -250,7 +250,8 @@ void iLQGPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                        int planner_shift, int timer_shift, int planning) {
+                        int planner_shift, int timer_shift, int planning,
+                        int* shift) {
   // bounds
   double planner_bounds[2] = {-6, 6};
 
@@ -350,6 +351,12 @@ void iLQGPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   fig_timer->range[0][1] = 0;
   fig_timer->range[1][0] = 0.0;
   fig_timer->range[1][1] = timer_bounds[1];
+
+  // planner shift 
+  shift[0] += 3;
+
+  // timer shift 
+  shift[1] += 6;
 }
 
 // single iLQG iteration

@@ -16,8 +16,8 @@
     <numeric name="residual_Speed Goal" data="0 -5.0 5.0" />
 
     <!-- estimator -->
-    <numeric name="estimator_sensor_start_index" data="9" />
-    <numeric name="estimator_sensor_dimension" data="9" />
+    <numeric name="estimator_sensor_start" data="4" />
+    <numeric name="estimator_number_sensor" data="9" />
     <numeric name="estimator_timestep" data="0.0025" />
   </custom>
 

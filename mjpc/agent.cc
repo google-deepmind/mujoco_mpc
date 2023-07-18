@@ -113,6 +113,13 @@ void Agent::Initialize(const mjModel* model) {
   ctrl.resize(model->nu);
   sensor.resize(model->nsensordata);
   state.resize(model->nq + model->nv + model->na);
+  timestep = ekf.model->opt.timestep;
+  integrator = ekf.model->opt.integrator;
+  process_noise.resize(ekf.DimensionProcess());
+  sensor_noise.resize(ekf.DimensionSensor());
+  mju_copy(process_noise.data(), ekf.noise_process.data(),
+           ekf.DimensionProcess());
+  mju_copy(sensor_noise.data(), ekf.noise_sensor.data(), ekf.DimensionSensor());
 
   // status
   plan_enabled = false;
@@ -131,8 +138,11 @@ void Agent::Initialize(const mjModel* model) {
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
   mju::strcpy_arr(this->estimator_names_, kEstimatorNames);
 
-  // max threads
-  max_threads_ = std::max(1, NumAvailableHardwareThreads() - 4);
+  // estimator threads 
+  estimator_threads_ = 1;
+
+  // planner threads
+  planner_threads_ = std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_);
 }
 
 // allocate memory
@@ -293,7 +303,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
 void Agent::Plan(std::atomic<bool>& exitrequest,
                  std::atomic<int>& uiloadrequest) {
   // instantiate thread pool
-  ThreadPool pool(max_threads_);
+  ThreadPool pool(planner_threads_);
 
   // main loop
   while (!exitrequest.load()) {
@@ -627,6 +637,7 @@ void Agent::GUI(mjUI& ui) {
       {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
       {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
       {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+      {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
       {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
       {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
       {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
@@ -641,12 +652,15 @@ void Agent::GUI(mjUI& ui) {
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
 
+  // estimator names
+  mju::strcpy_arr(defAgent[3].other, estimator_names_);
+
   // set planning horizon slider limits
-  mju::sprintf_arr(defAgent[8].other, "%f %f", kMinPlanningHorizon,
+  mju::sprintf_arr(defAgent[9].other, "%f %f", kMinPlanningHorizon,
                    kMaxPlanningHorizon);
 
   // set time step limits
-  mju::sprintf_arr(defAgent[9].other, "%f %f", kMinTimeStep, kMaxTimeStep);
+  mju::sprintf_arr(defAgent[10].other, "%f %f", kMinTimeStep, kMaxTimeStep);
 
   // add agent
   mjui_add(&ui, defAgent);
@@ -654,21 +668,10 @@ void Agent::GUI(mjUI& ui) {
   // planner
   ActivePlanner().GUI(ui);
 
-  // ----- estimator ------ // 
-  mjuiDef defEstimator[] = {
-    {mjITEM_SEPARATOR, "Estimator Settings", 1},
-    {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-    {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
-    // {mjITEM_SLIDERNUM, "Timestep", 2, &ekf.model->opt.timestep, "0 1"},
-    // {mjITEM_SELECT, "Integrator", 2, &ekf.mo, "Euler\nRK4\nImplicit\nFastImplicit"},
-    {mjITEM_END}
-  };
-
-  // planner names
-  mju::strcpy_arr(defEstimator[2].other, estimator_names_);
-
-  // add estimator 
-  mjui_add(&ui, defEstimator);
+  // // estimator
+  if (estimator_ == 1) {
+    ekf.GUI(ui, process_noise.data(), sensor_noise.data(), timestep, integrator);
+  }
 }
 
 // task-based GUI event
@@ -713,7 +716,14 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         uiloadrequest.fetch_sub(1);
       }
       break;
-    case 3:  // controller on/off
+    case 2:  // estimator change
+      if (model_) {
+        this->PlotInitialize();
+        this->PlotReset();
+        uiloadrequest.fetch_sub(1);
+      }
+      break;
+    case 4:  // controller on/off
       if (model_) {
         mju_zero(data->ctrl, model_->nu);
       }
@@ -737,7 +747,7 @@ void Agent::PlotInitialize() {
   // title
   mju::strcpy_arr(plots_.cost.title, "Objective");
   mju::strcpy_arr(plots_.action.title, "Actions");
-  mju::strcpy_arr(plots_.planner.title, "Planner (log10)");
+  mju::strcpy_arr(plots_.planner.title, "Agent (log10)");
   mju::strcpy_arr(plots_.timer.title, "CPU time (msec)");
 
   // x-labels
@@ -1019,14 +1029,21 @@ void Agent::Plots(const mjData* data, int shift) {
   if (!plan_enabled) return;
 
   // planner-specific plotting
-  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled);
+  int planner_shift[2] {0, 0};
+  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled, planner_shift);
+
+  // estimator-specific plotting
+  if (estimator_ == 1) {
+    ekf.Plots(&plots_.planner, &plots_.timer, planner_shift[0],
+              planner_shift[1] + 1, plan_enabled, NULL);
+  }
 
   // total (agent) compute time
   double timer_bounds[2] = {0.0, 1.0};
   PlotUpdateData(&plots_.timer, timer_bounds, plots_.timer.linedata[0][0] + 1,
                  1.0e-3 * agent_compute_time_, 100, 0, 0, 1, -100);
 
-  // legend
+  // // legend
   mju::strcpy_arr(plots_.timer.linename[0], "Total");
 
   // update timer range

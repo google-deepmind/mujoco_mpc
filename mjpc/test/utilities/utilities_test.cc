@@ -608,5 +608,16 @@ TEST(Norm, Infinity) {
   EXPECT_EQ(ry, 3);
 }
 
+TEST(Trace, Mat123) {
+  // matrix 
+  std::vector<double> mat = {1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0};
+
+  // compute trace
+  double trace = Trace(mat.data(), 3);
+
+  // test
+  EXPECT_NEAR(trace, 6.0, 1.0e-5);
+}
+
 }  // namespace
 }  // namespace mjpc

@@ -19,9 +19,11 @@
 #include <chrono>
 #include <vector>
 
+#include "mjpc/array_safety.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
+namespace mju = ::mujoco::util_mjpc;
 
 // initialize
 void EKF::Initialize(const mjModel* model) {
@@ -39,12 +41,27 @@ void EKF::Initialize(const mjModel* model) {
   // dimension
   nstate_ = model->nq + model->nv + model->na;
   ndstate_ = 2 * model->nv + model->na;
-  nsensordata_ = GetNumberOrDefault(model->nsensordata, model,
-                                    "estimator_sensor_dimension");
+  
 
   // sensor start index
-  sensor_start_index_ =
-      GetNumberOrDefault(0, model, "estimator_sensor_start_index");
+  sensor_start =
+      GetNumberOrDefault(0, model, "estimator_sensor_start");
+
+  // number of sensors
+  nsensor = GetNumberOrDefault(model->nsensor, model,
+                                    "estimator_number_sensor");
+
+  // sensor dimension
+  nsensordata_ = 0;
+  for (int i = 0; i < nsensor; i++) {
+    nsensordata_ += model->sensor_dim[sensor_start + i];
+  }
+
+  // sensor start index 
+  sensor_start_index_ = 0;
+  for (int i = 0; i < sensor_start; i++) {
+    sensor_start_index_ += model->sensor_dim[i];
+  }
 
   // state
   state.resize(nstate_);
@@ -63,9 +80,6 @@ void EKF::Initialize(const mjModel* model) {
 
   // sensor Jacobian
   sensor_jacobian_.resize(model->nsensordata * ndstate_);
-
-  // Kalman gain
-  kalman_gain_.resize(ndstate_ * nsensordata_);
 
   // sensor error
   sensor_error_.resize(nsensordata_);
@@ -118,9 +132,6 @@ void EKF::Reset() {
 
   // sensor Jacobian
   mju_zero(sensor_jacobian_.data(), model->nsensordata * ndstate_);
-
-  // Kalman gain
-  mju_zero(kalman_gain_.data(), ndstate_ * nsensordata_);
 
   // sensor error
   mju_zero(sensor_error_.data(), nsensordata_);
@@ -273,6 +284,264 @@ void EKF::UpdatePrediction() {
 
   // stop timer
   timer_prediction_ = 1.0e-3 * GetDuration(start);
+}
+
+// estimator-specific GUI elements
+void EKF::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& timestep, int& integrator) {
+ 
+  // ----- estimator ------ // 
+  mjuiDef defEstimator[] = {
+    {mjITEM_SECTION, "Estimator Settings", 1, nullptr, "AP"}, // needs new section to satisfy mjMAXUIITEM
+    {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
+    {mjITEM_SLIDERNUM, "Timestep", 2, &timestep, "1.0e-3 0.1"},
+    {mjITEM_SELECT, "Integrator", 2, &integrator, "Euler\nRK4\nImplicit\nFastImplicit"},
+    {mjITEM_END}
+  };
+
+  // add estimator 
+  mjui_add(&ui, defEstimator);
+
+  // -- process noise -- //
+  int nv = model->nv;
+  int process_noise_shift = 0;
+  mjuiDef defProcessNoise[kMaxProcessNoise + 2];
+
+  // separator
+  defProcessNoise[0] = {mjITEM_SEPARATOR, "Process Noise Covariance", 1};
+  process_noise_shift++;
+
+  // add UI elements
+  for (int i = 0; i < DimensionProcess(); i++) {
+    // element
+    defProcessNoise[process_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
+                                            process_noise + i, "1.0e-8 0.01"};
+
+    // set name
+    mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "process cov");
+    
+    // shift
+    process_noise_shift++;
+  }
+
+  // name UI elements
+  int jnt_shift = 1;
+  std::string jnt_name_pos;
+  std::string jnt_name_vel;
+
+  // loop over joints
+  for (int i = 0; i < model->njnt; i++) {
+    int name_jntadr = model->name_jntadr[i];
+    std::string jnt_name(model->names + name_jntadr);
+    
+    // get joint type
+    int jnt_type = model->jnt_type[i];
+
+    // free
+    switch (jnt_type) {
+      case mjJNT_FREE:
+        // position
+        jnt_name_pos = jnt_name + " (pos 0)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 0].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 1)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 1].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 2)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 2].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 3)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 3].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 4)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 4].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 5)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 5].name,
+                        jnt_name_pos.c_str());
+
+        // velocity
+        jnt_name_vel = jnt_name + " (vel 0)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 0].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 1)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 1].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 2)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 2].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 3)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 3].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 4)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 4].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 5)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 5].name,
+                        jnt_name_vel.c_str());
+
+        // shift
+        jnt_shift += 6;
+        break;
+      case mjJNT_BALL:
+        // position
+        jnt_name_pos = jnt_name + " (pos 0)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 0].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 1)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 1].name,
+                        jnt_name_pos.c_str());
+
+        jnt_name_pos = jnt_name + " (pos 2)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift + 2].name,
+                        jnt_name_pos.c_str());
+
+        // velocity
+        jnt_name_vel = jnt_name + " (vel 0)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 0].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 1)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 1].name,
+                        jnt_name_vel.c_str());
+
+        jnt_name_vel = jnt_name + " (vel 2)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift + 2].name,
+                        jnt_name_vel.c_str());
+
+        // shift
+        jnt_shift += 3;
+        break;
+      case mjJNT_HINGE:
+        // position
+        jnt_name_pos = jnt_name + " (pos)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift].name, jnt_name_pos.c_str());
+
+        // velocity
+        jnt_name_vel = jnt_name + " (vel)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift].name,
+                        jnt_name_vel.c_str());
+
+        // shift
+        jnt_shift++;
+        break;
+      case mjJNT_SLIDE:
+        // position
+        jnt_name_pos = jnt_name + " (pos)";
+        mju::strcpy_arr(defProcessNoise[jnt_shift].name, jnt_name_pos.c_str());
+
+        // velocity
+        jnt_name_vel = jnt_name + " (vel)";
+        mju::strcpy_arr(defProcessNoise[nv + jnt_shift].name,
+                        jnt_name_vel.c_str());
+
+        // shift
+        jnt_shift++;
+        break;
+    }
+  }
+
+  // loop over act
+  std::string act_str;
+  for (int i = 0; i < model->na; i++) {
+    act_str = "act (" + std::to_string(i) + ")";
+    mju::strcpy_arr(defProcessNoise[nv + jnt_shift + i].name, act_str.c_str());
+  }
+
+  // end
+  defProcessNoise[process_noise_shift] = {mjITEM_END};
+
+  // add process noise
+  mjui_add(&ui, defProcessNoise);
+
+  // -- sensor noise -- //
+  int sensor_noise_shift = 0;
+  mjuiDef defSensorNoise[kMaxSensorNoise + 2];
+
+  // separator
+  defSensorNoise[0] = {mjITEM_SEPARATOR, "Sensor Noise Covariance", 1};
+  sensor_noise_shift++;
+
+  // loop over sensors
+  std::string sensor_str;
+  for (int i = 0; i < nsensor; i++) {
+    std::string name_sensor(model->names +
+                            model->name_sensoradr[sensor_start + i]);
+    int dim_sensor = model->sensor_dim[sensor_start + i];
+
+    // loop over sensor elements
+    for (int j = 0; j < dim_sensor; j++) {
+      // element
+      defSensorNoise[sensor_noise_shift] = {
+          mjITEM_SLIDERNUM, "", 2, sensor_noise + sensor_noise_shift - 1,
+          "1.0e-8 0.01"};
+
+      // sensor name
+      sensor_str = name_sensor;
+
+      // add element index
+      if (dim_sensor > 1) {
+        sensor_str += " (" + std::to_string(j) + ")";
+      }
+
+      // set sensor name
+      mju::strcpy_arr(defSensorNoise[sensor_noise_shift].name,
+                      sensor_str.c_str());
+
+      // shift
+      sensor_noise_shift++;
+    }
+  }
+
+  // end
+  defSensorNoise[sensor_noise_shift] = {mjITEM_END};
+
+  // add sensor noise
+  mjui_add(&ui, defSensorNoise);
+}
+
+// estimator-specific plots
+void EKF::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+                int timer_shift, int planning, int* shift) {
+  // EKF info 
+  double estimator_bounds[2] = {-6, 6};
+
+  // covariance trace
+  double trace = Trace(covariance.data(), DimensionProcess());
+  mjpc::PlotUpdateData(fig_planner, estimator_bounds,
+                       fig_planner->linedata[planner_shift + 0][0] + 1,
+                       mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
+
+  // legend
+  mju::strcpy_arr(fig_planner->linename[planner_shift + 0],
+                  "Covariance Trace");
+
+  // EKF timers
+  double timer_bounds[2] = {0.0, 1.0};
+
+  // measurement update
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[timer_shift + 0][0] + 1,
+                 TimerMeasurement(), 100, timer_shift + 0, 0, 1, -100);
+
+  // prediction update
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[timer_shift + 1][0] + 1, TimerPrediction(),
+                 100, timer_shift + 1, 0, 1, -100);
+
+  // legend
+  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Measurement Update");
+  mju::strcpy_arr(fig_timer->linename[timer_shift + 1], "Prediction Update");
 }
 
 }  // namespace mjpc

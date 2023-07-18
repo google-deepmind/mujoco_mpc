@@ -150,6 +150,12 @@ void EstimatorLoop(mj::Simulate& sim) {
       // EKF
       mjpc::EKF* ekf = &sim.agent->ekf;
 
+      // set values from GUI
+      mju_copy(ekf->noise_process.data(), sim.agent->process_noise.data(), ekf->DimensionProcess());
+      mju_copy(ekf->noise_sensor.data(), sim.agent->sensor_noise.data(), ekf->DimensionSensor());
+      ekf->model->opt.timestep = sim.agent->timestep;
+      ekf->model->opt.integrator = sim.agent->integrator;
+
       // get simulation state
       {
         const std::lock_guard<std::mutex> lock(sim.mtx);
@@ -170,7 +176,8 @@ void EstimatorLoop(mj::Simulate& sim) {
 
       // copy state 
       mju_copy(sim.agent->state.data(), ekf->state.data(), m->nq + m->nv + m->na);
-    
+      sim.agent->time = ekf->data_->time;
+
       // wait (ms)
       while (1.0e-3 * mjpc::GetDuration(start) <
             1.0e3 * ekf->model->opt.timestep) {
@@ -349,7 +356,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         state->SetPos(m, sim.agent->state.data());
         state->SetVel(m, sim.agent->state.data() + m->nq);
         state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
-        state->SetTime(m, sim.agent->ekf.data_->time);
+        state->SetTime(m, sim.agent->time);
         state->SetMocap(m, d->mocap_pos, d->mocap_quat);
         state->SetUserData(m, d->userdata);
       } else { // == 0
@@ -366,13 +373,17 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
-  std::printf("MuJoCo version %s\n", mj_versionString());
+  // MJPC 
+  printf("MuJoCo MPC (MJPC)\n");
+
+  // MuJoCo
+  std::printf(" MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
   }
 
   // threads
-  printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
+  printf(" Hardware threads:  %i\n", mjpc::NumAvailableHardwareThreads());
 
   if (sim != nullptr) {
     mju_error("Multiple instances of MjpcApp created.");
@@ -440,8 +451,12 @@ MjpcApp::~MjpcApp() {
 
 // run event loop
 void MjpcApp::Start() {
-  // planning threads
-  printf("Agent threads: %i\n", sim->agent->max_threads());
+  // threads
+  printf("  physics        :  %i\n", 1);
+  printf("  render         :  %i\n", 1);
+  printf("  Planner        :  %i\n", 1);
+  printf("    planning     :  %i\n", sim->agent->planner_threads());
+  printf("  Estimator      :  %i\n", sim->agent->estimator_threads());
 
   // set control callback
   mjcb_control = controller;

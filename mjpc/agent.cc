@@ -653,7 +653,11 @@ void Agent::GUI(mjUI& ui) {
   mju::strcpy_arr(defAgent[2].other, planner_names_);
 
   // estimator names
-  mju::strcpy_arr(defAgent[3].other, estimator_names_);
+  if (!mjpc::GetCustomNumericData(model_, "estimator")) {
+    mju::strcpy_arr(defAgent[3].other, "Ground Truth");
+  } else {
+    mju::strcpy_arr(defAgent[3].other, estimator_names_);
+  }
 
   // set planning horizon slider limits
   mju::sprintf_arr(defAgent[9].other, "%f %f", kMinPlanningHorizon,
@@ -717,6 +721,12 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       }
       break;
     case 2:  // estimator change
+      // check for estimators
+      if (!GetCustomNumericData(model_, "estimator")) {
+        estimator_ = 0;
+        break;
+      }
+      // reset
       if (model_) {
         this->PlotInitialize();
         this->PlotReset();

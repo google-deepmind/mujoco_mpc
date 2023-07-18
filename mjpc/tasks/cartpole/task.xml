@@ -5,6 +5,7 @@
   <size memory="4K"/>
 
   <custom>
+    <!-- agent -->
     <numeric name="agent_planner" data="1" />
     <numeric name="agent_horizon" data="1.0" />
     <numeric name="agent_timestep" data="0.01" />
@@ -14,6 +15,9 @@
     <numeric name="sampling_exploration" data="0.5" />
     <numeric name="gradient_spline_points" data="10" />
     <numeric name="residual_Goal" data="0.0 -1.5 1.5" />
+
+    <!-- estimator -->
+    <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
     <numeric name="estimator_number_sensor" data="2" />
     <numeric name="estimator_timestep" data="0.01" />

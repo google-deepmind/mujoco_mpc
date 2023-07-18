@@ -2,7 +2,9 @@
   <include file="../../common.xml"/>
   <include file="../humanoid.xml" />
   <size memory="400K"/>
+
   <custom>
+    <!-- agent -->
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.35" />
     <numeric name="agent_timestep" data="0.015" />
@@ -11,6 +13,9 @@
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Torso" data="1.35 1.0 1.7" />
     <numeric name="residual_Speed" data="0.5 -3.0 3.0" />
+
+    <!-- estimator -->
+    <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="8" />
     <numeric name="estimator_number_sensor" data="26" />
     <numeric name="estimator_timestep" data="0.0025" />

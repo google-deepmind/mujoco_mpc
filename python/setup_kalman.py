@@ -28,9 +28,9 @@ Path = pathlib.Path
 
 
 class GenerateProtoGrpcCommand(setuptools.Command):
-  """Specialized setup command to handle ekf proto compilation.
+  """Specialized setup command to handle kalman proto compilation.
 
-  Generates the `ekf_pb2{_grpc}.py` files from `ekf_proto`. Assumes that
+  Generates the `kalman_pb2{_grpc}.py` files from `kalman_proto`. Assumes that
   `grpc_tools.protoc` is installed.
   """
 
@@ -44,29 +44,29 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    """Generate `ekf.proto` into `ekf_pb2{_grpc}.py`.
+    """Generate `kalman.proto` into `kalman_pb2{_grpc}.py`.
 
     This function looks more complicated than what it has to be because the
     `protoc` generator is very particular in the way it generates the imports
-    for the generated `ekf_pb2_grpc.py` file. The final argument of the
-    `protoc` call has to be "mujoco_mpc/ekf.proto" in order for the import to
-    become `from mujoco_mpc import [ekf_pb2_proto_import]` instead of just
-    `import [ekf_pb2_proto_import]`. The latter would fail because the name is
+    for the generated `kalman_pb2_grpc.py` file. The final argument of the
+    `protoc` call has to be "mujoco_mpc/kalman.proto" in order for the import to
+    become `from mujoco_mpc import [kalman_pb2_proto_import]` instead of just
+    `import [kalman_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
     # We import here because, if the import is at the top of this file, we
     # cannot resolve the dependencies without having `grpcio-tools` installed.
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
-    ekf_proto_filename = "ekf.proto"
-    ekf_proto_source_path = Path("..", "grpc", ekf_proto_filename).resolve()
+    kalman_proto_filename = "kalman.proto"
+    kalman_proto_source_path = Path("..", "grpc", kalman_proto_filename).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
-    proto_module_relative_path = Path("mujoco_mpc", "proto", ekf_proto_filename)
-    ekf_proto_destination_path = Path(build_lib_path, proto_module_relative_path)
-    ekf_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
-    # Copy `ekf_proto_filename` into current source.
-    shutil.copy(ekf_proto_source_path, ekf_proto_destination_path)
+    proto_module_relative_path = Path("mujoco_mpc", "proto", kalman_proto_filename)
+    kalman_proto_destination_path = Path(build_lib_path, proto_module_relative_path)
+    kalman_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
+    # Copy `kalman_proto_filename` into current source.
+    shutil.copy(kalman_proto_source_path, kalman_proto_destination_path)
 
     protoc_command_parts = [
         # We use `__file__`  as the first argument the same way as is done by
@@ -76,7 +76,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",
         f"--grpc_python_out={build_lib_path}",
-        str(ekf_proto_destination_path),
+        str(kalman_proto_destination_path),
     ]
 
     protoc_returncode = protoc.main(protoc_command_parts)
@@ -87,17 +87,17 @@ class GenerateProtoGrpcCommand(setuptools.Command):
           cmd=f"`protoc.main({protoc_command_parts})`",
       )
 
-    self.spawn(["touch", str(ekf_proto_destination_path.parent / "__init__.py")])
+    self.spawn(["touch", str(kalman_proto_destination_path.parent / "__init__.py")])
 
 
-class CopyEKFServerBinaryCommand(setuptools.Command):
-  """Specialized setup command to copy `ekf_server` next to `ekf.py`.
+class CopyKALMANServerBinaryCommand(setuptools.Command):
+  """Specialized setup command to copy `kalman_server` next to `kalman.py`.
 
-  Assumes that the C++ gRPC `ekf_server` binary has been manually built and
+  Assumes that the C++ gRPC `kalman_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
-  description = "Copy `ekf_server` next to `ekf.py`."
+  description = "Copy `kalman_server` next to `kalman.py`."
   user_options = []
 
   def initialize_options(self):
@@ -107,8 +107,8 @@ class CopyEKFServerBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    self._copy_binary("ekf_server")
-    # self._copy_binary("ui_ekf_server")
+    self._copy_binary("kalman_server")
+    # self._copy_binary("ui_kalman_server")
 
   def _copy_binary(self, binary_name):
     source_path = Path(f"../build/bin/{binary_name}")
@@ -129,15 +129,15 @@ class CopyEKFServerBinaryCommand(setuptools.Command):
 
 
 class CopyTaskAssetsCommand(setuptools.Command):
-  """Copies `ekf_server` and `ui_ekf_server` next to `ekf.py`.
+  """Copies `kalman_server` and `ui_kalman_server` next to `kalman.py`.
 
-  Assumes that the C++ gRPC `ekf_server` binary has been manually built and
+  Assumes that the C++ gRPC `kalman_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
   description = (
       "Copy task assets over to python source to make them accessible by"
-      " `EKF`."
+      " `KALMAN`."
   )
   user_options = []
 
@@ -166,10 +166,10 @@ class CopyTaskAssetsCommand(setuptools.Command):
 
 
 class BuildPyCommand(build_py.build_py):
-  """Specialized Python builder to handle ekf service dependencies.
+  """Specialized Python builder to handle kalman service dependencies.
 
-  During build, this will generate the `ekf_pb2{_grpc}.py` files and copy
-  `ekf_server` binary next to `ekf.py`.
+  During build, this will generate the `kalman_pb2{_grpc}.py` files and copy
+  `kalman_server` binary next to `kalman.py`.
   """
 
   user_options = build_py.build_py.user_options
@@ -195,10 +195,10 @@ class BuildCMakeExtension(build_ext.build_ext):
   """Uses CMake to build extensions."""
 
   def run(self):
-    self._configure_and_build_ekf_server()
-    self.run_command("copy_ekf_server_binary")
+    self._configure_and_build_kalman_server()
+    self.run_command("copy_kalman_server_binary")
 
-  def _configure_and_build_ekf_server(self):
+  def _configure_and_build_kalman_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
     build_cfg = "Debug"
@@ -235,15 +235,15 @@ class BuildCMakeExtension(build_ext.build_ext):
         cwd=mujoco_mpc_root,
     )
 
-    print("Building `ekf_server` and `ui_ekf_server` with CMake")
+    print("Building `kalman_server` and `ui_kalman_server` with CMake")
     subprocess.check_call(
         [
             cmake_command,
             "--build",
             str(mujoco_mpc_build_dir.resolve()),
             "--target",
-            "ekf_server",
-            # "ui_ekf_server",
+            "kalman_server",
+            # "ui_kalman_server",
             f"-j{os.cpu_count()}",
             "--config",
             build_cfg,
@@ -282,18 +282,18 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
-    ext_modules=[CMakeExtension("ekf_server")],
+    ext_modules=[CMakeExtension("kalman_server")],
     cmdclass={
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
-        "copy_ekf_server_binary": CopyEKFServerBinaryCommand,
+        "copy_kalman_server_binary": CopyKALMANServerBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={
         "": [
-            "mjpc/ekf_server",
-            # "mjpc/ui_ekf_server",
+            "mjpc/kalman_server",
+            # "mjpc/ui_kalman_server",
         ],
     },
 )

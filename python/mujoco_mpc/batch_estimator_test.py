@@ -21,7 +21,7 @@ import numpy as np
 import pathlib
 
 
-class EstimatorTest(absltest.TestCase):
+class BatchEstimatorTest(absltest.TestCase):
 
   def test_initialized(self):
     # load model
@@ -33,7 +33,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length, send_as="mjb"
     )
 
@@ -49,7 +49,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -177,7 +177,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -330,7 +330,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -361,13 +361,13 @@ class EstimatorTest(absltest.TestCase):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/batch_estimator/particle/task.xml"
+        / "mjpc/test/testdata/estimator/particle/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -396,7 +396,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -423,7 +423,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -459,7 +459,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -472,13 +472,13 @@ class EstimatorTest(absltest.TestCase):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/batch_estimator/particle/task.xml"
+        / "mjpc/test/testdata/estimator/particle/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -510,7 +510,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -551,7 +551,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -582,7 +582,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 
@@ -676,7 +676,7 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch_estimator = batch_estimator_lib.Estimator(
+    batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
 

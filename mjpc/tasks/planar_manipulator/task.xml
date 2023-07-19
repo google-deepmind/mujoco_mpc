@@ -66,7 +66,7 @@
     <body name="debug_target" mocap="true" pos="-0.2 0 0.6">
       <geom type="sphere" size="0.02" rgba="0.8 0.2 0.2 0.5" contype="0" conaffinity="0"/>
     </body>
-    <body name="ball" pos=".4 0 .4" childclass="object">
+    <body name="ball" pos="-.125 0 .022" childclass="object">
       <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
       <joint name="ball_y" type="hinge" axis="0 1 0"/>

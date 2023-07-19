@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Startup code for `EKF` server.
+// Startup code for `KALMAN` server.
 
 #include <cstdint>
 #include <memory>
@@ -27,7 +27,7 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-#include "grpc/ekf_service.h"
+#include "grpc/kalman_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  ekf_grpc::EKFService service;
+  kalman_grpc::KALMANService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

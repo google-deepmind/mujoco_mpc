@@ -91,9 +91,9 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
     }                                                         \
   }
 
-EstimatorService::~EstimatorService() {}
+BatchEstimatorService::~BatchEstimatorService() {}
 
-grpc::Status EstimatorService::Init(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Init(grpc::ServerContext* context,
                                     const batch_estimator::InitRequest* request,
                                     batch_estimator::InitResponse* response) {
   // check configuration length
@@ -155,7 +155,7 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Data(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Data(grpc::ServerContext* context,
                                     const batch_estimator::DataRequest* request,
                                     batch_estimator::DataResponse* response) {
   if (!Initialized()) {
@@ -312,7 +312,7 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Settings(
+grpc::Status BatchEstimatorService::Settings(
     grpc::ServerContext* context, const batch_estimator::SettingsRequest* request,
     batch_estimator::SettingsResponse* response) {
   if (!Initialized()) {
@@ -540,7 +540,7 @@ grpc::Status EstimatorService::Settings(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Cost(grpc::ServerContext* context,
                                     const batch_estimator::CostRequest* request,
                                     batch_estimator::CostResponse* response) {
   if (!Initialized()) {
@@ -709,7 +709,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Weights(grpc::ServerContext* context,
                                        const batch_estimator::WeightsRequest* request,
                                        batch_estimator::WeightsResponse* response) {
   if (!Initialized()) {
@@ -749,7 +749,7 @@ grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Norms(grpc::ServerContext* context,
                                      const batch_estimator::NormRequest* request,
                                      batch_estimator::NormResponse* response) {
   if (!Initialized()) {
@@ -821,7 +821,7 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Shift(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Shift(grpc::ServerContext* context,
                                      const batch_estimator::ShiftRequest* request,
                                      batch_estimator::ShiftResponse* response) {
   if (!Initialized()) {
@@ -837,7 +837,7 @@ grpc::Status EstimatorService::Shift(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Reset(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Reset(grpc::ServerContext* context,
                                      const batch_estimator::ResetRequest* request,
                                      batch_estimator::ResetResponse* response) {
   if (!Initialized()) {
@@ -850,7 +850,7 @@ grpc::Status EstimatorService::Reset(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::InitializeData(
+grpc::Status BatchEstimatorService::InitializeData(
     grpc::ServerContext* context,
     const batch_estimator::InitializeDataRequest* request,
     batch_estimator::InitializeDataResponse* response) {
@@ -865,7 +865,7 @@ grpc::Status EstimatorService::InitializeData(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::UpdateData(
+grpc::Status BatchEstimatorService::UpdateData(
     grpc::ServerContext* context, const batch_estimator::UpdateDataRequest* request,
     batch_estimator::UpdateDataResponse* response) {
   if (!Initialized()) {
@@ -885,7 +885,7 @@ grpc::Status EstimatorService::UpdateData(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Optimize(
+grpc::Status BatchEstimatorService::Optimize(
     grpc::ServerContext* context, const batch_estimator::OptimizeRequest* request,
     batch_estimator::OptimizeResponse* response) {
   if (!Initialized()) {
@@ -898,7 +898,7 @@ grpc::Status EstimatorService::Optimize(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Update(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Update(grpc::ServerContext* context,
                                       const batch_estimator::UpdateRequest* request,
                                       batch_estimator::UpdateResponse* response) {
   if (!Initialized()) {
@@ -914,7 +914,7 @@ grpc::Status EstimatorService::Update(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::InitialState(
+grpc::Status BatchEstimatorService::InitialState(
     grpc::ServerContext* context, const batch_estimator::InitialStateRequest* request,
     batch_estimator::InitialStateResponse* response) {
   if (!Initialized()) {
@@ -952,7 +952,7 @@ grpc::Status EstimatorService::InitialState(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Status(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Status(grpc::ServerContext* context,
                                       const batch_estimator::StatusRequest* request,
                                       batch_estimator::StatusResponse* response) {
   if (!Initialized()) {
@@ -998,7 +998,7 @@ grpc::Status EstimatorService::Status(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
+grpc::Status BatchEstimatorService::Timing(grpc::ServerContext* context,
                                       const batch_estimator::TimingRequest* request,
                                       batch_estimator::TimingResponse* response) {
   if (!Initialized()) {
@@ -1039,7 +1039,7 @@ grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::PriorMatrix(
+grpc::Status BatchEstimatorService::PriorMatrix(
     grpc::ServerContext* context, const batch_estimator::PriorMatrixRequest* request,
     batch_estimator::PriorMatrixResponse* response) {
   if (!Initialized()) {
@@ -1068,7 +1068,7 @@ grpc::Status EstimatorService::PriorMatrix(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::ResetBuffer(
+grpc::Status BatchEstimatorService::ResetBuffer(
     grpc::ServerContext* context, const batch_estimator::ResetBufferRequest* request,
     batch_estimator::ResetBufferResponse* response) {
   if (!Initialized()) {
@@ -1081,7 +1081,7 @@ grpc::Status EstimatorService::ResetBuffer(
   return grpc::Status::OK;
 }
 
-grpc::Status EstimatorService::BufferData(
+grpc::Status BatchEstimatorService::BufferData(
     grpc::ServerContext* context, const batch_estimator::BufferDataRequest* request,
     batch_estimator::BufferDataResponse* response) {
   if (!Initialized()) {
@@ -1155,7 +1155,7 @@ grpc::Status EstimatorService::BufferData(
 
 #undef CHECK_SIZE
 
-grpc::Status EstimatorService::UpdateBuffer(
+grpc::Status BatchEstimatorService::UpdateBuffer(
     grpc::ServerContext* context, const batch_estimator::UpdateBufferRequest* request,
     batch_estimator::UpdateBufferResponse* response) {
   if (!Initialized()) {

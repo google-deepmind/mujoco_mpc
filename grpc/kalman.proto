@@ -14,26 +14,26 @@
 
 syntax = "proto3";
 
-package ekf;
+package kalman;
 
-service EKF {
-  // Initialize EKF
+service KALMAN {
+  // Initialize KALMAN
   rpc Init(InitRequest) returns (InitResponse);
-  // Reset EKF
+  // Reset KALMAN
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // EKF settings
+  // KALMAN settings
   rpc Settings(SettingsRequest) returns (SettingsResponse);
-  // EKF measurement update 
+  // KALMAN measurement update 
   rpc UpdateMeasurement(UpdateMeasurementRequest) returns (UpdateMeasurementResponse);
-  // EKF prediction update 
+  // KALMAN prediction update 
   rpc UpdatePrediction(UpdatePredictionRequest) returns (UpdatePredictionResponse);
-  // EKF timers 
+  // KALMAN timers 
   rpc Timers(TimersRequest) returns (TimersResponse);
-  // EKF state 
+  // KALMAN state 
   rpc State(StateRequest) returns (StateResponse);
-  // EKF covariance 
+  // KALMAN covariance 
   rpc Covariance(CovarianceRequest) returns (CovarianceResponse);
-  // EKF noise 
+  // KALMAN noise 
   rpc Noise(NoiseRequest) returns (NoiseResponse);
 }
 

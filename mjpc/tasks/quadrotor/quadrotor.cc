@@ -35,8 +35,8 @@ std::string Quadrotor::Name() const { return "Quadrotor"; }
 //     Residual (4): control
 //   Number of parameters: 6
 // ------------------------------------------------------------
-void Quadrotor::Residual(const mjModel* model, const mjData* data,
-                         double* residuals) const {
+void Quadrotor::ResidualFn::Residual(const mjModel* model, const mjData* data,
+                                     double* residuals) const {
   // ---------- Residual (0) ----------
   double* position = SensorByName(model, data, "position");
   mju_sub(residuals, position, data->mocap_pos, 3);
@@ -53,18 +53,18 @@ void Quadrotor::Residual(const mjModel* model, const mjData* data,
 
   // ---------- Residual (2) ----------
   double* linear_velocity = SensorByName(model, data, "linear_velocity");
-  mju_sub(residuals + 12, linear_velocity, parameters.data(), 3);
+  mju_sub(residuals + 12, linear_velocity, parameters_.data(), 3);
 
   // ---------- Residual (3) ----------
   double* angular_velocity = SensorByName(model, data, "angular_velocity");
-  mju_sub(residuals + 15, angular_velocity, parameters.data() + 3, 3);
+  mju_sub(residuals + 15, angular_velocity, parameters_.data() + 3, 3);
 
   // ---------- Residual (4) ----------
   mju_copy(residuals + 18, data->ctrl, model->nu);
 }
 
 // ----- Transition for quadrotor task -----
-void Quadrotor::Transition(const mjModel* model, mjData* data) {
+void Quadrotor::TransitionLocked(const mjModel* model, mjData* data) {
   // set mode to GUI selection
   if (mode > 0) {
     current_mode_ = mode - 1;

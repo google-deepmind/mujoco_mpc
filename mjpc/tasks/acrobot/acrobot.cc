@@ -32,7 +32,7 @@ std::string Acrobot::Name() const { return "Acrobot"; }
 //     Residual (2-3): Joint velocity
 //     Residual (4):   Control
 // -----------------------------------------------
-void Acrobot::Residual(const mjModel* model, const mjData* data,
+void Acrobot::ResidualFn::Residual(const mjModel* model, const mjData* data,
                        double* residual) const {
   // ---------- Residual (0-1) ----------
   mjtNum* goal_xpos = &data->site_xpos[3 * 0];

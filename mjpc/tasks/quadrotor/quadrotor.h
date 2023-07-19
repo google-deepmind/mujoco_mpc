@@ -20,24 +20,39 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Quadrotor : public Task {
+class Quadrotor : public ThreadSafeTask {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
-// --------------- Residuals for quadrotor task ---------------
-//   Number of residuals: 5
-//     Residual (0): position - goal position
-//     Residual (1): orientation - goal orientation
-//     Residual (2): linear velocity - goal linear velocity
-//     Residual (3): angular velocity - goal angular velocity
-//     Residual (4): control
-//   Number of parameters: 6
-// ------------------------------------------------------------
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
-  void Transition(const mjModel* model, mjData* data) override;
+  class ResidualFn : public mjpc::BaseResidualFn {
+   public:
+    ResidualFn(const ResidualFn& residual) = default;
+    explicit ResidualFn(const Quadrotor* task) : mjpc::BaseResidualFn(task) {}
+    // --------------- Residuals for quadrotor task ---------------
+    //   Number of residuals: 5
+    //     Residual (0): position - goal position
+    //     Residual (1): orientation - goal orientation
+    //     Residual (2): linear velocity - goal linear velocity
+    //     Residual (3): angular velocity - goal angular velocity
+    //     Residual (4): control
+    //   Number of parameters: 6
+    // ------------------------------------------------------------
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
+  };
 
+  Quadrotor() : residual_(this) {}
+  void TransitionLocked(const mjModel* model, mjData* data) override;
+
+ protected:
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(this);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
+
+ private:
   int current_mode_;
+  ResidualFn residual_;
 };
 }  // namespace mjpc
 

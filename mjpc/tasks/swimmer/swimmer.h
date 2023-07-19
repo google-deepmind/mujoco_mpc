@@ -20,22 +20,38 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Swimmer : public Task {
+class Swimmer : public ThreadSafeTask {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
+  class ResidualFn : public mjpc::BaseResidualFn {
+   public:
+    explicit ResidualFn(const Swimmer* task) : mjpc::BaseResidualFn(task) {}
+
 // ----------------- Residuals for swimmer task ----------------
 //   Number of residuals: 7
 //     Residual (0-4): control
 //     Residual (5-6): XY displacement between nose and target
 // -------------------------------------------------------------
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
+  };
+
+  Swimmer() : residual_(this) {}
 // -------- Transition for swimmer task --------
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-  void Transition(const mjModel* model, mjData* data) override;
+  void TransitionLocked(const mjModel* model, mjData* data) override;
+
+ protected:
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(this);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
+
+ private:
+  ResidualFn residual_;
 };
 }  // namespace mjpc
 

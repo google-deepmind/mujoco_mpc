@@ -22,17 +22,34 @@
 
 namespace mjpc {
 namespace manipulation {
-class Bring : public Task {
+class Bring : public ThreadSafeTask {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
-  void Transition(const mjModel* model, mjData* data) override;
-  void Reset(const mjModel* model) override;
+  class ResidualFn : public mjpc::BaseResidualFn {
+   public:
+    explicit ResidualFn(const Bring* task, ModelValues values)
+        : mjpc::BaseResidualFn(task), model_vals_(std::move(values)) {}
+
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
+   private:
+    friend class Bring;
+    ModelValues model_vals_;
+  };
+
+  Bring() : residual_(this, ModelValues()) {}
+  void TransitionLocked(const mjModel* model, mjData* data) override;
+  void ResetLocked(const mjModel* model) override;
+
+ protected:
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(this, residual_.model_vals_);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
 
  private:
-  ModelValues model_vals_;
+  ResidualFn residual_;
 };
 }  // namespace manipulation
 }  // namespace mjpc

@@ -1,0 +1,77 @@
+<mujoco model="manipulator ball task">
+  <include file="../common.xml"/>
+  <include file="manipulator.xml" />
+
+  <size memory="100K"/>
+
+  <custom>
+    <!-- agent -->
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.75" />
+    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="agent_sample_width" data="0.001" />
+    <numeric name="agent_policy_width" data="0.0015" />
+    <numeric name="sampling_spline_points" data="5" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="gradient_spline_points" data="10" />
+
+    <!-- estimator -->
+    <numeric name="estimator" data="0" />
+    <numeric name="estimator_sensor_start" data="4" />
+    <numeric name="estimator_number_sensor" data="8" />
+    <numeric name="estimator_timestep" data="0.01" />
+  </custom>
+
+  <sensor>
+    <!-- cost -->
+    <user name="Grasp" needstage="acc" dim="2" user="6 10.0 0 100.0 1.0e-6"/>
+    <user name="Close" needstage="acc" dim="1" user="6 10.0 0 100.0 1.0e-6"/>
+    <user name="Bring" needstage="acc" dim="2" user="6 10.0 0 100.0 1e-2"/>
+    <user name="Control" needstage="acc" dim="4" user="3 0.0001 0.0 0.001 0.3"/>
+
+    <!-- estimator -->
+    <!-- <jointpos name="arm_root" joint="arm_root" />
+    <jointpos name="arm_shoulder" joint="arm_shoulder" />
+    <jointpos name="arm_elbow" joint="arm_elbow" />
+    <jointpos name="arm_wrist" joint="arm_wrist" />
+    <jointpos name="thumb" joint="thumb" />
+    <jointpos name="thumbtip" joint="thumbtip" />
+    <jointpos name="finger" joint="finger" />
+    <jointpos name="fingertip" joint="fingertip" /> -->
+
+    <jointpos name="ball_x" joint="ball_x" />
+    <!-- <jointpos name="ball_y" joint="ball_y" /> -->
+    <jointpos name="ball_z" joint="ball_z" />
+
+    <framepos name="upper_arm_site" objtype="site" objname="upper_arm_site" />
+    <framepos name="middle_arm_site" objtype="site" objname="middle_arm_site" />
+    <framepos name="lower_arm_site" objtype="site" objname="lower_arm_site" />
+    <framepos name="wrist_site" objtype="site" objname="wrist_site" />
+    <framepos name="thumbtip_site" objtype="site" objname="thumbtip_site" />
+    <framepos name="fingertip_site" objtype="site" objname="fingertip_site" />
+
+    <!-- residual -->
+    <!-- Sphere sensors. -->
+    <framepos name="ball_pos" objtype="site" objname="ball"/>
+    <!-- Manipulator sensors. -->
+    <framepos name="grasp_pos" objtype="site" objname="grasp"/>
+    <framepos name="pinch_pos" objtype="site" objname="pinch"/>
+    <tendonpos name="grasp" tendon="grasp"/>
+
+    <!-- trace -->
+    <framepos name="trace0" objtype="site" objname="grasp"/>
+  </sensor>
+
+  <worldbody>
+    <body name="debug_target" mocap="true" pos="-0.2 0 0.6">
+      <geom type="sphere" size="0.02" rgba="0.8 0.2 0.2 0.5" contype="0" conaffinity="0"/>
+    </body>
+    <body name="ball" pos=".4 0 .4" childclass="object">
+      <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
+      <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
+      <joint name="ball_y" type="hinge" axis="0 1 0"/>
+      <geom  name="ball" type="sphere" size=".022" />
+      <site  name="ball" type="sphere" rgba="1 0 1 1" size="0.022" />
+    </body>
+  </worldbody>
+</mujoco>

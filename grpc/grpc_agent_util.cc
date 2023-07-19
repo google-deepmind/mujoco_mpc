@@ -263,6 +263,7 @@ grpc::Status SetTaskParameters(const SetTaskParametersRequest* request,
                             absl::StrCat("Missing value for parameter ", name));
     }
   }
+  agent->ActiveTask()->UpdateResidual();
 
   return grpc::Status::OK;
 }

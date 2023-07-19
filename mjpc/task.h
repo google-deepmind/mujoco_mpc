@@ -116,6 +116,10 @@ class Task {
   virtual void Residual(const mjModel* model, const mjData* data,
                         double* residual) const = 0;
 
+  // Must be called whenever parameters or weights change outside Transition or
+  // Reset, so that calls to Residual use the new parameters.
+  virtual void UpdateResidual() {}
+
   virtual void Transition(const mjModel* model, mjData* data) {}
 
   // get information from model
@@ -181,6 +185,9 @@ class ThreadSafeTask : public Task {
   // holding a lock
   void Residual(const mjModel* model, const mjData* data,
                 double* residual) const final;
+
+  // Calls InternalResidual()->Update() with a lock.
+  void UpdateResidual() final;
 
   // calls TransitionLocked and InternalResidual()->Update() while holding a
   // lock

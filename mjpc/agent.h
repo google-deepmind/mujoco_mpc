@@ -172,7 +172,7 @@ class Agent {
   int gui_task_id = 0;
 
   // estimator 
-  EKF ekf;
+  Kalman kalman;
   std::vector<double> sensor;
   std::vector<double> ctrl;
   std::vector<double> state;

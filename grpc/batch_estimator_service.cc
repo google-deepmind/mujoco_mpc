@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_estimator_service.h"
 
 #include <absl/log/check.h>
 #include <absl/status/status.h>
@@ -27,49 +27,49 @@
 #include <string_view>
 #include <vector>
 
-#include "grpc/estimator.pb.h"
-#include "mjpc/estimators/estimator.h"
+#include "grpc/batch_estimator.pb.h"
+#include "mjpc/estimators/batch.h"
 
-namespace estimator_grpc {
+namespace batch_estimator_grpc {
 
-using ::estimator::CostRequest;
-using ::estimator::CostResponse;
-using ::estimator::DataRequest;
-using ::estimator::DataResponse;
-using ::estimator::InitializeDataRequest;
-using ::estimator::InitializeDataResponse;
-using ::estimator::InitialStateRequest;
-using ::estimator::InitialStateResponse;
-using ::estimator::InitRequest;
-using ::estimator::InitResponse;
-using ::estimator::NormRequest;
-using ::estimator::NormResponse;
-using ::estimator::OptimizeRequest;
-using ::estimator::OptimizeResponse;
-using ::estimator::PriorMatrixRequest;
-using ::estimator::PriorMatrixResponse;
-using ::estimator::ResetBufferRequest;
-using ::estimator::ResetBufferResponse;
-using ::estimator::ResetRequest;
-using ::estimator::ResetResponse;
-using ::estimator::SettingsRequest;
-using ::estimator::SettingsResponse;
-using ::estimator::ShiftRequest;
-using ::estimator::ShiftResponse;
-using ::estimator::StatusRequest;
-using ::estimator::StatusResponse;
-using ::estimator::TimingRequest;
-using ::estimator::TimingResponse;
-using ::estimator::UpdateBufferRequest;
-using ::estimator::UpdateBufferResponse;
-using ::estimator::UpdateDataRequest;
-using ::estimator::UpdateDataResponse;
-using ::estimator::UpdateRequest;
-using ::estimator::UpdateResponse;
-using ::estimator::WeightsRequest;
-using ::estimator::WeightsResponse;
+using ::batch_estimator::CostRequest;
+using ::batch_estimator::CostResponse;
+using ::batch_estimator::DataRequest;
+using ::batch_estimator::DataResponse;
+using ::batch_estimator::InitializeDataRequest;
+using ::batch_estimator::InitializeDataResponse;
+using ::batch_estimator::InitialStateRequest;
+using ::batch_estimator::InitialStateResponse;
+using ::batch_estimator::InitRequest;
+using ::batch_estimator::InitResponse;
+using ::batch_estimator::NormRequest;
+using ::batch_estimator::NormResponse;
+using ::batch_estimator::OptimizeRequest;
+using ::batch_estimator::OptimizeResponse;
+using ::batch_estimator::PriorMatrixRequest;
+using ::batch_estimator::PriorMatrixResponse;
+using ::batch_estimator::ResetBufferRequest;
+using ::batch_estimator::ResetBufferResponse;
+using ::batch_estimator::ResetRequest;
+using ::batch_estimator::ResetResponse;
+using ::batch_estimator::SettingsRequest;
+using ::batch_estimator::SettingsResponse;
+using ::batch_estimator::ShiftRequest;
+using ::batch_estimator::ShiftResponse;
+using ::batch_estimator::StatusRequest;
+using ::batch_estimator::StatusResponse;
+using ::batch_estimator::TimingRequest;
+using ::batch_estimator::TimingResponse;
+using ::batch_estimator::UpdateBufferRequest;
+using ::batch_estimator::UpdateBufferResponse;
+using ::batch_estimator::UpdateDataRequest;
+using ::batch_estimator::UpdateDataResponse;
+using ::batch_estimator::UpdateRequest;
+using ::batch_estimator::UpdateResponse;
+using ::batch_estimator::WeightsRequest;
+using ::batch_estimator::WeightsResponse;
 
-// TODO(taylor): make CheckSize utility function for agent and estimator
+// TODO(taylor): make CheckSize utility function for agent and batch_estimator
 namespace {
 absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
   std::ostringstream error_string;
@@ -94,8 +94,8 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
 EstimatorService::~EstimatorService() {}
 
 grpc::Status EstimatorService::Init(grpc::ServerContext* context,
-                                    const estimator::InitRequest* request,
-                                    estimator::InitResponse* response) {
+                                    const batch_estimator::InitRequest* request,
+                                    batch_estimator::InitResponse* response) {
   // check configuration length
   if (request->configuration_length() < mjpc::MIN_HISTORY ||
       request->configuration_length() > mjpc::MAX_HISTORY) {
@@ -137,17 +137,17 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
   }
 
   // move
-  estimator_model_override_ = std::move(tmp_model);
-  mjModel* model = estimator_model_override_.get();
+  batch_estimator_model_override_ = std::move(tmp_model);
+  mjModel* model = batch_estimator_model_override_.get();
 
-  // initialize estimator
-  estimator_.Initialize(model);
+  // initialize batch_estimator
+  batch_estimator_.Initialize(model);
 
   // set estimation horizon
-  estimator_.SetConfigurationLength(request->configuration_length());
+  batch_estimator_.SetConfigurationLength(request->configuration_length());
 
   // initialize buffer
-  buffer_.Initialize(estimator_.SensorDimension(), estimator_.NumberSensors(),
+  buffer_.Initialize(batch_estimator_.SensorDimension(), batch_estimator_.NumberSensors(),
                      model->nu,
                      (request->has_buffer_length() ? request->buffer_length()
                                                    : mjpc::MAX_TRAJECTORY));
@@ -156,44 +156,44 @@ grpc::Status EstimatorService::Init(grpc::ServerContext* context,
 }
 
 grpc::Status EstimatorService::Data(grpc::ServerContext* context,
-                                    const estimator::DataRequest* request,
-                                    estimator::DataResponse* response) {
+                                    const batch_estimator::DataRequest* request,
+                                    batch_estimator::DataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // valid index
   int index = (int)(request->index());
-  if (index < 0 || index >= estimator_.ConfigurationLength()) {
+  if (index < 0 || index >= batch_estimator_.ConfigurationLength()) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid index."};
   }
 
   // data
-  estimator::Data input = request->data();
-  estimator::Data* output = response->mutable_data();
+  batch_estimator::Data input = request->data();
+  batch_estimator::Data* output = response->mutable_data();
 
   // set configuration
-  int nq = estimator_.model->nq;
+  int nq = batch_estimator_.model->nq;
   if (input.configuration_size() > 0) {
     CHECK_SIZE("configuration", nq, input.configuration_size());
-    estimator_.configuration.Set(input.configuration().data(), index);
+    batch_estimator_.configuration.Set(input.configuration().data(), index);
   }
 
   // get configuration
-  double* configuration = estimator_.configuration.Get(index);
+  double* configuration = batch_estimator_.configuration.Get(index);
   for (int i = 0; i < nq; i++) {
     output->add_configuration(configuration[i]);
   }
 
   // set velocity
-  int nv = estimator_.model->nv;
+  int nv = batch_estimator_.model->nv;
   if (input.velocity_size() > 0) {
     CHECK_SIZE("velocity", nv, input.velocity_size());
-    estimator_.velocity.Set(input.velocity().data(), index);
+    batch_estimator_.velocity.Set(input.velocity().data(), index);
   }
 
   // get velocity
-  double* velocity = estimator_.velocity.Get(index);
+  double* velocity = batch_estimator_.velocity.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_velocity(velocity[i]);
   }
@@ -201,11 +201,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set acceleration
   if (input.acceleration_size() > 0) {
     CHECK_SIZE("acceleration", nv, input.acceleration_size());
-    estimator_.acceleration.Set(input.acceleration().data(), index);
+    batch_estimator_.acceleration.Set(input.acceleration().data(), index);
   }
 
   // get acceleration
-  double* acceleration = estimator_.acceleration.Get(index);
+  double* acceleration = batch_estimator_.acceleration.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_acceleration(acceleration[i]);
   }
@@ -213,22 +213,22 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set time
   if (input.time_size() > 0) {
     CHECK_SIZE("time", 1, input.time_size());
-    estimator_.time.Set(input.time().data(), index);
+    batch_estimator_.time.Set(input.time().data(), index);
   }
 
   // get time
-  double* time = estimator_.time.Get(index);
+  double* time = batch_estimator_.time.Get(index);
   output->add_time(time[0]);
 
   // set ctrl
-  int nu = estimator_.model->nu;
+  int nu = batch_estimator_.model->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    estimator_.ctrl.Set(input.ctrl().data(), index);
+    batch_estimator_.ctrl.Set(input.ctrl().data(), index);
   }
 
   // get ctrl
-  double* ctrl = estimator_.ctrl.Get(index);
+  double* ctrl = batch_estimator_.ctrl.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
@@ -237,25 +237,25 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   if (input.configuration_previous_size() > 0) {
     CHECK_SIZE("configuration_previous", nq,
                input.configuration_previous_size());
-    estimator_.configuration_previous.Set(input.configuration_previous().data(),
+    batch_estimator_.configuration_previous.Set(input.configuration_previous().data(),
                                           index);
   }
 
   // get configuration previous
-  double* prior = estimator_.configuration_previous.Get(index);
+  double* prior = batch_estimator_.configuration_previous.Get(index);
   for (int i = 0; i < nq; i++) {
     output->add_configuration_previous(prior[i]);
   }
 
   // set sensor measurement
-  int ns = estimator_.SensorDimension();
+  int ns = batch_estimator_.SensorDimension();
   if (input.sensor_measurement_size() > 0) {
     CHECK_SIZE("sensor_measurement", ns, input.sensor_measurement_size());
-    estimator_.sensor_measurement.Set(input.sensor_measurement().data(), index);
+    batch_estimator_.sensor_measurement.Set(input.sensor_measurement().data(), index);
   }
 
   // get sensor measurement
-  double* sensor_measurement = estimator_.sensor_measurement.Get(index);
+  double* sensor_measurement = batch_estimator_.sensor_measurement.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_measurement(sensor_measurement[i]);
   }
@@ -263,24 +263,24 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set sensor prediction
   if (input.sensor_prediction_size() > 0) {
     CHECK_SIZE("sensor_prediction", ns, input.sensor_prediction_size());
-    estimator_.sensor_prediction.Set(input.sensor_prediction().data(), index);
+    batch_estimator_.sensor_prediction.Set(input.sensor_prediction().data(), index);
   }
 
   // get sensor prediction
-  double* sensor_prediction = estimator_.sensor_prediction.Get(index);
+  double* sensor_prediction = batch_estimator_.sensor_prediction.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_prediction(sensor_prediction[i]);
   }
 
   // set sensor mask
-  int num_sensor = estimator_.NumberSensors();
+  int num_sensor = batch_estimator_.NumberSensors();
   if (input.sensor_mask_size() > 0) {
     CHECK_SIZE("sensor_mask", num_sensor, input.sensor_mask_size());
-    estimator_.sensor_mask.Set(input.sensor_mask().data(), index);
+    batch_estimator_.sensor_mask.Set(input.sensor_mask().data(), index);
   }
 
   // get sensor mask
-  int* sensor_mask = estimator_.sensor_mask.Get(index);
+  int* sensor_mask = batch_estimator_.sensor_mask.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor_mask(sensor_mask[i]);
   }
@@ -288,11 +288,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set force measurement
   if (input.force_measurement_size() > 0) {
     CHECK_SIZE("force_measurement", nv, input.force_measurement_size());
-    estimator_.force_measurement.Set(input.force_measurement().data(), index);
+    batch_estimator_.force_measurement.Set(input.force_measurement().data(), index);
   }
 
   // get force measurement
-  double* force_measurement = estimator_.force_measurement.Get(index);
+  double* force_measurement = batch_estimator_.force_measurement.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_measurement(force_measurement[i]);
   }
@@ -300,11 +300,11 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
   // set force prediction
   if (input.force_prediction_size() > 0) {
     CHECK_SIZE("force_prediction", nv, input.force_prediction_size());
-    estimator_.force_prediction.Set(input.force_prediction().data(), index);
+    batch_estimator_.force_prediction.Set(input.force_prediction().data(), index);
   }
 
   // get force prediction
-  double* force_prediction = estimator_.force_prediction.Get(index);
+  double* force_prediction = batch_estimator_.force_prediction.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_prediction(force_prediction[i]);
   }
@@ -313,15 +313,15 @@ grpc::Status EstimatorService::Data(grpc::ServerContext* context,
 }
 
 grpc::Status EstimatorService::Settings(
-    grpc::ServerContext* context, const estimator::SettingsRequest* request,
-    estimator::SettingsResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::SettingsRequest* request,
+    batch_estimator::SettingsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // settings
-  estimator::Settings input = request->settings();
-  estimator::Settings* output = response->mutable_settings();
+  batch_estimator::Settings input = request->settings();
+  batch_estimator::Settings* output = response->mutable_settings();
 
   // configuration length
   if (input.has_configuration_length()) {
@@ -335,24 +335,24 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.SetConfigurationLength(configuration_length);
+    batch_estimator_.SetConfigurationLength(configuration_length);
   }
-  output->set_configuration_length(estimator_.ConfigurationLength());
+  output->set_configuration_length(batch_estimator_.ConfigurationLength());
 
   // prior flag
   if (input.has_prior_flag())
-    estimator_.settings.prior_flag = input.prior_flag();
-  output->set_prior_flag(estimator_.settings.prior_flag);
+    batch_estimator_.settings.prior_flag = input.prior_flag();
+  output->set_prior_flag(batch_estimator_.settings.prior_flag);
 
   // sensor flag
   if (input.has_sensor_flag())
-    estimator_.settings.sensor_flag = input.sensor_flag();
-  output->set_sensor_flag(estimator_.settings.sensor_flag);
+    batch_estimator_.settings.sensor_flag = input.sensor_flag();
+  output->set_sensor_flag(batch_estimator_.settings.sensor_flag);
 
   // force flag
   if (input.has_force_flag())
-    estimator_.settings.force_flag = input.force_flag();
-  output->set_force_flag(estimator_.settings.force_flag);
+    batch_estimator_.settings.force_flag = input.force_flag();
+  output->set_force_flag(batch_estimator_.settings.force_flag);
 
   // max search iterations
   if (input.has_max_search_iterations()) {
@@ -365,9 +365,9 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.settings.max_search_iterations = input.max_search_iterations();
+    batch_estimator_.settings.max_search_iterations = input.max_search_iterations();
   }
-  output->set_max_search_iterations(estimator_.settings.max_search_iterations);
+  output->set_max_search_iterations(batch_estimator_.settings.max_search_iterations);
 
   // max smoother iterations
   if (input.has_max_smoother_iterations()) {
@@ -380,47 +380,47 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.settings.max_smoother_iterations =
+    batch_estimator_.settings.max_smoother_iterations =
         input.max_smoother_iterations();
   }
   output->set_max_smoother_iterations(
-      estimator_.settings.max_smoother_iterations);
+      batch_estimator_.settings.max_smoother_iterations);
 
   // gradient tolerance
   if (input.has_gradient_tolerance()) {
-    estimator_.settings.gradient_tolerance = input.gradient_tolerance();
+    batch_estimator_.settings.gradient_tolerance = input.gradient_tolerance();
   }
-  output->set_gradient_tolerance(estimator_.settings.gradient_tolerance);
+  output->set_gradient_tolerance(batch_estimator_.settings.gradient_tolerance);
 
   // verbose iteration
   if (input.has_verbose_iteration()) {
-    estimator_.settings.verbose_iteration = input.verbose_iteration();
+    batch_estimator_.settings.verbose_iteration = input.verbose_iteration();
   }
-  output->set_verbose_iteration(estimator_.settings.verbose_iteration);
+  output->set_verbose_iteration(batch_estimator_.settings.verbose_iteration);
 
   // verbose optimize
   if (input.has_verbose_optimize()) {
-    estimator_.settings.verbose_optimize = input.verbose_optimize();
+    batch_estimator_.settings.verbose_optimize = input.verbose_optimize();
   }
-  output->set_verbose_optimize(estimator_.settings.verbose_optimize);
+  output->set_verbose_optimize(batch_estimator_.settings.verbose_optimize);
 
   // verbose cost
   if (input.has_verbose_cost()) {
-    estimator_.settings.verbose_cost = input.verbose_cost();
+    batch_estimator_.settings.verbose_cost = input.verbose_cost();
   }
-  output->set_verbose_cost(estimator_.settings.verbose_cost);
+  output->set_verbose_cost(batch_estimator_.settings.verbose_cost);
 
   // verbose prior
   if (input.has_verbose_prior()) {
-    estimator_.settings.verbose_prior = input.verbose_prior();
+    batch_estimator_.settings.verbose_prior = input.verbose_prior();
   }
-  output->set_verbose_prior(estimator_.settings.verbose_prior);
+  output->set_verbose_prior(batch_estimator_.settings.verbose_prior);
 
   // band prior
   if (input.has_band_prior()) {
-    estimator_.settings.band_prior = input.band_prior();
+    batch_estimator_.settings.band_prior = input.band_prior();
   }
-  output->set_band_prior(estimator_.settings.band_prior);
+  output->set_band_prior(batch_estimator_.settings.band_prior);
 
   // search type
   if (input.has_search_type()) {
@@ -433,170 +433,170 @@ grpc::Status EstimatorService::Settings(
     }
 
     // set
-    estimator_.settings.search_type = search_type;
+    batch_estimator_.settings.search_type = search_type;
   }
-  output->set_search_type((int)estimator_.settings.search_type);
+  output->set_search_type((int)batch_estimator_.settings.search_type);
 
   // step scaling
   if (input.has_step_scaling()) {
-    estimator_.settings.step_scaling = input.step_scaling();
+    batch_estimator_.settings.step_scaling = input.step_scaling();
   }
-  output->set_step_scaling(estimator_.settings.step_scaling);
+  output->set_step_scaling(batch_estimator_.settings.step_scaling);
 
   // regularization initialization
   if (input.has_regularization_initial()) {
-    estimator_.settings.regularization_initial = input.regularization_initial();
+    batch_estimator_.settings.regularization_initial = input.regularization_initial();
   }
   output->set_regularization_initial(
-      estimator_.settings.regularization_initial);
+      batch_estimator_.settings.regularization_initial);
 
   // regularization scaling
   if (input.has_regularization_scaling()) {
-    estimator_.settings.regularization_scaling = input.regularization_scaling();
+    batch_estimator_.settings.regularization_scaling = input.regularization_scaling();
   }
   output->set_regularization_scaling(
-      estimator_.settings.regularization_scaling);
+      batch_estimator_.settings.regularization_scaling);
 
   // band copy
   if (input.has_band_copy()) {
-    estimator_.settings.band_copy = input.band_copy();
+    batch_estimator_.settings.band_copy = input.band_copy();
   }
-  output->set_band_copy(estimator_.settings.band_copy);
+  output->set_band_copy(batch_estimator_.settings.band_copy);
 
   // reuse_data
   if (input.has_reuse_data()) {
-    estimator_.settings.reuse_data = input.reuse_data();
+    batch_estimator_.settings.reuse_data = input.reuse_data();
   }
-  output->set_reuse_data(estimator_.settings.reuse_data);
+  output->set_reuse_data(batch_estimator_.settings.reuse_data);
 
   // skip prior weight update
   if (input.has_skip_update_prior_weight()) {
-    estimator_.settings.skip_update_prior_weight =
+    batch_estimator_.settings.skip_update_prior_weight =
         input.skip_update_prior_weight();
   }
   output->set_skip_update_prior_weight(
-      estimator_.settings.skip_update_prior_weight);
+      batch_estimator_.settings.skip_update_prior_weight);
 
   // update prior weight
   if (input.has_update_prior_weight()) {
-    estimator_.settings.update_prior_weight = input.update_prior_weight();
+    batch_estimator_.settings.update_prior_weight = input.update_prior_weight();
   }
-  output->set_update_prior_weight(estimator_.settings.update_prior_weight);
+  output->set_update_prior_weight(batch_estimator_.settings.update_prior_weight);
 
   // time scaling
   if (input.has_time_scaling()) {
-    estimator_.settings.time_scaling = input.time_scaling();
+    batch_estimator_.settings.time_scaling = input.time_scaling();
   }
-  output->set_time_scaling(estimator_.settings.time_scaling);
+  output->set_time_scaling(batch_estimator_.settings.time_scaling);
 
   // search direction tolerance 
   if (input.has_search_direction_tolerance()) {
-    estimator_.settings.search_direction_tolerance = input.search_direction_tolerance();
+    batch_estimator_.settings.search_direction_tolerance = input.search_direction_tolerance();
   }
-  output->set_search_direction_tolerance(estimator_.settings.search_direction_tolerance);
+  output->set_search_direction_tolerance(batch_estimator_.settings.search_direction_tolerance);
 
   // cost tolerance 
   if (input.has_cost_tolerance()) {
-    estimator_.settings.cost_tolerance = input.cost_tolerance();
+    batch_estimator_.settings.cost_tolerance = input.cost_tolerance();
   }
-  output->set_cost_tolerance(estimator_.settings.cost_tolerance);
+  output->set_cost_tolerance(batch_estimator_.settings.cost_tolerance);
 
   // assemble prior Jacobian 
   if (input.has_assemble_prior_jacobian()) {
-    estimator_.settings.assemble_prior_jacobian = input.assemble_prior_jacobian();
+    batch_estimator_.settings.assemble_prior_jacobian = input.assemble_prior_jacobian();
   }
-  output->set_assemble_prior_jacobian(estimator_.settings.assemble_prior_jacobian);
+  output->set_assemble_prior_jacobian(batch_estimator_.settings.assemble_prior_jacobian);
 
   // assemble sensor Jacobian 
   if (input.has_assemble_sensor_jacobian()) {
-    estimator_.settings.assemble_sensor_jacobian = input.assemble_sensor_jacobian();
+    batch_estimator_.settings.assemble_sensor_jacobian = input.assemble_sensor_jacobian();
   }
-  output->set_assemble_sensor_jacobian(estimator_.settings.assemble_sensor_jacobian);
+  output->set_assemble_sensor_jacobian(batch_estimator_.settings.assemble_sensor_jacobian);
 
   // assemble force Jacobian 
   if (input.has_assemble_force_jacobian()) {
-    estimator_.settings.assemble_force_jacobian = input.assemble_force_jacobian();
+    batch_estimator_.settings.assemble_force_jacobian = input.assemble_force_jacobian();
   }
-  output->set_assemble_force_jacobian(estimator_.settings.assemble_force_jacobian);
+  output->set_assemble_force_jacobian(batch_estimator_.settings.assemble_force_jacobian);
 
   // assemble sensor norm hessian 
   if (input.has_assemble_sensor_norm_hessian()) {
-    estimator_.settings.assemble_sensor_norm_hessian = input.assemble_sensor_norm_hessian();
+    batch_estimator_.settings.assemble_sensor_norm_hessian = input.assemble_sensor_norm_hessian();
   }
-  output->set_assemble_sensor_norm_hessian(estimator_.settings.assemble_sensor_norm_hessian);
+  output->set_assemble_sensor_norm_hessian(batch_estimator_.settings.assemble_sensor_norm_hessian);
 
   // assemble force norm hessian 
   if (input.has_assemble_force_norm_hessian()) {
-    estimator_.settings.assemble_force_norm_hessian = input.assemble_force_norm_hessian();
+    batch_estimator_.settings.assemble_force_norm_hessian = input.assemble_force_norm_hessian();
   }
-  output->set_assemble_force_norm_hessian(estimator_.settings.assemble_force_norm_hessian);
+  output->set_assemble_force_norm_hessian(batch_estimator_.settings.assemble_force_norm_hessian);
 
   // force residual timestep scale 
   if (input.has_force_residual_timestep_scale()) {
-    estimator_.settings.force_residual_timestep_scale = input.force_residual_timestep_scale();
+    batch_estimator_.settings.force_residual_timestep_scale = input.force_residual_timestep_scale();
   }
-  output->set_force_residual_timestep_scale(estimator_.settings.force_residual_timestep_scale);
+  output->set_force_residual_timestep_scale(batch_estimator_.settings.force_residual_timestep_scale);
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
-                                    const estimator::CostRequest* request,
-                                    estimator::CostResponse* response) {
+                                    const batch_estimator::CostRequest* request,
+                                    batch_estimator::CostResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   
   // cache settings 
-  bool assemble_prior_jacobian = estimator_.settings.assemble_prior_jacobian;
-  bool assemble_sensor_jacobian = estimator_.settings.assemble_sensor_jacobian;
-  bool assemble_force_jacobian = estimator_.settings.assemble_force_jacobian;
-  bool assemble_sensor_norm_hessian = estimator_.settings.assemble_sensor_norm_hessian;
-  bool assemble_force_norm_hessian = estimator_.settings.assemble_force_norm_hessian;
+  bool assemble_prior_jacobian = batch_estimator_.settings.assemble_prior_jacobian;
+  bool assemble_sensor_jacobian = batch_estimator_.settings.assemble_sensor_jacobian;
+  bool assemble_force_jacobian = batch_estimator_.settings.assemble_force_jacobian;
+  bool assemble_sensor_norm_hessian = batch_estimator_.settings.assemble_sensor_norm_hessian;
+  bool assemble_force_norm_hessian = batch_estimator_.settings.assemble_force_norm_hessian;
 
   if (request->internals()) {
     // compute dense cost internals
-    estimator_.settings.assemble_prior_jacobian = true;
-    estimator_.settings.assemble_sensor_jacobian = true;
-    estimator_.settings.assemble_force_jacobian = true;
-    estimator_.settings.assemble_sensor_norm_hessian = true;
-    estimator_.settings.assemble_force_norm_hessian = true;
+    batch_estimator_.settings.assemble_prior_jacobian = true;
+    batch_estimator_.settings.assemble_sensor_jacobian = true;
+    batch_estimator_.settings.assemble_force_jacobian = true;
+    batch_estimator_.settings.assemble_sensor_norm_hessian = true;
+    batch_estimator_.settings.assemble_force_norm_hessian = true;
   }
 
   // compute derivatives
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  estimator_.cost = estimator_.Cost(
-      derivatives ? estimator_.cost_gradient.data() : NULL,
-      derivatives ? estimator_.cost_hessian.data() : NULL, thread_pool_);
+  batch_estimator_.cost = batch_estimator_.Cost(
+      derivatives ? batch_estimator_.cost_gradient.data() : NULL,
+      derivatives ? batch_estimator_.cost_hessian.data() : NULL, thread_pool_);
 
   // costs
-  estimator::Cost* cost = response->mutable_cost();
+  batch_estimator::Cost* cost = response->mutable_cost();
 
   // cost
-  cost->set_total(estimator_.cost);
+  cost->set_total(batch_estimator_.cost);
 
   // prior cost
-  cost->set_prior(estimator_.cost_prior);
+  cost->set_prior(batch_estimator_.cost_prior);
 
   // sensor cost
-  cost->set_sensor(estimator_.cost_sensor);
+  cost->set_sensor(batch_estimator_.cost_sensor);
 
   // force cost
-  cost->set_force(estimator_.cost_force);
+  cost->set_force(batch_estimator_.cost_force);
 
   // initial cost
-  cost->set_initial(estimator_.cost_initial);
+  cost->set_initial(batch_estimator_.cost_initial);
 
   // derivatives 
   if (derivatives) {
     // dimension 
-    int nvar = estimator_.model->nv * estimator_.ConfigurationLength();
+    int nvar = batch_estimator_.model->nv * batch_estimator_.ConfigurationLength();
 
     // unpack 
-    double* gradient = estimator_.cost_gradient.data();
-    double* hessian = estimator_.cost_hessian.data();
+    double* gradient = batch_estimator_.cost_gradient.data();
+    double* hessian = batch_estimator_.cost_hessian.data();
 
     // set gradient, Hessian
     for (int i = 0; i < nvar; i++) {
@@ -608,10 +608,10 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   }
 
   // dimensions
-  int nv = estimator_.model->nv, ns = estimator_.SensorDimension();
-  int nvar = nv * estimator_.ConfigurationLength();
-  int nsensor = ns * estimator_.PredictionLength();
-  int nforce = nv * estimator_.PredictionLength();
+  int nv = batch_estimator_.model->nv, ns = batch_estimator_.SensorDimension();
+  int nvar = nv * batch_estimator_.ConfigurationLength();
+  int nsensor = ns * batch_estimator_.PredictionLength();
+  int nforce = nv * batch_estimator_.PredictionLength();
 
   // set dimensions
   cost->set_nvar(nvar);
@@ -621,25 +621,25 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
   // internals
   if (request->internals()) {
     // residual prior 
-    const double* residual_prior = estimator_.GetResidualPrior();
+    const double* residual_prior = batch_estimator_.GetResidualPrior();
     for (int i = 0; i < nvar; i++) {
       cost->add_residual_prior(residual_prior[i]);
     }
 
     // residual sensor 
-    const double* residual_sensor = estimator_.GetResidualSensor();
+    const double* residual_sensor = batch_estimator_.GetResidualSensor();
     for (int i = 0; i < nsensor; i++) {
       cost->add_residual_sensor(residual_sensor[i]);
     }
 
     // residual force 
-    const double* residual_force = estimator_.GetResidualForce();
+    const double* residual_force = batch_estimator_.GetResidualForce();
     for (int i = 0; i < nforce; i++) {
       cost->add_residual_force(residual_force[i]);
     }
 
     // Jacobian prior 
-    const double* jacobian_prior = estimator_.GetJacobianPrior();
+    const double* jacobian_prior = batch_estimator_.GetJacobianPrior();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
         cost->add_jacobian_prior(jacobian_prior[i * nvar + j]);
@@ -647,7 +647,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
 
     // Jacobian sensor 
-    const double* jacobian_sensor = estimator_.GetJacobianSensor();
+    const double* jacobian_sensor = batch_estimator_.GetJacobianSensor();
     for (int i = 0; i < nsensor; i++) {
       for (int j = 0; j < nvar; j++) {
         cost->add_jacobian_sensor(jacobian_sensor[i * nvar + j]);
@@ -655,7 +655,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
 
     // Jacobian force 
-    const double* jacobian_force = estimator_.GetJacobianForce();
+    const double* jacobian_force = batch_estimator_.GetJacobianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nvar; j++) {
         cost->add_jacobian_force(jacobian_force[i * nvar + j]);
@@ -663,19 +663,19 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
 
     // norm gradient sensor 
-    const double* norm_gradient_sensor = estimator_.GetNormGradientSensor();
+    const double* norm_gradient_sensor = batch_estimator_.GetNormGradientSensor();
     for (int i = 0; i < nsensor; i++) {
       cost->add_norm_gradient_sensor(norm_gradient_sensor[i]);
     }
 
     // norm gradient force 
-    const double* norm_gradient_force = estimator_.GetNormGradientForce();
+    const double* norm_gradient_force = batch_estimator_.GetNormGradientForce();
     for (int i = 0; i < nforce; i++) {
       cost->add_norm_gradient_force(norm_gradient_force[i]);
     }
 
     // prior matrix 
-    const double* prior_matrix = estimator_.weight_prior.data();
+    const double* prior_matrix = batch_estimator_.weight_prior.data();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
         cost->add_prior_matrix(prior_matrix[i * nvar + j]);
@@ -683,7 +683,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
 
     // norm Hessian sensor 
-    const double* norm_hessian_sensor = estimator_.GetNormHessianSensor();
+    const double* norm_hessian_sensor = batch_estimator_.GetNormHessianSensor();
     for (int i = 0; i < nsensor; i++) {
       for (int j = 0; j < nsensor; j++) {
         cost->add_norm_hessian_sensor(norm_hessian_sensor[i * nsensor + j]);
@@ -691,7 +691,7 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
 
     // norm Hessian force 
-    const double* norm_hessian_force = estimator_.GetNormHessianForce();
+    const double* norm_hessian_force = batch_estimator_.GetNormHessianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nforce; j++) {
         cost->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
@@ -699,81 +699,81 @@ grpc::Status EstimatorService::Cost(grpc::ServerContext* context,
     }
     
     // reset settings
-    estimator_.settings.assemble_prior_jacobian = assemble_prior_jacobian;
-    estimator_.settings.assemble_sensor_jacobian = assemble_sensor_jacobian;
-    estimator_.settings.assemble_force_jacobian = assemble_force_jacobian;
-    estimator_.settings.assemble_sensor_norm_hessian = assemble_sensor_norm_hessian;
-    estimator_.settings.assemble_force_norm_hessian = assemble_force_norm_hessian;
+    batch_estimator_.settings.assemble_prior_jacobian = assemble_prior_jacobian;
+    batch_estimator_.settings.assemble_sensor_jacobian = assemble_sensor_jacobian;
+    batch_estimator_.settings.assemble_force_jacobian = assemble_force_jacobian;
+    batch_estimator_.settings.assemble_sensor_norm_hessian = assemble_sensor_norm_hessian;
+    batch_estimator_.settings.assemble_force_norm_hessian = assemble_force_norm_hessian;
   }
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Weights(grpc::ServerContext* context,
-                                       const estimator::WeightsRequest* request,
-                                       estimator::WeightsResponse* response) {
+                                       const batch_estimator::WeightsRequest* request,
+                                       batch_estimator::WeightsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // weight
-  estimator::Weight input = request->weight();
-  estimator::Weight* output = response->mutable_weight();
+  batch_estimator::Weight input = request->weight();
+  batch_estimator::Weight* output = response->mutable_weight();
 
   // prior
   if (input.has_prior()) {
-    estimator_.scale_prior = input.prior();
+    batch_estimator_.scale_prior = input.prior();
   }
-  output->set_prior(estimator_.scale_prior);
+  output->set_prior(batch_estimator_.scale_prior);
 
   // sensor
-  int num_sensor = estimator_.NumberSensors();
+  int num_sensor = batch_estimator_.NumberSensors();
   if (input.sensor_size() > 0) {
     CHECK_SIZE("scale_sensor", num_sensor, input.sensor_size());
-    estimator_.scale_sensor.assign(input.sensor().begin(),
+    batch_estimator_.scale_sensor.assign(input.sensor().begin(),
                                    input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
-    output->add_sensor(estimator_.scale_sensor[i]);
+    output->add_sensor(batch_estimator_.scale_sensor[i]);
   }
 
   // force
   if (input.force_size() > 0) {
     CHECK_SIZE("scale_force", mjpc::NUM_FORCE_TERMS, input.force_size());
-    estimator_.scale_force.assign(input.force().begin(), input.force().end());
+    batch_estimator_.scale_force.assign(input.force().begin(), input.force().end());
   }
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-    output->add_force(estimator_.scale_force[i]);
+    output->add_force(batch_estimator_.scale_force[i]);
   }
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
-                                     const estimator::NormRequest* request,
-                                     estimator::NormResponse* response) {
+                                     const batch_estimator::NormRequest* request,
+                                     batch_estimator::NormResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // norm
-  estimator::Norm input = request->norm();
-  estimator::Norm* output = response->mutable_norm();
+  batch_estimator::Norm input = request->norm();
+  batch_estimator::Norm* output = response->mutable_norm();
 
   // set sensor type
-  int num_sensor = estimator_.NumberSensors();
+  int num_sensor = batch_estimator_.NumberSensors();
   if (input.sensor_type_size() > 0) {
     CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
-    estimator_.norm_sensor.clear();
-    estimator_.norm_sensor.reserve(num_sensor);
+    batch_estimator_.norm_sensor.clear();
+    batch_estimator_.norm_sensor.reserve(num_sensor);
     for (const auto& sensor_type : input.sensor_type()) {
-      estimator_.norm_sensor.push_back(
+      batch_estimator_.norm_sensor.push_back(
           static_cast<mjpc::NormType>(sensor_type));
     }
   }
 
   // get sensor type
-  for (const auto& sensor_type : estimator_.norm_sensor) {
+  for (const auto& sensor_type : batch_estimator_.norm_sensor) {
     output->add_sensor_type(sensor_type);
   }
 
@@ -781,12 +781,12 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   if (input.sensor_parameters_size() > 0) {
     CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
                input.sensor_parameters_size());
-    estimator_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
+    batch_estimator_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
                                              input.sensor_parameters().end());
   }
 
   // get sensor parameters
-  for (const auto& sensor_parameters : estimator_.norm_parameters_sensor) {
+  for (const auto& sensor_parameters : batch_estimator_.norm_parameters_sensor) {
     output->add_sensor_parameters(sensor_parameters);
   }
 
@@ -794,13 +794,13 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   if (input.force_type_size() > 0) {
     CHECK_SIZE("force_type", mjpc::NUM_FORCE_TERMS, input.force_type_size());
     for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-      estimator_.norm_force[i] =
+      batch_estimator_.norm_force[i] =
           static_cast<mjpc::NormType>(input.force_type(i));
     }
   }
 
   // get force type
-  mjpc::NormType* force_type = estimator_.norm_force;
+  mjpc::NormType* force_type = batch_estimator_.norm_force;
   for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
     output->add_force_type(force_type[i]);
   }
@@ -809,65 +809,65 @@ grpc::Status EstimatorService::Norms(grpc::ServerContext* context,
   int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
   if (input.force_parameters_size() > 0) {
     CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    estimator_.norm_parameters_force.assign(input.force_parameters().begin(),
+    batch_estimator_.norm_parameters_force.assign(input.force_parameters().begin(),
                                             input.force_parameters().end());
   }
 
   // get force parameters
   for (int i = 0; i < nfp; i++) {
-    output->add_force_parameters(estimator_.norm_parameters_force[i]);
+    output->add_force_parameters(batch_estimator_.norm_parameters_force[i]);
   }
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Shift(grpc::ServerContext* context,
-                                     const estimator::ShiftRequest* request,
-                                     estimator::ShiftResponse* response) {
+                                     const batch_estimator::ShiftRequest* request,
+                                     batch_estimator::ShiftResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // shift
-  estimator_.Shift(request->shift());
+  batch_estimator_.Shift(request->shift());
 
   // get head index
-  response->set_head(estimator_.configuration.Head());
+  response->set_head(batch_estimator_.configuration.Head());
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Reset(grpc::ServerContext* context,
-                                     const estimator::ResetRequest* request,
-                                     estimator::ResetResponse* response) {
+                                     const batch_estimator::ResetRequest* request,
+                                     batch_estimator::ResetResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // reset
-  estimator_.Reset();
+  batch_estimator_.Reset();
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::InitializeData(
     grpc::ServerContext* context,
-    const estimator::InitializeDataRequest* request,
-    estimator::InitializeDataResponse* response) {
+    const batch_estimator::InitializeDataRequest* request,
+    batch_estimator::InitializeDataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // initialize trajectories with buffer data
-  estimator_.InitializeTrajectories(buffer_.sensor, buffer_.sensor_mask,
+  batch_estimator_.InitializeTrajectories(buffer_.sensor, buffer_.sensor_mask,
                                     buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::UpdateData(
-    grpc::ServerContext* context, const estimator::UpdateDataRequest* request,
-    estimator::UpdateDataResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::UpdateDataRequest* request,
+    batch_estimator::UpdateDataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -879,34 +879,34 @@ grpc::Status EstimatorService::UpdateData(
   }
 
   // update trajectories with num_new most recent elements from buffer
-  estimator_.UpdateTrajectories_(num_new, buffer_.sensor, buffer_.sensor_mask,
+  batch_estimator_.UpdateTrajectories_(num_new, buffer_.sensor, buffer_.sensor_mask,
                                  buffer_.ctrl, buffer_.time);
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Optimize(
-    grpc::ServerContext* context, const estimator::OptimizeRequest* request,
-    estimator::OptimizeResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::OptimizeRequest* request,
+    batch_estimator::OptimizeResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // optimize
-  estimator_.Optimize(thread_pool_);
+  batch_estimator_.Optimize(thread_pool_);
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Update(grpc::ServerContext* context,
-                                      const estimator::UpdateRequest* request,
-                                      estimator::UpdateResponse* response) {
+                                      const batch_estimator::UpdateRequest* request,
+                                      batch_estimator::UpdateResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // update
-  int num_new = estimator_.Update(buffer_, thread_pool_);
+  int num_new = batch_estimator_.Update(buffer_, thread_pool_);
 
   // set num new
   response->set_num_new(num_new);
@@ -915,92 +915,92 @@ grpc::Status EstimatorService::Update(grpc::ServerContext* context,
 }
 
 grpc::Status EstimatorService::InitialState(
-    grpc::ServerContext* context, const estimator::InitialStateRequest* request,
-    estimator::InitialStateResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::InitialStateRequest* request,
+    batch_estimator::InitialStateResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // input output
-  estimator::State input = request->state();
-  estimator::State* output = response->mutable_state();
+  batch_estimator::State input = request->state();
+  batch_estimator::State* output = response->mutable_state();
 
   // set qpos
-  int nq = estimator_.model->nq;
+  int nq = batch_estimator_.model->nq;
   if (input.qpos_size() > 0) {
     CHECK_SIZE("qpos", nq, input.qpos_size());
-    estimator_.qpos0.assign(input.qpos().begin(), input.qpos().end());
+    batch_estimator_.qpos0.assign(input.qpos().begin(), input.qpos().end());
   }
 
   // get qpos
   for (int i = 0; i < nq; i++) {
-    output->add_qpos(estimator_.qpos0[i]);
+    output->add_qpos(batch_estimator_.qpos0[i]);
   }
 
   // qvel
-  int nv = estimator_.model->nv;
+  int nv = batch_estimator_.model->nv;
   if (input.qvel_size() > 0) {
     CHECK_SIZE("qvel", nv, input.qvel_size());
-    estimator_.qvel0.assign(input.qvel().begin(), input.qvel().end());
+    batch_estimator_.qvel0.assign(input.qvel().begin(), input.qvel().end());
   }
 
   // get qvel
   for (int i = 0; i < nv; i++) {
-    output->add_qvel(estimator_.qvel0[i]);
+    output->add_qvel(batch_estimator_.qvel0[i]);
   }
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Status(grpc::ServerContext* context,
-                                      const estimator::StatusRequest* request,
-                                      estimator::StatusResponse* response) {
+                                      const batch_estimator::StatusRequest* request,
+                                      batch_estimator::StatusResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // status
-  estimator::Status* status = response->mutable_status();
+  batch_estimator::Status* status = response->mutable_status();
 
   // search iterations
-  status->set_search_iterations(estimator_.IterationsSearch());
+  status->set_search_iterations(batch_estimator_.IterationsSearch());
 
   // smoother iterations
-  status->set_smoother_iterations(estimator_.IterationsSmoother());
+  status->set_smoother_iterations(batch_estimator_.IterationsSmoother());
 
   // step size
-  status->set_step_size(estimator_.StepSize());
+  status->set_step_size(batch_estimator_.StepSize());
 
   // regularization
-  status->set_regularization(estimator_.Regularization());
+  status->set_regularization(batch_estimator_.Regularization());
 
   // gradient norm
-  status->set_gradient_norm(estimator_.GradientNorm());
+  status->set_gradient_norm(batch_estimator_.GradientNorm());
 
   // search direction norm 
-  status->set_search_direction_norm(estimator_.SearchDirectionNorm());
+  status->set_search_direction_norm(batch_estimator_.SearchDirectionNorm());
 
   // solve status 
-  status->set_solve_status((int)estimator_.SolveStatus());
+  status->set_solve_status((int)batch_estimator_.SolveStatus());
 
   // cost difference 
-  status->set_cost_difference(estimator_.CostDifference());
+  status->set_cost_difference(batch_estimator_.CostDifference());
 
   // improvement 
-  status->set_improvement(estimator_.Improvement());
+  status->set_improvement(batch_estimator_.Improvement());
 
   // expected
-  status->set_expected(estimator_.Expected());
+  status->set_expected(batch_estimator_.Expected());
 
   // reduction ratio 
-  status->set_reduction_ratio(estimator_.ReductionRatio());
+  status->set_reduction_ratio(batch_estimator_.ReductionRatio());
 
   return grpc::Status::OK;
 }
 
 grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
-                                      const estimator::TimingRequest* request,
-                                      estimator::TimingResponse* response) {
+                                      const batch_estimator::TimingRequest* request,
+                                      batch_estimator::TimingResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -1040,28 +1040,28 @@ grpc::Status EstimatorService::Timing(grpc::ServerContext* context,
 }
 
 grpc::Status EstimatorService::PriorMatrix(
-    grpc::ServerContext* context, const estimator::PriorMatrixRequest* request,
-    estimator::PriorMatrixResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::PriorMatrixRequest* request,
+    batch_estimator::PriorMatrixResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // dimension
-  int dim = estimator_.model->nv * estimator_.ConfigurationLength();
+  int dim = batch_estimator_.model->nv * batch_estimator_.ConfigurationLength();
   response->set_dimension(dim);
 
   // set prior matrix
   // TODO(taylor): loop over upper triangle only
   if (request->prior_size() > 0) {
     CHECK_SIZE("prior_matrix", dim * dim, request->prior_size());
-    estimator_.weight_prior.assign(request->prior().begin(),
+    batch_estimator_.weight_prior.assign(request->prior().begin(),
                                    request->prior().end());
   }
 
   // get prior matrix
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_prior(estimator_.weight_prior[dim * i + j]);
+      response->add_prior(batch_estimator_.weight_prior[dim * i + j]);
     }
   }
 
@@ -1069,8 +1069,8 @@ grpc::Status EstimatorService::PriorMatrix(
 }
 
 grpc::Status EstimatorService::ResetBuffer(
-    grpc::ServerContext* context, const estimator::ResetBufferRequest* request,
-    estimator::ResetBufferResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::ResetBufferRequest* request,
+    batch_estimator::ResetBufferResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -1082,8 +1082,8 @@ grpc::Status EstimatorService::ResetBuffer(
 }
 
 grpc::Status EstimatorService::BufferData(
-    grpc::ServerContext* context, const estimator::BufferDataRequest* request,
-    estimator::BufferDataResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::BufferDataRequest* request,
+    batch_estimator::BufferDataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -1095,11 +1095,11 @@ grpc::Status EstimatorService::BufferData(
   }
 
   // buffer
-  estimator::Buffer input = request->buffer();
-  estimator::Buffer* output = response->mutable_buffer();
+  batch_estimator::Buffer input = request->buffer();
+  batch_estimator::Buffer* output = response->mutable_buffer();
 
   // set sensor
-  int ns = estimator_.SensorDimension();
+  int ns = batch_estimator_.SensorDimension();
   if (input.sensor_size() > 0) {
     CHECK_SIZE("sensor", ns, input.sensor_size());
     buffer_.sensor.Set(input.sensor().data(), index);
@@ -1112,7 +1112,7 @@ grpc::Status EstimatorService::BufferData(
   }
 
   // set mask
-  int num_sensor = estimator_.NumberSensors();
+  int num_sensor = batch_estimator_.NumberSensors();
   if (input.mask_size() > 0) {
     CHECK_SIZE("mask", num_sensor, input.mask_size());
     buffer_.sensor_mask.Set(input.mask().data(), index);
@@ -1125,7 +1125,7 @@ grpc::Status EstimatorService::BufferData(
   }
 
   // set ctrl
-  int nu = estimator_.model->nu;
+  int nu = batch_estimator_.model->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
     buffer_.ctrl.Set(input.ctrl().data(), index);
@@ -1156,21 +1156,21 @@ grpc::Status EstimatorService::BufferData(
 #undef CHECK_SIZE
 
 grpc::Status EstimatorService::UpdateBuffer(
-    grpc::ServerContext* context, const estimator::UpdateBufferRequest* request,
-    estimator::UpdateBufferResponse* response) {
+    grpc::ServerContext* context, const batch_estimator::UpdateBufferRequest* request,
+    batch_estimator::UpdateBufferResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // buffer
-  estimator::Buffer buffer = request->buffer();
+  batch_estimator::Buffer buffer = request->buffer();
 
   // check for all data
-  if (buffer.sensor_size() != estimator_.SensorDimension())
+  if (buffer.sensor_size() != batch_estimator_.SensorDimension())
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor."};
-  if (buffer.mask_size() != estimator_.NumberSensors())
+  if (buffer.mask_size() != batch_estimator_.NumberSensors())
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor mask."};
-  if (buffer.ctrl_size() != estimator_.model->nu)
+  if (buffer.ctrl_size() != batch_estimator_.model->nu)
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing ctrl."};
   if (buffer.time_size() != 1)
     return {grpc::StatusCode::FAILED_PRECONDITION, "Missing time."};
@@ -1185,4 +1185,4 @@ grpc::Status EstimatorService::UpdateBuffer(
   return grpc::Status::OK;
 }
 
-}  // namespace estimator_grpc
+}  // namespace batch_estimator_grpc

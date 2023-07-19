@@ -79,7 +79,7 @@ void Agent::Initialize(const mjModel* model) {
   state_ = GetNumberOrDefault(0, model, "agent_state");
 
   // estimator
-  estimator_ = GetNumberOrDefault(0, model, "agent_estimator");
+  estimator_ = GetNumberOrDefault(0, model, "estimator");
 
   // integrator
   integrator_ =
@@ -108,18 +108,18 @@ void Agent::Initialize(const mjModel* model) {
   }
 
   // initialize estimator 
-  ekf.Initialize(model);
-  ekf.Reset();
+  kalman.Initialize(model);
+  kalman.Reset();
   ctrl.resize(model->nu);
   sensor.resize(model->nsensordata);
   state.resize(model->nq + model->nv + model->na);
-  timestep = ekf.model->opt.timestep;
-  integrator = ekf.model->opt.integrator;
-  process_noise.resize(ekf.DimensionProcess());
-  sensor_noise.resize(ekf.DimensionSensor());
-  mju_copy(process_noise.data(), ekf.noise_process.data(),
-           ekf.DimensionProcess());
-  mju_copy(sensor_noise.data(), ekf.noise_sensor.data(), ekf.DimensionSensor());
+  timestep = kalman.model->opt.timestep;
+  integrator = kalman.model->opt.integrator;
+  process_noise.resize(kalman.DimensionProcess());
+  sensor_noise.resize(kalman.DimensionSensor());
+  mju_copy(process_noise.data(), kalman.noise_process.data(),
+           kalman.DimensionProcess());
+  mju_copy(sensor_noise.data(), kalman.noise_sensor.data(), kalman.DimensionSensor());
 
   // status
   plan_enabled = false;
@@ -177,7 +177,7 @@ void Agent::Reset() {
   }
 
   // estimator 
-  ekf.Reset();
+  kalman.Reset();
 
   // cost
   cost_ = 0.0;
@@ -674,7 +674,7 @@ void Agent::GUI(mjUI& ui) {
 
   // // estimator
   if (estimator_ == 1) {
-    ekf.GUI(ui, process_noise.data(), sensor_noise.data(), timestep, integrator);
+    kalman.GUI(ui, process_noise.data(), sensor_noise.data(), timestep, integrator);
   }
 }
 
@@ -1044,7 +1044,7 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // estimator-specific plotting
   if (estimator_ == 1) {
-    ekf.Plots(&plots_.planner, &plots_.timer, planner_shift[0],
+    kalman.Plots(&plots_.planner, &plots_.timer, planner_shift[0],
               planner_shift[1] + 1, plan_enabled, NULL);
   }
 

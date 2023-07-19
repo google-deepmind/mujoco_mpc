@@ -102,15 +102,19 @@ add_library(
   planners/ilqg/settings.h
   planners/ilqs/planner.cc
   planners/ilqs/planner.h
+  estimators/batch.cc
+  estimators/batch.h
   estimators/buffer.cc
   estimators/buffer.h
-  estimators/ekf.cc
-  estimators/ekf.h
   estimators/estimator.cc
   estimators/estimator.h
   estimators/include.cc 
   estimators/include.h
+  estimators/kalman.cc
+  estimators/kalman.h
   estimators/trajectory.h
+  estimators/unscented.cc 
+  estimators/unscented.h
   app.cc
   app.h
   norm.cc

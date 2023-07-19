@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test(estimator_ekf_test)
-target_link_libraries(estimator_ekf_test load simulation gmock)
+test(kalman_test)
+target_link_libraries(kalman_test load simulation gmock)
 
-# test(estimator_force_test)
-# target_link_libraries(estimator_force_test load simulation gmock)
+# test(batch_force_test)
+# target_link_libraries(batch_force_test load simulation gmock)
 
-# test(estimator_optimize_test)
-# target_link_libraries(estimator_optimize_test load simulation gmock)
+# test(batch_optimize_test)
+# target_link_libraries(batch_optimize_test load simulation gmock)
 
-# test(estimator_prior_test)
-# target_link_libraries(estimator_prior_test load simulation gmock)
+# test(batch_prior_test)
+# target_link_libraries(batch_prior_test load simulation gmock)
 
-# test(estimator_sensor_test)
-# target_link_libraries(estimator_sensor_test load simulation gmock)
+# test(batch_sensor_test)
+# target_link_libraries(batch_sensor_test load simulation gmock)
 
-# test(estimator_shift_test)
-# target_link_libraries(estimator_shift_test load gmock)
+# test(batch_shift_test)
+# target_link_libraries(batch_shift_test load gmock)
 
 # test(estimator_trajectory_test)
 # target_link_libraries(estimator_trajectory_test gmock)

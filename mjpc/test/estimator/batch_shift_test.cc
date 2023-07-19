@@ -19,7 +19,7 @@
 
 // #include "gtest/gtest.h"
 // #include "mjpc/estimators/buffer.h"
-// #include "mjpc/estimators/estimator.h"
+// #include "mjpc/estimators/batch.h"
 // #include "mjpc/estimators/trajectory.h"
 // #include "mjpc/test/load.h"
 // #include "mjpc/threadpool.h"

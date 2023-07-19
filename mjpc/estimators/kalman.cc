@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/estimators/ekf.h"
+#include "mjpc/estimators/kalman.h"
 
 #include <mujoco/mujoco.h>
 
@@ -26,7 +26,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // initialize
-void EKF::Initialize(const mjModel* model) {
+void Kalman::Initialize(const mjModel* model) {
   // model
   if (this->model) mj_deleteModel(this->model);
   this->model = mj_copyModel(nullptr, model);
@@ -95,7 +95,7 @@ void EKF::Initialize(const mjModel* model) {
 }
 
 // reset memory
-void EKF::Reset() {
+void Kalman::Reset() {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na;
 
@@ -151,7 +151,7 @@ void EKF::Reset() {
 }
 
 // update measurement
-void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
+void Kalman::UpdateMeasurement(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -218,6 +218,7 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
   mju_addTo(state.data() + nq, correction_.data() + nv, nv + na);
 
   // -- covariance update -- //
+  // TODO(taylor): Joseph form update ?
 
   // tmp2 = (C * P * C' + R)^-1 (C * P) = tmp1 \ tmp0'
   for (int i = 0; i < ndstate_; i++) {
@@ -240,7 +241,7 @@ void EKF::UpdateMeasurement(const double* ctrl, const double* sensor) {
 }
 
 // update time
-void EKF::UpdatePrediction() {
+void Kalman::UpdatePrediction() {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -287,7 +288,7 @@ void EKF::UpdatePrediction() {
 }
 
 // estimator-specific GUI elements
-void EKF::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& timestep, int& integrator) {
+void Kalman::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& timestep, int& integrator) {
  
   // ----- estimator ------ // 
   mjuiDef defEstimator[] = {
@@ -511,9 +512,9 @@ void EKF::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& tim
 }
 
 // estimator-specific plots
-void EKF::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
                 int timer_shift, int planning, int* shift) {
-  // EKF info 
+  // Kalman info 
   double estimator_bounds[2] = {-6, 6};
 
   // covariance trace
@@ -526,7 +527,7 @@ void EKF::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
   mju::strcpy_arr(fig_planner->linename[planner_shift + 0],
                   "Covariance Trace");
 
-  // EKF timers
+  // Kalman timers
   double timer_bounds[2] = {0.0, 1.0};
 
   // measurement update

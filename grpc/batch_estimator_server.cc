@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Startup code for `Estimator` server.
+// Startup code for `BatchEstimator` server.
 
 #include <cstdint>
 #include <memory>
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  estimator_grpc::EstimatorService service;
+  estimator_grpc::BatchEstimatorService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

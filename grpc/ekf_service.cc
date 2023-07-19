@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "grpc/ekf.pb.h"
-#include "mjpc/estimators/ekf.h"
+#include "mjpc/estimators/kalman.h"
 
 namespace ekf_grpc {
 

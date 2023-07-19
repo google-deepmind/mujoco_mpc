@@ -14,40 +14,40 @@
 
 syntax = "proto3";
 
-package estimator;
+package batch_estimator;
 
-service Estimator {
-  // Initialize Estimator
+service BatchEstimator {
+  // Initialize BatchEstimator
   rpc Init(InitRequest) returns (InitResponse);
-  // Set Estimator data
+  // Set BatchEstimator data
   rpc Data(DataRequest) returns (DataResponse);
-  // Estimator settings
+  // BatchEstimator settings
   rpc Settings(SettingsRequest) returns (SettingsResponse);
-  // Estimator costs
+  // BatchEstimator costs
   rpc Cost(CostRequest) returns (CostResponse);
-  // Estimator weights
+  // BatchEstimator weights
   rpc Weights(WeightsRequest) returns (WeightsResponse);
-  // Estimator norms
+  // BatchEstimator norms
   rpc Norms(NormRequest) returns (NormResponse);
-  // Shift Estimator trajectories
+  // Shift BatchEstimator trajectories
   rpc Shift(ShiftRequest) returns (ShiftResponse);
-  // Reset Estimator
+  // Reset BatchEstimator
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Initialize Estimator data
+  // Initialize BatchEstimator data
   rpc InitializeData(InitializeDataRequest) returns (InitializeDataResponse);
-  // Update Estimator data
+  // Update BatchEstimator data
   rpc UpdateData(UpdateDataRequest) returns (UpdateDataResponse);
-  // Optimize Estimator
+  // Optimize BatchEstimator
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
-  // Update Estimator
+  // Update BatchEstimator
   rpc Update(UpdateRequest) returns (UpdateResponse);
-  // Set Estimator initial state
+  // Set BatchEstimator initial state
   rpc InitialState(InitialStateRequest) returns (InitialStateResponse);
-  // Get Estimator status
+  // Get BatchEstimator status
   rpc Status(StatusRequest) returns (StatusResponse);
-  // Get Estimator timing 
+  // Get BatchEstimator timing 
   rpc Timing(TimingRequest) returns (TimingResponse);
-  // Estimator prior matrix
+  // BatchEstimator prior matrix
   rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
   // Reset Buffer
   rpc ResetBuffer(ResetBufferRequest) returns (ResetBufferResponse);

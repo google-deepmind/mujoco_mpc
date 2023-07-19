@@ -14,7 +14,7 @@
 
 // Unit tests for the `EstimatorService` class.
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_estimator_service.h"
 
 #include <memory>
 #include <string_view>
@@ -30,23 +30,23 @@
 
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
-#include "grpc/estimator.grpc.pb.h"
-#include "grpc/estimator.pb.h"
+#include "grpc/batch_estimator.grpc.pb.h"
+#include "grpc/batch_estimator.pb.h"
 
-namespace estimator_grpc {
+namespace batch_estimator_grpc {
 
-using estimator::grpc_gen::Estimator;
+using batch_estimator::grpc_gen::BatchEstimator;
 
-class EstimatorServiceTest : public ::testing::Test {
+class BatchEstimatorServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    estimator_service = std::make_unique<EstimatorService>();
+    batch_estimator_service = std::make_unique<BatchEstimatorService>();
     grpc::ServerBuilder builder;
-    builder.RegisterService(estimator_service.get());
+    builder.RegisterService(batch_estimator_service.get());
     server = builder.BuildAndStart();
     std::shared_ptr<grpc::Channel> channel =
         server->InProcessChannel(grpc::ChannelArguments());
-    stub = Estimator::NewStub(channel);
+    stub = BatchEstimator::NewStub(channel);
   }
 
   void TearDown() override { server->Shutdown(); }
@@ -54,18 +54,18 @@ class EstimatorServiceTest : public ::testing::Test {
   void RunAndCheckInit() {
     grpc::ClientContext init_context;
 
-    estimator::InitRequest init_request;
+    batch_estimator::InitRequest init_request;
 
-    estimator::InitResponse init_response;
+    batch_estimator::InitResponse init_response;
     grpc::Status init_status =
         stub->Init(&init_context, init_request, &init_response);
 
     EXPECT_TRUE(init_status.ok()) << init_status.error_message();
   }
 
-  std::unique_ptr<EstimatorService> estimator_service;
-  std::unique_ptr<Estimator::Stub> stub;
+  std::unique_ptr<BatchEstimatorService> batch_estimator_service;
+  std::unique_ptr<BatchEstimator::Stub> stub;
   std::unique_ptr<grpc::Server> server;
 };
 
-}  // namespace estimator_grpc
+}  // namespace batch_estimator_grpc

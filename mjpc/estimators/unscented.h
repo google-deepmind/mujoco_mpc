@@ -12,28 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_EKF_H_
-#define MJPC_ESTIMATORS_EKF_H_
+#ifndef MJPC_ESTIMATORS_UNSCENTED_H_
+#define MJPC_ESTIMATORS_UNSCENTED_H_
 
 #include <mujoco/mujoco.h>
 
 #include <mutex>
 #include <vector>
 
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
 
-// maximum terms
-inline constexpr int kMaxProcessNoise = 1028;
-inline constexpr int kMaxSensorNoise = 1028;
-
-// https://stanford.edu/class/ee363/lectures/kf.pdf
-class EKF {
+// THE SQUARE-ROOT UNSCENTED KALMAN FILTER FOR STATE AND PARAMETER-ESTIMATION
+// https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
+class Unscented : public Estimator {
  public:
   // constructor
-  EKF() = default;
-  EKF(const mjModel* model) {
+  Unscented() = default;
+  Unscented(const mjModel* model) {
     Initialize(model);
     Reset();
   }
@@ -117,10 +115,6 @@ class EKF {
   // dynamics Jacobian ((2nv + na) x (2nv + na))
   std::vector<double> dynamics_jacobian_;
 
-  // Kalman gain ((2nv + na) x nsensordata_)
-  // TODO(taylor): unused..
-  std::vector<double> kalman_gain_;
-
   // sensor error (nsensordata_)
   std::vector<double> sensor_error_;
 
@@ -137,4 +131,4 @@ class EKF {
 
 }  // namespace mjpc
 
-#endif  // MJPC_ESTIMATORS_EKF_H_
+#endif  // MJPC_ESTIMATORS_UNSCENTED_H_

@@ -147,14 +147,14 @@ void EstimatorLoop(mj::Simulate& sim) {
       // start timer
       auto start = std::chrono::steady_clock::now();
 
-      // EKF
-      mjpc::EKF* ekf = &sim.agent->ekf;
+      // Kalman
+      mjpc::Kalman* kalman = &sim.agent->kalman;
 
       // set values from GUI
-      mju_copy(ekf->noise_process.data(), sim.agent->process_noise.data(), ekf->DimensionProcess());
-      mju_copy(ekf->noise_sensor.data(), sim.agent->sensor_noise.data(), ekf->DimensionSensor());
-      ekf->model->opt.timestep = sim.agent->timestep;
-      ekf->model->opt.integrator = sim.agent->integrator;
+      mju_copy(kalman->noise_process.data(), sim.agent->process_noise.data(), kalman->DimensionProcess());
+      mju_copy(kalman->noise_sensor.data(), sim.agent->sensor_noise.data(), kalman->DimensionSensor());
+      kalman->model->opt.timestep = sim.agent->timestep;
+      kalman->model->opt.integrator = sim.agent->integrator;
 
       // get simulation state
       {
@@ -166,21 +166,21 @@ void EstimatorLoop(mj::Simulate& sim) {
 
       // set time 
       // TODO(taylor): time sync w/ physics loop
-      ekf->data_->time = sim.agent->time;
+      kalman->data_->time = sim.agent->time;
 
       // measurement update
-      ekf->UpdateMeasurement(sim.agent->ctrl.data(), sim.agent->sensor.data());
+      kalman->UpdateMeasurement(sim.agent->ctrl.data(), sim.agent->sensor.data());
 
       // sensor update
-      ekf->UpdatePrediction();
+      kalman->UpdatePrediction();
 
       // copy state 
-      mju_copy(sim.agent->state.data(), ekf->state.data(), m->nq + m->nv + m->na);
-      sim.agent->time = ekf->data_->time;
+      mju_copy(sim.agent->state.data(), kalman->state.data(), m->nq + m->nv + m->na);
+      sim.agent->time = kalman->data_->time;
 
       // wait (ms)
       while (1.0e-3 * mjpc::GetDuration(start) <
-            1.0e3 * ekf->model->opt.timestep) {
+            1.0e3 * kalman->model->opt.timestep) {
       }
     }
   }

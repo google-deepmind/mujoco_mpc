@@ -26,7 +26,7 @@
 
 #include "grpc/ekf.grpc.pb.h"
 #include "grpc/ekf.pb.h"
-#include "mjpc/estimators/ekf.h"
+#include "mjpc/estimators/kalman.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 

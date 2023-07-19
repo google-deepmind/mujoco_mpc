@@ -154,9 +154,9 @@ void EstimatorLoop(mj::Simulate& sim) {
 
         // set values from GUI
         mju_copy(estimator->ProcessNoise(), sim.agent->process_noise.data(),
-                 sim.agent->process_noise.size());
+                 estimator->DimensionProcess());
         mju_copy(estimator->SensorNoise(), sim.agent->sensor_noise.data(),
-                 sim.agent->sensor_noise.size());
+                 estimator->DimensionSensor());
         estimator->Model()->opt.timestep = sim.agent->timestep;
         estimator->Model()->opt.integrator = sim.agent->integrator;
 

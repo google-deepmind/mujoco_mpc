@@ -75,10 +75,10 @@ class Kalman : public Estimator {
   double* SensorNoise() override { return noise_sensor.data(); };
 
   // dimension process
-  int DimensionProcess() const { return ndstate_; };
+  int DimensionProcess() const override { return ndstate_; };
 
   // dimension sensor
-  int DimensionSensor() const { return nsensordata_; };
+  int DimensionSensor() const override { return nsensordata_; };
 
   // get measurement timer (ms)
   double TimerMeasurement() const { return timer_measurement_; };
@@ -88,11 +88,11 @@ class Kalman : public Estimator {
 
   // estimator-specific GUI elements
   void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
-           double& timestep, int& integrator);
+           double& timestep, int& integrator) override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-             int timer_shift, int planning, int* shift);
+             int timer_shift, int planning, int* shift) override;
 
   // model
   mjModel* model;

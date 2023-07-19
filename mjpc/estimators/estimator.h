@@ -63,6 +63,21 @@ class Estimator {
 
   // sensor noise 
   virtual double* SensorNoise() = 0;
+
+  // process dimension 
+  virtual int DimensionProcess() const = 0;
+  
+  // sensor dimensino 
+  virtual int DimensionSensor() const = 0;
+
+  // estimator-specific GUI elements
+  virtual void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
+                   double& timestep, int& integrator) = 0;
+
+  // estimator-specific plots
+  virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
+                     int planner_shift, int timer_shift, int planning,
+                     int* shift) = 0;
 };
 
 // ground truth
@@ -87,18 +102,33 @@ class GroundTruth : public Estimator {
     // data
     data_ = mj_makeData(model);
 
+    // -- dimensions -- //
+    ndstate_ = 2 * model->nv + model->na;
+
+    // sensor start index
+    int sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
+
+    // number of sensors
+    int nsensor =
+        GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
+
+    // sensor dimension
+    nsensordata_ = 0;
+    for (int i = 0; i < nsensor; i++) {
+      nsensordata_ += model->sensor_dim[sensor_start + i];
+    }
+
     // state 
     state.resize(model->nq + model->nv + model->na);
 
     // covariance 
-    int ndstate = 2 * model->nv + model->na;
-    covariance.resize(ndstate * ndstate);
+    covariance.resize(ndstate_ * ndstate_);
 
     // process noise 
-    noise_process.resize(ndstate);
+    noise_process.resize(ndstate_);
 
     // sensor noise 
-    noise_sensor.resize(model->nsensordata); // over allocate
+    noise_sensor.resize(nsensordata_); // over allocate
   }
 
   // reset 
@@ -155,6 +185,20 @@ class GroundTruth : public Estimator {
   // get sensor noise 
   double* SensorNoise() override { return noise_sensor.data(); };
 
+  // process dimension 
+  int DimensionProcess() const override { return ndstate_; };
+
+  // sensor dimension 
+  int DimensionSensor() const override { return nsensordata_; };
+
+  // estimator-specific GUI elements
+  void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
+           double& timestep, int& integrator) override {};
+
+  // estimator-specific plots
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning, int* shift) override {};
+
   // model
   mjModel* model;
 
@@ -173,6 +217,11 @@ class GroundTruth : public Estimator {
 
   // sensor noise 
   std::vector<double> noise_sensor;
+
+ private:
+  // dimensions
+  int ndstate_;
+  int nsensordata_;
 };
 
 }  // namespace mjpc

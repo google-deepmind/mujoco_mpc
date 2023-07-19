@@ -110,24 +110,27 @@ void Agent::Initialize(const mjModel* model) {
 
   // initialize estimator 
   if (reset_estimator) {
-    for (const auto& est : estimators_) {
-      est->Initialize(model_);
+    for (const auto& estimator : estimators_) {
+      estimator->Initialize(model_);
+      estimator->Reset();
     }
   }
   
+  // get Kalman estimator
+  Estimator* estimator = estimators_[1].get();
 
-  kalman.Initialize(model);
-  kalman.Reset();
+  // initialize estimator data
   ctrl.resize(model->nu);
   sensor.resize(model->nsensordata);
   state.resize(model->nq + model->nv + model->na);
-  timestep = kalman.model->opt.timestep;
-  integrator = kalman.model->opt.integrator;
-  process_noise.resize(kalman.DimensionProcess());
-  sensor_noise.resize(kalman.DimensionSensor());
-  mju_copy(process_noise.data(), kalman.noise_process.data(),
-           kalman.DimensionProcess());
-  mju_copy(sensor_noise.data(), kalman.noise_sensor.data(), kalman.DimensionSensor());
+  timestep = estimator->Model()->opt.timestep;
+  integrator = estimator->Model()->opt.integrator;
+  process_noise.resize(estimator->DimensionProcess());
+  sensor_noise.resize(estimator->DimensionSensor());
+  mju_copy(process_noise.data(), estimator->ProcessNoise(),
+           estimator->DimensionProcess());
+  mju_copy(sensor_noise.data(), estimator->SensorNoise(),
+           estimator->DimensionSensor());
 
   // status
   plan_enabled = false;
@@ -186,13 +189,11 @@ void Agent::Reset() {
 
   // estimator 
   if (reset_estimator) {
-    for (const auto& est : estimators_) {
-      est->Reset();
+    for (const auto& estimator : estimators_) {
+      estimator->Reset();
     }
   }
   
-  kalman.Reset();
-
   // cost
   cost_ = 0.0;
 
@@ -688,7 +689,8 @@ void Agent::GUI(mjUI& ui) {
 
   // estimator
   if (ActiveEstimatorIndex() > 0) {
-    kalman.GUI(ui, process_noise.data(), sensor_noise.data(), timestep, integrator);
+    ActiveEstimator().GUI(ui, process_noise.data(), sensor_noise.data(),
+                          timestep, integrator);
   }
 }
 
@@ -1076,8 +1078,8 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // estimator-specific plotting
   if (ActiveEstimatorIndex() > 0) {
-    kalman.Plots(&plots_.planner, &plots_.timer, planner_shift[0],
-              planner_shift[1] + 1, plan_enabled, NULL);
+    ActiveEstimator().Plots(&plots_.planner, &plots_.timer, planner_shift[0],
+                            planner_shift[1] + 1, plan_enabled, NULL);
   }
 
   // total (agent) compute time

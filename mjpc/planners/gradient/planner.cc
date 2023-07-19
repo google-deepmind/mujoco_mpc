@@ -95,6 +95,7 @@ void GradientPlanner::Allocate() {
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
+  previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
 
   // scratch
   parameters_scratch.resize(model->nu * kMaxTrajectoryHorizon);
@@ -124,6 +125,7 @@ void GradientPlanner::Reset(int horizon) {
     candidate_policy[i].Reset(horizon);
   }
   policy.Reset(horizon);
+  previous_policy.Reset(horizon);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);

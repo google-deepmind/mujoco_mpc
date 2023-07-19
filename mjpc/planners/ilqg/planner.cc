@@ -87,6 +87,7 @@ void iLQGPlanner::Allocate() {
 
   // policy
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
+  previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
   for (int i = 0; i < kMaxTrajectory; i++) {
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
@@ -115,6 +116,7 @@ void iLQGPlanner::Reset(int horizon) {
 
   // policy
   policy.Reset(horizon);
+  previous_policy.Reset(horizon);
   for (int i = 0; i < kMaxTrajectory; i++) {
     candidate_policy[i].Reset(horizon);
   }

@@ -144,43 +144,52 @@ void EstimatorLoop(mj::Simulate& sim) {
   // run until asked to exit
   while (!sim.exitrequest.load()) {
     if (sim.uiloadrequest.load() == 0) {
-      // start timer
-      auto start = std::chrono::steady_clock::now();
+      // unpack
+      mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
 
-      // Kalman
-      mjpc::Kalman* kalman = &sim.agent->kalman;
+      // estimator
+      if (sim.agent->ActiveEstimatorIndex() > 0) {
+        // start timer
+        auto start = std::chrono::steady_clock::now();
 
-      // set values from GUI
-      mju_copy(kalman->noise_process.data(), sim.agent->process_noise.data(), kalman->DimensionProcess());
-      mju_copy(kalman->noise_sensor.data(), sim.agent->sensor_noise.data(), kalman->DimensionSensor());
-      kalman->model->opt.timestep = sim.agent->timestep;
-      kalman->model->opt.integrator = sim.agent->integrator;
+        // set values from GUI
+        mju_copy(estimator->ProcessNoise(), sim.agent->process_noise.data(),
+                 sim.agent->process_noise.size());
+        mju_copy(estimator->SensorNoise(), sim.agent->sensor_noise.data(),
+                 sim.agent->sensor_noise.size());
+        estimator->Model()->opt.timestep = sim.agent->timestep;
+        estimator->Model()->opt.integrator = sim.agent->integrator;
 
-      // get simulation state
-      {
-        const std::lock_guard<std::mutex> lock(sim.mtx);
-        mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
-        mju_copy(sim.agent->sensor.data(), d->sensordata, m->nsensordata);
-        sim.agent->time = d->time;
-      }
+        // get simulation state
+        {
+          const std::lock_guard<std::mutex> lock(sim.mtx);
+          mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
+          mju_copy(sim.agent->sensor.data(), d->sensordata, m->nsensordata);
+          sim.agent->time = d->time;
+        }
 
-      // set time 
-      // TODO(taylor): time sync w/ physics loop
-      kalman->data_->time = sim.agent->time;
+        // set time
+        // TODO(taylor): time sync w/ physics loop
+        estimator->Data()->time = sim.agent->time;
 
-      // measurement update
-      kalman->UpdateMeasurement(sim.agent->ctrl.data(), sim.agent->sensor.data());
+        // update
+        estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
 
-      // sensor update
-      kalman->UpdatePrediction();
+        // copy state
+        mju_copy(sim.agent->state.data(), estimator->State(),
+                 m->nq + m->nv + m->na);
+        sim.agent->time = estimator->Data()->time;
 
-      // copy state 
-      mju_copy(sim.agent->state.data(), kalman->state.data(), m->nq + m->nv + m->na);
-      sim.agent->time = kalman->data_->time;
-
-      // wait (ms)
-      while (1.0e-3 * mjpc::GetDuration(start) <
-            1.0e3 * kalman->model->opt.timestep) {
+        // wait (ms)
+        while (1.0e-3 * mjpc::GetDuration(start) <
+               1.0e3 * estimator->Model()->opt.timestep) {
+        }
+      } else {
+        // ground truth
+        mju_copy(estimator->State(), d->qpos, m->nq);
+        mju_copy(estimator->State() + m->nq, d->qvel, m->nv);
+        mju_copy(estimator->State() + m->nq + m->nv, d->act, m->na);
+        estimator->Time() = d->time;
       }
     }
   }
@@ -351,7 +360,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjpc::State* state = &sim.agent->ActiveState();
 
       // set state
-      if (sim.agent->ActiveEstimator() == 1) {
+      if (sim.agent->ActiveEstimatorIndex() > 0) {
         // from estimator
         state->SetPos(m, sim.agent->state.data());
         state->SetVel(m, sim.agent->state.data() + m->nq);

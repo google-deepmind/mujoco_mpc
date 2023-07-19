@@ -47,7 +47,7 @@ class Agent {
   friend class AgentTest;
 
   // constructor
-  Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()) {}
+  Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()), estimators_(mjpc::LoadEstimators()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -130,7 +130,9 @@ class Agent {
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
-  int ActiveEstimator() const { return estimator_; };
+  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; };
+  mjpc::Estimator& PreviousEstimator() const { return *estimators_[previous_estimator]; };
+  int ActiveEstimatorIndex() const { return estimator_; };
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -181,6 +183,8 @@ class Agent {
   int integrator;
   std::vector<double> process_noise;
   std::vector<double> sensor_noise;
+  int previous_estimator;
+  bool reset_estimator = true;
 
  private:
   // model
@@ -202,6 +206,7 @@ class Agent {
 
   std::vector<std::shared_ptr<Task>> tasks_;
   int active_task_id_ = 0;
+
   // residual function for the active task, updated once per planning iteration
   std::unique_ptr<ResidualFn> residual_fn_;
 
@@ -214,6 +219,7 @@ class Agent {
   int state_;
 
   // estimators 
+  std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
   int estimator_;
 
   // task queue for RunBeforeStep

@@ -41,15 +41,13 @@ void Unscented::Initialize(const mjModel* model) {
   // dimension
   nstate_ = model->nq + model->nv + model->na;
   ndstate_ = 2 * model->nv + model->na;
-  
 
   // sensor start index
-  sensor_start =
-      GetNumberOrDefault(0, model, "estimator_sensor_start");
+  sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
-  nsensor = GetNumberOrDefault(model->nsensor, model,
-                                    "estimator_number_sensor");
+  nsensor =
+      GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
   // sensor dimension
   nsensordata_ = 0;
@@ -57,7 +55,7 @@ void Unscented::Initialize(const mjModel* model) {
     nsensordata_ += model->sensor_dim[sensor_start + i];
   }
 
-  // sensor start index 
+  // sensor start index
   sensor_start_index_ = 0;
   for (int i = 0; i < sensor_start; i++) {
     sensor_start_index_ += model->sensor_dim[i];
@@ -172,7 +170,7 @@ void Unscented::UpdateMeasurement(const double* ctrl, const double* sensor) {
   mju_sub(sensor_error_.data(), sensor + sensor_start_index_,
           data_->sensordata + sensor_start_index_, nsensordata_);
 
-  // -- Kalman gain: P * C' (C * P * C' + R)^-1 -- //
+  // -- Unscented gain: P * C' (C * P * C' + R)^-1 -- //
 
   // sensor Jacobian
   mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered, NULL,
@@ -218,6 +216,7 @@ void Unscented::UpdateMeasurement(const double* ctrl, const double* sensor) {
   mju_addTo(state.data() + nq, correction_.data() + nv, nv + na);
 
   // -- covariance update -- //
+  // TODO(taylor): Joseph form update ?
 
   // tmp2 = (C * P * C' + R)^-1 (C * P) = tmp1 \ tmp0'
   for (int i = 0; i < ndstate_; i++) {
@@ -287,24 +286,25 @@ void Unscented::UpdatePrediction() {
 }
 
 // estimator-specific GUI elements
-void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& timestep, int& integrator) {
- 
-  // ----- estimator ------ // 
+void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
+                    double& timestep, int& integrator) {
+  // ----- estimator ------ //
   mjuiDef defEstimator[] = {
-    {mjITEM_SECTION, "Estimator Settings", 1, nullptr, "AP"}, // needs new section to satisfy mjMAXUIITEM
-    {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-    {mjITEM_SLIDERNUM, "Timestep", 2, &timestep, "1.0e-3 0.1"},
-    {mjITEM_SELECT, "Integrator", 2, &integrator, "Euler\nRK4\nImplicit\nFastImplicit"},
-    {mjITEM_END}
-  };
+      {mjITEM_SECTION, "Estimator Settings", 1, nullptr,
+       "AP"},  // needs new section to satisfy mjMAXUIITEM
+      {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
+      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep, "1.0e-3 0.1"},
+      {mjITEM_SELECT, "Integrator", 2, &integrator,
+       "Euler\nRK4\nImplicit\nFastImplicit"},
+      {mjITEM_END}};
 
-  // add estimator 
+  // add estimator
   mjui_add(&ui, defEstimator);
 
   // -- process noise -- //
   int nv = model->nv;
   int process_noise_shift = 0;
-  mjuiDef defProcessNoise[1028 + 2];
+  mjuiDef defProcessNoise[kMaxProcessNoise + 2];
 
   // separator
   defProcessNoise[0] = {mjITEM_SEPARATOR, "Process Noise Covariance", 1};
@@ -318,7 +318,7 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise, doubl
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "process cov");
-    
+
     // shift
     process_noise_shift++;
   }
@@ -332,7 +332,7 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise, doubl
   for (int i = 0; i < model->njnt; i++) {
     int name_jntadr = model->name_jntadr[i];
     std::string jnt_name(model->names + name_jntadr);
-    
+
     // get joint type
     int jnt_type = model->jnt_type[i];
 
@@ -466,7 +466,7 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise, doubl
 
   // -- sensor noise -- //
   int sensor_noise_shift = 0;
-  mjuiDef defSensorNoise[1028 + 2];
+  mjuiDef defSensorNoise[kMaxSensorNoise + 2];
 
   // separator
   defSensorNoise[0] = {mjITEM_SEPARATOR, "Sensor Noise Covariance", 1};
@@ -511,9 +511,10 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise, doubl
 }
 
 // estimator-specific plots
-void Unscented::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-                int timer_shift, int planning, int* shift) {
-  // Unscented info 
+void Unscented::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
+                      int planner_shift, int timer_shift, int planning,
+                      int* shift) {
+  // Unscented info
   double estimator_bounds[2] = {-6, 6};
 
   // covariance trace
@@ -523,8 +524,7 @@ void Unscented::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_
                        mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[planner_shift + 0],
-                  "Covariance Trace");
+  mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
 
   // Unscented timers
   double timer_bounds[2] = {0.0, 1.0};

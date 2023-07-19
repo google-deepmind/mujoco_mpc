@@ -25,10 +25,6 @@
 
 namespace mjpc {
 
-// maximum terms
-inline constexpr int kMaxProcessNoise = 1028;
-inline constexpr int kMaxSensorNoise = 1028;
-
 // https://stanford.edu/class/ee363/lectures/kf.pdf
 class Kalman : public Estimator {
  public:
@@ -40,16 +36,43 @@ class Kalman : public Estimator {
   }
 
   // initialize
-  void Initialize(const mjModel* model);
+  void Initialize(const mjModel* model) override;
 
   // reset memory
-  void Reset();
+  void Reset() override;
 
   // update measurement
   void UpdateMeasurement(const double* ctrl, const double* sensor);
 
   // update time
   void UpdatePrediction();
+
+  // update 
+  void Update(const double* ctrl, const double* sensor) override {
+    UpdateMeasurement(ctrl, sensor);
+    UpdatePrediction();
+  }
+
+  // get state 
+  double* State() override { return state.data(); };
+
+  // get covariance 
+  double* Covariance() override { return covariance.data(); };
+
+  // get time 
+  double& Time() override { return time; };
+
+  // get model 
+  mjModel* Model() override { return model; };
+
+  // get data 
+  mjData* Data() override { return data_; };
+
+  // get process noise 
+  double* ProcessNoise() override { return noise_process.data(); };
+
+  // get sensor noise 
+  double* SensorNoise() override { return noise_sensor.data(); };
 
   // dimension process
   int DimensionProcess() const { return ndstate_; };

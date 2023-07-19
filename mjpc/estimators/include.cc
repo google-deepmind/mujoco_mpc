@@ -18,7 +18,20 @@ namespace mjpc {
 
 const char kEstimatorNames[] =
     "Ground Truth\n"
-    "Kalman";
-// TODO(taylor): Unscented
+    "Kalman\n"
+    "Unscented";
+
+// load all available estimators
+std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
+  // planners
+  std::vector<std::unique_ptr<mjpc::Estimator>> estimators;
+
+  // add estimators
+  estimators.emplace_back(new mjpc::GroundTruth);
+  estimators.emplace_back(new mjpc::Kalman);
+  estimators.emplace_back(new mjpc::Unscented);
+
+  return estimators;
+}
 
 }  // namespace mjpc

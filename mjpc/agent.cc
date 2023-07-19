@@ -80,6 +80,7 @@ void Agent::Initialize(const mjModel* model) {
 
   // estimator
   estimator_ = GetNumberOrDefault(0, model, "estimator");
+  previous_estimator = estimator_;
 
   // integrator
   integrator_ =
@@ -108,6 +109,13 @@ void Agent::Initialize(const mjModel* model) {
   }
 
   // initialize estimator 
+  if (reset_estimator) {
+    for (const auto& est : estimators_) {
+      est->Initialize(model_);
+    }
+  }
+  
+
   kalman.Initialize(model);
   kalman.Reset();
   ctrl.resize(model->nu);
@@ -177,6 +185,12 @@ void Agent::Reset() {
   }
 
   // estimator 
+  if (reset_estimator) {
+    for (const auto& est : estimators_) {
+      est->Reset();
+    }
+  }
+  
   kalman.Reset();
 
   // cost
@@ -672,8 +686,8 @@ void Agent::GUI(mjUI& ui) {
   // planner
   ActivePlanner().GUI(ui);
 
-  // // estimator
-  if (estimator_ == 1) {
+  // estimator
+  if (ActiveEstimatorIndex() > 0) {
     kalman.GUI(ui, process_noise.data(), sensor_noise.data(), timestep, integrator);
   }
 }
@@ -715,8 +729,11 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       break;
     case 1:  // planner change
       if (model_) {
+        // reset plots
         this->PlotInitialize();
         this->PlotReset();
+
+        // reset agent
         uiloadrequest.fetch_sub(1);
       }
       break;
@@ -728,9 +745,24 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       }
       // reset
       if (model_) {
+        // reset plots
         this->PlotInitialize();
         this->PlotReset();
-        uiloadrequest.fetch_sub(1);
+
+        // copy state
+        int nstate = model_->nq + model_->nv + model_->na;
+        mju_copy(ActiveEstimator().State(), PreviousEstimator().State(),
+                 nstate);
+
+        // copy covariance
+        int ndstate = 2 * model_->nv + model_->na;
+        mju_copy(ActiveEstimator().Covariance(),
+                 PreviousEstimator().Covariance(), ndstate * ndstate);
+
+        // reset agent
+        reset_estimator = false;    // skip estimator reset
+        uiloadrequest.fetch_sub(1); // reset 
+        reset_estimator = true;     // restore estimator reset
       }
       break;
     case 4:  // controller on/off
@@ -1043,7 +1075,7 @@ void Agent::Plots(const mjData* data, int shift) {
   ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled, planner_shift);
 
   // estimator-specific plotting
-  if (estimator_ == 1) {
+  if (ActiveEstimatorIndex() > 0) {
     kalman.Plots(&plots_.planner, &plots_.timer, planner_shift[0],
               planner_shift[1] + 1, plan_enabled, NULL);
   }

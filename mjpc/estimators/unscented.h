@@ -25,6 +25,8 @@
 
 namespace mjpc {
 
+// TODO(taylor): implement UKF algorithm
+
 // THE SQUARE-ROOT UNSCENTED KALMAN FILTER FOR STATE AND PARAMETER-ESTIMATION
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
 class Unscented : public Estimator {
@@ -37,10 +39,10 @@ class Unscented : public Estimator {
   }
 
   // initialize
-  void Initialize(const mjModel* model);
+  void Initialize(const mjModel* model) override;
 
   // reset memory
-  void Reset();
+  void Reset() override;
 
   // update measurement
   void UpdateMeasurement(const double* ctrl, const double* sensor);
@@ -48,10 +50,37 @@ class Unscented : public Estimator {
   // update time
   void UpdatePrediction();
 
-  // dimension process 
+  // update
+  void Update(const double* ctrl, const double* sensor) override {
+    UpdateMeasurement(ctrl, sensor);
+    UpdatePrediction();
+  }
+
+  // get state 
+  double* State() override { return state.data(); };
+
+  // get covariance 
+  double* Covariance() override { return covariance.data(); };
+
+  // get time 
+  double& Time() override { return time; };
+
+  // get model 
+  mjModel* Model() override { return model; };
+
+  // get data 
+  mjData* Data() override { return data_; };
+
+  // get process noise 
+  double* ProcessNoise() override { return noise_process.data(); };
+
+  // get sensor noise 
+  double* SensorNoise() override { return noise_sensor.data(); };
+
+  // dimension process
   int DimensionProcess() const { return ndstate_; };
 
-  // dimension sensor 
+  // dimension sensor
   int DimensionSensor() const { return nsensordata_; };
 
   // get measurement timer (ms)
@@ -61,7 +90,8 @@ class Unscented : public Estimator {
   double TimerPrediction() const { return timer_prediction_; };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& timestep, int& integrator);
+  void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
+           double& timestep, int& integrator);
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -99,7 +129,7 @@ class Unscented : public Estimator {
   // sensor Jacobian (nsensordata x (2nv + na))
   std::vector<double> sensor_jacobian_;
 
-  // sensor start 
+  // sensor start
   int sensor_start;
   int nsensor;
 
@@ -109,7 +139,7 @@ class Unscented : public Estimator {
   int ndstate_;
   int nsensordata_;
 
-  // sensor start index 
+  // sensor start index
   int sensor_start_index_;
 
   // dynamics Jacobian ((2nv + na) x (2nv + na))

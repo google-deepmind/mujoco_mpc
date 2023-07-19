@@ -28,6 +28,9 @@ namespace mjpc {
 // Estimator names, separated by '\n'.
 extern const char kEstimatorNames[];
 
+// Loads all available estimators
+std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators();
+
 }  // namespace mjpc
 
 #endif  // MJPC_ESTIMATORS_INCLUDE_H_

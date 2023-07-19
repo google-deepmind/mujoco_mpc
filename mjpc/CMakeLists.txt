@@ -106,7 +106,6 @@ add_library(
   estimators/batch.h
   estimators/buffer.cc
   estimators/buffer.h
-  estimators/estimator.cc
   estimators/estimator.h
   estimators/include.cc 
   estimators/include.h

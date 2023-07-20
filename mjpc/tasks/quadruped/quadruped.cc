@@ -650,7 +650,7 @@ void QuadrupedFlat::ResidualFn::Walk(double pos[2], double time) const {
 QuadrupedFlat::ResidualFn::A1Gait QuadrupedFlat::ResidualFn::GetGait() const {
   if (current_mode_ == kModeBiped)
     return kGaitTrot;
-  return static_cast<A1Gait>(ReinterpretAsInt(parameters_[gait_param_id_]));
+  return static_cast<A1Gait>(ReinterpretAsInt(current_gait_));
 }
 
 // return normalized target step height

@@ -31,7 +31,8 @@ class Panda : public ThreadSafeTask {
                   double* residual) const override;
   };
   Panda() : residual_(this) {}
-  void TransitionLocked(const mjModel* model, mjData* data) override;
+  void TransitionLocked(const mjModel* model, mjData* data,
+                        std::mutex* mutex) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

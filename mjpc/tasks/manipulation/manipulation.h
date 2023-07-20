@@ -20,8 +20,7 @@
 #include "mjpc/task.h"
 #include "mjpc/tasks/manipulation/common.h"
 
-namespace mjpc {
-namespace manipulation {
+namespace mjpc::manipulation {
 class Bring : public ThreadSafeTask {
  public:
   std::string Name() const override;
@@ -39,7 +38,8 @@ class Bring : public ThreadSafeTask {
   };
 
   Bring() : residual_(this, ModelValues()) {}
-  void TransitionLocked(const mjModel* model, mjData* data) override;
+  void TransitionLocked(const mjModel* model,
+                        mjData* data, std::mutex* mutex) override;
   void ResetLocked(const mjModel* model) override;
 
  protected:
@@ -51,8 +51,7 @@ class Bring : public ThreadSafeTask {
  private:
   ResidualFn residual_;
 };
-}  // namespace manipulation
-}  // namespace mjpc
+}  // namespace mjpc::manipulation
 
 
 #endif  // MJPC_MJPC_TASKS_MANIPULATION_MANIPULATION_H_

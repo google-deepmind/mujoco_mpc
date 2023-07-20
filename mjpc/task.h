@@ -215,8 +215,14 @@ class ThreadSafeTask : public Task {
   // returns an object which can compute the residual function. the function
   // can assume that a lock on mutex_ is held when it's called
   virtual std::unique_ptr<ResidualFn> ResidualLocked() const = 0;
-  // implementation of Task::Transition() which can assume a lock is held
-  virtual void TransitionLocked(const mjModel* model, mjData* data) {}
+  // implementation of Task::Transition() which can assume a lock is held.
+  // in some cases the transition logic requires calling mj_forward (e.g., for
+  // measuring contact forces), which will call the sensor callback, which calls
+  // ResidualLocked. In order to avoid such resource contention, we give the
+  // user the ability to temporarily unlock the mutex, but it must be locked
+  // again before returning.
+  virtual void TransitionLocked(const mjModel* model, mjData* data,
+                                std::mutex* mutex) {}
   // implementation of Task::Reset() which can assume a lock is held
   virtual void ResetLocked(const mjModel* model) {}
   // mutex which should be held on changes to InternalResidual.

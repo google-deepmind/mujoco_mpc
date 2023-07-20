@@ -49,7 +49,8 @@ void Particle::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_copy(residual + 4, data->ctrl, model->nu);
 }
 
-void Particle::TransitionLocked(const mjModel* model, mjData* data) {
+void Particle::TransitionLocked(const mjModel* model, mjData* data,
+                                std::mutex* mutex) {
   // some Lissajous curve
   double goal[2]{0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
 

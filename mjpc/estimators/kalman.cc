@@ -318,7 +318,7 @@ void Kalman::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& 
                                             process_noise + i, "1.0e-8 0.01"};
 
     // set name
-    mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "process cov");
+    mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
     
     // shift
     process_noise_shift++;

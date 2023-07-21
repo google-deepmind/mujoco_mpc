@@ -28,7 +28,7 @@ namespace mju = ::mujoco::util_mjpc;
 // initialize
 void Unscented::Initialize(const mjModel* model) {
   // model
-  if (this->model) mj_deleteModel(this->model);
+  // if (this->model) mj_deleteModel(this->model);
   this->model = mj_copyModel(nullptr, model);
 
   // data
@@ -39,8 +39,10 @@ void Unscented::Initialize(const mjModel* model) {
                                                  model, "estimator_timestep");
 
   // dimension
-  nstate_ = model->nq + model->nv + model->na;
-  ndstate_ = 2 * model->nv + model->na;
+  int nq = model->nq, nv = model->nv, na = model->na;
+  nstate_ = nq + nv + na;
+  ndstate_ = 2 * nv + na;
+  num_sigma_ = 2 * ndstate_ + 1;
 
   // sensor start index
   sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
@@ -73,11 +75,65 @@ void Unscented::Initialize(const mjModel* model) {
   // sensor noise
   noise_sensor.resize(nsensordata_);
 
-  // dynamics Jacobian
-  dynamics_jacobian_.resize(ndstate_ * ndstate_);
+  // sigma points (nstate x (2 * ndstate_ + 1))
+  sigma_.resize(nstate_ * num_sigma_);
 
-  // sensor Jacobian
-  sensor_jacobian_.resize(model->nsensordata * ndstate_);
+  // states (nstate x (2 * ndstate_ + 1))
+  states_.resize(nstate_ * num_sigma_);
+
+  // sensors (nsensordata x (2 * ndstate + 1))
+  sensors_.resize(nsensordata_ * num_sigma_);
+
+  // state mean (nstate)
+  state_mean_.resize(nstate_);
+
+  // sensor mean (nsensordata)
+  sensor_mean_.resize(nsensordata_);
+
+  // covariance factor (ndstate x ndstate)
+  covariance_factor_.resize(ndstate_ * ndstate_);
+
+  // factor column (ndstate)
+  factor_column_.resize(ndstate_);
+
+  // state difference (ndstate x num_sigma)
+  state_difference_.resize(ndstate_ * num_sigma_);
+
+  // sensor difference (nsensordata_ x num_sigma)
+  sensor_difference_.resize(nsensordata_ * num_sigma_);
+
+  // covariance sensor (nsensordata_ x nsensordata_)
+  covariance_sensor_.resize(nsensordata_ * nsensordata_);
+
+  // covariance state sensor (ndstate_ x nsensordata_)
+  covariance_state_sensor_.resize(ndstate_ * nsensordata_);
+
+  // covariance state state (ndstate_ x ndstate_)
+  covariance_state_state_.resize(ndstate_ * ndstate_);
+
+  // sensor difference outer product
+  sensor_difference_outer_product_.resize(nsensordata_ * nsensordata_);
+
+  // state sensor difference outer product
+  state_sensor_difference_outer_product_.resize(ndstate_ * nsensordata_);
+
+  // state state difference outer product
+  state_state_difference_outer_product_.resize(ndstate_ * ndstate_);
+
+  // covariance sensor factor
+  covariance_sensor_factor_.resize(nsensordata_ * nsensordata_);
+
+  // lambda
+  double lambda = ndstate_ * (settings.alpha * settings.alpha - 1.0);
+
+  // sigma step
+  sigma_step = mju_sqrt(ndstate_ + lambda);
+
+  // weights
+  weight_mean0 = lambda / (ndstate_ + lambda);
+  weight_covariance0 =
+      weight_mean0 + 1.0 - settings.alpha * settings.alpha + settings.beta;
+  weight_sigma = 1.0 / (2.0 * (ndstate_ + lambda));
 
   // sensor error
   sensor_error_.resize(nsensordata_);
@@ -125,11 +181,59 @@ void Unscented::Reset() {
       GetNumberOrDefault(1.0e-5, model, "estimator_sensor_noise_scale");
   std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
-  // dynamics Jacobian
-  mju_zero(dynamics_jacobian_.data(), ndstate_ * ndstate_);
+  // sigma points
+  std::fill(sigma_.begin(), sigma_.end(), 0.0);
 
-  // sensor Jacobian
-  mju_zero(sensor_jacobian_.data(), model->nsensordata * ndstate_);
+  // states
+  std::fill(states_.begin(), states_.end(), 0.0);
+
+  // sensors
+  std::fill(sensors_.begin(), sensors_.end(), 0.0);
+
+  // state mean
+  std::fill(state_mean_.begin(), state_mean_.end(), 0.0);
+
+  // sensor mean
+  std::fill(sensor_mean_.begin(), sensor_mean_.end(), 0.0);
+
+  // covariance factor
+  std::fill(covariance_factor_.begin(), covariance_factor_.end(), 0.0);
+
+  // factor column
+  std::fill(factor_column_.begin(), factor_column_.end(), 0.0);
+
+  // state difference
+  std::fill(state_difference_.begin(), state_difference_.end(), 0.0);
+
+  // sensor difference
+  std::fill(sensor_difference_.begin(), sensor_difference_.end(), 0.0);
+
+  // covariance sensor
+  std::fill(covariance_sensor_.begin(), covariance_sensor_.end(), 0.0);
+
+  // covariance state sensor
+  std::fill(covariance_state_sensor_.begin(), covariance_state_sensor_.end(),
+            0.0);
+
+  // covariance state state
+  std::fill(covariance_state_state_.begin(), covariance_state_state_.end(),
+            0.0);
+
+  // sensor difference outer product
+  std::fill(sensor_difference_outer_product_.begin(),
+            sensor_difference_outer_product_.end(), 0.0);
+
+  // state sensor difference outer product
+  std::fill(state_sensor_difference_outer_product_.begin(),
+            state_sensor_difference_outer_product_.end(), 0.0);
+
+  // state state difference outer product
+  std::fill(state_state_difference_outer_product_.begin(),
+            state_state_difference_outer_product_.end(), 0.0);
+
+  // covariance sensor factor
+  std::fill(covariance_sensor_factor_.begin(), covariance_sensor_factor_.end(),
+            0.0);
 
   // sensor error
   mju_zero(sensor_error_.data(), nsensordata_);
@@ -138,8 +242,7 @@ void Unscented::Reset() {
   mju_zero(correction_.data(), ndstate_);
 
   // timer
-  timer_measurement_ = 0.0;
-  timer_prediction_ = 0.0;
+  timer_update_ = 0.0;
 
   // scratch
   std::fill(tmp0_.begin(), tmp0_.end(), 0.0);
@@ -148,85 +251,265 @@ void Unscented::Reset() {
   std::fill(tmp3_.begin(), tmp3_.end(), 0.0);
 }
 
-// update measurement
-void Unscented::UpdateMeasurement(const double* ctrl, const double* sensor) {
+// compute sigma points
+void Unscented::SigmaPoints() {
+  // dimensions
+  int nq = model->nq, nv = model->nv, na = model->na;
+
+  // factorize covariance
+  mju_copy(covariance_factor_.data(), covariance.data(), ndstate_ * ndstate_);
+  int rank = mju_cholFactor(covariance_factor_.data(), ndstate_, 0.0);
+
+  // check failure
+  if (rank < ndstate_) {
+    mju_error("covariance factorization failure: (%i / %i)\n", rank, ndstate_);
+  }
+
+  // -- loop over points -- //
+
+  // nominal
+  mju_copy(sigma_.data() + (num_sigma_ - 1) * nstate_, state.data(), nstate_);
+
+  // unpack
+  double* column = factor_column_.data();
+
+  // loop over sigma points
+  // TODO(taylor): thread?
+  for (int i = 0; i < ndstate_; i++) {
+    // zero column memory
+    mju_zero(column, ndstate_);
+
+    // column elements
+    for (int j = i; j < ndstate_; j++) {
+      column[j] = covariance_factor_[j * ndstate_ + i];
+    }
+
+    // scale
+    mju_scl(column, column, sigma_step, ndstate_);
+
+    // -- (+) step -- //
+    double* sigma_plus = sigma_.data() + i * nstate_;
+    mju_copy(sigma_plus, state.data(), nstate_);
+
+    // qpos
+    mj_integratePos(model, sigma_plus, column, 1.0);
+
+    // qvel & qact
+    mju_addTo(sigma_plus + nq, column + nv, nv + na);
+
+    // -- (-) step -- //
+    double* sigma_minus = sigma_.data() + (i + ndstate_) * nstate_;
+    mju_copy(sigma_minus, state.data(), nstate_);
+
+    // qpos
+    mj_integratePos(model, sigma_minus, column, -1.0);
+
+    // qvel
+    mju_subFrom(sigma_minus + nq, column + nv, nv + na);
+  }
+}
+
+// evaluate sigma points
+// TODO(taylor): thread?
+void Unscented::EvaluateSigmaPoints() {
+  // dimensions
+  int nq = model->nq, nv = model->nv, na = model->na;
+
+  // zero memory
+  mju_zero(state_mean_.data(), nstate_);
+  mju_zero(sensor_mean_.data(), nsensordata_);
+
+  // loop over sigma points
+  for (int i = 0; i < num_sigma_; i++) {
+    // set state
+    double* sigma = sigma_.data() + i * nstate_;
+    mju_copy(data_->qpos, sigma, nq);
+    mju_copy(data_->qvel, sigma + nq, nv);
+    mju_copy(data_->act, sigma + nq + nv, na);
+
+    // step
+    mj_step(model, data_);
+
+    // get state
+    double* s = states_.data() + i * nstate_;
+    mju_copy(s, data_->qpos, nq);
+    mju_copy(s + nq, data_->qvel, nv);
+    mju_copy(s + nq + nv, data_->act, na);
+
+    // get sensor
+    double* y = sensors_.data() + i * nsensordata_;
+    mju_copy(y, data_->sensordata + sensor_start_index_, nsensordata_);
+
+    // update means
+    double weight = (i == num_sigma_ - 1 ? weight_mean0 : weight_sigma);
+    mju_addToScl(state_mean_.data(), s, weight, nstate_);
+    mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
+  }
+}
+
+// compute sigma point differences
+void Unscented::SigmaPointDifferences() {
+  // dimensions
+  int nq = model->nq, nv = model->nv, na = model->na;
+
+  // unpack means
+  double* sm = state_mean_.data();
+  double* ym = sensor_mean_.data();
+
+  // loop over sigma points
+  for (int i = 0; i < num_sigma_; i++) {
+    // -- state difference -- //
+    double* ds = state_difference_.data() + i * ndstate_;
+    double* si = states_.data() + i * nstate_;
+
+    // qpos
+    mj_differentiatePos(model, ds, 1.0, sm, si);
+
+    // qvel + act
+    mju_sub(ds + nv, si + nq, sm + nq, nv + na);
+
+    // sensor difference
+    double* dy = sensor_difference_.data() + i * nsensordata_;
+    double* yi = sensors_.data() + i * nsensordata_;
+    mju_sub(dy, yi, ym, nsensordata_);
+  }
+}
+
+// compute sigma covariances
+void Unscented::SigmaCovariances() {
+  // unpack
+  double* dydy = sensor_difference_outer_product_.data();
+  double* dsdy = state_sensor_difference_outer_product_.data();
+  double* dsds = state_state_difference_outer_product_.data();
+
+  double* cov_yy = covariance_sensor_.data();
+  double* cov_sy = covariance_state_sensor_.data();
+  double* cov_ss = covariance_state_state_.data();
+
+  // zero memory
+  mju_zero(cov_yy, nsensordata_ * nsensordata_);
+  mju_zero(cov_sy, ndstate_ * nsensordata_);
+  mju_zero(cov_ss, ndstate_ * ndstate_);
+
+  // -- set noise -- //
+
+  // sensor
+  for (int i = 0; i < nsensordata_; i++) {
+    cov_yy[nsensordata_ * i + i] = noise_sensor[i];
+  }
+
+  // process
+  for (int i = 0; i < ndstate_; i++) {
+    cov_ss[ndstate_ * i + i] = noise_process[i];
+  }
+
+  // loop over sigma points
+  for (int i = 0; i < num_sigma_; i++) {
+    // unpack
+    double* dy = sensor_difference_.data() + i * nsensordata_;
+    double* ds = state_difference_.data() + i * ndstate_;
+
+    // sensor difference outer product
+    mju_mulMatMatT(dydy, dy, dy, nsensordata_, 1, nsensordata_);
+
+    // state sensor difference outer product
+    mju_mulMatMatT(dsdy, ds, dy, ndstate_, 1, nsensordata_);
+
+    // state state difference outer product
+    mju_mulMatMatT(dsds, ds, ds, ndstate_, 1, ndstate_);
+
+    // -- update -- //
+
+    // weight
+    double weight = (i == num_sigma_ - 1 ? weight_covariance0 : weight_sigma);
+
+    // covariance sensor
+    mju_addScl(cov_yy, cov_yy, dydy, weight, nsensordata_ * nsensordata_);
+
+    // covariance state sensor
+    mju_addScl(cov_sy, cov_sy, dsdy, weight, ndstate_ * nsensordata_);
+
+    // covariance state state
+    mju_addScl(cov_ss, cov_ss, dsds, weight, ndstate_ * ndstate_);
+  }
+}
+
+// unscented filter update
+void Unscented::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
   // dimensions
-  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
-
-  // set state
-  mju_copy(data_->qpos, state.data(), nq);
-  mju_copy(data_->qvel, state.data() + nq, nv);
-  mju_copy(data_->act, state.data() + nq + nv, na);
+  int nq = model->nq, nv = model->nv, na = model->na;
 
   // set ctrl
-  mju_copy(data_->ctrl, ctrl, nu);
+  mju_copy(data_->ctrl, ctrl, model->nu);
 
-  // forward to get sensor
-  mj_forward(model, data_);
+  // compute sigma points
+  SigmaPoints();
 
-  mju_sub(sensor_error_.data(), sensor + sensor_start_index_,
-          data_->sensordata + sensor_start_index_, nsensordata_);
+  // evaluate sigma points
+  EvaluateSigmaPoints();
 
-  // -- Unscented gain: P * C' (C * P * C' + R)^-1 -- //
+  // compute sigma point difference
+  SigmaPointDifferences();
 
-  // sensor Jacobian
-  mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered, NULL,
-                   NULL, sensor_jacobian_.data(), NULL);
+  // compute sigma covariances
+  SigmaCovariances();
 
-  // grab rows
-  double* C = sensor_jacobian_.data() + sensor_start_index_ * ndstate_;
+  // factorize covariance sensor
+  double* factor = covariance_sensor_factor_.data();
+  mju_copy(factor, covariance_sensor_.data(), nsensordata_ * nsensordata_);
+  int rank = mju_cholFactor(factor, nsensordata_, 0.0);
 
-  // P * C' = tmp0
-  mju_mulMatMatT(tmp0_.data(), covariance.data(), C, ndstate_, ndstate_,
-                 nsensordata_);
-
-  // C * P * C' = C * tmp0 = tmp1
-  mju_mulMatMat(tmp1_.data(), C, tmp0_.data(), nsensordata_, ndstate_,
-                nsensordata_);
-
-  // C * P * C' + R
-  for (int i = 0; i < nsensordata_; i++) {
-    tmp1_[nsensordata_ * i + i] += noise_sensor[i];
-  }
-
-  // factorize: C * P * C' + R
-  int rank = mju_cholFactor(tmp1_.data(), nsensordata_, 0.0);
+  // check failure
   if (rank < nsensordata_) {
-    mju_error("measurement update rank: (%i / %i)\n", rank, nsensordata_);
+    mju_error("covariance sensor factorization failure (%i / %i)\n", rank,
+              nsensordata_);
   }
 
-  // -- correction: (P * C') * (C * P * C' + R)^-1 * sensor_error -- //
+  // -- correction -- //
 
-  // tmp2 = (C * P * C' + R) \ sensor_error
-  mju_cholSolve(tmp2_.data(), tmp1_.data(), sensor_error_.data(), nsensordata_);
+  // sensor error
+  mju_sub(sensor_error_.data(), sensor + sensor_start_index_,
+          sensor_mean_.data(), nsensordata_);
 
-  // correction = (P * C') * (C * P * C' + R) \ sensor_error = tmp0 * tmp2
-  mju_mulMatVec(correction_.data(), tmp0_.data(), tmp2_.data(), ndstate_,
-                nsensordata_);
+  // tmp2 = covariance_sensor \ sensor_error
+  mju_cholSolve(tmp2_.data(), factor, sensor_error_.data(), nsensordata_);
+
+  // correction = covariance_state_sensor * covariance_sensor \ sensor_error =
+  // covariance_state_sensor * tmp2
+  mju_mulMatVec(correction_.data(), covariance_state_sensor_.data(),
+                tmp2_.data(), ndstate_, nsensordata_);
 
   // -- state update -- //
 
-  // configuration
+  // copy state
+  mju_copy(state.data(), state_mean_.data(), nstate_);
+
+  // qpos
   mj_integratePos(model, state.data(), correction_.data(), 1.0);
 
-  // velocity + act
+  // qvel + act
   mju_addTo(state.data() + nq, correction_.data() + nv, nv + na);
 
-  // -- covariance update -- //
-  // TODO(taylor): Joseph form update ?
 
-  // tmp2 = (C * P * C' + R)^-1 (C * P) = tmp1 \ tmp0'
+  // -- covariance update -- //
+
+  mju_copy(covariance.data(), covariance_state_state_.data(),
+           ndstate_ * ndstate_);
+
+  // tmp2 = covariance_sensor^-1 covariance_state_sensor'
   for (int i = 0; i < ndstate_; i++) {
-    mju_cholSolve(tmp2_.data() + nsensordata_ * i, tmp1_.data(),
-                  tmp0_.data() + nsensordata_ * i, nsensordata_);
+    mju_cholSolve(tmp2_.data() + nsensordata_ * i, factor,
+                  covariance_state_sensor_.data() + nsensordata_ * i,
+                  nsensordata_);
   }
 
-  // tmp3 = (P * C') * (C * P * C' + R)^-1 (C * P) = tmp0 * tmp2'
-  mju_mulMatMatT(tmp3_.data(), tmp0_.data(), tmp2_.data(), ndstate_,
-                 nsensordata_, ndstate_);
+  // tmp3 = covariance_state_sensor * (covariance_sensor)^-1
+  // covariance_state_sensor' = covariance_state_senor * tmp2'
+  mju_mulMatMatT(tmp3_.data(), covariance_state_sensor_.data(), tmp2_.data(),
+                 ndstate_, nsensordata_, ndstate_);
 
   // covariance -= tmp3
   mju_subFrom(covariance.data(), tmp3_.data(), ndstate_ * ndstate_);
@@ -235,54 +518,7 @@ void Unscented::UpdateMeasurement(const double* ctrl, const double* sensor) {
   mju_symmetrize(covariance.data(), covariance.data(), ndstate_);
 
   // stop timer (ms)
-  timer_measurement_ = 1.0e-3 * GetDuration(start);
-}
-
-// update time
-void Unscented::UpdatePrediction() {
-  // start timer
-  auto start = std::chrono::steady_clock::now();
-
-  // dimensions
-  int nq = model->nq, nv = model->nv, na = model->na;
-
-  // set state
-  mju_copy(data_->qpos, state.data(), nq);
-  mju_copy(data_->qvel, state.data() + nq, nv);
-  mju_copy(data_->act, state.data() + nq + nv, na);
-
-  // dynamics Jacobian
-  mjd_transitionFD(model, data_, settings.epsilon, settings.flg_centered,
-                   dynamics_jacobian_.data(), NULL, NULL, NULL);
-
-  // integrate state
-  mj_step(model, data_);
-
-  // update state
-  mju_copy(state.data(), data_->qpos, nq);
-  mju_copy(state.data() + nq, data_->qvel, nv);
-  mju_copy(state.data() + nq + nv, data_->act, na);
-
-  // -- update covariance: P = A * P * A' -- //
-
-  //  tmp = P * A'
-  mju_mulMatMatT(tmp3_.data(), covariance.data(), dynamics_jacobian_.data(),
-                 ndstate_, ndstate_, ndstate_);
-
-  // P = A * tmp
-  mju_mulMatMat(covariance.data(), dynamics_jacobian_.data(), tmp3_.data(),
-                ndstate_, ndstate_, ndstate_);
-
-  // process noise
-  for (int i = 0; i < ndstate_; i++) {
-    covariance[ndstate_ * i + i] += noise_process[i];
-  }
-
-  // symmetrize
-  mju_symmetrize(covariance.data(), covariance.data(), ndstate_);
-
-  // stop timer
-  timer_prediction_ = 1.0e-3 * GetDuration(start);
+  timer_update_ = 1.0e-3 * GetDuration(start);
 }
 
 // estimator-specific GUI elements
@@ -317,7 +553,7 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
                                             process_noise + i, "1.0e-8 0.01"};
 
     // set name
-    mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "process cov");
+    mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
 
     // shift
     process_noise_shift++;
@@ -529,19 +765,13 @@ void Unscented::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // Unscented timers
   double timer_bounds[2] = {0.0, 1.0};
 
-  // measurement update
+  // update
   PlotUpdateData(fig_timer, timer_bounds,
-                 fig_timer->linedata[timer_shift + 0][0] + 1,
-                 TimerMeasurement(), 100, timer_shift + 0, 0, 1, -100);
-
-  // prediction update
-  PlotUpdateData(fig_timer, timer_bounds,
-                 fig_timer->linedata[timer_shift + 1][0] + 1, TimerPrediction(),
-                 100, timer_shift + 1, 0, 1, -100);
+                 fig_timer->linedata[timer_shift + 0][0] + 1, TimerUpdate(),
+                 100, timer_shift + 0, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Measurement Update");
-  mju::strcpy_arr(fig_timer->linename[timer_shift + 1], "Prediction Update");
+  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Update");
 }
 
 }  // namespace mjpc

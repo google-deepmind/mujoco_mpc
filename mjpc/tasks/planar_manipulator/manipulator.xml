@@ -9,7 +9,7 @@
     <quality shadowsize="2048"/>
   </visual>>
 
-  <option cone="elliptic"/>
+  <option cone="elliptic" timestep="0.005"/>
 
   <default>
     <geom friction=".7" solimp="0.9 0.97 0.001" solref=".005 1"/>

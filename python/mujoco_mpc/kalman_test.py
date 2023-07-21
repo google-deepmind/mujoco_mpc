@@ -92,7 +92,6 @@ class KALMANTest(absltest.TestCase):
     # # prediction update
     kalman.update_prediction()
 
-
     # timers
     timer = kalman.timers()
 

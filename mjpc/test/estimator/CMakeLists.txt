@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test(kalman_test)
-target_link_libraries(kalman_test load simulation gmock)
+# test(kalman_test)
+# target_link_libraries(kalman_test load simulation gmock)
 
 # test(batch_force_test)
 # target_link_libraries(batch_force_test load simulation gmock)
@@ -35,3 +35,6 @@ target_link_libraries(kalman_test load simulation gmock)
 
 # test(estimator_utilities_test)
 # target_link_libraries(estimator_utilities_test load simulation gmock)
+
+test(unscented_test)
+target_link_libraries(unscented_test load simulation gmock)

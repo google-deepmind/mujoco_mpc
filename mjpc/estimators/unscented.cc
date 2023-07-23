@@ -167,18 +167,18 @@ void Unscented::Reset() {
   // covariance
   mju_eye(covariance.data(), ndstate_);
   double covariance_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_covariance_initial_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_covariance_initial_scale");
   mju_scl(covariance.data(), covariance.data(), covariance_scl,
           ndstate_ * ndstate_);
 
   // process noise
   double noise_process_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_process_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_process_noise_scale");
   std::fill(noise_process.begin(), noise_process.end(), noise_process_scl);
 
   // sensor noise
   double noise_sensor_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_sensor_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_sensor_noise_scale");
   std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
   // sigma points
@@ -319,6 +319,9 @@ void Unscented::EvaluateSigmaPoints() {
   mju_zero(state_mean_.data(), nstate_);
   mju_zero(sensor_mean_.data(), nsensordata_);
 
+  // time cache 
+  double time_cache = data_->time;
+
   // loop over sigma points
   for (int i = 0; i < num_sigma_; i++) {
     // set state
@@ -326,6 +329,7 @@ void Unscented::EvaluateSigmaPoints() {
     mju_copy(data_->qpos, sigma, nq);
     mju_copy(data_->qvel, sigma + nq, nv);
     mju_copy(data_->act, sigma + nq + nv, na);
+    data_->time = time_cache;
 
     // step
     mj_step(model, data_);
@@ -345,6 +349,9 @@ void Unscented::EvaluateSigmaPoints() {
     mju_addToScl(state_mean_.data(), s, weight, nstate_);
     mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
   }
+
+  // compute correct quaterion means 
+  QuaternionMeans();
 }
 
 // compute sigma point differences
@@ -519,6 +526,56 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
 
   // stop timer (ms)
   timer_update_ = 1.0e-3 * GetDuration(start);
+}
+
+// quaternion means 
+// "Averaging Quaternions"
+void Unscented::QuaternionMeans() {
+  // K matrix 
+  double K[16];
+
+  // outer product 
+  double Q[16];
+
+  // loop over joints 
+  for (int i = 0; i < model->njnt; i++) {
+    // joint type
+    int jnt_type = model->jnt_type[i];
+
+    // free or ball joint 
+    if (jnt_type == mjJNT_FREE || jnt_type == mjJNT_BALL) {
+      // qpos address
+      int qpos_adr = model->jnt_qposadr[i];
+
+      // shift to quaternion address for free joint
+      if (jnt_type == mjJNT_FREE) qpos_adr += 3;
+
+      // zero K memory 
+      mju_zero(K, 16);
+
+      // loop over states 
+      for (int j = 0; j < num_sigma_; j++) {
+        // get quaternion
+        double* quat = states_.data() + j * nstate_ + qpos_adr;
+
+        // compute outer product 
+        mju_mulMatMatT(Q, quat, quat, 4, 1, 4);
+
+        // add outerproduct to K 
+        mju_addToScl(K, Q, 4.0 * (j == num_sigma_ - 1 ? weight_covariance0 : weight_sigma), 16);
+      }
+
+      // K = K - total_weight * I 
+      double total_weight = weight_covariance0 + (num_sigma_ - 1) * weight_sigma;
+      K[0] -= total_weight;
+      K[5] -= total_weight;
+      K[10] -= total_weight;
+      K[15] -= total_weight;
+
+      // update state mean quaternion with principal eigenvector
+      PrincipalEigenVector4(state_mean_.data() + qpos_adr, K, 12.0);
+    }
+  }
 }
 
 // estimator-specific GUI elements

@@ -619,5 +619,39 @@ TEST(Trace, Mat123) {
   EXPECT_NEAR(trace, 6.0, 1.0e-5);
 }
 
+TEST(Determinant, Mat3) {
+  // matrix 
+  double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // determinant 
+  double det = Determinant3(mat);
+
+  // test 
+  EXPECT_NEAR(det, 0.9801, 1.0e-5);
+}
+
+TEST(Inverse, Mat3) {
+  // matrix 
+  double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // solution 
+  double sol[9] = {1.0101, -0.10101, 0.0, -0.10101, 1.0202, -0.10101, 0.0, -0.10101, 1.0101};
+
+  // inverse 
+  double res[9];
+  Inverse3(res, mat);
+
+  // test 
+  EXPECT_NEAR(res[0], sol[0], 1.0e-5);
+  EXPECT_NEAR(res[1], sol[1], 1.0e-5);
+  EXPECT_NEAR(res[2], sol[2], 1.0e-5);
+  EXPECT_NEAR(res[3], sol[3], 1.0e-5);
+  EXPECT_NEAR(res[4], sol[4], 1.0e-5);
+  EXPECT_NEAR(res[5], sol[5], 1.0e-5);
+  EXPECT_NEAR(res[6], sol[6], 1.0e-5);
+  EXPECT_NEAR(res[7], sol[7], 1.0e-5);
+  EXPECT_NEAR(res[8], sol[8], 1.0e-5);
+}
+
 }  // namespace
 }  // namespace mjpc

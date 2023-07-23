@@ -18,7 +18,7 @@
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="8" />
     <numeric name="estimator_number_sensor" data="26" />
-    <numeric name="estimator_timestep" data="0.0025" />
+    <numeric name="estimator_timestep" data="0.0075" />
   </custom>
 
   <sensor>

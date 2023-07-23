@@ -28,7 +28,7 @@ namespace mju = ::mujoco::util_mjpc;
 // initialize
 void Kalman::Initialize(const mjModel* model) {
   // model
-  if (this->model) mj_deleteModel(this->model);
+  // if (this->model) mj_deleteModel(this->model);
   this->model = mj_copyModel(nullptr, model);
 
   // data
@@ -42,7 +42,6 @@ void Kalman::Initialize(const mjModel* model) {
   nstate_ = model->nq + model->nv + model->na;
   ndstate_ = 2 * model->nv + model->na;
   
-
   // sensor start index
   sensor_start =
       GetNumberOrDefault(0, model, "estimator_sensor_start");

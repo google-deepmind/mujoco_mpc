@@ -1,8 +1,4 @@
-<mujoco>
-  <custom>
-    <numeric name="estimator_configuration_length" data="32" />
-  </custom>
-
+<mujoco model="Box3Drot">
   <option timestep="0.005"/>
   <default>
     <geom solimp="0 0.95 0.001"/>
@@ -41,33 +37,8 @@
     <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
     <camera pos="-0.079 -0.587 0.400" xyaxes="0.951 -0.310 0.000 0.133 0.410 0.902"/>
     <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid"/>
-    <geom size=".07" pos="-.03 0.03 0"/>
-    <body name="m1" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m2" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m3" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m4" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m5" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m6" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m7" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
-    <body name="m8" mocap="true" pos="0.1 0.1 0.1">
-      <geom type="sphere" size="0.0075" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-    </body>
     <body name="root" pos="0 0 0.25">
-      <joint type="free"/>
+      <joint type="ball"/>
       <geom type="box" size=".05 .05 .05" material="self" mass="1.0"/>
       <site name="corner1" type="sphere" size="0.05" rgba="1 0 0 0" pos=".05 .05 .05"/>
       <site name="corner2" type="sphere" size="0.05" rgba="1 0 0 0" pos="-.05 .05 .05"/>
@@ -90,14 +61,5 @@
     <framepos name="corner_position6" objtype="site" objname="corner6"/>
     <framepos name="corner_position7" objtype="site" objname="corner7"/>
     <framepos name="corner_position8" objtype="site" objname="corner8"/>
-    <!-- corner velocities -->
-    <framelinvel name="corner_velocity1" objtype="site" objname="corner1"/>
-    <framelinvel name="corner_velocity2" objtype="site" objname="corner2"/>
-    <framelinvel name="corner_velocity3" objtype="site" objname="corner3"/>
-    <framelinvel name="corner_velocity4" objtype="site" objname="corner4"/>
-    <framelinvel name="corner_velocity5" objtype="site" objname="corner5"/>
-    <framelinvel name="corner_velocity6" objtype="site" objname="corner6"/>
-    <framelinvel name="corner_velocity7" objtype="site" objname="corner7"/>
-    <framelinvel name="corner_velocity8" objtype="site" objname="corner8"/>
   </sensor>
 </mujoco>

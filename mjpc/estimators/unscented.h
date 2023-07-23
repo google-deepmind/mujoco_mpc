@@ -59,6 +59,9 @@ class Unscented : public Estimator {
   // update
   void Update(const double* ctrl, const double* sensor) override;
 
+  // quaternion means 
+  void QuaternionMeans();
+
   // get state 
   double* State() override { return state.data(); };
 
@@ -123,7 +126,7 @@ class Unscented : public Estimator {
 
   // settings
   struct Settings {
-    double alpha = 1.0e-3;
+    double alpha = 1.0;
     double beta = 2.0; 
   } settings;
 

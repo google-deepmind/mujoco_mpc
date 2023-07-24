@@ -21,6 +21,7 @@
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/simulate.h"  // mjpc fork
+#include "mjpc/utilities.h"
 
 namespace agent_grpc {
 
@@ -28,7 +29,8 @@ namespace agent_grpc {
 // MJPC UI.
 class UiAgentService final : public agent::Agent::Service {
  public:
-  explicit UiAgentService(mujoco::Simulate* sim) : sim_(sim) {}
+  explicit UiAgentService(mujoco::Simulate* sim)
+      : sim_(sim), rollout_data_(nullptr, mj_deleteData) {}
 
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
@@ -97,6 +99,10 @@ class UiAgentService final : public agent::Agent::Service {
 
   // Simulate instance owned by the containing binary
   mujoco::Simulate* sim_;
+
+  // an mjData instance used for rollouts for action averaging
+  mjpc::UniqueMjData rollout_data_;
+  mjpc::State rollout_state_;
 };
 
 }  // namespace agent_grpc

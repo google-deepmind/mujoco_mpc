@@ -28,8 +28,6 @@ std::string Stand::XmlPath() const {
 }
 std::string Stand::Name() const { return "Humanoid Stand"; }
 
-Stand::ResidualFn::ResidualFn(const Stand* task) : mjpc::BaseResidualFn(task) {}
-
 // ------------------ Residuals for humanoid stand task ------------
 //   Number of residuals: 6
 //     Residual (0): Desired height

@@ -68,7 +68,7 @@ class BaseResidualFn : public ResidualFn {
   std::vector<int> num_norm_parameter_;
   std::vector<NormType> norm_;
   std::vector<double> weight_;
-  std::vector<double> num_parameter_;
+  std::vector<double> norm_parameter_;
   double risk_;
   std::vector<double> parameters_;
   const Task* task_;
@@ -116,7 +116,14 @@ class Task {
   virtual void Residual(const mjModel* model, const mjData* data,
                         double* residual) const = 0;
 
-  virtual void Transition(const mjModel* model, mjData* data) {}
+  // Must be called whenever parameters or weights change outside Transition or
+  // Reset, so that calls to Residual use the new parameters.
+  virtual void UpdateResidual() {}
+
+  // Changes to data will affect the planner at the next set_state.  Changes to
+  // model will only affect the physics and render threads, and will not affect
+  // the planner. This is useful for studying planning under model discrepancy,
+  virtual void Transition(mjModel* model, mjData* data) {}
 
   // get information from model
   virtual void Reset(const mjModel* model);
@@ -153,7 +160,7 @@ class Task {
   std::vector<int> num_norm_parameter;
   std::vector<NormType> norm;
   std::vector<double> weight;
-  std::vector<double> num_parameter;
+  std::vector<double> norm_parameter;
   double risk;
 
   // residual parameters
@@ -182,9 +189,12 @@ class ThreadSafeTask : public Task {
   void Residual(const mjModel* model, const mjData* data,
                 double* residual) const final;
 
+  // Calls InternalResidual()->Update() with a lock.
+  void UpdateResidual() final;
+
   // calls TransitionLocked and InternalResidual()->Update() while holding a
   // lock
-  void Transition(const mjModel* model, mjData* data) final;
+  void Transition(mjModel* model, mjData* data) final;
 
   // calls ResetLocked and InternalResidual()->Update() while holding a lock
   void Reset(const mjModel* model) final;
@@ -208,8 +218,14 @@ class ThreadSafeTask : public Task {
   // returns an object which can compute the residual function. the function
   // can assume that a lock on mutex_ is held when it's called
   virtual std::unique_ptr<ResidualFn> ResidualLocked() const = 0;
-  // implementation of Task::Transition() which can assume a lock is held
-  virtual void TransitionLocked(const mjModel* model, mjData* data) {}
+  // implementation of Task::Transition() which can assume a lock is held.
+  // in some cases the transition logic requires calling mj_forward (e.g., for
+  // measuring contact forces), which will call the sensor callback, which calls
+  // ResidualLocked. In order to avoid such resource contention, we give the
+  // user the ability to temporarily unlock the mutex, but it must be locked
+  // again before returning.
+  virtual void TransitionLocked(mjModel* model, mjData* data,
+                                std::mutex* mutex) {}
   // implementation of Task::Reset() which can assume a lock is held
   virtual void ResetLocked(const mjModel* model) {}
   // mutex which should be held on changes to InternalResidual.

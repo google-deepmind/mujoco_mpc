@@ -95,6 +95,7 @@ void GradientPlanner::Allocate() {
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
+  previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
 
   // scratch
   parameters_scratch.resize(model->nu * kMaxTrajectoryHorizon);
@@ -124,6 +125,7 @@ void GradientPlanner::Reset(int horizon) {
     candidate_policy[i].Reset(horizon);
   }
   policy.Reset(horizon);
+  previous_policy.Reset(horizon);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
@@ -210,8 +212,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
         dim_sensor, task->num_residual, task->dim_norm_residual.data(),
         task->num_term, task->weight.data(), task->norm.data(),
-        task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
-        horizon, pool);
+        task->norm_parameter.data(), task->num_norm_parameter.data(),
+        task->risk, horizon, pool);
 
     // stop timer
     cost_derivative_time += GetDuration(cost_derivative_start);

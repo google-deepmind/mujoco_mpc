@@ -25,6 +25,7 @@ from typing import Literal, Optional, Sequence
 
 import grpc
 import mujoco
+from mujoco_mpc import mjpc_parameters
 import numpy as np
 from numpy import typing as npt
 
@@ -311,3 +312,12 @@ class Agent(contextlib.AbstractContextManager):
   def set_mode(self, mode: str):
     request = agent_pb2.SetModeRequest(mode=mode)
     self.stub.SetMode(request)
+
+  def set_parameters(self, parameters: mjpc_parameters.MjpcParameters):
+    # TODO(nimrod): Add a single RPC that does this
+    if parameters.mode is not None:
+      self.set_mode(parameters.mode)
+    if parameters.task_parameters:
+      self.set_task_parameters(parameters.task_parameters)
+    if parameters.cost_weights:
+      self.set_cost_weights(parameters.cost_weights)

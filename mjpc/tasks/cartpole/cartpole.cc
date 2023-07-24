@@ -33,13 +33,13 @@ std::string Cartpole::Name() const { return "Cartpole"; }
 //     Velocity: Pole angular velocity should be small
 //     Control:  Control should be small
 // ------------------------------------------
-void Cartpole::Residual(const mjModel* model, const mjData* data,
+void Cartpole::ResidualFn::Residual(const mjModel* model, const mjData* data,
                         double* residual) const {
   // ---------- Vertical ----------
   residual[0] = std::cos(data->qpos[1]) - 1;
 
   // ---------- Centered ----------
-  residual[1] = data->qpos[0] - parameters[0];
+  residual[1] = data->qpos[0] - parameters_[0];
 
   // ---------- Velocity ----------
   residual[2] = data->qvel[1];

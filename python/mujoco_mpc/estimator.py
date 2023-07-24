@@ -16,6 +16,7 @@
 """Python interface for interface with Estimator."""
 
 import atexit
+import contextlib
 import pathlib
 import socket
 import subprocess
@@ -47,7 +48,7 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
-class Estimator:
+class Estimator(contextlib.AbstractContextManager):
   """`Estimator` class to interface with MuJoCo MPC estimator.
 
   Attributes:
@@ -86,6 +87,9 @@ class Estimator:
         buffer_length=buffer_length,
         send_as="xml",
     )
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.close()
 
   def close(self):
     self.channel.close()

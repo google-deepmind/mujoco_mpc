@@ -76,12 +76,12 @@ const std::array<std::string, 16> body_names = {
 
 }  // namespace
 
-namespace mjpc {
+namespace mjpc::humanoid {
 
-std::string humanoid::Tracking::XmlPath() const {
+std::string Tracking::XmlPath() const {
   return GetModelPath("humanoid/tracking/task.xml");
 }
-std::string humanoid::Tracking::Name() const { return "Humanoid Track"; }
+std::string Tracking::Name() const { return "Humanoid Track"; }
 
 // ------------- Residuals for humanoid tracking task -------------
 //   Number of residuals:
@@ -93,7 +93,7 @@ std::string humanoid::Tracking::Name() const { return "Humanoid Track"; }
 //         for {root, head, toe, heel, knee, hand, elbow, shoulder, hip}.
 //   Number of parameters: 0
 // ----------------------------------------------------------------
-void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
+void Tracking::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                   double *residual) const {
   // ----- get mocap frames ----- //
   // get motion start index
@@ -222,16 +222,16 @@ void humanoid::Tracking::Residual(const mjModel *model, const mjData *data,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
+void Tracking::TransitionLocked(mjModel *model, mjData *d, std::mutex *mutex) {
   // get motion start index
   int start = MotionStartIndex(mode);
   // get motion trajectory length
   int length = MotionLength(mode);
 
   // check for motion switch
-  if (current_mode_ != mode || d->time == 0.0) {
-    current_mode_ = mode;       // set motion id
-    reference_time_ = d->time;  // set reference time
+  if (residual_.current_mode_ != mode || d->time == 0.0) {
+    residual_.current_mode_ = mode;       // set motion id
+    residual_.reference_time_ = d->time;  // set reference time
 
     // set initial state
     mju_copy(d->qpos, model->key_qpos + model->nq * start, model->nq);
@@ -239,7 +239,7 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   }
 
   // indices
-  double current_index = (d->time - reference_time_) * kFps + start;
+  double current_index = (d->time - residual_.reference_time_) * kFps + start;
   int last_key_index = start + length - 1;
 
   // Positions:
@@ -268,4 +268,4 @@ void humanoid::Tracking::Transition(const mjModel *model, mjData *d) {
   mjFREESTACK;
 }
 
-}  // namespace mjpc
+}  // namespace mjpc::humanoid

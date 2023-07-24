@@ -38,7 +38,8 @@ class AgentService final : public agent::Agent::Service {
                         int num_workers = -1)
       : thread_pool_(num_workers == -1 ? mjpc::NumAvailableHardwareThreads()
                                        : num_workers),
-        tasks_(std::move(tasks)) {}
+        tasks_(std::move(tasks)),
+        rollout_data_(nullptr, mj_deleteData) {}
   ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
@@ -105,6 +106,10 @@ class AgentService final : public agent::Agent::Service {
   mjpc::Agent agent_;
   std::vector<std::shared_ptr<mjpc::Task>> tasks_;
   mjData* data_ = nullptr;
+
+  // an mjData instance used for rollouts for action averaging
+  mjpc::UniqueMjData rollout_data_;
+  mjpc::State rollout_state_;
 };
 
 }  // namespace agent_grpc

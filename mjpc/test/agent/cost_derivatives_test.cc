@@ -46,8 +46,8 @@ namespace {
 //   task.norm[0] = NormType::kNull;
 //   task.weight.resize(1);
 //   task.weight[0] = 1.23;
-//   task.num_parameter.resize(1);
-//   task.num_parameter[0] = 0.0;
+//   task.norm_parameter.resize(1);
+//   task.norm_parameter[0] = 0.0;
 //   task.risk = 0.35;
 //   task.num_residual_parameters = 0;
 //   task.residual_parameters.resize(1);

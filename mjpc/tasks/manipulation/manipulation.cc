@@ -63,7 +63,7 @@ void manipulation::Bring::ResidualFn::Residual(const mjModel* model,
   CheckSensorDim(model, counter);
 }
 
-void manipulation::Bring::TransitionLocked(const mjModel* model, mjData* data,
+void manipulation::Bring::TransitionLocked(mjModel* model, mjData* data,
                                            std::mutex* mutex) {
   double residuals[100];
   double terms[10];

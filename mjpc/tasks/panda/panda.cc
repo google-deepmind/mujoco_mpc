@@ -71,7 +71,7 @@ void Panda::ResidualFn::Residual(const mjModel* model, const mjData* data,
   }
 }
 
-void Panda::TransitionLocked(const mjModel* model, mjData* data,
+void Panda::TransitionLocked(mjModel* model, mjData* data,
                              std::mutex* mutex) {
   double residuals[100];
   double terms[10];

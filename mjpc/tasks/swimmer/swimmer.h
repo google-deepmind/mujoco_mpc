@@ -43,7 +43,7 @@ class Swimmer : public ThreadSafeTask {
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-  void TransitionLocked(const mjModel* model, mjData* data,
+  void TransitionLocked(mjModel* model, mjData* data,
                         std::mutex* mutex) override;
 
  protected:

@@ -120,7 +120,10 @@ class Task {
   // Reset, so that calls to Residual use the new parameters.
   virtual void UpdateResidual() {}
 
-  virtual void Transition(const mjModel* model, mjData* data) {}
+  // Changes to data will affect the planner at the next set_state.  Changes to
+  // model will only affect the physics and render threads, and will not affect
+  // the planner. This is useful for studying planning under model discrepancy,
+  virtual void Transition(mjModel* model, mjData* data) {}
 
   // get information from model
   virtual void Reset(const mjModel* model);
@@ -191,7 +194,7 @@ class ThreadSafeTask : public Task {
 
   // calls TransitionLocked and InternalResidual()->Update() while holding a
   // lock
-  void Transition(const mjModel* model, mjData* data) final;
+  void Transition(mjModel* model, mjData* data) final;
 
   // calls ResetLocked and InternalResidual()->Update() while holding a lock
   void Reset(const mjModel* model) final;
@@ -221,7 +224,7 @@ class ThreadSafeTask : public Task {
   // ResidualLocked. In order to avoid such resource contention, we give the
   // user the ability to temporarily unlock the mutex, but it must be locked
   // again before returning.
-  virtual void TransitionLocked(const mjModel* model, mjData* data,
+  virtual void TransitionLocked(mjModel* model, mjData* data,
                                 std::mutex* mutex) {}
   // implementation of Task::Reset() which can assume a lock is held
   virtual void ResetLocked(const mjModel* model) {}

@@ -46,7 +46,7 @@ class Hand : public ThreadSafeTask {
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-  void TransitionLocked(const mjModel* model, mjData* data,
+  void TransitionLocked(mjModel* model, mjData* data,
                         std::mutex* mutex) override;
 
  protected:

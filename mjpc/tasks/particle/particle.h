@@ -37,7 +37,7 @@ class Particle : public ThreadSafeTask {
                   double* residual) const override;
   };
   Particle() : residual_(this) {}
-  void TransitionLocked(const mjModel* model, mjData* data,
+  void TransitionLocked(mjModel* model, mjData* data,
                         std::mutex* mutex) override;
 
  protected:

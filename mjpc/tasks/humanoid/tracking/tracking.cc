@@ -222,8 +222,7 @@ void Tracking::ResidualFn::Residual(const mjModel *model, const mjData *data,
 //   Linearly interpolate between two consecutive key frames in order to
 //   smooth the transitions between keyframes.
 // ----------------------------------------------------------------------------
-void Tracking::TransitionLocked(const mjModel *model, mjData *d,
-                                std::mutex *mutex) {
+void Tracking::TransitionLocked(mjModel *model, mjData *d, std::mutex *mutex) {
   // get motion start index
   int start = MotionStartIndex(mode);
   // get motion trajectory length

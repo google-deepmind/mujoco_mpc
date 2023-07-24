@@ -227,7 +227,7 @@ class QuadrupedFlat : public ThreadSafeTask {
   };
 
   QuadrupedFlat() : residual_(this) {}
-  void TransitionLocked(const mjModel* model, mjData* data,
+  void TransitionLocked(mjModel* model, mjData* data,
                         std::mutex* mutex) override;
 
   // call base-class Reset, save task-related ids
@@ -274,7 +274,7 @@ class QuadrupedHill : public ThreadSafeTask {
     int current_mode_;
   };
   QuadrupedHill() : residual_(this) {}
-  void TransitionLocked(const mjModel* model, mjData* data,
+  void TransitionLocked(mjModel* model, mjData* data,
                         std::mutex* mutex) override;
 
  protected:

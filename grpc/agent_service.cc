@@ -110,6 +110,7 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
       << "Multiple instances of AgentService detected.";
   model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
+  rollout_data_.reset(mj_makeData(model));
   mjcb_sensor = residual_sensor_callback;
 
   agent_.SetState(data_);
@@ -164,7 +165,8 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetAction(request, &agent_, model, data_, response);
+  return grpc_agent_util::GetAction(
+      request, &agent_, model, rollout_data_.get(), &rollout_state_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(
@@ -217,7 +219,11 @@ grpc::Status AgentService::Reset(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::Reset(&agent_, agent_.GetModel(), data_);
+
+  grpc::Status status =
+      grpc_agent_util::Reset(&agent_, agent_.GetModel(), data_);
+  rollout_data_.reset(mj_makeData(model));
+  return status;
 }
 
 grpc::Status AgentService::SetTaskParameters(

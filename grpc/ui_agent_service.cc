@@ -85,8 +85,12 @@ grpc::Status UiAgentService::Init(grpc::ServerContext* context,
       });
   sim_->real_time_index =
       std::distance(std::begin(sim_->percentRealTime), closest);
-
-  return grpc::Status::OK;
+  // wait until the model changes to update rollout_data_
+  return RunBeforeStep(
+      context, [&](mjpc::Agent* agent, const mjModel* model, mjData* data) {
+        rollout_data_.reset(mj_makeData(model));
+        return grpc::Status::OK;
+      });
 }
 
 grpc::Status UiAgentService::GetState(grpc::ServerContext* context,
@@ -110,10 +114,11 @@ grpc::Status UiAgentService::SetState(grpc::ServerContext* context,
 grpc::Status UiAgentService::GetAction(grpc::ServerContext* context,
                                        const GetActionRequest* request,
                                        GetActionResponse* response) {
-  return RunBeforeStep(context, [request, response](mjpc::Agent* agent,
-                                                    const mjModel* model,
-                                                    mjData* data) {
-    return grpc_agent_util::GetAction(request, agent, model, data, response);
+  return RunBeforeStep(context, [&, request, response](mjpc::Agent* agent,
+                                                       const mjModel* model,
+                                                       mjData* data) {
+    return grpc_agent_util::GetAction(
+        request, agent, model, rollout_data_.get(), &rollout_state_, response);
   });
 }
 
@@ -148,8 +153,10 @@ grpc::Status UiAgentService::Reset(grpc::ServerContext* context,
                                    const ResetRequest* request,
                                    ResetResponse* response) {
   return RunBeforeStep(
-      context, [](mjpc::Agent* agent, const mjModel* model, mjData* data) {
-        return grpc_agent_util::Reset(agent, model, data);
+      context, [&](mjpc::Agent* agent, const mjModel* model, mjData* data) {
+        grpc::Status status = grpc_agent_util::Reset(agent, model, data);
+        rollout_data_.reset(mj_makeData(model));
+        return status;
       });
 }
 

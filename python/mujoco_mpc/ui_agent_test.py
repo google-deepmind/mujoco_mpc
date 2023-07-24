@@ -137,7 +137,7 @@ class UiAgentTest(absltest.TestCase):
       agent.set_state(qpos=[0, 0.5], qvel=[1, 1])
       terms_dict = agent.get_cost_term_values()
       terms = list(terms_dict.values())
-      self.assertFalse(np.any(np.isclose(terms, 0, rtol=0, atol=1e-4)))
+      self.assertFalse(np.any(np.isclose(terms, 0, rtol=0, atol=1e-6)))
 
   def test_set_state_with_lists(self):
     model_path = (

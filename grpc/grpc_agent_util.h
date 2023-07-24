@@ -27,7 +27,8 @@ grpc::Status SetState(const agent::SetStateRequest* request, mjpc::Agent* agent,
                       const mjModel* model, mjData* data);
 grpc::Status GetAction(const agent::GetActionRequest* request,
                        const mjpc::Agent* agent,
-                       const mjModel* model, mjData* data,
+                       const mjModel* model, mjData* rollout_data,
+                       mjpc::State* rollout_state,
                        agent::GetActionResponse* response);
 grpc::Status GetCostValuesAndWeights(
     const agent::GetCostValuesAndWeightsRequest* request,

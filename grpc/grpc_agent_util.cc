@@ -30,6 +30,7 @@
 #include <mujoco/mujoco.h>
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
+#include "mjpc/states/state.h"
 #include "mjpc/task.h"
 
 namespace grpc_agent_util {
@@ -143,7 +144,8 @@ grpc::Status SetState(const SetStateRequest* request, mjpc::Agent* agent,
 
 grpc::Status GetAction(const GetActionRequest* request,
                        const mjpc::Agent* agent,
-                       const mjModel* model, mjData* data,
+                       const mjModel* model, mjData* rollout_data,
+                       mjpc::State* rollout_state,
                        GetActionResponse* response) {
   int nu = agent->GetActionDim();
   std::vector<double> ret = std::vector<double>(nu, 0);
@@ -152,25 +154,20 @@ grpc::Status GetAction(const GetActionRequest* request,
       request->has_time() ? request->time() : agent->ActiveState().time();
 
   if (request->averaging_duration() > 0) {
-    agent->ActiveState().CopyTo(model, data);
-    data->time = time;
-    std::vector<double> state_before(mj_stateSize(model, mjSTATE_FULLPHYSICS));
-    mj_getState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
+    agent->ActiveState().CopyTo(model, rollout_data);
+    rollout_data->time = time;
     double end_time = time + request->averaging_duration();
-    std::vector<double> action(nu);
     int nactions = 0;
-    while (data->time <= end_time) {
-      agent->ActiveState().Set(model, data);
-      agent->ActivePlanner().ActionFromPolicy(
-          action.data(), &agent->ActiveState().state()[0], data->time);
-      mju_addTo(ret.data(), action.data(), nu);
+    while (rollout_data->time <= end_time) {
+      rollout_state->Set(model, rollout_data);
+      agent->ActivePlanner().ActionFromPolicy(rollout_data->ctrl,
+                                              rollout_state->state().data(),
+                                              rollout_data->time);
+      mju_addTo(ret.data(), rollout_data->ctrl, nu);
+      mj_step(model, rollout_data);
       nactions++;
-      mj_step(model, data);
     }
     mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
-    // Reset the state to what it was before the stepping
-    mj_setState(model, data, state_before.data(), mjSTATE_FULLPHYSICS);
-    agent->ActiveState().Set(model, data);
   } else {
     agent->ActivePlanner().ActionFromPolicy(
         ret.data(), &agent->ActiveState().state()[0], time);

@@ -47,7 +47,7 @@ TEST(MeasurementCost, Particle) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
 
@@ -65,10 +65,10 @@ TEST(MeasurementCost, Particle) {
   }
 
   // weights
-  estimator.scale_sensor[0] = 1.1e-1;
-  estimator.scale_sensor[1] = 2.2e-1;
-  estimator.scale_sensor[2] = 3.3e-1;
-  estimator.scale_sensor[3] = 4.4e-1;
+  estimator.noise_sensor[0] = 1.0 / 1.1e-1;
+  estimator.noise_sensor[1] = 1.0 / 2.2e-1;
+  estimator.noise_sensor[2] = 1.0 / 3.3e-1;
+  estimator.noise_sensor[3] = 1.0 / 4.4e-1;
 
   // TODO(taylor): test difference norms
 
@@ -135,14 +135,14 @@ TEST(MeasurementCost, Particle) {
 
         // weight
         double weight =
-            estimator.scale_sensor[i] / nsi / estimator.PredictionLength();
+            1.0 / estimator.noise_sensor[i] / nsi / estimator.PredictionLength();
 
         // parameters
         double* pi =
             estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
 
         // norm
-        NormType normi = estimator.norm_sensor[i];
+        NormType normi = estimator.norm_type_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -225,7 +225,7 @@ TEST(MeasurementCost, Box) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
 
@@ -245,19 +245,19 @@ TEST(MeasurementCost, Box) {
   }
 
   // weights
-  estimator.scale_sensor[0] = 1.1e-2;
-  estimator.scale_sensor[1] = 2.2e-2;
-  estimator.scale_sensor[2] = 3.3e-2;
-  estimator.scale_sensor[3] = 1.0e-2;
-  estimator.scale_sensor[4] = 2.0e-2;
-  estimator.scale_sensor[5] = 3.0e-2;
-  estimator.scale_sensor[6] = 4.0e-2;
-  estimator.scale_sensor[7] = 5.0e-2;
-  estimator.scale_sensor[8] = 6.0e-2;
-  estimator.scale_sensor[9] = 7.0e-2;
-  estimator.scale_sensor[10] = 8.0e-2;
-  estimator.scale_sensor[11] = 9.0e-2;
-  estimator.scale_sensor[12] = 10.0e-2;
+  estimator.noise_sensor[0] = 1.0 / 1.1e-2;
+  estimator.noise_sensor[1] = 1.0 / 2.2e-2;
+  estimator.noise_sensor[2] = 1.0 / 3.3e-2;
+  estimator.noise_sensor[3] = 1.0 / 1.0e-2;
+  estimator.noise_sensor[4] = 1.0 / 2.0e-2;
+  estimator.noise_sensor[5] = 1.0 / 3.0e-2;
+  estimator.noise_sensor[6] = 1.0 / 4.0e-2;
+  estimator.noise_sensor[7] = 1.0 / 5.0e-2;
+  estimator.noise_sensor[8] = 1.0 / 6.0e-2;
+  estimator.noise_sensor[9] = 1.0 / 7.0e-2;
+  estimator.noise_sensor[10] = 1.0 / 8.0e-2;
+  estimator.noise_sensor[11] = 1.0 / 9.0e-2;
+  estimator.noise_sensor[12] = 1.0 / 10.0e-2;
 
   // TODO(taylor): test difference norms
 
@@ -334,14 +334,14 @@ TEST(MeasurementCost, Box) {
 
         // weight
         double weight =
-            estimator.scale_sensor[i] / nsi / estimator.PredictionLength();
+            1.0 / estimator.noise_sensor[i] / nsi / estimator.PredictionLength();
 
         // parameters
         double* pi =
             estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
 
         // norm
-        NormType normi = estimator.norm_sensor[i];
+        NormType normi = estimator.norm_type_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);

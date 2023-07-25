@@ -153,7 +153,7 @@ void Agent::Initialize(const mjModel* model) {
   estimator_threads_ = 1;
 
   // planner threads
-  planner_threads_ = std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_);
+  planner_threads_ = std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_ - 1);
 }
 
 // allocate memory
@@ -747,14 +747,25 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       }
       // reset
       if (model_) {
+        
         // reset plots
         this->PlotInitialize();
         this->PlotReset();
 
         // copy state
         int nstate = model_->nq + model_->nv + model_->na;
+
+        printf("current estimator = %i\n", estimator_);
+        printf("previous estimator = %i\n", previous_estimator);
+
+        printf("previous state = \n");
+        mju_printMat(PreviousEstimator().State(), 1, nstate);
+
         mju_copy(ActiveEstimator().State(), PreviousEstimator().State(),
                  nstate);
+
+        printf("current state = \n");
+        mju_printMat(ActiveEstimator().State(), 1, nstate);
 
         // copy covariance
         int ndstate = 2 * model_->nv + model_->na;
@@ -765,6 +776,9 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         reset_estimator = false;    // skip estimator reset
         uiloadrequest.fetch_sub(1); // reset 
         reset_estimator = true;     // restore estimator reset
+
+        // set previous 
+        previous_estimator = estimator_;
       }
       break;
     case 4:  // controller on/off

@@ -142,10 +142,8 @@ void Unscented::Initialize(const mjModel* model) {
   correction_.resize(ndstate_);
 
   // scratch
-  tmp0_.resize(ndstate_ * nsensordata_);
-  tmp1_.resize(nsensordata_ * nsensordata_);
-  tmp2_.resize(nsensordata_ * ndstate_);
-  tmp3_.resize(ndstate_ * ndstate_);
+  tmp0_.resize(nsensordata_ * ndstate_);
+  tmp1_.resize(ndstate_ * ndstate_);
 }
 
 // reset memory
@@ -247,8 +245,6 @@ void Unscented::Reset() {
   // scratch
   std::fill(tmp0_.begin(), tmp0_.end(), 0.0);
   std::fill(tmp1_.begin(), tmp1_.end(), 0.0);
-  std::fill(tmp2_.begin(), tmp2_.end(), 0.0);
-  std::fill(tmp3_.begin(), tmp3_.end(), 0.0);
 }
 
 // compute sigma points
@@ -481,13 +477,13 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   mju_sub(sensor_error_.data(), sensor + sensor_start_index_,
           sensor_mean_.data(), nsensordata_);
 
-  // tmp2 = covariance_sensor \ sensor_error
-  mju_cholSolve(tmp2_.data(), factor, sensor_error_.data(), nsensordata_);
+  // tmp0 = covariance_sensor \ sensor_error
+  mju_cholSolve(tmp0_.data(), factor, sensor_error_.data(), nsensordata_);
 
   // correction = covariance_state_sensor * covariance_sensor \ sensor_error =
-  // covariance_state_sensor * tmp2
+  // covariance_state_sensor * tmp0
   mju_mulMatVec(correction_.data(), covariance_state_sensor_.data(),
-                tmp2_.data(), ndstate_, nsensordata_);
+                tmp0_.data(), ndstate_, nsensordata_);
 
   // -- state update -- //
 
@@ -506,20 +502,20 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   mju_copy(covariance.data(), covariance_state_state_.data(),
            ndstate_ * ndstate_);
 
-  // tmp2 = covariance_sensor^-1 covariance_state_sensor'
+  // tmp0 = covariance_sensor^-1 covariance_state_sensor'
   for (int i = 0; i < ndstate_; i++) {
-    mju_cholSolve(tmp2_.data() + nsensordata_ * i, factor,
+    mju_cholSolve(tmp0_.data() + nsensordata_ * i, factor,
                   covariance_state_sensor_.data() + nsensordata_ * i,
                   nsensordata_);
   }
 
-  // tmp3 = covariance_state_sensor * (covariance_sensor)^-1
-  // covariance_state_sensor' = covariance_state_senor * tmp2'
-  mju_mulMatMatT(tmp3_.data(), covariance_state_sensor_.data(), tmp2_.data(),
+  // tmp1 = covariance_state_sensor * (covariance_sensor)^-1
+  // covariance_state_sensor' = covariance_state_senor * tmp0'
+  mju_mulMatMatT(tmp1_.data(), covariance_state_sensor_.data(), tmp0_.data(),
                  ndstate_, nsensordata_, ndstate_);
 
-  // covariance -= tmp3
-  mju_subFrom(covariance.data(), tmp3_.data(), ndstate_ * ndstate_);
+  // covariance -= tmp1
+  mju_subFrom(covariance.data(), tmp1_.data(), ndstate_ * ndstate_);
 
   // symmetrize
   mju_symmetrize(covariance.data(), covariance.data(), ndstate_);

@@ -141,14 +141,16 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
 
 // estimator in background thread 
 void EstimatorLoop(mj::Simulate& sim) {
+
   // run until asked to exit
   while (!sim.exitrequest.load()) {
     if (sim.uiloadrequest.load() == 0) {
-      // unpack
+      // estimator
+      int active_estimator = sim.agent->ActiveEstimatorIndex();
       mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
 
-      // estimator
-      if (sim.agent->ActiveEstimatorIndex() > 0) {
+      // if (active_estimator == 1 || active_estimator == 2) {
+      if (active_estimator > 0) {
         // start timer
         auto start = std::chrono::steady_clock::now();
 
@@ -359,8 +361,12 @@ void PhysicsLoop(mj::Simulate& sim) {
       // unpack state
       mjpc::State* state = &sim.agent->ActiveState();
 
+      // estimator 
+      int active_estimator = sim.agent->ActiveEstimatorIndex();
+
       // set state
-      if (sim.agent->ActiveEstimatorIndex() > 0) {
+      // if (active_estimator == 1 || active_estimator == 2) {
+      if (active_estimator > 0) {
         // from estimator
         state->SetPos(m, sim.agent->state.data());
         state->SetVel(m, sim.agent->state.data() + m->nq);
@@ -466,6 +472,7 @@ void MjpcApp::Start() {
   printf("  Planner        :  %i\n", 1);
   printf("    planning     :  %i\n", sim->agent->planner_threads());
   printf("  Estimator      :  %i\n", sim->agent->estimator_threads());
+  printf("    estimation   :  %i\n", 1);
 
   // set control callback
   mjcb_control = controller;

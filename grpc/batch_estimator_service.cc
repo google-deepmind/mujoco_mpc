@@ -729,21 +729,22 @@ grpc::Status BatchEstimatorService::Weights(grpc::ServerContext* context,
   // sensor
   int num_sensor = batch_estimator_.NumberSensors();
   if (input.sensor_size() > 0) {
-    CHECK_SIZE("scale_sensor", num_sensor, input.sensor_size());
-    batch_estimator_.scale_sensor.assign(input.sensor().begin(),
+    CHECK_SIZE("noise sensor", num_sensor, input.sensor_size());
+    batch_estimator_.noise_sensor.assign(input.sensor().begin(),
                                    input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
-    output->add_sensor(batch_estimator_.scale_sensor[i]);
+    output->add_sensor(batch_estimator_.noise_sensor[i]);
   }
 
   // force
+  int nv = batch_estimator_.model->nv;
   if (input.force_size() > 0) {
-    CHECK_SIZE("scale_force", mjpc::NUM_FORCE_TERMS, input.force_size());
-    batch_estimator_.scale_force.assign(input.force().begin(), input.force().end());
+    CHECK_SIZE("noise process", nv, input.force_size());
+    batch_estimator_.noise_process.assign(input.force().begin(), input.force().end());
   }
-  for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-    output->add_force(batch_estimator_.scale_force[i]);
+  for (int i = 0; i < nv; i++) {
+    output->add_force(batch_estimator_.noise_process[i]);
   }
 
   return grpc::Status::OK;
@@ -764,16 +765,16 @@ grpc::Status BatchEstimatorService::Norms(grpc::ServerContext* context,
   int num_sensor = batch_estimator_.NumberSensors();
   if (input.sensor_type_size() > 0) {
     CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
-    batch_estimator_.norm_sensor.clear();
-    batch_estimator_.norm_sensor.reserve(num_sensor);
+    batch_estimator_.norm_type_sensor.clear();
+    batch_estimator_.norm_type_sensor.reserve(num_sensor);
     for (const auto& sensor_type : input.sensor_type()) {
-      batch_estimator_.norm_sensor.push_back(
+      batch_estimator_.norm_type_sensor.push_back(
           static_cast<mjpc::NormType>(sensor_type));
     }
   }
 
   // get sensor type
-  for (const auto& sensor_type : batch_estimator_.norm_sensor) {
+  for (const auto& sensor_type : batch_estimator_.norm_type_sensor) {
     output->add_sensor_type(sensor_type);
   }
 
@@ -788,34 +789,6 @@ grpc::Status BatchEstimatorService::Norms(grpc::ServerContext* context,
   // get sensor parameters
   for (const auto& sensor_parameters : batch_estimator_.norm_parameters_sensor) {
     output->add_sensor_parameters(sensor_parameters);
-  }
-
-  // set force type
-  if (input.force_type_size() > 0) {
-    CHECK_SIZE("force_type", mjpc::NUM_FORCE_TERMS, input.force_type_size());
-    for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-      batch_estimator_.norm_force[i] =
-          static_cast<mjpc::NormType>(input.force_type(i));
-    }
-  }
-
-  // get force type
-  mjpc::NormType* force_type = batch_estimator_.norm_force;
-  for (int i = 0; i < mjpc::NUM_FORCE_TERMS; i++) {
-    output->add_force_type(force_type[i]);
-  }
-
-  // set force parameters
-  int nfp = mjpc::NUM_FORCE_TERMS * mjpc::MAX_NORM_PARAMETERS;
-  if (input.force_parameters_size() > 0) {
-    CHECK_SIZE("force_parameters", nfp, input.force_parameters_size());
-    batch_estimator_.norm_parameters_force.assign(input.force_parameters().begin(),
-                                            input.force_parameters().end());
-  }
-
-  // get force parameters
-  for (int i = 0; i < nfp; i++) {
-    output->add_force_parameters(batch_estimator_.norm_parameters_force[i]);
   }
 
   return grpc::Status::OK;

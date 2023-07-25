@@ -47,8 +47,8 @@ void Kalman::Initialize(const mjModel* model) {
       GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
-  nsensor = GetNumberOrDefault(model->nsensor, model,
-                                    "estimator_number_sensor");
+  nsensor =
+      GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
   // sensor dimension
   nsensordata_ = 0;

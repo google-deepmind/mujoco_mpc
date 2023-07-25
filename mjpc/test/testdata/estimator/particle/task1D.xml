@@ -56,4 +56,8 @@
     <jointpos name="joint_z" joint="root_z" />
     <jointvel name="vel_z" joint="root_z" />
   </sensor>
+
+  <keyframe>
+    <key name="home" qpos="0.25" qvel="0.1"/>
+  </keyframe>
 </mujoco>

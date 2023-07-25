@@ -28,7 +28,7 @@ namespace mjpc {
 inline constexpr int kMaxProcessNoise = 1028;
 inline constexpr int kMaxSensorNoise = 1028;
 
-// https://stanford.edu/class/ee363/lectures/kf.pdf
+// virtual estimator class
 class Estimator {
  public:
   // destructor
@@ -80,7 +80,7 @@ class Estimator {
                      int* shift) = 0;
 };
 
-// ground truth
+// ground truth estimator
 class GroundTruth : public Estimator {
   public:
   // constructor 

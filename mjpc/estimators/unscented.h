@@ -130,12 +130,6 @@ class Unscented : public Estimator {
     double beta = 2.0; 
   } settings;
 
-  // data
-  mjData* data_;
-
-  // correction (2nv + na)
-  std::vector<double> correction_;
-
   // sensor start
   int sensor_start;
   int nsensor;
@@ -149,6 +143,12 @@ class Unscented : public Estimator {
 
   // sensor start index
   int sensor_start_index_;
+
+  // data
+  mjData* data_;
+
+  // correction (2nv + na)
+  std::vector<double> correction_;
 
   // sensor error (nsensordata_)
   std::vector<double> sensor_error_;
@@ -207,8 +207,6 @@ class Unscented : public Estimator {
   // scratch
   std::vector<double> tmp0_;
   std::vector<double> tmp1_;
-  std::vector<double> tmp2_;
-  std::vector<double> tmp3_;
 };
 
 }  // namespace mjpc

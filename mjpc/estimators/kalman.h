@@ -117,15 +117,6 @@ class Kalman : public Estimator {
     bool auto_timestep = false;
   } settings;
 
-  // data
-  mjData* data_;
-
-  // correction (2nv + na)
-  std::vector<double> correction_;
-
-  // sensor Jacobian (nsensordata x (2nv + na))
-  std::vector<double> sensor_jacobian_;
-
   // sensor start
   int sensor_start;
   int nsensor;
@@ -138,6 +129,15 @@ class Kalman : public Estimator {
 
   // sensor start index
   int sensor_start_index_;
+
+  // data
+  mjData* data_;
+
+  // correction (2nv + na)
+  std::vector<double> correction_;
+
+  // sensor Jacobian (nsensordata x (2nv + na))
+  std::vector<double> sensor_jacobian_;
 
   // dynamics Jacobian ((2nv + na) x (2nv + na))
   std::vector<double> dynamics_jacobian_;

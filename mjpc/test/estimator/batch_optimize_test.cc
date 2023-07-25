@@ -50,7 +50,7 @@ TEST(BatchOptimize, Particle2D) {
   // ----- estimator ----- //
 
   // initialize
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -60,8 +60,8 @@ TEST(BatchOptimize, Particle2D) {
 
   // set weights
   estimator.scale_prior = 1.0e-3;
-  estimator.scale_sensor[0] = 1.0;
-  estimator.scale_force[0] = 1.0e-3;
+  estimator.noise_sensor[0] = 1.0;
+  estimator.noise_process[0] = 1.0 / 1.0e-4;
 
   // ----- random perturbation ----- //
 
@@ -73,7 +73,7 @@ TEST(BatchOptimize, Particle2D) {
     // add noise
     for (int i = 0; i < nq; i++) {
       absl::BitGen gen_;
-      q[i] += 0.01 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      q[i] += 0.001 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
@@ -126,11 +126,13 @@ TEST(BatchOptimize, Box3D) {
   // ----- estimator ----- //
 
   // initialize
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
-  estimator.settings.time_scaling = false;
-  estimator.settings.gradient_tolerance = 1.0e-3;
+  estimator.settings.gradient_tolerance = 1.0e-6;
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
@@ -211,7 +213,7 @@ TEST(BatchOptimize, Quadruped) {
   // ----- estimator ----- //
 
   // initialize
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
   estimator.settings.time_scaling = true;
@@ -243,8 +245,8 @@ TEST(BatchOptimize, Quadruped) {
   estimator.settings.max_search_iterations = 10;
 
   // set weights
-  mju_fill(estimator.scale_sensor.data(), 1.0, model->nsensor);
-  mju_fill(estimator.scale_force.data(), 1.0, 4);
+  mju_fill(estimator.noise_sensor.data(), 1.0, model->nsensor);
+  mju_fill(estimator.noise_process.data(), 1.0, 4);
 
   // optimize
   estimator.Optimize(pool);

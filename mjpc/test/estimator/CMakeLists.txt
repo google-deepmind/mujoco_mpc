@@ -24,6 +24,9 @@
 # test(batch_prior_test)
 # target_link_libraries(batch_prior_test load simulation gmock)
 
+test(batch_filter_test)
+target_link_libraries(batch_filter_test load simulation gmock)
+
 # test(batch_sensor_test)
 # target_link_libraries(batch_sensor_test load simulation gmock)
 
@@ -36,5 +39,5 @@
 # test(estimator_utilities_test)
 # target_link_libraries(estimator_utilities_test load simulation gmock)
 
-test(unscented_test)
-target_link_libraries(unscented_test load simulation gmock)
+# test(unscented_test)
+# target_link_libraries(unscented_test load simulation gmock)

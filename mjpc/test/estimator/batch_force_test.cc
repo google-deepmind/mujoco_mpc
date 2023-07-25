@@ -46,14 +46,14 @@ TEST(ForceCost, Particle) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.scale_force[0] = 1.0e-4;
-  estimator.scale_force[1] = 2.0e-4;
-  estimator.scale_force[2] = 3.0e-4;
+  estimator.noise_process[0] = 1.0 / 1.0e-4;
+  estimator.noise_process[1] = 1.0 / 2.0e-4;
+  estimator.noise_process[2] = 1.0 / 3.0e-4;
 
   // TODO(taylor): test norms
 
@@ -122,19 +122,19 @@ TEST(ForceCost, Particle) {
       // inverse dynamics error
       mju_sub(rk, data->qfrc_inverse, f1, nv);
 
-      // weight
-      double weight =
-          estimator.scale_force[0] / nv / estimator.PredictionLength();
+      // weighted residual 
+      std::vector<double> wr(nv);
 
-      // parameters
-      double* pk =
-          estimator.norm_parameters_force.data() + MAX_NORM_PARAMETERS * 0;
-
-      // norm
-      NormType normk = estimator.norm_force[0];
+      // loop over nv
+      for (int i = 0; i < nv; i++) {
+        // weight
+        double weight = 1.0 / estimator.noise_process[i] / nv /
+                        estimator.PredictionLength();
+        wr[i] = weight * rk[i];
+      }
 
       // add weighted norm
-      cost += weight * Norm(NULL, NULL, rk, pk, nv, normk);
+      cost += 0.5 * mju_dot(wr.data(), rk, nv);
     }
 
     // weighted cost
@@ -209,16 +209,14 @@ TEST(ForceCost, Box) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Estimator estimator;
+  Batch estimator;
   estimator.Initialize(model);
   estimator.SetConfigurationLength(T);
 
   // weights
-  estimator.scale_force[0] = 1.0e-4;
-  estimator.scale_force[1] = 2.0e-4;
-  estimator.scale_force[2] = 3.0e-4;
-
-  // TODO(taylor): test norms
+  estimator.noise_process[0] = 1.0 / 1.0e-5;
+  estimator.noise_process[1] = 1.0 / 2.0e-5;
+  estimator.noise_process[2] = 1.0 / 3.0e-5;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -231,7 +229,7 @@ TEST(ForceCost, Box) {
     double* q = estimator.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
-      dq[i] = 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      dq[i] = 1.0e-2 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     mj_integratePos(model, q, dq, model->opt.timestep);
   }
@@ -297,19 +295,21 @@ TEST(ForceCost, Box) {
       // inverse dynamics error
       mju_sub(rk, data->qfrc_inverse, f1, nv);
 
-      // weight
-      double weight =
-          estimator.scale_force[0] / nv / estimator.PredictionLength();
+      // weighted residual 
+      std::vector<double> wr(nv);
 
-      // parameters
-      double* pk =
-          estimator.norm_parameters_force.data() + MAX_NORM_PARAMETERS * 0;
+      // loop over nv 
+      for (int i = 0; i < nv; i++) {
+        // weight
+        double weight =
+            1.0 / estimator.noise_process[i] / nv / estimator.PredictionLength();
 
-      // norm
-      NormType normk = estimator.norm_force[0];
+        // weighted residual
+        wr[i] = weight * rk[i];
+      }
 
-      // add weighted norm
-      cost += weight * Norm(NULL, NULL, rk, pk, nv, normk);
+      // cost 
+      cost += 0.5 * mju_dot(wr.data(), rk, nv);
     }
 
     // weighted cost

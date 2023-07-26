@@ -31,7 +31,7 @@
     <numeric name="residual_Heading" data="0 -3.14 3.14" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="3" />
+    <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="9" />
     <numeric name="estimator_number_sensor" data="34" />
     <numeric name="estimator_timestep" data="0.005" />

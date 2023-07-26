@@ -43,13 +43,7 @@ void Batch::Initialize(const mjModel* model) {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   nstate_ = nq + nv + na;
-  ndstate_ = 2 * nv; // TODO(taylor): + na;
-
-  // check for na > 0 
-  // TODO(taylor)
-  // if (na > 0) {
-  //   mju_error("na > 0: act not supported\n");
-  // }
+  ndstate_ = 2 * nv + na;
 
   // sensor start index
   sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
@@ -480,11 +474,6 @@ void Batch::Reset() {
   settings.sensor_flag = true;
   settings.force_flag = true;
 
-  printf("num sensor = %i\n", nsensor);
-  printf("nsensordata = %i\n", nsensordata_);
-  printf("start_sensor = %i\n", sensor_start);
-  printf("sensor start index = %i\n", sensor_start_index_);
-
   // timestep 
   double timestep = model->opt.timestep;
 
@@ -509,9 +498,9 @@ void Batch::Reset() {
     times.Set(&current_time, i);
   }
 
-  // prior weight 
-  for (int i = 0; i < ndstate_; i++) {
-    weight_prior[nq * configuration_length_ * i + i] = 1.0 / covariance[ndstate_ * i + i];
+  // prior weight (skip act)
+  for (int i = 0; i < ndstate_ - na; i++) {
+    weight_prior[nv * configuration_length_ * i + i] = 1.0 / covariance[ndstate_ * i + i];
   }
 }
 
@@ -521,7 +510,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   auto start = std::chrono::steady_clock::now();
 
   // dimensions 
-  int nq = model->nq, nv = model->nv, nu = model->nu;
+  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
   // current time index 
   int t = prediction_length_;
@@ -569,7 +558,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // update state
   mju_copy(state.data(), configuration.Get(t + 1), nq);
   mju_copy(state.data() + nq, velocity.Get(t + 1), nv);
-  // TODO(taylor): set act 
+  mju_copy(state.data() + nq + nv, act.Get(t + 1), na);
   time = d->time;
 
   // update prior weights 
@@ -1512,7 +1501,8 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu, ns = nsensordata_;
+  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
+      ns = nsensordata_;
 
   // start index
   int start_index =
@@ -1555,8 +1545,8 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
       mju_copy(ft, d->qfrc_inverse, nv);
 
       // copy act 
-      double* actt = batch.act.Get(t);
-      mju_copy(actt, d->act, na);
+      double* act = batch.act.Get(t + 1);
+      mju_copy(act, d->act, na);
     });
   }
 
@@ -2198,17 +2188,6 @@ void Batch::Optimize(ThreadPool& pool) {
 
   // status
   PrintOptimize();
-}
-
-// regularize Hessian
-void Batch::Regularize() {
-  // dimension
-  int nvar = configuration_length_ * model->nv;
-
-  // H + reg * I
-  for (int j = 0; j < nvar; j++) {
-    cost_hessian[j * nvar + j] += regularization_;
-  }
 }
 
 // search direction

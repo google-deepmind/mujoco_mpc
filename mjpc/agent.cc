@@ -68,6 +68,7 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 
 // initialize data, settings, planners, states
 void Agent::Initialize(const mjModel* model) {
+  printf("agent initialize!\n");
   // ----- model ----- //
   if (model_) mj_deleteModel(model_);
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
@@ -117,7 +118,7 @@ void Agent::Initialize(const mjModel* model) {
   }
   
   // get Kalman estimator
-  Estimator* estimator = estimators_[1].get();
+  Estimator* estimator = estimators_[3].get();
 
   // initialize estimator data
   ctrl.resize(model->nu);

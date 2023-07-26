@@ -349,9 +349,6 @@ class Batch : public Estimator {
   // force Jacobian
   void JacobianForce(ThreadPool& pool);
 
-  // regularize Hessian
-  void Regularize();
-
   // search direction
   void SearchDirection();
 

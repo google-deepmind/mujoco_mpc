@@ -112,18 +112,18 @@ void Kalman::Reset() {
   // covariance
   mju_eye(covariance.data(), ndstate_);
   double covariance_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_covariance_initial_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_covariance_initial_scale");
   mju_scl(covariance.data(), covariance.data(), covariance_scl,
           ndstate_ * ndstate_);
 
   // process noise
   double noise_process_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_process_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_process_noise_scale");
   std::fill(noise_process.begin(), noise_process.end(), noise_process_scl);
 
   // sensor noise
   double noise_sensor_scl =
-      GetNumberOrDefault(1.0e-5, model, "estimator_sensor_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_sensor_noise_scale");
   std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
   // dynamics Jacobian

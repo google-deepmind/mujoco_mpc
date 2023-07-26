@@ -369,11 +369,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         // from estimator
         state->SetPos(m, sim.agent->state.data());
         state->SetVel(m, sim.agent->state.data() + m->nq);
-        if (active_estimator == 3) {
-          state->SetAct(m, d->act); // TODO(taylor); estimator d->act w/ batch estimator
-        } else {
-          state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
-        }
+        state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
         state->SetTime(m, sim.agent->time);
         state->SetMocap(m, d->mocap_pos, d->mocap_quat);
         state->SetUserData(m, d->userdata);

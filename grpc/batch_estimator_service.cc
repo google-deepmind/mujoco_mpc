@@ -98,7 +98,7 @@ grpc::Status BatchEstimatorService::Init(grpc::ServerContext* context,
                                     batch_estimator::InitResponse* response) {
   // check configuration length
   if (request->configuration_length() < mjpc::MIN_HISTORY ||
-      request->configuration_length() > mjpc::MAX_HISTORY) {
+      request->configuration_length() > batch_estimator_.max_history) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
   }
 
@@ -330,7 +330,7 @@ grpc::Status BatchEstimatorService::Settings(
 
     // check for valid length
     if (configuration_length < mjpc::MIN_HISTORY ||
-        configuration_length > mjpc::MAX_HISTORY) {
+        configuration_length > batch_estimator_.max_history) {
       return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
     }
 
@@ -463,26 +463,6 @@ grpc::Status BatchEstimatorService::Settings(
   }
   output->set_band_copy(batch_estimator_.settings.band_copy);
 
-  // reuse_data
-  if (input.has_reuse_data()) {
-    batch_estimator_.settings.reuse_data = input.reuse_data();
-  }
-  output->set_reuse_data(batch_estimator_.settings.reuse_data);
-
-  // skip prior weight update
-  if (input.has_skip_update_prior_weight()) {
-    batch_estimator_.settings.skip_update_prior_weight =
-        input.skip_update_prior_weight();
-  }
-  output->set_skip_update_prior_weight(
-      batch_estimator_.settings.skip_update_prior_weight);
-
-  // update prior weight
-  if (input.has_update_prior_weight()) {
-    batch_estimator_.settings.update_prior_weight = input.update_prior_weight();
-  }
-  output->set_update_prior_weight(batch_estimator_.settings.update_prior_weight);
-
   // time scaling
   if (input.has_time_scaling()) {
     batch_estimator_.settings.time_scaling = input.time_scaling();
@@ -530,12 +510,6 @@ grpc::Status BatchEstimatorService::Settings(
     batch_estimator_.settings.assemble_force_norm_hessian = input.assemble_force_norm_hessian();
   }
   output->set_assemble_force_norm_hessian(batch_estimator_.settings.assemble_force_norm_hessian);
-
-  // force residual timestep scale 
-  if (input.has_force_residual_timestep_scale()) {
-    batch_estimator_.settings.force_residual_timestep_scale = input.force_residual_timestep_scale();
-  }
-  output->set_force_residual_timestep_scale(batch_estimator_.settings.force_residual_timestep_scale);
 
   return grpc::Status::OK;
 }

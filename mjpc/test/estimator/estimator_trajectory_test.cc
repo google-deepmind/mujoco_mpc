@@ -36,10 +36,8 @@ TEST(EstimatorTrajectory, Test) {
 
   // test initialization
   EXPECT_EQ(trajectory.Head(), 0);
-  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0,
-              1.0e-5);
-  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0,
-              1.0e-5);
+  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0, 1.0e-5);
 
   // random data
   std::vector<double> data(dim * length);

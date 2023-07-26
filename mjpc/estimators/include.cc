@@ -31,7 +31,7 @@ std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
   estimators.emplace_back(new mjpc::GroundTruth);
   estimators.emplace_back(new mjpc::Kalman);
   estimators.emplace_back(new mjpc::Unscented);
-  estimators.emplace_back(new mjpc::Batch);
+  estimators.emplace_back(new mjpc::Batch(1)); // filter mode
 
   return estimators;
 }

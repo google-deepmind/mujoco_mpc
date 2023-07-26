@@ -218,9 +218,6 @@ class BatchEstimator:
       regularization_initial: Optional[float] = None,
       regularization_scaling: Optional[float] = None,
       band_copy: Optional[bool] = None,
-      reuse_data: Optional[bool] = None,
-      skip_update_prior_weight: Optional[bool] = None,
-      update_prior_weight: Optional[bool] = None,
       time_scaling: Optional[bool] = None,
       search_direction_tolerance: Optional[float] = None,
       cost_tolerance: Optional[float] = None,
@@ -229,7 +226,6 @@ class BatchEstimator:
       assemble_force_jacobian: Optional[bool] = None,
       assemble_sensor_norm_hessian: Optional[bool] = None,
       assemble_force_norm_hessian: Optional[bool] = None,
-      force_residual_timestep_scale: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = batch_estimator_pb2.Settings(
@@ -250,9 +246,6 @@ class BatchEstimator:
         regularization_initial=regularization_initial,
         regularization_scaling=regularization_scaling,
         band_copy=band_copy,
-        reuse_data=reuse_data,
-        skip_update_prior_weight=skip_update_prior_weight,
-        update_prior_weight=update_prior_weight,
         time_scaling=time_scaling,
         search_direction_tolerance=search_direction_tolerance,
         cost_tolerance=cost_tolerance,
@@ -261,7 +254,6 @@ class BatchEstimator:
         assemble_force_jacobian=assemble_force_jacobian,
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
         assemble_force_norm_hessian=assemble_force_norm_hessian,
-        force_residual_timestep_scale=force_residual_timestep_scale,
     )
 
     # settings request
@@ -291,9 +283,6 @@ class BatchEstimator:
         "regularization_initial": settings.regularization_initial,
         "regularization_scaling": settings.regularization_scaling,
         "band_copy": settings.band_copy,
-        "reuse_data": settings.reuse_data,
-        "skip_update_prior_weight": settings.skip_update_prior_weight,
-        "update_prior_weight": settings.update_prior_weight,
         "time_scaling": settings.time_scaling,
         "search_direction_tolerance": settings.search_direction_tolerance,
         "cost_tolerance": settings.cost_tolerance,
@@ -302,7 +291,6 @@ class BatchEstimator:
         "assemble_force_jacobian": settings.assemble_force_jacobian,
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
-        "force_residual_timestep_scale": settings.force_residual_timestep_scale,
     }
 
   def weight(

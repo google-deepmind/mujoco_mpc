@@ -111,9 +111,6 @@ message Settings {
   optional double regularization_initial = 15;
   optional double regularization_scaling = 16;
   optional bool band_copy = 17;
-  optional bool reuse_data = 18;
-  optional bool skip_update_prior_weight = 19;
-  optional bool update_prior_weight = 20;
   optional bool time_scaling = 21;
   optional double search_direction_tolerance = 22;
   optional double cost_tolerance = 23;
@@ -122,7 +119,6 @@ message Settings {
   optional bool assemble_force_jacobian = 26; 
   optional bool assemble_sensor_norm_hessian = 27; 
   optional bool assemble_force_norm_hessian = 28;
-  optional bool force_residual_timestep_scale = 29;
 }
 
 message SettingsRequest {

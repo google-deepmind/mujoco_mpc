@@ -27,400 +27,170 @@
 namespace mjpc {
 namespace {
 
-// TEST(BatchFilter, Particle1D) {
-//   // load model
-//   mjModel* model = LoadTestModel("estimator/particle/task1D.xml");
-//   mjData* data = mj_makeData(model);
-
-//   // set home keyframe
-//   int home_id = mj_name2id(model, mjOBJ_KEY, "home");
-//   if (home_id >= 0) mj_resetDataKeyframe(model, data, home_id);
-
-//   // forward to evaluate sensors 
-//   mj_forward(model, data);
-
-//   // ctrl
-//   double ctrl[1] = {0.25};
-
-//   // sensor
-//   double sensor[2];
-//   mju_copy(sensor, data->sensordata, model->nsensordata);
-
-//   printf("qpos (data) = \n");
-//   mju_printMat(data->qpos, 1, model->nq);
-
-//   printf("qvel (data) = \n");
-//   mju_printMat(data->qvel, 1, model->nv);
-
-//   // dimensions
-//   // int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-
-//   // threadpool
-//   // ThreadPool pool(1);
-
-//   // batch estimator 
-//   Batch filter(model, 3);
-
-//   printf("noise process = \n");
-//   mju_printMat(filter.noise_process.data(), 1, filter.DimensionProcess());
-
-//   printf("noise sensor = \n");
-//   mju_printMat(filter.noise_sensor.data(), 1, filter.DimensionSensor());
-
-//   printf("qpos (filter) = \n");
-//   mju_printMat(filter.state.data(), 1, model->nq);
-
-//   printf("qvel (filter) = \n");
-//   mju_printMat(filter.state.data() + model->nq, 1, model->nv);
-
-//   // print times 
-//   for (int t = 0; t < filter.ConfigurationLength(); t++) {
-//     printf("t = %i -> %f\n", t, filter.times.Get(t)[0]);
-//   }
-
-//   // configurations 
-//   for (int t = 0; t < filter.ConfigurationLength(); t++) {
-//     printf("configuration (%i) = ", t);
-//     mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-//     printf("previous (%i) = \n", t);
-//     mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-//   }
-
-//   // covariance 
-//   printf("covariance = \n");
-//   mju_printMat(filter.Covariance(), filter.DimensionProcess(),
-//                filter.DimensionProcess());
-
-//   // prior weight 
-//   printf("prior weight = \n");
-//   mju_printMat(filter.weight_prior.data(),
-//                model->nq * filter.ConfigurationLength(),
-//                model->nq * filter.ConfigurationLength());
-
-//   // update 
-//   // double noisy_sensor[2];
-//   // noisy_sensor[0] = sensor[0] + 0.001;
-//   // noisy_sensor[1] = sensor[1] - 0.001;
-
-//   filter.Update(ctrl, sensor);
-
-//   printf("POST UPDATE:\n");
-
-//   // qpos + ctrl + sensor + force + time
-//   for (int t = 0; t < filter.ConfigurationLength(); t++) {
-//     printf("qpos (%i) = \n", t);
-//     mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-//     printf("qpos [previous] (%i) = \n", t);
-//     mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-
-//     printf("ctrl (%i) = \n", t);
-//     mju_printMat(filter.ctrl.Get(t), 1, model->nu);
-
-//     printf("sensor [measurement] (%i) = \n", t);
-//     mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-//     printf("force [measurement] (%i) = \n", t);
-//     mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-//     printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-//     printf("\n");
-//   }
-
-//   printf("prior weight = \n");
-//   mju_printMat(filter.weight_prior.data(),
-//                model->nq * filter.ConfigurationLength(),
-//                model->nq * filter.ConfigurationLength());
-
-//   // // optimize 
-//   // ThreadPool pool(1);
-//   // filter.Optimize(pool);
-
-//   // printf("POST OPTIMIZE: \n");
-
-//   // // qpos + ctrl + sensor + force + time
-//   // for (int t = 0; t < filter.ConfigurationLength(); t++) {
-//   //   printf("qpos (%i) = \n", t);
-//   //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-//   //   printf("qpos [previous] (%i) = \n", t);
-//   //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-
-//   //   printf("ctrl (%i) = \n", t);
-//   //   mju_printMat(filter.ctrl.Get(t), 1, model->nu);
-
-//   //   printf("sensor [measurement] (%i) = \n", t);
-//   //   mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-//   //   printf("sensor [prediction] (%i) = \n", t);
-//   //   mju_printMat(filter.sensor_prediction.Get(t), 1, model->nsensordata);
-
-//   //   printf("force [measurement] (%i) = \n", t);
-//   //   mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-//   //   printf("force [prediction] (%i) = \n", t);
-//   //   mju_printMat(filter.force_prediction.Get(t), 1, model->nv);
-
-//   //   printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-//   //   printf("\n");
-//   // }
-
-//   // // shift 
-//   // filter.Shift(1);
-
-//   // printf("POST SHIFT: \n");
-
-//   // // qpos + ctrl + sensor + force + time
-//   // for (int t = 0; t < filter.ConfigurationLength() - 1; t++) {
-//   //   printf("qpos (%i) = \n", t);
-//   //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-//   //   printf("qpos [previous] (%i) = \n", t);
-//   //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-
-//   //   printf("ctrl (%i) = \n", t);
-//   //   mju_printMat(filter.ctrl.Get(t), 1, model->nu);
-
-//   //   printf("sensor [measurement] (%i) = \n", t);
-//   //   mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-//   //   printf("sensor [prediction] (%i) = \n", t);
-//   //   mju_printMat(filter.sensor_prediction.Get(t), 1, model->nsensordata);
-
-//   //   printf("force [measurement] (%i) = \n", t);
-//   //   mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-//   //   printf("force [prediction] (%i) = \n", t);
-//   //   mju_printMat(filter.force_prediction.Get(t), 1, model->nv);
-
-//   //   printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-//   //   printf("\n");
-//   // }
-
-//   // delete data + model
-//   mj_deleteData(data);
-//   mj_deleteModel(model);
-// }
-
-TEST(BatchFilter1, Particle1D) {
+TEST(Batch, Particle1D) {
   // load model
-  mjModel* model = LoadTestModel("estimator/particle/task_timevarying.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task1D.xml");
   mjData* data = mj_makeData(model);
-  model->opt.integrator = mjINT_RK4;
 
-  printf("tolerance = %f\n", model->opt.tolerance);
-  printf("iterations = %i\n", model->opt.iterations);
-
-  // set home keyframe
-  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
-  if (home_id >= 0) mj_resetDataKeyframe(model, data, home_id);
-
-  // ----- simulate ----- //
-  int T = 10;
+  // ----- rollout ----- //
+  int T = 100;
   Simulation sim(model, T);
-  auto controller = [](double* ctrl, double time) {
-    ctrl[0] = 2.0 * time + 0.5;
-    ctrl[1] = 5.0 * time - 0.123;
-  };
+  auto controller = [](double* ctrl, double time) {};
+  double qpos0[1] = {0.25};
+  sim.SetState(qpos0, NULL);
   sim.Rollout(controller);
 
-  printf("qpos (sim) = \n");
-  mju_printMat(sim.qpos.Data(), 3, model->nq);
+  // ----- Batch ----- //
 
-  printf("qvel (sim) = \n");
-  mju_printMat(sim.qvel.Data(), 3, model->nv);
+  // initialize batch
+  Batch batch(1);
+  batch.Initialize(model);
+  batch.Reset();
 
-  printf("qacc (sim) = \n");
-  mju_printMat(sim.qacc.Data(), 3, model->nv);
+  // set initial state
+  mju_copy(batch.state.data(), sim.qpos.Get(0), model->nq);
+  mju_copy(batch.state.data() + model->nq, sim.qvel.Get(0), model->nv);
 
-  printf("ctrl (sim) = \n");
-  mju_printMat(sim.ctrl.Data(), 3, model->nu);
+  // set initial configurations
+  double* q0 = batch.configuration.Get(0);
+  double* q1 = batch.configuration.Get(1);
 
-  printf("qfrc (sim) = \n");
-  mju_printMat(sim.qfrc_actuator.Data(), 3, model->nv);
+  mju_copy(q1, sim.qpos.Get(0), model->nq);
+  mju_copy(q0, q1, model->nq);
+  mj_integratePos(model, q0, sim.qvel.Get(0), -1.0 * model->opt.timestep);
 
-  double v1[2];
-  mju_sub(v1, sim.qpos.Get(1), sim.qpos.Get(0), model->nv);
-  mju_scl(v1, v1, 1.0 / model->opt.timestep, model->nv);
+  // initialize covariance
+  mju_eye(batch.covariance.data(), 2 * model->nv);
+  mju_scl(batch.covariance.data(), batch.covariance.data(), 1.0e-4,
+          (2 * model->nv) * (2 * model->nv));
 
-  double v2[2]; 
-  mju_sub(v2, sim.qpos.Get(2), sim.qpos.Get(1), model->nv);
-  mju_scl(v2, v2, 1.0 / model->opt.timestep, model->nv);
+  // initial process noise
+  mju_fill(batch.noise_process.data(), 1.0e-4, 2 * model->nv);
 
-  double a1[2]; 
-  mju_sub(a1, v2, v1, model->nv);
-  mju_scl(a1, a1, 1.0 / model->opt.timestep, model->nv);
+  // initialize sensor noise
+  mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
 
-  printf("v1 = \n");
-  mju_printMat(v1, 1, model->nv);
-  printf("v2 = \n");
-  mju_printMat(v2, 1, model->nv);
-  printf("a1 = \n");
-  mju_printMat(a1, 1, model->nv);
+  // filter trajectories
+  EstimatorTrajectory<double> batch_qpos(model->nq, T);
+  EstimatorTrajectory<double> batch_qvel(model->nv, T);
+  EstimatorTrajectory<double> batch_timer_update(1, T);
 
-  // set state 
-  mju_copy(data->qpos, sim.qpos.Get(1), model->nq);
-  mju_copy(data->qvel, v1, model->nv);
-  mju_copy(data->qacc, a1, model->nv);
+  // noisy sensor
+  std::vector<double> noisy_sensor(model->nsensordata);
+  absl::BitGen gen_;
 
-  // inverse 
-  mj_inverse(model, data);
+  for (int t = 0; t < T - 1; t++) {
+    // noisy sensor
+    mju_copy(noisy_sensor.data(), sim.sensor.Get(t), model->nsensordata);
+    for (int i = 0; i < model->nsensordata; i++) {
+      noisy_sensor[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
 
-  printf("qfrc = \n"); 
-  mju_printMat(data->qfrc_inverse, 1, model->nv);
+    // update
+    batch.Update(sim.ctrl.Get(t), noisy_sensor.data());
 
-  // printf("qpos (data) = \n");
-  // mju_printMat(data->qpos, 1, model->nq);
+    // cache state
+    batch_qpos.Set(batch.state.data(), t);
+    batch_qvel.Set(batch.state.data() + model->nq, t);
 
-  // printf("qvel (data) = \n");
-  // mju_printMat(data->qvel, 1, model->nv);
+    // test qpos
+    std::vector<double> pos_error(model->nq);
+    mju_sub(pos_error.data(), batch_qpos.Get(t), sim.qpos.Get(t + 1),
+            model->nq);
+    EXPECT_NEAR(mju_norm(pos_error.data(), model->nq), 0.0, 1.0e-3);
 
-  // // dimensions
-  // // int nq = model->nq, nv = model->nv, ns = model->nsensordata;
+    // test qvel
+    std::vector<double> vel_error(model->nv);
+    mju_sub(vel_error.data(), batch_qvel.Get(t), sim.qvel.Get(t + 1),
+            model->nv);
+    EXPECT_NEAR(mju_norm(vel_error.data(), model->nv), 0.0, 1.0e-3);
+  }
 
-  // // threadpool
-  // // ThreadPool pool(1);
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
 
-  // // batch estimator 
-  // Batch filter(model, 3);
+TEST(Batch, Box3Drot) {
+  // load model
+  mjModel* model = LoadTestModel("estimator/box/task3Drot2.xml");
+  mjData* data = mj_makeData(model);
 
-  // printf("noise process = \n");
-  // mju_printMat(filter.noise_process.data(), 1, filter.DimensionProcess());
+  // ----- rollout ----- //
+  int T = 100;
+  Simulation sim(model, T);
+  auto controller = [](double* ctrl, double time) {};
+  double qvel[3];
+  qvel[0] = 1.0;
+  qvel[1] = -0.75;
+  qvel[2] = 1.25;
+  sim.SetState(NULL, qvel);
+  sim.Rollout(controller);
 
-  // printf("noise sensor = \n");
-  // mju_printMat(filter.noise_sensor.data(), 1, filter.DimensionSensor());
+  // ----- Batch ----- //
 
-  // printf("qpos (filter) = \n");
-  // mju_printMat(filter.state.data(), 1, model->nq);
+  // initialize batch
+  Batch batch(1);
+  batch.Initialize(model);
+  batch.Reset();
 
-  // printf("qvel (filter) = \n");
-  // mju_printMat(filter.state.data() + model->nq, 1, model->nv);
+  // set initial state
+  mju_copy(batch.state.data(), sim.qpos.Get(0), model->nq);
+  mju_copy(batch.state.data() + model->nq, sim.qvel.Get(0), model->nv);
 
-  // // print times 
-  // for (int t = 0; t < filter.ConfigurationLength(); t++) {
-  //   printf("t = %i -> %f\n", t, filter.times.Get(t)[0]);
-  // }
+  // set initial configurations
+  double* q0 = batch.configuration.Get(0);
+  double* q1 = batch.configuration.Get(1);
 
-  // // configurations 
-  // for (int t = 0; t < filter.ConfigurationLength(); t++) {
-  //   printf("configuration (%i) = ", t);
-  //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
+  mju_copy(q1, sim.qpos.Get(0), model->nq);
+  mju_copy(q0, q1, model->nq);
+  mj_integratePos(model, q0, sim.qvel.Get(0), -1.0 * model->opt.timestep);
 
-  //   printf("previous (%i) = \n", t);
-  //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-  // }
+  // initialize covariance
+  mju_eye(batch.covariance.data(), 2 * model->nv);
+  mju_scl(batch.covariance.data(), batch.covariance.data(), 1.0e-4,
+          (2 * model->nv) * (2 * model->nv));
 
-  // // covariance 
-  // printf("covariance = \n");
-  // mju_printMat(filter.Covariance(), filter.DimensionProcess(),
-  //              filter.DimensionProcess());
+  // initial process noise
+  mju_fill(batch.noise_process.data(), 1.0e-4, 2 * model->nv);
 
-  // // prior weight 
-  // printf("prior weight = \n");
-  // mju_printMat(filter.weight_prior.data(),
-  //              model->nq * filter.ConfigurationLength(),
-  //              model->nq * filter.ConfigurationLength());
+  // initialize sensor noise
+  mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
 
-  // // update 
-  // // double noisy_sensor[2];
-  // // noisy_sensor[0] = sensor[0] + 0.001;
-  // // noisy_sensor[1] = sensor[1] - 0.001;
+  // filter trajectories
+  EstimatorTrajectory<double> batch_qpos(model->nq, T);
+  EstimatorTrajectory<double> batch_qvel(model->nv, T);
+  EstimatorTrajectory<double> batch_timer_update(1, T);
 
-  // filter.Update(ctrl, sensor);
+  // noisy sensor
+  std::vector<double> noisy_sensor(model->nsensordata);
+  absl::BitGen gen_;
 
-  // printf("POST UPDATE:\n");
+  for (int t = 0; t < T - 1; t++) {
+    // noisy sensor
+    mju_copy(noisy_sensor.data(), sim.sensor.Get(t), model->nsensordata);
+    for (int i = 0; i < model->nsensordata; i++) {
+      noisy_sensor[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+    }
 
-  // // qpos + ctrl + sensor + force + time
-  // for (int t = 0; t < filter.ConfigurationLength(); t++) {
-  //   printf("qpos (%i) = \n", t);
-  //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
+    // update
+    batch.Update(sim.ctrl.Get(t), noisy_sensor.data());
 
-  //   printf("qpos [previous] (%i) = \n", t);
-  //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
+    // cache state
+    batch_qpos.Set(batch.state.data(), t);
+    batch_qvel.Set(batch.state.data() + model->nq, t);
 
-  //   printf("ctrl (%i) = \n", t);
-  //   mju_printMat(filter.ctrl.Get(t), 1, model->nu);
+    // test qpos
+    std::vector<double> pos_error(model->nv);
+    mju_subQuat(pos_error.data(), batch_qpos.Get(t), sim.qpos.Get(t + 1));
+    EXPECT_NEAR(mju_norm(pos_error.data(), model->nv), 0.0, 5.0e-3);
 
-  //   printf("sensor [measurement] (%i) = \n", t);
-  //   mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-  //   printf("force [measurement] (%i) = \n", t);
-  //   mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-  //   printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-  //   printf("\n");
-  // }
-
-  // printf("prior weight = \n");
-  // mju_printMat(filter.weight_prior.data(),
-  //              model->nq * filter.ConfigurationLength(),
-  //              model->nq * filter.ConfigurationLength());
-
-  // // // optimize 
-  // // ThreadPool pool(1);
-  // // filter.Optimize(pool);
-
-  // // printf("POST OPTIMIZE: \n");
-
-  // // // qpos + ctrl + sensor + force + time
-  // // for (int t = 0; t < filter.ConfigurationLength(); t++) {
-  // //   printf("qpos (%i) = \n", t);
-  // //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-  // //   printf("qpos [previous] (%i) = \n", t);
-  // //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-
-  // //   printf("ctrl (%i) = \n", t);
-  // //   mju_printMat(filter.ctrl.Get(t), 1, model->nu);
-
-  // //   printf("sensor [measurement] (%i) = \n", t);
-  // //   mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-  // //   printf("sensor [prediction] (%i) = \n", t);
-  // //   mju_printMat(filter.sensor_prediction.Get(t), 1, model->nsensordata);
-
-  // //   printf("force [measurement] (%i) = \n", t);
-  // //   mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-  // //   printf("force [prediction] (%i) = \n", t);
-  // //   mju_printMat(filter.force_prediction.Get(t), 1, model->nv);
-
-  // //   printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-  // //   printf("\n");
-  // // }
-
-  // // // shift 
-  // // filter.Shift(1);
-
-  // // printf("POST SHIFT: \n");
-
-  // // // qpos + ctrl + sensor + force + time
-  // // for (int t = 0; t < filter.ConfigurationLength() - 1; t++) {
-  // //   printf("qpos (%i) = \n", t);
-  // //   mju_printMat(filter.configuration.Get(t), 1, model->nq);
-
-  // //   printf("qpos [previous] (%i) = \n", t);
-  // //   mju_printMat(filter.configuration_previous.Get(t), 1, model->nq);
-
-  // //   printf("ctrl (%i) = \n", t);
-  // //   mju_printMat(filter.ctrl.Get(t), 1, model->nu);
-
-  // //   printf("sensor [measurement] (%i) = \n", t);
-  // //   mju_printMat(filter.sensor_measurement.Get(t), 1, model->nsensordata);
-
-  // //   printf("sensor [prediction] (%i) = \n", t);
-  // //   mju_printMat(filter.sensor_prediction.Get(t), 1, model->nsensordata);
-
-  // //   printf("force [measurement] (%i) = \n", t);
-  // //   mju_printMat(filter.force_measurement.Get(t), 1, model->nv);
-
-  // //   printf("force [prediction] (%i) = \n", t);
-  // //   mju_printMat(filter.force_prediction.Get(t), 1, model->nv);
-
-  // //   printf("time (%i) = %f\n", t, filter.times.Get(t)[0]);
-  // //   printf("\n");
-  // // }
+    // test qvel
+    std::vector<double> vel_error(model->nv);
+    mju_sub(vel_error.data(), batch_qvel.Get(t), sim.qvel.Get(t + 1),
+            model->nv);
+    EXPECT_NEAR(mju_norm(vel_error.data(), model->nv), 0.0, 5.0e-3);
+  }
 
   // delete data + model
   mj_deleteData(data);

@@ -19,7 +19,7 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="2" />
+    <numeric name="estimator_number_sensor" data="4" />
     <numeric name="estimator_timestep" data="0.005" />
   </custom>
 
@@ -33,6 +33,9 @@
     <!-- estimator -->
     <jointpos name="slider_pos" joint="slider"/>
     <jointpos name="hinge_pos" joint="hinge_1"/>
+
+    <jointvel name="vslider_pos" joint="slider"/>
+    <jointvel name="vhinge_pos" joint="hinge_1"/>
 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="tip"/>

@@ -46,16 +46,12 @@ TEST(ForceCost, Particle) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
 
   // weights
   estimator.noise_process[0] = 1.0 / 1.0e-4;
   estimator.noise_process[1] = 1.0 / 2.0e-4;
   estimator.noise_process[2] = 1.0 / 3.0e-4;
-
-  // TODO(taylor): test norms
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -122,7 +118,7 @@ TEST(ForceCost, Particle) {
       // inverse dynamics error
       mju_sub(rk, data->qfrc_inverse, f1, nv);
 
-      // weighted residual 
+      // weighted residual
       std::vector<double> wr(nv);
 
       // loop over nv
@@ -209,14 +205,12 @@ TEST(ForceCost, Box) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
 
   // weights
-  estimator.noise_process[0] = 1.0 / 1.0e-5;
-  estimator.noise_process[1] = 1.0 / 2.0e-5;
-  estimator.noise_process[2] = 1.0 / 3.0e-5;
+  estimator.noise_process[0] = 1.0 / 1.0e-3;
+  estimator.noise_process[1] = 1.0 / 2.0e-3;
+  estimator.noise_process[2] = 1.0 / 3.0e-3;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -229,7 +223,7 @@ TEST(ForceCost, Box) {
     double* q = estimator.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
-      dq[i] = 1.0e-2 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      dq[i] = 1.0e-5 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     mj_integratePos(model, q, dq, model->opt.timestep);
   }
@@ -295,20 +289,20 @@ TEST(ForceCost, Box) {
       // inverse dynamics error
       mju_sub(rk, data->qfrc_inverse, f1, nv);
 
-      // weighted residual 
+      // weighted residual
       std::vector<double> wr(nv);
 
-      // loop over nv 
+      // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight =
-            1.0 / estimator.noise_process[i] / nv / estimator.PredictionLength();
+        double weight = 1.0 / estimator.noise_process[i] / nv /
+                        estimator.PredictionLength();
 
         // weighted residual
         wr[i] = weight * rk[i];
       }
 
-      // cost 
+      // cost
       cost += 0.5 * mju_dot(wr.data(), rk, nv);
     }
 

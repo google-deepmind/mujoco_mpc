@@ -391,6 +391,28 @@ void Inverse3(double* res, const double* mat);
 void PrincipalEigenVector4(double* res, const double* mat,
                            double eigenvalue_init = 12.0);
 
+// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of mat00
+// TODO(taylor): thread
+void ConditionMatrix(double* res, const double* mat, double* mat00,
+                     double* mat10, double* mat11, double* tmp0, double* tmp1,
+                     int n, int n0, int n1, double* bandfactor = NULL,
+                     int nband = 0);
+
+// compute skew symmetric matrix
+void SkewSymmetricMatrix(double* mat, const double* x);
+
+// Jacobians of mju_quatIntegrate wrt quat, vel
+// http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
+// https://arxiv.org/pdf/1812.01537.pdf
+void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
+                                const double* quat, const double* vel,
+                                double scale);
+
+// compute slerp between quat0 and quat1 for t in [0, 1]
+// optionally compute Jacobians wrt quat0, quat1
+void Slerp(double* res, const double* quat0, const double* quat1, double t,
+           double* jac0, double* jac1);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

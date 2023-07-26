@@ -30,8 +30,8 @@
 namespace mjpc {
 
 // ----- defaults ----- //
-const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 12;   // maximum configuration trajectory length
+const int MIN_HISTORY = 3;      // minimum configuration trajectory length
+const int max_history = 512;    // maximum configuration trajectory length
 
 // batch estimator status 
 enum BatchStatus : int {
@@ -62,9 +62,20 @@ class Batch : public Estimator {
  public:
   // constructor
   Batch() = default;
-  Batch(const mjModel* model, int length=3) {
+  Batch(int mode) {
+    settings.filter = mode;
+  }
+  Batch(const mjModel* model, int length=3, int max_history=0) {
+    // set max history length
+    this->max_history = (max_history == 0 ? length : max_history);
+
+    // initialize memory
     Initialize(model);
+
+    // set trajectory lengths
     SetConfigurationLength(length);
+
+    // reset memory
     Reset();
   }
 
@@ -159,26 +170,6 @@ class Batch : public Estimator {
   // optimize trajectory estimate
   void Optimize(ThreadPool& pool);
 
-//   // initialize trajectories
-//   void InitializeTrajectories(const EstimatorTrajectory<double>& measurement,
-//                               const EstimatorTrajectory<int>& measurement_mask,
-//                               const EstimatorTrajectory<double>& ctrl,
-//                               const EstimatorTrajectory<double>& time);
-
-//   // update trajectories
-//   int UpdateTrajectories_(int num_new,
-//                           const EstimatorTrajectory<double>& measurement,
-//                           const EstimatorTrajectory<int>& measurement_mask,
-//                           const EstimatorTrajectory<double>& ctrl,
-//                           const EstimatorTrajectory<double>& time);
-//   int UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
-//                          const EstimatorTrajectory<int>& measurement_mask,
-//                          const EstimatorTrajectory<double>& ctrl,
-//                          const EstimatorTrajectory<double>& time);
-
-//   // update
-//   // int Update(const Buffer& buffer, ThreadPool& pool);
-
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
   const double* GetResidualSensor() { return residual_sensor_.data(); }
@@ -226,7 +217,7 @@ class Batch : public Estimator {
   // covariance
   std::vector<double> covariance;
 
-  // process noise (nv + na)
+  // process noise (2 * nv + na)
   std::vector<double> noise_process;
 
   // sensor noise (nsensor)
@@ -259,16 +250,16 @@ class Batch : public Estimator {
   double cost_previous;
 
   // cost gradient
-  std::vector<double> cost_gradient;          // nv * MAX_HISTORY
+  std::vector<double> cost_gradient;          // nv * max_history
 
   // cost Hessian
-  std::vector<double> cost_hessian;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian;           // (nv * max_history) * (nv * max_history)
 
   // prior weights
-  std::vector<double> weight_prior;           // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior;           // (nv * max_history) * (nv * max_history)
   
   // prior weights
-  std::vector<double> weight_prior_band_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> weight_prior_band_;      // (nv * max_history) * (nv * max_history)
 
   // scale
   double scale_prior;
@@ -297,9 +288,6 @@ class Batch : public Estimator {
     double regularization_initial = 1.0e-12;      // initial regularization
     double regularization_scaling = mju_sqrt(10); // regularization scaling
     bool band_copy = true;                        // copy band matrices by block
-    bool reuse_data = false;                      // flag for resuing data previously computed
-    bool skip_update_prior_weight = false;        // flag for skipping update prior weight
-    bool update_prior_weight = true;              // flag for updating prior weights
     bool time_scaling = false;                    // scale sensor and force costs by time step
     double search_direction_tolerance = 1.0e-8;   // search direction tolerance
     double cost_tolerance = 1.0e-8;               // cost difference tolernace
@@ -308,7 +296,7 @@ class Batch : public Estimator {
     bool assemble_force_jacobian = false;         // assemble dense force Jacobian 
     bool assemble_sensor_norm_hessian = false;    // assemble dense sensor norm Hessian 
     bool assemble_force_norm_hessian = false;     // assemble dense force norm Hessian
-    bool force_residual_timestep_scale = true;    // scale force residual by model->opt.timestep
+    bool filter = false;                          // filter mode
   } settings;
   
   // finite-difference settings
@@ -417,8 +405,7 @@ class Batch : public Estimator {
   int prediction_length_;                      // T - 2
 
   // configuration copy
-  EstimatorTrajectory<double> configuration_copy_;  // nq x MAX_HISTORY
-
+  EstimatorTrajectory<double> configuration_copy_;  // nq x max_history
 
   // residual
   std::vector<double> residual_prior_;       // nv x T
@@ -470,56 +457,53 @@ class Batch : public Estimator {
   EstimatorTrajectory<double> block_acceleration_next_configuration_;     // (nv * nv) x T
 
   // norm 
-  std::vector<double> norm_sensor_;            // num_sensor * MAX_HISTORY 
-  std::vector<double> norm_force_;             // nv * MAX_HISTORY
+  std::vector<double> norm_sensor_;            // num_sensor * max_history 
+  std::vector<double> norm_force_;             // nv * max_history
 
   // norm gradient
-  std::vector<double> norm_gradient_sensor_;   // ns * MAX_HISTORY
-  std::vector<double> norm_gradient_force_;    // nv * MAX_HISTORY
+  std::vector<double> norm_gradient_sensor_;   // ns * max_history
+  std::vector<double> norm_gradient_force_;    // nv * max_history
 
   // norm Hessian
-  std::vector<double> norm_hessian_sensor_;    // (ns * ns * MAX_HISTORY)
-  std::vector<double> norm_hessian_force_;     // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x MAX_HISTORY
-  std::vector<double> norm_blocks_force_;      // (nv * nv) x MAX_HISTORY  
+  std::vector<double> norm_hessian_sensor_;    // (ns * ns * max_history)
+  std::vector<double> norm_hessian_force_;     // (nv * max_history) * (nv * max_history)
+  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x max_history
+  std::vector<double> norm_blocks_force_;      // (nv * nv) x max_history  
 
   // cost gradient
-  std::vector<double> cost_gradient_prior_;    // nv * MAX_HISTORY
-  std::vector<double> cost_gradient_sensor_;   // nv * MAX_HISTORY
-  std::vector<double> cost_gradient_force_;    // nv * MAX_HISTORY
+  std::vector<double> cost_gradient_prior_;    // nv * max_history
+  std::vector<double> cost_gradient_sensor_;   // nv * max_history
+  std::vector<double> cost_gradient_force_;    // nv * max_history
 
   // cost Hessian
-  std::vector<double> cost_hessian_prior_;       // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_sensor_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_force_;       // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_band_;        // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_band_factor_; // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> cost_hessian_factor_;      // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> cost_hessian_prior_;       // (nv * max_history) * (nv * max_history)
+  std::vector<double> cost_hessian_sensor_;      // (nv * max_history) * (nv * max_history)
+  std::vector<double> cost_hessian_force_;       // (nv * max_history) * (nv * max_history)
+  std::vector<double> cost_hessian_band_;        // (nv * max_history) * (nv * max_history)
+  std::vector<double> cost_hessian_band_factor_; // (nv * max_history) * (nv * max_history)
+  std::vector<double> cost_hessian_factor_;      // (nv * max_history) * (nv * max_history)
 
   // cost scratch
-  std::vector<double> scratch0_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch1_prior_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch0_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
-  std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * MAX_HISTORY)
-  std::vector<double> scratch0_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch1_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch2_force_;         // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> scratch0_prior_;         // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch1_prior_;         // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch0_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history)
+  std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history)
+  std::vector<double> scratch0_force_;         // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch1_force_;         // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch2_force_;         // (nv * max_history) * (nv * max_history)
   std::vector<double> scratch_prior_weight_;   // 2 * nv * nv
-  std::vector<double> scratch_expected_;       // nv * MAX_HISTORY
+  std::vector<double> scratch_expected_;       // nv * max_history
 
   // search direction
-  std::vector<double> search_direction_;       // nv * MAX_HISTORY
+  std::vector<double> search_direction_;       // nv * max_history
 
   // covariance 
-  std::vector<double> prior_matrix_factor_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch0_covariance_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
-  std::vector<double> scratch1_covariance_;    // (nv * MAX_HISTORY) * (nv * MAX_HISTORY)
+  std::vector<double> prior_matrix_factor_;    // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch0_covariance_;    // (nv * max_history) * (nv * max_history)
+  std::vector<double> scratch1_covariance_;    // (nv * max_history) * (nv * max_history)
 
   // status (internal)
-  bool hessian_factor_ = false;             // prior reset status
   int cost_count_;                          // number of cost evaluations
-  int num_new_;                             // number of new trajectory elements
-  bool initialized_ = false;                // flag for initialization
   bool cost_skip_ = false;                  // flag for only evaluating cost derivatives
 
   // status (external)
@@ -535,6 +519,9 @@ class Batch : public Estimator {
   double expected_;                         // expected cost improvement
   double reduction_ratio_;                  // reduction ratio: cost_improvement / expected cost improvement
 
+  // max history 
+  int max_history = 3;
+  
   // timers
   struct BatchTimers {
     double inverse_dynamics_derivatives;
@@ -575,28 +562,6 @@ class Batch : public Estimator {
 
 // estimator status string
 std::string StatusString(int code);
-
-// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of mat00
-// TODO(taylor): thread
-void ConditionMatrix(double* res, const double* mat, double* mat00,
-                     double* mat10, double* mat11, double* tmp0, double* tmp1,
-                     int n, int n0, int n1, double* bandfactor = NULL,
-                     int nband = 0);
-
-// // compute skew symmetric matrix
-// void SkewSymmetricMatrix(double* mat, const double* x);
-
-// // Jacobians of mju_quatIntegrate wrt quat, vel
-// // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
-// // https://arxiv.org/pdf/1812.01537.pdf
-// void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
-//                                 const double* quat, const double* vel,
-//                                 double scale);
-
-// // compute slerp between quat0 and quat1 for t in [0, 1]
-// // optionally compute Jacobians wrt quat0, quat1
-// void Slerp(double* res, const double* quat0, const double* quat1, double t,
-//            double* jac0, double* jac1);
 
 }  // namespace mjpc
 

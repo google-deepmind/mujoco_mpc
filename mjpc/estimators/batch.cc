@@ -33,7 +33,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // data
   data_.clear();
-  for (int i = 0; i < MAX_HISTORY; i++) {
+  for (int i = 0; i < max_history; i++) {
     data_.push_back(MakeUniqueMjData(mj_makeData(model)));
   }
 
@@ -75,7 +75,7 @@ void Batch::Initialize(const mjModel* model) {
   noise_process.resize(ndstate_);
 
   // sensor noise
-  noise_sensor.resize(nsensor);
+  noise_sensor.resize(nsensordata_);  // overallocate
 
   // length of configuration trajectory
   configuration_length_ =
@@ -107,25 +107,31 @@ void Batch::Initialize(const mjModel* model) {
   force_prediction.Initialize(nv, configuration_length_);
 
   // residual
-  residual_prior_.resize(nv * MAX_HISTORY);
-  residual_sensor_.resize(nsensordata_ * MAX_HISTORY);
-  residual_force_.resize(nv * MAX_HISTORY);
+  residual_prior_.resize(nv * max_history);
+  residual_sensor_.resize(nsensordata_ * max_history);
+  residual_force_.resize(nv * max_history);
 
   // Jacobian
-  jacobian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  jacobian_sensor_.resize((nsensordata_ * MAX_HISTORY) * (nv * MAX_HISTORY));
-  jacobian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  jacobian_prior_.resize((nv * max_history) * (nv * max_history));
+  jacobian_sensor_.resize((nsensordata_ * max_history) * (nv * max_history));
+  jacobian_force_.resize((nv * max_history) * (nv * max_history));
 
   // prior Jacobian block
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
 
   // sensor Jacobian blocks
-  block_sensor_configuration_.Initialize(model->nsensordata * nv, prediction_length_);
-  block_sensor_velocity_.Initialize(model->nsensordata * nv, prediction_length_);
-  block_sensor_acceleration_.Initialize(model->nsensordata * nv, prediction_length_);
-  block_sensor_configurationT_.Initialize(model->nsensordata * nv, prediction_length_);
-  block_sensor_velocityT_.Initialize(model->nsensordata * nv, prediction_length_);
-  block_sensor_accelerationT_.Initialize(model->nsensordata * nv, prediction_length_);
+  block_sensor_configuration_.Initialize(model->nsensordata * nv,
+                                         prediction_length_);
+  block_sensor_velocity_.Initialize(model->nsensordata * nv,
+                                    prediction_length_);
+  block_sensor_acceleration_.Initialize(model->nsensordata * nv,
+                                        prediction_length_);
+  block_sensor_configurationT_.Initialize(model->nsensordata * nv,
+                                          prediction_length_);
+  block_sensor_velocityT_.Initialize(model->nsensordata * nv,
+                                     prediction_length_);
+  block_sensor_accelerationT_.Initialize(model->nsensordata * nv,
+                                         prediction_length_);
 
   block_sensor_previous_configuration_.Initialize(nsensordata_ * nv,
                                                   prediction_length_);
@@ -167,24 +173,24 @@ void Batch::Initialize(const mjModel* model) {
                                                     prediction_length_);
 
   // cost gradient
-  cost_gradient_prior_.resize(nv * MAX_HISTORY);
-  cost_gradient_sensor_.resize(nv * MAX_HISTORY);
-  cost_gradient_force_.resize(nv * MAX_HISTORY);
-  cost_gradient.resize(nv * MAX_HISTORY);
+  cost_gradient_prior_.resize(nv * max_history);
+  cost_gradient_sensor_.resize(nv * max_history);
+  cost_gradient_force_.resize(nv * max_history);
+  cost_gradient.resize(nv * max_history);
 
   // cost Hessian
-  cost_hessian_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_sensor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_band_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  cost_hessian_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  cost_hessian_prior_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_sensor_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_force_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_band_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_band_factor_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_factor_.resize((nv * max_history) * (nv * max_history));
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  weight_prior_band_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  weight_prior.resize((nv * max_history) * (nv * max_history));
+  weight_prior_band_.resize((nv * max_history) * (nv * max_history));
   scratch_prior_weight_.resize(2 * nv * nv);
 
   // cost norms
@@ -207,46 +213,46 @@ void Batch::Initialize(const mjModel* model) {
   std::fill(norm_parameters_sensor.begin(), norm_parameters_sensor.end(), 0.0);
 
   // norm
-  norm_sensor_.resize(nsensor * MAX_HISTORY);
-  norm_force_.resize(nv * MAX_HISTORY);
+  norm_sensor_.resize(nsensor * max_history);
+  norm_force_.resize(nv * max_history);
 
   // norm gradient
-  norm_gradient_sensor_.resize(nsensordata_ * MAX_HISTORY);
-  norm_gradient_force_.resize(nv * MAX_HISTORY);
+  norm_gradient_sensor_.resize(nsensordata_ * max_history);
+  norm_gradient_force_.resize(nv * max_history);
 
   // norm Hessian
-  norm_hessian_sensor_.resize((nsensordata_ * MAX_HISTORY) *
-                              (nsensordata_ * MAX_HISTORY));
-  norm_hessian_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  norm_hessian_sensor_.resize((nsensordata_ * max_history) *
+                              (nsensordata_ * max_history));
+  norm_hessian_force_.resize((nv * max_history) * (nv * max_history));
 
-  norm_blocks_sensor_.resize(nsensordata_ * nsensordata_ * MAX_HISTORY);
-  norm_blocks_force_.resize(nv * nv * MAX_HISTORY);
+  norm_blocks_sensor_.resize(nsensordata_ * nsensordata_ * max_history);
+  norm_blocks_force_.resize(nv * nv * max_history);
 
   // scratch
-  scratch0_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch1_prior_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch0_prior_.resize((nv * max_history) * (nv * max_history));
+  scratch1_prior_.resize((nv * max_history) * (nv * max_history));
 
   scratch0_sensor_.resize(mju_max(nv, nsensordata_) *
-                          mju_max(nv, nsensordata_) * MAX_HISTORY);
+                          mju_max(nv, nsensordata_) * max_history);
   scratch1_sensor_.resize(mju_max(nv, nsensordata_) *
-                          mju_max(nv, nsensordata_) * MAX_HISTORY);
+                          mju_max(nv, nsensordata_) * max_history);
 
-  scratch0_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch1_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch2_force_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  scratch0_force_.resize((nv * max_history) * (nv * max_history));
+  scratch1_force_.resize((nv * max_history) * (nv * max_history));
+  scratch2_force_.resize((nv * max_history) * (nv * max_history));
 
-  scratch_expected_.resize(nv * MAX_HISTORY);
+  scratch_expected_.resize(nv * max_history);
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
 
   // search direction
-  search_direction_.resize(nv * MAX_HISTORY);
+  search_direction_.resize(nv * max_history);
 
   // covariance
-  prior_matrix_factor_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch0_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
-  scratch1_covariance_.resize((nv * MAX_HISTORY) * (nv * MAX_HISTORY));
+  prior_matrix_factor_.resize((nv * max_history) * (nv * max_history));
+  scratch0_covariance_.resize((nv * max_history) * (nv * max_history));
+  scratch1_covariance_.resize((nv * max_history) * (nv * max_history));
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -256,13 +262,11 @@ void Batch::Initialize(const mjModel* model) {
       (int)settings.search_type, model, "batch_search_type");
 
   // timer
-  timer_.prior_step.resize(MAX_HISTORY);
-  timer_.sensor_step.resize(MAX_HISTORY);
-  timer_.force_step.resize(MAX_HISTORY);
+  timer_.prior_step.resize(max_history);
+  timer_.sensor_step.resize(max_history);
+  timer_.force_step.resize(max_history);
 
   // status
-  hessian_factor_ = false;
-  num_new_ = configuration_length_;
   gradient_norm_ = 0.0;
   search_direction_norm_ = 0.0;
   solve_status_ = kUnsolved;
@@ -466,45 +470,43 @@ void Batch::Reset() {
   iterations_smoother_ = 0;
   iterations_search_ = 0;
   cost_count_ = 0;
-  initialized_ = false;
   solve_status_ = kUnsolved;
 
   // -- initialize -- //
-  settings.gradient_tolerance = 1.0e-8;
-  settings.max_smoother_iterations = 1;
-  settings.max_search_iterations = 10;
-  settings.force_residual_timestep_scale = false;
-  settings.prior_flag = true;
-  settings.sensor_flag = true;
-  settings.force_flag = true;
+  if (settings.filter) {
+    settings.gradient_tolerance = 1.0e-8;
+    settings.max_smoother_iterations = 1;
+    settings.max_search_iterations = 10;
 
-  // timestep 
-  double timestep = model->opt.timestep;
+    // timestep
+    double timestep = model->opt.timestep;
 
-  // set q1
-  configuration.Set(state.data(), 1);
-  configuration_previous.Set(configuration.Get(1), 1);
+    // set q1
+    configuration.Set(state.data(), 1);
+    configuration_previous.Set(configuration.Get(1), 1);
 
-  // set q0 
-  double* q0 = configuration.Get(0);
-  mju_copy(q0, state.data(), nq);
-  mj_integratePos(model, q0, state.data() + nq, -1.0 * timestep);
-  configuration_previous.Set(configuration.Get(0), 0);
+    // set q0
+    double* q0 = configuration.Get(0);
+    mju_copy(q0, state.data(), nq);
+    mj_integratePos(model, q0, state.data() + nq, -1.0 * timestep);
+    configuration_previous.Set(configuration.Get(0), 0);
 
-  // set times 
-  double current_time = -1.0 * timestep;
-  times.Set(&current_time, 0);
-  for (int i = 1; i < configuration_length_; i++) {
-    // increment time
-    current_time += timestep;
+    // set times
+    double current_time = -1.0 * timestep;
+    times.Set(&current_time, 0);
+    for (int i = 1; i < configuration_length_; i++) {
+      // increment time
+      current_time += timestep;
 
-    // set 
-    times.Set(&current_time, i);
-  }
+      // set
+      times.Set(&current_time, i);
+    }
 
-  // prior weight (skip act)
-  for (int i = 0; i < ndstate_ - na; i++) {
-    weight_prior[nv * configuration_length_ * i + i] = 1.0 / covariance[ndstate_ * i + i];
+    // prior weight (skip act)
+    for (int i = 0; i < ndstate_ - na; i++) {
+      weight_prior[nv * configuration_length_ * i + i] =
+          1.0 / covariance[ndstate_ * i + i];
+    }
   }
 }
 
@@ -513,16 +515,16 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // dimensions 
+  // dimensions
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
-  // current time index 
+  // current time index
   int t = prediction_length_;
 
-  // set ctrl 
+  // set ctrl
   this->ctrl.Set(ctrl, t);
 
-  // set sensor 
+  // set sensor
   sensor_measurement.Set(sensor + sensor_start_index_, t);
 
   // -- next qpos -- //
@@ -530,7 +532,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // data
   mjData* d = data_[0].get();
 
-  // set state 
+  // set state
   double* q0 = configuration.Get(t - 1);
   double* q1 = configuration.Get(t);
   mju_copy(d->qpos, q1, model->nq);
@@ -538,20 +540,20 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // TODO(taylor): set time
 
-  // set ctrl 
+  // set ctrl
   mju_copy(d->ctrl, ctrl, nu);
 
-  // forward step 
+  // forward step
   mj_step(model, d);
 
-  // set next qpos 
+  // set next qpos
   configuration.Set(d->qpos, t + 1);
   configuration_previous.Set(d->qpos, t + 1);
 
   // set next time
   times.Set(&d->time, t + 1);
 
-  // set force measurement 
+  // set force measurement
   force_measurement.Set(d->qfrc_actuator, t);
 
   // measurement update
@@ -565,7 +567,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   mju_copy(state.data() + nq + nv, act.Get(t + 1), na);
   time = d->time;
 
-  // update prior weights 
+  // update prior weights
   // TODO(taylor)
 
   // shift trajectories
@@ -577,10 +579,10 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
 // set configuration length
 void Batch::SetConfigurationLength(int length) {
-  // initialize 
-  // TODO(taylor): remove 
-  Initialize(model);
-  Reset();
+  // check length
+  if (length > max_history) {
+    mju_error("length > max_history\n");
+  }
 
   // set configuration length
   configuration_length_ = mju_max(length, MIN_HISTORY);
@@ -643,8 +645,6 @@ void Batch::SetConfigurationLength(int length) {
   block_acceleration_next_configuration_.SetLength(prediction_length_);
 
   // status
-  num_new_ = configuration_length_;
-  initialized_ = false;
   step_size_ = 1.0;
   gradient_norm_ = 0.0;
   search_direction_norm_ = 0.0;
@@ -781,8 +781,6 @@ double Batch::CostPrior(double* gradient, double* hessian) {
 
   // unpack
   double* r = residual_prior_.data();
-  double* P =
-      (settings.band_prior ? weight_prior_band_.data() : weight_prior.data());
   double* tmp = scratch0_prior_.data();
 
   // initial cost
@@ -804,10 +802,11 @@ double Batch::CostPrior(double* gradient, double* hessian) {
                      nband, ndense);
 
       // multiply: tmp = P * r
-      mju_bandMulMatVec(tmp, P, r, ntotal, nband, ndense, 1, true);
+      mju_bandMulMatVec(tmp, weight_prior_band_.data(), r, ntotal, nband,
+                        ndense, 1, true);
     } else {  // exact covariance
       // multiply: tmp = P * r
-      mju_mulMatVec(tmp, P, r, dim, dim);
+      mju_mulMatVec(tmp, weight_prior.data(), r, dim, dim);
     }
 
     // weighted quadratic: 0.5 * w * r' * tmp
@@ -888,7 +887,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
     double* J = jacobian_prior_.data();
 
     // multiply: scratch = P * drdq
-    mju_mulMatMat(tmp, P, J, dim, dim, dim);
+    mju_mulMatMat(tmp, weight_prior.data(), J, dim, dim, dim);
 
     // step 2: hessian = drdq' * scratch
     mju_mulMatTMat(hessian, J, tmp, dim, dim, dim);
@@ -951,24 +950,15 @@ void Batch::BlockPrior(int index) {
 // prior Jacobian
 // note: pool wait is called outside this function
 void Batch::JacobianPrior(ThreadPool& pool) {
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, configuration_length_ - num_new_);
-
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, start_index, t]() {
+    pool.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_prior_start = std::chrono::steady_clock::now();
 
       // block
-      if (t >= start_index) batch.BlockPrior(t);
-
-      // // assemble
-      // if (batch.settings.assemble_prior_jacobian) {
-      //   batch.SetBlockPrior(t);
-      // }
+      batch.BlockPrior(t);
 
       // stop Jacobian timer
       batch.timer_.prior_step[t] = GetDuration(jacobian_prior_start);
@@ -1065,8 +1055,8 @@ double Batch::CostSensor(double* gradient, double* hessian) {
           mju_zero(norm_hessian_sensor_.data(), nsen * nsen);
 
         // set norm block
-        SetBlockInMatrix(norm_hessian_sensor_.data(), norm_block, weight,
-                         nsen, nsen, nsi, nsi, ns * k + shift_sensor,
+        SetBlockInMatrix(norm_hessian_sensor_.data(), norm_block, weight, nsen,
+                         nsen, nsi, nsi, ns * k + shift_sensor,
                          ns * k + shift_sensor);
       }
 
@@ -1158,13 +1148,13 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
     // quadratic cost
     for (int i = 0; i < nv; i++) {
-      // weight 
+      // weight
       double weight = 1.0 / noise_process[i] / nv / prediction_length_;
 
-      // gradient 
+      // gradient
       norm_gradient[i] = weight * rk[i];
 
-      // Hessian 
+      // Hessian
       norm_block[nv * i + i] = weight;
     }
 
@@ -1207,8 +1197,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
       mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
 
       // add
-      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv,
-                       nv * k, nv * k);
+      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv, nv * k,
+                       nv * k);
     }
   }
 
@@ -1246,7 +1236,7 @@ void Batch::BlockSensor(int index) {
   // dimensions
   int nv = model->nv, ns = nsensordata_;
 
-  // shift 
+  // shift
   int shift = sensor_start_index_ * nv;
 
   // dqds
@@ -1330,19 +1320,15 @@ void Batch::BlockSensor(int index) {
 // sensor Jacobian
 // note: pool wait is called outside this function
 void Batch::JacobianSensor(ThreadPool& pool) {
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, prediction_length_ - num_new_);
-
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, start_index, k]() {
+    pool.Schedule([&batch = *this, k]() {
       // start Jacobian timer
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // block
-      if (k >= start_index) batch.BlockSensor(k);
+      batch.BlockSensor(k);
 
       // stop Jacobian timer
       batch.timer_.sensor_step[k] = GetDuration(jacobian_sensor_start);
@@ -1370,11 +1356,6 @@ void Batch::ResidualForce() {
 
     // force difference
     mju_sub(rk, ft_inverse, ft_actuator, nv);
-
-    // scale force residual by timestep
-    if (settings.force_residual_timestep_scale) {
-      mju_scl(rk, rk, model->opt.timestep, nv);
-    }
   }
 
   // stop timer
@@ -1410,11 +1391,6 @@ void Batch::BlockForce(int index) {
   mju_mulMatTMat(tmp, dadf, dadq0, nv, nv, nv);
   mju_addTo(dfdq0, tmp, nv * nv);
 
-  // scale
-  if (settings.force_residual_timestep_scale) {
-    mju_scl(dfdq0, dfdq0, model->opt.timestep, nv * nv);
-  }
-
   // -- configuration current: dfdq1 = dfdq + dfdv * dvdq1 + dfda * dadq1 --
 
   // unpack
@@ -1433,11 +1409,6 @@ void Batch::BlockForce(int index) {
   mju_mulMatTMat(tmp, dadf, dadq1, nv, nv, nv);
   mju_addTo(dfdq1, tmp, nv * nv);
 
-  // scale
-  if (settings.force_residual_timestep_scale) {
-    mju_scl(dfdq1, dfdq1, model->opt.timestep, nv * nv);
-  }
-
   // -- configuration next: dfdq2 = dfda * dadq2 -- //
 
   // unpack
@@ -1446,11 +1417,6 @@ void Batch::BlockForce(int index) {
   // dfdq2 = dadf' * dadq2
   double* dadq2 = block_acceleration_next_configuration_.Get(index);
   mju_mulMatTMat(dfdq2, dadf, dadq2, nv, nv, nv);
-
-  // scale
-  if (settings.force_residual_timestep_scale) {
-    mju_scl(dfdq2, dfdq2, model->opt.timestep, nv * nv);
-  }
 
   // -- assemble dfdq012 block -- //
 
@@ -1482,19 +1448,15 @@ void Batch::BlockForce(int index) {
 // force Jacobian
 // note: pool wait is called outside this function
 void Batch::JacobianForce(ThreadPool& pool) {
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, prediction_length_ - num_new_);
-
   // loop over predictions
   for (int k = 0; k < prediction_length_; k++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, start_index, k]() {
+    pool.Schedule([&batch = *this, k]() {
       // start Jacobian timer
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // block
-      if (k >= start_index) batch.BlockForce(k);
+      batch.BlockForce(k);
 
       // stop Jacobian timer
       batch.timer_.force_step[k] = GetDuration(jacobian_force_start);
@@ -1512,15 +1474,11 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
       ns = nsensordata_;
 
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, prediction_length_ - num_new_);
-
   // pool count
   int count_before = pool.GetCount();
 
   // loop over predictions
-  for (int k = start_index; k < prediction_length_; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule
     pool.Schedule([&batch = *this, nq, nv, na, ns, nu, k]() {
       // time index
@@ -1552,14 +1510,14 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
       double* ft = batch.force_prediction.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
 
-      // copy act 
+      // copy act
       double* act = batch.act.Get(t + 1);
       mju_copy(act, d->act, na);
     });
   }
 
   // wait
-  pool.WaitCount(count_before + (prediction_length_ - start_index));
+  pool.WaitCount(count_before + prediction_length_);
   pool.ResetCount();
 
   // stop timer
@@ -1577,12 +1535,8 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   // pool count
   int count_before = pool.GetCount();
 
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, prediction_length_ - num_new_);
-
   // loop over predictions
-  for (int k = start_index; k < prediction_length_; k++) {
+  for (int k = 0; k < prediction_length_; k++) {
     // schedule
     pool.Schedule([&batch = *this, nq, nv, nu, k]() {
       // time index
@@ -1616,7 +1570,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
                     batch.finite_difference.flg_actuation, dqdf, dvdf, dadf,
                     dqds, dvds, dads, NULL);
 
-      // transpose 
+      // transpose
       mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
       mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
       mju_transpose(dsda, dads, nv, batch.model->nsensordata);
@@ -1624,7 +1578,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   }
 
   // wait
-  pool.WaitCount(count_before + (prediction_length_ - start_index));
+  pool.WaitCount(count_before + prediction_length_);
 
   // reset pool count
   pool.ResetCount();
@@ -1672,12 +1626,8 @@ void Batch::ConfigurationToVelocityAcceleration() {
   // dimension
   int nv = model->nv;
 
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, (configuration_length_ - 1) - num_new_);
-
   // loop over configurations
-  for (int k = start_index; k < configuration_length_ - 1; k++) {
+  for (int k = 0; k < configuration_length_ - 1; k++) {
     // time index
     int t = k + 1;
 
@@ -1713,12 +1663,8 @@ void Batch::VelocityAccelerationDerivatives() {
   // dimension
   int nv = model->nv;
 
-  // start index
-  int start_index =
-      settings.reuse_data * mju_max(0, (configuration_length_ - 1) - num_new_);
-
   // loop over configurations
-  for (int k = start_index; k < configuration_length_ - 1; k++) {
+  for (int k = 0; k < configuration_length_ - 1; k++) {
     // time index
     int t = k + 1;
 
@@ -1952,9 +1898,6 @@ void Batch::Optimize(ThreadPool& pool) {
     // start timer
     auto start_search = std::chrono::steady_clock::now();
 
-    // reset num_new_
-    num_new_ = configuration_length_;  // update all data now
-
     // -- gradient -- //
     double* gradient = cost_gradient.data();
 
@@ -2169,7 +2112,7 @@ void Batch::SearchDirection() {
     // increase regularization until full rank
     double min_diag = 0.0;
     while (min_diag <= 0.0) {
-      // failure 
+      // failure
       if (regularization_ >= MAX_REGULARIZATION) {
         printf("min diag = %f\n", min_diag);
         mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
@@ -2179,9 +2122,10 @@ void Batch::SearchDirection() {
       mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal);
 
       // factorize
-      min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense, regularization_, 0.0);
+      min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense,
+                                    regularization_, 0.0);
 
-      // increase regularization 
+      // increase regularization
       if (min_diag <= 0.0) {
         IncreaseRegularization();
       }
@@ -2197,7 +2141,7 @@ void Batch::SearchDirection() {
     // increase regularization until full rank
     int rank = 0;
     while (rank < ntotal) {
-      // failure 
+      // failure
       if (regularization_ >= MAX_REGULARIZATION) {
         mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
       }
@@ -2213,19 +2157,14 @@ void Batch::SearchDirection() {
       // factorize
       rank = mju_cholFactor(factor, ntotal, 0.0);
 
-      // increase regularization 
+      // increase regularization
       if (rank < ntotal) {
         IncreaseRegularization();
       }
     }
-    
+
     // compute search direction
     mju_cholSolve(direction, factor, gradient, ntotal);
-  }
-
-  // set prior reset flag
-  if (!hessian_factor_) {
-    hessian_factor_ = true;
   }
 
   // search direction norm
@@ -2437,208 +2376,6 @@ void Batch::ResetTimers() {
   timer_.update_trajectory = 0.0;
 }
 
-// // initialize trajectories
-// void Batch::InitializeTrajectories(
-//     const EstimatorTrajectory<double>& measurement,
-//     const EstimatorTrajectory<int>& measurement_mask,
-//     const EstimatorTrajectory<double>& ctrl,
-//     const EstimatorTrajectory<double>& time) {
-//   // start timer
-//   auto start = std::chrono::steady_clock::now();
-
-//   // set num new
-//   num_new_ = configuration_length_;
-
-//   // -- set initial configurations -- //
-
-//   // set first configuration
-//   double* q0 = configuration.Get(0);
-//   mju_copy(q0, qpos0.data(), model->nq);
-//   mj_integratePos(model, q0, qvel0.data(), -1.0 * model->opt.timestep);
-
-//   // set second configuration
-//   configuration.Set(qpos0.data(), 1);
-
-//   // set initial time
-//   this->times.Set(times.Get(0), 0);
-
-//   // data
-//   mjData* data = data_[0].get();
-
-//   // set state
-//   mju_copy(data->qpos, qpos0.data(), model->nq);
-//   mju_copy(data->qvel, qvel0.data(), model->nv);
-//   data->time = times.Get(1)[0];
-
-//   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
-//   // new time
-//   for (int i = 1; i < configuration_length_ - 1; i++) {
-//     // buffer index
-//     int buffer_index = times.Length() - (configuration_length_ - 1) + i;
-
-//     // get time
-//     this->times.Set(&data->time, i);
-
-//     // set/get ctrl
-//     const double* ui = ctrl.Get(buffer_index);
-//     this->ctrl.Set(ui, i);
-//     mju_copy(data->ctrl, ui, model->nu);
-
-//     // step dynamics
-//     mj_step(model, data);
-
-//     // set measurement
-//     const double* yi = measurement.Get(buffer_index);
-//     sensor_measurement.Set(yi, i);
-
-//     // set mask
-//     const int* mi = measurement_mask.Get(buffer_index);
-//     sensor_mask.Set(mi, i);
-
-//     // copy qfrc_actuator
-//     force_measurement.Set(data->qfrc_actuator, i);
-
-//     // copy configuration
-//     configuration.Set(data->qpos, i + 1);
-//   }
-
-//   // set last time
-//   this->times.Set(&data->time, configuration_length_ - 1);
-
-//   // copy configuration to prior
-//   mju_copy(configuration_previous.Data(), configuration.Data(),
-//            model->nq * configuration_length_);
-
-//   // stop timer
-//   timer_.update_trajectory += GetDuration(start);
-// }
-
-// // update trajectories
-// int Batch::UpdateTrajectories_(int num_new,
-//                                const EstimatorTrajectory<double>&
-//                                measurement, const EstimatorTrajectory<int>&
-//                                measurement_mask, const
-//                                EstimatorTrajectory<double>& ctrl, const
-//                                EstimatorTrajectory<double>& time) {
-//   // start timer
-//   auto start = std::chrono::steady_clock::now();
-
-//   // set number of new elements
-//   num_new_ = num_new;
-
-//   // shift trajectory heads
-//   Shift(num_new);
-
-//   // get data
-//   mjData* data = data_[0].get();
-
-//   // set new measurements, ctrl -> qfrc_actuator, rollout new configurations,
-//   // new time
-//   for (int i = 0; i < num_new; i++) {
-//     // time index
-//     int t = i + configuration_length_ - num_new - 1;
-
-//     // buffer index
-//     int b = i + measurement.Length() - num_new;
-
-//     // set measurement
-//     const double* yi = measurement.Get(b);
-//     sensor_measurement.Set(yi, t);
-
-//     // set measurement mask
-//     const int* mi = measurement_mask.Get(b);
-//     sensor_mask.Set(mi, t);
-
-//     // set time
-//     const double* ti = times.Get(b);
-//     this->times.Set(ti, t);
-
-//     // ----- forward dynamics ----- //
-
-//     // set ctrl
-//     const double* ui = ctrl.Get(b);
-//     this->ctrl.Set(ui, t);
-//     mju_copy(data->ctrl, ui, model->nu);
-
-//     // set qpos
-//     double* q0 = configuration.Get(t - 1);
-//     double* q1 = configuration.Get(t);
-//     mju_copy(data->qpos, q1, model->nq);
-
-//     // set qvel
-//     mj_differentiatePos(model, data->qvel, model->opt.timestep, q0, q1);
-
-//     // set time
-//     data->time = times.Get(b)[0];
-
-//     // step dynamics
-//     mj_step(model, data);
-
-//     // copy qfrc_actuator
-//     force_measurement.Set(data->qfrc_actuator, t);
-
-//     // copy configuration
-//     configuration.Set(data->qpos, t + 1);
-//   }
-
-//   // set last time
-//   this->times.Set(&data->time, configuration_length_ - 1);
-
-//   // copy configuration to prior
-//   mju_copy(configuration_previous.Data(), configuration.Data(),
-//            model->nq * configuration_length_);
-
-//   // stop timer
-//   timer_.update_trajectory += GetDuration(start);
-
-//   return num_new;
-// }
-
-// // update trajectories
-// int Batch::UpdateTrajectories(const EstimatorTrajectory<double>& measurement,
-//                               const EstimatorTrajectory<int>&
-//                               measurement_mask, const
-//                               EstimatorTrajectory<double>& ctrl, const
-//                               EstimatorTrajectory<double>& time) {
-//   // lastest buffer time
-//   double time_buffer_last = *times.Get(times.Length() - 1);
-
-//   // latest estimator time
-//   double time_estimator_last =
-//       *times.Get(times.Length() - 2);  // index to latest measurement time
-
-//   // compute number of new elements
-//   int num_new =
-//       std::round(mju_max(0.0, time_buffer_last - time_estimator_last) /
-//                  model->opt.timestep);
-
-//   UpdateTrajectories_(num_new, measurement, measurement_mask, ctrl, time);
-
-//   return num_new;
-// }
-
-// // update
-// // int Batch::Update(const Buffer& buffer, ThreadPool& pool) {
-// //   int num_new = 0;
-// //   if (buffer.Length() >= configuration_length_ - 1) {
-// //     num_new_ = configuration_length_;
-// //     if (!initialized_) {
-// //       InitializeTrajectories(buffer.sensor, buffer.sensor_mask,
-// buffer.ctrl,
-// //                              buffer.time);
-// //       initialized_ = true;
-// //     } else {
-// //       num_new_ = UpdateTrajectories(buffer.sensor, buffer.sensor_mask,
-// //                                     buffer.ctrl, buffer.time);
-// //     }
-// //     num_new = num_new_;
-
-// //     // optimize
-// //     Optimize(pool);
-// //   }
-// //   return num_new;
-// // }
-
 // batch status string
 std::string StatusString(int code) {
   switch (code) {
@@ -2702,111 +2439,6 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
   // res = mat11 - mat10 * (mat00 \ mat01)
   mju_sub(res, mat11, tmp1, n1 * n1);
 }
-
-// // compute skew symmetric matrix
-// void SkewSymmetricMatrix(double* mat, const double* x) {
-//   mat[0] = 0.0;
-//   mat[1] = -x[2];
-//   mat[2] = x[1];
-//   mat[3] = x[2];
-//   mat[4] = 0.0;
-//   mat[5] = -x[0];
-//   mat[6] = -x[1];
-//   mat[7] = x[0];
-//   mat[8] = 0.0;
-// }
-
-// // Jacobians of mju_quatIntegrate wrt quat, vel
-// // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
-// // https://arxiv.org/pdf/1812.01537.pdf
-// void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
-//                                 const double* quat, const double* vel,
-//                                 double scale) {
-//   // integrate
-//   double quati[4];
-//   mju_copy3(quati, quat);
-//   mju_quatIntegrate(quati, vel, scale);
-
-//   // Jacobian wrt quat
-//   if (jacquat) {
-//     // quaternion -> rotation matrix
-//     double mat[9];
-//     mju_quat2Mat(mat, quati);
-//     mju_transpose(jacquat, mat, 3, 3);
-//   }
-
-//   // Jacobian wrt vel
-//   if (jacvel) {
-//     // scaled vel
-//     double s_vel[3];
-//     mju_scl3(s_vel, vel, scale);
-
-//     // norm of scaled rotation
-//     double n = mju_norm3(s_vel);
-
-//     // check small norm
-//     if (n < 1.0e-8) {
-//       mju_zero(jacvel, 9);
-//       return;
-//     }
-
-//     // coefficients
-//     double n2 = n * n;
-//     double n3 = n2 * n;
-//     double s0 = (1.0 - mju_cos(n)) / n2;
-//     double s1 = (n - mju_sin(n)) / n3;
-
-//     // skew symmetric matrix
-//     double skew[9];
-//     SkewSymmetricMatrix(skew, s_vel);
-//     double skew2[9];
-//     mju_mulMatMat(skew2, skew, skew, 3, 3, 3);
-
-//     // jacvel = I - s0 * skew + s1 * skew^2
-//     mju_eye(jacvel, 3);
-//     mju_addToScl(jacvel, skew, -s0, 9);
-//     mju_addToScl(jacvel, skew2, s1, 9);
-//   }
-// }
-
-// // compute slerp between quat0 and quat1 for t in [0, 1]
-// // optionally compute Jacobians wrt quat0, quat1
-// void Slerp(double* res, const double* quat0, const double* quat1, double t,
-//            double* jac0, double* jac1) {
-//   // quaternion difference
-//   double dq[3];
-//   mju_subQuat(dq, quat1, quat0);
-
-//   // integrate
-//   mju_copy4(res, quat0);
-//   mju_quatIntegrate(res, dq, t);
-
-//   // slerp Jacobian
-//   if (jac0 || jac1) {
-//     // differentiate subQuat
-//     double dvdq0[9];
-//     double dvdq1[9];
-//     DifferentiateSubQuat(dvdq1, dvdq0, quat1, quat0);
-
-//     // differentiate quatIntegratae
-//     double dqdq[9];
-//     double dqdv[9];
-//     DifferentiateQuatIntegrate(dqdq, dqdv, quat0, dq, t);
-
-//     // Jacobian wrt quat0: dqdv * dvdq0 * t + dqdq
-//     if (jac0) {
-//       mju_mulMatMat(jac0, dqdv, dvdq0, 3, 3, 3);
-//       mju_scl(jac0, jac0, t, 9);
-//       mju_addTo(jac0, dqdq, 9);
-//     }
-
-//     // Jacobian wrt quat1: dqdv * dvdq * t
-//     if (jac1) {
-//       mju_mulMatMat(jac1, dqdv, dvdq1, 3, 3, 3);
-//       mju_scl(jac1, jac1, t, 9);
-//     }
-//   }
-// }
 
 // estimator-specific GUI elements
 void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
@@ -2930,7 +2562,8 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
   // std::string act_str;
   // for (int i = 0; i < model->na; i++) {
   //   act_str = "act (" + std::to_string(i) + ")";
-  //   mju::strcpy_arr(defProcessNoise[nv + jnt_shift + i].name, act_str.c_str());
+  //   mju::strcpy_arr(defProcessNoise[nv + jnt_shift + i].name,
+  //   act_str.c_str());
   // }
 
   // end

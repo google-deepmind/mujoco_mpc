@@ -47,9 +47,7 @@ TEST(MeasurementCost, Particle) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
 
   // copy configuration, measurement
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -134,8 +132,8 @@ TEST(MeasurementCost, Particle) {
         double* rki = rk + shift;
 
         // weight
-        double weight =
-            1.0 / estimator.noise_sensor[i] / nsi / estimator.PredictionLength();
+        double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+                        estimator.PredictionLength();
 
         // parameters
         double* pi =
@@ -225,9 +223,7 @@ TEST(MeasurementCost, Box) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
 
   // copy configuration, measurement
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -333,8 +329,8 @@ TEST(MeasurementCost, Box) {
         double* rki = rk + shift;
 
         // weight
-        double weight =
-            1.0 / estimator.noise_sensor[i] / nsi / estimator.PredictionLength();
+        double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+                        estimator.PredictionLength();
 
         // parameters
         double* pi =

@@ -33,16 +33,10 @@ TEST(Estimator, Kalman) {
   mjModel* model = LoadTestModel("estimator/particle/task_imu.xml");
   mjData* data = mj_makeData(model);
 
-  // dimension
-  // int nq = model->nq, nv = model->nv;
-
   // ----- rollout ----- //
   int T = 200;
   Simulation sim(model, T);
-  auto controller = [](double* ctrl, double time) {
-    // ctrl[0] = mju_sin(10 * time);
-    // ctrl[1] = 10 * mju_cos(10 * time);
-  };
+  auto controller = [](double* ctrl, double time) {};
   double qpos0[1] = {0.25};
   sim.SetState(qpos0, NULL);
   sim.Rollout(controller);
@@ -51,7 +45,6 @@ TEST(Estimator, Kalman) {
 
   // initialize filter
   Kalman kalman(model);
-  kalman.settings.auto_timestep = false;
 
   // set initial state
   mju_copy(kalman.state.data(), sim.qpos.Get(0), model->nq);
@@ -82,7 +75,7 @@ TEST(Estimator, Kalman) {
     // noisy sensor
     mju_copy(noisy_sensor.data(), sim.sensor.Get(t), model->nsensordata);
     for (int i = 0; i < model->nsensordata; i++) {
-      noisy_sensor[i] += 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      noisy_sensor[i] += 0.0 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // measurement update
     kalman.UpdateMeasurement(sim.ctrl.Get(t), noisy_sensor.data());
@@ -102,19 +95,15 @@ TEST(Estimator, Kalman) {
     double timer_prediction = kalman.TimerPrediction();
     kalman_timer_prediction.Set(&timer_prediction, t);
 
-    printf("t = %i\n", t);
-    printf("  q (sim) = ");
-    mju_printMat(sim.qpos.Get(t), 1, model->nq);
-    printf("  q (kalman) = ");
-    mju_printMat(kalman_qpos.Get(t), 1, model->nq);
-    printf("  v (sim) = ");
-    mju_printMat(sim.qvel.Get(t), 1, model->nv);
-    printf("  v (kalman) = ");
-    mju_printMat(kalman_qvel.Get(t), 1, model->nv);
-    printf("  timer (measurement) = %.4f\n",
-           kalman_timer_measurement.Get(t)[0]);
-    printf("  timer (prediction) = %.4f\n", kalman_timer_prediction.Get(t)[0]);
-    printf("\n");
+    // test qpos
+    std::vector<double> pos_error(model->nq);
+    mju_sub(pos_error.data(), kalman_qpos.Get(t), sim.qpos.Get(t), model->nq);
+    EXPECT_NEAR(mju_norm(pos_error.data(), model->nq), 0.0, 1.0e-4);
+
+    // test qvel
+    std::vector<double> vel_error(model->nv);
+    mju_sub(vel_error.data(), kalman_qvel.Get(t), sim.qvel.Get(t), model->nv);
+    EXPECT_NEAR(mju_norm(vel_error.data(), model->nv), 0.0, 1.0e-4);
   }
 
   // delete data + model

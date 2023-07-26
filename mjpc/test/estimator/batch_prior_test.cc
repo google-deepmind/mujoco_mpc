@@ -44,10 +44,11 @@ TEST(PriorCost, Particle) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
   estimator.scale_prior = 5.0;
+  estimator.settings.prior_flag = true;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   estimator.settings.band_prior = false;
 
   // copy configuration, prior
@@ -59,7 +60,7 @@ TEST(PriorCost, Particle) {
   for (int t = 0; t < T; t++) {
     double* q = estimator.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
-      q[i] += absl::Gaussian<double>(gen_, 0.0, 1.0);
+      q[i] += 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
@@ -78,7 +79,8 @@ TEST(PriorCost, Particle) {
   mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&estimator = estimator, &model = model](const double* configuration) {
+  auto cost_prior = [&estimator = estimator,
+                     &model = model](const double* configuration) {
     // dimension
     int nq = model->nq;
     int nv = model->nv;
@@ -116,24 +118,20 @@ TEST(PriorCost, Particle) {
   // cost
   double cost_lambda = cost_prior(estimator.configuration.Data());
 
-  // gradient
+  // // gradient
   FiniteDifferenceGradient fdg(nvar);
   fdg.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
-  // Hessian
+  // // Hessian
   FiniteDifferenceHessian fdh(nvar);
   fdh.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
-  // ----- estimator ----- //
+  // // ----- estimator ----- //
   ThreadPool pool(1);
 
   // evaluate cost
-  estimator.settings.prior_flag = true;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = false;
-  double cost_estimator =
-      estimator.Cost(estimator.cost_gradient.data(),
-                          estimator.cost_hessian.data(), pool);
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -154,13 +152,6 @@ TEST(PriorCost, Particle) {
               1.0e-3);
 
   // ----- band prior ----- //
-
-  // remove off band elements
-  DenseToBlockBand(P.data(), nvar, nv, 3);
-
-  // set prior
-  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
-
   // change settings
   estimator.settings.band_prior = true;
 
@@ -189,10 +180,15 @@ TEST(PriorCost, Particle) {
 
     // ----- 0.5 * w * r' * P * r ----- //
 
+    // weights band
+    std::vector<double> weight_band(nvar * nvar);
+    mju_dense2Band(weight_band.data(), estimator.weight_prior.data(), nvar,
+                   3 * nv, 0);
+
     // scratch
     std::vector<double> scratch(nvar);
-    mju_bandMulMatVec(scratch.data(), estimator.weight_prior_band_.data(),
-                      residual.data(), nvar, 3 * nv, 0, 1, true);
+    mju_bandMulMatVec(scratch.data(), weight_band.data(), residual.data(), nvar,
+                      3 * nv, 0, 1, true);
 
     // weighted cost
     return 0.5 * estimator.scale_prior / nvar *
@@ -213,12 +209,8 @@ TEST(PriorCost, Particle) {
   // ----- estimator ----- //
 
   // evaluate cost
-  estimator.settings.prior_flag = true;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = false;
-  int cost_band_estimator =
-      estimator.Cost(estimator.cost_gradient.data(),
-                          estimator.cost_hessian.data(), pool);
+  double cost_band_estimator = estimator.Cost(
+      estimator.cost_gradient.data(), estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -258,10 +250,11 @@ TEST(PriorCost, Box) {
   sim.Rollout(controller);
 
   // ----- estimator ----- //
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
   estimator.scale_prior = 5.0;
+  estimator.settings.prior_flag = true;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = false;
   estimator.settings.band_prior = false;
 
   // copy configuration, prior
@@ -289,14 +282,13 @@ TEST(PriorCost, Box) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
-  std::vector<double> P_band(nvar * nvar);
-  mju_dense2Band(P_band.data(), P.data(), nvar, 3 * nv, 0);
 
   // set prior
-  mju_copy(estimator.weight_prior_band_.data(), P_band.data(), nvar * nvar);
+  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
 
   // ----- cost ----- //
-  auto cost_prior = [&estimator = estimator, &model = model](const double* update) {
+  auto cost_prior = [&estimator = estimator,
+                     &model = model](const double* update) {
     // dimension
     int nq = model->nq;
     int nv = model->nv;
@@ -359,12 +351,8 @@ TEST(PriorCost, Box) {
   ThreadPool pool(1);
 
   // evaluate cost
-  estimator.settings.prior_flag = true;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = false;
-  double cost_estimator =
-      estimator.Cost(estimator.cost_gradient.data(),
-                          estimator.cost_hessian.data(), pool);
+  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
+                                         estimator.cost_hessian.data(), pool);
 
   // ----- error ----- //
 

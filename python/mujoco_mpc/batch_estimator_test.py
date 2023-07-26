@@ -270,21 +270,6 @@ class BatchEstimatorTest(absltest.TestCase):
     settings = batch_estimator.settings(band_copy=in_band_copy) 
     self.assertTrue(in_band_copy == settings["band_copy"])
 
-    # get/set reuse_data 
-    in_reuse_data = True 
-    settings = batch_estimator.settings(reuse_data=in_reuse_data) 
-    self.assertTrue(in_reuse_data == settings["reuse_data"])
-
-    # get/set skip prior weight update
-    in_skip = True
-    settings = batch_estimator.settings(skip_update_prior_weight=in_skip)
-    self.assertTrue(in_skip == settings["skip_update_prior_weight"])
-
-    # get/set update prior weight
-    update_prior_weight = False
-    settings = batch_estimator.settings(update_prior_weight=update_prior_weight)
-    self.assertTrue(update_prior_weight == settings["update_prior_weight"])
-
     # get/set search direction tolerance
     search_direction_tolerance = 3.3 
     settings = batch_estimator.settings(search_direction_tolerance=search_direction_tolerance)

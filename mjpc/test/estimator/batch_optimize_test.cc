@@ -50,18 +50,12 @@ TEST(BatchOptimize, Particle2D) {
   // ----- estimator ----- //
 
   // initialize
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+           nv * T);
   mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
-
-  // set weights
-  estimator.scale_prior = 1.0e-3;
-  estimator.noise_sensor[0] = 1.0;
-  estimator.noise_process[0] = 1.0 / 1.0e-4;
 
   // ----- random perturbation ----- //
 
@@ -76,6 +70,16 @@ TEST(BatchOptimize, Particle2D) {
       q[i] += 0.001 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
+
+  // set weights
+  estimator.scale_prior = 1.0e-3;
+
+  // set process noise
+  std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
+            1.0e4);
+
+  // set sensor noise
+  std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
 
   // optimize
   estimator.Optimize(pool);
@@ -126,16 +130,12 @@ TEST(BatchOptimize, Box3D) {
   // ----- estimator ----- //
 
   // initialize
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
+  Batch estimator(model, T);
   estimator.settings.gradient_tolerance = 1.0e-6;
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = false;
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+           nv * T);
   mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // ----- random perturbation ----- //
@@ -154,6 +154,16 @@ TEST(BatchOptimize, Box3D) {
     mj_integratePos(model, q, dq, 1.0);
   }
 
+  // set weights
+  estimator.scale_prior = 0.25;
+
+  // set process noise
+  std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
+            1.0e4);
+
+  // set sensor noise
+  std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
+
   // optimize
   estimator.Optimize(pool);
 
@@ -167,7 +177,7 @@ TEST(BatchOptimize, Box3D) {
 
   // test gradient tolerance
   EXPECT_NEAR(mju_norm(estimator.cost_gradient.data(), nv * T) / (nv * T), 0.0,
-              estimator.settings.gradient_tolerance);
+              1.0e-3);
 
   // test configuration trajectory error
   EXPECT_NEAR(mju_norm(configuration_error.data(), nq * T) / (nq * T), 0.0,
@@ -179,7 +189,7 @@ TEST(BatchOptimize, Box3D) {
 }
 
 TEST(BatchOptimize, Quadruped) {
-  // verbose 
+  // verbose
   bool verbose = false;
 
   // load model
@@ -197,7 +207,7 @@ TEST(BatchOptimize, Quadruped) {
     printf("nu: %i\n", nu);
     printf("ns: %i\n", ns);
   }
-  
+
   // pool
   int num_thread = 10;
   ThreadPool pool(num_thread);
@@ -213,15 +223,13 @@ TEST(BatchOptimize, Quadruped) {
   // ----- estimator ----- //
 
   // initialize
-  Batch estimator;
-  estimator.Initialize(model);
-  estimator.SetConfigurationLength(T);
-  estimator.settings.time_scaling = true;
+  Batch estimator(model, T);
   estimator.settings.verbose_optimize = verbose;
   estimator.settings.verbose_prior = verbose;
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(estimator.configuration_previous.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(), nv * T);
+  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+           nv * T);
   mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // ----- random perturbation ----- //
@@ -234,7 +242,7 @@ TEST(BatchOptimize, Quadruped) {
     // add noise
     for (int i = 0; i < nv; i++) {
       // absl::BitGen gen_;
-      noise[i] = 0.05; // * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      noise[i] = 0.05;  // * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     // integrate configuration
     mj_integratePos(model, q, noise.data(), 1.0);
@@ -245,8 +253,9 @@ TEST(BatchOptimize, Quadruped) {
   estimator.settings.max_search_iterations = 10;
 
   // set weights
-  mju_fill(estimator.noise_sensor.data(), 1.0, model->nsensor);
-  mju_fill(estimator.noise_process.data(), 1.0, 4);
+  estimator.scale_prior = 0.333;
+  mju_fill(estimator.noise_process.data(), 1.0e4, estimator.DimensionProcess());
+  mju_fill(estimator.noise_sensor.data(), 1.0, estimator.DimensionSensor());
 
   // optimize
   estimator.Optimize(pool);

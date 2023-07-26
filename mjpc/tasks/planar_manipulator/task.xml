@@ -16,10 +16,10 @@
     <numeric name="gradient_spline_points" data="10" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="0" />
+    <numeric name="estimator" data="3" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="8" />
-    <numeric name="estimator_timestep" data="0.0025" />
+    <numeric name="estimator_number_sensor" data="16" />
+    <numeric name="estimator_timestep" data="0.005" />
   </custom>
 
   <sensor>
@@ -30,17 +30,8 @@
     <user name="Control" needstage="acc" dim="4" user="3 0.0001 0.0 0.001 0.3"/>
 
     <!-- estimator -->
-    <!-- <jointpos name="arm_root" joint="arm_root" />
-    <jointpos name="arm_shoulder" joint="arm_shoulder" />
-    <jointpos name="arm_elbow" joint="arm_elbow" />
-    <jointpos name="arm_wrist" joint="arm_wrist" />
-    <jointpos name="thumb" joint="thumb" />
-    <jointpos name="thumbtip" joint="thumbtip" />
-    <jointpos name="finger" joint="finger" />
-    <jointpos name="fingertip" joint="fingertip" /> -->
 
     <jointpos name="ball_x" joint="ball_x" />
-    <!-- <jointpos name="ball_y" joint="ball_y" /> -->
     <jointpos name="ball_z" joint="ball_z" />
 
     <framepos name="upper_arm_site" objtype="site" objname="upper_arm_site" />
@@ -49,6 +40,16 @@
     <framepos name="wrist_site" objtype="site" objname="wrist_site" />
     <framepos name="thumbtip_site" objtype="site" objname="thumbtip_site" />
     <framepos name="fingertip_site" objtype="site" objname="fingertip_site" />
+
+    <jointvel name="vball_x" joint="ball_x" />
+    <jointvel name="vball_z" joint="ball_z" />
+
+    <framelinvel name="vupper_arm_site" objtype="site" objname="upper_arm_site" />
+    <framelinvel name="vmiddle_arm_site" objtype="site" objname="middle_arm_site" />
+    <framelinvel name="vlower_arm_site" objtype="site" objname="lower_arm_site" />
+    <framelinvel name="vwrist_site" objtype="site" objname="wrist_site" />
+    <framelinvel name="vthumbtip_site" objtype="site" objname="thumbtip_site" />
+    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" />
 
     <!-- residual -->
     <!-- Sphere sensors. -->

@@ -6,7 +6,7 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.8" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="sampling_spline_points" data="3" />
@@ -16,10 +16,10 @@
     <numeric name="residual_Speed Goal" data="0 -5.0 5.0" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="0" />
+    <numeric name="estimator" data="3" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="9" />
-    <numeric name="estimator_timestep" data="0.001" />
+    <numeric name="estimator_number_sensor" data="18" />
+    <numeric name="estimator_timestep" data="0.005" />
   </custom>
 
   <sensor>
@@ -39,6 +39,16 @@
     <jointpos name="left_hip" joint="left_hip" />
     <jointpos name="left_knee" joint="left_knee" />
     <jointpos name="left_ankle" joint="left_ankle" />
+
+    <jointvel name="vrootz" joint="rootz" />
+    <jointvel name="vrootx" joint="rootx" />
+    <jointvel name="vrooty" joint="rooty" />
+    <jointvel name="vright_hip" joint="right_hip" />
+    <jointvel name="vright_knee" joint="right_knee" />
+    <jointvel name="vright_ankle" joint="right_ankle" />
+    <jointvel name="vleft_hip" joint="left_hip" />
+    <jointvel name="vleft_knee" joint="left_knee" />
+    <jointvel name="vleft_ankle" joint="left_ankle" />
 
     <!-- trace -->
     <framepos      name="trace0" objtype="site" objname="torso_site"/>

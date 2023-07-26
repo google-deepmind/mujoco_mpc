@@ -31,7 +31,7 @@ namespace mjpc {
 
 // ----- defaults ----- //
 const int MIN_HISTORY = 3;    // minimum configuration trajectory length
-const int MAX_HISTORY = 128;  // maximum configuration trajectory length
+const int MAX_HISTORY = 12;   // maximum configuration trajectory length
 
 // batch estimator status 
 enum BatchStatus : int {
@@ -189,8 +189,6 @@ class Batch : public Estimator {
   double Improvement() const { return improvement_; } 
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
-
-
 
   // model
   mjModel* model;
@@ -382,6 +380,9 @@ class Batch : public Estimator {
 
   // print update prior weight status
   void PrintPriorWeightUpdate();
+
+  // increase regularization
+  void IncreaseRegularization();
 
   // dimensions
   int nstate_;

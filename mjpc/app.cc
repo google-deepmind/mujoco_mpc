@@ -141,7 +141,6 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
 
 // estimator in background thread 
 void EstimatorLoop(mj::Simulate& sim) {
-
   // run until asked to exit
   while (!sim.exitrequest.load()) {
     if (sim.uiloadrequest.load() == 0) {
@@ -173,6 +172,7 @@ void EstimatorLoop(mj::Simulate& sim) {
         // set time
         // TODO(taylor): time sync w/ physics loop
         estimator->Data()->time = sim.agent->time;
+        mju_copy(estimator->Data()->userdata, d->userdata, m->nuserdata);
 
         // update
         estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
@@ -365,12 +365,15 @@ void PhysicsLoop(mj::Simulate& sim) {
       int active_estimator = sim.agent->ActiveEstimatorIndex();
 
       // set state
-      // if (active_estimator == 1 || active_estimator == 2) {
       if (active_estimator > 0) {
         // from estimator
         state->SetPos(m, sim.agent->state.data());
         state->SetVel(m, sim.agent->state.data() + m->nq);
-        state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
+        if (active_estimator == 3) {
+          state->SetAct(m, d->act); // TODO(taylor); estimator d->act w/ batch estimator
+        } else {
+          state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
+        }
         state->SetTime(m, sim.agent->time);
         state->SetMocap(m, d->mocap_pos, d->mocap_quat);
         state->SetUserData(m, d->userdata);

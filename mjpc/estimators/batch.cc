@@ -43,13 +43,13 @@ void Batch::Initialize(const mjModel* model) {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   nstate_ = nq + nv + na;
-  ndstate_ = 2 * nv + na;
+  ndstate_ = 2 * nv; // TODO(taylor): + na;
 
   // check for na > 0 
   // TODO(taylor)
-  if (na > 0) {
-    mju_error("na > 0: act not supported\n");
-  }
+  // if (na > 0) {
+  //   mju_error("na > 0: act not supported\n");
+  // }
 
   // sensor start index
   sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
@@ -285,6 +285,9 @@ void Batch::Reset() {
   int home_id = mj_name2id(model, mjOBJ_KEY, "home");
   if (home_id >= 0) mj_resetDataKeyframe(model, d, home_id);
 
+  // forward evaluation
+  mj_forward(model, d);
+
   // state
   mju_copy(state.data(), d->qpos, nq);
   mju_copy(state.data() + nq, d->qvel, nv);
@@ -295,18 +298,18 @@ void Batch::Reset() {
   // covariance
   mju_eye(covariance.data(), ndstate_);
   double covariance_scl =
-      GetNumberOrDefault(1.0, model, "estimator_covariance_initial_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_covariance_initial_scale");
   mju_scl(covariance.data(), covariance.data(), covariance_scl,
           ndstate_ * ndstate_);
 
   // process noise
   double noise_process_scl =
-      GetNumberOrDefault(1.0e4, model, "estimator_process_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_process_noise_scale");
   std::fill(noise_process.begin(), noise_process.end(), noise_process_scl);
 
   // sensor noise
   double noise_sensor_scl =
-      GetNumberOrDefault(1.0e4, model, "estimator_sensor_noise_scale");
+      GetNumberOrDefault(1.0e-4, model, "estimator_sensor_noise_scale");
   std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
   // trajectories
@@ -469,13 +472,18 @@ void Batch::Reset() {
 
   // -- initialize -- //
 
-  settings.gradient_tolerance = 1.0e-6;
+  settings.gradient_tolerance = 1.0e-8;
   settings.max_smoother_iterations = 10;
-  settings.max_search_iterations = 1000;
+  settings.max_search_iterations = 10;
   settings.force_residual_timestep_scale = false;
   settings.prior_flag = true;
   settings.sensor_flag = true;
   settings.force_flag = true;
+
+  printf("num sensor = %i\n", nsensor);
+  printf("nsensordata = %i\n", nsensordata_);
+  printf("start_sensor = %i\n", sensor_start);
+  printf("sensor start index = %i\n", sensor_start_index_);
 
   // timestep 
   double timestep = model->opt.timestep;
@@ -532,29 +540,12 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // set state 
   double* q0 = configuration.Get(t - 1);
   double* q1 = configuration.Get(t);
-  mju_copy(q1, state.data(), nq);
-  mju_copy(q0, q1, nq);
-  mj_integratePos(model, q0, state.data() + nq, -model->opt.timestep);
 
   mju_copy(d->qpos, q1, model->nq);
   mj_differentiatePos(model, d->qvel, model->opt.timestep, q0, q1);
-  // TODO(taylor): set act
-  // d->time = times.Get(t)[0]; // TODO(taylor): time as input?
 
   // set ctrl 
   mju_copy(d->ctrl, ctrl, nu);
-
-  // set state 
-  // mju_copy(d->qpos, state.data(), nq);
-  // mju_copy(d->qvel, state.data() + nq, nv);
-
-  // copy configuration
-  // mju_copy(q1, d->qpos, nq);
-  // mju_copy(q0, q1, nq);
-  // mj_integratePos(model, q0, d->qvel, -1.0 * model->opt.timestep);
-
-  // configuration_previous.Set(q0, t - 1);
-  // configuration_previous.Set(q1, t);
 
   // forward step 
   mj_step(model, d);
@@ -571,68 +562,18 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // set force measurement 
   force_measurement.Set(d->qfrc_actuator, t);
 
-  // optimize (measurement update)
-  // ThreadPool pool(1);
-  // Optimize(pool);
-
-  // update state
-  // mju_copy(state.data(), configuration.Get(t + 1), nq);
-  // mju_copy(state.data() + nq, velocity.Get(t + 1), nv);
-  // TODO(taylor): act 
-  // time = times.Get(t + 1)[0];
-
-  // mju_copy(state.data(), d->qpos, nq);
-  // mju_copy(state.data() + nq, d->qvel, nv);
-  // time = d->time;
-
-  // -- update prior weight -- //
-  // std::vector<double> res((2 * nq) * (2 * nq)); 
-  // std::vector<double> mat00(nq * nq);
-  // std::vector<double> mat10((2 * nq) * nq);
-  // std::vector<double> mat11((2 * nq) * (2 * nq));
-  // std::vector<double> tmp0(nq * (2 * nq));
-  // std::vector<double> tmp1((2 * nq) * (2 * nq));
-
-  // // condition cost Hessian
-  // ConditionMatrix(res.data(), cost_hessian.data(), mat00.data(), mat10.data(),
-  //                 mat11.data(), tmp0.data(), tmp1.data(),
-  //                 nq * configuration_length_, nq, 2 * nq);
-
-  // // set conditioned block in prior weight matrix
-  // SetBlockInMatrix(weight_prior.data(), res.data(), 1.0,
-  //                  nq * configuration_length_, nq * configuration_length_,
-  //                  nq * 2, nq * 2, 0, 0);
-
+  // measurement update
   ThreadPool pool(1);
   Optimize(pool);
 
+  // update state
   mju_copy(state.data(), configuration.Get(t + 1), nq);
   mju_copy(state.data() + nq, velocity.Get(t + 1), nv);
+  // TODO(taylor): set act 
   time = d->time;
 
-  // printf("cost: (%f) -> (%f)\n", cost_initial, cost);
-
-  // printf("  prior: (%f)\n", cost_prior);
-  // printf("  sensor: (%f)\n", cost_sensor);
-  // printf("  force: (%f)\n", cost_force);
-
-  // printf("qpos (sim) = \n");
-  // mju_printMat(state.data(), 1, nq);
-  // printf("qpos (batch) = \n");
-  // mju_printMat(configuration.Get(t + 1), 1, nq);
-
-  // printf("qvel (sim) = \n");
-  // mju_printMat(state.data() + nq, 1, nv);
-  // printf("qvel (batch) = \n");
-  // mju_printMat(velocity.Get(t + 1), 1, nv);
-
-  // printf("residual (force) = \n");
-  // mju_printMat(residual_force_.data(), 1, nv);
-
-  // std::vector<double> vel(nv);
-  // mj_differentiatePos(model, vel.data(), model->opt.timestep, configuration.Get(t), configuration.Get(t+1));
-  // printf("qvel (fd) = \n");
-  // mju_printMat(vel.data(), 1, nv);
+  // update prior weights 
+  // TODO(taylor)
 
   // shift trajectories
   Shift(1);
@@ -1571,7 +1512,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model->nq, nv = model->nv, nu = model->nu, ns = nsensordata_;
+  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu, ns = nsensordata_;
 
   // start index
   int start_index =
@@ -1583,7 +1524,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   // loop over predictions
   for (int k = start_index; k < prediction_length_; k++) {
     // schedule
-    pool.Schedule([&batch = *this, nq, nv, ns, nu, k]() {
+    pool.Schedule([&batch = *this, nq, nv, na, ns, nu, k]() {
       // time index
       int t = k + 1;
 
@@ -1612,6 +1553,10 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
       // copy force
       double* ft = batch.force_prediction.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
+
+      // copy act 
+      double* actt = batch.act.Get(t);
+      mju_copy(actt, d->act, na);
     });
   }
 
@@ -2135,9 +2080,7 @@ void Batch::Optimize(ThreadPool& pool) {
             break;
           case SearchType::kCurveSearch:
             // increase regularization
-            regularization_ =
-                mju_min(MAX_REGULARIZATION,
-                        regularization_ * settings.regularization_scaling);
+            IncreaseRegularization();
 
             // recompute search direction
             SearchDirection();
@@ -2278,9 +2221,6 @@ void Batch::SearchDirection() {
   int nband = 3 * model->nv;
   int ndense = 0;
 
-  // regularize
-  Regularize();
-
   // -- band Hessian -- //
 
   // unpack
@@ -2297,12 +2237,23 @@ void Batch::SearchDirection() {
     // dense to band
     mju_dense2Band(hessian_band, cost_hessian.data(), ntotal, nband, ndense);
 
-    // copy
-    // TODO(taylor): efficient copy
-    mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal);
+    // increase regularization until full rank
+    int min_diag = 0.0;
+    while (min_diag <= 0.0) {
+      // failure 
+      if (regularization_ >= MAX_REGULARIZATION) {
+        mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
+      }
 
-    // factorize
-    mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense, 0.0, 0.0);
+      // copy
+      mju_copy(hessian_band_factor, hessian_band, nband * ntotal);
+
+      // factorize
+      min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense, regularization_, 0.0);
+
+      // increase regularization 
+      if (min_diag <= 0.0) IncreaseRegularization();
+    }
 
     // compute search direction
     mju_cholSolveBand(direction, hessian_band_factor, gradient, ntotal, nband,
@@ -2310,9 +2261,30 @@ void Batch::SearchDirection() {
   } else {  // dense solver
     // factorize
     double* factor = cost_hessian_factor_.data();
-    mju_copy(factor, hessian, ntotal * ntotal);
-    mju_cholFactor(factor, ntotal, 0.0);
 
+    // increase regularization until full rank
+    int rank = 0;
+    while (rank < ntotal) {
+      // failure 
+      if (regularization_ >= MAX_REGULARIZATION) {
+        mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
+      }
+
+      // set factor
+      mju_copy(factor, hessian, ntotal * ntotal);
+
+      // regularize
+      for (int i = 0; i < ntotal; i++) {
+        factor[ntotal * i + i] += regularization_;
+      }
+
+      // factorize
+      rank = mju_cholFactor(factor, ntotal, 0.0);
+
+      // increase regularization 
+      if (rank < ntotal) IncreaseRegularization();
+    }
+    
     // compute search direction
     mju_cholSolve(direction, factor, gradient, ntotal);
   }
@@ -3036,11 +3008,11 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
   }
 
   // loop over act
-  std::string act_str;
-  for (int i = 0; i < model->na; i++) {
-    act_str = "act (" + std::to_string(i) + ")";
-    mju::strcpy_arr(defProcessNoise[nv + jnt_shift + i].name, act_str.c_str());
-  }
+  // std::string act_str;
+  // for (int i = 0; i < model->na; i++) {
+  //   act_str = "act (" + std::to_string(i) + ")";
+  //   mju::strcpy_arr(defProcessNoise[nv + jnt_shift + i].name, act_str.c_str());
+  // }
 
   // end
   defProcessNoise[process_noise_shift] = {mjITEM_END};
@@ -3111,6 +3083,12 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   // legend
   mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Update");
+}
+
+// increase regularization
+void Batch::IncreaseRegularization() {
+  regularization_ = mju_min(MAX_REGULARIZATION,
+                            regularization_ * settings.regularization_scaling);
 }
 
 }  // namespace mjpc

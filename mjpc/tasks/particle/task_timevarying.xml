@@ -18,7 +18,7 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="3" />
-    <numeric name="estimator_number_sensor" data="4" />
+    <numeric name="estimator_number_sensor" data="2" />
     <numeric name="estimator_timestep" data="0.0025" />
   </custom>
 
@@ -31,8 +31,6 @@
     <!-- estimator -->
     <jointpos name="x" joint="root_x" />
     <jointpos name="y" joint="root_y" />
-    <jointvel name="vx" joint="root_x" />
-    <jointvel name="vy" joint="root_y" />
 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="tip"/>

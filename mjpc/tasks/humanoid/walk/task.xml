@@ -60,6 +60,33 @@
     <jointpos name="shoulder2_left" joint="shoulder2_left"/>
     <jointpos name="elbow_left" joint="elbow_left" />
 
+    <!-- <framelinvel name="vpelvis" objtype="site" objname="tracking[pelvis]" />
+    <framelinvel name="vright_foot" objtype="site" objname="foot_right" />
+    <framelinvel name="vleft_foot" objtype="site" objname="foot_left" />
+    <framelinvel name="vright_hand" objtype="site" objname="tracking[rhand]" />
+    <framelinvel name="vleft_hand" objtype="site" objname="tracking[lhand]" />
+    <jointvel name="vabdomen_z" joint="abdomen_z"/>
+    <jointvel name="vabdomen_y" joint="abdomen_y"/>
+    <jointvel name="vabdomen_x" joint="abdomen_x"/>
+    <jointvel name="vhip_x_right" joint="hip_x_right"/>
+    <jointvel name="vhip_z_right" joint="hip_z_right"/>
+    <jointvel name="vhip_y_right" joint="hip_y_right"/>
+    <jointvel name="vknee_right" joint="knee_right"/>
+    <jointvel name="vankle_y_right" joint="ankle_y_right"/>
+    <jointvel name="vankle_x_right" joint="ankle_x_right"/>
+    <jointvel name="vhip_x_left" joint="hip_x_left"/>
+    <jointvel name="vhip_z_left" joint="hip_z_left"/>
+    <jointvel name="vhip_y_left" joint="hip_y_left"/>
+    <jointvel name="vknee_left" joint="knee_left"/>
+    <jointvel name="vankle_y_left" joint="ankle_y_left"/>
+    <jointvel name="vankle_x_left" joint="ankle_x_left"/>
+    <jointvel name="vshoulder1_right" joint="shoulder1_right"/>
+    <jointvel name="vshoulder2_right" joint="shoulder2_right"/>
+    <jointvel name="velbow_right" joint="elbow_right"/>
+    <jointvel name="vshoulder1_left" joint="shoulder1_left"/>
+    <jointvel name="vshoulder2_left" joint="shoulder2_left"/>
+    <jointvel name="velbow_left" joint="elbow_left" /> -->
+
     <!-- trace -->
     <framepos name="trace0" objtype="body" objname="torso"/>
 

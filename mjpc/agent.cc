@@ -117,7 +117,7 @@ void Agent::Initialize(const mjModel* model) {
   }
   
   // get Kalman estimator
-  Estimator* estimator = estimators_[1].get();
+  Estimator* estimator = estimators_[estimator_].get();
 
   // initialize estimator data
   ctrl.resize(model->nu);
@@ -754,18 +754,8 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
 
         // copy state
         int nstate = model_->nq + model_->nv + model_->na;
-
-        printf("current estimator = %i\n", estimator_);
-        printf("previous estimator = %i\n", previous_estimator);
-
-        printf("previous state = \n");
-        mju_printMat(PreviousEstimator().State(), 1, nstate);
-
         mju_copy(ActiveEstimator().State(), PreviousEstimator().State(),
                  nstate);
-
-        printf("current state = \n");
-        mju_printMat(ActiveEstimator().State(), 1, nstate);
 
         // copy covariance
         int ndstate = 2 * model_->nv + model_->na;

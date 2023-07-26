@@ -14,13 +14,12 @@
     <numeric name="sampling_spline_points" data="10" />
     <numeric name="sampling_exploration" data="0.05" />
     <numeric name="gradient_spline_points" data="10" />
-    <numeric name="residual_Goal" data="0 -1.5 1.5" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="0" />
+    <numeric name="estimator" data="3" />
     <numeric name="estimator_sensor_start" data="3" />
-    <numeric name="estimator_number_sensor" data="2" />
-    <numeric name="estimator_timestep" data="0.01" />
+    <numeric name="estimator_number_sensor" data="4" />
+    <numeric name="estimator_timestep" data="0.005" />
   </custom>
 
   <sensor>
@@ -32,6 +31,9 @@
     <!-- estimator -->
     <jointpos name="shoulder" joint="shoulder"/>
     <jointpos name="elbow" joint="elbow"/>
+
+    <jointvel name="vshoulder" joint="shoulder"/>
+    <jointvel name="velbow" joint="elbow"/>
 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="tip"/>

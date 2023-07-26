@@ -91,7 +91,10 @@ class GroundTruth : public Estimator {
   }
 
   // destructor 
-  ~GroundTruth() = default;
+  ~GroundTruth() {
+    if (data_) mj_deleteData(data_);
+    if (model) mj_deleteModel(model);
+  }
 
   // initialize 
   void Initialize(const mjModel* model) override {
@@ -204,10 +207,10 @@ class GroundTruth : public Estimator {
              int timer_shift, int planning, int* shift) override {};
 
   // model
-  mjModel* model;
+  mjModel* model = nullptr;
 
   // data 
-  mjData* data_;
+  mjData* data_ = nullptr;
 
   // state (nq + nv + na)
   std::vector<double> state;

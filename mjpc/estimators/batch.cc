@@ -28,10 +28,11 @@ namespace mju = ::mujoco::util_mjpc;
 // initialize batch estimator
 void Batch::Initialize(const mjModel* model) {
   // model
-  // if (this->model) mj_deleteModel(this->model);
+  if (this->model) mj_deleteModel(this->model);
   this->model = mj_copyModel(nullptr, model);
 
   // data
+  data_.clear();
   for (int i = 0; i < MAX_HISTORY; i++) {
     data_.push_back(MakeUniqueMjData(mj_makeData(model)));
   }

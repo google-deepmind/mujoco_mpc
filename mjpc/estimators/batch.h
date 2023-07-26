@@ -69,7 +69,9 @@ class Batch : public Estimator {
   }
 
   // destructor
-  ~Batch() = default;
+  ~Batch() {
+    if (model) mj_deleteModel(model);
+  };
 
   // initialize
   void Initialize(const mjModel* model) override;
@@ -191,7 +193,7 @@ class Batch : public Estimator {
   double ReductionRatio() const { return reduction_ratio_; }
 
   // model
-  mjModel* model;
+  mjModel* model = nullptr;
 
   // state (nq + nv + na)
   std::vector<double> state;

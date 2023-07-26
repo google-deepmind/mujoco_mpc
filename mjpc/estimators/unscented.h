@@ -38,6 +38,12 @@ class Unscented : public Estimator {
     Reset();
   }
 
+  // destructor 
+  ~Unscented() {
+    if (data_) mj_deleteData(data_);
+    if (model) mj_deleteModel(model);
+  }
+
   // initialize
   void Initialize(const mjModel* model) override;
 
@@ -101,7 +107,7 @@ class Unscented : public Estimator {
              int timer_shift, int planning, int* shift) override;
 
   // model
-  mjModel* model;
+  mjModel* model = nullptr;
 
   // state (nq + nv + na)
   std::vector<double> state;
@@ -145,7 +151,7 @@ class Unscented : public Estimator {
   int sensor_start_index_;
 
   // data
-  mjData* data_;
+  mjData* data_ = nullptr;
 
   // correction (2nv + na)
   std::vector<double> correction_;

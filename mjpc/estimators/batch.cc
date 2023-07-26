@@ -194,6 +194,10 @@ void Batch::Initialize(const mjModel* model) {
   for (int i = 0; i < nsensor; i++) {
     norm_type_sensor[i] =
         (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
+
+    if (norm_type_sensor[i] != 0) {
+      mju_error("norm type not supported\n");
+    }
   }
 
   // cost norm parameters
@@ -466,9 +470,8 @@ void Batch::Reset() {
   solve_status_ = kUnsolved;
 
   // -- initialize -- //
-
   settings.gradient_tolerance = 1.0e-8;
-  settings.max_smoother_iterations = 10;
+  settings.max_smoother_iterations = 1;
   settings.max_search_iterations = 10;
   settings.force_residual_timestep_scale = false;
   settings.prior_flag = true;
@@ -530,9 +533,10 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // set state 
   double* q0 = configuration.Get(t - 1);
   double* q1 = configuration.Get(t);
-
   mju_copy(d->qpos, q1, model->nq);
   mj_differentiatePos(model, d->qvel, model->opt.timestep, q0, q1);
+
+  // TODO(taylor): set time
 
   // set ctrl 
   mju_copy(d->ctrl, ctrl, nu);
@@ -544,8 +548,6 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   configuration.Set(d->qpos, t + 1);
   configuration_previous.Set(d->qpos, t + 1);
 
-  // TODO(taylor): set act
-
   // set next time
   times.Set(&d->time, t + 1);
 
@@ -553,6 +555,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   force_measurement.Set(d->qfrc_actuator, t);
 
   // measurement update
+  // TODO(taylor): preallocate pool
   ThreadPool pool(1);
   Optimize(pool);
 
@@ -795,6 +798,10 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       int ntotal = dim;
       int nband = 3 * model->nv;
       int ndense = 0;
+
+      // dense2band
+      mju_dense2Band(weight_prior_band_.data(), weight_prior.data(), ntotal,
+                     nband, ndense);
 
       // multiply: tmp = P * r
       mju_bandMulMatVec(tmp, P, r, ntotal, nband, ndense, 1, true);
@@ -1906,61 +1913,6 @@ void Batch::TotalHessian() {
   timer_.cost_hessian += GetDuration(start);
 }
 
-// covariance update
-void Batch::PriorWeightUpdate(ThreadPool& pool) {
-  // // skip
-  // if (settings.skip_update_prior_weight) return;
-
-  // start timer
-  auto start = std::chrono::steady_clock::now();
-
-  // dimension
-  int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-
-  // ----- update prior weights ----- //
-  // start timer
-  auto start_set_weight = std::chrono::steady_clock::now();
-
-  // weight
-  double* weight = weight_prior.data();
-  double* weight_band = weight_prior_band_.data();
-
-  // Hessian
-  // double* hessian = cost_hessian.data();
-
-  // zero memory
-  mju_zero(weight, ntotal * ntotal);
-
-  // copy Hessian block to upper left
-  // if (configuration_length_ - num_new_ > 0 &&
-  // settings.update_prior_weight) {
-  //   SymmetricBandMatrixCopy(weight, hessian, nv, nv, ntotal,
-  //                           configuration_length_ - num_new_, 0, 0,
-  // num_new_,
-  //                           num_new_, scratch_prior_weight_.data());
-  // }
-
-  // set s * I to lower right
-  for (int i = 0; i < ntotal; i++) {
-    weight[ntotal * i + i] = scale_prior;
-  }
-
-  // dense to band
-  if (settings.band_prior) {
-    mju_dense2Band(weight_band, weight, ntotal, 3 * nv, 0);
-  }
-
-  // stop timer
-  timer_.prior_set_weight += GetDuration(start_set_weight);
-
-  // stop timer
-  timer_.prior_weight_update += GetDuration(start);
-
-  // status
-  PrintPriorWeightUpdate();
-}
-
 // optimize trajectory estimate
 void Batch::Optimize(ThreadPool& pool) {
   // start timer
@@ -1975,9 +1927,6 @@ void Batch::Optimize(ThreadPool& pool) {
 
   // reset timers
   ResetTimers();
-
-  // prior update
-  // PriorWeightUpdate(pool);
 
   // initial cost
   cost_count_ = 0;
@@ -2218,21 +2167,24 @@ void Batch::SearchDirection() {
     mju_dense2Band(hessian_band, cost_hessian.data(), ntotal, nband, ndense);
 
     // increase regularization until full rank
-    int min_diag = 0.0;
+    double min_diag = 0.0;
     while (min_diag <= 0.0) {
       // failure 
       if (regularization_ >= MAX_REGULARIZATION) {
+        printf("min diag = %f\n", min_diag);
         mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
       }
 
       // copy
-      mju_copy(hessian_band_factor, hessian_band, nband * ntotal);
+      mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal);
 
       // factorize
       min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense, regularization_, 0.0);
 
       // increase regularization 
-      if (min_diag <= 0.0) IncreaseRegularization();
+      if (min_diag <= 0.0) {
+        IncreaseRegularization();
+      }
     }
 
     // compute search direction
@@ -2262,7 +2214,9 @@ void Batch::SearchDirection() {
       rank = mju_cholFactor(factor, ntotal, 0.0);
 
       // increase regularization 
-      if (rank < ntotal) IncreaseRegularization();
+      if (rank < ntotal) {
+        IncreaseRegularization();
+      }
     }
     
     // compute search direction
@@ -2343,8 +2297,6 @@ void Batch::PrintOptimize() {
 
   // timing
   printf("Timing:\n");
-
-  PrintPriorWeightUpdate();
 
   printf("\n");
   printf("  cost : %.3f (ms) \n", 1.0e-3 * timer_.cost / cost_count_);
@@ -2450,19 +2402,6 @@ void Batch::PrintCost() {
     printf("  [initial: %.3f]\n", cost_initial);
     fflush(stdout);
   }
-}
-
-// print prior weight update status
-// print Optimize status
-void Batch::PrintPriorWeightUpdate() {
-  if (!settings.verbose_prior) return;
-
-  // timing
-  printf("  prior weight update [total]: %.3f (ms) \n",
-         1.0e-3 * timer_.prior_weight_update);
-  printf("    - set weight: %.3f (ms) \n", 1.0e-3 * timer_.prior_set_weight);
-  printf("\n");
-  fflush(stdout);
 }
 
 // reset timers

@@ -86,6 +86,16 @@ class Kalman : public Estimator {
   // dimension sensor
   int DimensionSensor() const override { return nsensordata_; };
 
+  // set state
+  void SetState(const double* state) override {
+    mju_copy(this->state.data(), state, ndstate_);
+  };
+
+  // set covariance
+  void SetCovariance(const double* covariance) override {
+    mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
+  };
+
   // get measurement timer (ms)
   double TimerMeasurement() const { return timer_measurement_; };
 

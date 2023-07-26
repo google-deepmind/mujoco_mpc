@@ -112,6 +112,30 @@ class Batch : public Estimator {
   // sensor dimensino
   int DimensionSensor() const override { return nsensor; };
 
+    // set state
+  void SetState(const double* state) override {
+    // state
+    mju_copy(this->state.data(), state, ndstate_);
+
+    // -- configurations -- //
+    int nq = model->nq;
+    int t = prediction_length_;
+
+    // q1
+    configuration.Set(state, t);
+
+    // q0
+    double* q0 = configuration.Get(t - 1);
+    mju_copy(q0, state, nq);
+    mj_integratePos(model, q0, state + nq, -1.0 * model->opt.timestep);
+  };
+
+  // set covariance
+  void SetCovariance(const double* covariance) override {
+    mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
+    // TODO(taylor): set prior weight = covariance^-1
+  };
+
   // estimator-specific GUI elements
   void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
            double& timestep, int& integrator) override;
@@ -362,9 +386,6 @@ class Batch : public Estimator {
                            const EstimatorTrajectory<double>& configuration,
                            const double* search_direction, double step_size);
 
-  // prior weight update
-  void PriorWeightUpdate(ThreadPool& pool);
-
   // reset timers
   void ResetTimers();
 
@@ -376,9 +397,6 @@ class Batch : public Estimator {
 
   // print cost
   void PrintCost();
-
-  // print update prior weight status
-  void PrintPriorWeightUpdate();
 
   // increase regularization
   void IncreaseRegularization();

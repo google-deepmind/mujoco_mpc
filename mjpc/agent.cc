@@ -68,7 +68,6 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 
 // initialize data, settings, planners, states
 void Agent::Initialize(const mjModel* model) {
-  printf("agent initialize!\n");
   // ----- model ----- //
   if (model_) mj_deleteModel(model_);
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
@@ -754,14 +753,10 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         this->PlotReset();
 
         // copy state
-        int nstate = model_->nq + model_->nv + model_->na;
-        mju_copy(ActiveEstimator().State(), PreviousEstimator().State(),
-                 nstate);
+        ActiveEstimator().SetState(PreviousEstimator().State());
 
         // copy covariance
-        int ndstate = 2 * model_->nv + model_->na;
-        mju_copy(ActiveEstimator().Covariance(),
-                 PreviousEstimator().Covariance(), ndstate * ndstate);
+        ActiveEstimator().SetCovariance(PreviousEstimator().Covariance());
 
         // reset agent
         reset_estimator = false;    // skip estimator reset

@@ -14,7 +14,7 @@
     <numeric name="gradient_spline_points" data="10" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="0" />
+    <numeric name="estimator" data="3" />
     <numeric name="estimator_sensor_start" data="2" />
     <numeric name="estimator_number_sensor" data="16" />
     <numeric name="estimator_timestep" data="0.01" />

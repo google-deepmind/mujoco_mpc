@@ -67,8 +67,14 @@ class Estimator {
   // process dimension 
   virtual int DimensionProcess() const = 0;
   
-  // sensor dimensino 
+  // sensor dimension
   virtual int DimensionSensor() const = 0;
+
+  // set state
+  virtual void SetState(const double* state) = 0;
+
+  // set covariance
+  virtual void SetCovariance(const double* covariance) = 0;
 
   // estimator-specific GUI elements
   virtual void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
@@ -197,6 +203,16 @@ class GroundTruth : public Estimator {
 
   // sensor dimension 
   int DimensionSensor() const override { return nsensordata_; };
+
+  // set state
+  void SetState(const double* state) override {
+    mju_copy(this->state.data(), state, ndstate_);
+  };
+
+  // set covariance
+  void SetCovariance(const double* covariance) override {
+    mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
+  };
 
   // estimator-specific GUI elements
   void GUI(mjUI& ui, double* process_noise, double* sensor_noise,

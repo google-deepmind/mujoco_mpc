@@ -21,11 +21,11 @@
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
-namespace mjpc {
-std::string humanoid::Walk::XmlPath() const {
+namespace mjpc::humanoid {
+std::string Walk::XmlPath() const {
   return GetModelPath("humanoid/walk/task.xml");
 }
-std::string humanoid::Walk::Name() const { return "Humanoid Walk"; }
+std::string Walk::Name() const { return "Humanoid Walk"; }
 
 // ------------------ Residuals for humanoid walk task ------------
 //   Number of residuals:
@@ -41,13 +41,13 @@ std::string humanoid::Walk::Name() const { return "Humanoid Walk"; }
 //     Parameter (0): torso height goal
 //     Parameter (1): speed goal
 // ----------------------------------------------------------------
-void humanoid::Walk::Residual(const mjModel* model,
-                              const mjData* data, double* residual) const {
+void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
+                                double* residual) const {
   int counter = 0;
 
   // ----- torso height ----- //
   double torso_height = SensorByName(model, data, "torso_position")[2];
-  residual[counter++] = torso_height - parameters[0];
+  residual[counter++] = torso_height - parameters_[0];
 
   // ----- pelvis / feet ----- //
   double* foot_right = SensorByName(model, data, "foot_right");
@@ -145,7 +145,7 @@ void humanoid::Walk::Residual(const mjModel* model,
 
   // walk forward
   residual[counter++] =
-      standing * (mju_dot(com_vel, forward, 2) - parameters[1]);
+      standing * (mju_dot(com_vel, forward, 2) - parameters_[1]);
 
   // ----- move feet ----- //
   double* foot_right_vel = SensorByName(model, data, "foot_right_velocity");
@@ -179,4 +179,4 @@ void humanoid::Walk::Residual(const mjModel* model,
   }
 }
 
-}  // namespace mjpc
+}  // namespace mjpc::humanoid

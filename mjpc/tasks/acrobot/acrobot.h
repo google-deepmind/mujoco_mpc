@@ -20,18 +20,34 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Acrobot : public Task {
+class Acrobot : public ThreadSafeTask {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
-  // ---------- Residuals for acrobot task ---------
-  //   Number of residuals: 5
-  //     Residual (0-1): Distance from tip to goal
-  //     Residual (2-3): Joint velocity
-  //     Residual (4):   Control
-  // -----------------------------------------------
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
+
+  class ResidualFn : public BaseResidualFn {
+   public:
+    explicit ResidualFn(const Acrobot* task) : BaseResidualFn(task) {}
+    // ---------- Residuals for acrobot task ---------
+    //   Number of residuals: 5
+    //     Residual (0-1): Distance from tip to goal
+    //     Residual (2-3): Joint velocity
+    //     Residual (4):   Control
+    // -----------------------------------------------
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
+  };
+
+  Acrobot() : residual_(this) {}
+
+ protected:
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(this);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
+
+ private:
+  ResidualFn residual_;
 };
 }  // namespace mjpc
 

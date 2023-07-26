@@ -35,7 +35,7 @@ std::string Walker::Name() const { return "Walker"; }
 //     Parameter (0): height_goal
 //     Parameter (1): speed_goal
 // --------------------------------------------
-void Walker::Residual(const mjModel* model, const mjData* data,
+void Walker::ResidualFn::Residual(const mjModel* model, const mjData* data,
                       double* residual) const {
   int counter = 0;
   // ---------- Residual (0) ----------
@@ -44,7 +44,7 @@ void Walker::Residual(const mjModel* model, const mjData* data,
 
   // ---------- Residual (1) -----------
   double height = SensorByName(model, data, "torso_position")[2];
-  residual[counter++] = height - parameters[0];
+  residual[counter++] = height - parameters_[0];
 
   // ---------- Residual (2) ----------
   double torso_up = SensorByName(model, data, "torso_zaxis")[2];
@@ -52,7 +52,7 @@ void Walker::Residual(const mjModel* model, const mjData* data,
 
   // ---------- Residual (3) ----------
   double com_vel = SensorByName(model, data, "torso_subtreelinvel")[0];
-  residual[counter++] = com_vel - parameters[1];
+  residual[counter++] = com_vel - parameters_[1];
 
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function

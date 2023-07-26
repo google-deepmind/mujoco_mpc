@@ -87,6 +87,7 @@ void iLQGPlanner::Allocate() {
 
   // policy
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
+  previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
   for (int i = 0; i < kMaxTrajectory; i++) {
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
@@ -115,6 +116,7 @@ void iLQGPlanner::Reset(int horizon) {
 
   // policy
   policy.Reset(horizon);
+  previous_policy.Reset(horizon);
   for (int i = 0; i < kMaxTrajectory; i++) {
     candidate_policy[i].Reset(horizon);
   }
@@ -391,7 +393,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
       model_derivative.D.data(), dim_state_derivative, dim_action, dim_max,
       dim_sensor, task->num_residual, task->dim_norm_residual.data(),
       task->num_term, task->weight.data(), task->norm.data(),
-      task->num_parameter.data(), task->num_norm_parameter.data(), task->risk,
+      task->norm_parameter.data(), task->num_norm_parameter.data(), task->risk,
       horizon, pool);
 
   // end timer

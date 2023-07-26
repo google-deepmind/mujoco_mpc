@@ -30,8 +30,9 @@ std::string manipulation::Bring::XmlPath() const {
 }
 std::string manipulation::Bring::Name() const { return "Panda Robotiq Bring"; }
 
-void manipulation::Bring::Residual(const mjModel* model, const mjData* data,
-                          double* residual) const {
+void manipulation::Bring::ResidualFn::Residual(const mjModel* model,
+                                               const mjData* data,
+                                               double* residual) const {
   int counter = 0;
 
   // reach
@@ -62,13 +63,12 @@ void manipulation::Bring::Residual(const mjModel* model, const mjData* data,
   CheckSensorDim(model, counter);
 }
 
-
-
-void manipulation::Bring::Transition(const mjModel* model, mjData* data) {
+void manipulation::Bring::TransitionLocked(mjModel* model, mjData* data,
+                                           std::mutex* mutex) {
   double residuals[100];
   double terms[10];
-  Residual(model, data, residuals);
-  CostTerms(terms, residuals, /*weighted=*/false);
+  residual_.Residual(model, data, residuals);
+  residual_.CostTerms(terms, residuals, /*weighted=*/false);
 
   // bring is solved:
   if (data->time > 0 && data->userdata[0] == 0 && terms[1] < 0.04) {
@@ -100,8 +100,8 @@ void manipulation::Bring::Transition(const mjModel* model, mjData* data) {
   }
 }
 
-void manipulation::Bring::Reset(const mjModel* model) {
+void manipulation::Bring::ResetLocked(const mjModel* model) {
   Task::Reset(model);
-  model_vals_ = ModelValues::FromModel(model);
+  residual_.model_vals_ = ModelValues::FromModel(model);
 }
 }  // namespace mjpc

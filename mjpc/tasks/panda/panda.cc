@@ -35,7 +35,7 @@ std::string Panda::Name() const { return "Panda"; }
 //     Residual (3): cube angular velocity
 //     Residual (4): control
 // ------------------------------------------------------------
-void Panda::Residual(const mjModel* model, const mjData* data,
+void Panda::ResidualFn::Residual(const mjModel* model, const mjData* data,
                      double* residual) const {
   int counter = 0;
 
@@ -71,11 +71,12 @@ void Panda::Residual(const mjModel* model, const mjData* data,
   }
 }
 
-void Panda::Transition(const mjModel* model, mjData* data) {
+void Panda::TransitionLocked(mjModel* model, mjData* data,
+                             std::mutex* mutex) {
   double residuals[100];
   double terms[10];
-  Residual(model, data, residuals);
-  CostTerms(terms, residuals);
+  residual_.Residual(model, data, residuals);
+  residual_.CostTerms(terms, residuals);
   double bring_dist = (mju_norm3(residuals+3) + mju_norm3(residuals+6)) / 2;
 
   // reset:

@@ -63,7 +63,6 @@ class BatchEstimator:
       self,
       model: mujoco.MjModel,
       configuration_length: int,
-      buffer_length: Optional[int] = None,
       server_binary_path: Optional[str] = None,
       send_as: Literal["mjb", "xml"] = "xml",
       colab_logging: bool = True,
@@ -90,7 +89,6 @@ class BatchEstimator:
     self.init(
         model,
         configuration_length,
-        buffer_length=buffer_length,
         send_as=send_as,
     )
 
@@ -103,7 +101,6 @@ class BatchEstimator:
       self,
       model: mujoco.MjModel,
       configuration_length: int,
-      buffer_length: Optional[int] = None,
       send_as: Literal["mjb", "xml"] = "xml",
   ):
     """Initialize the batch_estimator for estimation horizon `configuration_length`.
@@ -142,7 +139,6 @@ class BatchEstimator:
     init_request = batch_estimator_pb2.InitRequest(
         model=model_message,
         configuration_length=configuration_length,
-        buffer_length=buffer_length,
     )
 
     # initialize response
@@ -323,15 +319,11 @@ class BatchEstimator:
       self,
       sensor_type: Optional[npt.ArrayLike] = [],
       sensor_parameters: Optional[npt.ArrayLike] = [],
-      force_type: Optional[npt.ArrayLike] = [],
-      force_parameters: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble input norm data
     inputs = batch_estimator_pb2.Norm(
         sensor_type=sensor_type,
         sensor_parameters=sensor_parameters,
-        force_type=force_type,
-        force_parameters=force_parameters,
     )
 
     # norm request
@@ -344,8 +336,6 @@ class BatchEstimator:
     return {
         "sensor_type": norm.sensor_type,
         "sensor_parameters": np.array(norm.sensor_parameters),
-        "force_type": np.array(norm.force_type),
-        "force_parameters": np.array(norm.force_parameters),
     }
 
   def cost(
@@ -447,37 +437,6 @@ class BatchEstimator:
     # optimize response
     self._wait(self.stub.Optimize.future(request))
 
-  def update(self) -> int:
-    # update request
-    request = batch_estimator_pb2.UpdateRequest()
-
-    # update response
-    response = self._wait(self.stub.Update.future(request))
-
-    # return num new
-    return response.num_new
-
-  def initial_state(
-      self, qpos: Optional[npt.ArrayLike] = [], qvel: Optional[npt.ArrayLike] = []
-  ) -> dict[str, np.ndarray]:
-    # assemble state input
-    inputs = batch_estimator_pb2.State(
-        qpos=qpos,
-        qvel=qvel,
-    )
-
-    # initial state request
-    request = batch_estimator_pb2.InitialStateRequest(state=inputs)
-
-    # initial state response
-    response = self._wait(self.stub.InitialState.future(request))
-
-    # return qpos, qvel
-    return {
-        "qpos": np.array(response.state.qpos),
-        "qvel": np.array(response.state.qvel),
-    }
-
   def prior_matrix(self, prior: Optional[npt.ArrayLike] = None) -> np.ndarray:
     # prior request
     request = batch_estimator_pb2.PriorMatrixRequest(
@@ -492,90 +451,6 @@ class BatchEstimator:
 
     # return prior matrix
     return mat
-  
-  def covariance(self) -> np.ndarray:
-    # get prior matrix 
-    pm = self.prior_matrix()
-
-    # covariance = inv(prior_matrix)
-    cm = np.linalg.inv(pm)
-    return cm
-
-  def initialize_data(self):
-    # data request
-    request = batch_estimator_pb2.InitializeDataRequest()
-
-    # data response
-    self._wait(self.stub.InitializeData.future(request))
-
-  def update_data(self, num_new: int):
-    # data request
-    request = batch_estimator_pb2.UpdateDataRequest(num_new=num_new)
-
-    # data response
-    self._wait(self.stub.UpdateData.future(request))
-
-  def buffer(
-      self,
-      index: int,
-      sensor: Optional[npt.ArrayLike] = [],
-      mask: Optional[npt.ArrayLike] = [],
-      ctrl: Optional[npt.ArrayLike] = [],
-      time: Optional[npt.ArrayLike] = [],
-  ) -> dict[str, int | np.ndarray]:
-    # assemble buffer
-    inputs = batch_estimator_pb2.Buffer(
-        sensor=sensor,
-        mask=mask,
-        ctrl=ctrl,
-        time=time,
-    )
-
-    # data request
-    request = batch_estimator_pb2.BufferDataRequest(index=index, buffer=inputs)
-
-    # data response
-    response = self._wait(self.stub.BufferData.future(request))
-
-    # buffer
-    buffer = response.buffer
-
-    # return all buffer data at time index
-    return {
-        "sensor": np.array(buffer.sensor),
-        "mask": np.array(buffer.mask),
-        "ctrl": np.array(buffer.ctrl),
-        "time": np.array(buffer.time),
-        "length": response.length,
-    }
-
-  def update_buffer(
-      self,
-      sensor: npt.ArrayLike,
-      mask: npt.ArrayLike,
-      ctrl: npt.ArrayLike,
-      time: npt.ArrayLike,
-  ) -> int:
-    # assemble buffer
-    inputs = batch_estimator_pb2.Buffer(
-        sensor=sensor,
-        mask=mask,
-        ctrl=ctrl,
-        time=time,
-    )
-
-    # update request
-    request = batch_estimator_pb2.UpdateBufferRequest(buffer=inputs)
-
-    # return current buffer length
-    return self._wait(self.stub.UpdateBuffer.future(request)).length
-
-  def reset_buffer(self):
-    # reset buffer request
-    request = batch_estimator_pb2.ResetBufferRequest()
-
-    # reset buffer response
-    self._wait(self.stub.ResetBuffer.future(request))
 
   def print_cost(self):
     # get costs

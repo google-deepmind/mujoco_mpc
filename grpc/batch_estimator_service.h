@@ -25,7 +25,6 @@
 #include <mujoco/mujoco.h>
 #include "grpc/batch_estimator.grpc.pb.h"
 #include "grpc/batch_estimator.pb.h"
-#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/batch.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -70,26 +69,9 @@ class BatchEstimatorService final : public batch_estimator::BatchEstimator::Serv
                      const batch_estimator::ResetRequest* request,
                      batch_estimator::ResetResponse* response) override;
 
-  grpc::Status InitializeData(
-      grpc::ServerContext* context,
-      const batch_estimator::InitializeDataRequest* request,
-      batch_estimator::InitializeDataResponse* response) override;
-
-  grpc::Status UpdateData(grpc::ServerContext* context,
-                          const batch_estimator::UpdateDataRequest* request,
-                          batch_estimator::UpdateDataResponse* response) override;
-
   grpc::Status Optimize(grpc::ServerContext* context,
                         const batch_estimator::OptimizeRequest* request,
                         batch_estimator::OptimizeResponse* response) override;
-
-  grpc::Status Update(grpc::ServerContext* context,
-                      const batch_estimator::UpdateRequest* request,
-                      batch_estimator::UpdateResponse* response) override;
-
-  grpc::Status InitialState(grpc::ServerContext* context,
-                            const batch_estimator::InitialStateRequest* request,
-                            batch_estimator::InitialStateResponse* response) override;
 
   grpc::Status Status(grpc::ServerContext* context,
                       const batch_estimator::StatusRequest* request,
@@ -103,18 +85,6 @@ class BatchEstimatorService final : public batch_estimator::BatchEstimator::Serv
                            const batch_estimator::PriorMatrixRequest* request,
                            batch_estimator::PriorMatrixResponse* response) override;
 
-  grpc::Status ResetBuffer(grpc::ServerContext* context,
-                           const batch_estimator::ResetBufferRequest* request,
-                           batch_estimator::ResetBufferResponse* response) override;
-
-  grpc::Status BufferData(grpc::ServerContext* context,
-                          const batch_estimator::BufferDataRequest* request,
-                          batch_estimator::BufferDataResponse* response) override;
-
-  grpc::Status UpdateBuffer(grpc::ServerContext* context,
-                            const batch_estimator::UpdateBufferRequest* request,
-                            batch_estimator::UpdateBufferResponse* response) override;
-
  private:
   bool Initialized() const {
     return batch_estimator_.model && batch_estimator_.ConfigurationLength() >= 3;
@@ -123,9 +93,6 @@ class BatchEstimatorService final : public batch_estimator::BatchEstimator::Serv
   // batch_estimator
   mjpc::Batch batch_estimator_;
   mjpc::UniqueMjModel batch_estimator_model_override_ = {nullptr, mj_deleteModel};
-
-  // buffer
-  mjpc::Buffer buffer_;
 
   // threadpool
   mjpc::ThreadPool thread_pool_;

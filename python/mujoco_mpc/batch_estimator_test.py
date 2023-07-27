@@ -176,7 +176,7 @@ class BatchEstimatorTest(absltest.TestCase):
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
     # initialize
-    configuration_length = 5
+    configuration_length = 15
     batch_estimator = batch_estimator_lib.BatchEstimator(
         model=model, configuration_length=configuration_length
     )
@@ -362,12 +362,12 @@ class BatchEstimatorTest(absltest.TestCase):
     self.assertTrue(np.abs(in_prior_weight - weight["prior"]) < 1.0e-5)
 
     ## sensor
-    in_sensor_weight = np.random.rand(model.nsensordata)
+    in_sensor_weight = np.random.rand(model.nsensor)
     weight = batch_estimator.weight(sensor=in_sensor_weight)
     self.assertTrue(np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5)
 
     ## force
-    in_force_weight = np.random.rand(3)
+    in_force_weight = np.random.rand(model.nv)
     weight = batch_estimator.weight(force=in_force_weight)
     self.assertTrue(np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5)
 
@@ -453,38 +453,6 @@ class BatchEstimatorTest(absltest.TestCase):
     # optimize
     # batch_estimator.optimize()
 
-  def test_initial_state(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    batch_estimator = batch_estimator_lib.BatchEstimator(
-        model=model, configuration_length=configuration_length
-    )
-
-    # initial state
-    data = batch_estimator.initial_state()
-
-    # test
-    self.assertTrue((data["qpos"] == np.zeros(2)).all())
-    self.assertTrue((data["qvel"] == np.zeros(2)).all())
-
-    # random values
-    qpos = np.random.rand(model.nq)
-    qvel = np.random.rand(model.nv)
-
-    # initial state
-    data = batch_estimator.initial_state(qpos=qpos, qvel=qvel)
-
-    # test
-    self.assertLess(np.linalg.norm(qpos - data["qpos"]), 1.0e-5)
-    self.assertLess(np.linalg.norm(qvel - data["qvel"]), 1.0e-5)
-
   def test_status(self):
     # load model
     model_path = (
@@ -557,100 +525,6 @@ class BatchEstimatorTest(absltest.TestCase):
     # test
     self.assertTrue(np.linalg.norm(in_prior - out_prior) < 1.0e-4)
 
-  def test_buffer(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    batch_estimator = batch_estimator_lib.BatchEstimator(
-        model=model, configuration_length=configuration_length
-    )
-
-    # data for buffer
-    sensor = np.random.rand(model.nsensordata)
-    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-    ctrl = np.random.rand(model.nu)
-    time = np.random.rand(1)
-
-    # update buffer
-    length = batch_estimator.update_buffer(sensor, mask, ctrl, time)
-
-    # test buffer length
-    self.assertTrue(length == 1)
-
-    # data from buffer
-    index = 0
-    buffer = batch_estimator.buffer(index)
-
-    # test
-    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-    # set sensor
-    sensor = np.random.rand(model.nsensordata)
-    buffer = batch_estimator.buffer(index, sensor=sensor)
-    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-
-    # set mask
-    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-    buffer = batch_estimator.buffer(index, mask=mask)
-    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-
-    # set ctrl
-    ctrl = np.random.rand(model.nu)
-    buffer = batch_estimator.buffer(index, ctrl=ctrl)
-    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-
-    # set time
-    time = np.random.rand(1)
-    buffer = batch_estimator.buffer(index, time=time)
-    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-    # data for buffer
-    sensor = np.random.rand(model.nsensordata)
-    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-    ctrl = np.random.rand(model.nu)
-    time = np.random.rand(1)
-
-    # update buffer
-    length = batch_estimator.update_buffer(sensor, mask, ctrl, time)
-
-    # test buffer length
-    self.assertTrue(length == 2)
-
-    # index
-    index = 1
-
-    # set sensor
-    sensor = np.random.rand(model.nsensordata)
-    buffer = batch_estimator.buffer(index, sensor=sensor)
-    self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-
-    # set mask
-    mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-    buffer = batch_estimator.buffer(index, mask=mask)
-    self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-
-    # set ctrl
-    ctrl = np.random.rand(model.nu)
-    buffer = batch_estimator.buffer(index, ctrl=ctrl)
-    self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-
-    # set time
-    time = np.random.rand(1)
-    buffer = batch_estimator.buffer(index, time=time)
-    self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-    # buffer length
-    self.assertTrue(buffer["length"] == 2)
-
   def test_norm(self):
     # load model
     model_path = (
@@ -670,22 +544,16 @@ class BatchEstimatorTest(absltest.TestCase):
 
     # test norm types
     self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
-    self.assertTrue((data["force_type"] == np.zeros(3)).all())
 
     # test norm paramters
     self.assertTrue(not data["sensor_parameters"].any())
-    self.assertTrue(not data["force_parameters"].any())
 
     # set norm data
     sensor_type = np.array([1, 2, 3, 4])
     sensor_parameters = np.random.rand(3 * model.nsensor)
-    force_type = np.array([5, 6, 7])
-    force_parameters = np.random.rand(9)
     data = batch_estimator.norm(
         sensor_type=sensor_type,
         sensor_parameters=sensor_parameters,
-        force_type=force_type,
-        force_parameters=force_parameters,
     )
 
     # test
@@ -693,8 +561,6 @@ class BatchEstimatorTest(absltest.TestCase):
     self.assertLess(
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
     )
-    self.assertTrue((force_type == data["force_type"]).all())
-    self.assertLess(np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5)
 
   # TODO(taylor): test initialize_data, update_data() 
 

@@ -305,6 +305,9 @@ class Batch : public Estimator {
     bool flg_actuation = 1;
   } finite_difference;
 
+  // max history
+  int max_history = 3;
+
  private:
   // convert sequence of configurations to velocities, accelerations
   void ConfigurationToVelocityAcceleration();
@@ -518,9 +521,6 @@ class Batch : public Estimator {
   double improvement_;                      // cost improvement 
   double expected_;                         // expected cost improvement
   double reduction_ratio_;                  // reduction ratio: cost_improvement / expected cost improvement
-
-  // max history 
-  int max_history = 3;
   
   // timers
   struct BatchTimers {

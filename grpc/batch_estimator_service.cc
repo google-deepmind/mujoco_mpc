@@ -36,10 +36,6 @@ using ::batch_estimator::CostRequest;
 using ::batch_estimator::CostResponse;
 using ::batch_estimator::DataRequest;
 using ::batch_estimator::DataResponse;
-using ::batch_estimator::InitializeDataRequest;
-using ::batch_estimator::InitializeDataResponse;
-using ::batch_estimator::InitialStateRequest;
-using ::batch_estimator::InitialStateResponse;
 using ::batch_estimator::InitRequest;
 using ::batch_estimator::InitResponse;
 using ::batch_estimator::NormRequest;
@@ -48,8 +44,6 @@ using ::batch_estimator::OptimizeRequest;
 using ::batch_estimator::OptimizeResponse;
 using ::batch_estimator::PriorMatrixRequest;
 using ::batch_estimator::PriorMatrixResponse;
-using ::batch_estimator::ResetBufferRequest;
-using ::batch_estimator::ResetBufferResponse;
 using ::batch_estimator::ResetRequest;
 using ::batch_estimator::ResetResponse;
 using ::batch_estimator::SettingsRequest;
@@ -60,12 +54,6 @@ using ::batch_estimator::StatusRequest;
 using ::batch_estimator::StatusResponse;
 using ::batch_estimator::TimingRequest;
 using ::batch_estimator::TimingResponse;
-using ::batch_estimator::UpdateBufferRequest;
-using ::batch_estimator::UpdateBufferResponse;
-using ::batch_estimator::UpdateDataRequest;
-using ::batch_estimator::UpdateDataResponse;
-using ::batch_estimator::UpdateRequest;
-using ::batch_estimator::UpdateResponse;
 using ::batch_estimator::WeightsRequest;
 using ::batch_estimator::WeightsResponse;
 
@@ -97,8 +85,7 @@ grpc::Status BatchEstimatorService::Init(grpc::ServerContext* context,
                                     const batch_estimator::InitRequest* request,
                                     batch_estimator::InitResponse* response) {
   // check configuration length
-  if (request->configuration_length() < mjpc::MIN_HISTORY ||
-      request->configuration_length() > batch_estimator_.max_history) {
+  if (request->configuration_length() < mjpc::MIN_HISTORY) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
   }
 
@@ -136,21 +123,15 @@ grpc::Status BatchEstimatorService::Init(grpc::ServerContext* context,
     mju_error("Failed to create mjModel.");
   }
 
-  // move
+  // move model
   batch_estimator_model_override_ = std::move(tmp_model);
-  mjModel* model = batch_estimator_model_override_.get();
 
   // initialize batch_estimator
-  batch_estimator_.Initialize(model);
-
-  // set estimation horizon
-  batch_estimator_.SetConfigurationLength(request->configuration_length());
-
-  // initialize buffer
-  buffer_.Initialize(batch_estimator_.SensorDimension(), batch_estimator_.NumberSensors(),
-                     model->nu,
-                     (request->has_buffer_length() ? request->buffer_length()
-                                                   : mjpc::MAX_TRAJECTORY));
+  int length = request->configuration_length();
+  batch_estimator_.max_history = length;
+  batch_estimator_.Initialize(batch_estimator_model_override_.get());
+  batch_estimator_.SetConfigurationLength(length);
+  batch_estimator_.Reset();
 
   return grpc::Status::OK;
 }
@@ -213,11 +194,11 @@ grpc::Status BatchEstimatorService::Data(grpc::ServerContext* context,
   // set time
   if (input.time_size() > 0) {
     CHECK_SIZE("time", 1, input.time_size());
-    batch_estimator_.time.Set(input.time().data(), index);
+    batch_estimator_.times.Set(input.time().data(), index);
   }
 
   // get time
-  double* time = batch_estimator_.time.Get(index);
+  double* time = batch_estimator_.times.Get(index);
   output->add_time(time[0]);
 
   // set ctrl
@@ -797,41 +778,6 @@ grpc::Status BatchEstimatorService::Reset(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchEstimatorService::InitializeData(
-    grpc::ServerContext* context,
-    const batch_estimator::InitializeDataRequest* request,
-    batch_estimator::InitializeDataResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // initialize trajectories with buffer data
-  batch_estimator_.InitializeTrajectories(buffer_.sensor, buffer_.sensor_mask,
-                                    buffer_.ctrl, buffer_.time);
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchEstimatorService::UpdateData(
-    grpc::ServerContext* context, const batch_estimator::UpdateDataRequest* request,
-    batch_estimator::UpdateDataResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // check for valid number of new elements
-  int num_new = request->num_new();
-  if (num_new < 1 || num_new > buffer_.Length()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "num_new invalid."};
-  }
-
-  // update trajectories with num_new most recent elements from buffer
-  batch_estimator_.UpdateTrajectories_(num_new, buffer_.sensor, buffer_.sensor_mask,
-                                 buffer_.ctrl, buffer_.time);
-
-  return grpc::Status::OK;
-}
-
 grpc::Status BatchEstimatorService::Optimize(
     grpc::ServerContext* context, const batch_estimator::OptimizeRequest* request,
     batch_estimator::OptimizeResponse* response) {
@@ -841,60 +787,6 @@ grpc::Status BatchEstimatorService::Optimize(
 
   // optimize
   batch_estimator_.Optimize(thread_pool_);
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchEstimatorService::Update(grpc::ServerContext* context,
-                                      const batch_estimator::UpdateRequest* request,
-                                      batch_estimator::UpdateResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // update
-  int num_new = batch_estimator_.Update(buffer_, thread_pool_);
-
-  // set num new
-  response->set_num_new(num_new);
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchEstimatorService::InitialState(
-    grpc::ServerContext* context, const batch_estimator::InitialStateRequest* request,
-    batch_estimator::InitialStateResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // input output
-  batch_estimator::State input = request->state();
-  batch_estimator::State* output = response->mutable_state();
-
-  // set qpos
-  int nq = batch_estimator_.model->nq;
-  if (input.qpos_size() > 0) {
-    CHECK_SIZE("qpos", nq, input.qpos_size());
-    batch_estimator_.qpos0.assign(input.qpos().begin(), input.qpos().end());
-  }
-
-  // get qpos
-  for (int i = 0; i < nq; i++) {
-    output->add_qpos(batch_estimator_.qpos0[i]);
-  }
-
-  // qvel
-  int nv = batch_estimator_.model->nv;
-  if (input.qvel_size() > 0) {
-    CHECK_SIZE("qvel", nv, input.qvel_size());
-    batch_estimator_.qvel0.assign(input.qvel().begin(), input.qvel().end());
-  }
-
-  // get qvel
-  for (int i = 0; i < nv; i++) {
-    output->add_qvel(batch_estimator_.qvel0[i]);
-  }
 
   return grpc::Status::OK;
 }
@@ -982,6 +874,7 @@ grpc::Status BatchEstimatorService::Timing(grpc::ServerContext* context,
   // double timer_prior_weight_update = 28;
   // double timer_prior_set_weight = 29;
   // double timer_update_trajectory = 30;
+  // double timer_update = 31;
 
   return grpc::Status::OK;
 }
@@ -1015,121 +908,6 @@ grpc::Status BatchEstimatorService::PriorMatrix(
   return grpc::Status::OK;
 }
 
-grpc::Status BatchEstimatorService::ResetBuffer(
-    grpc::ServerContext* context, const batch_estimator::ResetBufferRequest* request,
-    batch_estimator::ResetBufferResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // reset
-  buffer_.Reset();
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchEstimatorService::BufferData(
-    grpc::ServerContext* context, const batch_estimator::BufferDataRequest* request,
-    batch_estimator::BufferDataResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // valid index
-  int index = request->index();
-  if (index < 0 || index >= buffer_.Length()) {
-    return {grpc::StatusCode::OUT_OF_RANGE, "Invalid index."};
-  }
-
-  // buffer
-  batch_estimator::Buffer input = request->buffer();
-  batch_estimator::Buffer* output = response->mutable_buffer();
-
-  // set sensor
-  int ns = batch_estimator_.SensorDimension();
-  if (input.sensor_size() > 0) {
-    CHECK_SIZE("sensor", ns, input.sensor_size());
-    buffer_.sensor.Set(input.sensor().data(), index);
-  }
-
-  // get sensor
-  double* sensor = buffer_.sensor.Get(index);
-  for (int i = 0; i < ns; i++) {
-    output->add_sensor(sensor[i]);
-  }
-
-  // set mask
-  int num_sensor = batch_estimator_.NumberSensors();
-  if (input.mask_size() > 0) {
-    CHECK_SIZE("mask", num_sensor, input.mask_size());
-    buffer_.sensor_mask.Set(input.mask().data(), index);
-  }
-
-  // get mask
-  int* mask = buffer_.sensor_mask.Get(index);
-  for (int i = 0; i < num_sensor; i++) {
-    output->add_mask(mask[i]);
-  }
-
-  // set ctrl
-  int nu = batch_estimator_.model->nu;
-  if (input.ctrl_size() > 0) {
-    CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    buffer_.ctrl.Set(input.ctrl().data(), index);
-  }
-
-  // get ctrl
-  double* ctrl = buffer_.ctrl.Get(index);
-  for (int i = 0; i < nu; i++) {
-    output->add_ctrl(ctrl[i]);
-  }
-
-  // set time
-  if (input.time_size() > 0) {
-    CHECK_SIZE("time", 1, input.time_size());
-    buffer_.time.Set(input.time().data(), index);
-  }
-
-  // get time
-  double* time = buffer_.time.Get(index);
-  output->add_time(time[0]);
-
-  // get length
-  response->set_length(buffer_.Length());
-
-  return grpc::Status::OK;
-}
-
 #undef CHECK_SIZE
-
-grpc::Status BatchEstimatorService::UpdateBuffer(
-    grpc::ServerContext* context, const batch_estimator::UpdateBufferRequest* request,
-    batch_estimator::UpdateBufferResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // buffer
-  batch_estimator::Buffer buffer = request->buffer();
-
-  // check for all data
-  if (buffer.sensor_size() != batch_estimator_.SensorDimension())
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor."};
-  if (buffer.mask_size() != batch_estimator_.NumberSensors())
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing sensor mask."};
-  if (buffer.ctrl_size() != batch_estimator_.model->nu)
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing ctrl."};
-  if (buffer.time_size() != 1)
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Missing time."};
-
-  // update
-  buffer_.Update(buffer.sensor().data(), buffer.mask().data(),
-                 buffer.ctrl().data(), buffer.time().data()[0]);
-
-  // get length
-  response->set_length(buffer_.Length());
-
-  return grpc::Status::OK;
-}
 
 }  // namespace batch_estimator_grpc

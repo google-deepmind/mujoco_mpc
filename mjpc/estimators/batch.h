@@ -130,7 +130,7 @@ class Batch : public Estimator {
 
     // -- configurations -- //
     int nq = model->nq;
-    int t = prediction_length_;
+    int t = 1;
 
     // q1
     configuration.Set(state, t);
@@ -185,9 +185,6 @@ class Batch : public Estimator {
   // get configuration length 
   int ConfigurationLength() const { return configuration_length_; }
   
-  // get prediction length
-  int PredictionLength() const { return prediction_length_; }
-
   // get number of sensors 
   int NumberSensors() const { return nsensor; }
 
@@ -369,10 +366,7 @@ class Batch : public Estimator {
   // search direction
   void SearchDirection();
 
-//   // covariance 
-//   void Covariance(ThreadPool& pool);
-
-   // update configuration trajectory
+  // update configuration trajectory
   void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
                            const EstimatorTrajectory<double>& configuration,
                            const double* search_direction, double step_size);
@@ -405,19 +399,18 @@ class Batch : public Estimator {
 
   // lengths
   int configuration_length_;                   // T
-  int prediction_length_;                      // T - 2
 
   // configuration copy
   EstimatorTrajectory<double> configuration_copy_;  // nq x max_history
 
   // residual
   std::vector<double> residual_prior_;       // nv x T
-  std::vector<double> residual_sensor_;      // ns x (T - 2)
+  std::vector<double> residual_sensor_;      // ns x (T - 1)
   std::vector<double> residual_force_;       // nv x (T - 2)
 
   // Jacobian
   std::vector<double> jacobian_prior_;       // (nv * T) * (nv * T)
-  std::vector<double> jacobian_sensor_;      // (ns * (T - 2)) * (nv * T)
+  std::vector<double> jacobian_sensor_;      // (ns * (T - 1)) * (nv * T)
   std::vector<double> jacobian_force_;       // (nv * (T - 2)) * (nv * T)
 
   // prior Jacobian block

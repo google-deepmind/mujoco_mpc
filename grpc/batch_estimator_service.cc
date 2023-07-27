@@ -565,8 +565,8 @@ grpc::Status BatchEstimatorService::Cost(grpc::ServerContext* context,
   // dimensions
   int nv = batch_estimator_.model->nv, ns = batch_estimator_.SensorDimension();
   int nvar = nv * batch_estimator_.ConfigurationLength();
-  int nsensor = ns * batch_estimator_.PredictionLength();
-  int nforce = nv * batch_estimator_.PredictionLength();
+  int nsensor = ns * batch_estimator_.ConfigurationLength() - 1;
+  int nforce = nv * batch_estimator_.ConfigurationLength() - 2;
 
   // set dimensions
   cost->set_nvar(nvar);

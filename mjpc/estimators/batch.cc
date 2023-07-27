@@ -81,9 +81,6 @@ void Batch::Initialize(const mjModel* model) {
   configuration_length_ =
       GetNumberOrDefault(3, model, "batch_configuration_length");
 
-  // number of predictions
-  prediction_length_ = configuration_length_ - 2;
-
   // -- trajectories -- //
   configuration.Initialize(nq, configuration_length_);
   velocity.Initialize(nv, configuration_length_);
@@ -134,43 +131,43 @@ void Batch::Initialize(const mjModel* model) {
                                          configuration_length_);
 
   block_sensor_previous_configuration_.Initialize(nsensordata_ * nv,
-                                                  prediction_length_);
+                                                  configuration_length_);
   block_sensor_current_configuration_.Initialize(nsensordata_ * nv,
-                                                 prediction_length_);
+                                                 configuration_length_);
   block_sensor_next_configuration_.Initialize(nsensordata_ * nv,
-                                              prediction_length_);
+                                              configuration_length_);
   block_sensor_configurations_.Initialize(nsensordata_ * 3 * nv,
-                                          prediction_length_);
+                                          configuration_length_);
 
   block_sensor_scratch_.Initialize(
-      mju_max(nv, nsensordata_) * mju_max(nv, nsensordata_),
+      std::max(nv, nsensordata_) * std::max(nv, nsensordata_),
       configuration_length_);
 
   // force Jacobian blocks
-  block_force_configuration_.Initialize(nv * nv, prediction_length_);
-  block_force_velocity_.Initialize(nv * nv, prediction_length_);
-  block_force_acceleration_.Initialize(nv * nv, prediction_length_);
+  block_force_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_velocity_.Initialize(nv * nv, configuration_length_);
+  block_force_acceleration_.Initialize(nv * nv, configuration_length_);
 
-  block_force_previous_configuration_.Initialize(nv * nv, prediction_length_);
-  block_force_current_configuration_.Initialize(nv * nv, prediction_length_);
-  block_force_next_configuration_.Initialize(nv * nv, prediction_length_);
-  block_force_configurations_.Initialize(nv * 3 * nv, prediction_length_);
+  block_force_previous_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_current_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_next_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_configurations_.Initialize(nv * 3 * nv, configuration_length_);
 
-  block_force_scratch_.Initialize(nv * nv, prediction_length_);
+  block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
   // velocity Jacobian blocks
   block_velocity_previous_configuration_.Initialize(nv * nv,
-                                                    configuration_length_ - 1);
+                                                    configuration_length_);
   block_velocity_current_configuration_.Initialize(nv * nv,
-                                                   configuration_length_ - 1);
+                                                   configuration_length_);
 
   // acceleration Jacobian blocks
   block_acceleration_previous_configuration_.Initialize(nv * nv,
-                                                        prediction_length_);
+                                                        configuration_length_);
   block_acceleration_current_configuration_.Initialize(nv * nv,
-                                                       prediction_length_);
+                                                       configuration_length_);
   block_acceleration_next_configuration_.Initialize(nv * nv,
-                                                    prediction_length_);
+                                                    configuration_length_);
 
   // cost gradient
   cost_gradient_prior_.resize(nv * max_history);
@@ -232,10 +229,10 @@ void Batch::Initialize(const mjModel* model) {
   scratch0_prior_.resize((nv * max_history) * (nv * max_history));
   scratch1_prior_.resize((nv * max_history) * (nv * max_history));
 
-  scratch0_sensor_.resize(mju_max(nv, nsensordata_) *
-                          mju_max(nv, nsensordata_) * max_history);
-  scratch1_sensor_.resize(mju_max(nv, nsensordata_) *
-                          mju_max(nv, nsensordata_) * max_history);
+  scratch0_sensor_.resize(std::max(nv, nsensordata_) *
+                          std::max(nv, nsensordata_) * max_history);
+  scratch1_sensor_.resize(std::max(nv, nsensordata_) *
+                          std::max(nv, nsensordata_) * max_history);
 
   scratch0_force_.resize((nv * max_history) * (nv * max_history));
   scratch1_force_.resize((nv * max_history) * (nv * max_history));
@@ -519,22 +516,53 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
   // current time index
-  int t = prediction_length_;
+  int t = 1;
 
-  // set ctrl
-  this->ctrl.Set(ctrl, t);
-
-  // set sensor
-  sensor_measurement.Set(sensor + sensor_start_index_, t);
-
-  // -- next qpos -- //
+  // configurations
+  double* q0 = configuration.Get(t - 1);
+  double* q1 = configuration.Get(t);
 
   // data
   mjData* d = data_[0].get();
+  double time_cache = d->time;
+
+  // -- get previous position sensor measurement -- //
+  // terms
+  double* y0 = sensor_measurement.Get(t - 1);
+  mju_zero(y0, nsensordata_);
+
+  // set data
+  mju_copy(d->qpos, q0, nq);
+  mju_zero(d->qvel, nv);
+  mju_zero(d->ctrl, nu);
+  d->time = times.Get(t)[0] - model->opt.timestep;
+
+  // position sensors
+  mj_fwdPosition(model, d);
+  mj_sensorPos(model, d);
+
+  // loop over position sensors
+  for (int i = 0; i < nsensor; i++) {
+    // sensor stage
+    int sensor_stage = model->sensor_type[sensor_start + i];
+
+    // check for position
+    if (sensor_stage == mjSTAGE_POS) {
+      // dimension
+      int sensor_dim = model->sensor_dim[sensor_start + i];
+
+      // address
+      int sensor_adr = model->sensor_adr[sensor_start + i];
+
+      // copy sensor data
+      mju_copy(y0 + sensor_adr - sensor_start_index_,
+               d->sensordata + sensor_adr, sensor_dim);
+    }
+  }
+
+  // -- next qpos -- //
 
   // set state
-  double* q0 = configuration.Get(t - 1);
-  double* q1 = configuration.Get(t);
   mju_copy(d->qpos, q1, model->nq);
   mj_differentiatePos(model, d->qvel, model->opt.timestep, q0, q1);
 
@@ -543,15 +571,25 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // set ctrl
   mju_copy(d->ctrl, ctrl, nu);
 
+  // set time 
+  d->time = time_cache;
+
   // forward step
   mj_step(model, d);
 
+  // -- set batch data -- //
   // set next qpos
   configuration.Set(d->qpos, t + 1);
   configuration_previous.Set(d->qpos, t + 1);
 
   // set next time
   times.Set(&d->time, t + 1);
+
+  // set ctrl
+  this->ctrl.Set(ctrl, t);
+
+  // set sensor
+  sensor_measurement.Set(sensor + sensor_start_index_, t);
 
   // set force measurement
   force_measurement.Set(d->qfrc_actuator, t);
@@ -585,64 +623,61 @@ void Batch::SetConfigurationLength(int length) {
   }
 
   // set configuration length
-  configuration_length_ = mju_max(length, MIN_HISTORY);
-
-  // set prediction length
-  prediction_length_ = configuration_length_ - 2;
+  configuration_length_ = std::max(length, MIN_HISTORY);
 
   // update trajectory lengths
-  configuration.SetLength(length);
-  configuration_copy_.SetLength(length);
+  configuration.SetLength(configuration_length_);
+  configuration_copy_.SetLength(configuration_length_);
 
-  velocity.SetLength(length);
-  acceleration.SetLength(length);
-  act.SetLength(length);
-  times.SetLength(length);
+  velocity.SetLength(configuration_length_);
+  acceleration.SetLength(configuration_length_);
+  act.SetLength(configuration_length_);
+  times.SetLength(configuration_length_);
 
-  ctrl.SetLength(length);
+  ctrl.SetLength(configuration_length_);
 
-  configuration_previous.SetLength(length);
+  configuration_previous.SetLength(configuration_length_);
 
-  sensor_measurement.SetLength(length);
-  sensor_prediction.SetLength(length);
-  sensor_mask.SetLength(length);
+  sensor_measurement.SetLength(configuration_length_);
+  sensor_prediction.SetLength(configuration_length_);
+  sensor_mask.SetLength(configuration_length_);
 
-  force_measurement.SetLength(length);
-  force_prediction.SetLength(length);
+  force_measurement.SetLength(configuration_length_);
+  force_prediction.SetLength(configuration_length_);
 
-  block_prior_current_configuration_.SetLength(length);
+  block_prior_current_configuration_.SetLength(configuration_length_);
 
-  block_sensor_configuration_.SetLength(length);
-  block_sensor_velocity_.SetLength(length);
-  block_sensor_acceleration_.SetLength(length);
-  block_sensor_configurationT_.SetLength(length);
-  block_sensor_velocityT_.SetLength(length);
-  block_sensor_accelerationT_.SetLength(length);
+  block_sensor_configuration_.SetLength(configuration_length_);
+  block_sensor_velocity_.SetLength(configuration_length_);
+  block_sensor_acceleration_.SetLength(configuration_length_);
+  block_sensor_configurationT_.SetLength(configuration_length_);
+  block_sensor_velocityT_.SetLength(configuration_length_);
+  block_sensor_accelerationT_.SetLength(configuration_length_);
 
-  block_sensor_previous_configuration_.SetLength(prediction_length_);
-  block_sensor_current_configuration_.SetLength(prediction_length_);
-  block_sensor_next_configuration_.SetLength(prediction_length_);
-  block_sensor_configurations_.SetLength(prediction_length_);
+  block_sensor_previous_configuration_.SetLength(configuration_length_);
+  block_sensor_current_configuration_.SetLength(configuration_length_);
+  block_sensor_next_configuration_.SetLength(configuration_length_);
+  block_sensor_configurations_.SetLength(configuration_length_);
 
-  block_sensor_scratch_.SetLength(length);
+  block_sensor_scratch_.SetLength(configuration_length_);
 
-  block_force_configuration_.SetLength(prediction_length_);
-  block_force_velocity_.SetLength(prediction_length_);
-  block_force_acceleration_.SetLength(prediction_length_);
+  block_force_configuration_.SetLength(configuration_length_);
+  block_force_velocity_.SetLength(configuration_length_);
+  block_force_acceleration_.SetLength(configuration_length_);
 
-  block_force_previous_configuration_.SetLength(prediction_length_);
-  block_force_current_configuration_.SetLength(prediction_length_);
-  block_force_next_configuration_.SetLength(prediction_length_);
-  block_force_configurations_.SetLength(prediction_length_);
+  block_force_previous_configuration_.SetLength(configuration_length_);
+  block_force_current_configuration_.SetLength(configuration_length_);
+  block_force_next_configuration_.SetLength(configuration_length_);
+  block_force_configurations_.SetLength(configuration_length_);
 
-  block_force_scratch_.SetLength(prediction_length_);
+  block_force_scratch_.SetLength(configuration_length_);
 
-  block_velocity_previous_configuration_.SetLength(length - 1);
-  block_velocity_current_configuration_.SetLength(length - 1);
+  block_velocity_previous_configuration_.SetLength(configuration_length_);
+  block_velocity_current_configuration_.SetLength(configuration_length_);
 
-  block_acceleration_previous_configuration_.SetLength(prediction_length_);
-  block_acceleration_current_configuration_.SetLength(prediction_length_);
-  block_acceleration_next_configuration_.SetLength(prediction_length_);
+  block_acceleration_previous_configuration_.SetLength(configuration_length_);
+  block_acceleration_current_configuration_.SetLength(configuration_length_);
+  block_acceleration_next_configuration_.SetLength(configuration_length_);
 
   // status
   step_size_ = 1.0;
@@ -717,13 +752,13 @@ void Batch::ConfigurationEvaluation(ThreadPool& pool) {
 void Batch::ConfigurationDerivative(ThreadPool& pool) {
   // dimension
   int nvar = model->nv * configuration_length_;
-  int nsen = nsensordata_ * prediction_length_;
-  int nforce = nsensordata_ * prediction_length_;
+  int nsen = nsensordata_ * (configuration_length_ - 1);
+  int nforce = nsensordata_ * (configuration_length_ - 2);
 
   // operations
   int opprior = settings.prior_flag * configuration_length_;
-  int opsensor = settings.sensor_flag * prediction_length_;
-  int opforce = settings.force_flag * prediction_length_;
+  int opsensor = settings.sensor_flag * (configuration_length_ - 1);
+  int opforce = settings.force_flag * (configuration_length_ - 2);
 
   // inverse dynamics derivatives
   InverseDynamicsDerivatives(pool);
@@ -974,7 +1009,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int nv = model->nv, ns = nsensordata_;
   int nvar = nv * configuration_length_;
-  int nsen = ns * prediction_length_;
+  int nsen = ns * (configuration_length_ - 1);
 
   // residual
   if (!cost_skip_) ResidualSensor();
@@ -992,16 +1027,24 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   int shift_matrix = 0;
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 0; t < configuration_length_ - 1; t++) {
     // residual
-    double* rk = residual_sensor_.data() + ns * k;
+    double* rt = residual_sensor_.data() + ns * t;
 
     // mask
     // int* mask = sensor_mask.Get(t);
 
     // unpack block
-    double* block = block_sensor_configurations_.Get(k);
-
+    double* block;
+    int block_columns; 
+    if (t == 0) {
+      block = block_sensor_configuration_.Get(t);
+      block_columns = nv;
+    } else {
+      block = block_sensor_configurations_.Get(t);
+      block_columns = 3 * nv;
+    }
+    
     // shift
     int shift_sensor = 0;
 
@@ -1017,10 +1060,10 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       int nsi = model->sensor_dim[sensor_start + i];
 
       // sensor residual
-      double* rki = rk + shift_sensor;
+      double* rti = rt + shift_sensor;
 
       // weight
-      double weight = 1.0 / noise_sensor[i] / nsi / prediction_length_;
+      double weight = 1.0 / noise_sensor[i] / nsi / (configuration_length_ - 1);
 
       // parameters
       double* pi = norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
@@ -1030,7 +1073,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
       // norm gradient
       double* norm_gradient =
-          norm_gradient_sensor_.data() + ns * k + shift_sensor;
+          norm_gradient_sensor_.data() + ns * t + shift_sensor;
 
       // norm Hessian
       double* norm_block = norm_blocks_sensor_.data() + shift_matrix;
@@ -1038,12 +1081,12 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // ----- cost ----- //
 
       // norm
-      norm_sensor_[nsensor * k + i] =
+      norm_sensor_[nsensor * t + i] =
           Norm(gradient ? norm_gradient : NULL, hessian ? norm_block : NULL,
-               rki, pi, nsi, normi);
+               rti, pi, nsi, normi);
 
       // weighted norm
-      cost += weight * norm_sensor_[nsensor * k + i];
+      cost += weight * norm_sensor_[nsensor * t + i];
 
       // stop cost timer
       timer_.cost_sensor += GetDuration(start_cost);
@@ -1051,45 +1094,45 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // assemble dense norm Hessian
       if (settings.assemble_sensor_norm_hessian) {
         // reset memory
-        if (i == 0 && k == 0)
+        if (i == 0 && t == 0)
           mju_zero(norm_hessian_sensor_.data(), nsen * nsen);
 
         // set norm block
         SetBlockInMatrix(norm_hessian_sensor_.data(), norm_block, weight, nsen,
-                         nsen, nsi, nsi, ns * k + shift_sensor,
-                         ns * k + shift_sensor);
+                         nsen, nsi, nsi, ns * t + shift_sensor,
+                         ns * t + shift_sensor);
       }
 
       // gradient wrt configuration: dridq012' * dndri
       if (gradient) {
         // sensor block
-        double* blocki = block + (3 * nv) * shift_sensor;
+        double* blocki = block + block_columns * shift_sensor;
 
         // scratch = dridq012' * dndri
         mju_mulMatTVec(scratch0_sensor_.data(), blocki, norm_gradient, nsi,
-                       3 * nv);
+                       block_columns);
 
         // add
-        mju_addToScl(gradient + k * nv, scratch0_sensor_.data(), weight,
-                     3 * nv);
+        mju_addToScl(gradient + nv * std::max(0, t - 1), scratch0_sensor_.data(), weight,
+                     block_columns);
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
       if (hessian) {
         // sensor block
-        double* blocki = block + (3 * nv) * shift_sensor;
+        double* blocki = block + block_columns * shift_sensor;
 
         // step 1: tmp0 = d2ndri2 * dridq
         double* tmp0 = scratch0_sensor_.data();
-        mju_mulMatMat(tmp0, norm_block, blocki, nsi, nsi, 3 * nv);
+        mju_mulMatMat(tmp0, norm_block, blocki, nsi, nsi, block_columns);
 
         // step 2: hessian = dridq' * tmp
         double* tmp1 = scratch1_sensor_.data();
-        mju_mulMatTMat(tmp1, blocki, tmp0, nsi, 3 * nv, 3 * nv);
+        mju_mulMatTMat(tmp1, blocki, tmp0, nsi, block_columns, block_columns);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, weight, nvar, nvar, 3 * nv, 3 * nv,
-                         nv * k, nv * k);
+        AddBlockInMatrix(hessian, tmp1, weight, nvar, nvar, block_columns, block_columns,
+                         nv * std::max(0, t - 1), nv * std::max(0, t - 1));
       }
 
       // shift by individual sensor dimension
@@ -1112,7 +1155,7 @@ double Batch::CostForce(double* gradient, double* hessian) {
   // update dimension
   int nv = model->nv;
   int nvar = nv * configuration_length_;
-  int nforce = nv * prediction_length_;
+  int nforce = nv * (configuration_length_ - 2);
 
   // residual
   if (!cost_skip_) ResidualForce();
@@ -1127,21 +1170,21 @@ double Batch::CostForce(double* gradient, double* hessian) {
   if (hessian) mju_zero(hessian, nvar * nvar);
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 1; t < configuration_length_ - 1; t++) {
     // unpack block
-    double* block = block_force_configurations_.Get(k);
+    double* block = block_force_configurations_.Get(t);
 
     // start cost timer
     auto start_cost = std::chrono::steady_clock::now();
 
     // residual
-    double* rk = residual_force_.data() + k * nv;
+    double* rt = residual_force_.data() + t * nv;
 
     // norm gradient
-    double* norm_gradient = norm_gradient_force_.data() + k * nv;
+    double* norm_gradient = norm_gradient_force_.data() + t * nv;
 
     // norm block
-    double* norm_block = norm_blocks_force_.data() + k * nv * nv;
+    double* norm_block = norm_blocks_force_.data() + t * nv * nv;
     mju_zero(norm_block, nv * nv);
 
     // ----- cost ----- //
@@ -1149,20 +1192,20 @@ double Batch::CostForce(double* gradient, double* hessian) {
     // quadratic cost
     for (int i = 0; i < nv; i++) {
       // weight
-      double weight = 1.0 / noise_process[i] / nv / prediction_length_;
+      double weight = 1.0 / noise_process[i] / nv / (configuration_length_ - 2);
 
       // gradient
-      norm_gradient[i] = weight * rk[i];
+      norm_gradient[i] = weight * rt[i];
 
       // Hessian
       norm_block[nv * i + i] = weight;
     }
 
     // norm
-    norm_sensor_[k] = 0.5 * mju_dot(rk, norm_gradient, nv);
+    norm_sensor_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
 
     // weighted norm
-    cost += norm_sensor_[k];
+    cost += norm_sensor_[t];
 
     // stop cost timer
     timer_.cost_force += GetDuration(start_cost);
@@ -1170,11 +1213,11 @@ double Batch::CostForce(double* gradient, double* hessian) {
     // assemble dense norm Hessian
     if (settings.assemble_force_norm_hessian) {
       // zero memory
-      if (k == 0) mju_zero(norm_hessian_force_.data(), nforce * nforce);
+      if (t == 1) mju_zero(norm_hessian_force_.data(), nforce * nforce);
 
       // set block
       SetBlockInMatrix(norm_hessian_force_.data(), norm_block, 1.0, nforce,
-                       nforce, nv, nv, k * nv, k * nv);
+                       nforce, nv, nv, (t - 1) * nv, (t - 1) * nv);
     }
 
     // gradient wrt configuration: dridq012' * dndri
@@ -1183,7 +1226,7 @@ double Batch::CostForce(double* gradient, double* hessian) {
       mju_mulMatTVec(scratch0_force_.data(), block, norm_gradient, nv, 3 * nv);
 
       // add
-      mju_addToScl(gradient + k * nv, scratch0_force_.data(), 1.0, 3 * nv);
+      mju_addToScl(gradient + (t - 1) * nv, scratch0_force_.data(), 1.0, 3 * nv);
     }
 
     // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -1197,8 +1240,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
       mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
 
       // add
-      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv, nv * k,
-                       nv * k);
+      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv, nv * (t - 1),
+                       nv * (t - 1));
     }
   }
 
@@ -1214,17 +1257,14 @@ void Batch::ResidualSensor() {
   auto start = std::chrono::steady_clock::now();
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
-    // time index
-    int t = k + 1;
-
+  for (int t = 0; t < configuration_length_ - 1; t++) {
     // terms
-    double* rk = residual_sensor_.data() + k * nsensordata_;
+    double* rt = residual_sensor_.data() + t * nsensordata_;
     double* yt_sensor = sensor_measurement.Get(t);
     double* yt_model = sensor_prediction.Get(t);
 
     // sensor difference
-    mju_sub(rk, yt_model, yt_sensor, nsensordata_);
+    mju_sub(rt, yt_model, yt_sensor, nsensordata_);
   }
 
   // stop timer
@@ -1238,6 +1278,18 @@ void Batch::BlockSensor(int index) {
 
   // shift
   int shift = sensor_start_index_ * nv;
+
+  if (index == 0 && settings.assemble_sensor_jacobian) {
+    int nvar = nv * configuration_length_;
+    int nsen = nsensordata_ * (configuration_length_ - 1);
+
+    double* block = block_sensor_configuration_.Get(0) + shift;
+
+    // set block
+    SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
+                     nsensordata_, nv, 0, 0);
+    return;
+  }
 
   // dqds
   double* dsdq = block_sensor_configuration_.Get(index) + shift;
@@ -1307,9 +1359,8 @@ void Batch::BlockSensor(int index) {
   // assemble dense Jacobian
   if (settings.assemble_sensor_jacobian) {
     // dimension
-    int nv = model->nv;
     int nvar = nv * configuration_length_;
-    int nsen = nsensordata_ * prediction_length_;
+    int nsen = nsensordata_ * (configuration_length_ - 1);
 
     // set block
     SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
@@ -1321,17 +1372,17 @@ void Batch::BlockSensor(int index) {
 // note: pool wait is called outside this function
 void Batch::JacobianSensor(ThreadPool& pool) {
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 0; t < configuration_length_ - 1; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, k]() {
+    pool.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // block
-      batch.BlockSensor(k);
+      batch.BlockSensor(t);
 
       // stop Jacobian timer
-      batch.timer_.sensor_step[k] = GetDuration(jacobian_sensor_start);
+      batch.timer_.sensor_step[t] = GetDuration(jacobian_sensor_start);
     });
   }
 }
@@ -1345,17 +1396,14 @@ void Batch::ResidualForce() {
   int nv = model->nv;
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
-    // time index
-    int t = k + 1;
-
+  for (int t = 1; t < configuration_length_ - 1; t++) {
     // terms
-    double* rk = residual_force_.data() + k * nv;
+    double* rt = residual_force_.data() + t * nv;
     double* ft_actuator = force_measurement.Get(t);
     double* ft_inverse = force_prediction.Get(t);
 
     // force difference
-    mju_sub(rk, ft_inverse, ft_actuator, nv);
+    mju_sub(rt, ft_inverse, ft_actuator, nv);
   }
 
   // stop timer
@@ -1437,11 +1485,11 @@ void Batch::BlockForce(int index) {
     // dimensions
     int nv = model->nv;
     int nvar = nv * configuration_length_;
-    int nforce = nv * prediction_length_;
+    int nforce = nv * (configuration_length_ - 2);
 
     // set block
     SetBlockInMatrix(jacobian_force_.data(), dfdq012, 1.0, nforce, nvar, nv,
-                     3 * nv, index * nv, index * nv);
+                     3 * nv, (index - 1) * nv, (index - 1) * nv);
   }
 }
 
@@ -1449,17 +1497,17 @@ void Batch::BlockForce(int index) {
 // note: pool wait is called outside this function
 void Batch::JacobianForce(ThreadPool& pool) {
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, k]() {
+    pool.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // block
-      batch.BlockForce(k);
+      batch.BlockForce(t);
 
       // stop Jacobian timer
-      batch.timer_.force_step[k] = GetDuration(jacobian_force_start);
+      batch.timer_.force_step[t] = GetDuration(jacobian_force_start);
     });
   }
 }
@@ -1520,12 +1568,9 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   });
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool.Schedule([&batch = *this, nq, nv, na, ns, nu, k]() {
-      // time index
-      int t = k + 1;
-
+    pool.Schedule([&batch = *this, nq, nv, na, ns, nu, t]() {
       // terms
       double* qt = batch.configuration.Get(t);
       double* vt = batch.velocity.Get(t);
@@ -1558,55 +1603,8 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     });
   }
 
-  // last time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
-    // time index 
-    int t = batch.configuration_length_ - 1;
-
-    // data
-    mjData* d = batch.data_[t].get();
-
-    // terms 
-    double* qT = batch.configuration.Get(t);
-    double* vT = batch.velocity.Get(t);
-    double* yT = batch.sensor_prediction.Get(t);
-
-    // set data 
-    mju_copy(d->qpos, qT, nq);
-    mju_copy(d->qvel, vT, nv);
-    mju_zero(d->ctrl, nu);
-    d->time = batch.times.Get(t)[0];
-
-    // position sensors
-    mj_fwdPosition(batch.model, d);
-    mj_sensorPos(batch.model, d);
-
-    // velocity sensors 
-    mj_fwdVelocity(batch.model, d);
-    mj_sensorVel(batch.model, d);
-
-    // loop over position or velocity sensors 
-    for (int i = 0; i < batch.nsensor; i++) {
-      // sensor stage
-      int sensor_stage = batch.model->sensor_type[batch.sensor_start + i];
-
-      // check for position or velocity 
-      if (sensor_stage == mjSTAGE_POS || sensor_stage == mjSTAGE_VEL) {
-        // dimension 
-        int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
-
-        // address 
-        int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
-
-        // copy sensor data
-        mju_copy(yT + sensor_adr - batch.sensor_start_index_,
-                 d->sensordata + sensor_adr, sensor_dim);
-      }
-    }
-  });
-
   // wait
-  pool.WaitCount(count_before + configuration_length_);
+  pool.WaitCount(count_before + configuration_length_ - 1);
   pool.ResetCount();
 
   // stop timer
@@ -1635,53 +1633,62 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     // terms 
     double* q0 = batch.configuration.Get(t);
 
+    double* dsdq = batch.block_sensor_configuration_.Get(t);
+    double* dqds = batch.block_sensor_configurationT_.Get(t);
+
     // set data 
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
+    // finite-difference derivatives
+    mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
+                  batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
+                  NULL, NULL, NULL);
+
+    // transpose
+    mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
+
     // loop over position sensors 
-    for (int i = 0; i < batch.nsensor; i++) {
+    for (int i = 0; i < batch.model->nsensor; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_type[batch.sensor_start + i];
+      int sensor_stage = batch.model->sensor_type[i];
 
       // check for position 
       if (sensor_stage != mjSTAGE_POS) {
         // dimension 
-        // int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
+        int sensor_dim = batch.model->sensor_dim[i];
 
         // address 
-        // int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
+        int sensor_adr = batch.model->sensor_adr[i];
 
         // zero remaining rows
+        mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
       }
     }
   });
 
   // loop over predictions
-  for (int k = 0; k < prediction_length_; k++) {
+  for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool.Schedule([&batch = *this, nq, nv, nu, k]() {
-      // time index
-      int t = k + 1;
-
+    pool.Schedule([&batch = *this, nq, nv, nu, t]() {
       // unpack
       double* q = batch.configuration.Get(t);
       double* v = batch.velocity.Get(t);
       double* a = batch.acceleration.Get(t);
       double* c = batch.ctrl.Get(t);
 
-      double* dsdq = batch.block_sensor_configuration_.Get(k);
-      double* dsdv = batch.block_sensor_velocity_.Get(k);
-      double* dsda = batch.block_sensor_acceleration_.Get(k);
-      double* dqds = batch.block_sensor_configurationT_.Get(k);
-      double* dvds = batch.block_sensor_velocityT_.Get(k);
-      double* dads = batch.block_sensor_accelerationT_.Get(k);
-      double* dqdf = batch.block_force_configuration_.Get(k);
-      double* dvdf = batch.block_force_velocity_.Get(k);
-      double* dadf = batch.block_force_acceleration_.Get(k);
-      mjData* data = batch.data_[k].get();  // TODO(taylor): WorkerID
+      double* dsdq = batch.block_sensor_configuration_.Get(t);
+      double* dsdv = batch.block_sensor_velocity_.Get(t);
+      double* dsda = batch.block_sensor_acceleration_.Get(t);
+      double* dqds = batch.block_sensor_configurationT_.Get(t);
+      double* dvds = batch.block_sensor_velocityT_.Get(t);
+      double* dads = batch.block_sensor_accelerationT_.Get(t);
+      double* dqdf = batch.block_force_configuration_.Get(t);
+      double* dvdf = batch.block_force_velocity_.Get(t);
+      double* dadf = batch.block_force_acceleration_.Get(t);
+      mjData* data = batch.data_[t].get();  // TODO(taylor): WorkerID
 
       // set (state, acceleration) + ctrl
       mju_copy(data->qpos, q, nq);
@@ -1701,44 +1708,8 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     });
   }
 
-  // last time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
-    // time index 
-    int t = batch.configuration_length_ - 1;
-
-    // data
-    mjData* d = batch.data_[t].get();
-
-    // terms 
-    double* qT = batch.configuration.Get(t);
-    double* vT = batch.velocity.Get(t);
-
-    // set data 
-    mju_copy(d->qpos, qT, nq);
-    mju_copy(d->qvel, vT, nv);
-    mju_zero(d->ctrl, nu);
-    d->time = batch.times.Get(t)[0];
-
-    // loop over position or velocity sensors 
-    for (int i = 0; i < batch.nsensor; i++) {
-      // sensor stage
-      int sensor_stage = batch.model->sensor_type[batch.sensor_start + i];
-
-      // check for position or velocity 
-      if (!(sensor_stage == mjSTAGE_POS || sensor_stage == mjSTAGE_VEL)) {
-        // dimension 
-        // int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
-
-        // address 
-        // int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
-
-        // zero rows
-      }
-    }
-  });
-
   // wait
-  pool.WaitCount(count_before + configuration_length_);
+  pool.WaitCount(count_before + configuration_length_ - 1);
 
   // reset pool count
   pool.ResetCount();
@@ -1824,15 +1795,12 @@ void Batch::VelocityAccelerationDerivatives() {
   int nv = model->nv;
 
   // loop over configurations
-  for (int k = 0; k < configuration_length_ - 1; k++) {
-    // time index
-    int t = k + 1;
-
+  for (int t = 1; t < configuration_length_; t++) {
     // unpack
     double* q1 = configuration.Get(t - 1);
     double* q2 = configuration.Get(t);
-    double* dv2dq1 = block_velocity_previous_configuration_.Get(k);
-    double* dv2dq2 = block_velocity_current_configuration_.Get(k);
+    double* dv2dq1 = block_velocity_previous_configuration_.Get(t);
+    double* dv2dq2 = block_velocity_current_configuration_.Get(t);
 
     // compute velocity Jacobians
     DifferentiateDifferentiatePos(dv2dq1, dv2dq2, model, model->opt.timestep,
@@ -1841,13 +1809,13 @@ void Batch::VelocityAccelerationDerivatives() {
     // compute acceleration Jacobians
     if (t > 1) {
       // unpack
-      double* dadq0 = block_acceleration_previous_configuration_.Get(k - 1);
-      double* dadq1 = block_acceleration_current_configuration_.Get(k - 1);
-      double* dadq2 = block_acceleration_next_configuration_.Get(k - 1);
+      double* dadq0 = block_acceleration_previous_configuration_.Get(t - 1);
+      double* dadq1 = block_acceleration_current_configuration_.Get(t - 1);
+      double* dadq2 = block_acceleration_next_configuration_.Get(t - 1);
 
       // previous velocity Jacobians
-      double* dv1dq0 = block_velocity_previous_configuration_.Get(k - 1);
-      double* dv1dq1 = block_velocity_current_configuration_.Get(k - 1);
+      double* dv1dq0 = block_velocity_previous_configuration_.Get(t - 1);
+      double* dv1dq1 = block_velocity_current_configuration_.Get(t - 1);
 
       // dadq0 = -dv1dq0 / h
       mju_copy(dadq0, dv1dq0, nv * nv);
@@ -2334,54 +2302,6 @@ void Batch::SearchDirection() {
   timer_.search_direction += GetDuration(search_direction_start);
 }
 
-// // covariance
-// void Batch::Covariance(ThreadPool& pool) {
-//   // dimension
-//   int nvar = model->nv * configuration_length_;
-//   int nv3 = model->nv * 3;
-
-//   // identity
-//   double* I = scratch0_covariance_.data();
-//   mju_eye(I, nvar);
-
-//   // factorize
-//   double* factor = prior_matrix_factor_.data();
-//   if (settings.band_prior) {
-//     // factorize prior matrix
-//     mju_dense2Band(factor, weight_prior.data(), nvar, nv3, 0);
-//     mju_cholFactorBand(factor, nvar, nv3, 0, 0.0, 0.0);
-//   } else {
-//     // factorize prior matrix
-//     mju_copy(factor, weight_prior.data(), nvar * nvar);
-//     mju_cholFactor(factor, nvar, 0.0);
-//   }
-
-//   // -- covariance = L \ I --//
-
-//   // get initial pool count
-//   int count_begin = pool.GetCount();
-
-//   // compute covariance
-//   for (int i = 0; i < nvar; i++) {
-//     pool.Schedule([&batch = *this, nvar, nv3, i]() {
-//       if (batch.settings.band_prior) {
-//         mju_cholSolveBand(batch.covariance_.data() + nvar * i,
-//                           batch.prior_matrix_factor_.data(),
-//                           batch.scratch0_covariance_.data() + nvar * i, nvar,
-//                           nv3, 0);
-//       } else {
-//         mju_cholSolve(batch.covariance_.data() + nvar * i,
-//                       batch.prior_matrix_factor_.data(),
-//                       batch.scratch0_covariance_.data() + nvar * i, nvar);
-//       }
-//     });
-//   }
-
-//   // wait
-//   pool.WaitCount(count_begin + nvar);
-//   pool.ResetCount();
-// }
-
 // print Optimize iteration
 void Batch::PrintIteration() {
   if (!settings.verbose_iteration) return;
@@ -2558,46 +2478,6 @@ std::string StatusString(int code) {
     default:
       return "STATUS_CODE_ERROR";
   }
-}
-
-// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of
-// mat00
-// TODO(taylor): thread
-void ConditionMatrix(double* res, const double* mat, double* mat00,
-                     double* mat10, double* mat11, double* tmp0, double* tmp1,
-                     int n, int n0, int n1, double* bandfactor, int nband) {
-  // unpack mat
-  BlockFromMatrix(mat00, mat, n0, n0, n, n, 0, 0);
-  BlockFromMatrix(mat10, mat, n1, n0, n, n, n0, 0);
-  BlockFromMatrix(mat11, mat, n1, n1, n, n, n0, n0);
-
-  // factorize mat00, solve mat00 \ mat10^T
-  if (nband > 0 && bandfactor) {
-    mju_dense2Band(bandfactor, mat00, n0, nband, 0);
-
-    // factorize mat00
-    mju_cholFactorBand(bandfactor, n0, nband, 0, 0.0, 0.0);
-
-    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
-    for (int i = 0; i < n1; i++) {
-      mju_cholSolveBand(tmp0 + n0 * i, bandfactor, mat10 + n0 * i, n0, nband,
-                        0);
-    }
-  } else {
-    // factorize mat00
-    mju_cholFactor(mat00, n0, 0.0);
-
-    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
-    for (int i = 0; i < n1; i++) {
-      mju_cholSolve(tmp0 + n0 * i, mat00, mat10 + n0 * i, n0);
-    }
-  }
-
-  // tmp1 = mat10 * (mat00 \ mat01)
-  mju_mulMatMatT(tmp1, tmp0, mat10, n1, n0, n1);
-
-  // res = mat11 - mat10 * (mat00 \ mat01)
-  mju_sub(res, mat11, tmp1, n1 * n1);
 }
 
 // estimator-specific GUI elements

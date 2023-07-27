@@ -75,7 +75,7 @@ TEST(MeasurementCost, Particle) {
                            &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.PredictionLength();
+    int nres = ns * (estimator.ConfigurationLength() - 1);
 
     // velocity
     std::vector<double> v1(nv);
@@ -91,7 +91,7 @@ TEST(MeasurementCost, Particle) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.PredictionLength(); k++) {
+    for (int k = 0; k < estimator.ConfigurationLength() - 1; k++) {
       // time index
       int t = k + 1;
 
@@ -133,7 +133,7 @@ TEST(MeasurementCost, Particle) {
 
         // weight
         double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                        estimator.PredictionLength();
+                        (estimator.ConfigurationLength() - 1);
 
         // parameters
         double* pi =
@@ -262,7 +262,7 @@ TEST(MeasurementCost, Box) {
                            &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.PredictionLength();
+    int nres = ns * (estimator.ConfigurationLength() - 1);
     int T = estimator.ConfigurationLength();
 
     // configuration
@@ -288,7 +288,7 @@ TEST(MeasurementCost, Box) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.PredictionLength(); k++) {
+    for (int k = 0; k < estimator.ConfigurationLength() - 1; k++) {
       // time index
       int t = k + 1;
 
@@ -330,7 +330,7 @@ TEST(MeasurementCost, Box) {
 
         // weight
         double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                        estimator.PredictionLength();
+                        (estimator.ConfigurationLength() - 1);
 
         // parameters
         double* pi =

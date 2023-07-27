@@ -72,7 +72,7 @@ TEST(ForceCost, Particle) {
                                 &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * estimator.PredictionLength();
+    int nres = nv * (estimator.ConfigurationLength() - 2);
 
     // velocity
     std::vector<double> v1(nv);
@@ -88,7 +88,7 @@ TEST(ForceCost, Particle) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.PredictionLength(); k++) {
+    for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
       // time index
       int t = k + 1;
 
@@ -125,7 +125,7 @@ TEST(ForceCost, Particle) {
       for (int i = 0; i < nv; i++) {
         // weight
         double weight = 1.0 / estimator.noise_process[i] / nv /
-                        estimator.PredictionLength();
+                        (estimator.ConfigurationLength() - 2);
         wr[i] = weight * rk[i];
       }
 
@@ -233,7 +233,7 @@ TEST(ForceCost, Box) {
                                 &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * estimator.PredictionLength();
+    int nres = nv * (estimator.ConfigurationLength() - 2);
     int T = estimator.ConfigurationLength();
 
     // configuration
@@ -259,7 +259,7 @@ TEST(ForceCost, Box) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.PredictionLength(); k++) {
+    for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
       // time index
       int t = k + 1;
 
@@ -296,7 +296,7 @@ TEST(ForceCost, Box) {
       for (int i = 0; i < nv; i++) {
         // weight
         double weight = 1.0 / estimator.noise_process[i] / nv /
-                        estimator.PredictionLength();
+                        (estimator.ConfigurationLength() - 2);
 
         // weighted residual
         wr[i] = weight * rk[i];

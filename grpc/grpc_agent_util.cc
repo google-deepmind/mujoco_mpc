@@ -187,7 +187,7 @@ grpc::Status GetCostValuesAndWeights(
   std::vector<double> residuals(task->num_residual, 0);  // scratch space
   double terms[mjpc::kMaxCostTerms];
   task->Residual(model, data, residuals.data());
-  task->CostTerms(terms, residuals.data(), /*weighted=*/false);
+  task->UnweightedCostTerms(terms, residuals.data());
   for (int i = 0; i < task->num_term; i++) {
     CHECK_EQ(agent_model->sensor_type[i], mjSENS_USER);
     std::string_view sensor_name(agent_model->names +

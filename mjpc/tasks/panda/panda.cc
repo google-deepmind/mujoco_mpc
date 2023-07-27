@@ -74,9 +74,7 @@ void Panda::ResidualFn::Residual(const mjModel* model, const mjData* data,
 void Panda::TransitionLocked(mjModel* model, mjData* data,
                              std::mutex* mutex) {
   double residuals[100];
-  double terms[10];
   residual_.Residual(model, data, residuals);
-  residual_.CostTerms(terms, residuals);
   double bring_dist = (mju_norm3(residuals+3) + mju_norm3(residuals+6)) / 2;
 
   // reset:

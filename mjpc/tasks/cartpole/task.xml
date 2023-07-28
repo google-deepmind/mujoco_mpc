@@ -17,10 +17,10 @@
     <numeric name="residual_Goal" data="0.0 -1.5 1.5" />
 
     <!-- estimator -->
-    <numeric name="estimator" data="0" />
+    <numeric name="estimator" data="3" />
     <numeric name="estimator_sensor_start" data="4" />
     <numeric name="estimator_number_sensor" data="4" />
-    <numeric name="estimator_timestep" data="0.005" />
+    <numeric name="estimator_timestep" data="0.0025" />
   </custom>
 
   <sensor>
@@ -33,6 +33,8 @@
     <!-- estimator -->
     <jointpos name="slider_pos" joint="slider"/>
     <jointpos name="hinge_pos" joint="hinge_1"/>
+    <!-- <framepos name="base_acc" objtype="site" objname="base" />
+    <framepos name="tip_acc" objtype="site" objname="tip" /> -->
 
     <jointvel name="vslider_pos" joint="slider"/>
     <jointvel name="vhinge_pos" joint="hinge_1"/>

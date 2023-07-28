@@ -47,6 +47,6 @@ int main(int argc, char** argv) {
 #endif
   absl::ParseCommandLine(argc, argv);
 
-  mjpc::StartApp(mjpc::GetTasks(), 8);
+  mjpc::StartApp(mjpc::GetTasks(), 1);
   return 0;
 }

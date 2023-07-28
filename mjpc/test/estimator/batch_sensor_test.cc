@@ -335,7 +335,7 @@ TEST(MeasurementCost, Box) {
 
     // loop over predictions
     for (int t = 0; t < estimator.ConfigurationLength() - 1; t++) {
-            if (t == 0) {
+      if (t == 0) {
         // first configuration
         mju_copy(data->qpos, configuration.data(), nq);
 

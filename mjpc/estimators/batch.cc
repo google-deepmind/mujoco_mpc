@@ -529,7 +529,6 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // data
   mjData* d = data_[0].get();
-  double time_cache = d->time;
 
   // -- next qpos -- //
 
@@ -541,9 +540,6 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // set ctrl
   mju_copy(d->ctrl, ctrl, nu);
-
-  // set time 
-  d->time = time_cache;
 
   // forward step
   mj_step(model, d);
@@ -1628,7 +1624,6 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
 
     // terms 
     double* q0 = batch.configuration.Get(t);
-
     double* dsdq = batch.block_sensor_configuration_.Get(t);
 
     // set data 
@@ -1753,10 +1748,7 @@ void Batch::ConfigurationToVelocityAcceleration() {
   int nv = model->nv;
 
   // loop over configurations
-  for (int k = 0; k < configuration_length_ - 1; k++) {
-    // time index
-    int t = k + 1;
-
+  for (int t = 1; t < configuration_length_; t++) {
     // previous and current configurations
     const double* q0 = configuration.Get(t - 1);
     const double* q1 = configuration.Get(t);

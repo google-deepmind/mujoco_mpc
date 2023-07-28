@@ -322,7 +322,7 @@ class BatchEstimatorTest(absltest.TestCase):
     # TODO(taylor): better tests
 
     # cost
-    cost = batch_estimator.cost()
+    cost = batch_estimator.cost(derivatives=True, internals=True)
 
     self.assertTrue(np.abs(cost["total"] - 0.0) < 1.0e-5)
 
@@ -338,8 +338,33 @@ class BatchEstimatorTest(absltest.TestCase):
     # cost initial
     self.assertTrue(np.abs(cost["initial"] - 0.0) < 1.0e-5)
 
-    #TODO(taylor): derivatives 
+    # derivatives 
+    nvar = model.nv * configuration_length
+    nsensor = model.nsensordata * (configuration_length - 1)
+    nforce = model.nv * (configuration_length - 2)
 
+    self.assertTrue(nvar == cost["nvar"])
+    self.assertTrue(nsensor == cost["nsensor"])
+    self.assertTrue(nforce == cost["nforce"])
+
+    self.assertTrue(cost["gradient"].size == nvar)
+    self.assertTrue(cost["hessian"].shape == (nvar, nvar))
+
+    self.assertTrue(cost["residual_prior"].size == nvar) 
+    self.assertTrue(cost["residual_sensor"].size == nsensor)
+    self.assertTrue(cost["residual_force"].size == nforce)
+
+    self.assertTrue(cost["jacobian_prior"].shape == (nvar, nvar))
+    self.assertTrue(cost["jacobian_sensor"].shape == (nsensor, nvar))
+    self.assertTrue(cost["jacobian_force"].shape == (nforce, nvar))
+
+    self.assertTrue(cost["norm_gradient_sensor"].size == nsensor)
+    self.assertTrue(cost["norm_gradient_force"].size == nforce) 
+
+    self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
+    self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
+    self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
+    
     #TODO(taylor): internals
 
   def test_weights(self):

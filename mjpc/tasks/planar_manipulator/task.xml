@@ -18,7 +18,7 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="9" />
+    <numeric name="estimator_number_sensor" data="16" />
     <numeric name="estimator_timestep" data="0.005" />
   </custom>
 
@@ -33,7 +33,6 @@
 
     <jointpos name="ball_x" joint="ball_x" />
     <jointpos name="ball_z" joint="ball_z" />
-    <jointpos name="ball_y" joint="ball_y" />
 
     <framepos name="upper_arm_site" objtype="site" objname="upper_arm_site" />
     <framepos name="middle_arm_site" objtype="site" objname="middle_arm_site" />
@@ -42,16 +41,15 @@
     <framepos name="thumbtip_site" objtype="site" objname="thumbtip_site" />
     <framepos name="fingertip_site" objtype="site" objname="fingertip_site" />
 
-    <!-- <jointvel name="vball_x" joint="ball_x" />
+    <jointvel name="vball_x" joint="ball_x" />
     <jointvel name="vball_z" joint="ball_z" />
-    <jointvel name="vball_ang" joint="ball_ang" />
 
     <framelinvel name="vupper_arm_site" objtype="site" objname="upper_arm_site" />
     <framelinvel name="vmiddle_arm_site" objtype="site" objname="middle_arm_site" />
     <framelinvel name="vlower_arm_site" objtype="site" objname="lower_arm_site" />
     <framelinvel name="vwrist_site" objtype="site" objname="wrist_site" />
     <framelinvel name="vthumbtip_site" objtype="site" objname="thumbtip_site" />
-    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" /> -->
+    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" />
 
     <!-- residual -->
     <!-- Sphere sensors. -->
@@ -72,7 +70,6 @@
     <body name="ball" pos="-.125 0 .022" childclass="object">
       <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
-      <joint name="ball_y" type="hinge" axis="0 1 0"/>
       <geom  name="ball" type="sphere" size=".022" />
       <site  name="ball" type="sphere" rgba="1 0 1 1" size="0.022" />
     </body>

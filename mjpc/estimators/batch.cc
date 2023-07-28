@@ -267,6 +267,7 @@ void Batch::Initialize(const mjModel* model) {
   // status
   gradient_norm_ = 0.0;
   search_direction_norm_ = 0.0;
+  step_size_ = 1.0;
   solve_status_ = kUnsolved;
 
   // settings

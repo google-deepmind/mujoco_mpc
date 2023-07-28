@@ -8,12 +8,22 @@
     <jointpos name="ball_x" joint="ball_x" />
     <jointpos name="ball_z" joint="ball_z" />
 
+    <jointvel name="vball_x" joint="ball_x" />
+    <jointvel name="vball_z" joint="ball_z" />
+
     <framepos name="upper_arm_site" objtype="site" objname="upper_arm_site" />
     <framepos name="middle_arm_site" objtype="site" objname="middle_arm_site" />
     <framepos name="lower_arm_site" objtype="site" objname="lower_arm_site" />
     <framepos name="wrist_site" objtype="site" objname="wrist_site" />
     <framepos name="thumbtip_site" objtype="site" objname="thumbtip_site" />
     <framepos name="fingertip_site" objtype="site" objname="fingertip_site" />
+
+    <framelinvel name="vupper_arm_site" objtype="site" objname="upper_arm_site" />
+    <framelinvel name="vmiddle_arm_site" objtype="site" objname="middle_arm_site" />
+    <framelinvel name="vlower_arm_site" objtype="site" objname="lower_arm_site" />
+    <framelinvel name="vwrist_site" objtype="site" objname="wrist_site" />
+    <framelinvel name="vthumbtip_site" objtype="site" objname="thumbtip_site" />
+    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" />
   </sensor>
 
   <worldbody>

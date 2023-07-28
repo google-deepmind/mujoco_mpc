@@ -198,6 +198,7 @@ void Batch::Initialize(const mjModel* model) {
     norm_type_sensor[i] =
         (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
 
+    // add support by parsing norm parameters
     if (norm_type_sensor[i] != 0) {
       mju_error("norm type not supported\n");
     }
@@ -318,7 +319,6 @@ void Batch::Reset() {
   acceleration.Reset();
   act.Reset();
   times.Reset();
-
   ctrl.Reset();
 
   // prior
@@ -331,7 +331,7 @@ void Batch::Reset() {
   // sensor mask
   sensor_mask.Reset();
   for (int i = 0; i < nsensor * configuration_length_; i++) {
-    sensor_mask.Data()[i] = 1;
+    sensor_mask.Data()[i] = 1; // sensor on
   }
 
   // force
@@ -512,6 +512,11 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
+  // check configuration length 
+  if (configuration_length_ != 3) {
+    mju_error("batch filter only supports configuration length = 3\n");
+  }
+
   // dimensions
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
@@ -525,40 +530,6 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // data
   mjData* d = data_[0].get();
   double time_cache = d->time;
-
-  // -- get previous position sensor measurement -- //
-  // terms
-  double* y0 = sensor_measurement.Get(t - 1);
-  mju_zero(y0, nsensordata_);
-
-  // set data
-  mju_copy(d->qpos, q0, nq);
-  mju_zero(d->qvel, nv);
-  mju_zero(d->ctrl, nu);
-  d->time = times.Get(t)[0] - model->opt.timestep;
-
-  // position sensors
-  mj_fwdPosition(model, d);
-  mj_sensorPos(model, d);
-
-  // loop over position sensors
-  for (int i = 0; i < nsensor; i++) {
-    // sensor stage
-    int sensor_stage = model->sensor_type[sensor_start + i];
-
-    // check for position
-    if (sensor_stage == mjSTAGE_POS) {
-      // dimension
-      int sensor_dim = model->sensor_dim[sensor_start + i];
-
-      // address
-      int sensor_adr = model->sensor_adr[sensor_start + i];
-
-      // copy sensor data
-      mju_copy(y0 + sensor_adr - sensor_start_index_,
-               d->sensordata + sensor_adr, sensor_dim);
-    }
-  }
 
   // -- next qpos -- //
 
@@ -678,11 +649,6 @@ void Batch::SetConfigurationLength(int length) {
   block_acceleration_previous_configuration_.SetLength(configuration_length_);
   block_acceleration_current_configuration_.SetLength(configuration_length_);
   block_acceleration_next_configuration_.SetLength(configuration_length_);
-
-  // status
-  step_size_ = 1.0;
-  gradient_norm_ = 0.0;
-  search_direction_norm_ = 0.0;
 }
 
 // shift trajectory heads
@@ -695,7 +661,6 @@ void Batch::Shift(int shift) {
   acceleration.Shift(shift);
   act.Shift(shift);
   times.Shift(shift);
-
   ctrl.Shift(shift);
 
   configuration_previous.Shift(shift);
@@ -707,36 +672,41 @@ void Batch::Shift(int shift) {
   force_measurement.Shift(shift);
   force_prediction.Shift(shift);
 
-  block_prior_current_configuration_.Shift(shift);
+  // not reusing Jacobian data--no need to shift
 
-  block_sensor_configurationT_.Shift(shift);
-  block_sensor_velocityT_.Shift(shift);
-  block_sensor_accelerationT_.Shift(shift);
+  // block_prior_current_configuration_.Shift(shift);
 
-  block_sensor_previous_configuration_.Shift(shift);
-  block_sensor_current_configuration_.Shift(shift);
-  block_sensor_next_configuration_.Shift(shift);
-  block_sensor_configurations_.Shift(shift);
+  // block_sensor_configuration_.Shift(shift);
+  // block_sensor_velocity_.Shift(shift);
+  // block_sensor_acceleration_.Shift(shift);
+  // block_sensor_configurationT_.Shift(shift);
+  // block_sensor_velocityT_.Shift(shift);
+  // block_sensor_accelerationT_.Shift(shift);
 
-  block_sensor_scratch_.Shift(shift);
+  // block_sensor_previous_configuration_.Shift(shift);
+  // block_sensor_current_configuration_.Shift(shift);
+  // block_sensor_next_configuration_.Shift(shift);
+  // block_sensor_configurations_.Shift(shift);
 
-  block_force_configuration_.Shift(shift);
-  block_force_velocity_.Shift(shift);
-  block_force_acceleration_.Shift(shift);
+  // block_sensor_scratch_.Shift(shift);
 
-  block_force_previous_configuration_.Shift(shift);
-  block_force_current_configuration_.Shift(shift);
-  block_force_next_configuration_.Shift(shift);
-  block_force_configurations_.Shift(shift);
+  // block_force_configuration_.Shift(shift);
+  // block_force_velocity_.Shift(shift);
+  // block_force_acceleration_.Shift(shift);
 
-  block_force_scratch_.Shift(shift);
+  // block_force_previous_configuration_.Shift(shift);
+  // block_force_current_configuration_.Shift(shift);
+  // block_force_next_configuration_.Shift(shift);
+  // block_force_configurations_.Shift(shift);
 
-  block_velocity_previous_configuration_.Shift(shift);
-  block_velocity_current_configuration_.Shift(shift);
+  // block_force_scratch_.Shift(shift);
 
-  block_acceleration_previous_configuration_.Shift(shift);
-  block_acceleration_current_configuration_.Shift(shift);
-  block_acceleration_next_configuration_.Shift(shift);
+  // block_velocity_previous_configuration_.Shift(shift);
+  // block_velocity_current_configuration_.Shift(shift);
+
+  // block_acceleration_previous_configuration_.Shift(shift);
+  // block_acceleration_current_configuration_.Shift(shift);
+  // block_acceleration_next_configuration_.Shift(shift);
 }
 
 // evaluate configurations
@@ -1037,10 +1007,10 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     // unpack block
     double* block;
     int block_columns; 
-    if (t == 0) {
-      block = block_sensor_configuration_.Get(t);
+    if (t == 0) { // only position sensors
+      block = block_sensor_configuration_.Get(t) + sensor_start_index_ * nv;
       block_columns = nv;
-    } else {
+    } else { // position, velocity, acceleration sensors
       block = block_sensor_configurations_.Get(t);
       block_columns = 3 * nv;
     }
@@ -1265,6 +1235,27 @@ void Batch::ResidualSensor() {
 
     // sensor difference
     mju_sub(rt, yt_model, yt_sensor, nsensordata_);
+
+    // zero out non-position sensors at first time step 
+    if (t == 0) {
+      // loop over position sensors
+      for (int i = 0; i < nsensor; i++) {
+        // sensor stage
+        int sensor_stage = model->sensor_needstage[sensor_start + i];
+
+        // check for position
+        if (sensor_stage != mjSTAGE_POS) {
+          // dimension
+          int sensor_dim = model->sensor_dim[sensor_start + i];
+
+          // address
+          int sensor_adr = model->sensor_adr[sensor_start + i];
+
+          // copy sensor data
+          mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
+        }
+      }
+    }
   }
 
   // stop timer
@@ -1275,19 +1266,27 @@ void Batch::ResidualSensor() {
 void Batch::BlockSensor(int index) {
   // dimensions
   int nv = model->nv, ns = nsensordata_;
+  int nvar = nv * configuration_length_;
+  int nsen = nsensordata_ * (configuration_length_ - 1);
 
   // shift
   int shift = sensor_start_index_ * nv;
 
-  if (index == 0 && settings.assemble_sensor_jacobian) {
-    int nvar = nv * configuration_length_;
-    int nsen = nsensordata_ * (configuration_length_ - 1);
-
+  // first time step
+  if (index == 0) {
     double* block = block_sensor_configuration_.Get(0) + shift;
 
-    // set block
-    SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
-                     nsensordata_, nv, 0, 0);
+    // unpack
+    double* dsdq012 = block_sensor_configurations_.Get(0);
+
+    // set dsdq1
+    SetBlockInMatrix(dsdq012, block, 1.0, ns, 3 * nv, ns, nv, 0, nv);
+
+    // set block in dense Jacobian
+    if (settings.assemble_sensor_jacobian) {
+      SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
+                       nsensordata_, nv, 0, 0);
+    }
     return;
   }
 
@@ -1358,13 +1357,9 @@ void Batch::BlockSensor(int index) {
 
   // assemble dense Jacobian
   if (settings.assemble_sensor_jacobian) {
-    // dimension
-    int nvar = nv * configuration_length_;
-    int nsen = nsensordata_ * (configuration_length_ - 1);
-
     // set block
     SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
-                     nsensordata_, 3 * nv, index * nsensordata_, index * nv);
+                     nsensordata_, 3 * nv, index * nsensordata_, (index - 1) * nv);
   }
 }
 
@@ -1536,6 +1531,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // terms 
     double* q0 = batch.configuration.Get(t);
     double* y0 = batch.sensor_prediction.Get(t);
+    mju_zero(y0, batch.nsensordata_);
 
     // set data 
     mju_copy(d->qpos, q0, nq);
@@ -1550,7 +1546,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // loop over position sensors 
     for (int i = 0; i < batch.nsensor; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_type[batch.sensor_start + i];
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start + i];
 
       // check for position 
       if (sensor_stage == mjSTAGE_POS) {
@@ -1634,7 +1630,6 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     double* q0 = batch.configuration.Get(t);
 
     double* dsdq = batch.block_sensor_configuration_.Get(t);
-    double* dqds = batch.block_sensor_configurationT_.Get(t);
 
     // set data 
     mju_copy(d->qpos, q0, nq);
@@ -1643,26 +1638,26 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     d->time = batch.times.Get(t)[0];
 
     // finite-difference derivatives
+    double* dqds = batch.block_sensor_configurationT_.Get(t);
     mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
                   batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
                   NULL, NULL, NULL);
-
     // transpose
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
 
-    // loop over position sensors 
-    for (int i = 0; i < batch.model->nsensor; i++) {
+    // loop over position sensors
+    for (int i = 0; i < batch.nsensor; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_type[i];
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start + i];
 
-      // check for position 
+      // dimension
+      int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
+
+      // address
+      int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
+
+      // check for position
       if (sensor_stage != mjSTAGE_POS) {
-        // dimension 
-        int sensor_dim = batch.model->sensor_dim[i];
-
-        // address 
-        int sensor_adr = batch.model->sensor_adr[i];
-
         // zero remaining rows
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
       }
@@ -1993,6 +1988,8 @@ void Batch::Optimize(ThreadPool& pool) {
   auto start_optimize = std::chrono::steady_clock::now();
 
   // set status
+  gradient_norm_ = 0.0;
+  search_direction_norm_ = 0.0;
   solve_status_ = kUnsolved;
 
   // dimensions
@@ -2004,6 +2001,7 @@ void Batch::Optimize(ThreadPool& pool) {
 
   // initial cost
   cost_count_ = 0;
+  cost_skip_ = false;
   cost = Cost(NULL, NULL, pool);
   cost_initial = cost;
 
@@ -2247,7 +2245,7 @@ void Batch::SearchDirection() {
       }
 
       // copy
-      mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal);
+      mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal); // TODO(taylor): band copy
 
       // factorize
       min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense,

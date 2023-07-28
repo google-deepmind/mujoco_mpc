@@ -91,12 +91,58 @@ TEST(MeasurementCost, Particle) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.ConfigurationLength() - 1; k++) {
-      // time index
-      int t = k + 1;
+    for (int t = 0; t < estimator.ConfigurationLength() - 1; t++) {
+      if (t == 0) {
+        // first configuration
+        mju_copy(data->qpos, configuration, nq);
+
+        // first sensor 
+        double* y0 = estimator.sensor_measurement.Get(t);
+
+        // residual
+        double* rk = residual.data();
+
+        // inverse dynamics
+        mj_inverse(model, data);
+
+        // measurement error
+        mju_sub(rk, data->sensordata, y0, ns);
+
+        // loop over sensors
+        int shift = 0;
+
+        for (int i = 0; i < model->nsensor; i++) {
+          // skip velocity, acceleration sensors (assumes position sensors are first)
+          if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
+
+          // sensor dimension
+          int nsi = model->sensor_dim[i];
+
+          // sensor residual
+          double* rki = rk + shift;
+
+          // weight
+          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+                          (estimator.ConfigurationLength() - 1);
+
+          // parameters
+          double* pi =
+              estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+
+          // norm
+          NormType normi = estimator.norm_type_sensor[i];
+
+          // add weighted norm
+          cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
+
+          // shift
+          shift += nsi;
+        }
+        continue;
+      }
 
       // unpack
-      double* rk = residual.data() + k * ns;
+      double* rk = residual.data() + t * ns;
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
@@ -288,12 +334,58 @@ TEST(MeasurementCost, Box) {
     double cost = 0.0;
 
     // loop over predictions
-    for (int k = 0; k < estimator.ConfigurationLength() - 1; k++) {
-      // time index
-      int t = k + 1;
+    for (int t = 0; t < estimator.ConfigurationLength() - 1; t++) {
+            if (t == 0) {
+        // first configuration
+        mju_copy(data->qpos, configuration.data(), nq);
+
+        // first sensor 
+        double* y0 = estimator.sensor_measurement.Get(t);
+
+        // residual
+        double* rk = residual.data();
+
+        // inverse dynamics
+        mj_inverse(model, data);
+
+        // measurement error
+        mju_sub(rk, data->sensordata, y0, ns);
+
+        // loop over sensors
+        int shift = 0;
+
+        for (int i = 0; i < model->nsensor; i++) {
+          // skip velocity, acceleration sensors (assumes position sensors are first)
+          if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
+
+          // sensor dimension
+          int nsi = model->sensor_dim[i];
+
+          // sensor residual
+          double* rki = rk + shift;
+
+          // weight
+          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+                          (estimator.ConfigurationLength() - 1);
+
+          // parameters
+          double* pi =
+              estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+
+          // norm
+          NormType normi = estimator.norm_type_sensor[i];
+
+          // add weighted norm
+          cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
+
+          // shift
+          shift += nsi;
+        }
+        continue;
+      }
 
       // unpack
-      double* rk = residual.data() + k * ns;
+      double* rk = residual.data() + t * ns;
       const double* q0 = configuration.data() + (t - 1) * nq;
       const double* q1 = configuration.data() + (t + 0) * nq;
       const double* q2 = configuration.data() + (t + 1) * nq;

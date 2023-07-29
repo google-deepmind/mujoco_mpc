@@ -18,8 +18,8 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="16" />
-    <numeric name="estimator_timestep" data="0.005" />
+    <numeric name="estimator_number_sensor" data="7" />
+    <!-- <numeric name="estimator_timestep" data="0.005" /> -->
   </custom>
 
   <sensor>
@@ -30,10 +30,7 @@
     <user name="Control" needstage="acc" dim="4" user="3 0.0001 0.0 0.001 0.3"/>
 
     <!-- estimator -->
-
-    <jointpos name="ball_x" joint="ball_x" />
-    <jointpos name="ball_z" joint="ball_z" />
-
+    <framepos name="ball" objtype="site" objname="ball"/>
     <framepos name="upper_arm_site" objtype="site" objname="upper_arm_site" />
     <framepos name="middle_arm_site" objtype="site" objname="middle_arm_site" />
     <framepos name="lower_arm_site" objtype="site" objname="lower_arm_site" />
@@ -41,7 +38,7 @@
     <framepos name="thumbtip_site" objtype="site" objname="thumbtip_site" />
     <framepos name="fingertip_site" objtype="site" objname="fingertip_site" />
 
-    <jointvel name="vball_x" joint="ball_x" />
+    <!-- <jointvel name="vball_x" joint="ball_x" />
     <jointvel name="vball_z" joint="ball_z" />
 
     <framelinvel name="vupper_arm_site" objtype="site" objname="upper_arm_site" />
@@ -49,7 +46,7 @@
     <framelinvel name="vlower_arm_site" objtype="site" objname="lower_arm_site" />
     <framelinvel name="vwrist_site" objtype="site" objname="wrist_site" />
     <framelinvel name="vthumbtip_site" objtype="site" objname="thumbtip_site" />
-    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" />
+    <framelinvel name="vfingertip_site" objtype="site" objname="fingertip_site" /> -->
 
     <!-- residual -->
     <!-- Sphere sensors. -->
@@ -64,14 +61,40 @@
   </sensor>
 
   <worldbody>
+    <!-- ball -->
+    <body name="ball" pos="-.125 0 .022" childclass="object">
+      <joint name="ball_x" type="slide" axis="1 0 0" ref="-.124"/>
+      <joint name="ball_z" type="slide" axis="0 0 1" ref=".022"/>
+      <geom  name="ball" type="sphere" size=".022" />
+      <site  name="ball" type="sphere" rgba="1 0 1 0" size="0.022" />
+    </body>
+
+    <!-- target ball position -->
     <body name="debug_target" mocap="true" pos="-0.2 0 0.6">
       <geom type="sphere" size="0.02" rgba="0.8 0.2 0.2 0.5" contype="0" conaffinity="0"/>
     </body>
-    <body name="ball" pos="-.125 0 .022" childclass="object">
-      <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
-      <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
-      <geom  name="ball" type="sphere" size=".022" />
-      <site  name="ball" type="sphere" rgba="1 0 1 1" size="0.022" />
+
+    <!-- mocap for position sensor visualization -->
+    <body name="mocap_ball" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_upper_arm" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_middle_arm" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_lower_arm" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_wrist" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_thumbtip" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="mocap_fingertip" mocap="true">
+      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
 </mujoco>

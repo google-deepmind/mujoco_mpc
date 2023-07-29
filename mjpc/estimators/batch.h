@@ -204,6 +204,8 @@ class Batch : public Estimator {
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
 
+  int SensorStartIndex() const { return sensor_start_index_; };
+
   // model
   mjModel* model = nullptr;
 

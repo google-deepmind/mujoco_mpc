@@ -142,38 +142,70 @@ grpc::Status SetState(const SetStateRequest* request, mjpc::Agent* agent,
 
 #undef CHECK_SIZE
 
-grpc::Status GetAction(const GetActionRequest* request,
-                       const mjpc::Agent* agent,
-                       const mjModel* model, mjData* rollout_data,
-                       mjpc::State* rollout_state,
-                       GetActionResponse* response) {
-  int nu = agent->GetActionDim();
-  std::vector<double> ret = std::vector<double>(nu, 0);
+namespace {
+// TODO(nimrod): make planner a const reference
+std::vector<double> AverageAction(mjpc::Planner& planner, const mjModel* model,
+                                  bool nominal_action, mjData* rollout_data,
+                                  mjpc::State* rollout_state, double time,
+                                  double averaging_duration) {
+  int nu = model->nu;
+  std::vector<double> ret(nu, 0);
+  int nactions = 0;
+  double end_time = time + averaging_duration;
 
-  double time =
-      request->has_time() ? request->time() : agent->ActiveState().time();
-
-  if (request->averaging_duration() > 0) {
-    agent->ActiveState().CopyTo(model, rollout_data);
+  if (nominal_action) {
+    std::vector<double> action(nu, 0);
+    while (time < end_time) {
+      planner.ActionFromPolicy(action.data(), /*state=*/nullptr, time);
+      mju_addTo(ret.data(), action.data(), nu);
+      time += model->opt.timestep;
+      nactions++;
+    }
+  } else {
     rollout_data->time = time;
-    double end_time = time + request->averaging_duration();
-    int nactions = 0;
     while (rollout_data->time <= end_time) {
       rollout_state->Set(model, rollout_data);
-      agent->ActivePlanner().ActionFromPolicy(rollout_data->ctrl,
-                                              rollout_state->state().data(),
+      const double* state = rollout_state->state().data();
+      planner.ActionFromPolicy(rollout_data->ctrl, state,
                                               rollout_data->time);
       mju_addTo(ret.data(), rollout_data->ctrl, nu);
       mj_step(model, rollout_data);
       nactions++;
     }
-    mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
-  } else {
-    agent->ActivePlanner().ActionFromPolicy(
-        ret.data(), &agent->ActiveState().state()[0], time);
   }
+  mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
+  return ret;
+}
 
-  response->mutable_action()->Assign(ret.begin(), ret.end());
+}  // namespace
+grpc::Status GetAction(const GetActionRequest* request,
+                       const mjpc::Agent* agent,
+                       const mjModel* model, mjData* rollout_data,
+                       mjpc::State* rollout_state,
+                       GetActionResponse* response) {
+  double time =
+      request->has_time() ? request->time() : agent->ActiveState().time();
+
+  if (request->averaging_duration() > 0) {
+    if (request->nominal_action()) {
+      rollout_data = nullptr;
+      rollout_state = nullptr;
+    } else {
+      agent->ActiveState().CopyTo(model, rollout_data);
+      rollout_state->Set(model, rollout_data);
+    }
+    std::vector<double> ret = AverageAction(agent->ActivePlanner(), model,
+                        request->nominal_action(), rollout_data, rollout_state,
+                        time, request->averaging_duration());
+    response->mutable_action()->Assign(ret.begin(), ret.end());
+  } else {
+    std::vector<double> ret(model->nu, 0);
+    const double* state = request->nominal_action()
+                              ? nullptr
+                              : agent->ActiveState().state().data();
+    agent->ActivePlanner().ActionFromPolicy(ret.data(), state, time);
+    response->mutable_action()->Assign(ret.begin(), ret.end());
+  }
 
   return grpc::Status::OK;
 }

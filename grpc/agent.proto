@@ -93,6 +93,11 @@ message GetActionRequest {
   // and actions will be averaged over that period.
   // During the rollout, the task's Transition will not be called.
   optional float averaging_duration = 2;
+
+  // For planners that use feedback terms (iLQG), if true, return the nominal
+  // action for the given time rather than applying feedback terms on the
+  // current state. For the sampling planner this has no effect.
+  optional bool nominal_action = 3;
 }
 
 message GetActionResponse {

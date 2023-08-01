@@ -347,7 +347,7 @@ void Unscented::EvaluateSigmaPoints() {
     mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
   }
 
-  // compute correct quaterion means 
+  // compute correct quaternion means 
   QuaternionMeans();
 }
 

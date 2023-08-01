@@ -500,6 +500,43 @@ void Batch::Reset() {
       times.Set(&current_time, i);
     }
 
+    // -- set initial position-based measurements -- //
+
+    // data 
+    mjData* data = data_[0].get();
+
+    // set q0 
+    mju_copy(data->qpos, q0, model->nq);
+
+    // evaluate position
+    mj_fwdPosition(model, data);
+    mj_sensorPos(model, data);
+
+    // y0 
+    double* y0 = sensor_measurement.Get(0);
+    mju_zero(y0, nsensordata_);
+
+    // loop over sensors
+    for (int i = 0; i < nsensor; i++) {
+      // measurement sensor index 
+      int index = sensor_start + i;
+
+      // need stage 
+      int sensor_stage = model->sensor_needstage[index];
+
+      if (sensor_stage == mjSTAGE_POS) {
+        // address 
+        int sensor_adr = model->sensor_adr[index];
+
+        // dimension 
+        int sensor_dim = model->sensor_dim[index];
+
+        // set sensor
+        mju_copy(y0 + sensor_adr - sensor_start_index_,
+                 data->sensordata + sensor_adr, sensor_dim);
+      }
+    }
+
     // prior weight (skip act)
     for (int i = 0; i < ndstate_ - na; i++) {
       weight_prior[nv * configuration_length_ * i + i] =

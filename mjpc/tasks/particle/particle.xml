@@ -1,5 +1,5 @@
 <mujoco model="Particle">
-  <option timestep="0.0025">
+  <option timestep="0.01">
     <flag contact="disable"/>
   </option>
 

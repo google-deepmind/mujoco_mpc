@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "mjpc/estimators/buffer.h"
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/include.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"

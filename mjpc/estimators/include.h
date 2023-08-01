@@ -18,10 +18,8 @@
 #include <memory>
 #include <vector>
 
-#include "mjpc/estimators/kalman.h"
 #include "mjpc/estimators/batch.h"
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/unscented.h"
 
 namespace mjpc {
 

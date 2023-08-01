@@ -47,7 +47,7 @@ class Agent {
   friend class AgentTest;
 
   // constructor
-  Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()), estimators_(mjpc::LoadEstimators()) {}
+  Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -130,9 +130,6 @@ class Agent {
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::State& ActiveState() const { return *states_[state_]; }
-  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; };
-  mjpc::Estimator& PreviousEstimator() const { return *estimators_[previous_estimator]; };
-  int ActiveEstimatorIndex() const { return estimator_; };
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -163,7 +160,6 @@ class Agent {
 
   // threads
   int planner_threads() const { return planner_threads_;}
-  int estimator_threads() const { return estimator_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
   int plan_enabled;
@@ -172,18 +168,6 @@ class Agent {
   int allocate_enabled;
   int plot_enabled;
   int gui_task_id = 0;
-
-  // estimator 
-  std::vector<double> sensor;
-  std::vector<double> ctrl;
-  std::vector<double> state;
-  double time = 0.0;
-  double timestep;
-  int integrator;
-  std::vector<double> process_noise;
-  std::vector<double> sensor_noise;
-  int previous_estimator;
-  bool reset_estimator = true;
 
  private:
   // model
@@ -217,10 +201,6 @@ class Agent {
   std::vector<std::unique_ptr<mjpc::State>> states_;
   int state_;
 
-  // estimators 
-  std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
-  int estimator_;
-
   // task queue for RunBeforeStep
   std::mutex step_jobs_mutex_;
   std::deque<StepJob> step_jobs_;
@@ -239,16 +219,12 @@ class Agent {
   // names
   char task_names_[1024];
   char planner_names_[1024];
-  char estimator_names_[1024];
 
   // plots
   AgentPlots plots_;
 
   // max threads for planning
   int planner_threads_;
-
-  // max threads for estimation 
-  int estimator_threads_;
 };
 
 }  // namespace mjpc

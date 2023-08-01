@@ -139,64 +139,6 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
   return mnew;
 }
 
-// estimator in background thread 
-void EstimatorLoop(mj::Simulate& sim) {
-  // run until asked to exit
-  while (!sim.exitrequest.load()) {
-    if (sim.uiloadrequest.load() == 0) {
-      // estimator
-      int active_estimator = sim.agent->ActiveEstimatorIndex();
-      mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
-
-      // if (active_estimator == 1 || active_estimator == 2) {
-      if (active_estimator > 0) {
-        // start timer
-        auto start = std::chrono::steady_clock::now();
-
-        // set values from GUI
-        mju_copy(estimator->ProcessNoise(), sim.agent->process_noise.data(),
-                 estimator->DimensionProcess());
-        mju_copy(estimator->SensorNoise(), sim.agent->sensor_noise.data(),
-                 estimator->DimensionSensor());
-        estimator->Model()->opt.timestep = sim.agent->timestep;
-        estimator->Model()->opt.integrator = sim.agent->integrator;
-
-        // get simulation state
-        {
-          const std::lock_guard<std::mutex> lock(sim.mtx);
-          mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
-          mju_copy(sim.agent->sensor.data(), d->sensordata, m->nsensordata);
-          sim.agent->time = d->time;
-        }
-
-        // set time
-        // TODO(taylor): time sync w/ physics loop
-        estimator->Data()->time = sim.agent->time;
-        mju_copy(estimator->Data()->userdata, d->userdata, m->nuserdata);
-
-        // update
-        estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
-
-        // copy state
-        mju_copy(sim.agent->state.data(), estimator->State(),
-                 m->nq + m->nv + m->na);
-        sim.agent->time = estimator->Data()->time;
-
-        // wait (ms)
-        while (1.0e-3 * mjpc::GetDuration(start) <
-               1.0e3 * estimator->Model()->opt.timestep) {
-        }
-      } else {
-        // ground truth
-        mju_copy(estimator->State(), d->qpos, m->nq);
-        mju_copy(estimator->State() + m->nq, d->qvel, m->nv);
-        mju_copy(estimator->State() + m->nq + m->nv, d->act, m->na);
-        estimator->Time() = d->time;
-      }
-    }
-  }
-}
-
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
   // cpu-sim synchronization point
@@ -358,25 +300,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      // unpack state
-      mjpc::State* state = &sim.agent->ActiveState();
-
-      // estimator 
-      int active_estimator = sim.agent->ActiveEstimatorIndex();
-
-      // set state
-      if (active_estimator > 0) {
-        // from estimator
-        state->SetPosition(m, sim.agent->state.data());
-        state->SetVelocity(m, sim.agent->state.data() + m->nq);
-        state->SetAct(m, sim.agent->state.data() + m->nq + m->nv);
-        state->SetTime(m, sim.agent->time);
-        state->SetMocap(m, d->mocap_pos, d->mocap_quat);
-        state->SetUserData(m, d->userdata);
-      } else { // == 0
-        // from simulation
-        state->Set(m, d);
-      }
+      sim.agent->ActiveState().Set(m, d);
     }
   }
 }
@@ -468,10 +392,7 @@ void MjpcApp::Start() {
   // threads
   printf("  physics        :  %i\n", 1);
   printf("  render         :  %i\n", 1);
-  printf("  Planner        :  %i\n", 1);
-  printf("    planning     :  %i\n", sim->agent->planner_threads());
-  printf("  Estimator      :  %i\n", sim->agent->estimator_threads());
-  printf("    estimation   :  %i\n", 1);
+  printf("  planner        :  %i\n", sim->agent->planner_threads());
 
   // set control callback
   mjcb_control = controller;
@@ -483,10 +404,6 @@ void MjpcApp::Start() {
   mjpc::ThreadPool physics_pool(1);
   physics_pool.Schedule([]() { PhysicsLoop(*sim.get()); });
 
-  // start estimator thread 
-  mjpc::ThreadPool estimator_pool(1);
-  estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
-  
   {
     // start plan thread
     mjpc::ThreadPool plan_pool(1);

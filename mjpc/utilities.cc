@@ -1447,197 +1447,44 @@ void Inverse3(double* res, const double* mat) {
   mju_scl(res, res, 1.0 / det, 9);
 }
 
-// principal eigenvector of 4x4 matrix
-// QUEST: "Three-Axis Attitude Determination from Vector Observations"
-void PrincipalEigenVector4(double* res, const double* mat,
-                           double eigenvalue_init) {
-  // Z = mat[0:3, 3]
-  double Z[3] = {mat[3], mat[7], mat[11]};
+// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of
+// mat00
+// TODO(taylor): thread
+void ConditionMatrix(double* res, const double* mat, double* mat00,
+                     double* mat10, double* mat11, double* tmp0, double* tmp1,
+                     int n, int n0, int n1, double* bandfactor, int nband) {
+  // unpack mat
+  BlockFromMatrix(mat00, mat, n0, n0, n, n, 0, 0);
+  BlockFromMatrix(mat10, mat, n1, n0, n, n, n0, 0);
+  BlockFromMatrix(mat11, mat, n1, n1, n, n, n0, n0);
 
-  // S = mat[0:3, 0:3] + mat[3, 3] * I
-  double S[9] = {mat[0] + mat[15], mat[1],           mat[2],
-                 mat[4],           mat[5] + mat[15], mat[6],
-                 mat[8],           mat[9],           mat[10] + mat[15]};
+  // factorize mat00, solve mat00 \ mat10^T
+  if (nband > 0 && bandfactor) {
+    mju_dense2Band(bandfactor, mat00, n0, nband, 0);
 
-  // delta = det(S)
-  double delta = Determinant3(S);
+    // factorize mat00
+    mju_cholFactorBand(bandfactor, n0, nband, 0, 0.0, 0.0);
 
-  // kappa = trace(delta * S^-1)
-  double tmp0[9];
-  Inverse3(tmp0, S);
-  mju_scl(tmp0, tmp0, delta, 9);
-  double kappa = Trace(tmp0, 3);
-
-  // sigma = 0.5 * trace(S)
-  double sigma = 0.5 * Trace(S, 3);
-  double sigma2 = sigma * sigma;
-
-  // S * Z
-  double SZ[3];
-  mju_mulMatVec(SZ, S, Z, 3, 3);
-
-  // d = Z' * S * S * Z
-  double d = mju_dot(SZ, SZ, 3);
-
-  // c = delta + Z' * S * Z
-  double c = delta + mju_dot(Z, SZ, 3);
-
-  // b = sigma * sigma + Z' * Z
-  double b = sigma2 + mju_dot(Z, Z, 3);
-
-  // a = sigma * sigma - kappa
-  double a = sigma2 - kappa;
-
-  // -- find largest eigenvalue -- //
-
-  // initialize
-  double x = eigenvalue_init;
-
-  // coefficients
-  double ab = a + b;
-  double bias = a * b + c * sigma - d;
-
-  // iterate
-  for (int i = 0; i < 10; i++) {
-    // eigenvalue powers
-    double x2 = x * x;
-    double x3 = x2 * x;
-    double x4 = x3 * x;
-
-    // root
-    double num = x4 - ab * x2 - c * x + bias;
-
-    // root derivative
-    double den = 4.0 * x3 - 2.0 * ab * x - c;
-
-    // update
-    x -= num / den;
-  }
-
-  // -- principal eigenvector -- //
-  double alpha = x * x - sigma2 + kappa;
-  double beta = x - sigma;
-  double gamma = (x + sigma) * alpha - delta;
-
-  // X = alpha * Z + beta * S * Z + S * S * Z
-  double X[3];
-  mju_mulMatVec(X, S, SZ, 3, 3);
-  mju_addToScl(X, SZ, beta, 3);
-  mju_addToScl(X, Z, alpha, 3);
-
-  // scale
-  double scl = 1.0 / mju_sqrt(gamma * gamma + mju_dot(X, X, 3));
-
-  // eigenvector
-  res[0] = scl * X[0];
-  res[1] = scl * X[1];
-  res[2] = scl * X[2];
-  res[3] = scl * gamma;
-}
-
-// compute skew symmetric matrix
-void SkewSymmetricMatrix(double* mat, const double* x) {
-  mat[0] = 0.0;
-  mat[1] = -x[2];
-  mat[2] = x[1];
-  mat[3] = x[2];
-  mat[4] = 0.0;
-  mat[5] = -x[0];
-  mat[6] = -x[1];
-  mat[7] = x[0];
-  mat[8] = 0.0;
-}
-
-// Jacobians of mju_quatIntegrate wrt quat, vel
-// http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
-// https://arxiv.org/pdf/1812.01537.pdf
-void DifferentiateQuatIntegrate(double* jacquat, double* jacvel,
-                                const double* quat, const double* vel,
-                                double scale) {
-  // integrate
-  double quati[4];
-  mju_copy3(quati, quat);
-  mju_quatIntegrate(quati, vel, scale);
-
-  // Jacobian wrt quat
-  if (jacquat) {
-    // quaternion -> rotation matrix
-    double mat[9];
-    mju_quat2Mat(mat, quati);
-    mju_transpose(jacquat, mat, 3, 3);
-  }
-
-  // Jacobian wrt vel
-  if (jacvel) {
-    // scaled vel
-    double s_vel[3];
-    mju_scl3(s_vel, vel, scale);
-
-    // norm of scaled rotation
-    double n = mju_norm3(s_vel);
-
-    // check small norm
-    if (n < 1.0e-8) {
-      mju_zero(jacvel, 9);
-      return;
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolveBand(tmp0 + n0 * i, bandfactor, mat10 + n0 * i, n0, nband,
+                        0);
     }
+  } else {
+    // factorize mat00
+    mju_cholFactor(mat00, n0, 0.0);
 
-    // coefficients
-    double n2 = n * n;
-    double n3 = n2 * n;
-    double s0 = (1.0 - mju_cos(n)) / n2;
-    double s1 = (n - mju_sin(n)) / n3;
-
-    // skew symmetric matrix
-    double skew[9];
-    SkewSymmetricMatrix(skew, s_vel);
-    double skew2[9];
-    mju_mulMatMat(skew2, skew, skew, 3, 3, 3);
-
-    // jacvel = I - s0 * skew + s1 * skew^2
-    mju_eye(jacvel, 3);
-    mju_addToScl(jacvel, skew, -s0, 9);
-    mju_addToScl(jacvel, skew2, s1, 9);
-  }
-}
-
-// compute slerp between quat0 and quat1 for t in [0, 1]
-// optionally compute Jacobians wrt quat0, quat1
-void Slerp(double* res, const double* quat0, const double* quat1, double t,
-           double* jac0, double* jac1) {
-  // quaternion difference
-  double dq[3];
-  mju_subQuat(dq, quat1, quat0);
-
-  // integrate
-  mju_copy4(res, quat0);
-  mju_quatIntegrate(res, dq, t);
-
-  // slerp Jacobian
-  if (jac0 || jac1) {
-    // differentiate subQuat
-    double dvdq0[9];
-    double dvdq1[9];
-    DifferentiateSubQuat(dvdq1, dvdq0, quat1, quat0);
-
-    // differentiate quatIntegratae
-    double dqdq[9];
-    double dqdv[9];
-    DifferentiateQuatIntegrate(dqdq, dqdv, quat0, dq, t);
-
-    // Jacobian wrt quat0: dqdv * dvdq0 * t + dqdq
-    if (jac0) {
-      mju_mulMatMat(jac0, dqdv, dvdq0, 3, 3, 3);
-      mju_scl(jac0, jac0, t, 9);
-      mju_addTo(jac0, dqdq, 9);
-    }
-
-    // Jacobian wrt quat1: dqdv * dvdq * t
-    if (jac1) {
-      mju_mulMatMat(jac1, dqdv, dvdq1, 3, 3, 3);
-      mju_scl(jac1, jac1, t, 9);
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolve(tmp0 + n0 * i, mat00, mat10 + n0 * i, n0);
     }
   }
+
+  // tmp1 = mat10 * (mat00 \ mat01)
+  mju_mulMatMatT(tmp1, tmp0, mat10, n1, n0, n1);
+
+  // res = mat11 - mat10 * (mat00 \ mat01)
+  mju_sub(res, mat11, tmp1, n1 * n1);
 }
 
 }  // namespace mjpc

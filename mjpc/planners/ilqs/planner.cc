@@ -22,7 +22,6 @@
 #include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/planner.h"
-#include "mjpc/planners/linear_solve.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"

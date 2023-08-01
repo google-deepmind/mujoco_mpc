@@ -64,8 +64,7 @@ void Quadrotor::ResidualFn::Residual(const mjModel* model, const mjData* data,
 }
 
 // ----- Transition for quadrotor task -----
-void Quadrotor::TransitionLocked(mjModel* model, mjData* data,
-                                 std::mutex* mutex) {
+void Quadrotor::TransitionLocked(mjModel* model, mjData* data) {
   // set mode to GUI selection
   if (mode > 0) {
     current_mode_ = mode - 1;

@@ -234,7 +234,7 @@ void ThreadSafeTask::UpdateResidual() {
 
 void ThreadSafeTask::Transition(mjModel* model, mjData* data) {
   std::lock_guard<std::mutex> lock(mutex_);
-  TransitionLocked(model, data, &mutex_);
+  TransitionLocked(model, data);
   InternalResidual()->Update();
 }
 

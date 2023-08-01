@@ -195,11 +195,9 @@ class ThreadSafeTask : public Task {
   // implementation of Task::Transition() which can assume a lock is held.
   // in some cases the transition logic requires calling mj_forward (e.g., for
   // measuring contact forces), which will call the sensor callback, which calls
-  // ResidualLocked. In order to avoid such resource contention, we give the
-  // user the ability to temporarily unlock the mutex, but it must be locked
-  // again before returning.
-  virtual void TransitionLocked(mjModel* model, mjData* data,
-                                std::mutex* mutex) {}
+  // ResidualLocked. In order to avoid such resource contention, mutex_ might be
+  // temporarily unlocked, but it must be locked again before returning.
+  virtual void TransitionLocked(mjModel* model, mjData* data) {}
   // implementation of Task::Reset() which can assume a lock is held
   virtual void ResetLocked(const mjModel* model) {}
   // mutex which should be held on changes to InternalResidual.

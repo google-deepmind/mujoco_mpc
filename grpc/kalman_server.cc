@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 
+#include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 #include <absl/log/log.h>
@@ -32,6 +33,7 @@
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 
 int main(int argc, char** argv) {
+  absl::ParseCommandLine(argc, argv);
   absl::ParseCommandLine(argc, argv);
   int port = absl::GetFlag(FLAGS_mjpc_port);
 

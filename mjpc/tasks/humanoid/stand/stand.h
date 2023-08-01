@@ -27,7 +27,7 @@ class Stand : public ThreadSafeTask {
  public:
   class ResidualFn : public mjpc::BaseResidualFn {
    public:
-    explicit ResidualFn(const Stand* task);
+    explicit ResidualFn(const Stand* task) : mjpc::BaseResidualFn(task) {}
 
     // ------------------ Residuals for humanoid stand task ------------
     //   Number of residuals: 6

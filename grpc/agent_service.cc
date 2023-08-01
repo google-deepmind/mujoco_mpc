@@ -110,6 +110,7 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
       << "Multiple instances of AgentService detected.";
   model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
+  rollout_data_.reset(mj_makeData(model));
   mjcb_sensor = residual_sensor_callback;
 
   agent_.SetState(data_);
@@ -151,7 +152,9 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
   if (!status.ok()) return status;
 
   mj_forward(model, data_);
+  // Further update the state by calling task's Transition function.
   task->Transition(model, data_);
+  agent_.SetState(data_);
 
   return grpc::Status::OK;
 }
@@ -162,7 +165,8 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetAction(request, &agent_, model, data_, response);
+  return grpc_agent_util::GetAction(
+      request, &agent_, model, rollout_data_.get(), &rollout_state_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(
@@ -195,6 +199,11 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
   }
   mjpc::State& state = agent_.ActiveState();
   state.CopyTo(model, data_);
+  // mj_forward is needed because Transition might access properties from
+  // mjData.
+  // For performance, we could consider adding an option to the request for
+  // callers to assume that data_ is up to date before the call.
+  mj_forward(model, data_);
   agent_.ActiveTask()->Transition(model, data_);
   agent_.ActivePlanner().ActionFromPolicy(data_->ctrl, state.state().data(),
                                           state.time(),
@@ -210,7 +219,11 @@ grpc::Status AgentService::Reset(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::Reset(&agent_, agent_.GetModel(), data_);
+
+  grpc::Status status =
+      grpc_agent_util::Reset(&agent_, agent_.GetModel(), data_);
+  rollout_data_.reset(mj_makeData(model));
+  return status;
 }
 
 grpc::Status AgentService::SetTaskParameters(

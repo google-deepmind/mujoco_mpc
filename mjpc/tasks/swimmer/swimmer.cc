@@ -31,7 +31,7 @@ std::string Swimmer::Name() const { return "Swimmer"; }
 //     Residual (0-4): control
 //     Residual (5-6): XY displacement between nose and target
 // -------------------------------------------------------------
-void Swimmer::Residual(const mjModel* model, const mjData* data,
+void Swimmer::ResidualFn::Residual(const mjModel* model, const mjData* data,
                        double* residual) const {
   // ---------- Residual (0-4) ----------
   // controls
@@ -48,7 +48,8 @@ void Swimmer::Residual(const mjModel* model, const mjData* data,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-void Swimmer::Transition(const mjModel* model, mjData* data) {
+void Swimmer::TransitionLocked(mjModel* model, mjData* data,
+                               std::mutex* mutex) {
   double* target = SensorByName(model, data, "target");
   double* nose = SensorByName(model, data, "nose");
   double nose_to_target[2];

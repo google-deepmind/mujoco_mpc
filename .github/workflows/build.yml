@@ -20,8 +20,8 @@ jobs:
               -DCMAKE_CXX_COMPILER:STRING=clang++-14
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: 
-              "agent_server"
-              "batch_estimator_server" 
+              "agent_server",
+              "batch_estimator_server", 
               "kalman_server"
             tmpdir: "/tmp"
           - os: macos-12
@@ -29,8 +29,8 @@ jobs:
               -G Ninja
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: 
-              "agent_server" 
-              "batch_estimator_server" 
+              "agent_server",
+              "batch_estimator_server", 
               "kalman_server"
             tmpdir: "/tmp"
           - os: windows-2022

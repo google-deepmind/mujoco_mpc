@@ -74,6 +74,7 @@ void SamplingPlanner::Allocate() {
   // policy
   int num_max_parameter = model->nu * kMaxTrajectoryHorizon;
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
+  previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
 
   // scratch
   parameters_scratch.resize(num_max_parameter);
@@ -105,6 +106,7 @@ void SamplingPlanner::Reset(int horizon) {
 
   // policy parameters
   policy.Reset(horizon);
+  previous_policy.Reset(horizon);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);

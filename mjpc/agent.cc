@@ -117,7 +117,7 @@ void Agent::Initialize(const mjModel* model) {
   }
   
   // get Kalman estimator
-  Estimator* estimator = estimators_[1].get();
+  Estimator* estimator = estimators_[0].get();
 
   // initialize estimator data
   ctrl.resize(model->nu);

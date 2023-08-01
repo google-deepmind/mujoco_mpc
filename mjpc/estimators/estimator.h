@@ -111,6 +111,10 @@ class GroundTruth : public Estimator {
     // data
     data_ = mj_makeData(model);
 
+    // timestep
+    this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
+                                                   model, "estimator_timestep");
+
     // -- dimensions -- //
     ndstate_ = 2 * model->nv + model->na;
 

@@ -58,15 +58,15 @@
     <body name="upper_arm" pos="0 0 .4" childclass="arm">
       <joint name="arm_root" damping="2" limited="false"/>
       <geom  name="upper_arm"  size=".02" fromto="0 0 0 0 0 .18"/>
-      <site name="upper_arm_site" rgba="1 0 1 0" type="sphere" size="0.025" pos="0 0 0.09" />
+      <site name="upper_arm_site" rgba="1 0 1 0" type="sphere" size="0.01" pos="0 0 0.09" />
       <body  name="middle_arm" pos="0 0 .18" childclass="arm">
         <joint name="arm_shoulder" damping="1.5" range="-160 160"/>
         <geom  name="middle_arm"  size=".017" fromto="0 0 0 0 0 .15"/>
-        <site name="middle_arm_site" rgba="1 0 1 0" type="sphere" size="0.025" pos="0 0 0.075" />
+        <site name="middle_arm_site" rgba="1 0 1 0" type="sphere" size="0.01" pos="0 0 0.075" />
         <body  name="lower_arm" pos="0 0 .15">
           <joint name="arm_elbow" damping="1" range="-160 160"/>
           <geom  name="lower_arm" size=".014" fromto="0 0 0 0 0 .12"/>
-          <site name="lower_arm_site" rgba="1 0 1 0" type="sphere" size="0.025" pos="0 0 0.06" />
+          <site name="lower_arm_site" rgba="1 0 1 0" type="sphere" size="0.01" pos="0 0 0.06" />
           <body  name="hand" pos="0 0 .12">
             <joint name="arm_wrist" damping=".5" range="-140 140" />
             <geom  name="hand" size=".011" fromto="0 0 0 0 0 .03"/>

@@ -66,7 +66,7 @@
       <joint name="ball_x" type="slide" axis="1 0 0" ref="-.124"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".022"/>
       <geom  name="ball" type="sphere" size=".022" />
-      <site  name="ball" type="sphere" rgba="1 0 1 0" size="0.022" />
+      <site  name="ball" type="sphere" rgba="1 0 1 1" size="0.01" pos="0 -0.015 0"  />
     </body>
 
     <!-- target ball position -->
@@ -76,25 +76,25 @@
 
     <!-- mocap for position sensor visualization -->
     <body name="mocap_ball" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_upper_arm" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_middle_arm" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_lower_arm" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_wrist" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_thumbtip" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
     <body name="mocap_fingertip" mocap="true">
-      <geom type="sphere" size="0.02" rgba="1 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="0 1 1 1" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
 </mujoco>

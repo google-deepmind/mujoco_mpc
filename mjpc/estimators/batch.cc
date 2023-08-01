@@ -33,7 +33,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // data
   data_.clear();
-  for (int i = 0; i < max_history; i++) {
+  for (int i = 0; i < max_history_; i++) {
     data_.push_back(MakeUniqueMjData(mj_makeData(model)));
   }
 
@@ -47,21 +47,21 @@ void Batch::Initialize(const mjModel* model) {
   ndstate_ = 2 * nv + na;
 
   // sensor start index
-  sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
+  sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
-  nsensor =
+  nsensor_ =
       GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
   // sensor dimension
   nsensordata_ = 0;
-  for (int i = 0; i < nsensor; i++) {
-    nsensordata_ += model->sensor_dim[sensor_start + i];
+  for (int i = 0; i < nsensor_; i++) {
+    nsensordata_ += model->sensor_dim[sensor_start_ + i];
   }
 
   // sensor start index
   sensor_start_index_ = 0;
-  for (int i = 0; i < sensor_start; i++) {
+  for (int i = 0; i < sensor_start_; i++) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
@@ -97,21 +97,21 @@ void Batch::Initialize(const mjModel* model) {
   // sensor
   sensor_measurement.Initialize(nsensordata_, configuration_length_);
   sensor_prediction.Initialize(nsensordata_, configuration_length_);
-  sensor_mask.Initialize(nsensor, configuration_length_);
+  sensor_mask.Initialize(nsensor_, configuration_length_);
 
   // force
   force_measurement.Initialize(nv, configuration_length_);
   force_prediction.Initialize(nv, configuration_length_);
 
   // residual
-  residual_prior_.resize(nv * max_history);
-  residual_sensor_.resize(nsensordata_ * max_history);
-  residual_force_.resize(nv * max_history);
+  residual_prior_.resize(nv * max_history_);
+  residual_sensor_.resize(nsensordata_ * max_history_);
+  residual_force_.resize(nv * max_history_);
 
   // Jacobian
-  jacobian_prior_.resize((nv * max_history) * (nv * max_history));
-  jacobian_sensor_.resize((nsensordata_ * max_history) * (nv * max_history));
-  jacobian_force_.resize((nv * max_history) * (nv * max_history));
+  jacobian_prior_.resize((nv * max_history_) * (nv * max_history_));
+  jacobian_sensor_.resize((nsensordata_ * max_history_) * (nv * max_history_));
+  jacobian_force_.resize((nv * max_history_) * (nv * max_history_));
 
   // prior Jacobian block
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
@@ -170,31 +170,31 @@ void Batch::Initialize(const mjModel* model) {
                                                     configuration_length_);
 
   // cost gradient
-  cost_gradient_prior_.resize(nv * max_history);
-  cost_gradient_sensor_.resize(nv * max_history);
-  cost_gradient_force_.resize(nv * max_history);
-  cost_gradient.resize(nv * max_history);
+  cost_gradient_prior_.resize(nv * max_history_);
+  cost_gradient_sensor_.resize(nv * max_history_);
+  cost_gradient_force_.resize(nv * max_history_);
+  cost_gradient.resize(nv * max_history_);
 
   // cost Hessian
-  cost_hessian_prior_.resize((nv * max_history) * (nv * max_history));
-  cost_hessian_sensor_.resize((nv * max_history) * (nv * max_history));
-  cost_hessian_force_.resize((nv * max_history) * (nv * max_history));
-  cost_hessian.resize((nv * max_history) * (nv * max_history));
-  cost_hessian_band_.resize((nv * max_history) * (nv * max_history));
-  cost_hessian_band_factor_.resize((nv * max_history) * (nv * max_history));
-  cost_hessian_factor_.resize((nv * max_history) * (nv * max_history));
+  cost_hessian_prior_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_sensor_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_force_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_band_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_band_factor_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_factor_.resize((nv * max_history_) * (nv * max_history_));
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior.resize((nv * max_history) * (nv * max_history));
-  weight_prior_band_.resize((nv * max_history) * (nv * max_history));
+  weight_prior.resize((nv * max_history_) * (nv * max_history_));
+  weight_prior_band_.resize((nv * max_history_) * (nv * max_history_));
   scratch_prior_weight_.resize(2 * nv * nv);
 
   // cost norms
-  norm_type_sensor.resize(nsensor);
+  norm_type_sensor.resize(nsensor_);
 
   // TODO(taylor): method for xml to initial norm
-  for (int i = 0; i < nsensor; i++) {
+  for (int i = 0; i < nsensor_; i++) {
     norm_type_sensor[i] =
         (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
 
@@ -205,52 +205,52 @@ void Batch::Initialize(const mjModel* model) {
   }
 
   // cost norm parameters
-  norm_parameters_sensor.resize(nsensor * MAX_NORM_PARAMETERS);
+  norm_parameters_sensor.resize(nsensor_ * MAX_NORM_PARAMETERS);
 
   // TODO(taylor): initialize norm parameters from xml
   std::fill(norm_parameters_sensor.begin(), norm_parameters_sensor.end(), 0.0);
 
   // norm
-  norm_sensor_.resize(nsensor * max_history);
-  norm_force_.resize(nv * max_history);
+  norm_sensor_.resize(nsensor_ * max_history_);
+  norm_force_.resize(nv * max_history_);
 
   // norm gradient
-  norm_gradient_sensor_.resize(nsensordata_ * max_history);
-  norm_gradient_force_.resize(nv * max_history);
+  norm_gradient_sensor_.resize(nsensordata_ * max_history_);
+  norm_gradient_force_.resize(nv * max_history_);
 
   // norm Hessian
-  norm_hessian_sensor_.resize((nsensordata_ * max_history) *
-                              (nsensordata_ * max_history));
-  norm_hessian_force_.resize((nv * max_history) * (nv * max_history));
+  norm_hessian_sensor_.resize((nsensordata_ * max_history_) *
+                              (nsensordata_ * max_history_));
+  norm_hessian_force_.resize((nv * max_history_) * (nv * max_history_));
 
-  norm_blocks_sensor_.resize(nsensordata_ * nsensordata_ * max_history);
-  norm_blocks_force_.resize(nv * nv * max_history);
+  norm_blocks_sensor_.resize(nsensordata_ * nsensordata_ * max_history_);
+  norm_blocks_force_.resize(nv * nv * max_history_);
 
   // scratch
-  scratch0_prior_.resize((nv * max_history) * (nv * max_history));
-  scratch1_prior_.resize((nv * max_history) * (nv * max_history));
+  scratch0_prior_.resize((nv * max_history_) * (nv * max_history_));
+  scratch1_prior_.resize((nv * max_history_) * (nv * max_history_));
 
   scratch0_sensor_.resize(std::max(nv, nsensordata_) *
-                          std::max(nv, nsensordata_) * max_history);
+                          std::max(nv, nsensordata_) * max_history_);
   scratch1_sensor_.resize(std::max(nv, nsensordata_) *
-                          std::max(nv, nsensordata_) * max_history);
+                          std::max(nv, nsensordata_) * max_history_);
 
-  scratch0_force_.resize((nv * max_history) * (nv * max_history));
-  scratch1_force_.resize((nv * max_history) * (nv * max_history));
-  scratch2_force_.resize((nv * max_history) * (nv * max_history));
+  scratch0_force_.resize((nv * max_history_) * (nv * max_history_));
+  scratch1_force_.resize((nv * max_history_) * (nv * max_history_));
+  scratch2_force_.resize((nv * max_history_) * (nv * max_history_));
 
-  scratch_expected_.resize(nv * max_history);
+  scratch_expected_.resize(nv * max_history_);
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
 
   // search direction
-  search_direction_.resize(nv * max_history);
+  search_direction_.resize(nv * max_history_);
 
   // covariance
-  prior_matrix_factor_.resize((nv * max_history) * (nv * max_history));
-  scratch0_covariance_.resize((nv * max_history) * (nv * max_history));
-  scratch1_covariance_.resize((nv * max_history) * (nv * max_history));
+  prior_matrix_factor_.resize((nv * max_history_) * (nv * max_history_));
+  scratch0_covariance_.resize((nv * max_history_) * (nv * max_history_));
+  scratch1_covariance_.resize((nv * max_history_) * (nv * max_history_));
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -260,9 +260,9 @@ void Batch::Initialize(const mjModel* model) {
       (int)settings.search_type, model, "batch_search_type");
 
   // timer
-  timer_.prior_step.resize(max_history);
-  timer_.sensor_step.resize(max_history);
-  timer_.force_step.resize(max_history);
+  timer_.prior_step.resize(max_history_);
+  timer_.sensor_step.resize(max_history_);
+  timer_.force_step.resize(max_history_);
 
   // status
   gradient_norm_ = 0.0;
@@ -331,7 +331,7 @@ void Batch::Reset() {
 
   // sensor mask
   sensor_mask.Reset();
-  for (int i = 0; i < nsensor * configuration_length_; i++) {
+  for (int i = 0; i < nsensor_ * configuration_length_; i++) {
     sensor_mask.Data()[i] = 1; // sensor on
   }
 
@@ -389,12 +389,12 @@ void Batch::Reset() {
   block_acceleration_next_configuration_.Reset();
 
   // cost
-  cost_prior = 0.0;
-  cost_sensor = 0.0;
-  cost_force = 0.0;
-  cost = 0.0;
-  cost_initial = 0.0;
-  cost_previous = 1.0e32;
+  cost_prior_ = 0.0;
+  cost_sensor_ = 0.0;
+  cost_force_ = 0.0;
+  cost_ = 0.0;
+  cost_initial_ = 0.0;
+  cost_previous_ = 1.0e32;
 
   // cost gradient
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
@@ -517,9 +517,9 @@ void Batch::Reset() {
     mju_zero(y0, nsensordata_);
 
     // loop over sensors
-    for (int i = 0; i < nsensor; i++) {
+    for (int i = 0; i < nsensor_; i++) {
       // measurement sensor index 
-      int index = sensor_start + i;
+      int index = sensor_start_ + i;
 
       // need stage 
       int sensor_stage = model->sensor_needstage[index];
@@ -623,8 +623,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 // set configuration length
 void Batch::SetConfigurationLength(int length) {
   // check length
-  if (length > max_history) {
-    mju_error("length > max_history\n");
+  if (length > max_history_) {
+    mju_error("length > max_history_\n");
   }
 
   // set configuration length
@@ -823,7 +823,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
   double* tmp = scratch0_prior_.data();
 
   // initial cost
-  double cost = cost_prior;
+  double cost = 0.0;
 
   // compute cost
   if (!cost_skip_) {
@@ -1053,7 +1053,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     int shift_sensor = 0;
 
     // loop over sensors
-    for (int i = 0; i < nsensor; i++) {
+    for (int i = 0; i < nsensor_; i++) {
       // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
@@ -1061,7 +1061,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // if (!mask[i]) continue;
 
       // dimension
-      int nsi = model->sensor_dim[sensor_start + i];
+      int nsi = model->sensor_dim[sensor_start_ + i];
 
       // sensor residual
       double* rti = rt + shift_sensor;
@@ -1085,12 +1085,12 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // ----- cost ----- //
 
       // norm
-      norm_sensor_[nsensor * t + i] =
+      norm_sensor_[nsensor_ * t + i] =
           Norm(gradient ? norm_gradient : NULL, hessian ? norm_block : NULL,
                rti, pi, nsi, normi);
 
       // weighted norm
-      cost += weight * norm_sensor_[nsensor * t + i];
+      cost += weight * norm_sensor_[nsensor_ * t + i];
 
       // stop cost timer
       timer_.cost_sensor += GetDuration(start_cost);
@@ -1273,17 +1273,17 @@ void Batch::ResidualSensor() {
     // zero out non-position sensors at first time step 
     if (t == 0) {
       // loop over position sensors
-      for (int i = 0; i < nsensor; i++) {
+      for (int i = 0; i < nsensor_; i++) {
         // sensor stage
-        int sensor_stage = model->sensor_needstage[sensor_start + i];
+        int sensor_stage = model->sensor_needstage[sensor_start_ + i];
 
         // check for position
         if (sensor_stage != mjSTAGE_POS) {
           // dimension
-          int sensor_dim = model->sensor_dim[sensor_start + i];
+          int sensor_dim = model->sensor_dim[sensor_start_ + i];
 
           // address
-          int sensor_adr = model->sensor_adr[sensor_start + i];
+          int sensor_adr = model->sensor_adr[sensor_start_ + i];
 
           // copy sensor data
           mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
@@ -1578,17 +1578,17 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     mj_sensorPos(batch.model, d);
 
     // loop over position sensors 
-    for (int i = 0; i < batch.nsensor; i++) {
+    for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start + i];
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
 
       // check for position 
       if (sensor_stage == mjSTAGE_POS) {
         // dimension 
-        int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
+        int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
 
         // address 
-        int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
+        int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
 
         // copy sensor data
         mju_copy(y0 + sensor_adr - batch.sensor_start_index_,
@@ -1679,15 +1679,15 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
 
     // loop over position sensors
-    for (int i = 0; i < batch.nsensor; i++) {
+    for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start + i];
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
 
       // dimension
-      int sensor_dim = batch.model->sensor_dim[batch.sensor_start + i];
+      int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
 
       // address
-      int sensor_adr = batch.model->sensor_adr[batch.sensor_start + i];
+      int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
 
       // check for position
       if (sensor_stage != mjSTAGE_POS) {
@@ -1886,21 +1886,21 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   // individual derivatives
   if (settings.prior_flag) {
     pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_prior = batch.CostPrior(
+      batch.cost_prior_ = batch.CostPrior(
           gradient_flag ? batch.cost_gradient_prior_.data() : NULL,
           hessian_flag ? batch.cost_hessian_prior_.data() : NULL);
     });
   }
   if (settings.sensor_flag) {
     pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_sensor = batch.CostSensor(
+      batch.cost_sensor_ = batch.CostSensor(
           gradient_flag ? batch.cost_gradient_sensor_.data() : NULL,
           hessian_flag ? batch.cost_hessian_sensor_.data() : NULL);
     });
   }
   if (settings.force_flag) {
     pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_force = batch.CostForce(
+      batch.cost_force_ = batch.CostForce(
           gradient_flag ? batch.cost_gradient_force_.data() : NULL,
           hessian_flag ? batch.cost_hessian_force_.data() : NULL);
     });
@@ -1912,11 +1912,11 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   pool.ResetCount();
 
   // total cost
-  double cost = cost_prior + cost_sensor + cost_force;
+  double cost = cost_prior_ + cost_sensor_ + cost_force_;
 
   // total gradient, hessian
-  if (gradient) TotalGradient();
-  if (hessian) TotalHessian();
+  TotalGradient(gradient);
+  TotalHessian(hessian);
 
   // counter
   if (!cost_skip_) cost_count_++;
@@ -1942,15 +1942,14 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
 }
 
 // compute total gradient
-void Batch::TotalGradient() {
+void Batch::TotalGradient(double* gradient) {
+  if (!gradient) return;
+
   // start gradient timer
   auto start = std::chrono::steady_clock::now();
 
   // dimension
   int dim = configuration_length_ * model->nv;
-
-  // unpack
-  double* gradient = cost_gradient.data();
 
   // individual gradients
   if (settings.prior_flag) {
@@ -1968,15 +1967,14 @@ void Batch::TotalGradient() {
 }
 
 // compute total Hessian
-void Batch::TotalHessian() {
+void Batch::TotalHessian(double* hessian) {
+  if (!hessian) return;
+
   // start Hessian timer
   auto start = std::chrono::steady_clock::now();
 
   // dimension
   int dim = configuration_length_ * model->nv;
-
-  // unpack
-  double* hessian = cost_hessian.data();
 
   if (settings.band_copy) {
     // zero memory
@@ -2032,8 +2030,8 @@ void Batch::Optimize(ThreadPool& pool) {
   // initial cost
   cost_count_ = 0;
   cost_skip_ = false;
-  cost = Cost(NULL, NULL, pool);
-  cost_initial = cost;
+  cost_ = Cost(NULL, NULL, pool);
+  cost_initial_ = cost_;
 
   // print initial cost
   PrintCost();
@@ -2069,7 +2067,7 @@ void Batch::Optimize(ThreadPool& pool) {
     mju_copy(configuration_copy_.Data(), configuration.Data(), nconfig);
 
     // initialize
-    double cost_candidate = cost;
+    double cost_candidate = cost_;
     int iteration_search = 0;
     step_size_ = 1.0;
     regularization_ = settings.regularization_initial;
@@ -2100,7 +2098,7 @@ void Batch::Optimize(ThreadPool& pool) {
 
     // backtracking until cost decrease
     // TODO(taylor): Armijo, Wolfe conditions
-    while (cost_candidate >= cost) {
+    while (cost_candidate >= cost_) {
       // check for max iterations
       if (iteration_search > settings.max_search_iterations) {
         // set solve status
@@ -2148,7 +2146,7 @@ void Batch::Optimize(ThreadPool& pool) {
       cost_candidate = Cost(NULL, NULL, pool);
 
       // improvement
-      improvement_ = cost - cost_candidate;
+      improvement_ = cost_ - cost_candidate;
 
       // update iteration
       iteration_search++;
@@ -2158,11 +2156,11 @@ void Batch::Optimize(ThreadPool& pool) {
     iterations_search_ += iteration_search;
 
     // update cost
-    cost_previous = cost;
-    cost = cost_candidate;
+    cost_previous_ = cost_;
+    cost_ = cost_candidate;
 
     // check cost difference
-    cost_difference_ = std::abs(cost - cost_previous);
+    cost_difference_ = std::abs(cost_ - cost_previous_);
     if (cost_difference_ < settings.cost_tolerance) {
       // set status
       solve_status_ = kCostDifferenceFailure;
@@ -2429,11 +2427,11 @@ void Batch::PrintOptimize() {
 
   // cost
   printf("Cost:\n");
-  printf("  final: %.3f\n", cost);
-  printf("    - prior: %.3f\n", cost_prior);
-  printf("    - sensor: %.3f\n", cost_sensor);
-  printf("    - force: %.3f\n", cost_force);
-  printf("  <initial: %.3f>\n", cost_initial);
+  printf("  final: %.3f\n", cost_);
+  printf("    - prior: %.3f\n", cost_prior_);
+  printf("    - sensor: %.3f\n", cost_sensor_);
+  printf("    - force: %.3f\n", cost_force_);
+  printf("  <initial: %.3f>\n", cost_initial_);
   printf("\n");
 
   fflush(stdout);
@@ -2442,11 +2440,11 @@ void Batch::PrintOptimize() {
 // print cost
 void Batch::PrintCost() {
   if (settings.verbose_cost) {
-    printf("cost (total): %.3f\n", cost);
-    printf("  prior: %.3f\n", cost_prior);
-    printf("  sensor: %.3f\n", cost_sensor);
-    printf("  force: %.3f\n", cost_force);
-    printf("  [initial: %.3f]\n", cost_initial);
+    printf("cost (total): %.3f\n", cost_);
+    printf("  prior: %.3f\n", cost_prior_);
+    printf("  sensor: %.3f\n", cost_sensor_);
+    printf("  force: %.3f\n", cost_force_);
+    printf("  [initial: %.3f]\n", cost_initial_);
     fflush(stdout);
   }
 }
@@ -2650,9 +2648,9 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
 
   // loop over sensors
   std::string sensor_str;
-  for (int i = 0; i < nsensor; i++) {
+  for (int i = 0; i < nsensor_; i++) {
     std::string name_sensor(model->names +
-                            model->name_sensoradr[sensor_start + i]);
+                            model->name_sensoradr[sensor_start_ + i]);
 
     // element
     defSensorNoise[sensor_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
@@ -2682,16 +2680,18 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                   int planner_shift, int timer_shift, int planning,
                   int* shift) {
   // Batch info
-  double estimator_bounds[2] = {-6, 6};
 
-  // covariance trace
-  double trace = Trace(covariance.data(), DimensionProcess());
-  mjpc::PlotUpdateData(fig_planner, estimator_bounds,
-                       fig_planner->linedata[planner_shift + 0][0] + 1,
-                       mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
+  // TODO(taylor): covariance trace
+  // double estimator_bounds[2] = {-6, 6};
 
-  // legend
-  mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
+  // // covariance trace
+  // double trace = Trace(covariance.data(), DimensionProcess());
+  // mjpc::PlotUpdateData(fig_planner, estimator_bounds,
+  //                      fig_planner->linedata[planner_shift + 0][0] + 1,
+  //                      mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
+
+  // // legend
+  // mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
 
   // Batch timers
   double timer_bounds[2] = {0.0, 1.0};

@@ -49,8 +49,8 @@ void State::Set(const mjModel* model, const mjData* data) {
     mocap_.resize(7 * model->nmocap);
 
     // state
-    SetPos(model, data->qpos);
-    SetVel(model, data->qvel);
+    SetPosition(model, data->qpos);
+    SetVelocity(model, data->qvel);
     SetAct(model, data->act);
 
     // mocap
@@ -65,12 +65,12 @@ void State::Set(const mjModel* model, const mjData* data) {
 }
 
 // set qpos
-void State::SetPos(const mjModel* model, const double* qpos) {
+void State::SetPosition(const mjModel* model, const double* qpos) {
   mju_copy(state_.data(), qpos, model->nq);
 }
 
 // set qvel
-void State::SetVel(const mjModel* model, const double* qvel) {
+void State::SetVelocity(const mjModel* model, const double* qvel) {
   mju_copy(DataAt(state_, model->nq), qvel, model->nv);
 }
 

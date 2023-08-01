@@ -130,8 +130,10 @@ TEST(PriorCost, Particle) {
   ThreadPool pool(1);
 
   // evaluate cost
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+  std::vector<double> cost_gradient(nvar);
+  std::vector<double> cost_hessian(nvar * nvar);
+  double cost_estimator =
+      estimator.Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -140,14 +142,14 @@ TEST(PriorCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
-          fdh.hessian.data(), nvar * nvar);
+  mju_sub(hessian_error.data(), cost_hessian.data(), fdh.hessian.data(),
+          nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
 
@@ -209,8 +211,10 @@ TEST(PriorCost, Particle) {
   // ----- estimator ----- //
 
   // evaluate cost
-  double cost_band_estimator = estimator.Cost(
-      estimator.cost_gradient.data(), estimator.cost_hessian.data(), pool);
+  std::fill(cost_gradient.begin(), cost_gradient.end(), 0.0);
+  std::fill(cost_hessian.begin(), cost_hessian.end(), 0.0);
+  double cost_band_estimator =
+      estimator.Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -218,13 +222,13 @@ TEST(PriorCost, Particle) {
   EXPECT_NEAR(cost_band_estimator - cost_band_lambda, 0.0, 1.0e-4);
 
   // gradient
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
-  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
-          fdh.hessian.data(), nvar * nvar);
+  mju_sub(hessian_error.data(), cost_hessian.data(), fdh.hessian.data(),
+          nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
 
@@ -351,8 +355,8 @@ TEST(PriorCost, Box) {
   ThreadPool pool(1);
 
   // evaluate cost
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+  std::vector<double> cost_gradient(nvar);
+  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
 
   // ----- error ----- //
 
@@ -361,8 +365,8 @@ TEST(PriorCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // delete data + model

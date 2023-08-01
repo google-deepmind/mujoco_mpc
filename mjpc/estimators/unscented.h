@@ -119,14 +119,14 @@ class Unscented : public Estimator {
   // model
   mjModel* model = nullptr;
 
-  // state (nq + nv + na)
+  // state (nstate_)
   std::vector<double> state;
   double time;
 
-  // covariance
+  // covariance (ndstate_ x ndstate_)
   std::vector<double> covariance;
 
-  // process noise (2nv + na)
+  // process noise (ndstate_)
   std::vector<double> noise_process;
 
   // sensor noise (nsensordata_)
@@ -147,23 +147,25 @@ class Unscented : public Estimator {
   } settings;
 
   // sensor start
-  int sensor_start;
-  int nsensor;
+ 
+  
 
  private:
   // dimensions
   int nstate_;
   int ndstate_;
   int nsensordata_;
-  int num_sigma_;
+  int nsensor_;
+  int nsigma__;
 
-  // sensor start index
+  // sensor indexing
+  int sensor_start_;
   int sensor_start_index_;
 
   // data
   mjData* data_ = nullptr;
 
-  // correction (2nv + na)
+  // correction (ndstate_)
   std::vector<double> correction_;
 
   // sensor error (nsensordata_)
@@ -178,22 +180,22 @@ class Unscented : public Estimator {
   // sensors (nsensordata_ x (2 * ndstate + 1))
   std::vector<double> sensors_;
 
-  // state mean (nstate)
+  // state mean (nstate_)
   std::vector<double> state_mean_;
 
   // sensor mean (nsensordata_)
   std::vector<double> sensor_mean_;
 
-  // covariance factor (ndstate x ndstate)
+  // covariance factor (ndstate_ x ndstate_)
   std::vector<double> covariance_factor_;
 
-  // factor column (ndstate)
+  // factor column (ndstate_)
   std::vector<double> factor_column_;
 
-  // state difference (ndstate x num_sigma)
+  // state difference (ndstate_ x nsigma_)
   std::vector<double> state_difference_;
 
-  // sensor difference (nsensordata_ x num_sigma)
+  // sensor difference (nsensordata_ x nsigma_)
   std::vector<double> sensor_difference_;
 
   // covariance sensor (nsensordata_ x nsensordata_)

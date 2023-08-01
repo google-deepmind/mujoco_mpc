@@ -113,14 +113,14 @@ class Kalman : public Estimator {
   // model
   mjModel* model = nullptr;
 
-  // state (nq + nv + na)
+  // state (nstate_)
   std::vector<double> state;
   double time;
 
-  // covariance
+  // covariance (ndstate_ x ndstate_)
   std::vector<double> covariance;
 
-  // process noise (2nv + na)
+  // process noise (ndstate_)
   std::vector<double> noise_process;
 
   // sensor noise (nsensordata_)
@@ -133,29 +133,27 @@ class Kalman : public Estimator {
     bool auto_timestep = false;
   } settings;
 
-  // sensor start
-  int sensor_start;
-  int nsensor;
-
  private:
   // dimensions
   int nstate_;
-  int ndstate_;
+  int ndstate_;  
   int nsensordata_;
+  int nsensor_;
 
-  // sensor start index
+  // sensor indexing
+  int sensor_start_;
   int sensor_start_index_;
 
   // data
   mjData* data_ = nullptr;
 
-  // correction (2nv + na)
+  // correction (ndstate_)
   std::vector<double> correction_;
 
-  // sensor Jacobian (nsensordata x (2nv + na))
+  // sensor Jacobian (nsensordata x ndstate_)
   std::vector<double> sensor_jacobian_;
 
-  // dynamics Jacobian ((2nv + na) x (2nv + na))
+  // dynamics Jacobian (ndstate_ x ndstate_)
   std::vector<double> dynamics_jacobian_;
 
   // sensor error (nsensordata_)

@@ -43,24 +43,24 @@ void Unscented::Initialize(const mjModel* model) {
   int nq = model->nq, nv = model->nv, na = model->na;
   nstate_ = nq + nv + na;
   ndstate_ = 2 * nv + na;
-  num_sigma_ = 2 * ndstate_ + 1;
+  nsigma__ = 2 * ndstate_ + 1;
 
   // sensor start index
-  sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
+  sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
-  nsensor =
+  nsensor_ =
       GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
   // sensor dimension
   nsensordata_ = 0;
-  for (int i = 0; i < nsensor; i++) {
-    nsensordata_ += model->sensor_dim[sensor_start + i];
+  for (int i = 0; i < nsensor_; i++) {
+    nsensordata_ += model->sensor_dim[sensor_start_ + i];
   }
 
   // sensor start index
   sensor_start_index_ = 0;
-  for (int i = 0; i < sensor_start; i++) {
+  for (int i = 0; i < sensor_start_; i++) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
@@ -77,13 +77,13 @@ void Unscented::Initialize(const mjModel* model) {
   noise_sensor.resize(nsensordata_);
 
   // sigma points (nstate x (2 * ndstate_ + 1))
-  sigma_.resize(nstate_ * num_sigma_);
+  sigma_.resize(nstate_ * nsigma__);
 
   // states (nstate x (2 * ndstate_ + 1))
-  states_.resize(nstate_ * num_sigma_);
+  states_.resize(nstate_ * nsigma__);
 
   // sensors (nsensordata x (2 * ndstate + 1))
-  sensors_.resize(nsensordata_ * num_sigma_);
+  sensors_.resize(nsensordata_ * nsigma__);
 
   // state mean (nstate)
   state_mean_.resize(nstate_);
@@ -97,11 +97,11 @@ void Unscented::Initialize(const mjModel* model) {
   // factor column (ndstate)
   factor_column_.resize(ndstate_);
 
-  // state difference (ndstate x num_sigma)
-  state_difference_.resize(ndstate_ * num_sigma_);
+  // state difference (ndstate x nsigma_)
+  state_difference_.resize(ndstate_ * nsigma__);
 
-  // sensor difference (nsensordata_ x num_sigma)
-  sensor_difference_.resize(nsensordata_ * num_sigma_);
+  // sensor difference (nsensordata_ x nsigma_)
+  sensor_difference_.resize(nsensordata_ * nsigma__);
 
   // covariance sensor (nsensordata_ x nsensordata_)
   covariance_sensor_.resize(nsensordata_ * nsensordata_);
@@ -265,7 +265,7 @@ void Unscented::SigmaPoints() {
   // -- loop over points -- //
 
   // nominal
-  mju_copy(sigma_.data() + (num_sigma_ - 1) * nstate_, state.data(), nstate_);
+  mju_copy(sigma_.data() + (nsigma__ - 1) * nstate_, state.data(), nstate_);
 
   // unpack
   double* column = factor_column_.data();
@@ -320,7 +320,7 @@ void Unscented::EvaluateSigmaPoints() {
   double time_cache = data_->time;
 
   // loop over sigma points
-  for (int i = 0; i < num_sigma_; i++) {
+  for (int i = 0; i < nsigma__; i++) {
     // set state
     double* sigma = sigma_.data() + i * nstate_;
     mju_copy(data_->qpos, sigma, nq);
@@ -342,7 +342,7 @@ void Unscented::EvaluateSigmaPoints() {
     mju_copy(y, data_->sensordata + sensor_start_index_, nsensordata_);
 
     // update means
-    double weight = (i == num_sigma_ - 1 ? weight_mean0 : weight_sigma);
+    double weight = (i == nsigma__ - 1 ? weight_mean0 : weight_sigma);
     mju_addToScl(state_mean_.data(), s, weight, nstate_);
     mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
   }
@@ -361,7 +361,7 @@ void Unscented::SigmaPointDifferences() {
   double* ym = sensor_mean_.data();
 
   // loop over sigma points
-  for (int i = 0; i < num_sigma_; i++) {
+  for (int i = 0; i < nsigma__; i++) {
     // -- state difference -- //
     double* ds = state_difference_.data() + i * ndstate_;
     double* si = states_.data() + i * nstate_;
@@ -408,7 +408,7 @@ void Unscented::SigmaCovariances() {
   }
 
   // loop over sigma points
-  for (int i = 0; i < num_sigma_; i++) {
+  for (int i = 0; i < nsigma__; i++) {
     // unpack
     double* dy = sensor_difference_.data() + i * nsensordata_;
     double* ds = state_difference_.data() + i * ndstate_;
@@ -425,7 +425,7 @@ void Unscented::SigmaCovariances() {
     // -- update -- //
 
     // weight
-    double weight = (i == num_sigma_ - 1 ? weight_covariance0 : weight_sigma);
+    double weight = (i == nsigma__ - 1 ? weight_covariance0 : weight_sigma);
 
     // covariance sensor
     mju_addScl(cov_yy, cov_yy, dydy, weight, nsensordata_ * nsensordata_);
@@ -551,7 +551,7 @@ void Unscented::QuaternionMeans() {
       mju_zero(K, 16);
 
       // loop over states 
-      for (int j = 0; j < num_sigma_; j++) {
+      for (int j = 0; j < nsigma__; j++) {
         // get quaternion
         double* quat = states_.data() + j * nstate_ + qpos_adr;
 
@@ -559,11 +559,11 @@ void Unscented::QuaternionMeans() {
         mju_mulMatMatT(Q, quat, quat, 4, 1, 4);
 
         // add outerproduct to K 
-        mju_addToScl(K, Q, 4.0 * (j == num_sigma_ - 1 ? weight_covariance0 : weight_sigma), 16);
+        mju_addToScl(K, Q, 4.0 * (j == nsigma__ - 1 ? weight_covariance0 : weight_sigma), 16);
       }
 
       // K = K - total_weight * I 
-      double total_weight = weight_covariance0 + (num_sigma_ - 1) * weight_sigma;
+      double total_weight = weight_covariance0 + (nsigma__ - 1) * weight_sigma;
       K[0] -= total_weight;
       K[5] -= total_weight;
       K[10] -= total_weight;
@@ -764,10 +764,10 @@ void Unscented::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
 
   // loop over sensors
   std::string sensor_str;
-  for (int i = 0; i < nsensor; i++) {
+  for (int i = 0; i < nsensor_; i++) {
     std::string name_sensor(model->names +
-                            model->name_sensoradr[sensor_start + i]);
-    int dim_sensor = model->sensor_dim[sensor_start + i];
+                            model->name_sensoradr[sensor_start_ + i]);
+    int dim_sensor = model->sensor_dim[sensor_start_ + i];
 
     // loop over sensor elements
     for (int j = 0; j < dim_sensor; j++) {

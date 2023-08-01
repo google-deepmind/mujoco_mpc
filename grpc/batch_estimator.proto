@@ -138,7 +138,7 @@ message Cost {
   repeated double norm_hessian_sensor = 17 [packed = true];
   repeated double norm_hessian_force = 18 [packed = true];
   int32 nvar = 19;
-  int32 nsensor = 20;
+  int32 nsensor_ = 20;
   int32 nforce = 21;
 }
 

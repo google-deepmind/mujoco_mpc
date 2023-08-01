@@ -48,10 +48,10 @@ class State {
   void Set(const mjModel* model, const mjData* data);
 
   // set qpos 
-  void SetPos(const mjModel* model, const double* qpos);
+  void SetPosition(const mjModel* model, const double* qpos);
 
   // set qvel 
-  void SetVel(const mjModel* model, const double* qvel);
+  void SetVelocity(const mjModel* model, const double* qvel);
 
   // set act 
   void SetAct(const mjModel* model, const double* act);

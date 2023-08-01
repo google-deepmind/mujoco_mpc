@@ -44,22 +44,22 @@ void Kalman::Initialize(const mjModel* model) {
   ndstate_ = 2 * model->nv + model->na;
   
   // sensor start index
-  sensor_start =
+  sensor_start_ =
       GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
-  nsensor =
+  nsensor_ =
       GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
   // sensor dimension
   nsensordata_ = 0;
-  for (int i = 0; i < nsensor; i++) {
-    nsensordata_ += model->sensor_dim[sensor_start + i];
+  for (int i = 0; i < nsensor_; i++) {
+    nsensordata_ += model->sensor_dim[sensor_start_ + i];
   }
 
   // sensor start index 
   sensor_start_index_ = 0;
-  for (int i = 0; i < sensor_start; i++) {
+  for (int i = 0; i < sensor_start_; i++) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
@@ -475,10 +475,10 @@ void Kalman::GUI(mjUI& ui, double* process_noise, double* sensor_noise, double& 
 
   // loop over sensors
   std::string sensor_str;
-  for (int i = 0; i < nsensor; i++) {
+  for (int i = 0; i < nsensor_; i++) {
     std::string name_sensor(model->names +
-                            model->name_sensoradr[sensor_start + i]);
-    int dim_sensor = model->sensor_dim[sensor_start + i];
+                            model->name_sensoradr[sensor_start_ + i]);
+    int dim_sensor = model->sensor_dim[sensor_start_ + i];
 
     // loop over sensor elements
     for (int j = 0; j < dim_sensor; j++) {

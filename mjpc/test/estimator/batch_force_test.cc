@@ -158,8 +158,11 @@ TEST(ForceCost, Particle) {
   estimator.settings.prior_flag = false;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = true;
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+
+  std::vector<double> cost_gradient(nvar);
+  std::vector<double> cost_hessian(nvar * nvar);
+  double cost_estimator =
+      estimator.Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -169,14 +172,14 @@ TEST(ForceCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
-          fdh.hessian.data(), nvar * nvar);
+  mju_sub(hessian_error.data(), cost_hessian.data(), fdh.hessian.data(),
+          nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
               1.0e-3);
 
@@ -336,8 +339,9 @@ TEST(ForceCost, Box) {
   estimator.settings.prior_flag = false;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = true;
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+
+  std::vector<double> cost_gradient(nvar);
+  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
 
   // ----- error ----- //
 
@@ -346,8 +350,8 @@ TEST(ForceCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 
   // delete data + model

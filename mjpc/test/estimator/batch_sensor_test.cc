@@ -96,7 +96,7 @@ TEST(MeasurementCost, Particle) {
         // first configuration
         mju_copy(data->qpos, configuration, nq);
 
-        // first sensor 
+        // first sensor
         double* y0 = estimator.sensor_measurement.Get(t);
 
         // residual
@@ -112,7 +112,8 @@ TEST(MeasurementCost, Particle) {
         int shift = 0;
 
         for (int i = 0; i < model->nsensor; i++) {
-          // skip velocity, acceleration sensors (assumes position sensors are first)
+          // skip velocity, acceleration sensors (assumes position sensors are
+          // first)
           if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
 
           // sensor dimension
@@ -219,9 +220,12 @@ TEST(MeasurementCost, Particle) {
   estimator.settings.prior_flag = false;
   estimator.settings.sensor_flag = true;
   estimator.settings.force_flag = false;
+
   // cost
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+  std::vector<double> cost_gradient(nvar);
+  std::vector<double> cost_hessian(nvar * nvar);
+  double cost_estimator =
+      estimator.Cost(cost_gradient.data(), cost_hessian.data(), pool);
 
   // ----- error ----- //
 
@@ -231,14 +235,14 @@ TEST(MeasurementCost, Particle) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-4);
 
   // Hessian
   std::vector<double> hessian_error(nvar * nvar);
-  mju_sub(hessian_error.data(), estimator.cost_hessian.data(),
-          fdh.hessian.data(), nvar * nvar);
+  mju_sub(hessian_error.data(), cost_hessian.data(), fdh.hessian.data(),
+          nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar) / (nvar * nvar), 0.0,
               1.0e-4);
 
@@ -339,7 +343,7 @@ TEST(MeasurementCost, Box) {
         // first configuration
         mju_copy(data->qpos, configuration.data(), nq);
 
-        // first sensor 
+        // first sensor
         double* y0 = estimator.sensor_measurement.Get(t);
 
         // residual
@@ -355,7 +359,8 @@ TEST(MeasurementCost, Box) {
         int shift = 0;
 
         for (int i = 0; i < model->nsensor; i++) {
-          // skip velocity, acceleration sensors (assumes position sensors are first)
+          // skip velocity, acceleration sensors (assumes position sensors are
+          // first)
           if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
 
           // sensor dimension
@@ -468,8 +473,9 @@ TEST(MeasurementCost, Box) {
   estimator.settings.prior_flag = false;
   estimator.settings.sensor_flag = true;
   estimator.settings.force_flag = false;
-  double cost_estimator = estimator.Cost(estimator.cost_gradient.data(),
-                                         estimator.cost_hessian.data(), pool);
+
+  std::vector<double> cost_gradient(nvar);
+  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
 
   // ----- error ----- //
 
@@ -479,8 +485,8 @@ TEST(MeasurementCost, Box) {
 
   // gradient
   std::vector<double> gradient_error(nvar);
-  mju_sub(gradient_error.data(), estimator.cost_gradient.data(),
-          fdg.gradient.data(), nvar);
+  mju_sub(gradient_error.data(), cost_gradient.data(), fdg.gradient.data(),
+          nvar);
   EXPECT_NEAR(mju_norm(gradient_error.data(), nvar) / nvar, 0.0, 1.0e-3);
 
   // delete data + model

@@ -115,16 +115,16 @@ class GroundTruth : public Estimator {
     ndstate_ = 2 * model->nv + model->na;
 
     // sensor start index
-    int sensor_start = GetNumberOrDefault(0, model, "estimator_sensor_start");
+    int sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
     // number of sensors
-    int nsensor =
+    int nsensor_ =
         GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
 
     // sensor dimension
     nsensordata_ = 0;
-    for (int i = 0; i < nsensor; i++) {
-      nsensordata_ += model->sensor_dim[sensor_start + i];
+    for (int i = 0; i < nsensor_; i++) {
+      nsensordata_ += model->sensor_dim[sensor_start_ + i];
     }
 
     // state 
@@ -225,23 +225,23 @@ class GroundTruth : public Estimator {
   // model
   mjModel* model = nullptr;
 
-  // data 
-  mjData* data_ = nullptr;
-
-  // state (nq + nv + na)
+  // state (nstate_)
   std::vector<double> state;
   double time;
 
-  // covariance
+  // covariance (ndstate_ x ndstate_)
   std::vector<double> covariance;
 
-  // process noise 
+  // process noise (ndstate_)
   std::vector<double> noise_process;
 
-  // sensor noise 
+  // sensor noise (nsensordata_)
   std::vector<double> noise_sensor;
 
  private:
+  // data
+  mjData* data_ = nullptr;
+
   // dimensions
   int ndstate_;
   int nsensordata_;

@@ -1027,6 +1027,14 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, nvar);
   if (hessian) mju_zero(hessian, nvar * nvar);
 
+  // time scaling 
+  double time_scale = 1.0;
+  double time_scale2 = 1.0;
+  if (settings.time_scaling_sensor) {
+    time_scale = model->opt.timestep;
+    time_scale2 = time_scale * time_scale;
+  }
+
   // matrix shift
   int shift_matrix = 0;
 
@@ -1057,6 +1065,17 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
+      // sensor stage 
+      int sensor_stage = model->sensor_needstage[sensor_start_ + i];
+      
+      // time scaling weight 
+      double time_weight = 1.0;
+      if (sensor_stage == mjSTAGE_VEL) {
+        time_weight = time_scale;
+      } else if (sensor_stage == mjSTAGE_ACC) {
+        time_weight = time_scale2;
+      }
+
       // check mask, skip if missing measurement
       // if (!mask[i]) continue;
 
@@ -1067,7 +1086,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       double* rti = rt + shift_sensor;
 
       // weight
-      double weight = 1.0 / noise_sensor[i] / nsi / (configuration_length_ - 1);
+      double weight = time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
 
       // parameters
       double* pi = norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
@@ -1173,6 +1192,12 @@ double Batch::CostForce(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, nvar);
   if (hessian) mju_zero(hessian, nvar * nvar);
 
+  // time scaling 
+  double time_scale2 = 1.0;
+  if (settings.time_scaling_force) {
+    time_scale2 = model->opt.timestep * model->opt.timestep;
+  }
+
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // unpack block
@@ -1196,7 +1221,7 @@ double Batch::CostForce(double* gradient, double* hessian) {
     // quadratic cost
     for (int i = 0; i < nv; i++) {
       // weight
-      double weight = 1.0 / noise_process[i] / nv / (configuration_length_ - 2);
+      double weight = time_scale2 / noise_process[i] / nv / (configuration_length_ - 2);
 
       // gradient
       norm_gradient[i] = weight * rt[i];

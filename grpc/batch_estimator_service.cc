@@ -444,11 +444,17 @@ grpc::Status BatchEstimatorService::Settings(
   }
   output->set_band_copy(batch_estimator_.settings.band_copy);
 
-  // time scaling
-  if (input.has_time_scaling()) {
-    batch_estimator_.settings.time_scaling = input.time_scaling();
+  // time scaling (force)
+  if (input.has_time_scaling_force()) {
+    batch_estimator_.settings.time_scaling_force = input.time_scaling_force();
   }
-  output->set_time_scaling(batch_estimator_.settings.time_scaling);
+  output->set_time_scaling_force(batch_estimator_.settings.time_scaling_force);
+
+  // time scaling (sensor)
+  if (input.has_time_scaling_sensor()) {
+    batch_estimator_.settings.time_scaling_sensor = input.time_scaling_sensor();
+  }
+  output->set_time_scaling_sensor(batch_estimator_.settings.time_scaling_sensor);
 
   // search direction tolerance 
   if (input.has_search_direction_tolerance()) {

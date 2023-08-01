@@ -97,14 +97,15 @@ message Settings {
   optional double regularization_initial = 15;
   optional double regularization_scaling = 16;
   optional bool band_copy = 17;
-  optional bool time_scaling = 18;
-  optional double search_direction_tolerance = 19;
-  optional double cost_tolerance = 20;
-  optional bool assemble_prior_jacobian = 21;
-  optional bool assemble_sensor_jacobian = 22;
-  optional bool assemble_force_jacobian = 23; 
-  optional bool assemble_sensor_norm_hessian = 24; 
-  optional bool assemble_force_norm_hessian = 25;
+  optional bool time_scaling_force = 18;
+  optional bool time_scaling_sensor = 19;
+  optional double search_direction_tolerance = 20;
+  optional double cost_tolerance = 21;
+  optional bool assemble_prior_jacobian = 22;
+  optional bool assemble_sensor_jacobian = 23;
+  optional bool assemble_force_jacobian = 24; 
+  optional bool assemble_sensor_norm_hessian = 25; 
+  optional bool assemble_force_norm_hessian = 26;
 }
 
 message SettingsRequest {

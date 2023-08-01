@@ -161,7 +161,7 @@ class Batch : public Estimator {
 
   // get max history 
   int GetMaxHistory() { return max_history_; };
-  
+
   // set configuration length
   void SetConfigurationLength(int length);
 
@@ -278,7 +278,8 @@ class Batch : public Estimator {
     double regularization_initial = 1.0e-12;      // initial regularization
     double regularization_scaling = mju_sqrt(10); // regularization scaling
     bool band_copy = true;                        // copy band matrices by block
-    bool time_scaling = false;                    // scale sensor and force costs by time step
+    bool time_scaling_force = true;               // scale force costs
+    bool time_scaling_sensor = true;              // scale sensor costs
     double search_direction_tolerance = 1.0e-8;   // search direction tolerance
     double cost_tolerance = 1.0e-8;               // cost difference tolernace
     bool assemble_prior_jacobian = false;         // assemble dense prior Jacobian 

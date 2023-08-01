@@ -76,7 +76,7 @@ TEST(BatchOptimize, Particle2D) {
 
   // set process noise
   std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
-            1.0e4);
+            1.0);
 
   // set sensor noise
   std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
@@ -159,7 +159,7 @@ TEST(BatchOptimize, Box3D) {
 
   // set process noise
   std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
-            1.0e4);
+            1.0);
 
   // set sensor noise
   std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
@@ -254,7 +254,7 @@ TEST(BatchOptimize, Quadruped) {
 
   // set weights
   estimator.scale_prior = 0.333;
-  mju_fill(estimator.noise_process.data(), 1.0e4, estimator.DimensionProcess());
+  mju_fill(estimator.noise_process.data(), 1.0, estimator.DimensionProcess());
   mju_fill(estimator.noise_sensor.data(), 1.0, estimator.DimensionSensor());
 
   // optimize

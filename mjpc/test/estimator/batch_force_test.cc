@@ -47,11 +47,13 @@ TEST(ForceCost, Particle) {
 
   // ----- estimator ----- //
   Batch estimator(model, T);
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = true;
 
   // weights
-  estimator.noise_process[0] = 1.0 / 1.0e-4;
-  estimator.noise_process[1] = 1.0 / 2.0e-4;
-  estimator.noise_process[2] = 1.0 / 3.0e-4;
+  estimator.noise_process[0] = 1.0;
+  estimator.noise_process[1] = 2.0;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -86,6 +88,14 @@ TEST(ForceCost, Particle) {
 
     // initialize
     double cost = 0.0;
+
+    // time scaling 
+    double time_scale = 1.0;
+    double time_scale2 = 1.0;
+    if (estimator.settings.time_scaling_force) {
+      time_scale = estimator.model->opt.timestep;
+      time_scale2 = time_scale * time_scale;
+    }
 
     // loop over predictions
     for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
@@ -124,7 +134,7 @@ TEST(ForceCost, Particle) {
       // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight = 1.0 / estimator.noise_process[i] / nv /
+        double weight = time_scale2 / estimator.noise_process[i] / nv /
                         (estimator.ConfigurationLength() - 2);
         wr[i] = weight * rk[i];
       }
@@ -154,11 +164,6 @@ TEST(ForceCost, Particle) {
   fdh.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  // cost
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = true;
-
   std::vector<double> cost_gradient(nvar);
   std::vector<double> cost_hessian(nvar * nvar);
   double cost_estimator =
@@ -209,11 +214,14 @@ TEST(ForceCost, Box) {
 
   // ----- estimator ----- //
   Batch estimator(model, T);
+  estimator.settings.prior_flag = false;
+  estimator.settings.sensor_flag = false;
+  estimator.settings.force_flag = true;
 
   // weights
-  estimator.noise_process[0] = 1.0 / 1.0e-3;
-  estimator.noise_process[1] = 1.0 / 2.0e-3;
-  estimator.noise_process[2] = 1.0 / 3.0e-3;
+  estimator.noise_process[0] = 1.0;
+  estimator.noise_process[1] = 2.0;
+  estimator.noise_process[2] = 3.0;
 
   // copy configuration, qfrc_actuator
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -226,7 +234,7 @@ TEST(ForceCost, Box) {
     double* q = estimator.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
-      dq[i] = 1.0e-5 * absl::Gaussian<double>(gen_, 0.0, 1.0);
+      dq[i] = 1.0e-2 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     mj_integratePos(model, q, dq, model->opt.timestep);
   }
@@ -260,6 +268,12 @@ TEST(ForceCost, Box) {
 
     // initialize
     double cost = 0.0;
+
+    // time scaling 
+    double time_scale2 = 1.0;
+    if (estimator.settings.time_scaling_force) {
+      time_scale2 = estimator.model->opt.timestep * estimator.model->opt.timestep;
+    }
 
     // loop over predictions
     for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
@@ -298,7 +312,7 @@ TEST(ForceCost, Box) {
       // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight = 1.0 / estimator.noise_process[i] / nv /
+        double weight = time_scale2 / estimator.noise_process[i] / nv /
                         (estimator.ConfigurationLength() - 2);
 
         // weighted residual
@@ -334,12 +348,6 @@ TEST(ForceCost, Box) {
   fdh.Compute(cost_inverse_dynamics, update.data(), nvar);
 
   // ----- estimator ----- //
-
-  // cost
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = true;
-
   std::vector<double> cost_gradient(nvar);
   double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
 

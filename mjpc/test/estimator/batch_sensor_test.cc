@@ -63,10 +63,10 @@ TEST(MeasurementCost, Particle) {
   }
 
   // weights
-  estimator.noise_sensor[0] = 1.0 / 1.1e-1;
-  estimator.noise_sensor[1] = 1.0 / 2.2e-1;
-  estimator.noise_sensor[2] = 1.0 / 3.3e-1;
-  estimator.noise_sensor[3] = 1.0 / 4.4e-1;
+  estimator.noise_sensor[0] = 1.1e-1;
+  estimator.noise_sensor[1] = 2.2e-1;
+  estimator.noise_sensor[2] = 3.3e-1;
+  estimator.noise_sensor[3] = 4.4e-1;
 
   // TODO(taylor): test difference norms
 
@@ -90,6 +90,14 @@ TEST(MeasurementCost, Particle) {
     // initialize
     double cost = 0.0;
 
+    // time scaling 
+    double time_scale = 1.0;
+    double time_scale2 = 1.0;
+    if (estimator.settings.time_scaling_sensor) {
+      time_scale = estimator.model->opt.timestep;
+      time_scale2 = time_scale * time_scale;
+    }
+
     // loop over predictions
     for (int t = 0; t < estimator.ConfigurationLength() - 1; t++) {
       if (t == 0) {
@@ -111,7 +119,7 @@ TEST(MeasurementCost, Particle) {
         // loop over sensors
         int shift = 0;
 
-        for (int i = 0; i < model->nsensor; i++) {
+        for (int i = 0; i < model->nsensor; i++) {          
           // skip velocity, acceleration sensors (assumes position sensors are
           // first)
           if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
@@ -172,14 +180,25 @@ TEST(MeasurementCost, Particle) {
       int shift = 0;
 
       for (int i = 0; i < model->nsensor; i++) {
+        // sensor stage 
+        int sensor_stage = model->sensor_needstage[i];
+
         // sensor dimension
         int nsi = model->sensor_dim[i];
 
         // sensor residual
         double* rki = rk + shift;
 
+        // time weight 
+        double time_weight = 1.0;
+        if (sensor_stage == mjSTAGE_VEL) {
+          time_weight = time_scale;
+        } else if (sensor_stage == mjSTAGE_ACC) {
+          time_weight = time_scale2;
+        }
+
         // weight
-        double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+        double weight = time_weight / estimator.noise_sensor[i] / nsi /
                         (estimator.ConfigurationLength() - 1);
 
         // parameters
@@ -291,19 +310,19 @@ TEST(MeasurementCost, Box) {
   }
 
   // weights
-  estimator.noise_sensor[0] = 1.0 / 1.1e-2;
-  estimator.noise_sensor[1] = 1.0 / 2.2e-2;
-  estimator.noise_sensor[2] = 1.0 / 3.3e-2;
-  estimator.noise_sensor[3] = 1.0 / 1.0e-2;
-  estimator.noise_sensor[4] = 1.0 / 2.0e-2;
-  estimator.noise_sensor[5] = 1.0 / 3.0e-2;
-  estimator.noise_sensor[6] = 1.0 / 4.0e-2;
-  estimator.noise_sensor[7] = 1.0 / 5.0e-2;
-  estimator.noise_sensor[8] = 1.0 / 6.0e-2;
-  estimator.noise_sensor[9] = 1.0 / 7.0e-2;
-  estimator.noise_sensor[10] = 1.0 / 8.0e-2;
-  estimator.noise_sensor[11] = 1.0 / 9.0e-2;
-  estimator.noise_sensor[12] = 1.0 / 10.0e-2;
+  estimator.noise_sensor[0] = 1.1e-2;
+  estimator.noise_sensor[1] = 2.2e-2;
+  estimator.noise_sensor[2] = 3.3e-2;
+  estimator.noise_sensor[3] = 1.0e-2;
+  estimator.noise_sensor[4] = 2.0e-2;
+  estimator.noise_sensor[5] = 3.0e-2;
+  estimator.noise_sensor[6] = 4.0e-2;
+  estimator.noise_sensor[7] = 5.0e-2;
+  estimator.noise_sensor[8] = 6.0e-2;
+  estimator.noise_sensor[9] = 7.0e-2;
+  estimator.noise_sensor[10] = 8.0e-2;
+  estimator.noise_sensor[11] = 9.0e-2;
+  estimator.noise_sensor[12] = 10.0e-2;
 
   // TODO(taylor): test difference norms
 
@@ -336,6 +355,14 @@ TEST(MeasurementCost, Box) {
 
     // initialize
     double cost = 0.0;
+
+    // time scale 
+    double time_scale = 1.0;
+    double time_scale2 = 1.0;
+    if (estimator.settings.time_scaling_sensor) {
+      time_scale = estimator.model->opt.timestep;
+      time_scale2 = time_scale * time_scale;
+    }
 
     // loop over predictions
     for (int t = 0; t < estimator.ConfigurationLength() - 1; t++) {
@@ -419,14 +446,25 @@ TEST(MeasurementCost, Box) {
       int shift = 0;
 
       for (int i = 0; i < model->nsensor; i++) {
+        // sensor stage 
+        int sensor_stage = model->sensor_needstage[i];
+
         // sensor dimension
         int nsi = model->sensor_dim[i];
 
         // sensor residual
         double* rki = rk + shift;
 
+        // time weight 
+        double time_weight = 1.0;
+        if (sensor_stage == mjSTAGE_VEL) {
+          time_weight = time_scale;
+        } else if (sensor_stage == mjSTAGE_ACC) {
+          time_weight = time_scale2;
+        }
+
         // weight
-        double weight = 1.0 / estimator.noise_sensor[i] / nsi /
+        double weight = time_weight / estimator.noise_sensor[i] / nsi /
                         (estimator.ConfigurationLength() - 1);
 
         // parameters

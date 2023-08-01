@@ -17,12 +17,13 @@
 #ifndef GRPC_BATCH_ESTIMATOR_SERVICE_H
 #define GRPC_BATCH_ESTIMATOR_SERVICE_H
 
-#include <memory>
-#include <vector>
-
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include <memory>
+#include <vector>
+
 #include "grpc/batch_estimator.grpc.pb.h"
 #include "grpc/batch_estimator.pb.h"
 #include "mjpc/estimators/batch.h"
@@ -31,7 +32,8 @@
 
 namespace batch_estimator_grpc {
 
-class BatchEstimatorService final : public batch_estimator::BatchEstimator::Service {
+class BatchEstimatorService final
+    : public batch_estimator::BatchEstimator::Service {
  public:
   explicit BatchEstimatorService()
       : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
@@ -53,9 +55,9 @@ class BatchEstimatorService final : public batch_estimator::BatchEstimator::Serv
                     const batch_estimator::CostRequest* request,
                     batch_estimator::CostResponse* response) override;
 
-  grpc::Status Weights(grpc::ServerContext* context,
-                       const batch_estimator::WeightsRequest* request,
-                       batch_estimator::WeightsResponse* response) override;
+  grpc::Status Noise(grpc::ServerContext* context,
+                     const batch_estimator::NoiseRequest* request,
+                     batch_estimator::NoiseResponse* response) override;
 
   grpc::Status Norms(grpc::ServerContext* context,
                      const batch_estimator::NormRequest* request,
@@ -81,18 +83,21 @@ class BatchEstimatorService final : public batch_estimator::BatchEstimator::Serv
                       const batch_estimator::TimingRequest* request,
                       batch_estimator::TimingResponse* response) override;
 
-  grpc::Status PriorMatrix(grpc::ServerContext* context,
-                           const batch_estimator::PriorMatrixRequest* request,
-                           batch_estimator::PriorMatrixResponse* response) override;
+  grpc::Status PriorWeights(
+      grpc::ServerContext* context,
+      const batch_estimator::PriorWeightsRequest* request,
+      batch_estimator::PriorWeightsResponse* response) override;
 
  private:
   bool Initialized() const {
-    return batch_estimator_.model && batch_estimator_.ConfigurationLength() >= 3;
+    return batch_estimator_.model &&
+           batch_estimator_.ConfigurationLength() >= 3;
   }
 
   // batch_estimator
   mjpc::Batch batch_estimator_;
-  mjpc::UniqueMjModel batch_estimator_model_override_ = {nullptr, mj_deleteModel};
+  mjpc::UniqueMjModel batch_estimator_model_override_ = {nullptr,
+                                                         mj_deleteModel};
 
   // threadpool
   mjpc::ThreadPool thread_pool_;

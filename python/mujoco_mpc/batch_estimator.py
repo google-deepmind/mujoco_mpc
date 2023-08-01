@@ -289,30 +289,27 @@ class BatchEstimator:
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
     }
 
-  def weight(
+  def noise(
       self,
-      prior: Optional[float] = None,
+      process: Optional[npt.ArrayLike] = [],
       sensor: Optional[npt.ArrayLike] = [],
-      force: Optional[npt.ArrayLike] = [],
   ) -> dict[str, float | np.ndarray]:
-    # assemble input weights
-    inputs = batch_estimator_pb2.Weight(
-        prior=prior,
+    # assemble input noise
+    inputs = batch_estimator_pb2.Noise(
+        process=process,
         sensor=sensor,
-        force=force,
     )
 
-    # weight request
-    request = batch_estimator_pb2.WeightsRequest(weight=inputs)
+    # noise request
+    request = batch_estimator_pb2.NoiseRequest(noise=inputs)
 
-    # weight response
-    weight = self._wait(self.stub.Weights.future(request)).weight
+    # noise response
+    noise = self._wait(self.stub.Noise.future(request)).noise
 
-    # return all weights
+    # return noise
     return {
-        "prior": weight.prior,
-        "sensor": np.array(weight.sensor),
-        "force": np.array(weight.force),
+      "process": np.array(noise.process),
+      "sensor": np.array(noise.sensor),
     }
 
   def norm(
@@ -437,17 +434,17 @@ class BatchEstimator:
     # optimize response
     self._wait(self.stub.Optimize.future(request))
 
-  def prior_matrix(self, prior: Optional[npt.ArrayLike] = None) -> np.ndarray:
+  def prior_weights(self, weights: Optional[npt.ArrayLike] = None) -> np.ndarray:
     # prior request
-    request = batch_estimator_pb2.PriorMatrixRequest(
-        prior=prior.flatten() if prior is not None else None
+    request = batch_estimator_pb2.PriorWeightsRequest(
+        weights=weights.flatten() if weights is not None else None
     )
 
     # prior response
-    response = self._wait(self.stub.PriorMatrix.future(request))
+    response = self._wait(self.stub.PriorWeights.future(request))
 
     # reshape prior to (dimension, dimension)
-    mat = np.array(response.prior).reshape(response.dimension, response.dimension)
+    mat = np.array(response.weights).reshape(response.dimension, response.dimension)
 
     # return prior matrix
     return mat

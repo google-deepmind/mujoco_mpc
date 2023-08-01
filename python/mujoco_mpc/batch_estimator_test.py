@@ -367,7 +367,7 @@ class BatchEstimatorTest(absltest.TestCase):
     
     #TODO(taylor): internals
 
-  def test_weights(self):
+  def test_noise(self):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -381,20 +381,15 @@ class BatchEstimatorTest(absltest.TestCase):
         model=model, configuration_length=configuration_length
     )
 
-    ## prior
-    in_prior_weight = 2.5
-    weight = batch_estimator.weight(prior=in_prior_weight)
-    self.assertTrue(np.abs(in_prior_weight - weight["prior"]) < 1.0e-5)
+    ## process
+    in_process = np.random.rand(model.nv)
+    noise = batch_estimator.noise(process=in_process)
+    self.assertTrue(np.linalg.norm(in_process - noise["process"]) < 1.0e-5)
 
     ## sensor
-    in_sensor_weight = np.random.rand(model.nsensor)
-    weight = batch_estimator.weight(sensor=in_sensor_weight)
-    self.assertTrue(np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5)
-
-    ## force
-    in_force_weight = np.random.rand(model.nv)
-    weight = batch_estimator.weight(force=in_force_weight)
-    self.assertTrue(np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5)
+    in_sensor = np.random.rand(model.nsensor)
+    noise = batch_estimator.noise(sensor=in_sensor)
+    self.assertTrue(np.linalg.norm(in_sensor - noise["sensor"]) < 1.0e-5)
 
   def test_shift(self):
     # load model
@@ -519,7 +514,7 @@ class BatchEstimatorTest(absltest.TestCase):
     # cost difference 
     self.assertTrue(np.abs(status["cost_difference"]) < 1.0e-5)
 
-  def test_prior_matrix(self):
+  def test_prior_weights(self):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -537,18 +532,18 @@ class BatchEstimatorTest(absltest.TestCase):
     dim = configuration_length * model.nv
 
     # get uninitialized (zero) matrix
-    prior0 = batch_estimator.prior_matrix()
+    prior0 = batch_estimator.prior_weights()
 
     # test
     self.assertTrue(prior0.shape == (dim, dim))
     self.assertTrue(not prior0.any())
 
     # random
-    in_prior = np.random.rand(dim, dim)
-    out_prior = batch_estimator.prior_matrix(prior=in_prior)
+    in_weights = np.random.rand(dim, dim)
+    out_prior = batch_estimator.prior_weights(weights=in_weights)
 
     # test
-    self.assertTrue(np.linalg.norm(in_prior - out_prior) < 1.0e-4)
+    self.assertTrue(np.linalg.norm(in_weights - out_prior) < 1.0e-4)
 
   def test_norm(self):
     # load model

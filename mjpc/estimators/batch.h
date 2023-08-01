@@ -154,6 +154,14 @@ class Batch : public Estimator {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // set max history 
+  void SetMaxHistory(int length) {
+    max_history_ = length;
+  }
+
+  // get max history 
+  int GetMaxHistory() { return max_history_; };
+  
   // set configuration length
   void SetConfigurationLength(int length);
 

@@ -25,8 +25,8 @@ service BatchEstimator {
   rpc Settings(SettingsRequest) returns (SettingsResponse);
   // BatchEstimator costs
   rpc Cost(CostRequest) returns (CostResponse);
-  // BatchEstimator weights
-  rpc Weights(WeightsRequest) returns (WeightsResponse);
+  // BatchEstimator noise (process + sensor)
+  rpc Noise(NoiseRequest) returns (NoiseResponse);
   // BatchEstimator norms
   rpc Norms(NormRequest) returns (NormResponse);
   // Shift BatchEstimator trajectories
@@ -40,7 +40,7 @@ service BatchEstimator {
   // Get BatchEstimator timing 
   rpc Timing(TimingRequest) returns (TimingResponse);
   // BatchEstimator prior matrix
-  rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
+  rpc PriorWeights(PriorWeightsRequest) returns (PriorWeightsResponse);
 }
 
 message MjModel {
@@ -138,7 +138,7 @@ message Cost {
   repeated double norm_hessian_sensor = 17 [packed = true];
   repeated double norm_hessian_force = 18 [packed = true];
   int32 nvar = 19;
-  int32 nsensor_ = 20;
+  int32 nsensor = 20;
   int32 nforce = 21;
 }
 
@@ -154,25 +154,22 @@ message CostResponse {
 // TODO(etom): all the protos below use a dict of arrays, but they should use an
 // array of dicts.
 
-message Weight {
-  optional double prior = 1;
+message Noise {
+  repeated double process = 1 [packed = true];
   repeated double sensor = 2 [packed = true];
-  repeated double force = 3 [packed = true];
 }
 
-message WeightsRequest {
-  Weight weight = 1;
+message NoiseRequest {
+  Noise noise = 1;
 }
 
-message WeightsResponse {
-  Weight weight = 1;
+message NoiseResponse {
+  Noise noise = 1;
 }
 
 message Norm {
   repeated int32 sensor_type = 1;
   repeated double sensor_parameters = 2 [packed = true];
-  repeated int32 force_type = 3 [packed = true];
-  repeated double force_parameters = 4 [packed = true];
 }
 
 message NormRequest {
@@ -259,11 +256,11 @@ message TimingResponse {
   Timing timing = 1;
 }
 
-message PriorMatrixRequest {
-  repeated double prior = 1 [packed = true];
+message PriorWeightsRequest {
+  repeated double weights = 1 [packed = true];
 }
 
-message PriorMatrixResponse {
-  repeated double prior = 1 [packed = true];
+message PriorWeightsResponse {
+  repeated double weights = 1 [packed = true];
   int32 dimension = 2;
 }

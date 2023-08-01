@@ -38,12 +38,14 @@ using ::batch_estimator::DataRequest;
 using ::batch_estimator::DataResponse;
 using ::batch_estimator::InitRequest;
 using ::batch_estimator::InitResponse;
+using ::batch_estimator::NoiseRequest;
+using ::batch_estimator::NoiseResponse;
 using ::batch_estimator::NormRequest;
 using ::batch_estimator::NormResponse;
 using ::batch_estimator::OptimizeRequest;
 using ::batch_estimator::OptimizeResponse;
-using ::batch_estimator::PriorMatrixRequest;
-using ::batch_estimator::PriorMatrixResponse;
+using ::batch_estimator::PriorWeightsRequest;
+using ::batch_estimator::PriorWeightsResponse;
 using ::batch_estimator::ResetRequest;
 using ::batch_estimator::ResetResponse;
 using ::batch_estimator::SettingsRequest;
@@ -54,8 +56,6 @@ using ::batch_estimator::StatusRequest;
 using ::batch_estimator::StatusResponse;
 using ::batch_estimator::TimingRequest;
 using ::batch_estimator::TimingResponse;
-using ::batch_estimator::WeightsRequest;
-using ::batch_estimator::WeightsResponse;
 
 // TODO(taylor): make CheckSize utility function for agent and batch_estimator
 namespace {
@@ -128,7 +128,7 @@ grpc::Status BatchEstimatorService::Init(grpc::ServerContext* context,
 
   // initialize batch_estimator
   int length = request->configuration_length();
-  batch_estimator_.max_history_ = length;
+  batch_estimator_.SetMaxHistory(length);
   batch_estimator_.Initialize(batch_estimator_model_override_.get());
   batch_estimator_.SetConfigurationLength(length);
   batch_estimator_.Reset();
@@ -311,7 +311,7 @@ grpc::Status BatchEstimatorService::Settings(
 
     // check for valid length
     if (configuration_length < mjpc::MIN_HISTORY ||
-        configuration_length > batch_estimator_.max_history_) {
+        configuration_length > batch_estimator_.GetMaxHistory()) {
       return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
     }
 
@@ -522,7 +522,7 @@ grpc::Status BatchEstimatorService::Cost(grpc::ServerContext* context,
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  batch_estimator_.cost = batch_estimator_.Cost(
+  double total_cost = batch_estimator_.Cost(
       derivatives ? batch_estimator_.GetCostGradient() : NULL,
       derivatives ? batch_estimator_.GetCostHessian() : NULL, thread_pool_);
 
@@ -530,7 +530,7 @@ grpc::Status BatchEstimatorService::Cost(grpc::ServerContext* context,
   batch_estimator::Cost* cost = response->mutable_cost();
 
   // cost
-  cost->set_total(batch_estimator_.GetCost());
+  cost->set_total(total_cost);
 
   // prior cost
   cost->set_prior(batch_estimator_.GetCostPrior());
@@ -664,22 +664,26 @@ grpc::Status BatchEstimatorService::Cost(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchEstimatorService::Weights(grpc::ServerContext* context,
-                                       const batch_estimator::WeightsRequest* request,
-                                       batch_estimator::WeightsResponse* response) {
+grpc::Status BatchEstimatorService::Noise(grpc::ServerContext* context,
+                                       const batch_estimator::NoiseRequest* request,
+                                       batch_estimator::NoiseResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // weight
-  batch_estimator::Weight input = request->weight();
-  batch_estimator::Weight* output = response->mutable_weight();
+  batch_estimator::Noise input = request->noise();
+  batch_estimator::Noise* output = response->mutable_noise();
 
-  // prior
-  if (input.has_prior()) {
-    batch_estimator_.scale_prior = input.prior();
+  // process
+  int nv = batch_estimator_.model->nv;
+  if (input.process_size() > 0) {
+    CHECK_SIZE("noise process", nv, input.process_size());
+    batch_estimator_.noise_process.assign(input.process().begin(), input.process().end());
   }
-  output->set_prior(batch_estimator_.scale_prior);
+  for (int i = 0; i < nv; i++) {
+    output->add_process(batch_estimator_.noise_process[i]);
+  }
 
   // sensor
   int num_sensor = batch_estimator_.NumberSensors();
@@ -690,16 +694,6 @@ grpc::Status BatchEstimatorService::Weights(grpc::ServerContext* context,
   }
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor(batch_estimator_.noise_sensor[i]);
-  }
-
-  // force
-  int nv = batch_estimator_.model->nv;
-  if (input.force_size() > 0) {
-    CHECK_SIZE("noise process", nv, input.force_size());
-    batch_estimator_.noise_process.assign(input.force().begin(), input.force().end());
-  }
-  for (int i = 0; i < nv; i++) {
-    output->add_force(batch_estimator_.noise_process[i]);
   }
 
   return grpc::Status::OK;
@@ -879,9 +873,9 @@ grpc::Status BatchEstimatorService::Timing(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchEstimatorService::PriorMatrix(
-    grpc::ServerContext* context, const batch_estimator::PriorMatrixRequest* request,
-    batch_estimator::PriorMatrixResponse* response) {
+grpc::Status BatchEstimatorService::PriorWeights(
+    grpc::ServerContext* context, const batch_estimator::PriorWeightsRequest* request,
+    batch_estimator::PriorWeightsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -892,16 +886,16 @@ grpc::Status BatchEstimatorService::PriorMatrix(
 
   // set prior matrix
   // TODO(taylor): loop over upper triangle only
-  if (request->prior_size() > 0) {
-    CHECK_SIZE("prior_matrix", dim * dim, request->prior_size());
-    batch_estimator_.weight_prior.assign(request->prior().begin(),
-                                   request->prior().end());
+  if (request->weights_size() > 0) {
+    CHECK_SIZE("prior weights", dim * dim, request->weights_size());
+    batch_estimator_.weight_prior.assign(request->weights().begin(),
+                                   request->weights().end());
   }
 
   // get prior matrix
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_prior(batch_estimator_.weight_prior[dim * i + j]);
+      response->add_weights(batch_estimator_.weight_prior[dim * i + j]);
     }
   }
 

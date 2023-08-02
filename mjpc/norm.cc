@@ -14,10 +14,10 @@
 
 #include "mjpc/norm.h"
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <cmath>
+
+#include <mujoco/mujoco.h>
 
 namespace mjpc {
 

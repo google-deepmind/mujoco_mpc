@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Unit tests for the `BatchEstimatorService` class.
+// Unit tests for the `BatchService` class.
 
-#include "grpc/batch_estimator_service.h"
-
-#include <memory>
-#include <string_view>
+#include "grpc/batch_service.h"
 
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>
@@ -28,25 +25,28 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
+#include <memory>
+#include <string_view>
+
+#include "grpc/batch.grpc.pb.h"
+#include "grpc/batch.pb.h"
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
-#include "grpc/batch_estimator.grpc.pb.h"
-#include "grpc/batch_estimator.pb.h"
 
-namespace batch_estimator_grpc {
+namespace batch_grpc {
 
-using batch_estimator::grpc_gen::BatchEstimator;
+using batch::grpc_gen::Batch;
 
-class BatchEstimatorServiceTest : public ::testing::Test {
+class BatchServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    batch_estimator_service = std::make_unique<BatchEstimatorService>();
+    batch_service = std::make_unique<BatchService>();
     grpc::ServerBuilder builder;
-    builder.RegisterService(batch_estimator_service.get());
+    builder.RegisterService(batch_service.get());
     server = builder.BuildAndStart();
     std::shared_ptr<grpc::Channel> channel =
         server->InProcessChannel(grpc::ChannelArguments());
-    stub = BatchEstimator::NewStub(channel);
+    stub = Batch::NewStub(channel);
   }
 
   void TearDown() override { server->Shutdown(); }
@@ -54,18 +54,18 @@ class BatchEstimatorServiceTest : public ::testing::Test {
   void RunAndCheckInit() {
     grpc::ClientContext init_context;
 
-    batch_estimator::InitRequest init_request;
+    batch::InitRequest init_request;
 
-    batch_estimator::InitResponse init_response;
+    batch::InitResponse init_response;
     grpc::Status init_status =
         stub->Init(&init_context, init_request, &init_response);
 
     EXPECT_TRUE(init_status.ok()) << init_status.error_message();
   }
 
-  std::unique_ptr<BatchEstimatorService> batch_estimator_service;
-  std::unique_ptr<BatchEstimator::Stub> stub;
+  std::unique_ptr<BatchService> batch_service;
+  std::unique_ptr<Batch::Stub> stub;
   std::unique_ptr<grpc::Server> server;
 };
 
-}  // namespace batch_estimator_grpc
+}  // namespace batch_grpc

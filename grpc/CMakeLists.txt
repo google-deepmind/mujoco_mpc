@@ -52,8 +52,8 @@ unset(BUILD_SHARED_LIBS_OLD)
 
 get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
-get_filename_component(batch_estimator_service_proto "./batch_estimator.proto" ABSOLUTE)
-get_filename_component(batch_estimator_service_proto_path "${batch_estimator_service_proto}" PATH)
+get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
+get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -61,12 +61,12 @@ set(agent_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.h")
 set(agent_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.cc")
 set(agent_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.h")
 
-set(batch_estimator_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch_estimator.pb.cc")
-set(batch_estimator_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch_estimator.pb.h")
-set(batch_estimator_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch_estimator.grpc.pb.cc")
-set(batch_estimator_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch_estimator.grpc.pb.h")
+set(batch_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.cc")
+set(batch_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.h")
+set(batch_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.cc")
+set(batch_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.h")
 
-message("We need the following for agent/batch_estimator_protos:")
+message("We need the following for agent/batch_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
 
 add_custom_command(
@@ -88,19 +88,19 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT
-  "${batch_estimator_service_proto_srcs}"
-  "${batch_estimator_service_proto_hdrs}"
-  "${batch_estimator_service_grpc_srcs}"
-  "${batch_estimator_service_grpc_hdrs}"
+  "${batch_service_proto_srcs}"
+  "${batch_service_proto_hdrs}"
+  "${batch_service_grpc_srcs}"
+  "${batch_service_grpc_hdrs}"
   COMMAND ${_PROTOBUF_PROTOC}
   ARGS
   --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
   --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-  -I "${batch_estimator_service_proto_path}"
+  -I "${batch_service_proto_path}"
   --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
-  "${batch_estimator_service_proto}"
+  "${batch_service_proto}"
   DEPENDS
-  "${batch_estimator_service_proto}"
+  "${batch_service_proto}"
 )
 
 # Include generated *.pb.h files
@@ -178,19 +178,19 @@ target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
 
 add_executable(
-  batch_estimator_server
-  batch_estimator_server.cc
-  ${batch_estimator_service_grpc_srcs}
-  ${batch_estimator_service_grpc_hdrs}
-  ${batch_estimator_service_proto_srcs}
-  ${batch_estimator_service_proto_hdrs}
-  batch_estimator_service.h
-  batch_estimator_service.cc
+  batch_server
+  batch_server.cc
+  ${batch_service_grpc_srcs}
+  ${batch_service_grpc_hdrs}
+  ${batch_service_proto_srcs}
+  ${batch_service_proto_hdrs}
+  batch_service.h
+  batch_service.cc
 )
 
 target_link_libraries(
-  batch_estimator_server
-  # batch_estimator_service_grpc_proto
+  batch_server
+  # batch_service_grpc_proto
   absl::check
   absl::flags
   absl::flags_parse
@@ -204,8 +204,8 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
-target_include_directories(batch_estimator_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-message(batch_estimator_SERVICE_COMPILE_OPTIONS=${BATCH_ESTIMATOR_SERVICE_COMPILE_OPTIONS})
-target_compile_options(batch_estimator_server PUBLIC ${BATCH_ESTIMATOR_SERVICE_COMPILE_OPTIONS})
-target_link_options(batch_estimator_server PRIVATE ${BATCH_ESTIMATOR_SERVICE_LINK_OPTIONS})
+target_include_directories(batch_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_compile_options(batch_server PUBLIC ${BATCH_ESTIMATOR_SERVICE_COMPILE_OPTIONS})
+target_link_options(batch_server PRIVATE ${BATCH_ESTIMATOR_SERVICE_LINK_OPTIONS})
 

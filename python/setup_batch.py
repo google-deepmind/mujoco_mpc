@@ -28,9 +28,9 @@ Path = pathlib.Path
 
 
 class GenerateProtoGrpcCommand(setuptools.Command):
-  """Specialized setup command to handle batch_estimator proto compilation.
+  """Specialized setup command to handle batch proto compilation.
 
-  Generates the `batch_estimator_pb2{_grpc}.py` files from `batch_estimator_proto`. Assumes that
+  Generates the `batch_pb2{_grpc}.py` files from `batch_proto`. Assumes that
   `grpc_tools.protoc` is installed.
   """
 
@@ -44,29 +44,29 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    """Generate `batch_estimator.proto` into `batch_estimator_pb2{_grpc}.py`.
+    """Generate `batch.proto` into `batch_pb2{_grpc}.py`.
 
     This function looks more complicated than what it has to be because the
     `protoc` generator is very particular in the way it generates the imports
-    for the generated `batch_estimator_pb2_grpc.py` file. The final argument of the
-    `protoc` call has to be "mujoco_mpc/batch_estimator.proto" in order for the import to
-    become `from mujoco_mpc import [batch_estimator_pb2_proto_import]` instead of just
-    `import [batch_estimator_pb2_proto_import]`. The latter would fail because the name is
+    for the generated `batch_pb2_grpc.py` file. The final argument of the
+    `protoc` call has to be "mujoco_mpc/batch.proto" in order for the import to
+    become `from mujoco_mpc import [batch_pb2_proto_import]` instead of just
+    `import [batch_pb2_proto_import]`. The latter would fail because the name is
     meant to be relative but python3 interprets it as an absolute import.
     """
     # We import here because, if the import is at the top of this file, we
     # cannot resolve the dependencies without having `grpcio-tools` installed.
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
-    batch_estimator_proto_filename = "batch_estimator.proto"
-    batch_estimator_proto_source_path = Path("..", "grpc", batch_estimator_proto_filename).resolve()
+    batch_proto_filename = "batch.proto"
+    batch_proto_source_path = Path("..", "grpc", batch_proto_filename).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
-    proto_module_relative_path = Path("mujoco_mpc", "proto", batch_estimator_proto_filename)
-    batch_estimator_proto_destination_path = Path(build_lib_path, proto_module_relative_path)
-    batch_estimator_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
-    # Copy `batch_estimator_proto_filename` into current source.
-    shutil.copy(batch_estimator_proto_source_path, batch_estimator_proto_destination_path)
+    proto_module_relative_path = Path("mujoco_mpc", "proto", batch_proto_filename)
+    batch_proto_destination_path = Path(build_lib_path, proto_module_relative_path)
+    batch_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
+    # Copy `batch_proto_filename` into current source.
+    shutil.copy(batch_proto_source_path, batch_proto_destination_path)
 
     protoc_command_parts = [
         # We use `__file__`  as the first argument the same way as is done by
@@ -76,7 +76,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
         f"-I{build_lib_path}",
         f"--python_out={build_lib_path}",
         f"--grpc_python_out={build_lib_path}",
-        str(batch_estimator_proto_destination_path),
+        str(batch_proto_destination_path),
     ]
 
     protoc_returncode = protoc.main(protoc_command_parts)
@@ -87,17 +87,17 @@ class GenerateProtoGrpcCommand(setuptools.Command):
           cmd=f"`protoc.main({protoc_command_parts})`",
       )
 
-    self.spawn(["touch", str(batch_estimator_proto_destination_path.parent / "__init__.py")])
+    self.spawn(["touch", str(batch_proto_destination_path.parent / "__init__.py")])
 
 
-class CopyBatchEstimatorServerBinaryCommand(setuptools.Command):
-  """Specialized setup command to copy `batch_estimator_server` next to `batch_estimator.py`.
+class CopyBatchServerBinaryCommand(setuptools.Command):
+  """Specialized setup command to copy `batch_server` next to `batch.py`.
 
-  Assumes that the C++ gRPC `batch_estimator_server` binary has been manually built and
+  Assumes that the C++ gRPC `batch_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
-  description = "Copy `batch_estimator_server` next to `batch_estimator.py`."
+  description = "Copy `batch_server` next to `batch.py`."
   user_options = []
 
   def initialize_options(self):
@@ -107,8 +107,8 @@ class CopyBatchEstimatorServerBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    self._copy_binary("batch_estimator_server")
-    # self._copy_binary("ui_batch_estimator_server")
+    self._copy_binary("batch_server")
+    # self._copy_binary("ui_batch_server")
 
   def _copy_binary(self, binary_name):
     source_path = Path(f"../build/bin/{binary_name}")
@@ -129,15 +129,14 @@ class CopyBatchEstimatorServerBinaryCommand(setuptools.Command):
 
 
 class CopyTaskAssetsCommand(setuptools.Command):
-  """Copies `batch_estimator_server` and `ui_batch_estimator_server` next to `batch_estimator.py`.
+  """Copies `batch_server` and `ui_batch_server` next to `batch.py`.
 
-  Assumes that the C++ gRPC `batch_estimator_server` binary has been manually built and
+  Assumes that the C++ gRPC `batch_server` binary has been manually built and
   and located in the default `mujoco_mpc/build/bin` folder.
   """
 
   description = (
-      "Copy task assets over to python source to make them accessible by"
-      " `BatchEstimator`."
+      "Copy task assets over to python source to make them accessible by" " `Batch`."
   )
   user_options = []
 
@@ -166,10 +165,10 @@ class CopyTaskAssetsCommand(setuptools.Command):
 
 
 class BuildPyCommand(build_py.build_py):
-  """Specialized Python builder to handle batch_estimator service dependencies.
+  """Specialized Python builder to handle batch service dependencies.
 
-  During build, this will generate the `batch_estimator_pb2{_grpc}.py` files and copy
-  `batch_estimator_server` binary next to `batch_estimator.py`.
+  During build, this will generate the `batch_pb2{_grpc}.py` files and copy
+  `batch_server` binary next to `batch.py`.
   """
 
   user_options = build_py.build_py.user_options
@@ -195,10 +194,10 @@ class BuildCMakeExtension(build_ext.build_ext):
   """Uses CMake to build extensions."""
 
   def run(self):
-    self._configure_and_build_batch_estimator_server()
-    self.run_command("copy_batch_estimator_server_binary")
+    self._configure_and_build_batch_server()
+    self.run_command("copy_batch_server_binary")
 
-  def _configure_and_build_batch_estimator_server(self):
+  def _configure_and_build_batch_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
     build_cfg = "Debug"
@@ -235,15 +234,15 @@ class BuildCMakeExtension(build_ext.build_ext):
         cwd=mujoco_mpc_root,
     )
 
-    print("Building `batch_estimator_server` and `ui_batch_estimator_server` with CMake")
+    print("Building `batch_server` and `ui_batch_server` with CMake")
     subprocess.check_call(
         [
             cmake_command,
             "--build",
             str(mujoco_mpc_build_dir.resolve()),
             "--target",
-            "batch_estimator_server",
-            # "ui_batch_estimator_server",
+            "batch_server",
+            # "ui_batch_server",
             f"-j{os.cpu_count()}",
             "--config",
             build_cfg,
@@ -282,18 +281,18 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
-    ext_modules=[CMakeExtension("batch_estimator_server")],
+    ext_modules=[CMakeExtension("batch_server")],
     cmdclass={
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
-        "copy_batch_estimator_server_binary": CopyBatchEstimatorServerBinaryCommand,
+        "copy_batch_server_binary": CopyBatchServerBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={
         "": [
-            "mjpc/batch_estimator_server",
-            # "mjpc/ui_batch_estimator_server",
+            "mjpc/batch_server",
+            # "mjpc/ui_batch_server",
         ],
     },
 )

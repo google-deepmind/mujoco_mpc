@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Python interface for interface with BatchEstimator."""
+"""Python interface for interface with Batch."""
 
 import atexit
 import os
@@ -30,8 +30,8 @@ import numpy as np
 from numpy import typing as npt
 
 # INTERNAL IMPORT
-from mujoco_mpc.proto import batch_estimator_pb2
-from mujoco_mpc.proto import batch_estimator_pb2_grpc
+from mujoco_mpc.proto import batch_pb2
+from mujoco_mpc.proto import batch_pb2_grpc
 
 
 def find_free_port() -> int:
@@ -49,8 +49,8 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
-class BatchEstimator:
-  """`BatchEstimator` class to interface with MuJoCo MPC batch_estimator.
+class Batch:
+  """`Batch` class to interface with MuJoCo MPC batch.
 
   Attributes:
     port:
@@ -69,7 +69,7 @@ class BatchEstimator:
   ):
     # server
     if server_binary_path is None:
-      binary_name = "batch_estimator_server"
+      binary_name = "batch_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self._colab_logging = colab_logging
     self.port = find_free_port()
@@ -83,7 +83,7 @@ class BatchEstimator:
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
-    self.stub = batch_estimator_pb2_grpc.BatchEstimatorStub(self.channel)
+    self.stub = batch_pb2_grpc.BatchStub(self.channel)
 
     # initialize
     self.init(
@@ -103,7 +103,7 @@ class BatchEstimator:
       configuration_length: int,
       send_as: Literal["mjb", "xml"] = "xml",
   ):
-    """Initialize the batch_estimator for estimation horizon `configuration_length`.
+    """Initialize the batch for estimation horizon `configuration_length`.
 
     Args:
       model: optional `MjModel` instance, which, if provided, will be used as
@@ -129,14 +129,14 @@ class BatchEstimator:
 
     if model is not None:
       if send_as == "mjb":
-        model_message = batch_estimator_pb2.MjModel(mjb=model_to_mjb(model))
+        model_message = batch_pb2.MjModel(mjb=model_to_mjb(model))
       else:
-        model_message = batch_estimator_pb2.MjModel(xml=model_to_xml(model))
+        model_message = batch_pb2.MjModel(xml=model_to_xml(model))
     else:
       model_message = None
 
     # initialize request
-    init_request = batch_estimator_pb2.InitRequest(
+    init_request = batch_pb2.InitRequest(
         model=model_message,
         configuration_length=configuration_length,
     )
@@ -160,7 +160,7 @@ class BatchEstimator:
       force_prediction: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble inputs
-    inputs = batch_estimator_pb2.Data(
+    inputs = batch_pb2.Data(
         configuration=configuration,
         velocity=velocity,
         acceleration=acceleration,
@@ -175,7 +175,7 @@ class BatchEstimator:
     )
 
     # data request
-    request = batch_estimator_pb2.DataRequest(data=inputs, index=index)
+    request = batch_pb2.DataRequest(data=inputs, index=index)
 
     # data response
     data = self._wait(self.stub.Data.future(request)).data
@@ -225,7 +225,7 @@ class BatchEstimator:
       assemble_force_norm_hessian: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
-    inputs = batch_estimator_pb2.Settings(
+    inputs = batch_pb2.Settings(
         configuration_length=configuration_length,
         prior_flag=prior_flag,
         sensor_flag=sensor_flag,
@@ -255,7 +255,7 @@ class BatchEstimator:
     )
 
     # settings request
-    request = batch_estimator_pb2.SettingsRequest(
+    request = batch_pb2.SettingsRequest(
         settings=inputs,
     )
 
@@ -298,21 +298,21 @@ class BatchEstimator:
       sensor: Optional[npt.ArrayLike] = [],
   ) -> dict[str, float | np.ndarray]:
     # assemble input noise
-    inputs = batch_estimator_pb2.Noise(
+    inputs = batch_pb2.Noise(
         process=process,
         sensor=sensor,
     )
 
     # noise request
-    request = batch_estimator_pb2.NoiseRequest(noise=inputs)
+    request = batch_pb2.NoiseRequest(noise=inputs)
 
     # noise response
     noise = self._wait(self.stub.Noise.future(request)).noise
 
     # return noise
     return {
-      "process": np.array(noise.process),
-      "sensor": np.array(noise.sensor),
+        "process": np.array(noise.process),
+        "sensor": np.array(noise.sensor),
     }
 
   def norm(
@@ -321,13 +321,13 @@ class BatchEstimator:
       sensor_parameters: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble input norm data
-    inputs = batch_estimator_pb2.Norm(
+    inputs = batch_pb2.Norm(
         sensor_type=sensor_type,
         sensor_parameters=sensor_parameters,
     )
 
     # norm request
-    request = batch_estimator_pb2.NormRequest(norm=inputs)
+    request = batch_pb2.NormRequest(norm=inputs)
 
     # norm response
     norm = self._wait(self.stub.Norms.future(request)).norm
@@ -342,7 +342,7 @@ class BatchEstimator:
       self, derivatives: Optional[bool] = False, internals: Optional[bool] = False
   ) -> dict[str, float]:
     # cost request
-    request = batch_estimator_pb2.CostRequest(derivatives=derivatives, internals=internals)
+    request = batch_pb2.CostRequest(derivatives=derivatives, internals=internals)
 
     # cost response
     cost = self._wait(self.stub.Cost.future(request)).cost
@@ -396,7 +396,7 @@ class BatchEstimator:
 
   def status(self) -> dict[str, int]:
     # status request
-    request = batch_estimator_pb2.StatusRequest()
+    request = batch_pb2.StatusRequest()
 
     # status response
     status = self._wait(self.stub.Status.future(request)).status
@@ -418,28 +418,28 @@ class BatchEstimator:
 
   def shift(self, shift: int) -> int:
     # shift request
-    request = batch_estimator_pb2.ShiftRequest(shift=shift)
+    request = batch_pb2.ShiftRequest(shift=shift)
 
     # return head (for testing)
     return self._wait(self.stub.Shift.future(request)).head
 
   def reset(self):
     # reset request
-    request = batch_estimator_pb2.ResetRequest()
+    request = batch_pb2.ResetRequest()
 
     # reset response
     self._wait(self.stub.Reset.future(request))
 
   def optimize(self):
     # optimize request
-    request = batch_estimator_pb2.OptimizeRequest()
+    request = batch_pb2.OptimizeRequest()
 
     # optimize response
     self._wait(self.stub.Optimize.future(request))
 
   def prior_weights(self, weights: Optional[npt.ArrayLike] = None) -> np.ndarray:
     # prior request
-    request = batch_estimator_pb2.PriorWeightsRequest(
+    request = batch_pb2.PriorWeightsRequest(
         weights=weights.flatten() if weights is not None else None
     )
 
@@ -489,7 +489,7 @@ class BatchEstimator:
         return "MAX_REGULARIZATION_FAILURE"
       elif code == 5:
         return "COST_DIFFERENCE_FAILURE"
-      elif code == 6: 
+      elif code == 6:
         return "EXPECTED_DECREASE_FAILURE"
       elif code == 7:
         return "SOLVED"

@@ -14,32 +14,32 @@
 
 syntax = "proto3";
 
-package batch_estimator;
+package batch;
 
-service BatchEstimator {
-  // Initialize BatchEstimator
+service Batch {
+  // Initialize Batch
   rpc Init(InitRequest) returns (InitResponse);
-  // Set BatchEstimator data
+  // Set Batch data
   rpc Data(DataRequest) returns (DataResponse);
-  // BatchEstimator settings
+  // Batch settings
   rpc Settings(SettingsRequest) returns (SettingsResponse);
-  // BatchEstimator costs
+  // Batch costs
   rpc Cost(CostRequest) returns (CostResponse);
-  // BatchEstimator noise (process + sensor)
+  // Batch noise (process + sensor)
   rpc Noise(NoiseRequest) returns (NoiseResponse);
-  // BatchEstimator norms
+  // Batch norms
   rpc Norms(NormRequest) returns (NormResponse);
-  // Shift BatchEstimator trajectories
+  // Shift Batch trajectories
   rpc Shift(ShiftRequest) returns (ShiftResponse);
-  // Reset BatchEstimator
+  // Reset Batch
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Optimize BatchEstimator
+  // Optimize Batch
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
-  // Get BatchEstimator status
+  // Get Batch status
   rpc Status(StatusRequest) returns (StatusResponse);
-  // Get BatchEstimator timing 
+  // Get Batch timing 
   rpc Timing(TimingRequest) returns (TimingResponse);
-  // BatchEstimator prior matrix
+  // Batch prior matrix
   rpc PriorWeights(PriorWeightsRequest) returns (PriorWeightsResponse);
 }
 

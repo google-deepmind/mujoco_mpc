@@ -17,6 +17,8 @@
 
 namespace mjpc {
 
+const int MAX_NORM_PARAMETERS = 3;
+
 // norm types
 enum NormType : int {
   kNull = -1,

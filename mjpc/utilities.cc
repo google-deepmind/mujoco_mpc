@@ -1386,4 +1386,105 @@ void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
   }
 }
 
+// trace of square matrix 
+double Trace(const double* mat, int n) {
+  // initialize
+  double trace = 0.0;
+  
+  // sum diagonal terms 
+  for (int i = 0; i < n; i++) {
+    trace += mat[n * i + i];
+  }
+
+  return trace;
+}
+
+// determinant of 3x3 matrix
+double Determinant3(const double* mat) {
+  // unpack
+  double a = mat[0];
+  double b = mat[1];
+  double c = mat[2];
+  double d = mat[3];
+  double e = mat[4];
+  double f = mat[5];
+  double g = mat[6];
+  double h = mat[7];
+  double i = mat[8];
+
+  // determinant
+  return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+}
+
+// inverse of 3x3 matrix 
+void Inverse3(double* res, const double* mat) {
+  // unpack
+  double a = mat[0];
+  double b = mat[1];
+  double c = mat[2];
+  double d = mat[3];
+  double e = mat[4];
+  double f = mat[5];
+  double g = mat[6];
+  double h = mat[7];
+  double i = mat[8];
+
+  // determinant 
+  double det = Determinant3(mat);
+
+  // inverse 
+  res[0] = e * i - f * h;
+  res[1] = -(b * i - c * h);
+  res[2] = b * f - c * e;
+  res[3] = -(d * i - f * g);
+  res[4] = a * i - c * g;
+  res[5] = -(a * f - c * d);
+  res[6] = d * h - e * g;
+  res[7] = -(a * h - b * g);
+  res[8] = a * e - b * d;
+
+  // scale 
+  mju_scl(res, res, 1.0 / det, 9);
+}
+
+// condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of
+// mat00
+// TODO(taylor): thread
+void ConditionMatrix(double* res, const double* mat, double* mat00,
+                     double* mat10, double* mat11, double* tmp0, double* tmp1,
+                     int n, int n0, int n1, double* bandfactor, int nband) {
+  // unpack mat
+  BlockFromMatrix(mat00, mat, n0, n0, n, n, 0, 0);
+  BlockFromMatrix(mat10, mat, n1, n0, n, n, n0, 0);
+  BlockFromMatrix(mat11, mat, n1, n1, n, n, n0, n0);
+
+  // factorize mat00, solve mat00 \ mat10^T
+  if (nband > 0 && bandfactor) {
+    mju_dense2Band(bandfactor, mat00, n0, nband, 0);
+
+    // factorize mat00
+    mju_cholFactorBand(bandfactor, n0, nband, 0, 0.0, 0.0);
+
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolveBand(tmp0 + n0 * i, bandfactor, mat10 + n0 * i, n0, nband,
+                        0);
+    }
+  } else {
+    // factorize mat00
+    mju_cholFactor(mat00, n0, 0.0);
+
+    // tmp0 = mat00 \ mat01 = (mat00^-1 mat01)^T
+    for (int i = 0; i < n1; i++) {
+      mju_cholSolve(tmp0 + n0 * i, mat00, mat10 + n0 * i, n0);
+    }
+  }
+
+  // tmp1 = mat10 * (mat00 \ mat01)
+  mju_mulMatMatT(tmp1, tmp0, mat10, n1, n0, n1);
+
+  // res = mat11 - mat10 * (mat00 \ mat01)
+  mju_sub(res, mat11, tmp1, n1 * n1);
+}
+
 }  // namespace mjpc

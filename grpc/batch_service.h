@@ -14,8 +14,8 @@
 
 // An implementation of the `Batch` gRPC service.
 
-#ifndef GRPC_BATCH_ESTIMATOR_SERVICE_H
-#define GRPC_BATCH_ESTIMATOR_SERVICE_H
+#ifndef GRPC_BATCH_SERVICE_H
+#define GRPC_BATCH_SERVICE_H
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
@@ -100,4 +100,4 @@ class BatchService final : public batch::Batch::Service {
 
 }  // namespace batch_grpc
 
-#endif  // GRPC_BATCH_ESTIMATOR_SERVICE_H
+#endif  // GRPC_BATCH_SERVICE_H

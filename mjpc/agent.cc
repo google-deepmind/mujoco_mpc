@@ -64,7 +64,7 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
   PlotReset();
 }
 
-// initialize data, settings, planners, states
+// initialize data, settings, planners, state
 void Agent::Initialize(const mjModel* model) {
   // ----- model ----- //
   if (model_) mj_deleteModel(model_);
@@ -95,7 +95,7 @@ void Agent::Initialize(const mjModel* model) {
   }
 
   // initialize state
-  state_.Initialize(model);
+  state.Initialize(model);
 
   // status
   plan_enabled = false;
@@ -124,7 +124,7 @@ void Agent::Allocate() {
   }
 
   // state
-  state_.Allocate(model_);
+  state.Allocate(model_);
 
   // set status
   allocate_enabled = false;
@@ -133,7 +133,7 @@ void Agent::Allocate() {
   terms_.resize(ActiveTask()->num_term * kMaxTrajectoryHorizon);
 }
 
-// reset data, settings, planners, states
+// reset data, settings, planners, state
 void Agent::Reset() {
   // planner
   for (const auto& planner : planners_) {
@@ -141,7 +141,7 @@ void Agent::Reset() {
   }
 
   // state
-  state_.Reset();
+  state.Reset();
 
   // cost
   cost_ = 0.0;
@@ -154,7 +154,7 @@ void Agent::Reset() {
 }
 
 void Agent::SetState(const mjData* data) {
-  ActiveState().Set(model_, data);
+  state.Set(model_, data);
 }
 
 int Agent::GetTaskIdByName(std::string_view name) const {
@@ -231,7 +231,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
   // plan
   if (!allocate_enabled) {
     // set state
-    ActivePlanner().SetState(ActiveState());
+    ActivePlanner().SetState(state);
 
     // copy the task's residual function parameters into a new object, which
     // remains constant during planning and doesn't require locking from the

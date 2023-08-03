@@ -127,7 +127,6 @@ class Agent {
   void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
-  mjpc::State& ActiveState() { return state_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -166,6 +165,9 @@ class Agent {
   int plot_enabled;
   int gui_task_id = 0;
 
+  // state
+  mjpc::State state;
+
  private:
   // model
   mjModel* model_ = nullptr;
@@ -192,9 +194,6 @@ class Agent {
   // planners
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;
   int planner_;
-
-  // states
-  mjpc::State state_;
 
   // task queue for RunBeforeStep
   std::mutex step_jobs_mutex_;

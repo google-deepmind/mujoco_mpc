@@ -50,7 +50,7 @@ AgentRunner::~AgentRunner() {
 void AgentRunner::Step(mjData* data) {
   agent_.SetState(data);
   agent_.ActivePlanner().ActionFromPolicy(
-    data->ctrl, &agent_.ActiveState().state()[0], agent_.ActiveState().time());
+    data->ctrl, &agent_.state.state()[0], agent_.state.time());
 }
 
 void AgentRunner::Residual(const mjModel* model, mjData* data) {

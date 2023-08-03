@@ -137,11 +137,11 @@ class AgentTest : public ::testing::Test {
                     .BestTrajectory()
                     ->states[(agent->steps_ - 1) *
                              (agent->model_->nq + agent->model_->nv)],
-                agent->state_.mocap()[0], 1.0e-1);
+                agent->state.mocap()[0], 1.0e-1);
     EXPECT_NEAR(
         agent->ActivePlanner().BestTrajectory()->states
             [(agent->steps_ - 1) * (agent->model_->nq + agent->model_->nv) + 1],
-        agent->state_.mocap()[1], 1.0e-1);
+        agent->state.mocap()[1], 1.0e-1);
     EXPECT_NEAR(
         agent->ActivePlanner().BestTrajectory()->states
             [(agent->steps_ - 1) * (agent->model_->nq + agent->model_->nv) + 2],
@@ -180,11 +180,11 @@ class AgentTest : public ::testing::Test {
                     .BestTrajectory()
                     ->states[(agent->steps_ - 1) *
                              (agent->model_->nq + agent->model_->nv)],
-                agent->state_.mocap()[0], 1.0e-1);
+                agent->state.mocap()[0], 1.0e-1);
     EXPECT_NEAR(
         agent->ActivePlanner().BestTrajectory()->states
             [(agent->steps_ - 1) * (agent->model_->nq + agent->model_->nv) + 1],
-        agent->state_.mocap()[1], 1.0e-1);
+        agent->state.mocap()[1], 1.0e-1);
     EXPECT_NEAR(
         agent->ActivePlanner().BestTrajectory()->states
             [(agent->steps_ - 1) * (agent->model_->nq + agent->model_->nv) + 2],

@@ -151,10 +151,10 @@ grpc::Status GetAction(const GetActionRequest* request,
   std::vector<double> ret = std::vector<double>(nu, 0);
 
   double time =
-      request->has_time() ? request->time() : agent->ActiveState().time();
+      request->has_time() ? request->time() : agent->state.time();
 
   if (request->averaging_duration() > 0) {
-    agent->ActiveState().CopyTo(model, rollout_data);
+    agent->state.CopyTo(model, rollout_data);
     rollout_data->time = time;
     double end_time = time + request->averaging_duration();
     int nactions = 0;
@@ -170,7 +170,7 @@ grpc::Status GetAction(const GetActionRequest* request,
     mju_scl(ret.data(), ret.data(), 1.0 / nactions, nu);
   } else {
     agent->ActivePlanner().ActionFromPolicy(
-        ret.data(), &agent->ActiveState().state()[0], time);
+        ret.data(), &agent->state.state()[0], time);
   }
 
   response->mutable_action()->Assign(ret.begin(), ret.end());

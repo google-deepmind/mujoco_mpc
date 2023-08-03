@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_BATCH_H_
-#define MJPC_ESTIMATORS_BATCH_H_
+#ifndef MJPC_ESTIMATORS_ESTIMATOR_H_
+#define MJPC_ESTIMATORS_ESTIMATOR_H_
 
 #include <mujoco/mujoco.h>
 
@@ -632,4 +632,4 @@ std::string StatusString(int code);
 
 }  // namespace mjpc
 
-#endif  // MJPC_ESTIMATORS_BATCH_H_
+#endif  // MJPC_ESTIMATORS_ESTIMATOR_H_

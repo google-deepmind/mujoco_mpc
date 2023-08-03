@@ -73,9 +73,6 @@ void Agent::Initialize(const mjModel* model) {
   // planner
   planner_ = GetNumberOrDefault(0, model, "agent_planner");
 
-  // state
-  state_ = GetNumberOrDefault(0, model, "agent_state");
-
   // integrator
   integrator_ =
       GetNumberOrDefault(model->opt.integrator, model, "agent_integrator");
@@ -98,9 +95,7 @@ void Agent::Initialize(const mjModel* model) {
   }
 
   // initialize state
-  for (const auto& state : states_) {
-    state->Initialize(model);
-  }
+  state_.Initialize(model);
 
   // status
   plan_enabled = false;
@@ -129,9 +124,7 @@ void Agent::Allocate() {
   }
 
   // state
-  for (const auto& state : states_) {
-    state->Allocate(model_);
-  }
+  state_.Allocate(model_);
 
   // set status
   allocate_enabled = false;
@@ -147,9 +140,8 @@ void Agent::Reset() {
     planner->Reset(kMaxTrajectoryHorizon);
   }
 
-  for (const auto& state : states_) {
-    state->Reset();
-  }
+  // state
+  state_.Reset();
 
   // cost
   cost_ = 0.0;

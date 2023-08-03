@@ -25,7 +25,6 @@
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/include.h"
-#include "mjpc/states/include.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -46,7 +45,7 @@ class Agent {
   friend class AgentTest;
 
   // constructor
-  Agent() : planners_(mjpc::LoadPlanners()), states_(mjpc::LoadStates()) {}
+  Agent() : planners_(mjpc::LoadPlanners()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -56,13 +55,13 @@ class Agent {
 
   // ----- methods ----- //
 
-  // initialize data, settings, planners, states
+  // initialize data, settings, planners, state
   void Initialize(const mjModel* model);
 
   // allocate memory
   void Allocate();
 
-  // reset data, settings, planners, states
+  // reset data, settings, planners, state
   void Reset();
 
   // single planner iteration
@@ -128,7 +127,7 @@ class Agent {
   void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
-  mjpc::State& ActiveState() const { return *states_[state_]; }
+  mjpc::State& ActiveState() { return state_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -195,8 +194,7 @@ class Agent {
   int planner_;
 
   // states
-  std::vector<std::unique_ptr<mjpc::State>> states_;
-  int state_;
+  mjpc::State state_;
 
   // task queue for RunBeforeStep
   std::mutex step_jobs_mutex_;

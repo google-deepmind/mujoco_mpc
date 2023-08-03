@@ -299,7 +299,7 @@ class Batch : public Estimator {
 
   // prior
   double scale_prior;
-  std::vector<double> weight_prior;           // (nv * max_history_) * (nv * max_history_)
+  std::vector<double> weight_prior;                    // (nv * max_history_) * (nv * max_history_)
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -316,10 +316,10 @@ class Batch : public Estimator {
   EstimatorTrajectory<double> force_prediction;        // nv x T
 
   // norms
-  std::vector<NormType> norm_type_sensor;      // num_sensor
+  std::vector<NormType> norm_type_sensor;         // num_sensor
 
   // norm parameters
-  std::vector<double> norm_parameters_sensor;  // num_sensor x kMaxNormParameters
+  std::vector<double> norm_parameters_sensor;     // num_sensor x kMaxNormParameters
 
   // settings
   struct BatchSettings {

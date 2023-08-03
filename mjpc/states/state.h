@@ -1,17 +1,3 @@
-// Copyright 2022 DeepMind Technologies Limited
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef MJPC_STATES_STATE_H_
 #define MJPC_STATES_STATE_H_
 
@@ -46,6 +32,24 @@ class State {
 
   // set state from data
   void Set(const mjModel* model, const mjData* data);
+
+  // set qpos 
+  void SetPosition(const mjModel* model, const double* qpos);
+
+  // set qvel 
+  void SetVelocity(const mjModel* model, const double* qvel);
+
+  // set act 
+  void SetAct(const mjModel* model, const double* act);
+
+  // set mocap
+  void SetMocap(const mjModel* model, const double* mocap_pos, const double* mocap_quat);
+
+  // set user data
+  void SetUserData(const mjModel* model, const double* userdata);
+
+  // set time 
+  void SetTime(const mjModel* model, double time);
 
   // copy into destination
   void CopyTo(double* dst_state, double* dst_mocap, double* dst_userdata, double* time) const;

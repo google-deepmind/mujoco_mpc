@@ -205,7 +205,7 @@ void Batch::Initialize(const mjModel* model) {
   }
 
   // cost norm parameters
-  norm_parameters_sensor.resize(nsensor_ * MAX_NORM_PARAMETERS);
+  norm_parameters_sensor.resize(nsensor_ * kMaxNormParameters);
 
   // TODO(taylor): initialize norm parameters from xml
   std::fill(norm_parameters_sensor.begin(), norm_parameters_sensor.end(), 0.0);
@@ -1089,7 +1089,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       double weight = time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
 
       // parameters
-      double* pi = norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+      double* pi = norm_parameters_sensor.data() + kMaxNormParameters * i;
 
       // norm
       NormType normi = norm_type_sensor[i];

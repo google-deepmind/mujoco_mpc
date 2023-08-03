@@ -17,7 +17,8 @@
 
 namespace mjpc {
 
-const int MAX_NORM_PARAMETERS = 3;
+// maximum number of norm parameters
+inline constexpr int kMaxNormParameters = 3;
 
 // norm types
 enum NormType : int {

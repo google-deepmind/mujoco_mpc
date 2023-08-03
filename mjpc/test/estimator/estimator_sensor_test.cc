@@ -136,7 +136,7 @@ TEST(MeasurementCost, Particle) {
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
           NormType normi = estimator.norm_type_sensor[i];
@@ -203,7 +203,7 @@ TEST(MeasurementCost, Particle) {
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+            estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
         // norm
         NormType normi = estimator.norm_type_sensor[i];
@@ -402,7 +402,7 @@ TEST(MeasurementCost, Box) {
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
           NormType normi = estimator.norm_type_sensor[i];
@@ -469,7 +469,7 @@ TEST(MeasurementCost, Box) {
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor.data() + MAX_NORM_PARAMETERS * i;
+            estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
         // norm
         NormType normi = estimator.norm_type_sensor[i];

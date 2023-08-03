@@ -319,7 +319,7 @@ class Batch : public Estimator {
   std::vector<NormType> norm_type_sensor;      // num_sensor
 
   // norm parameters
-  std::vector<double> norm_parameters_sensor;  // num_sensor x MAX_NORM_PARAMETERS
+  std::vector<double> norm_parameters_sensor;  // num_sensor x kMaxNormParameters
 
   // settings
   struct BatchSettings {

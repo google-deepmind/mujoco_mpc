@@ -737,7 +737,7 @@ grpc::Status BatchService::Norms(grpc::ServerContext* context,
 
   // set sensor parameters
   if (input.sensor_parameters_size() > 0) {
-    CHECK_SIZE("sensor_parameters", mjpc::MAX_NORM_PARAMETERS * num_sensor,
+    CHECK_SIZE("sensor_parameters", mjpc::kMaxNormParameters * num_sensor,
                input.sensor_parameters_size());
     batch_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
                                          input.sensor_parameters().end());

@@ -91,7 +91,7 @@ class Estimator {
 };
 
 // defaults
-const int MIN_HISTORY = 3;      // minimum configuration trajectory length
+inline constexpr int kMinBatchHistory = 3;      // minimum configuration trajectory length
 
 // batch estimator status 
 enum BatchStatus : int {

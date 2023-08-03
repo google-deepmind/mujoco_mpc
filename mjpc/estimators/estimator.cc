@@ -628,7 +628,7 @@ void Batch::SetConfigurationLength(int length) {
   }
 
   // set configuration length
-  configuration_length_ = std::max(length, MIN_HISTORY);
+  configuration_length_ = std::max(length, kMinBatchHistory);
 
   // update trajectory lengths
   configuration.SetLength(configuration_length_);

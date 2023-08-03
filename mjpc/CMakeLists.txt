@@ -73,8 +73,6 @@ add_library(
   planners/include.h
   planners/cost_derivatives.cc
   planners/cost_derivatives.h
-  planners/linear_solve.cc
-  planners/linear_solve.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
   planners/robust/robust_planner.cc

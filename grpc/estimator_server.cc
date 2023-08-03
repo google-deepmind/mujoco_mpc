@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  batch_grpc::BatchService service;
+  mjpc::batch_grpc::BatchService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

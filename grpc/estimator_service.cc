@@ -30,7 +30,7 @@
 #include "grpc/estimator.pb.h"
 #include "mjpc/estimators/estimator.h"
 
-namespace batch_grpc {
+namespace mjpc::batch_grpc {
 
 using ::batch::CostRequest;
 using ::batch::CostResponse;
@@ -912,4 +912,4 @@ grpc::Status BatchService::PriorWeights(
 
 #undef CHECK_SIZE
 
-}  // namespace batch_grpc
+}  // namespace mjpc::batch_grpc

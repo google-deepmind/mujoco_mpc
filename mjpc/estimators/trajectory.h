@@ -23,7 +23,8 @@
 
 namespace mjpc {
 
-const int MAX_TRAJECTORY = 1028;
+// maximum length for trajectory length
+inline constexpr int kMaxEstimatorTrajectory = 1024;
 
 // trajectory
 template <typename T>
@@ -40,7 +41,7 @@ class EstimatorTrajectory {
     length_ = length;
 
     // allocate memory
-    data_.resize(dim * MAX_TRAJECTORY);
+    data_.resize(dim * kMaxEstimatorTrajectory);
 
     // reset
     Reset();
@@ -109,6 +110,11 @@ class EstimatorTrajectory {
 
   // shift head_index_
   void Shift(int shift) {
+    // check for nonnegative shift
+    if (shift < 0) {
+      mju_error("shift cannot be negative");
+    }
+
     // compute new head index
     int new_head = head_index_ + shift;
 

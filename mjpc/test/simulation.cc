@@ -23,9 +23,10 @@
 namespace mjpc {
 
 // constructor
-Simulation::Simulation(mjModel* model, int length) {
+Simulation::Simulation(const mjModel* model, int length) {
   // model + data
-  model_ = model;
+  if (this->model) mj_deleteModel(this->model);
+  this->model = mj_copyModel(nullptr, model);
   data_ = mj_makeData(model);
 
   // rollout length
@@ -43,8 +44,8 @@ Simulation::Simulation(mjModel* model, int length) {
 
 // set state
 void Simulation::SetState(const double* qpos, const double* qvel) {
-  if (qpos) mju_copy(data_->qpos, qpos, model_->nq);
-  if (qvel) mju_copy(data_->qvel, qvel, model_->nv);
+  if (qpos) mju_copy(data_->qpos, qpos, model->nq);
+  if (qvel) mju_copy(data_->qvel, qvel, model->nv);
 }
 
 // rollout
@@ -55,7 +56,7 @@ void Simulation::Rollout(
     if (controller) controller(data_->ctrl, data_->time);
 
     // forward computes instantaneous qacc
-    mj_forward(model_, data_);
+    mj_forward(model, data_);
 
     // cache
     qpos.Set(data_->qpos, t);
@@ -69,7 +70,7 @@ void Simulation::Rollout(
     // step using mj_Euler since mj_forward has been called
     // see mj_ step implementation here
     // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
-    mj_Euler(model_, data_);
+    mj_Euler(model, data_);
   }
 }
 

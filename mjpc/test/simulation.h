@@ -23,20 +23,27 @@
 
 namespace mjpc {
 
-// simulation
+// convenience class for simulating a system and saving the resulting
+// trajectories
 class Simulation {
  public:
   // constructor
-  Simulation(mjModel* model, int length);
+  Simulation(const mjModel* model, int length);
 
   // destructor
-  ~Simulation() = default;
+  ~Simulation() {
+    if (data_) mj_deleteData(data_);
+    if (model) mj_deleteModel(model);
+  };
 
   // set state
   void SetState(const double* qpos, const double* qvel);
 
   // rollout
   void Rollout(std::function<void(double* ctrl, double time)> controller);
+
+  // model
+  mjModel* model = nullptr;
 
   // trajectories
   EstimatorTrajectory<double> qpos;
@@ -48,9 +55,8 @@ class Simulation {
   EstimatorTrajectory<double> qfrc_actuator;
 
  private:
-  // model + data
-  mjModel* model_;
-  mjData* data_;
+  // data
+  mjData* data_ = nullptr;
 
   // rollout length
   int length_;

@@ -33,7 +33,7 @@
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
 
-namespace batch_grpc {
+namespace mjpc::batch_grpc {
 
 using batch::grpc_gen::Batch;
 
@@ -68,4 +68,4 @@ class BatchServiceTest : public ::testing::Test {
   std::unique_ptr<grpc::Server> server;
 };
 
-}  // namespace batch_grpc
+}  // namespace mjpc::batch_grpc

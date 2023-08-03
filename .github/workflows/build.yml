@@ -68,3 +68,4 @@ jobs:
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .
+      

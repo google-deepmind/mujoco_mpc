@@ -14,8 +14,8 @@
 
 // An implementation of the `Batch` gRPC service.
 
-#ifndef GRPC_BATCH_SERVICE_H
-#define GRPC_BATCH_SERVICE_H
+#ifndef GRPC_ESTIMATOR_SERVICE_H
+#define GRPC_ESTIMATOR_SERVICE_H
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
@@ -30,7 +30,7 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-namespace batch_grpc {
+namespace mjpc::batch_grpc {
 
 class BatchService final : public batch::Batch::Service {
  public:
@@ -98,6 +98,6 @@ class BatchService final : public batch::Batch::Service {
   mjpc::ThreadPool thread_pool_;
 };
 
-}  // namespace batch_grpc
+}  // namespace mjpc::batch_grpc
 
-#endif  // GRPC_BATCH_SERVICE_H
+#endif  // GRPC_ESTIMATOR_SERVICE_H

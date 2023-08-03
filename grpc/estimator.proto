@@ -119,7 +119,12 @@ message SettingsResponse {
 // TODO(etom): we want a breakdown of the cost into the different sensors and
 // forces
 
-message Cost {
+message CostRequest {
+  optional bool derivatives = 1;
+  optional bool internals = 2;
+}
+
+message CostResponse {
   double total = 1;
   double prior = 2;
   double sensor = 3;
@@ -141,15 +146,6 @@ message Cost {
   int32 nvar = 19;
   int32 nsensor = 20;
   int32 nforce = 21;
-}
-
-message CostRequest {
-  optional bool derivatives = 1;
-  optional bool internals = 2;
-}
-
-message CostResponse {
-  Cost cost = 1;
 }
 
 // TODO(etom): all the protos below use a dict of arrays, but they should use an

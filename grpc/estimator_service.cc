@@ -535,23 +535,20 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
       batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
                   derivatives ? batch_.GetCostHessian() : NULL, thread_pool_);
 
-  // costs
-  batch::Cost* cost = response->mutable_cost();
-
   // cost
-  cost->set_total(total_cost);
+  response->set_total(total_cost);
 
   // prior cost
-  cost->set_prior(batch_.GetCostPrior());
+  response->set_prior(batch_.GetCostPrior());
 
   // sensor cost
-  cost->set_sensor(batch_.GetCostSensor());
+  response->set_sensor(batch_.GetCostSensor());
 
   // force cost
-  cost->set_force(batch_.GetCostForce());
+  response->set_force(batch_.GetCostForce());
 
   // initial cost
-  cost->set_initial(batch_.GetCostInitial());
+  response->set_initial(batch_.GetCostInitial());
 
   // derivatives
   if (derivatives) {
@@ -564,9 +561,9 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
 
     // set gradient, Hessian
     for (int i = 0; i < nvar; i++) {
-      cost->add_gradient(gradient[i]);
+      response->add_gradient(gradient[i]);
       for (int j = 0; j < nvar; j++) {
-        cost->add_hessian(hessian[i * nvar + j]);
+        response->add_hessian(hessian[i * nvar + j]);
       }
     }
   }
@@ -578,35 +575,35 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   int nforce = nv * (batch_.ConfigurationLength() - 2);
 
   // set dimensions
-  cost->set_nvar(nvar);
-  cost->set_nsensor(nsensor_);
-  cost->set_nforce(nforce);
+  response->set_nvar(nvar);
+  response->set_nsensor(nsensor_);
+  response->set_nforce(nforce);
 
   // internals
   if (request->internals()) {
     // residual prior
     const double* residual_prior = batch_.GetResidualPrior();
     for (int i = 0; i < nvar; i++) {
-      cost->add_residual_prior(residual_prior[i]);
+      response->add_residual_prior(residual_prior[i]);
     }
 
     // residual sensor
     const double* residual_sensor = batch_.GetResidualSensor();
     for (int i = 0; i < nsensor_; i++) {
-      cost->add_residual_sensor(residual_sensor[i]);
+      response->add_residual_sensor(residual_sensor[i]);
     }
 
     // residual force
     const double* residual_force = batch_.GetResidualForce();
     for (int i = 0; i < nforce; i++) {
-      cost->add_residual_force(residual_force[i]);
+      response->add_residual_force(residual_force[i]);
     }
 
     // Jacobian prior
     const double* jacobian_prior = batch_.GetJacobianPrior();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
-        cost->add_jacobian_prior(jacobian_prior[i * nvar + j]);
+        response->add_jacobian_prior(jacobian_prior[i * nvar + j]);
       }
     }
 
@@ -614,7 +611,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     const double* jacobian_sensor = batch_.GetJacobianSensor();
     for (int i = 0; i < nsensor_; i++) {
       for (int j = 0; j < nvar; j++) {
-        cost->add_jacobian_sensor(jacobian_sensor[i * nvar + j]);
+        response->add_jacobian_sensor(jacobian_sensor[i * nvar + j]);
       }
     }
 
@@ -622,27 +619,27 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     const double* jacobian_force = batch_.GetJacobianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nvar; j++) {
-        cost->add_jacobian_force(jacobian_force[i * nvar + j]);
+        response->add_jacobian_force(jacobian_force[i * nvar + j]);
       }
     }
 
     // norm gradient sensor
     const double* norm_gradient_sensor = batch_.GetNormGradientSensor();
     for (int i = 0; i < nsensor_; i++) {
-      cost->add_norm_gradient_sensor(norm_gradient_sensor[i]);
+      response->add_norm_gradient_sensor(norm_gradient_sensor[i]);
     }
 
     // norm gradient force
     const double* norm_gradient_force = batch_.GetNormGradientForce();
     for (int i = 0; i < nforce; i++) {
-      cost->add_norm_gradient_force(norm_gradient_force[i]);
+      response->add_norm_gradient_force(norm_gradient_force[i]);
     }
 
     // prior matrix
     const double* prior_matrix = batch_.weight_prior.data();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
-        cost->add_prior_matrix(prior_matrix[i * nvar + j]);
+        response->add_prior_matrix(prior_matrix[i * nvar + j]);
       }
     }
 
@@ -650,7 +647,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     const double* norm_hessian_sensor = batch_.GetNormHessianSensor();
     for (int i = 0; i < nsensor_; i++) {
       for (int j = 0; j < nsensor_; j++) {
-        cost->add_norm_hessian_sensor(norm_hessian_sensor[i * nsensor_ + j]);
+        response->add_norm_hessian_sensor(norm_hessian_sensor[i * nsensor_ + j]);
       }
     }
 
@@ -658,7 +655,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     const double* norm_hessian_force = batch_.GetNormHessianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nforce; j++) {
-        cost->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
+        response->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
       }
     }
 

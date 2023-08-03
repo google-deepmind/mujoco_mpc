@@ -345,7 +345,7 @@ class Batch:
     request = batch_pb2.CostRequest(derivatives=derivatives, internals=internals)
 
     # cost response
-    cost = self._wait(self.stub.Cost.future(request)).cost
+    cost = self._wait(self.stub.Cost.future(request))
 
     # return all costs
     return {

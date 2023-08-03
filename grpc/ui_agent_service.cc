@@ -30,7 +30,7 @@
 #include "mjpc/agent.h"
 #include "mjpc/utilities.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
@@ -229,4 +229,4 @@ grpc::Status UiAgentService::RunBeforeStep(const grpc::ServerContext* context,
   }
   return status;
 }
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc

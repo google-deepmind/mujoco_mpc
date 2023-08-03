@@ -26,7 +26,7 @@
 #include "grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
@@ -271,4 +271,4 @@ grpc::Status AgentService::GetMode(grpc::ServerContext* context,
   return grpc_agent_util::GetMode(request, &agent_, response);
 }
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc

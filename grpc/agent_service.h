@@ -30,7 +30,7 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 class AgentService final : public agent::Agent::Service {
  public:
@@ -112,6 +112,6 @@ class AgentService final : public agent::Agent::Service {
   mjpc::State rollout_state_;
 };
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc
 
 #endif  // GRPC_AGENT_SERVICE_H

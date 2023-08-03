@@ -33,7 +33,7 @@
 #include "grpc/agent.pb.h"
 #include "mjpc/tasks/tasks.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 using agent::grpc_gen::Agent;
 
@@ -311,4 +311,4 @@ TEST_F(AgentServiceTest, SetCostWeights_RejectsInvalidName) {
       << "Error message should contain the list of cost term names.";
 }
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc

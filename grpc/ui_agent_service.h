@@ -23,7 +23,7 @@
 #include "mjpc/simulate.h"  // mjpc fork
 #include "mjpc/utilities.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 // An AgentService implementation that connects to a running instance of the
 // MJPC UI.
@@ -105,6 +105,6 @@ class UiAgentService final : public agent::Agent::Service {
   mjpc::State rollout_state_;
 };
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc
 
 #endif  // GRPC_GRPC_UI_AGENT_SERVICE_H_

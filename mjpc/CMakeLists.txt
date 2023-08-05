@@ -28,8 +28,6 @@ add_library(
   libmjpc STATIC
   states/state.cc
   states/state.h
-  states/include.cc
-  states/include.h
   agent.cc
   agent.h
   trajectory.cc

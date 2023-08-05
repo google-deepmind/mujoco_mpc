@@ -137,7 +137,7 @@ grpc::Status AgentService::GetState(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  agent_.ActiveState().CopyTo(model, data_);
+  agent_.state.CopyTo(model, data_);
   return grpc_agent_util::GetState(model, data_, response);
 }
 
@@ -197,7 +197,7 @@ grpc::Status AgentService::Step(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  mjpc::State& state = agent_.ActiveState();
+  mjpc::State& state = agent_.state;
   state.CopyTo(model, data_);
   // mj_forward is needed because Transition might access properties from
   // mjData.

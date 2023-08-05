@@ -14,15 +14,11 @@
 
 #include "mjpc/planners/ilqs/planner.h"
 
-#include <algorithm>
 #include <chrono>
-#include <iostream>
-#include <mutex>
 
 #include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/planner.h"
-#include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"

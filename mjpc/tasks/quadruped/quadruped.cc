@@ -221,8 +221,7 @@ void QuadrupedFlat::ResidualFn::Residual(const mjModel* model,
 }
 
 //  ============  transition  ============
-void QuadrupedFlat::TransitionLocked(mjModel* model, mjData* data,
-                                     std::mutex* mutex) {
+void QuadrupedFlat::TransitionLocked(mjModel* model, mjData* data) {
   // ---------- handle mjData reset ----------
   if (data->time < residual_.last_transition_time_ ||
       residual_.last_transition_time_ == -1) {
@@ -777,8 +776,7 @@ void QuadrupedHill::ResidualFn::Residual(const mjModel* model,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-void QuadrupedHill::TransitionLocked(mjModel* model, mjData* data,
-                                     std::mutex* mutex) {
+void QuadrupedHill::TransitionLocked(mjModel* model, mjData* data) {
   // set mode to GUI selection
   if (mode > 0) {
     residual_.current_mode_ = mode - 1;

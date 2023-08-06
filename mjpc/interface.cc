@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/mujoco_mpc/mjpc/interface.h"
+#include "mjpc/mujoco_mpc/mjpc/interface.h"
 
 #include <memory>
 #include <string>

@@ -48,8 +48,7 @@ void Swimmer::ResidualFn::Residual(const mjModel* model, const mjData* data,
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-void Swimmer::TransitionLocked(mjModel* model, mjData* data,
-                               std::mutex* mutex) {
+void Swimmer::TransitionLocked(mjModel* model, mjData* data) {
   double* target = SensorByName(model, data, "target");
   double* nose = SensorByName(model, data, "nose");
   double nose_to_target[2];

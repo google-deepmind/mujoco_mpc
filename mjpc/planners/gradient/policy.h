@@ -40,6 +40,7 @@ class GradientPolicy : public Policy {
   void Reset(int horizon) override;
 
   // compute action from policy
+  // state is not used
   void Action(double* action, const double* state, double time) const override;
 
   // copy policy

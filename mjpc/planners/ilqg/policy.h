@@ -39,6 +39,7 @@ class iLQGPolicy : public Policy {
   void Reset(int horizon) override;
 
   // set action from policy
+  // if state == nullptr, return the nominal action without a feedback term
   void Action(double* action, const double* state, double time) const override;
 
   // copy policy

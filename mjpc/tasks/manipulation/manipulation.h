@@ -38,8 +38,7 @@ class Bring : public ThreadSafeTask {
   };
 
   Bring() : residual_(this, ModelValues()) {}
-  void TransitionLocked(mjModel* model, mjData* data,
-                        std::mutex* mutex) override;
+  void TransitionLocked(mjModel* model, mjData* data) override;
   void ResetLocked(const mjModel* model) override;
 
  protected:

@@ -41,6 +41,8 @@ class Policy {
   virtual void Reset(int horizon) = 0;
 
   // set action from policy
+  // for policies that have a feedback term, passing nullptr for state  turns
+  // the feedback term off and returns the nominal action for that time
   virtual void Action(double* action, const double* state,
                       double time) const = 0;
 };

@@ -96,47 +96,56 @@ void iLQGPolicy::Action(double* action, const double* state,
     ZeroInterpolation(action, time, trajectory.times, trajectory.actions.data(),
                       model->nu, trajectory.horizon - 1);
 
-    // state reference
-    ZeroInterpolation(state_interp.data(), time, trajectory.times,
-                      trajectory.states.data(), dim_state, trajectory.horizon);
+    if (state) {
+      // state reference
+      ZeroInterpolation(state_interp.data(), time, trajectory.times,
+                        trajectory.states.data(), dim_state,
+                        trajectory.horizon);
 
-    // gains
-    ZeroInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
-                      feedback_gain.data(), dim_action * dim_state_derivative,
-                      trajectory.horizon - 1);
+      // gains
+      ZeroInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                        feedback_gain.data(), dim_action * dim_state_derivative,
+                        trajectory.horizon - 1);
+    }
   } else if (representation == 1) {
     // action
     LinearInterpolation(action, time, trajectory.times,
                         trajectory.actions.data(), model->nu,
                         trajectory.horizon - 1);
 
-    // state
-    LinearInterpolation(state_interp.data(), time, trajectory.times,
-                        trajectory.states.data(), dim_state,
-                        trajectory.horizon);
+    if (state) {
+      // state
+      LinearInterpolation(state_interp.data(), time, trajectory.times,
+                          trajectory.states.data(), dim_state,
+                          trajectory.horizon);
 
-    // normalize quaternions
-    mj_normalizeQuat(model, state_interp.data());
+      // normalize quaternions
+      mj_normalizeQuat(model, state_interp.data());
 
-    LinearInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
-                        feedback_gain.data(), dim_action * dim_state_derivative,
-                        trajectory.horizon - 1);
+      LinearInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                          feedback_gain.data(),
+                          dim_action * dim_state_derivative,
+                          trajectory.horizon - 1);
+    }
   } else if (representation == 2) {
     // action
     CubicInterpolation(action, time, trajectory.times,
                        trajectory.actions.data(), model->nu,
                        trajectory.horizon - 1);
 
-    // state
-    CubicInterpolation(state_interp.data(), time, trajectory.times,
-                       trajectory.states.data(), dim_state, trajectory.horizon);
+    if (state) {
+      // state
+      CubicInterpolation(state_interp.data(), time, trajectory.times,
+                         trajectory.states.data(), dim_state,
+                         trajectory.horizon);
 
-    // normalize quaternions
-    mj_normalizeQuat(model, state_interp.data());
+      // normalize quaternions
+      mj_normalizeQuat(model, state_interp.data());
 
-    CubicInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
-                       feedback_gain.data(), dim_action * dim_state_derivative,
-                       trajectory.horizon - 1);
+      CubicInterpolation(feedback_gain_scratch.data(), time, trajectory.times,
+                        feedback_gain.data(), dim_action * dim_state_derivative,
+                        trajectory.horizon - 1);
+    }
   }
 
   // add feedback

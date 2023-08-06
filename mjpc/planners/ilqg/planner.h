@@ -53,6 +53,7 @@ class iLQGPlanner : public Planner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
+  // if state == nullptr, return the nominal action without a feedback term
   void ActionFromPolicy(double* action, const double* state, double time,
                         bool use_previous = false) override;
 

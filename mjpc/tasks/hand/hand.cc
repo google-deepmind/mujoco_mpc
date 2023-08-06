@@ -79,8 +79,7 @@ void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-void Hand::TransitionLocked(mjModel* model, mjData* data,
-                            std::mutex* mutex) {
+void Hand::TransitionLocked(mjModel* model, mjData* data) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
@@ -105,9 +104,9 @@ void Hand::TransitionLocked(mjModel* model, mjData* data,
       mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
       mju_zero(data->qvel + jnt_veladr, 6);
     }
-    mutex->unlock();  // step calls sensor that calls Residual.
+    mutex_.unlock();  // step calls sensor that calls Residual.
     mj_forward(model, data);  // mj_step1 would suffice, we just need contact
-    mutex->lock();
+    mutex_.lock();
   }
 }
 

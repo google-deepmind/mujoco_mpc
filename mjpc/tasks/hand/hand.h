@@ -15,7 +15,6 @@
 #ifndef MJPC_TASKS_HAND_HAND_H_
 #define MJPC_TASKS_HAND_HAND_H_
 
-#include <mutex>
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -46,8 +45,7 @@ class Hand : public ThreadSafeTask {
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-  void TransitionLocked(mjModel* model, mjData* data,
-                        std::mutex* mutex) override;
+  void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

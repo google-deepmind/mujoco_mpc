@@ -56,8 +56,7 @@ class Tracking : public ThreadSafeTask {
   //   Linearly interpolate between two consecutive key frames in order to
   //   smooth the transitions between keyframes.
   // ---------------------------------------------------------------------------
-  void TransitionLocked(mjModel* model, mjData* data,
-                        std::mutex* mutex) override;
+  void TransitionLocked(mjModel* model, mjData* data) override;
 
   std::string Name() const override;
   std::string XmlPath() const override;

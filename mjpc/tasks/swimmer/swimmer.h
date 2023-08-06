@@ -15,7 +15,6 @@
 #ifndef MJPC_TASKS_SWIMMER_SWIMMER_H_
 #define MJPC_TASKS_SWIMMER_SWIMMER_H_
 
-#include <mutex>
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -43,8 +42,7 @@ class Swimmer : public ThreadSafeTask {
 //   If swimmer is within tolerance of goal ->
 //   move goal randomly.
 // ---------------------------------------------
-  void TransitionLocked(mjModel* model, mjData* data,
-                        std::mutex* mutex) override;
+  void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

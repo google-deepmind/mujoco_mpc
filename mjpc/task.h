@@ -41,7 +41,7 @@ class ResidualFn {
   virtual void Residual(const mjModel* model, const mjData* data,
                         double* residual) const = 0;
   virtual void CostTerms(double* terms, const double* residual,
-                         bool weighted = true) const = 0;
+                         bool weighted) const = 0;
   virtual double CostValue(const double* residual) const = 0;
 
   // copies weights and parameters from the Task instance. This should be
@@ -56,7 +56,7 @@ class BaseResidualFn : public ResidualFn {
   virtual ~BaseResidualFn() = default;
 
   void CostTerms(double* terms, const double* residual,
-                 bool weighted = true) const override;
+                 bool weighted) const override;
   double CostValue(const double* residual) const override;
   void Update() override;
 
@@ -74,43 +74,20 @@ class BaseResidualFn : public ResidualFn {
   const Task* task_;
 };
 
-namespace internal {
-// a ResidualFn which simply uses weights from the Task instance, for backwards
-// compatibility.
-// this isn't thread safe, because weights and parameters in the task can change
-// at any time.
-class ForwardingResidualFn : public ResidualFn {
- public:
-  explicit ForwardingResidualFn(const Task* task) : task_(task) {}
-  virtual ~ForwardingResidualFn() = default;
-
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
-
-  void CostTerms(double* terms, const double* residual,
-                         bool weighted = true) const override;
-  double CostValue(const double* residual) const override;
-  void Update() override {}
-
- private:
-  const Task* task_;
-};
-}  // namespace internal
-
+// interface for classes that implement MJPC task specifications
+//
+// NOTE: Rather than deriving from this class, derive from ThreadSafeTask
+// TODO(nimrod): Rename ThreadSafeTask and clean up by assuming it's the only
+// implementation
 class Task {
  public:
   // constructor
-  Task();
+  Task() = default;
   virtual ~Task() = default;
 
   // ----- methods ----- //
   // returns an object which can compute the residual function.
-  // the default implementation delegates to
-  // Residual(mjModel*, mjData*, double*), for backwards compability, but
-  // new implementations should return a custom ResidualFn object.
-  virtual std::unique_ptr<ResidualFn> Residual() const {
-    return std::make_unique<internal::ForwardingResidualFn>(this);
-  }
+  virtual std::unique_ptr<ResidualFn> Residual() const = 0;
 
   // should be overridden by subclasses to use internal ResidualFn
   virtual void Residual(const mjModel* model, const mjData* data,
@@ -123,7 +100,7 @@ class Task {
   // Changes to data will affect the planner at the next set_state.  Changes to
   // model will only affect the physics and render threads, and will not affect
   // the planner. This is useful for studying planning under model discrepancy,
-  virtual void Transition(mjModel* model, mjData* data) {}
+  virtual void Transition(mjModel* model, mjData* data) = 0;
 
   // get information from model
   virtual void Reset(const mjModel* model);
@@ -132,15 +109,12 @@ class Task {
                            mjvScene* scene) const {}
 
   // compute cost terms
-  virtual void CostTerms(double* terms, const double* residual,
-                 bool weighted = true) const {
-    return default_residual_.CostTerms(terms, residual, weighted);
-  }
+  virtual void CostTerms(double* terms, const double* residual) const = 0;
+  virtual void UnweightedCostTerms(double* terms,
+                                   const double* residual) const = 0;
 
   // compute weighted cost
-  virtual double CostValue(const double* residual) const {
-    return default_residual_.CostValue(residual);
-  }
+  virtual double CostValue(const double* residual) const = 0;
 
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
@@ -169,14 +143,11 @@ class Task {
  private:
   // initial residual parameters from model
   void SetFeatureParameters(const mjModel* model);
-  internal::ForwardingResidualFn default_residual_;
 };
 
 // A version of Task which provides a Residual that can be run independently
 // of the class, and where the parameters and weights used in the residual
 // computations are guarded with a lock.
-// TODO(nimrod): Migrate all tasks to this API, and deprecate the
-// not-thread-safe Task.
 class ThreadSafeTask : public Task {
  public:
   virtual ~ThreadSafeTask() override = default;
@@ -201,8 +172,11 @@ class ThreadSafeTask : public Task {
 
   // calls CostTerms on the pointer returned from InternalResidual(), while
   // holding a lock
-  void CostTerms(double* terms, const double* residual,
-                 bool weighted = true) const final;
+  void CostTerms(double* terms, const double* residual) const final;
+
+  // calls CostTerms on the pointer returned from InternalResidual(), while
+  // holding a lock
+  void UnweightedCostTerms(double* terms, const double* residual) const final;
 
   // calls CostValue on the pointer returned from InternalResidual(), while
   // holding a lock
@@ -221,11 +195,9 @@ class ThreadSafeTask : public Task {
   // implementation of Task::Transition() which can assume a lock is held.
   // in some cases the transition logic requires calling mj_forward (e.g., for
   // measuring contact forces), which will call the sensor callback, which calls
-  // ResidualLocked. In order to avoid such resource contention, we give the
-  // user the ability to temporarily unlock the mutex, but it must be locked
-  // again before returning.
-  virtual void TransitionLocked(mjModel* model, mjData* data,
-                                std::mutex* mutex) {}
+  // ResidualLocked. In order to avoid such resource contention, mutex_ might be
+  // temporarily unlocked, but it must be locked again before returning.
+  virtual void TransitionLocked(mjModel* model, mjData* data) {}
   // implementation of Task::Reset() which can assume a lock is held
   virtual void ResetLocked(const mjModel* model) {}
   // mutex which should be held on changes to InternalResidual.

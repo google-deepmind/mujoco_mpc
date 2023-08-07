@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/mujoco_mpc/mjpc/interface.h"
+#include "mjpc/interface.h"
 
 #include <memory>
 #include <string>
@@ -50,7 +50,7 @@ AgentRunner::~AgentRunner() {
 void AgentRunner::Step(mjData* data) {
   agent_.SetState(data);
   agent_.ActivePlanner().ActionFromPolicy(
-    data->ctrl, &agent_.ActiveState().state()[0], agent_.ActiveState().time());
+    data->ctrl, &agent_.state.state()[0], agent_.state.time());
 }
 
 void AgentRunner::Residual(const mjModel* model, mjData* data) {

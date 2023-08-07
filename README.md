@@ -30,7 +30,7 @@ MJPC allows the user to easily author and solve complex robotics tasks, and curr
 
 ## Overview
 
-To read the paper describing this software package, please see out [preprint](https://arxiv.org/abs/2212.00541).
+To read the paper describing this software package, please see our [preprint](https://arxiv.org/abs/2212.00541).
 
 For a quick video overview of MJPC, click below.
 

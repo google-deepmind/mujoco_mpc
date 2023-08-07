@@ -81,8 +81,8 @@ void controller(const mjModel* m, mjData* data) {
   // if simulation:
   if (sim->agent->action_enabled) {
     sim->agent->ActivePlanner().ActionFromPolicy(
-        data->ctrl, &sim->agent->ActiveState().state()[0],
-        sim->agent->ActiveState().time());
+        data->ctrl, &sim->agent->state.state()[0],
+        sim->agent->state.time());
   }
   // if noise
   if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0 &&
@@ -301,7 +301,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      sim.agent->ActiveState().Set(m, d);
+      sim.agent->state.Set(m, d);
     }
   }
 }

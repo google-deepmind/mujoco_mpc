@@ -49,22 +49,56 @@ void State::Set(const mjModel* model, const mjData* data) {
     mocap_.resize(7 * model->nmocap);
 
     // state
-    mju_copy(state_.data(), data->qpos, model->nq);
-    mju_copy(DataAt(state_, model->nq), data->qvel, model->nv);
-    mju_copy(DataAt(state_, model->nq + model->nv), data->act, model->na);
+    SetPosition(model, data->qpos);
+    SetVelocity(model, data->qvel);
+    SetAct(model, data->act);
 
     // mocap
-    for (int i = 0; i < model->nmocap; i++) {
-      mju_copy(DataAt(mocap_, 7 * i), data->mocap_pos + 3 * i, 3);
-      mju_copy(DataAt(mocap_, 7 * i + 3), data->mocap_quat + 4 * i, 4);
-    }
+    SetMocap(model, data->mocap_pos, data->mocap_quat);
 
     // userdata
-    mju_copy(userdata_.data(), data->userdata, model->nuserdata);
+    SetUserData(model, data->userdata);
 
     // time
-    time_ = data->time;
+    SetTime(model, data->time);
   }
+}
+
+// TODO: make all these "Set*" functions thread-safe, or change their name.
+
+// set qpos
+void State::SetPosition(const mjModel* model, const double* qpos) {
+  mju_copy(state_.data(), qpos, model->nq);
+}
+
+// set qvel
+void State::SetVelocity(const mjModel* model, const double* qvel) {
+  mju_copy(DataAt(state_, model->nq), qvel, model->nv);
+}
+
+// set act
+void State::SetAct(const mjModel* model, const double* act) {
+  mju_copy(DataAt(state_, model->nq + model->nv), act, model->na);
+}
+
+// set mocap
+void State::SetMocap(const mjModel* model, const double* mocap_pos,
+                     const double* mocap_quat) {
+  // mocap
+  for (int i = 0; i < model->nmocap; i++) {
+    mju_copy(DataAt(mocap_, 7 * i), mocap_pos + 3 * i, 3);
+    mju_copy(DataAt(mocap_, 7 * i + 3), mocap_quat + 4 * i, 4);
+  }
+}
+
+// set userdata
+void State::SetUserData(const mjModel* model, const double* userdata) {
+  mju_copy(userdata_.data(), userdata, model->nuserdata);
+}
+
+// set time
+void State::SetTime(const mjModel* model, double time) {
+  time_ = time;
 }
 
 void State::CopyTo(double* dst_state, double* dst_mocap,

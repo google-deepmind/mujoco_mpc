@@ -99,7 +99,7 @@
     <framepos      name="trace0" objtype="site" objname="head"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
-    <subtreeangmom name="torso_angmom" body="trunk"/>
+    <subtreeangmom name="torso_angmom" body="trunk"/> 
   </sensor>
 
   <keyframe>

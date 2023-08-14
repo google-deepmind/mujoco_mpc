@@ -58,7 +58,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     # cannot resolve the dependencies without having `grpcio-tools` installed.
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
-    batch_proto_filename = "estimator.proto"
+    batch_proto_filename = "batch.proto"
     batch_proto_source_path = Path("..", "grpc", batch_proto_filename).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
@@ -107,7 +107,7 @@ class CopyBatchServerBinaryCommand(setuptools.Command):
     self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
   def run(self):
-    self._copy_binary("estimator_server")
+    self._copy_binary("batch_server")
     # self._copy_binary("ui_batch_server")
 
   def _copy_binary(self, binary_name):
@@ -241,7 +241,7 @@ class BuildCMakeExtension(build_ext.build_ext):
             "--build",
             str(mujoco_mpc_build_dir.resolve()),
             "--target",
-            "estimator_server",
+            "batch_server",
             # "ui_batch_server",
             f"-j{os.cpu_count()}",
             "--config",
@@ -281,7 +281,7 @@ setuptools.setup(
             "mujoco >= 2.3.3",
         ],
     },
-    ext_modules=[CMakeExtension("estimator_server")],
+    ext_modules=[CMakeExtension("batch_server")],
     cmdclass={
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,

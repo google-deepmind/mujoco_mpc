@@ -14,7 +14,7 @@
 
 // Unit tests for the `BatchService` class.
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_service.h"
 
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>

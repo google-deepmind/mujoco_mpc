@@ -14,8 +14,8 @@
 
 // An implementation of the `Batch` gRPC service.
 
-#ifndef GRPC_ESTIMATOR_SERVICE_H
-#define GRPC_ESTIMATOR_SERVICE_H
+#ifndef GRPC_BATCH_SERVICE_H
+#define GRPC_BATCH_SERVICE_H
 
 #include <memory>
 #include <vector>
@@ -24,9 +24,9 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/estimator.grpc.pb.h"
-#include "grpc/estimator.pb.h"
-#include "mjpc/estimators/estimator.h"
+#include "grpc/batch.grpc.pb.h"
+#include "grpc/batch.pb.h"
+#include "mjpc/estimators/batch.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
@@ -100,4 +100,4 @@ class BatchService final : public batch::Batch::Service {
 
 }  // namespace mjpc::batch_grpc
 
-#endif  // GRPC_ESTIMATOR_SERVICE_H
+#endif  // GRPC_BATCH_SERVICE_H

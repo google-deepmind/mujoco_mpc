@@ -109,7 +109,7 @@ message Settings {
 }
 
 message SettingsRequest {
-  Settings settings = 1;
+  optional Settings settings = 1;
 }
 
 message SettingsResponse {
@@ -157,7 +157,7 @@ message Noise {
 }
 
 message NoiseRequest {
-  Noise noise = 1;
+  optional Noise noise = 1;
 }
 
 message NoiseResponse {
@@ -170,7 +170,7 @@ message Norm {
 }
 
 message NormRequest {
-  Norm norm = 1;
+  optional Norm norm = 1;
 }
 
 message NormResponse {

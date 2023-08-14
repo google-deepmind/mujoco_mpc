@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
   builder.AddListeningPort(server_address, server_credentials);
 
   mjpc::agent_grpc::AgentService service(mjpc::GetTasks(),
-                                   absl::GetFlag(FLAGS_mjpc_workers));
+                                         absl::GetFlag(FLAGS_mjpc_workers));
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

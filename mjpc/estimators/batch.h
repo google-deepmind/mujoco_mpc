@@ -20,6 +20,7 @@
 #include <mutex>
 #include <vector>
 
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -27,72 +28,11 @@
 
 namespace mjpc {
 
-// maximum terms
-inline constexpr int kMaxProcessNoise = 1028;
-inline constexpr int kMaxSensorNoise = 1028;
-
-// virtual estimator class
-class Estimator {
- public:
-  // destructor
-  virtual ~Estimator() = default;
-
-  // initialize
-  virtual void Initialize(const mjModel* model) = 0;
-
-  // reset memory
-  virtual void Reset() = 0;
-
-  // update 
-  virtual void Update(const double* ctrl, const double* sensor) = 0;
-
-  // get state 
-  virtual double* State() = 0;
-
-  // get covariance 
-  virtual double* Covariance() = 0;
-
-  // get time 
-  virtual double& Time() = 0;
-
-  // get model 
-  virtual mjModel* Model() = 0;
-
-  // get data 
-  virtual mjData* Data() = 0;
-
-  // process noise 
-  virtual double* ProcessNoise() = 0;
-
-  // sensor noise 
-  virtual double* SensorNoise() = 0;
-
-  // process dimension 
-  virtual int DimensionProcess() const = 0;
-  
-  // sensor dimension
-  virtual int DimensionSensor() const = 0;
-
-  // set state
-  virtual void SetState(const double* state) = 0;
-
-  // set covariance
-  virtual void SetCovariance(const double* covariance) = 0;
-
-  // estimator-specific GUI elements
-  virtual void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
-                   double& timestep, int& integrator) = 0;
-
-  // estimator-specific plots
-  virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                     int planner_shift, int timer_shift, int planning,
-                     int* shift) = 0;
-};
-
 // defaults
-inline constexpr int kMinBatchHistory = 3;      // minimum configuration trajectory length
+inline constexpr int kMinBatchHistory =
+    3;  // minimum configuration trajectory length
 
-// batch estimator status 
+// batch estimator status
 enum BatchStatus : int {
   kUnsolved = 0,
   kSearchFailure,
@@ -121,10 +61,8 @@ class Batch : public Estimator {
  public:
   // constructor
   Batch() = default;
-  Batch(int mode) {
-    settings.filter = mode;
-  }
-  Batch(const mjModel* model, int length=3, int max_history_=0) {
+  Batch(int mode) { settings.filter = mode; }
+  Batch(const mjModel* model, int length = 3, int max_history_ = 0) {
     // set max history length
     this->max_history_ = (max_history_ == 0 ? length : max_history_);
 
@@ -170,10 +108,10 @@ class Batch : public Estimator {
   // get data
   mjData* Data() override { return data_[0].get(); };
 
-  // get process noise 
+  // get process noise
   double* ProcessNoise() override { return noise_process.data(); };
 
-  // get sensor noise 
+  // get sensor noise
   double* SensorNoise() override { return noise_sensor.data(); };
 
   // process dimension
@@ -182,7 +120,7 @@ class Batch : public Estimator {
   // sensor dimensino
   int DimensionSensor() const override { return nsensordata_; };
 
-    // set state
+  // set state
   void SetState(const double* state) override {
     // state
     mju_copy(this->state.data(), state, ndstate_);
@@ -214,12 +152,10 @@ class Batch : public Estimator {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
-  // set max history 
-  void SetMaxHistory(int length) {
-    max_history_ = length;
-  }
+  // set max history
+  void SetMaxHistory(int length) { max_history_ = length; }
 
-  // get max history 
+  // get max history
   int GetMaxHistory() { return max_history_; };
 
   // set configuration length
@@ -237,7 +173,7 @@ class Batch : public Estimator {
   // optimize trajectory estimate
   void Optimize(ThreadPool& pool);
 
-  // cost 
+  // cost
   double GetCost() { return cost_; };
   double GetCostInitial() { return cost_initial_; };
   double GetCostPrior() { return cost_prior_; };
@@ -257,11 +193,11 @@ class Batch : public Estimator {
   const double* GetNormGradientForce() { return norm_gradient_force_.data(); }
   const double* GetNormHessianSensor() { return norm_hessian_sensor_.data(); }
   const double* GetNormHessianForce() { return norm_hessian_force_.data(); }
-  
-  // get configuration length 
+
+  // get configuration length
   int ConfigurationLength() const { return configuration_length_; }
-  
-  // get number of sensors 
+
+  // get number of sensors
   int NumberSensors() const { return nsensor_; }
 
   // measurement sensor start index
@@ -276,7 +212,7 @@ class Batch : public Estimator {
   double SearchDirectionNorm() const { return search_direction_norm_; }
   BatchStatus SolveStatus() const { return solve_status_; }
   double CostDifference() const { return cost_difference_; }
-  double Improvement() const { return improvement_; } 
+  double Improvement() const { return improvement_; }
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
 
@@ -298,7 +234,8 @@ class Batch : public Estimator {
 
   // prior
   double scale_prior;
-  std::vector<double> weight_prior;                    // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      weight_prior;  // (nv * max_history_) * (nv * max_history_)
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -315,41 +252,47 @@ class Batch : public Estimator {
   EstimatorTrajectory<double> force_prediction;        // nv x T
 
   // norms
-  std::vector<NormType> norm_type_sensor;         // num_sensor
+  std::vector<NormType> norm_type_sensor;  // num_sensor
 
   // norm parameters
-  std::vector<double> norm_parameters_sensor;     // num_sensor x kMaxNormParameters
+  std::vector<double>
+      norm_parameters_sensor;  // num_sensor x kMaxNormParameters
 
   // settings
   struct BatchSettings {
-    bool prior_flag = true;                       // flag for prior cost computation
-    bool sensor_flag = true;                      // flag for sensor cost computation
-    bool force_flag = true;                       // flag for force cost computation
-    int max_search_iterations = 1000;             // maximum number of line search iterations
-    int max_smoother_iterations = 100;            // maximum number of smoothing iterations
-    double gradient_tolerance = 1.0e-10;          // small gradient tolerance
-    bool verbose_iteration = false;               // flag for printing optimize iteration
-    bool verbose_optimize = false;                // flag for printing optimize status
-    bool verbose_cost = false;                    // flag for printing cost
-    bool verbose_prior = false;                   // flag for printing prior weight update status
-    bool band_prior = true;                       // approximate covariance for prior
-    SearchType search_type = kCurveSearch;        // search type (line search, curve search)
-    double step_scaling = 0.5;                    // step size scaling
-    double regularization_initial = 1.0e-12;      // initial regularization
-    double regularization_scaling = mju_sqrt(10); // regularization scaling
-    bool band_copy = true;                        // copy band matrices by block
-    bool time_scaling_force = true;               // scale force costs
-    bool time_scaling_sensor = true;              // scale sensor costs
-    double search_direction_tolerance = 1.0e-8;   // search direction tolerance
-    double cost_tolerance = 1.0e-8;               // cost difference tolernace
-    bool assemble_prior_jacobian = false;         // assemble dense prior Jacobian 
-    bool assemble_sensor_jacobian = false;        // assemble dense sensor Jacobian
-    bool assemble_force_jacobian = false;         // assemble dense force Jacobian 
-    bool assemble_sensor_norm_hessian = false;    // assemble dense sensor norm Hessian 
-    bool assemble_force_norm_hessian = false;     // assemble dense force norm Hessian
-    bool filter = false;                          // filter mode
+    bool prior_flag = true;   // flag for prior cost computation
+    bool sensor_flag = true;  // flag for sensor cost computation
+    bool force_flag = true;   // flag for force cost computation
+    int max_search_iterations =
+        1000;  // maximum number of line search iterations
+    int max_smoother_iterations =
+        100;  // maximum number of smoothing iterations
+    double gradient_tolerance = 1.0e-10;  // small gradient tolerance
+    bool verbose_iteration = false;  // flag for printing optimize iteration
+    bool verbose_optimize = false;   // flag for printing optimize status
+    bool verbose_cost = false;       // flag for printing cost
+    bool verbose_prior = false;  // flag for printing prior weight update status
+    bool band_prior = true;      // approximate covariance for prior
+    SearchType search_type =
+        kCurveSearch;           // search type (line search, curve search)
+    double step_scaling = 0.5;  // step size scaling
+    double regularization_initial = 1.0e-12;       // initial regularization
+    double regularization_scaling = mju_sqrt(10);  // regularization scaling
+    bool band_copy = true;                       // copy band matrices by block
+    bool time_scaling_force = true;              // scale force costs
+    bool time_scaling_sensor = true;             // scale sensor costs
+    double search_direction_tolerance = 1.0e-8;  // search direction tolerance
+    double cost_tolerance = 1.0e-8;              // cost difference tolernace
+    bool assemble_prior_jacobian = false;   // assemble dense prior Jacobian
+    bool assemble_sensor_jacobian = false;  // assemble dense sensor Jacobian
+    bool assemble_force_jacobian = false;   // assemble dense force Jacobian
+    bool assemble_sensor_norm_hessian =
+        false;  // assemble dense sensor norm Hessian
+    bool assemble_force_norm_hessian =
+        false;            // assemble dense force norm Hessian
+    bool filter = false;  // filter mode
   } settings;
-  
+
   // finite-difference settings
   struct FiniteDifferenceSettings {
     double tolerance = 1.0e-7;
@@ -404,7 +347,7 @@ class Batch : public Estimator {
 
   // sensor Jacobian
   void JacobianSensor(ThreadPool& pool);
-  
+
   // force residual
   void ResidualForce();
 
@@ -459,132 +402,169 @@ class Batch : public Estimator {
   double cost_previous_;
 
   // cost gradient
-  std::vector<double> cost_gradient;          // nv * max_history_
+  std::vector<double> cost_gradient;  // nv * max_history_
 
   // cost Hessian
-  std::vector<double> cost_hessian;           // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian;  // (nv * max_history_) * (nv * max_history_)
 
   // lengths
-  int configuration_length_;                        // T
+  int configuration_length_;  // T
 
   // configuration copy
   EstimatorTrajectory<double> configuration_copy_;  // nq x max_history_
 
   // residual
-  std::vector<double> residual_prior_;       // nv x T
-  std::vector<double> residual_sensor_;      // ns x (T - 1)
-  std::vector<double> residual_force_;       // nv x (T - 2)
+  std::vector<double> residual_prior_;   // nv x T
+  std::vector<double> residual_sensor_;  // ns x (T - 1)
+  std::vector<double> residual_force_;   // nv x (T - 2)
 
   // Jacobian
-  std::vector<double> jacobian_prior_;       // (nv * T) * (nv * T)
-  std::vector<double> jacobian_sensor_;      // (ns * (T - 1)) * (nv * T)
-  std::vector<double> jacobian_force_;       // (nv * (T - 2)) * (nv * T)
+  std::vector<double> jacobian_prior_;   // (nv * T) * (nv * T)
+  std::vector<double> jacobian_sensor_;  // (ns * (T - 1)) * (nv * T)
+  std::vector<double> jacobian_force_;   // (nv * (T - 2)) * (nv * T)
 
   // prior Jacobian block
-  EstimatorTrajectory<double> block_prior_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_prior_current_configuration_;  // (nv * nv) x T
 
   // sensor Jacobian blocks (dqds, dvds, dads), (dsdq0, dsdq1, dsdq2)
-  EstimatorTrajectory<double> block_sensor_configuration_;            // (nsensordata * nv) x T
-  EstimatorTrajectory<double> block_sensor_velocity_;                 // (nsensordata * nv) x T
-  EstimatorTrajectory<double> block_sensor_acceleration_;             // (nsensordata * nv) x T
-  EstimatorTrajectory<double> block_sensor_configurationT_;           // (nv * nsensordata) x T
-  EstimatorTrajectory<double> block_sensor_velocityT_;                // (nv * nsensordata) x T
-  EstimatorTrajectory<double> block_sensor_accelerationT_;            // (nv * nsensordata) x T
+  EstimatorTrajectory<double>
+      block_sensor_configuration_;                     // (nsensordata * nv) x T
+  EstimatorTrajectory<double> block_sensor_velocity_;  // (nsensordata * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_acceleration_;  // (nsensordata * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_configurationT_;  // (nv * nsensordata) x T
+  EstimatorTrajectory<double>
+      block_sensor_velocityT_;  // (nv * nsensordata) x T
+  EstimatorTrajectory<double>
+      block_sensor_accelerationT_;  // (nv * nsensordata) x T
 
-  EstimatorTrajectory<double> block_sensor_previous_configuration_;  // (ns * nv) x T
-  EstimatorTrajectory<double> block_sensor_current_configuration_;   // (ns * nv) x T
-  EstimatorTrajectory<double> block_sensor_next_configuration_;      // (ns * nv) x T
-  EstimatorTrajectory<double> block_sensor_configurations_;          // (ns * 3 * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_previous_configuration_;  // (ns * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_current_configuration_;  // (ns * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_next_configuration_;  // (ns * nv) x T
+  EstimatorTrajectory<double>
+      block_sensor_configurations_;  // (ns * 3 * nv) x T
 
-  EstimatorTrajectory<double> block_sensor_scratch_;                 // max(nv, ns) x T
+  EstimatorTrajectory<double> block_sensor_scratch_;  // max(nv, ns) x T
 
   // force Jacobian blocks (dqdf, dvdf, dadf), (dfdq0, dfdq1, dfdq2)
-  EstimatorTrajectory<double> block_force_configuration_;            // (nv * nv) x T
-  EstimatorTrajectory<double> block_force_velocity_;                 // (nv * nv) x T
-  EstimatorTrajectory<double> block_force_acceleration_;             // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_velocity_;       // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_acceleration_;   // (nv * nv) x T
 
-  EstimatorTrajectory<double> block_force_previous_configuration_;   // (nv * nv) x T
-  EstimatorTrajectory<double> block_force_current_configuration_;    // (nv * nv) x T
-  EstimatorTrajectory<double> block_force_next_configuration_;       // (nv * nv) x T
-  EstimatorTrajectory<double> block_force_configurations_;           // (nv * 3 * nv) x T
+  EstimatorTrajectory<double>
+      block_force_previous_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_force_current_configuration_;                       // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_next_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_configurations_;  // (nv * 3 * nv) x T
 
-  EstimatorTrajectory<double> block_force_scratch_;                  // (nv * nv) x T
+  EstimatorTrajectory<double> block_force_scratch_;  // (nv * nv) x T
 
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
-  EstimatorTrajectory<double> block_velocity_previous_configuration_; // (nv * nv) x T
-  EstimatorTrajectory<double> block_velocity_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_velocity_previous_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_velocity_current_configuration_;  // (nv * nv) x T
 
   // acceleration Jacobian blocks (da1dq0, da1dq1, da1dq2)
-  EstimatorTrajectory<double> block_acceleration_previous_configuration_; // (nv * nv) x T
-  EstimatorTrajectory<double> block_acceleration_current_configuration_;  // (nv * nv) x T
-  EstimatorTrajectory<double> block_acceleration_next_configuration_;     // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_acceleration_previous_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_acceleration_current_configuration_;  // (nv * nv) x T
+  EstimatorTrajectory<double>
+      block_acceleration_next_configuration_;  // (nv * nv) x T
 
-  // norm 
-  std::vector<double> norm_sensor_;            // num_sensor * max_history_ 
-  std::vector<double> norm_force_;             // nv * max_history_
+  // norm
+  std::vector<double> norm_sensor_;  // num_sensor * max_history_
+  std::vector<double> norm_force_;   // nv * max_history_
 
   // norm gradient
-  std::vector<double> norm_gradient_sensor_;   // ns * max_history_
-  std::vector<double> norm_gradient_force_;    // nv * max_history_
+  std::vector<double> norm_gradient_sensor_;  // ns * max_history_
+  std::vector<double> norm_gradient_force_;   // nv * max_history_
 
   // norm Hessian
-  std::vector<double> norm_hessian_sensor_;    // (ns * ns * max_history_)
-  std::vector<double> norm_hessian_force_;     // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> norm_blocks_sensor_;     // (ns * ns) x max_history_
-  std::vector<double> norm_blocks_force_;      // (nv * nv) x max_history_  
+  std::vector<double> norm_hessian_sensor_;  // (ns * ns * max_history_)
+  std::vector<double>
+      norm_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double> norm_blocks_sensor_;  // (ns * ns) x max_history_
+  std::vector<double> norm_blocks_force_;   // (nv * nv) x max_history_
 
   // cost gradient
-  std::vector<double> cost_gradient_prior_;    // nv * max_history_
-  std::vector<double> cost_gradient_sensor_;   // nv * max_history_
-  std::vector<double> cost_gradient_force_;    // nv * max_history_
+  std::vector<double> cost_gradient_prior_;   // nv * max_history_
+  std::vector<double> cost_gradient_sensor_;  // nv * max_history_
+  std::vector<double> cost_gradient_force_;   // nv * max_history_
 
   // cost Hessian
-  std::vector<double> cost_hessian_prior_;       // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_sensor_;      // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_force_;       // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_band_;        // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_band_factor_; // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_factor_;      // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_prior_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_sensor_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_band_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_band_factor_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_factor_;  // (nv * max_history_) * (nv * max_history_)
 
   // cost scratch
-  std::vector<double> scratch0_prior_;         // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch1_prior_;         // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch0_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double> scratch1_sensor_;        // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double> scratch0_force_;         // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch1_force_;         // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch2_force_;         // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch_prior_weight_;   // 2 * nv * nv
-  std::vector<double> scratch_expected_;       // nv * max_history_
+  std::vector<double>
+      scratch0_prior_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch1_prior_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch0_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
+  std::vector<double>
+      scratch1_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
+  std::vector<double>
+      scratch0_force_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch1_force_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch2_force_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double> scratch_prior_weight_;  // 2 * nv * nv
+  std::vector<double> scratch_expected_;      // nv * max_history_
 
   // search direction
-  std::vector<double> search_direction_;       // nv * max_history_
+  std::vector<double> search_direction_;  // nv * max_history_
 
   // prior weights
-  std::vector<double> weight_prior_band_;      // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
 
-  // covariance 
-  std::vector<double> prior_matrix_factor_;    // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch0_covariance_;    // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch1_covariance_;    // (nv * max_history_) * (nv * max_history_)
+  // covariance
+  std::vector<double>
+      prior_matrix_factor_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch0_covariance_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch1_covariance_;  // (nv * max_history_) * (nv * max_history_)
 
   // status (internal)
-  int cost_count_;                          // number of cost evaluations
-  bool cost_skip_ = false;                  // flag for only evaluating cost derivatives
+  int cost_count_;          // number of cost evaluations
+  bool cost_skip_ = false;  // flag for only evaluating cost derivatives
 
   // status (external)
-  int iterations_smoother_;                 // total smoother iterations after Optimize
-  int iterations_search_;                   // total line search iterations
-  double gradient_norm_;                    // norm of cost gradient
-  double regularization_;                   // regularization
-  double step_size_;                        // step size for line search
-  double search_direction_norm_;            // search direction norm
-  BatchStatus solve_status_;                // estimator status
-  double cost_difference_;                  // cost difference: abs(cost - cost_previous)
-  double improvement_;                      // cost improvement 
-  double expected_;                         // expected cost improvement
-  double reduction_ratio_;                  // reduction ratio: cost_improvement / expected cost improvement
-  
+  int iterations_smoother_;       // total smoother iterations after Optimize
+  int iterations_search_;         // total line search iterations
+  double gradient_norm_;          // norm of cost gradient
+  double regularization_;         // regularization
+  double step_size_;              // step size for line search
+  double search_direction_norm_;  // search direction norm
+  BatchStatus solve_status_;      // estimator status
+  double cost_difference_;        // cost difference: abs(cost - cost_previous)
+  double improvement_;            // cost improvement
+  double expected_;               // expected cost improvement
+  double reduction_ratio_;  // reduction ratio: cost_improvement / expected cost
+                            // improvement
+
   // timers
   struct BatchTimers {
     double inverse_dynamics_derivatives;

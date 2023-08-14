@@ -100,6 +100,7 @@ add_library(
   planners/ilqs/planner.h
   estimators/batch.cc
   estimators/batch.h
+  estimators/estimator.h
   estimators/trajectory.h
   app.cc
   app.h

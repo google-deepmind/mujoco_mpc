@@ -27,12 +27,11 @@ enum NormType : int {
   kL22 = 1,
   kL2 = 2,
   kCosh = 3,
-  kGeodesic = 4,
+  // retain ordering for backward compatibility
   kPowerLoss = 5,
   kSmoothAbsLoss = 6,
   kSmoothAbs2Loss = 7,
   kRectifyLoss = 8,
-  kRatioLoss = 9,
 };
 
 // norm's number of parameters

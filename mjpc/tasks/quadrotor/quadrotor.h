@@ -42,8 +42,7 @@ class Quadrotor : public ThreadSafeTask {
   };
 
   Quadrotor() : residual_(this) {}
-  void TransitionLocked(mjModel* model, mjData* data,
-                        std::mutex* mutex) override;
+  void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

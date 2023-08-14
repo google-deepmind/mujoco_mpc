@@ -21,10 +21,23 @@
 namespace mjpc {
 namespace {
 
-struct TestTask : public Task {
-  std::string Name() const override {return ""; }
+class TestTask : public ThreadSafeTask {
+ public:
+  TestTask() : residual_(this) {}
+  std::string Name() const override { return ""; }
   std::string XmlPath() const override { return ""; }
-  void Residual(const mjModel*, const mjData*, double*) const override {};
+
+  class ResidualFn : public BaseResidualFn {
+   public:
+    ResidualFn(TestTask* task) : BaseResidualFn(task) {}
+    void Residual(const mjModel*, const mjData*, double*) const override {}
+  };
+
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(residual_);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
+  ResidualFn residual_;
 };
 
 // test task construction

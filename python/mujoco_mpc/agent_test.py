@@ -15,6 +15,7 @@
 
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import grpc
 import mujoco
 from mujoco_mpc import agent as agent_lib
@@ -39,7 +40,7 @@ def environment_reset(model, data):
   return get_observation(model, data)
 
 
-class AgentTest(absltest.TestCase):
+class AgentTest(parameterized.TestCase):
 
   def test_set_task_parameters(self):
     model_path = (
@@ -84,7 +85,8 @@ class AgentTest(absltest.TestCase):
     self.assertFalse((observations == 0).all())
     self.assertFalse((actions == 0).all())
 
-  def test_action_averaging_doesnt_change_state(self):
+  @parameterized.parameters({"nominal": False}, {"nominal": True})
+  def test_action_averaging_doesnt_change_state(self, nominal):
     # when calling get_action with action averaging, the Agent needs to roll
     # out physics, but the API should be implemented not to mutate the state
     model_path = (
@@ -108,7 +110,9 @@ class AgentTest(absltest.TestCase):
           mocap_quat=data.mocap_quat,
           userdata=data.userdata,
       )
-      agent.get_action(averaging_duration=control_timestep)
+      agent.get_action(
+          averaging_duration=control_timestep, nominal_action=nominal
+      )
       state_after = agent.get_state()
       self.assertEqual(data.time, state_after.time)
       np.testing.assert_allclose(data.qpos, state_after.qpos)

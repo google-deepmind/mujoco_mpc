@@ -103,7 +103,6 @@ INSTANTIATE_TEST_SUITE_P(
         {"SMOOTH_ABS_LOSS", mjpc::NormType::kSmoothAbsLoss, {0.1}},
         {"SMOOTH_ABS2_LOSS", mjpc::NormType::kSmoothAbs2Loss, {0.1, 2}},
         {"RECTIFY_LOSS", mjpc::NormType::kRectifyLoss, {0.1}},
-        {"RATIO_LOSS", mjpc::NormType::kRatioLoss, {0.1}},
     }),
     [](const testing::TestParamInfo<NormTest::ParamType>& info) {
       return info.param.test_name;

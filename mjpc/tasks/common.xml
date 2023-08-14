@@ -12,7 +12,7 @@
     <material name="blue_grid" texture="blue_grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
 
     <texture name="grey_grid" type="2d" builtin="checker" rgb1=".26 .26 .26" rgb2=".6 .6 .6" width="300" height="300" mark="edge" markrgb="1 1 1"/>
-    <material name="grey_grid" texture="blue_grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+    <material name="grey_grid" texture="grey_grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
     <texture name="skybox" type="skybox" builtin="gradient" rgb1=".66 .79 1" rgb2=".9 .91 .93" width="800" height="800"/>
 
     <material name="self" rgba=".7 .5 .3 1"/>

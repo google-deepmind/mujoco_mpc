@@ -28,8 +28,6 @@ add_library(
   libmjpc STATIC
   states/state.cc
   states/state.h
-  states/include.cc
-  states/include.h
   agent.cc
   agent.h
   trajectory.cc
@@ -73,8 +71,6 @@ add_library(
   planners/include.h
   planners/cost_derivatives.cc
   planners/cost_derivatives.h
-  planners/linear_solve.cc
-  planners/linear_solve.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
   planners/robust/robust_planner.cc

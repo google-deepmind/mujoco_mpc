@@ -20,7 +20,6 @@
 #include <mutex>
 #include <vector>
 
-#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"

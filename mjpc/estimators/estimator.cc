@@ -17,7 +17,6 @@
 #include <chrono>
 
 #include "mjpc/array_safety.h"
-#include "mjpc/estimators/buffer.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"

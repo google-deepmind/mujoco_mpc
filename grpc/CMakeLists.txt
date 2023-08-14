@@ -53,8 +53,8 @@ unset(BUILD_SHARED_LIBS_OLD)
 
 get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
-get_filename_component(estimator_service_proto "./estimator.proto" ABSOLUTE)
-get_filename_component(estimator_service_proto_path "${estimator_service_proto}" PATH)
+get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
+get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
 
 
 # Generated sources
@@ -63,12 +63,12 @@ set(agent_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.h")
 set(agent_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.cc")
 set(agent_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.grpc.pb.h")
 
-set(estimator_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.cc")
-set(estimator_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.pb.h")
-set(estimator_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.cc")
-set(estimator_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/estimator.grpc.pb.h")
+set(batch_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.cc")
+set(batch_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.h")
+set(batch_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.cc")
+set(batch_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.h")
 
-message("We need the following for agent/estimator_protos:")
+message("We need the following for agent/batch_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
 
 add_custom_command(
@@ -90,19 +90,19 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT
-  "${estimator_service_proto_srcs}"
-  "${estimator_service_proto_hdrs}"
-  "${estimator_service_grpc_srcs}"
-  "${estimator_service_grpc_hdrs}"
+  "${batch_service_proto_srcs}"
+  "${batch_service_proto_hdrs}"
+  "${batch_service_grpc_srcs}"
+  "${batch_service_grpc_hdrs}"
   COMMAND ${_PROTOBUF_PROTOC}
   ARGS
   --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
   --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-  -I "${estimator_service_proto_path}"
+  -I "${batch_service_proto_path}"
   --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
-  "${estimator_service_proto}"
+  "${batch_service_proto}"
   DEPENDS
-  "${estimator_service_proto}"
+  "${batch_service_proto}"
 )
 
 # Include generated *.pb.h files
@@ -179,19 +179,19 @@ target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
 
 
 add_executable(
-  estimator_server
-  estimator_server.cc
-  ${estimator_service_grpc_srcs}
-  ${estimator_service_grpc_hdrs}
-  ${estimator_service_proto_srcs}
-  ${estimator_service_proto_hdrs}
-  estimator_service.h
-  estimator_service.cc
+  batch_server
+  batch_server.cc
+  ${batch_service_grpc_srcs}
+  ${batch_service_grpc_hdrs}
+  ${batch_service_proto_srcs}
+  ${batch_service_proto_hdrs}
+  batch_service.h
+  batch_service.cc
 )
 
 target_link_libraries(
-  estimator_server
-  # estimator_service_grpc_proto
+  batch_server
+  # batch_service_grpc_proto
   absl::check
   absl::flags
   absl::flags_parse
@@ -205,8 +205,8 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
-target_include_directories(estimator_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-message(ESTIMATOR_SERVICE_COMPILE_OPTIONS=${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
-target_compile_options(estimator_server PUBLIC ${ESTIMATOR_SERVICE_COMPILE_OPTIONS})
-target_link_options(estimator_server PRIVATE ${ESTIMATOR_SERVICE_LINK_OPTIONS})
+target_include_directories(batch_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_SERVICE_COMPILE_OPTIONS})
+target_compile_options(batch_server PUBLIC ${BATCH_SERVICE_COMPILE_OPTIONS})
+target_link_options(batch_server PRIVATE ${BATCH_SERVICE_LINK_OPTIONS})
 

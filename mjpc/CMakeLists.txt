@@ -98,8 +98,8 @@ add_library(
   planners/ilqg/settings.h
   planners/ilqs/planner.cc
   planners/ilqs/planner.h
-  estimators/estimator.cc
-  estimators/estimator.h
+  estimators/batch.cc
+  estimators/batch.h
   estimators/trajectory.h
   app.cc
   app.h

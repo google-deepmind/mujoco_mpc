@@ -1,4 +1,4 @@
-<mujoco model="Particle">
+<mujoco model="Box2D">
   <custom>
     <numeric name="estimator_configuration_length" data="32" />
   </custom>
@@ -7,6 +7,7 @@
     <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
     <map znear=".01"/>
     <quality shadowsize="2048"/>
+    <global offheight="1024" offwidth="1024"/>
   </visual>
 
   <asset>
@@ -31,37 +32,36 @@
       <material name="site" rgba=".5 .5 .5 .3"/>
   </asset>
 
-  <option timestep="0.01">
-    <flag contact="disable"/>
-  </option>
+  <option timestep="0.005"/>
+  <default>
+    <geom solimp="0 0.95 0.001"/>
+  </default>
 
   <worldbody>
     <light name="light" pos="0 0 1"/>
-    <camera name="fixed" pos="0 0 .75" quat="1 0 0 0"/>
     <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid"/>
-    <geom name="wall_x" type="plane" pos="-.3 0 .02" zaxis="1 0 0"  size=".02 .3 .02" material="decoration"/>
-    <geom name="wall_y" type="plane" pos="0 -.3 .02" zaxis="0 1 0"  size=".3 .02 .02" material="decoration"/>
-    <geom name="wall_neg_x" type="plane" pos=".3 0 .02" zaxis="-1 0 0"  size=".02 .3 .02" material="decoration"/>
-    <geom name="wall_neg_y" type="plane" pos="0 .3 .02" zaxis="0 -1 0"  size=".3 .02 .02" material="decoration"/>
-
-    <body name="pointmass" pos="0 0 .01">
-      <camera name="cam0" pos="0 -0.3 0.3" xyaxes="1 0 0 0 0.7 0.7"/>
+    <geom size=".07" pos="-.03 0 0"/>
+    <body name="pointmass" pos="0 0 .25">
       <joint name="root_x" type="slide"  pos="0 0 0" axis="1 0 0" />
-      <joint name="root_y" type="slide"  pos="0 0 0" axis="0 1 0" />
-      <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
-      <site name="tip" pos="0 0 0" size="0.01"/>
+      <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
+      <joint name="rotation" type="hinge" pos="0 0 0" axis="0 1 0" />
+      <geom name="pointmass" type="box" size=".05 .05 .05" material="self" mass="1.0"/>
     </body>
+    <camera pos="0.096 -0.599 0.286" xyaxes="1.000 0.003 -0.000 -0.001 0.188 0.982"/>
   </worldbody>
 
   <actuator>
-    <motor name="x_motor" joint="root_x" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
-    <motor name="y_motor" joint="root_y" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="x_motor" joint="root_x" gear="1" />
+    <motor name="z_motor" joint="root_z" gear="1" />
+    <motor name="rotation_motor" joint="rotation" gear="1"/>
   </actuator>
 
   <sensor>
     <jointpos name="joint_x" joint="root_x" />
-    <jointpos name="joint_y" joint="root_y" />
-    <jointvel name="velocity_x" joint="root_x" />
-    <jointvel name="velocity_y" joint="root_y" />
+    <jointpos name="joint_z" joint="root_z" />
+    <jointpos name="joint_r" joint="rotation" />
+    <jointvel name="vel_x" joint="root_x" />
+    <jointvel name="vel_z" joint="root_z" />
+    <jointvel name="vel_r" joint="rotation" />
   </sensor>
 </mujoco>

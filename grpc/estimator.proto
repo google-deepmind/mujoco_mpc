@@ -14,39 +14,33 @@
 
 syntax = "proto3";
 
-package estimator;
+package batch;
 
-service Estimator {
-  // Initialize Estimator
+service Batch {
+  // Initialize Batch
   rpc Init(InitRequest) returns (InitResponse);
-  // Set Estimator data
+  // Set Batch data
   rpc Data(DataRequest) returns (DataResponse);
-  // Estimator settings
+  // Batch settings
   rpc Settings(SettingsRequest) returns (SettingsResponse);
-  // Estimator costs
+  // Batch costs
   rpc Cost(CostRequest) returns (CostResponse);
-  // Estimator weights
-  rpc Weights(WeightsRequest) returns (WeightsResponse);
-  // Estimator norms
+  // Batch noise (process + sensor)
+  rpc Noise(NoiseRequest) returns (NoiseResponse);
+  // Batch norms
   rpc Norms(NormRequest) returns (NormResponse);
-  // Shift Estimator trajectories
+  // Shift Batch trajectories
   rpc Shift(ShiftRequest) returns (ShiftResponse);
-  // Reset Estimator
+  // Reset Batch
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Optimize Estimator
+  // Optimize Batch
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
-  // Get Estimator status
+  // Get Batch status
   rpc Status(StatusRequest) returns (StatusResponse);
-  // Get Estimator cost Hessian
-  rpc CostHessian(CostHessianRequest) returns (CostHessianResponse);
-  // Estimator prior matrix
-  rpc PriorMatrix(PriorMatrixRequest) returns (PriorMatrixResponse);
-  // Reset Buffer
-  rpc ResetBuffer(ResetBufferRequest) returns (ResetBufferResponse);
-  // Buffer data
-  rpc BufferData(BufferDataRequest) returns (BufferDataResponse);
-  // Update Buffer
-  rpc UpdateBuffer(UpdateBufferRequest) returns (UpdateBufferResponse);
+  // Get Batch timing 
+  rpc Timing(TimingRequest) returns (TimingResponse);
+  // Batch prior matrix
+  rpc PriorWeights(PriorWeightsRequest) returns (PriorWeightsResponse);
 }
 
 message MjModel {
@@ -67,11 +61,13 @@ message Data {
   repeated double velocity = 2 [packed = true];
   repeated double acceleration = 3 [packed = true];
   repeated double time = 4 [packed = true];
-  repeated double configuration_prior = 5 [packed = true];
-  repeated double sensor_measurement = 6 [packed = true];
-  repeated double sensor_prediction = 7 [packed = true];
-  repeated double force_measurement = 8 [packed = true];
-  repeated double force_prediction = 9 [packed = true];
+  repeated double ctrl = 5 [packed = true];
+  repeated double configuration_previous = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated int32 sensor_mask = 9 [packed = true];
+  repeated double force_measurement = 10 [packed = true];
+  repeated double force_prediction = 11 [packed = true];
 }
 
 message DataRequest {
@@ -85,17 +81,35 @@ message DataResponse {
 
 message Settings {
   optional int32 configuration_length = 1;
-  optional int32 search_type = 2;
-  optional bool prior_flag = 3;
-  optional bool sensor_flag = 4;
-  optional bool force_flag = 5;
-  optional int32 smoother_iterations = 6;
-  optional bool skip_prior_weight_update = 7;
-  optional bool time_scaling = 8;
+  optional bool prior_flag = 2;
+  optional bool sensor_flag = 3;
+  optional bool force_flag = 4;
+  optional int32 max_search_iterations = 5;
+  optional int32 max_smoother_iterations = 6;
+  optional double gradient_tolerance = 7;
+  optional bool verbose_iteration = 8;
+  optional bool verbose_optimize = 9;
+  optional bool verbose_cost = 10;
+  optional bool verbose_prior = 11;
+  optional bool band_prior = 12;
+  optional int32 search_type = 13;
+  optional double step_scaling = 14;
+  optional double regularization_initial = 15;
+  optional double regularization_scaling = 16;
+  optional bool band_copy = 17;
+  optional bool time_scaling_force = 18;
+  optional bool time_scaling_sensor = 19;
+  optional double search_direction_tolerance = 20;
+  optional double cost_tolerance = 21;
+  optional bool assemble_prior_jacobian = 22;
+  optional bool assemble_sensor_jacobian = 23;
+  optional bool assemble_force_jacobian = 24; 
+  optional bool assemble_sensor_norm_hessian = 25; 
+  optional bool assemble_force_norm_hessian = 26;
 }
 
 message SettingsRequest {
-  Settings settings = 1;
+  optional Settings settings = 1;
 }
 
 message SettingsResponse {
@@ -105,46 +119,58 @@ message SettingsResponse {
 // TODO(etom): we want a breakdown of the cost into the different sensors and
 // forces
 
-message Cost {
-  optional double total = 1;
-  optional double prior = 2;
-  optional double sensor = 3;
-  optional double force = 4;
-  optional double initial = 5;
+message CostRequest {
+  optional bool derivatives = 1;
+  optional bool internals = 2;
 }
 
-message CostRequest {}
-
 message CostResponse {
-  Cost cost = 1;
+  double total = 1;
+  double prior = 2;
+  double sensor = 3;
+  double force = 4;
+  double initial = 5;
+  repeated double gradient = 6 [packed = true];
+  repeated double hessian = 7 [packed = true]; 
+  repeated double residual_prior = 8 [packed = true];
+  repeated double residual_sensor = 9 [packed = true];
+  repeated double residual_force = 10 [packed = true];
+  repeated double jacobian_prior = 11 [packed = true];
+  repeated double jacobian_sensor = 12 [packed = true];
+  repeated double jacobian_force = 13 [packed = true];
+  repeated double norm_gradient_sensor = 14 [packed = true];
+  repeated double norm_gradient_force = 15 [packed = true];
+  repeated double prior_matrix = 16 [packed = true];
+  repeated double norm_hessian_sensor = 17 [packed = true];
+  repeated double norm_hessian_force = 18 [packed = true];
+  int32 nvar = 19;
+  int32 nsensor = 20;
+  int32 nforce = 21;
 }
 
 // TODO(etom): all the protos below use a dict of arrays, but they should use an
 // array of dicts.
 
-message Weight {
-  optional double prior = 1;
+message Noise {
+  repeated double process = 1 [packed = true];
   repeated double sensor = 2 [packed = true];
-  repeated double force = 3 [packed = true];
 }
 
-message WeightsRequest {
-  Weight weight = 1;
+message NoiseRequest {
+  optional Noise noise = 1;
 }
 
-message WeightsResponse {
-  Weight weight = 1;
+message NoiseResponse {
+  Noise noise = 1;
 }
 
 message Norm {
   repeated int32 sensor_type = 1;
-  repeated double sensor_parameters = 2;
-  repeated int32 force_type = 3;
-  repeated double force_parameters = 4;
+  repeated double sensor_parameters = 2 [packed = true];
 }
 
 message NormRequest {
-  Norm norm = 1;
+  optional Norm norm = 1;
 }
 
 message NormResponse {
@@ -173,6 +199,12 @@ message Status {
   double step_size = 3;
   double regularization = 4;
   double gradient_norm = 5;
+  double search_direction_norm = 6;
+  int32 solve_status = 7;
+  double cost_difference = 8;
+  double improvement = 9;
+  double expected = 10;
+  double reduction_ratio = 11;
 }
 
 message StatusRequest {}
@@ -181,47 +213,51 @@ message StatusResponse {
   Status status = 1;
 }
 
-message CostHessianRequest {}
+message Timing {
+  double timer_total = 1;
+  double timer_inverse_dynamics_derivatives = 2;
+  double timer_velacc_derivatives = 3;
+  double timer_jacobian_prior = 4;
+  double timer_jacobian_sensor = 5;
+  double timer_jacobian_force = 6;
+  double timer_jacobian_total = 7;
+  double timer_cost_prior_derivatives = 8;
+  double timer_cost_sensor_derivatives = 9;
+  double timer_cost_force_derivatives = 10;
+  double timer_cost_total_derivatives = 11;
+  double timer_cost_gradient = 12;
+  double timer_cost_hessian = 13;
+  double timer_cost_derivatives = 14;
+  double timer_cost = 15;
+  double timer_cost_prior = 16;
+  double timer_cost_sensor = 17;
+  double timer_cost_force = 18;
+  double timer_cost_config_to_velacc = 19;
+  double timer_cost_prediction = 20;
+  double timer_residual_prior = 21;
+  double timer_residual_sensor = 22;
+  double timer_residual_force = 23;
+  double timer_search_direction = 24;
+  double timer_search = 25;
+  double timer_configuration_update = 26;
+  double timer_optimize = 27;
+  double timer_prior_weight_update = 28;
+  double timer_prior_set_weight = 29;
+  double timer_update_trajectory = 30;
+  double timer_update = 31;
+}
 
-message CostHessianResponse {
-  repeated double hessian = 1;
+message TimingRequest {}
+
+message TimingResponse {
+  Timing timing = 1;
+}
+
+message PriorWeightsRequest {
+  repeated double weights = 1 [packed = true];
+}
+
+message PriorWeightsResponse {
+  repeated double weights = 1 [packed = true];
   int32 dimension = 2;
-}
-
-message PriorMatrixRequest {
-  repeated double prior = 1;
-}
-
-message PriorMatrixResponse {
-  repeated double prior = 1;
-  int32 dimension = 2;
-}
-
-message ResetBufferRequest {}
-
-message ResetBufferResponse {}
-
-message Buffer {
-  repeated double sensor = 1;
-  repeated int32 mask = 2;
-  repeated double ctrl = 3;
-  repeated double time = 4;
-}
-
-message BufferDataRequest {
-  int32 index = 1;
-  Buffer buffer = 2;
-}
-
-message BufferDataResponse {
-  int32 length = 1;
-  Buffer buffer = 2;
-}
-
-message UpdateBufferRequest {
-  Buffer buffer = 1;
-}
-
-message UpdateBufferResponse {
-  int32 length = 1;
 }

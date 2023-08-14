@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
   builder.AddListeningPort(server_address, server_credentials);
 
   mjpc::MjpcApp app(mjpc::GetTasks());
-  agent_grpc::UiAgentService service(app.Sim());
+  mjpc::agent_grpc::UiAgentService service(app.Sim());
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Startup code for `Estimator` server.
+// Startup code for `Batch` server.
+
+#include <absl/flags/flag.h>
+#include <absl/log/log.h>
+#include <absl/strings/str_cat.h>
 
 #include <cstdint>
 #include <memory>
 #include <string>
 
-#include <absl/flags/parse.h>
-#include <absl/flags/flag.h>
-#include <absl/log/log.h>
-#include <absl/strings/str_cat.h>
-
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
+
 #include "grpc/estimator_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  estimator_grpc::EstimatorService service;
+  mjpc::batch_grpc::BatchService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

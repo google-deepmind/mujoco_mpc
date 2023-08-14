@@ -15,15 +15,16 @@
 #ifndef MJPC_ESTIMATORS_TRAJECTORY_H_
 #define MJPC_ESTIMATORS_TRAJECTORY_H_
 
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <cstring>
 #include <vector>
 
-#include <mujoco/mujoco.h>
-
 namespace mjpc {
 
-const int MAX_TRAJECTORY = 128;
+// maximum length for trajectory length
+inline constexpr int kMaxEstimatorTrajectory = 1024;
 
 // trajectory
 template <typename T>
@@ -33,7 +34,6 @@ class EstimatorTrajectory {
   EstimatorTrajectory() { Initialize(0, 0); }
   EstimatorTrajectory(int dim, int length) { Initialize(dim, length); }
 
-
   // initialize
   void Initialize(int dim, int length) {
     // set
@@ -41,7 +41,7 @@ class EstimatorTrajectory {
     length_ = length;
 
     // allocate memory
-    data_.resize(dim * MAX_TRAJECTORY);
+    data_.resize(dim * kMaxEstimatorTrajectory);
 
     // reset
     Reset();
@@ -87,11 +87,49 @@ class EstimatorTrajectory {
   // get all data
   T* Data() { return data_.data(); }
 
+  // get head index 
+  int Head() const { return head_index_; }
+
+  // reset head index
+  void ResetHead() { head_index_ = 0; }
+
+  // get element dimension
+  int Dimension() const { return dim_; }
+
+  // get trajectory length
+  int Length() const { return length_; }
+
+  // set trajectory length 
+  void SetLength(int length) {
+    // set
+    length_ = length;
+    
+    // potentially fix head index 
+    Shift(0);
+  }
+
+  // shift head_index_
+  void Shift(int shift) {
+    // check for nonnegative shift
+    if (shift < 0) {
+      mju_error("shift cannot be negative");
+    }
+
+    // compute new head index
+    int new_head = head_index_ + shift;
+
+    if (new_head < length_) {  // valid head
+      head_index_ = new_head;
+    } else {
+      head_index_ = new_head % length_;  // corrected head
+    }
+  }
+
+ private:
   // map index to data_ index
   int IndexMap(int index) const {
     // out of bounds
-    if (head_index_ >= length_)
-      mju_error("trajectory.head_index_ out of bounds!\n");
+    if (head_index_ >= length_) mju_error("head index out of bounds!\n");
 
     // if synced
     if (head_index_ == 0) return index;
@@ -103,18 +141,6 @@ class EstimatorTrajectory {
       return map;
     } else {  // corrected map
       return map % length_;
-    }
-  }
-
-  // shift head_index_
-  void ShiftHeadIndex(int shift) {
-    // compute new head index
-    int new_head = head_index_ + shift;
-
-    if (new_head < length_) {  // valid head
-      head_index_ = new_head;
-    } else {
-      head_index_ = new_head % length_;  // corrected head
     }
   }
 

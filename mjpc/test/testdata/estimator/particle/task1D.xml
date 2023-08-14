@@ -1,4 +1,4 @@
-<mujoco model="Particle">
+<mujoco model="Particle1D">
   <custom>
     <numeric name="estimator_configuration_length" data="32" />
   </custom>
@@ -8,6 +8,10 @@
     <map znear=".01"/>
     <quality shadowsize="2048"/>
   </visual>
+  
+  <default>
+    <geom solimp="0 0.95 0.001"/>
+  </default>
 
   <asset>
     <texture name="skybox" type="skybox" builtin="gradient" rgb1="0 0 0" rgb2="0 0 0"
@@ -31,37 +35,29 @@
       <material name="site" rgba=".5 .5 .5 .3"/>
   </asset>
 
-  <option timestep="0.01">
-    <flag contact="disable"/>
-  </option>
+  <option timestep="0.01" />
 
   <worldbody>
     <light name="light" pos="0 0 1"/>
     <camera name="fixed" pos="0 0 .75" quat="1 0 0 0"/>
-    <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid"/>
-    <geom name="wall_x" type="plane" pos="-.3 0 .02" zaxis="1 0 0"  size=".02 .3 .02" material="decoration"/>
-    <geom name="wall_y" type="plane" pos="0 -.3 .02" zaxis="0 1 0"  size=".3 .02 .02" material="decoration"/>
-    <geom name="wall_neg_x" type="plane" pos=".3 0 .02" zaxis="-1 0 0"  size=".02 .3 .02" material="decoration"/>
-    <geom name="wall_neg_y" type="plane" pos="0 .3 .02" zaxis="0 -1 0"  size=".3 .02 .02" material="decoration"/>
+    <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid" />
 
-    <body name="pointmass" pos="0 0 .01">
-      <camera name="cam0" pos="0 -0.3 0.3" xyaxes="1 0 0 0 0.7 0.7"/>
-      <joint name="root_x" type="slide"  pos="0 0 0" axis="1 0 0" />
-      <joint name="root_y" type="slide"  pos="0 0 0" axis="0 1 0" />
+    <body name="pointmass" pos="0 0 0">
+      <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
       <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
-      <site name="tip" pos="0 0 0" size="0.01"/>
     </body>
   </worldbody>
 
   <actuator>
-    <motor name="x_motor" joint="root_x" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
-    <motor name="y_motor" joint="root_y" gear="1" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="z_motor" joint="root_z"/>
   </actuator>
 
   <sensor>
-    <jointpos name="joint_x" joint="root_x" />
-    <jointpos name="joint_y" joint="root_y" />
-    <jointvel name="velocity_x" joint="root_x" />
-    <jointvel name="velocity_y" joint="root_y" />
+    <jointpos name="joint_z" joint="root_z" />
+    <jointvel name="vel_z" joint="root_z" />
   </sensor>
+
+  <keyframe>
+    <key name="home" qpos="0.25" qvel="0.1"/>
+  </keyframe>
 </mujoco>

@@ -90,7 +90,7 @@ TEST(MeasurementCost, Particle) {
     // initialize
     double cost = 0.0;
 
-    // time scaling 
+    // time scaling
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_sensor) {
@@ -119,7 +119,7 @@ TEST(MeasurementCost, Particle) {
         // loop over sensors
         int shift = 0;
 
-        for (int i = 0; i < model->nsensor; i++) {          
+        for (int i = 0; i < model->nsensor; i++) {
           // skip velocity, acceleration sensors (assumes position sensors are
           // first)
           if (model->sensor_needstage[i] != mjSTAGE_POS) continue;
@@ -180,7 +180,7 @@ TEST(MeasurementCost, Particle) {
       int shift = 0;
 
       for (int i = 0; i < model->nsensor; i++) {
-        // sensor stage 
+        // sensor stage
         int sensor_stage = model->sensor_needstage[i];
 
         // sensor dimension
@@ -189,7 +189,7 @@ TEST(MeasurementCost, Particle) {
         // sensor residual
         double* rki = rk + shift;
 
-        // time weight 
+        // time weight
         double time_weight = 1.0;
         if (sensor_stage == mjSTAGE_VEL) {
           time_weight = time_scale;
@@ -356,7 +356,7 @@ TEST(MeasurementCost, Box) {
     // initialize
     double cost = 0.0;
 
-    // time scale 
+    // time scale
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_sensor) {
@@ -446,7 +446,7 @@ TEST(MeasurementCost, Box) {
       int shift = 0;
 
       for (int i = 0; i < model->nsensor; i++) {
-        // sensor stage 
+        // sensor stage
         int sensor_stage = model->sensor_needstage[i];
 
         // sensor dimension
@@ -455,7 +455,7 @@ TEST(MeasurementCost, Box) {
         // sensor residual
         double* rki = rk + shift;
 
-        // time weight 
+        // time weight
         double time_weight = 1.0;
         if (sensor_stage == mjSTAGE_VEL) {
           time_weight = time_scale;

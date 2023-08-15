@@ -68,6 +68,7 @@ enum {
   SECT_WATCH,
   SECT_TASK,
   SECT_AGENT,
+  SECT_ESTIMATOR,
   SECT_PHYSICS,
   SECT_RENDERING,
   SECT_GROUP,
@@ -1250,6 +1251,11 @@ void UiEvent(mjuiState* state) {
       sim->agent->AgentEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
+    // estimator section 
+    else if (it && it->sectionid == SECT_ESTIMATOR) {
+      sim->agent->EstimatorEvent(it, sim->d, sim->uiloadrequest, sim->run);
+    }
+
     // physics section
     else if (it && it->sectionid==SECT_PHYSICS) {
       // update disable flags in mjOption
@@ -1766,6 +1772,11 @@ void Simulate::PrepareScene() {
   // update agent
   if (this->ui0_enable && this->ui0.sect[SECT_AGENT].state) {
     mjui_update(SECT_AGENT, -1, &this->ui0, &this->uistate, &this->platform_ui->mjr_context());
+  }
+
+  // update estimator 
+  if (this->ui0_enable && this->ui0.sect[SECT_ESTIMATOR].state) {
+    // mjui_update(SECT_ESTIMATOR, -1, &this->ui0, &this->uistate, &this->platform_ui->mjr_context());
   }
 
   // update agent profiler

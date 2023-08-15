@@ -139,6 +139,66 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
   return mnew;
 }
 
+// estimator in background thread 
+void EstimatorLoop(mj::Simulate& sim) {
+  // run until asked to exit
+  while (!sim.exitrequest.load()) {
+    if (sim.uiloadrequest.load() == 0) {
+      // estimator
+      int active_estimator = sim.agent->ActiveEstimatorIndex();
+      mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
+
+      // estimator update
+      if (active_estimator > 0) {
+        // start timer
+        auto start = std::chrono::steady_clock::now();
+
+        // set values from GUI
+        estimator->SetGUIData(sim.agent->estimator_gui_data);
+
+        // get simulation state
+        {
+          const std::lock_guard<std::mutex> lock(sim.mtx);
+          // copy simulation ctrl
+          mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
+
+          // copy simulation sensor
+          mju_copy(sim.agent->sensor.data(), d->sensordata, m->nsensordata);
+
+          // copy simulation time
+          estimator->Data()->time = d->time;
+
+          // copy simulation mocap
+          mju_copy(estimator->Data()->mocap_pos, d->mocap_pos, 3 * m->nmocap);
+          mju_copy(estimator->Data()->mocap_quat, d->mocap_quat, 4 * m->nmocap);
+
+          // copy simulation userdata
+          mju_copy(estimator->Data()->userdata, d->userdata, m->nuserdata);
+        }
+
+        // update
+        estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
+
+        // copy state
+        mju_copy(sim.agent->estimator_state.data(), estimator->State(),
+                 m->nq + m->nv + m->na);
+        sim.agent->time = estimator->Time();
+
+        // wait (ms)
+        while (1.0e-3 * mjpc::GetDuration(start) <
+               1.0e3 * estimator->Model()->opt.timestep) {
+        }
+      } else {
+        // ground truth
+        mju_copy(estimator->State(), d->qpos, m->nq);
+        mju_copy(estimator->State() + m->nq, d->qvel, m->nv);
+        mju_copy(estimator->State() + m->nq + m->nv, d->act, m->na);
+        estimator->Time() = d->time;
+      }
+    }
+  }
+}
+
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
   // cpu-sim synchronization point
@@ -164,6 +224,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         sim.agent->Allocate();
         sim.agent->Reset();
         sim.agent->PlotInitialize();
+
         // set home keyframe
         int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
@@ -226,9 +287,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               ctrlnoise[i] =
                   rate * ctrlnoise[i] + scale * mju_standardNormal(nullptr);
 
-              // apply noise
-              // d->ctrl[i] += ctrlnoise[i]; // noise is now added in controller
-              // callback
+              // noise added in controller callback
             }
           }
 
@@ -301,7 +360,25 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      sim.agent->state.Set(m, d);
+      // unpack state
+      mjpc::State* state = &sim.agent->state;
+
+      // estimator 
+      int active_estimator = sim.agent->ActiveEstimatorIndex();
+
+      // set state
+      if (active_estimator > 0) {
+        // from estimator
+        state->SetPosition(m, sim.agent->estimator_state.data());
+        state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
+        state->SetAct(m, sim.agent->estimator_state.data() + m->nq + m->nv);
+        state->SetTime(m, sim.agent->time);
+        state->SetMocap(m, d->mocap_pos, d->mocap_quat);
+        state->SetUserData(m, d->userdata);
+      } else { // == 0
+        // from simulation
+        state->Set(m, d);
+      }
     }
   }
 }
@@ -312,13 +389,17 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
-  std::printf("MuJoCo version %s\n", mj_versionString());
+  // MJPC 
+  printf("MuJoCo MPC (MJPC)\n");
+
+  // MuJoCo
+  std::printf(" MuJoCo version %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
   }
 
   // threads
-  printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
+  printf(" Hardware threads:  %i\n", mjpc::NumAvailableHardwareThreads());
 
   if (sim != nullptr) {
     mju_error("Multiple instances of MjpcApp created.");
@@ -358,6 +439,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
   mju_zero(ctrlnoise, m->nu);
 
+  // agent
   sim->agent->Initialize(m);
   sim->agent->Allocate();
   sim->agent->Reset();
@@ -385,8 +467,13 @@ MjpcApp::~MjpcApp() {
 
 // run event loop
 void MjpcApp::Start() {
-  // planning threads
-  printf("Agent threads: %i\n", sim->agent->max_threads());
+  // threads
+  printf("  physics        :  %i\n", 1);
+  printf("  render         :  %i\n", 1);
+  printf("  Planner        :  %i\n", 1);
+  printf("    planning     :  %i\n", sim->agent->planner_threads());
+  printf("  Estimator      :  %i\n", sim->agent->estimator_threads());
+  printf("    estimation   :  %i\n", 1);
 
   // set control callback
   mjcb_control = controller;
@@ -398,6 +485,10 @@ void MjpcApp::Start() {
   mjpc::ThreadPool physics_pool(1);
   physics_pool.Schedule([]() { PhysicsLoop(*sim.get()); });
 
+  // start estimator thread 
+  mjpc::ThreadPool estimator_pool(1);
+  estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
+  
   {
     // start plan thread
     mjpc::ThreadPool plan_pool(1);
@@ -408,6 +499,7 @@ void MjpcApp::Start() {
 
     // one-off preparation:
     sim->InitializeRenderLoop();
+
     // start simulation UI loop (blocking call)
     sim->RenderLoop();
   }

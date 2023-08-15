@@ -302,7 +302,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
  
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
-      {mjITEM_SECTION, "Estimator Settings", 1, nullptr,
+      {mjITEM_SECTION, "Estimator", 1, nullptr,
        "AP"},  // needs new section to satisfy mjMAXUIITEM
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
       {mjITEM_SLIDERNUM, "Timestep", 2, &data.timestep, "1.0e-3 0.1"},
@@ -319,7 +319,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
   mjuiDef defProcessNoise[kMaxProcessNoise + 2];
 
   // separator
-  defProcessNoise[0] = {mjITEM_SEPARATOR, "Process Noise Covariance", 1};
+  defProcessNoise[0] = {mjITEM_SEPARATOR, "Process Noise Std.", 1};
   process_noise_shift++;
 
   // add UI elements
@@ -481,7 +481,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
   mjuiDef defSensorNoise[kMaxSensorNoise + 2];
 
   // separator
-  defSensorNoise[0] = {mjITEM_SEPARATOR, "Sensor Noise Covariance", 1};
+  defSensorNoise[0] = {mjITEM_SEPARATOR, "Sensor Noise Std.", 1};
   sensor_noise_shift++;
 
   // loop over sensors
@@ -556,16 +556,10 @@ void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shi
   // measurement update
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[timer_shift + 0][0] + 1,
-                 TimerMeasurement(), 100, timer_shift + 0, 0, 1, -100);
-
-  // prediction update
-  PlotUpdateData(fig_timer, timer_bounds,
-                 fig_timer->linedata[timer_shift + 1][0] + 1, TimerPrediction(),
-                 100, timer_shift + 1, 0, 1, -100);
+                 TimerMeasurement() + TimerPrediction(), 100, timer_shift + 0, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Measurement Update");
-  mju::strcpy_arr(fig_timer->linename[timer_shift + 1], "Prediction Update");
+  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Update");
 }
 
 }  // namespace mjpc

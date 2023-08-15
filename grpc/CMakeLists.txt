@@ -55,7 +55,8 @@ get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
 get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
 get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
-
+get_filename_component(kalman_service_proto "./kalman.proto" ABSOLUTE)
+get_filename_component(kalman_service_proto_path "${kalman_service_proto}" PATH)
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -67,6 +68,11 @@ set(batch_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.cc")
 set(batch_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.h")
 set(batch_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.cc")
 set(batch_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.h")
+
+set(kalman_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/kalman.pb.cc")
+set(kalman_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/kalman.pb.h")
+set(kalman_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/kalman.grpc.pb.cc")
+set(kalman_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/kalman.grpc.pb.h")
 
 message("We need the following for agent/batch_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
@@ -103,6 +109,23 @@ add_custom_command(
   "${batch_service_proto}"
   DEPENDS
   "${batch_service_proto}"
+)
+
+add_custom_command(
+  OUTPUT
+  "${kalman_service_proto_srcs}"
+  "${kalman_service_proto_hdrs}"
+  "${kalman_service_grpc_srcs}"
+  "${kalman_service_grpc_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS
+  --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  -I "${kalman_service_proto_path}"
+  --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+  "${kalman_service_proto}"
+  DEPENDS
+  "${kalman_service_proto}"
 )
 
 # Include generated *.pb.h files
@@ -210,3 +233,35 @@ message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_SERVICE_COMPILE_OPTIONS})
 target_compile_options(batch_server PUBLIC ${BATCH_SERVICE_COMPILE_OPTIONS})
 target_link_options(batch_server PRIVATE ${BATCH_SERVICE_LINK_OPTIONS})
 
+add_executable(
+  kalman_server
+  kalman_server.cc
+  ${kalman_service_grpc_srcs}
+  ${kalman_service_grpc_hdrs}
+  ${kalman_service_proto_srcs}
+  ${kalman_service_proto_hdrs}
+  kalman_service.h
+  kalman_service.cc
+)
+
+target_link_libraries(
+  kalman_server
+  # kalman_service_grpc_proto
+  absl::check
+  absl::flags
+  absl::flags_parse
+  absl::log
+  absl::random_random
+  absl::status
+  absl::strings
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  mujoco::mujoco
+  libmjpc
+)
+
+target_include_directories(kalman_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(KALMAN_SERVICE_COMPILE_OPTIONS=${KALMAN_SERVICE_COMPILE_OPTIONS})
+target_compile_options(kalman_server PUBLIC ${KALMAN_SERVICE_COMPILE_OPTIONS})
+target_link_options(kalman_server PRIVATE ${KALMAN_SERVICE_LINK_OPTIONS})

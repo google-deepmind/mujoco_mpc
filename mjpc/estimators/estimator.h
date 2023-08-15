@@ -20,6 +20,9 @@
 #include <mutex>
 #include <vector>
 
+#include "mjpc/estimators/gui.h"
+#include "mjpc/utilities.h"
+
 namespace mjpc {
 
 // maximum terms
@@ -36,52 +39,236 @@ class Estimator {
   virtual void Initialize(const mjModel* model) = 0;
 
   // reset memory
-  virtual void Reset() = 0;
+  virtual void Reset(const mjData* data = nullptr) = 0;
 
-  // update
+  // update 
   virtual void Update(const double* ctrl, const double* sensor) = 0;
 
-  // get state
+  // get state 
   virtual double* State() = 0;
 
-  // get covariance
+  // get covariance 
   virtual double* Covariance() = 0;
 
-  // get time
+  // get time 
   virtual double& Time() = 0;
 
-  // get model
+  // get model 
   virtual mjModel* Model() = 0;
 
-  // get data
+  // get data 
   virtual mjData* Data() = 0;
 
-  // process noise
+  // process noise 
   virtual double* ProcessNoise() = 0;
 
-  // sensor noise
+  // sensor noise 
   virtual double* SensorNoise() = 0;
 
-  // process dimension
+  // process dimension 
   virtual int DimensionProcess() const = 0;
-
+  
   // sensor dimension
   virtual int DimensionSensor() const = 0;
 
   // set state
   virtual void SetState(const double* state) = 0;
 
+  // set time 
+  virtual void SetTime(double time) = 0;
+
   // set covariance
   virtual void SetCovariance(const double* covariance) = 0;
 
   // estimator-specific GUI elements
-  virtual void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
-                   double& timestep, int& integrator) = 0;
+  virtual void GUI(mjUI& ui, EstimatorGUIData& data) = 0;
+
+  // set GUI data 
+  virtual void SetGUIData(EstimatorGUIData& data) = 0;
 
   // estimator-specific plots
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                      int planner_shift, int timer_shift, int planning,
                      int* shift) = 0;
+};
+
+// ground truth estimator
+class GroundTruth : public Estimator {
+  public:
+  // constructor 
+  GroundTruth() = default;
+  GroundTruth(const mjModel* model) {
+    Initialize(model);
+    Reset();
+  }
+
+  // destructor 
+  ~GroundTruth() {
+    if (data_) mj_deleteData(data_);
+    if (model) mj_deleteModel(model);
+  }
+
+  // initialize 
+  void Initialize(const mjModel* model) override {
+    // model
+    if (this->model) mj_deleteModel(this->model);
+    this->model = mj_copyModel(nullptr, model);
+
+    // data
+    data_ = mj_makeData(model);
+
+    // timestep
+    this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
+                                                   model, "estimator_timestep");
+
+    // -- dimensions -- //
+    ndstate_ = 2 * model->nv + model->na;
+
+    // sensor start index
+    int sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
+
+    // number of sensors
+    int nsensor_ =
+        GetNumberOrDefault(model->nsensor, model, "estimator_number_sensor");
+
+    // sensor dimension
+    nsensordata_ = 0;
+    for (int i = 0; i < nsensor_; i++) {
+      nsensordata_ += model->sensor_dim[sensor_start_ + i];
+    }
+
+    // state 
+    state.resize(model->nq + model->nv + model->na);
+
+    // covariance 
+    covariance.resize(ndstate_ * ndstate_);
+
+    // process noise 
+    noise_process.resize(ndstate_);
+
+    // sensor noise 
+    noise_sensor.resize(nsensordata_); // over allocate
+  }
+
+  // reset
+  void Reset(const mjData* data = nullptr) override {
+    // dimensions
+    int nq = model->nq, nv = model->nv, na = model->na;
+    int ndstate = 2 * nv + na;
+
+    if (data) {
+      mju_copy(state.data(), data->qpos, nq);
+      mju_copy(state.data() + nq, data->qvel, nv);
+      mju_copy(state.data() + nq + nv, data->act, na);
+      time = data->time;
+    } else { // model default
+      // set home keyframe
+      int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+      if (home_id >= 0) mj_resetDataKeyframe(model, data_, home_id);
+
+      // state
+      mju_copy(state.data(), data_->qpos, nq);
+      mju_copy(state.data() + nq, data_->qvel, nv);
+      mju_copy(state.data() + nq + nv, data_->act, na);
+      time = data_->time;
+    }
+    
+    // covariance
+    mju_eye(covariance.data(), ndstate);
+    double covariance_scl =
+        GetNumberOrDefault(1.0e-4, model, "estimator_covariance_initial_scale");
+    mju_scl(covariance.data(), covariance.data(), covariance_scl,
+            ndstate * ndstate);
+
+    // process noise
+    double noise_process_scl =
+        GetNumberOrDefault(1.0e-4, model, "estimator_process_noise_scale");
+    std::fill(noise_process.begin(), noise_process.end(), noise_process_scl);
+
+    // sensor noise
+    double noise_sensor_scl =
+        GetNumberOrDefault(1.0e-4, model, "estimator_sensor_noise_scale");
+    std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
+  }
+
+  // update 
+  void Update(const double* ctrl, const double* sensor) override {};
+
+  // get state
+  double* State() override { return state.data(); };
+
+  // get covariance 
+  double* Covariance() override { return covariance.data(); };
+
+  // get time
+  double& Time() override { return time; };
+
+  // get model 
+  mjModel* Model() override { return model; };
+
+  // get data 
+  mjData* Data() override { return data_; };
+
+  // get process noise 
+  double* ProcessNoise() override { return noise_process.data(); };
+
+  // get sensor noise 
+  double* SensorNoise() override { return noise_sensor.data(); };
+
+  // process dimension 
+  int DimensionProcess() const override { return ndstate_; };
+
+  // sensor dimension 
+  int DimensionSensor() const override { return nsensordata_; };
+
+  // set state
+  void SetState(const double* state) override {
+    mju_copy(this->state.data(), state, ndstate_);
+  };
+
+  // set time 
+  void SetTime(double time) override {
+    this->time = time;
+  }
+
+  // set covariance
+  void SetCovariance(const double* covariance) override {
+    mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
+  };
+
+  // estimator-specific GUI elements
+  void GUI(mjUI& ui, EstimatorGUIData& data) override {};
+
+  // set GUI data 
+  void SetGUIData(EstimatorGUIData& data) override {};
+
+  // estimator-specific plots
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning, int* shift) override {};
+
+  // model
+  mjModel* model = nullptr;
+
+  // state (nstate_)
+  std::vector<double> state;
+  double time;
+
+  // covariance (ndstate_ x ndstate_)
+  std::vector<double> covariance;
+
+  // process noise (ndstate_)
+  std::vector<double> noise_process;
+
+  // sensor noise (nsensordata_)
+  std::vector<double> noise_sensor;
+
+ private:
+  // data
+  mjData* data_ = nullptr;
+
+  // dimensions
+  int ndstate_;
+  int nsensordata_;
 };
 
 }  // namespace mjpc

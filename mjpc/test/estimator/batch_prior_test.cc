@@ -118,15 +118,15 @@ TEST(PriorCost, Particle) {
   // cost
   double cost_lambda = cost_prior(estimator.configuration.Data());
 
-  // gradient
+  // // gradient
   FiniteDifferenceGradient fdg(nvar);
   fdg.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
-  // Hessian
+  // // Hessian
   FiniteDifferenceHessian fdh(nvar);
   fdh.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
-  // ----- estimator ----- //
+  // // ----- estimator ----- //
   ThreadPool pool(1);
 
   // evaluate cost

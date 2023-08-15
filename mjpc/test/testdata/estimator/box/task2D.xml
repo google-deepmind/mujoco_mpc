@@ -46,6 +46,14 @@
       <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
       <joint name="rotation" type="hinge" pos="0 0 0" axis="0 1 0" />
       <geom name="pointmass" type="box" size=".05 .05 .05" material="self" mass="1.0"/>
+      <!-- <site name="corner0" type="sphere" size="0.005" pos="-0.05 -0.05 -0.05"/>
+      <site name="corner1" type="sphere" size="0.005" pos="0.05 -0.05 -0.05"/>
+      <site name="corner2" type="sphere" size="0.005" pos="-0.05 -0.05 0.05"/>
+      <site name="corner3" type="sphere" size="0.005" pos="0.05 -0.05 0.05"/>
+      <site name="side0" type="sphere" size="0.005" pos="-0.05 -0.05 0.0"/>
+      <site name="side1" type="sphere" size="0.005" pos="0.0 -0.05 -0.05"/>
+      <site name="side2" type="sphere" size="0.005" pos="0.0 -0.05 0.05"/>
+      <site name="side3" type="sphere" size="0.005" pos="0.05 -0.05 0.0"/> -->
     </body>
     <camera pos="0.096 -0.599 0.286" xyaxes="1.000 0.003 -0.000 -0.001 0.188 0.982"/>
   </worldbody>

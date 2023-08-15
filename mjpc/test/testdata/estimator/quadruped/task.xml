@@ -1,5 +1,4 @@
 <mujoco model="Quadruped">
-  <!-- TODO(taylor): common.xml -->
   <visual>
     <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
     <map znear=".01"/>
@@ -30,10 +29,6 @@
   </asset>
 
   <size memory="1M"/>
-
-  <custom>
-    <numeric name="estimator_configuration_length" data="32" />
-  </custom>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6"  ambient="0.3 0.3 0.3" specular="0 0 0"/>

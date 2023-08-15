@@ -17,7 +17,9 @@
 namespace mjpc {
 
 const char kEstimatorNames[] =
+    "Ground Truth\n"
     "Kalman\n"
+    "Unscented\n"
     "Batch";
 
 // load all available estimators
@@ -28,6 +30,8 @@ std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
   // add estimators
   estimators.emplace_back(new mjpc::GroundTruth()); // ground truth state
   estimators.emplace_back(new mjpc::Kalman());      // extended Kalman filter
+  estimators.emplace_back(new mjpc::Unscented());   // unscented Kalman filter
+  estimators.emplace_back(new mjpc::Batch(1));      // batch filter
 
   return estimators;
 }

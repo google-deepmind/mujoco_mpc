@@ -393,7 +393,12 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
                      double* mat10, double* mat11, double* tmp0, double* tmp1,
                      int n, int n0, int n1, double* bandfactor = NULL,
                      int nband = 0);
-                     
+
+// principal eigenvector of 4x4 matrix
+// QUEST: "Three-Axis Attitude Determination from Vector Observations"
+void PrincipalEigenVector4(double* res, const double* mat,
+                           double eigenvalue_init = 12.0);
+                                          
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

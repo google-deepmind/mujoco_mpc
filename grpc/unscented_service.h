@@ -74,7 +74,7 @@ class UnscentedService final : public unscented::Unscented::Service {
 
   // unscented
   mjpc::Unscented unscented_;
-  mjpc::UniqueMjModel unscented_model_override_ = {nullptr, mj_deleteModel};
+  mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 
   // threadpool
   mjpc::ThreadPool thread_pool_;

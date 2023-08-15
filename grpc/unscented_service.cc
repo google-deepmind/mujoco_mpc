@@ -111,8 +111,8 @@ grpc::Status UnscentedService::Init(grpc::ServerContext* context,
   }
 
   // move
-  unscented_model_override_ = std::move(tmp_model);
-  mjModel* model = unscented_model_override_.get();
+  model_override_ = std::move(tmp_model);
+  mjModel* model = model_override_.get();
 
   // initialize unscented
   unscented_.Initialize(model);

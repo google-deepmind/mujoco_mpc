@@ -114,8 +114,8 @@ grpc::Status KalmanService::Init(grpc::ServerContext* context,
   }
 
   // move
-  kalman_model_override_ = std::move(tmp_model);
-  mjModel* model = kalman_model_override_.get();
+  model_override_ = std::move(tmp_model);
+  mjModel* model = model_override_.get();
 
   // initialize kalman
   kalman_.Initialize(model);

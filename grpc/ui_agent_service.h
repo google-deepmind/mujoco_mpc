@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_GRPC_UI_AGENT_SERVICE_H_
-#define GRPC_GRPC_UI_AGENT_SERVICE_H_
+#ifndef GRPC_UI_AGENT_SERVICE_H_
+#define GRPC_UI_AGENT_SERVICE_H_
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
@@ -107,4 +107,4 @@ class UiAgentService final : public agent::Agent::Service {
 
 }  // namespace mjpc::agent_grpc
 
-#endif  // GRPC_GRPC_UI_AGENT_SERVICE_H_
+#endif  // GRPC_UI_AGENT_SERVICE_H_

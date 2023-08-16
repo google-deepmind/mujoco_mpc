@@ -77,8 +77,7 @@ class Agent(contextlib.AbstractContextManager):
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--mjpc_port={self.port}"]
-        + list(extra_flags)
+        [str(server_binary_path), f"--mjpc_port={self.port}"] + list(extra_flags)
     )
     atexit.register(self.server_process.kill)
 
@@ -231,8 +230,7 @@ class Agent(contextlib.AbstractContextManager):
         agent_pb2.GetCostValuesAndWeightsRequest()
     )
     return {
-        name: value_weight.value
-        for name, value_weight in terms.values_weights.items()
+        name: value_weight.value for name, value_weight in terms.values_weights.items()
     }
 
   def planner_step(self):
@@ -267,20 +265,18 @@ class Agent(contextlib.AbstractContextManager):
           with "residual_select_" in the XML.
     """
     request = agent_pb2.SetTaskParametersRequest()
-    for (name, value) in parameters.items():
+    for name, value in parameters.items():
       if isinstance(value, str):
         request.parameters[name].selection = value
       else:
         request.parameters[name].numeric = value
     self.stub.SetTaskParameters(request)
 
-  def get_task_parameters(self) -> dict[str, float|str]:
+  def get_task_parameters(self) -> dict[str, float | str]:
     """Returns the agent's task parameters."""
-    response = self.stub.GetTaskParameters(
-        agent_pb2.GetTaskParametersRequest()
-    )
+    response = self.stub.GetTaskParameters(agent_pb2.GetTaskParametersRequest())
     result = {}
-    for (name, value) in response.parameters.items():
+    for name, value in response.parameters.items():
       if value.selection:
         result[name] = value.selection
       else:
@@ -308,8 +304,7 @@ class Agent(contextlib.AbstractContextManager):
         agent_pb2.GetCostValuesAndWeightsRequest()
     )
     return {
-        name: value_weight.weight
-        for name, value_weight in terms.values_weights.items()
+        name: value_weight.weight for name, value_weight in terms.values_weights.items()
     }
 
   def get_mode(self) -> str:

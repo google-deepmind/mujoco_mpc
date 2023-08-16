@@ -14,11 +14,6 @@
 
 #include "grpc/grpc_agent_util.h"
 
-#include <sstream>
-#include <string>
-#include <string_view>
-#include <vector>
-
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -28,6 +23,14 @@
 #include <mujoco/mjdata.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
+
+#include <memory>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
 #include "mjpc/states/state.h"

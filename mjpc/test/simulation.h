@@ -34,7 +34,7 @@ class Simulation {
   ~Simulation() {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
-  };
+  }
 
   // set state
   void SetState(const double* qpos, const double* qvel);

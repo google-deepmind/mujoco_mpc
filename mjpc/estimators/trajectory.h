@@ -87,7 +87,7 @@ class EstimatorTrajectory {
   // get all data
   T* Data() { return data_.data(); }
 
-  // get head index 
+  // get head index
   int Head() const { return head_index_; }
 
   // reset head index
@@ -99,12 +99,12 @@ class EstimatorTrajectory {
   // get trajectory length
   int Length() const { return length_; }
 
-  // set trajectory length 
+  // set trajectory length
   void SetLength(int length) {
     // set
     length_ = length;
-    
-    // potentially fix head index 
+
+    // potentially fix head index
     Shift(0);
   }
 

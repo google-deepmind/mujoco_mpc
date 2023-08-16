@@ -14,6 +14,14 @@
 
 #include "mjpc/utilities.h"
 
+// DEEPMIND INTERNAL IMPORT
+#include <absl/container/flat_hash_map.h>
+#include <absl/log/check.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_cat.h>
+#include <absl/strings/str_split.h>
+#include <mujoco/mujoco.h>
+
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -25,14 +33,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-// DEEPMIND INTERNAL IMPORT
-#include <absl/container/flat_hash_map.h>
-#include <absl/log/check.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_cat.h>
-#include <absl/strings/str_split.h>
-#include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
 
@@ -1388,12 +1388,12 @@ void DenseToBlockBand(double* res, int dim, int dblock, int nblock) {
   }
 }
 
-// trace of square matrix 
+// trace of square matrix
 double Trace(const double* mat, int n) {
   // initialize
   double trace = 0.0;
-  
-  // sum diagonal terms 
+
+  // sum diagonal terms
   for (int i = 0; i < n; i++) {
     trace += mat[n * i + i];
   }
@@ -1418,7 +1418,7 @@ double Determinant3(const double* mat) {
   return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
 }
 
-// inverse of 3x3 matrix 
+// inverse of 3x3 matrix
 void Inverse3(double* res, const double* mat) {
   // unpack
   double a = mat[0];
@@ -1431,10 +1431,10 @@ void Inverse3(double* res, const double* mat) {
   double h = mat[7];
   double i = mat[8];
 
-  // determinant 
+  // determinant
   double det = Determinant3(mat);
 
-  // inverse 
+  // inverse
   res[0] = e * i - f * h;
   res[1] = -(b * i - c * h);
   res[2] = b * f - c * e;
@@ -1445,7 +1445,7 @@ void Inverse3(double* res, const double* mat) {
   res[7] = -(a * h - b * g);
   res[8] = a * e - b * d;
 
-  // scale 
+  // scale
   mju_scl(res, res, 1.0 / det, 9);
 }
 

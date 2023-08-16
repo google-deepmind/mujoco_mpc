@@ -14,15 +14,16 @@
 
 // An implementation of the `Agent` gRPC service.
 
-#ifndef GRPC_AGENT_SERVICE_H
-#define GRPC_AGENT_SERVICE_H
-
-#include <memory>
-#include <vector>
+#ifndef GRPC_AGENT_SERVICE_H_
+#define GRPC_AGENT_SERVICE_H_
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include <memory>
+#include <vector>
+
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
@@ -114,4 +115,4 @@ class AgentService final : public agent::Agent::Service {
 
 }  // namespace mjpc::agent_grpc
 
-#endif  // GRPC_AGENT_SERVICE_H
+#endif  // GRPC_AGENT_SERVICE_H_

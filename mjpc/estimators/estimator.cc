@@ -14,7 +14,9 @@
 
 #include "mjpc/estimators/estimator.h"
 
+#include <algorithm>
 #include <chrono>
+#include <string>
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/buffer.h"
@@ -148,7 +150,8 @@ void Batch::Initialize(const mjModel* model) {
   block_force_velocity_.Initialize(nv * nv, configuration_length_);
   block_force_acceleration_.Initialize(nv * nv, configuration_length_);
 
-  block_force_previous_configuration_.Initialize(nv * nv, configuration_length_);
+  block_force_previous_configuration_.Initialize(nv * nv,
+                                                 configuration_length_);
   block_force_current_configuration_.Initialize(nv * nv, configuration_length_);
   block_force_next_configuration_.Initialize(nv * nv, configuration_length_);
   block_force_configurations_.Initialize(nv * 3 * nv, configuration_length_);
@@ -257,7 +260,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // search type
   settings.search_type = (SearchType)GetNumberOrDefault(
-      (int)settings.search_type, model, "batch_search_type");
+      static_cast<int> settings.search_type, model, "batch_search_type");
 
   // timer
   timer_.prior_step.resize(max_history_);
@@ -272,7 +275,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // settings
   settings.band_prior =
-      (bool)GetNumberOrDefault(1, model, "batch_band_covariance");
+      static_cast<bool> GetNumberOrDefault(1, model, "batch_band_covariance");
 }
 
 // reset memory
@@ -332,7 +335,7 @@ void Batch::Reset() {
   // sensor mask
   sensor_mask.Reset();
   for (int i = 0; i < nsensor_ * configuration_length_; i++) {
-    sensor_mask.Data()[i] = 1; // sensor on
+    sensor_mask.Data()[i] = 1;  // sensor on
   }
 
   // force
@@ -502,33 +505,33 @@ void Batch::Reset() {
 
     // -- set initial position-based measurements -- //
 
-    // data 
+    // data
     mjData* data = data_[0].get();
 
-    // set q0 
+    // set q0
     mju_copy(data->qpos, q0, model->nq);
 
     // evaluate position
     mj_fwdPosition(model, data);
     mj_sensorPos(model, data);
 
-    // y0 
+    // y0
     double* y0 = sensor_measurement.Get(0);
     mju_zero(y0, nsensordata_);
 
     // loop over sensors
     for (int i = 0; i < nsensor_; i++) {
-      // measurement sensor index 
+      // measurement sensor index
       int index = sensor_start_ + i;
 
-      // need stage 
+      // need stage
       int sensor_stage = model->sensor_needstage[index];
 
       if (sensor_stage == mjSTAGE_POS) {
-        // address 
+        // address
         int sensor_adr = model->sensor_adr[index];
 
-        // dimension 
+        // dimension
         int sensor_dim = model->sensor_dim[index];
 
         // set sensor
@@ -550,7 +553,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // check configuration length 
+  // check configuration length
   if (configuration_length_ != 3) {
     mju_error("batch filter only supports configuration length = 3\n");
   }
@@ -1027,7 +1030,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, nvar);
   if (hessian) mju_zero(hessian, nvar * nvar);
 
-  // time scaling 
+  // time scaling
   double time_scale = 1.0;
   double time_scale2 = 1.0;
   if (settings.time_scaling_sensor) {
@@ -1048,15 +1051,15 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
     // unpack block
     double* block;
-    int block_columns; 
-    if (t == 0) { // only position sensors
+    int block_columns;
+    if (t == 0) {  // only position sensors
       block = block_sensor_configuration_.Get(t) + sensor_start_index_ * nv;
       block_columns = nv;
-    } else { // position, velocity, acceleration sensors
+    } else {  // position, velocity, acceleration sensors
       block = block_sensor_configurations_.Get(t);
       block_columns = 3 * nv;
     }
-    
+
     // shift
     int shift_sensor = 0;
 
@@ -1065,10 +1068,10 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       // start cost timer
       auto start_cost = std::chrono::steady_clock::now();
 
-      // sensor stage 
+      // sensor stage
       int sensor_stage = model->sensor_needstage[sensor_start_ + i];
-      
-      // time scaling weight 
+
+      // time scaling weight
       double time_weight = 1.0;
       if (sensor_stage == mjSTAGE_VEL) {
         time_weight = time_scale;
@@ -1086,7 +1089,8 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       double* rti = rt + shift_sensor;
 
       // weight
-      double weight = time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
+      double weight =
+          time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
 
       // parameters
       double* pi = norm_parameters_sensor.data() + kMaxNormParameters * i;
@@ -1136,8 +1140,8 @@ double Batch::CostSensor(double* gradient, double* hessian) {
                        block_columns);
 
         // add
-        mju_addToScl(gradient + nv * std::max(0, t - 1), scratch0_sensor_.data(), weight,
-                     block_columns);
+        mju_addToScl(gradient + nv * std::max(0, t - 1),
+                     scratch0_sensor_.data(), weight, block_columns);
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -1154,8 +1158,9 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         mju_mulMatTMat(tmp1, blocki, tmp0, nsi, block_columns, block_columns);
 
         // add
-        AddBlockInMatrix(hessian, tmp1, weight, nvar, nvar, block_columns, block_columns,
-                         nv * std::max(0, t - 1), nv * std::max(0, t - 1));
+        AddBlockInMatrix(hessian, tmp1, weight, nvar, nvar, block_columns,
+                         block_columns, nv * std::max(0, t - 1),
+                         nv * std::max(0, t - 1));
       }
 
       // shift by individual sensor dimension
@@ -1192,7 +1197,7 @@ double Batch::CostForce(double* gradient, double* hessian) {
   if (gradient) mju_zero(gradient, nvar);
   if (hessian) mju_zero(hessian, nvar * nvar);
 
-  // time scaling 
+  // time scaling
   double time_scale2 = 1.0;
   if (settings.time_scaling_force) {
     time_scale2 = model->opt.timestep * model->opt.timestep;
@@ -1221,7 +1226,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
     // quadratic cost
     for (int i = 0; i < nv; i++) {
       // weight
-      double weight = time_scale2 / noise_process[i] / nv / (configuration_length_ - 2);
+      double weight =
+          time_scale2 / noise_process[i] / nv / (configuration_length_ - 2);
 
       // gradient
       norm_gradient[i] = weight * rt[i];
@@ -1255,7 +1261,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
       mju_mulMatTVec(scratch0_force_.data(), block, norm_gradient, nv, 3 * nv);
 
       // add
-      mju_addToScl(gradient + (t - 1) * nv, scratch0_force_.data(), 1.0, 3 * nv);
+      mju_addToScl(gradient + (t - 1) * nv, scratch0_force_.data(), 1.0,
+                   3 * nv);
     }
 
     // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -1269,8 +1276,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
       mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
 
       // add
-      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv, nv * (t - 1),
-                       nv * (t - 1));
+      AddBlockInMatrix(hessian, tmp1, 1.0, nvar, nvar, 3 * nv, 3 * nv,
+                       nv * (t - 1), nv * (t - 1));
     }
   }
 
@@ -1295,7 +1302,7 @@ void Batch::ResidualSensor() {
     // sensor difference
     mju_sub(rt, yt_model, yt_sensor, nsensordata_);
 
-    // zero out non-position sensors at first time step 
+    // zero out non-position sensors at first time step
     if (t == 0) {
       // loop over position sensors
       for (int i = 0; i < nsensor_; i++) {
@@ -1418,7 +1425,8 @@ void Batch::BlockSensor(int index) {
   if (settings.assemble_sensor_jacobian) {
     // set block
     SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
-                     nsensordata_, 3 * nv, index * nsensordata_, (index - 1) * nv);
+                     nsensordata_, 3 * nv, index * nsensordata_,
+                     (index - 1) * nv);
   }
 }
 
@@ -1581,18 +1589,18 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
 
   // first time step
   pool.Schedule([&batch = *this, nq, nv, nu]() {
-    // time index 
+    // time index
     int t = 0;
 
     // data
     mjData* d = batch.data_[t].get();
 
-    // terms 
+    // terms
     double* q0 = batch.configuration.Get(t);
     double* y0 = batch.sensor_prediction.Get(t);
     mju_zero(y0, batch.nsensordata_);
 
-    // set data 
+    // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->ctrl, nu);
@@ -1602,17 +1610,17 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     mj_fwdPosition(batch.model, d);
     mj_sensorPos(batch.model, d);
 
-    // loop over position sensors 
+    // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
       int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
 
-      // check for position 
+      // check for position
       if (sensor_stage == mjSTAGE_POS) {
-        // dimension 
+        // dimension
         int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
 
-        // address 
+        // address
         int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
 
         // copy sensor data
@@ -1679,17 +1687,17 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
 
   // first time step
   pool.Schedule([&batch = *this, nq, nv, nu]() {
-    // time index 
+    // time index
     int t = 0;
 
     // data
     mjData* d = batch.data_[t].get();
 
-    // terms 
+    // terms
     double* q0 = batch.configuration.Get(t);
     double* dsdq = batch.block_sensor_configuration_.Get(t);
 
-    // set data 
+    // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->ctrl, nu);
@@ -2298,7 +2306,8 @@ void Batch::SearchDirection() {
       }
 
       // copy
-      mju_copy(hessian_band_factor, hessian_band, ntotal * ntotal); // TODO(taylor): band copy
+      mju_copy(hessian_band_factor, hessian_band,
+               ntotal * ntotal);  // TODO(taylor): band copy
 
       // factorize
       min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense,
@@ -2716,7 +2725,8 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   //                      mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
 
   // // legend
-  // mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
+  // mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance
+  // Trace");
 
   // Batch timers
   double timer_bounds[2] = {0.0, 1.0};

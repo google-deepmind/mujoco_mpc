@@ -14,10 +14,6 @@
 
 // Startup code for `Agent` server.
 
-#include <cstdint>
-#include <memory>
-#include <string>
-
 #include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
 #include <absl/log/log.h>
@@ -26,6 +22,11 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
+
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include "grpc/agent_service.h"
 #include "mjpc/tasks/tasks.h"
 

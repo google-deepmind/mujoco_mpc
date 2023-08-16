@@ -18,6 +18,7 @@
 #include <functional>
 
 #include <mujoco/mujoco.h>
+
 #include "mjpc/estimators/trajectory.h"
 
 namespace mjpc {

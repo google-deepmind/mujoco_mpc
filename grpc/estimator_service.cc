@@ -413,7 +413,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     // set
     batch_.settings.search_type = search_type;
   }
-  output->set_search_type(static_cast<int>batch_.settings.search_type);
+  output->set_search_type(static_cast<int>(batch_.settings.search_type));
 
   // step scaling
   if (input.has_step_scaling()) {
@@ -821,7 +821,7 @@ grpc::Status BatchService::Status(grpc::ServerContext* context,
   status->set_search_direction_norm(batch_.SearchDirectionNorm());
 
   // solve status
-  status->set_solve_status(static_cast<int>batch_.SolveStatus());
+  status->set_solve_status(static_cast<int>(batch_.SolveStatus()));
 
   // cost difference
   status->set_cost_difference(batch_.CostDifference());

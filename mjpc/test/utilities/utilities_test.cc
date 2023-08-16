@@ -54,31 +54,31 @@ TEST(ConvexHull2d, Nearest) {
   mjtNum points1[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
   mjtNum query1[2] = {0.5, 0.5};
   mjtNum nearest1[2] = {0.5, 0.5};
-  TestNearest(4, reinterpret_cast<mjtNum *> points1, query1, nearest1);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points1), query1, nearest1);
 
   // A point in the interior of the square is unchanged
   // counter-clockwise points
   mjtNum points2[4][2] = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query2[2] = {0.5, 0.5};
   mjtNum nearest2[2] = {0.5, 0.5};
-  TestNearest(4, reinterpret_cast<mjtNum *> points2, query2, nearest2);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points2), query2, nearest2);
 
   // A point in the interior of the square is unchanged
   // clockwise points, not all on hull
   mjtNum points3[5][2] = {{0, 0}, {0.5, 0.1}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query3[2] = {0.5, 0.5};
   mjtNum nearest3[2] = {0.5, 0.5};
-  TestNearest(5, reinterpret_cast<mjtNum *> points3, query3, nearest3);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query3, nearest3);
 
   // A point outside is projected into the middle of an edge
   mjtNum query4[2] = {1.5, 0.5};
   mjtNum nearest4[2] = {1.0, 0.5};
-  TestNearest(5, reinterpret_cast<mjtNum *> points3, query4, nearest4);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query4, nearest4);
 
   // A point outside is projected into the middle of an edge
   mjtNum query5[2] = {0.5, -0.5};
   mjtNum nearest5[2] = {0.5, 0.0};
-  TestNearest(5, reinterpret_cast<mjtNum *> points3, query5, nearest5);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query5, nearest5);
 }
 
 #define ARRAY(arr, n) (mjtNum[n][2] arr)
@@ -86,7 +86,7 @@ TEST(ConvexHull2d, Nearest) {
 TEST(ConvexHull2d, PointsHullDegenerate) {
   // A triangle with an interior point
   TestHull(4,
-           reinterpret_cast<mjtNum *>(mjtNum[4][2]){
+           (mjtNum *)(mjtNum[4][2]){
                {0, 0},
                {0, 3},
                {1, 1},
@@ -96,7 +96,7 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A quadrilateral
   TestHull(4,
-           reinterpret_cast<mjtNum *>(mjtNum[4][2]){
+           (mjtNum *)(mjtNum[4][2]){
                {0, 0},
                {0, 3},
                {4, 1},
@@ -106,21 +106,21 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A square and its midpoint
   TestHull(5,
-           reinterpret_cast<mjtNum *>(mjtNum[5][2]){
+           (mjtNum *)(mjtNum[5][2]){
                {0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
            4, (int[]){1, 0, 3, 2});
 
   // Three collinear points on the x-axis
-  TestHull(3, reinterpret_cast<mjtNum *>(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}},
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}},
            2, (int[]){2, 0});
 
   // Three collinear points along the y-axis
-  TestHull(3, reinterpret_cast<mjtNum *>(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}},
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}},
            2, (int[]){2, 0});
 
   // Three collinear points on a generic line
   TestHull(3,
-           reinterpret_cast<mjtNum *>(mjtNum[3][2]){
+           (mjtNum *)(mjtNum[3][2]){
                {0.30629114, 0.59596112},
                {0.7818747, 0.81709791},
                {(0.30629114 + 0.7818747) / 2, (0.59596112 + 0.81709791) / 2}},
@@ -128,7 +128,7 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A square plus the midpoints of the edges
   TestHull(8,
-           reinterpret_cast<mjtNum *>(mjtNum[8][2]){
+           (mjtNum *)(mjtNum[8][2]){
                {0, 1},
                {0, 2},
                {1, 2},
@@ -142,7 +142,7 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A generic triangle plus the midpoints of the edges
   TestHull(6,
-           reinterpret_cast<mjtNum *>(mjtNum[6][2]){
+           (mjtNum *)(mjtNum[6][2]){
                {0.30629114, 0.59596112},
                {0.7818747, 0.81709791},
                {0.17100688, 0.32822273},

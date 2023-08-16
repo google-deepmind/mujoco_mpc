@@ -528,8 +528,8 @@ class Batch:
 
     def _wait(self, future):
         """Waits for the future to complete, while printing out subprocess stdout."""
-        if self._colab_logging:
-            while True:
+        # if self._colab_logging:
+        #     while True:
                 # line = self.server_process.stdout.readline()
                 # if line:
                 #     sys.stdout.write(line.decode("utf-8"))

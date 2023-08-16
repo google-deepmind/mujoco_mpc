@@ -14,6 +14,10 @@
 
 #include "grpc/ui_agent_service.h"
 
+#include <memory>
+#include <string_view>
+#include <vector>
+
 #include <absl/synchronization/notification.h>
 #include <absl/time/time.h>
 #include <grpcpp/server_context.h>
@@ -21,10 +25,6 @@
 #include <mujoco/mjmodel.h>
 #include <mujoco/mjui.h>
 #include <mujoco/mujoco.h>
-
-#include <memory>
-#include <string_view>
-#include <vector>
 
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"

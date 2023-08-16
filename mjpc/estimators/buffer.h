@@ -15,9 +15,9 @@
 #ifndef MJPC_ESTIMATORS_BUFFER_H_
 #define MJPC_ESTIMATORS_BUFFER_H_
 
-#include <mujoco/mujoco.h>
-
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/trajectory.h"
 

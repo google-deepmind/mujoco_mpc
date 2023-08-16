@@ -15,10 +15,9 @@
 #ifndef MJPC_TEST_SIMULATION_H_
 #define MJPC_TEST_SIMULATION_H_
 
-#include <mujoco/mujoco.h>
-
 #include <functional>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/estimators/trajectory.h"
 
 namespace mjpc {

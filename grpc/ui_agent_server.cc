@@ -14,6 +14,10 @@
 
 // A version of the MJPC UI that serves the AgentService API.
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
 #include <absl/log/log.h>
@@ -24,10 +28,6 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-
-#include <cstdint>
-#include <memory>
-#include <string>
 
 #include "mjpc/app.h"
 #include "mjpc/tasks/tasks.h"

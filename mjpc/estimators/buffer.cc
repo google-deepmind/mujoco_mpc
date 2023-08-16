@@ -14,12 +14,12 @@
 
 #include "mjpc/estimators/buffer.h"
 
-#include <mujoco/mujoco.h>
-
-#include <stdio.h>
 #include <algorithm>
 #include <vector>
 #include <cstring>
+
+#include <mujoco/mujoco.h>
+#include <stdio.h>
 
 #include "mjpc/estimators/trajectory.h"
 

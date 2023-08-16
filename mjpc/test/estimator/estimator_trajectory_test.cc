@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
-
 #include <vector>
 
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "gtest/gtest.h"
 #include "mjpc/estimators/trajectory.h"
 

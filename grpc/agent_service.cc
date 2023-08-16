@@ -14,14 +14,14 @@
 
 #include "grpc/agent_service.h"
 
+#include <string_view>
+#include <vector>
+
 #include <absl/log/check.h>
 #include <absl/strings/str_format.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <string_view>
-#include <vector>
 
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"

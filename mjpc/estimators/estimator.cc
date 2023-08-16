@@ -18,6 +18,8 @@
 #include <chrono>
 #include <string>
 
+#include <mujoco/mujoco.h>
+
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/buffer.h"
 #include "mjpc/norm.h"

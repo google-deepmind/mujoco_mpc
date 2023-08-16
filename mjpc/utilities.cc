@@ -14,14 +14,6 @@
 
 #include "mjpc/utilities.h"
 
-// DEEPMIND INTERNAL IMPORT
-#include <absl/container/flat_hash_map.h>
-#include <absl/log/check.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_cat.h>
-#include <absl/strings/str_split.h>
-#include <mujoco/mujoco.h>
-
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -34,6 +26,13 @@
 #include <string_view>
 #include <vector>
 
+// DEEPMIND INTERNAL IMPORT
+#include <absl/container/flat_hash_map.h>
+#include <absl/log/check.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_cat.h>
+#include <absl/strings/str_split.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 
 #if defined(__APPLE__) || defined(_WIN32)

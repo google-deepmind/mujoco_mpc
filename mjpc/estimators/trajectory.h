@@ -15,11 +15,11 @@
 #ifndef MJPC_ESTIMATORS_TRAJECTORY_H_
 #define MJPC_ESTIMATORS_TRAJECTORY_H_
 
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <cstring>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 namespace mjpc {
 

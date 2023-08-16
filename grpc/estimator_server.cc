@@ -14,6 +14,10 @@
 
 // Startup code for `Batch` server.
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 #include <absl/log/log.h>
@@ -22,10 +26,6 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-
-#include <cstdint>
-#include <memory>
-#include <string>
 
 #include "grpc/estimator_service.h"
 

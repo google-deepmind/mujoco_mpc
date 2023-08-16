@@ -15,9 +15,6 @@
 #ifndef MJPC_UTILITIES_H_
 #define MJPC_UTILITIES_H_
 
-#include <absl/container/flat_hash_map.h>
-#include <mujoco/mujoco.h>
-
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -27,6 +24,9 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+
+#include <absl/container/flat_hash_map.h>
+#include <mujoco/mujoco.h>
 
 namespace mjpc {
 

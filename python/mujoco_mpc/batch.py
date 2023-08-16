@@ -50,7 +50,7 @@ def find_free_port() -> int:
 
 
 class Batch:
-  """`Batch` class to interface with MuJoCo MPC batch.
+  """`Batch` class to interface with MuJoCo MPC batch estimator.
 
   Attributes:
     port:
@@ -103,7 +103,7 @@ class Batch:
       configuration_length: int,
       send_as: Literal["mjb", "xml"] = "xml",
   ):
-    """Initialize the batch for estimation horizon `configuration_length`.
+    """Initialize the batch estimator estimation horizon with `configuration_length`.
 
     Args:
       model: optional `MjModel` instance, which, if provided, will be used as

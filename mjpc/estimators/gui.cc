@@ -25,9 +25,9 @@ namespace mjpc {
 // Initialize
 void EstimatorGUIData::Initialize(const mjModel* model, int nprocess,
                                   int nsensor) {
-  // timestep 
+  // timestep
   timestep = model->opt.timestep;
-  
+
   // integrator
   integrator = model->opt.integrator;
 

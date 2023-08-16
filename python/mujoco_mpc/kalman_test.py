@@ -37,9 +37,7 @@ class KalmanTest(absltest.TestCase):
     # settings
     epsilon = 2.0
     flg_centered = True
-    settings = kalman.settings(
-        epsilon=epsilon, flg_centered=flg_centered
-    )
+    settings = kalman.settings(epsilon=epsilon, flg_centered=flg_centered)
 
     # test
     self.assertLess(np.abs(settings["epsilon"] - epsilon), 1.0e-5)
@@ -95,6 +93,7 @@ class KalmanTest(absltest.TestCase):
 
     self.assertTrue(timer["measurement"] > 0.0)
     self.assertTrue(timer["prediction"] > 0.0)
+
 
 if __name__ == "__main__":
   absltest.main()

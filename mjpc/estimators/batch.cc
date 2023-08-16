@@ -14,7 +14,11 @@
 
 #include "mjpc/estimators/batch.h"
 
+#include <algorithm>
 #include <chrono>
+#include <string>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
@@ -272,7 +276,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // search type
   settings.search_type = (SearchType)GetNumberOrDefault(
-      (int)settings.search_type, model, "batch_search_type");
+      static_cast<int>(settings.search_type), model, "batch_search_type");
 
   // timer
   timer_.prior_step.resize(max_history_);
@@ -287,7 +291,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // settings
   settings.band_prior =
-      (bool)GetNumberOrDefault(1, model, "batch_band_covariance");
+      static_cast<bool>(GetNumberOrDefault(1, model, "batch_band_covariance"));
 
   // -- trajectory cache -- //
   configuration_cache_.Initialize(nq, configuration_length_);
@@ -3005,7 +3009,7 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
     configuration_length_ = horizon;
     current_time_index -= horizon_diff;
   }
-};
+}
 
 // estimator-specific plots
 void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,

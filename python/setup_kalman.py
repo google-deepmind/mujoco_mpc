@@ -136,8 +136,7 @@ class CopyTaskAssetsCommand(setuptools.Command):
   """
 
   description = (
-      "Copy task assets over to python source to make them accessible by"
-      " `Kalman`."
+      "Copy task assets over to python source to make them accessible by" " `Kalman`."
   )
   user_options = []
 

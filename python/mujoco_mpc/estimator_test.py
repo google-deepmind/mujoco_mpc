@@ -45,7 +45,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-5)
+    self.assertLess(np.linalg.norm(configuration - data["configuration"]), 1.0e-5)
 
     ## velocity
 
@@ -90,9 +90,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, configuration_previous=configuration_previous)
 
     # test that input and output match
-    self.assertLess(
-        np.linalg.norm(configuration_previous - data["configuration_previous"]), 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(configuration_previous - data["configuration_previous"]), 1.0e-5)
 
     ## sensor measurement
 
@@ -101,9 +99,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, sensor_measurement=sensor_measurement)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(sensor_measurement - data["sensor_measurement"]) < 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(sensor_measurement - data["sensor_measurement"]), 1.0e-5)
 
     ## sensor prediction
 
@@ -112,9 +108,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, sensor_prediction=sensor_prediction)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(sensor_prediction - data["sensor_prediction"]), 1.0e-5)
 
     ## sensor mask
 
@@ -123,7 +117,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(sensor_mask - data["sensor_mask"]) < 1.0e-5)
+    self.assertLess(np.linalg.norm(sensor_mask - data["sensor_mask"]), 1.0e-5)
 
     ## force measurement
 
@@ -132,9 +126,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, force_measurement=force_measurement)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(force_measurement - data["force_measurement"]) < 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(force_measurement - data["force_measurement"]), 1.0e-5)
 
     ## force prediction
 
@@ -143,9 +135,7 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, force_prediction=force_prediction)
 
     # test that input and output match
-    self.assertTrue(
-        np.linalg.norm(force_prediction - data["force_prediction"]) < 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(force_prediction - data["force_prediction"]), 1.0e-5)
 
   def test_settings(self):
     # load model
@@ -196,9 +186,7 @@ class BatchTest(absltest.TestCase):
     # get/set gradient tolerance
     gradient_tolerance = 1.23456
     settings = batch.settings(gradient_tolerance=gradient_tolerance)
-    self.assertTrue(
-        np.abs(gradient_tolerance - settings["gradient_tolerance"]) < 1.0e-6
-    )
+    self.assertLess(np.abs(gradient_tolerance - settings["gradient_tolerance"]), 1.0e-6)
 
     # get/set verbose iteration
     verbose_iteration = True
@@ -233,21 +221,17 @@ class BatchTest(absltest.TestCase):
     # get/set step scaling
     in_step_scaling = 2.5
     settings = batch.settings(step_scaling=in_step_scaling)
-    self.assertTrue(np.abs(in_step_scaling - settings["step_scaling"]) < 1.0e-4)
+    self.assertLess(np.abs(in_step_scaling - settings["step_scaling"]), 1.0e-4)
 
     # get/set regularization initial
     in_regularization_initial = 3.0e1
     settings = batch.settings(regularization_initial=in_regularization_initial)
-    self.assertTrue(
-        np.abs(in_regularization_initial - settings["regularization_initial"]) < 1.0e-4
-    )
+    self.assertLess(np.abs(in_regularization_initial - settings["regularization_initial"]), 1.0e-4)
 
     # get/set regularization scaling
     in_regularization_scaling = 7.1
     settings = batch.settings(regularization_scaling=in_regularization_scaling)
-    self.assertTrue(
-        np.abs(in_regularization_scaling - settings["regularization_scaling"]) < 1.0e-4
-    )
+    self.assertLess(np.abs(in_regularization_scaling - settings["regularization_scaling"]), 1.0e-4)
 
     # get/set band copy
     in_band_copy = False
@@ -257,15 +241,12 @@ class BatchTest(absltest.TestCase):
     # get/set search direction tolerance
     search_direction_tolerance = 3.3
     settings = batch.settings(search_direction_tolerance=search_direction_tolerance)
-    self.assertTrue(
-        np.abs(search_direction_tolerance - settings["search_direction_tolerance"])
-        < 1.0e-5
-    )
+    self.assertLess(np.abs(search_direction_tolerance - settings["search_direction_tolerance"]), 1.0e-5)
 
     # get/set cost tolerance
     cost_tolerance = 1.0e-3
     settings = batch.settings(cost_tolerance=cost_tolerance)
-    self.assertTrue(np.abs(cost_tolerance - settings["cost_tolerance"]) < 1.0e-5)
+    self.assertLess(np.abs(cost_tolerance - settings["cost_tolerance"]), 1.0e-5)
 
     # get/set assemble prior Jacobian
     assemble_prior_jacobian = True
@@ -285,16 +266,12 @@ class BatchTest(absltest.TestCase):
     # get/set assemble sensor norm Hessian
     assemble_sensor_norm_hessian = True
     settings = batch.settings(assemble_sensor_norm_hessian=assemble_sensor_norm_hessian)
-    self.assertTrue(
-        assemble_sensor_norm_hessian == settings["assemble_sensor_norm_hessian"]
-    )
+    self.assertTrue(assemble_sensor_norm_hessian == settings["assemble_sensor_norm_hessian"])
 
     # get/set assemble force norm Hessian
     assemble_force_norm_hessian = True
     settings = batch.settings(assemble_force_norm_hessian=assemble_force_norm_hessian)
-    self.assertTrue(
-        assemble_force_norm_hessian == settings["assemble_force_norm_hessian"]
-    )
+    self.assertTrue(assemble_force_norm_hessian == settings["assemble_force_norm_hessian"])
 
   def test_costs(self):
     # load model
@@ -313,19 +290,19 @@ class BatchTest(absltest.TestCase):
     # cost
     cost = batch.cost(derivatives=True, internals=True)
 
-    self.assertTrue(np.abs(cost["total"] - 0.0) < 1.0e-5)
+    self.assertLess(np.abs(cost["total"] - 0.0), 1.0e-5)
 
     # cost prior
-    self.assertTrue(np.abs(cost["prior"] - 0.0) < 1.0e-5)
+    self.assertLess(np.abs(cost["prior"] - 0.0), 1.0e-5)
 
     # cost sensor
-    self.assertTrue(np.abs(cost["sensor"] - 0.0) < 1.0e-5)
+    self.assertLess(np.abs(cost["sensor"] - 0.0), 1.0e-5)
 
     # cost force
-    self.assertTrue(np.abs(cost["force"] - 0.0) < 1.0e-5)
+    self.assertLess(np.abs(cost["force"] - 0.0), 1.0e-5)
 
     # cost initial
-    self.assertTrue(np.abs(cost["initial"] - 0.0) < 1.0e-5)
+    self.assertLess(np.abs(cost["initial"] - 0.0), 1.0e-5)
 
     # derivatives
     nvar = model.nv * configuration_length
@@ -371,12 +348,12 @@ class BatchTest(absltest.TestCase):
     ## process
     in_process = np.random.rand(model.nv)
     noise = batch.noise(process=in_process)
-    self.assertTrue(np.linalg.norm(in_process - noise["process"]) < 1.0e-5)
+    self.assertLess(np.linalg.norm(in_process - noise["process"]), 1.0e-5)
 
     ## sensor
     in_sensor = np.random.rand(model.nsensor)
     noise = batch.noise(sensor=in_sensor)
-    self.assertTrue(np.linalg.norm(in_sensor - noise["sensor"]) < 1.0e-5)
+    self.assertLess(np.linalg.norm(in_sensor - noise["sensor"]), 1.0e-5)
 
   def test_shift(self):
     # load model
@@ -424,8 +401,8 @@ class BatchTest(absltest.TestCase):
     )
 
     # check that elements are set
-    self.assertTrue(np.linalg.norm(data["configuration"]) > 0.0)
-    self.assertTrue(np.linalg.norm(data["sensor_measurement"]) > 0.0)
+    self.assertLess(0, np.linalg.norm(data["configuration"]))
+    self.assertLess(0, np.linalg.norm(data["sensor_measurement"]))
 
     # reset
     batch.reset()
@@ -434,8 +411,8 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index)
 
     # check that elements are reset to zero
-    self.assertTrue(np.linalg.norm(data["configuration"]) < 1.0e-5)
-    self.assertTrue(np.linalg.norm(data["sensor_measurement"]) < 1.0e-5)
+    self.assertLess(np.linalg.norm(data["configuration"]), 1.0e-5)
+    self.assertLess(np.linalg.norm(data["sensor_measurement"]), 1.0e-5)
 
   def test_optimize(self):
     # load model
@@ -476,25 +453,22 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(status["smoother_iterations"] == 0)
 
     # step size
-    self.assertTrue(np.abs(status["step_size"] - 1.0) < 1.0e-5)
+    self.assertLess(np.abs(status["step_size"] - 1.0), 1.0e-5)
 
     # regularization
-    self.assertTrue(
-        np.abs(status["regularization"] - batch.settings()["regularization_initial"])
-        < 1.0e-6
-    )
+    self.assertTrue(np.abs(status["regularization"] - batch.settings()["regularization_initial"]), 1.0e-6)
 
     # gradient norm
-    self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-5)
+    self.assertLess(np.abs(status["gradient_norm"]), 1.0e-5)
 
     # search direction norm
-    self.assertTrue(np.abs(status["search_direction_norm"]) < 1.0e-5)
+    self.assertLess(np.abs(status["search_direction_norm"]), 1.0e-5)
 
     # solve status
     self.assertTrue(status["solve_status"] == 0)
 
     # cost difference
-    self.assertTrue(np.abs(status["cost_difference"]) < 1.0e-5)
+    self.assertLess(np.abs(status["cost_difference"]), 1.0e-5)
 
   def test_prior_weights(self):
     # load model
@@ -523,7 +497,7 @@ class BatchTest(absltest.TestCase):
     out_prior = batch.prior_weights(weights=in_weights)
 
     # test
-    self.assertTrue(np.linalg.norm(in_weights - out_prior) < 1.0e-4)
+    self.assertLess(np.linalg.norm(in_weights - out_prior), 1.0e-4)
 
   def test_norm(self):
     # load model
@@ -556,9 +530,7 @@ class BatchTest(absltest.TestCase):
 
     # test
     self.assertTrue((sensor_type == data["sensor_type"]).all())
-    self.assertLess(
-        np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
-    )
+    self.assertLess(np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5)
 
   # TODO(taylor): test initialize_data, update_data()
 

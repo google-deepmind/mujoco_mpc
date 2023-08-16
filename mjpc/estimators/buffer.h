@@ -30,7 +30,7 @@ class Buffer {
   Buffer() = default;
   Buffer(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
     Initialize(dim_sensor, num_sensor, dim_ctrl, max_length);
-  };
+  }
 
   // destructor
   ~Buffer() = default;
@@ -55,18 +55,19 @@ class Buffer {
   int Length() const;
 
   // sensor
-  EstimatorTrajectory<double> sensor_;
+  EstimatorTrajectory<double> sensor;
 
   // mask
-  EstimatorTrajectory<int> sensor_mask_;
-  std::vector<int> mask_;
+  EstimatorTrajectory<int> sensor_mask;
+  std::vector<int> mask;
 
   // ctrl
-  EstimatorTrajectory<double> ctrl_;
+  EstimatorTrajectory<double> ctrl;
 
   // time
-  EstimatorTrajectory<double> time_;
+  EstimatorTrajectory<double> time;
 
+ private:
   // max buffer length
   int max_length_;
 };

@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/trajectory.h"
@@ -35,16 +35,9 @@ TEST(EstimatorTrajectory, Test) {
   trajectory.Initialize(dim, length);
 
   // test initialization
-  EXPECT_EQ(trajectory.head_index_, 0);
-  EXPECT_NEAR(mju_norm(trajectory.data_.data(), trajectory.data_.size()), 0.0,
-              1.0e-5);
-  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.data_.size()), 0.0,
-              1.0e-5);
-
-  // index map
-  EXPECT_EQ(trajectory.IndexMap(0), 0);
-  EXPECT_EQ(trajectory.IndexMap(1), 1);
-  EXPECT_EQ(trajectory.IndexMap(2), 2);
+  EXPECT_EQ(trajectory.Head(), 0);
+  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(trajectory.Data(), trajectory.Length()), 0.0, 1.0e-5);
 
   // random data
   std::vector<double> data(dim * length);
@@ -79,12 +72,7 @@ TEST(EstimatorTrajectory, Test) {
   double* e2 = data.data() + dim * 2;
 
   // shift head index
-  trajectory.head_index_++;
-
-  // test map index
-  EXPECT_EQ(trajectory.IndexMap(0), 1);
-  EXPECT_EQ(trajectory.IndexMap(1), 2);
-  EXPECT_EQ(trajectory.IndexMap(2), 0);
+  trajectory.Shift(1);
 
   // trajectory elements
   double* t0 = trajectory.Get(0);
@@ -112,16 +100,11 @@ TEST(EstimatorTrajectory, Test) {
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
   // data_ + dim * 1 - s
-  mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
+  mju_sub(error.data(), trajectory.Data() + dim * 1, s, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
   // shift head index
-  trajectory.head_index_++;
-
-  // test map index
-  EXPECT_EQ(trajectory.IndexMap(0), 2);
-  EXPECT_EQ(trajectory.IndexMap(1), 0);
-  EXPECT_EQ(trajectory.IndexMap(2), 1);
+  trajectory.Shift(1);
 
   // trajectory elements
   t0 = trajectory.Get(0);
@@ -141,43 +124,43 @@ TEST(EstimatorTrajectory, Test) {
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
   // data_ + dim * 1 - s
-  mju_sub(error.data(), trajectory.data_.data() + dim * 1, s, dim);
+  mju_sub(error.data(), trajectory.Data() + dim * 1, s, dim);
   EXPECT_NEAR(mju_norm(error.data(), dim), 0.0, 1.0e-4);
 
   // ----- shift head ----- //
-  trajectory.head_index_ = 0;
+  trajectory.ResetHead();
 
   // shift by 1
-  trajectory.ShiftHeadIndex(1);
-  EXPECT_EQ(trajectory.head_index_, 1);
+  trajectory.Shift(1);
+  EXPECT_EQ(trajectory.Head(), 1);
 
   // shift by 1
-  trajectory.ShiftHeadIndex(1);
-  EXPECT_EQ(trajectory.head_index_, 2);
+  trajectory.Shift(1);
+  EXPECT_EQ(trajectory.Head(), 2);
 
   // shift by 1
-  trajectory.ShiftHeadIndex(1);
-  EXPECT_EQ(trajectory.head_index_, 0);
+  trajectory.Shift(1);
+  EXPECT_EQ(trajectory.Head(), 0);
 
   // shift by 3
-  trajectory.ShiftHeadIndex(trajectory.length_);
-  EXPECT_EQ(trajectory.head_index_, 0);
+  trajectory.Shift(trajectory.Length());
+  EXPECT_EQ(trajectory.Head(), 0);
 
   // shift by 2
-  trajectory.ShiftHeadIndex(2);
-  EXPECT_EQ(trajectory.head_index_, 2);
+  trajectory.Shift(2);
+  EXPECT_EQ(trajectory.Head(), 2);
 
   // shift by length
-  trajectory.ShiftHeadIndex(length);
-  EXPECT_EQ(trajectory.head_index_, 2);
+  trajectory.Shift(length);
+  EXPECT_EQ(trajectory.Head(), 2);
 
   // shift by 2 * length
-  trajectory.ShiftHeadIndex(2 * length);
-  EXPECT_EQ(trajectory.head_index_, 2);
+  trajectory.Shift(2 * length);
+  EXPECT_EQ(trajectory.Head(), 2);
 
   // shift by 2 * length + 1
-  trajectory.ShiftHeadIndex(2 * length + 1);
-  EXPECT_EQ(trajectory.head_index_, 0);
+  trajectory.Shift(2 * length + 1);
+  EXPECT_EQ(trajectory.Head(), 0);
 }
 
 }  // namespace

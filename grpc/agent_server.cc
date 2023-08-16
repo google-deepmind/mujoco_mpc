@@ -18,14 +18,15 @@
 #include <memory>
 #include <string>
 
-#include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
+#include <absl/flags/parse.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
+
 #include "grpc/agent_service.h"
 #include "mjpc/tasks/tasks.h"
 
@@ -45,8 +46,8 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  agent_grpc::AgentService service(mjpc::GetTasks(),
-                                   absl::GetFlag(FLAGS_mjpc_workers));
+  mjpc::agent_grpc::AgentService service(mjpc::GetTasks(),
+                                         absl::GetFlag(FLAGS_mjpc_workers));
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

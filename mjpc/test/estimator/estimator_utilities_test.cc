@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mujoco/mujoco.h>
-
 #include <vector>
+
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/estimator.h"
+#include "mjpc/estimators/trajectory.h"
 #include "mjpc/test/load.h"
+#include "mjpc/test/simulation.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
@@ -27,14 +30,14 @@ namespace {
 
 TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // load model
-  mjModel* model = LoadTestModel("estimator/particle/task.xml");
+  mjModel* model = LoadTestModel("estimator/particle/task1D.xml");
   mjData* data = mj_makeData(model);
 
-  // threadpool
-  ThreadPool pool(2);
-
   // dimensions
-  int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+  int nq = model->nq, nv = model->nv;
+
+  // pool
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -45,13 +48,10 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   };
 
   // trajectories
-  int T = 5;
-  std::vector<double> qpos(nq * (T + 1));
-  std::vector<double> qvel(nv * (T + 1));
+  int T = 200;
+  std::vector<double> qpos(nq * T);
+  std::vector<double> qvel(nv * T);
   std::vector<double> qacc(nv * T);
-  std::vector<double> ctrl(nu * T);
-  std::vector<double> qfrc_actuator(nv * T);
-  std::vector<double> sensordata(ns * (T + 1));
 
   // reset
   mj_resetData(model, data);
@@ -68,49 +68,42 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
     mju_copy(qpos.data() + t * nq, data->qpos, nq);
     mju_copy(qvel.data() + t * nv, data->qvel, nv);
     mju_copy(qacc.data() + t * nv, data->qacc, nv);
-    mju_copy(ctrl.data() + t * nu, data->ctrl, nu);
-    mju_copy(qfrc_actuator.data() + t * nv, data->qfrc_actuator, nv);
-    mju_copy(sensordata.data() + t * ns, data->sensordata, ns);
 
     // step using mj_Euler since mj_forward has been called
     // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // https://
+    // github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
-
-  // final cache
-  mju_copy(qpos.data() + T * nq, data->qpos, nq);
-  mju_copy(qvel.data() + T * nv, data->qvel, nv);
-  mju_copy(sensordata.data() + T * model->nsensor, data->sensordata, ns);
 
   // ----- estimator ----- //
 
   // initialize
-  Estimator estimator;
-  estimator.Initialize(model);
-  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * (T + 1));
+  Batch estimator(model, T);
+  mju_copy(estimator.configuration.Data(), qpos.data(), nq * T);
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationEvaluation(pool);
 
   // velocity error
-  std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+  std::vector<double> velocity_error(nv * (T - 1));
+  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
-  EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)) / (nv * (T - 1)),
-              0.0, 1.0e-3);
+  EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.velocity.Data(), nv), 0.0, 1.0e-5);
 
   // acceleration error
-  std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration_.Data() + nv,
+  std::vector<double> acceleration_error(nv * (T - 2));
+  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
-  // velocity test
-  EXPECT_NEAR(
-      mju_norm(acceleration_error.data(), nv * (T - 1)) / (nv * (T - 1)), 0.0,
-      1.0e-3);
+  // acceleration test
+  EXPECT_NEAR(mju_norm(acceleration_error.data(), nv * (T - 2)), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.acceleration.Data(), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(estimator.acceleration.Data() + nv * (T - 1), nv), 0.0,
+              1.0e-5);
 
   // delete data + model
   mj_deleteData(data);
@@ -122,11 +115,11 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
 
-  // threadpool
-  ThreadPool pool(2);
-
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
+
+  // pool
+  ThreadPool pool(1);
 
   // ----- simulate ----- //
   // trajectories
@@ -179,16 +172,15 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   // ----- estimator ----- //
 
   // initialize
-  Estimator estimator;
-  estimator.Initialize(model);
-  mju_copy(estimator.configuration_.Data(), qpos.data(), nq * (T + 1));
+  Batch estimator(model, T);
+  mju_copy(estimator.configuration.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationToVelocityAcceleration();
+  estimator.ConfigurationEvaluation(pool);
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity_.Data() + nv,
+  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
@@ -197,10 +189,10 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // acceleration error
   std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration_.Data() + nv,
+  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
-  // velocity test
+  // acceleration test
   EXPECT_NEAR(
       mju_norm(acceleration_error.data(), nv * (T - 1)) / (nv * (T - 1)), 0.0,
       1.0e-3);

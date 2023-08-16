@@ -28,6 +28,7 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
+
 #include "mjpc/app.h"
 #include "mjpc/tasks/tasks.h"
 #include "grpc/ui_agent_service.h"
@@ -48,7 +49,7 @@ int main(int argc, char** argv) {
   builder.AddListeningPort(server_address, server_credentials);
 
   mjpc::MjpcApp app(mjpc::GetTasks());
-  agent_grpc::UiAgentService service(app.Sim());
+  mjpc::agent_grpc::UiAgentService service(app.Sim());
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

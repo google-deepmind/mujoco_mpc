@@ -54,31 +54,31 @@ TEST(ConvexHull2d, Nearest) {
   mjtNum points1[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
   mjtNum query1[2] = {0.5, 0.5};
   mjtNum nearest1[2] = {0.5, 0.5};
-  TestNearest(4, (mjtNum *)points1, query1, nearest1);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points1), query1, nearest1);
 
   // A point in the interior of the square is unchanged
   // counter-clockwise points
   mjtNum points2[4][2] = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query2[2] = {0.5, 0.5};
   mjtNum nearest2[2] = {0.5, 0.5};
-  TestNearest(4, (mjtNum *)points2, query2, nearest2);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points2), query2, nearest2);
 
   // A point in the interior of the square is unchanged
   // clockwise points, not all on hull
   mjtNum points3[5][2] = {{0, 0}, {0.5, 0.1}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query3[2] = {0.5, 0.5};
   mjtNum nearest3[2] = {0.5, 0.5};
-  TestNearest(5, (mjtNum *)points3, query3, nearest3);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query3, nearest3);
 
   // A point outside is projected into the middle of an edge
   mjtNum query4[2] = {1.5, 0.5};
   mjtNum nearest4[2] = {1.0, 0.5};
-  TestNearest(5, (mjtNum *)points3, query4, nearest4);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query4, nearest4);
 
   // A point outside is projected into the middle of an edge
   mjtNum query5[2] = {0.5, -0.5};
   mjtNum nearest5[2] = {0.5, 0.0};
-  TestNearest(5, (mjtNum *)points3, query5, nearest5);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query5, nearest5);
 }
 
 #define ARRAY(arr, n) (mjtNum[n][2] arr)
@@ -106,16 +106,17 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A square and its midpoint
   TestHull(5,
-           (mjtNum *)(mjtNum[5][2]){{0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
+           (mjtNum *)(mjtNum[5][2]){
+               {0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
            4, (int[]){1, 0, 3, 2});
 
   // Three collinear points on the x-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}}, 2,
-           (int[]){2, 0});
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}},
+           2, (int[]){2, 0});
 
   // Three collinear points along the y-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}}, 2,
-           (int[]){2, 0});
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}},
+           2, (int[]){2, 0});
 
   // Three collinear points on a generic line
   TestHull(3,
@@ -315,6 +316,79 @@ TEST(DifferentiateQuaternionTest, SubQuat) {
   // ----- test ----- //
   EXPECT_NEAR(mju_norm(error_a, 9) / 9, 0.0, 1.0e-5);
   EXPECT_NEAR(mju_norm(error_b, 9) / 9, 0.0, 1.0e-5);
+}
+
+TEST(DifferentiateQuaternionTest, DifferentiatePosBox2D) {
+  // model
+  mjModel *model = LoadTestModel("estimator/box/task2D.xml");
+
+  // random qpos
+  double qa[3];
+  double qb[3];
+
+  for (int i = 0; i < 3; i++) {
+    absl::BitGen gen_;
+    qa[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+    qb[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
+  }
+
+  // subQuat
+  double v[3];
+  mj_differentiatePos(model, v, model->opt.timestep, qa, qb);
+
+  double eps = 1.0e-6;
+  double Ja[9];       // Jacobian wrt to qa
+  double Jb[9];       // Jacobian wrt to qb
+  double JaT[9];      // Jacobian wrt to qa transposed
+  double JbT[9];      // Jacobian wrt to qb transposed
+  double dv[3];       // differentiatePos perturbation
+  double dq[3];       // qpos perturbation
+  double qa_copy[3];  // qa copy
+  double qb_copy[3];  // qb copy
+
+  for (int i = 0; i < 3; i++) {
+    // perturbation
+    mju_zero(dq, 3);
+    dq[i] = 1.0;
+
+    // Jacobian qa
+    mju_copy(qa_copy, qa, model->nq);
+    mj_integratePos(model, qa_copy, dq, eps);
+    mj_differentiatePos(model, dv, model->opt.timestep, qa_copy, qb);
+
+    mju_sub(JaT + i * 3, dv, v, 3);
+    mju_scl(JaT + i * 3, JaT + i * 3, 1.0 / eps, 3);
+
+    // Jacobian qb
+    mju_copy(qb_copy, qb, 3);
+    mj_integratePos(model, qb_copy, dq, eps);
+    mj_differentiatePos(model, dv, model->opt.timestep, qa, qb_copy);
+
+    mju_sub(JbT + i * 3, dv, v, 3);
+    mju_scl(JbT + i * 3, JbT + i * 3, 1.0 / eps, 3);
+  }
+
+  // transpose result
+  mju_transpose(Ja, JaT, 3, 3);
+  mju_transpose(Jb, JbT, 3, 3);
+
+  // ----- utilities ----- //
+  double Ga[9];  // quaternion to 3D velocity Jacobian wrt to qa
+  double Gb[9];  // quaternion to 3D velocity Jacobian wrt to qa
+
+  // compute Jacobians
+  DifferentiateDifferentiatePos(Ga, Gb, model, model->opt.timestep, qa, qb);
+
+  // ----- error ----- //
+  double error_a[9];
+  double error_b[9];
+  mju_sub(error_a, Ja, Ga, 9);
+  mju_sub(error_b, Jb, Gb, 9);
+
+  // ----- test ----- //
+  EXPECT_NEAR(mju_norm(error_a, 9), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(error_b, 9), 0.0, 1.0e-5);
+  mj_deleteModel(model);
 }
 
 TEST(DifferentiateQuaternionTest, DifferentiatePos) {
@@ -521,6 +595,128 @@ TEST(BandMatrix, Copy) {
   EXPECT_NEAR(mju_norm(error.data(), dblock * (num_blocks - num_new) * dblock *
                                          (num_blocks - num_new)),
               0.0, 1.0e-3);
+}
+
+TEST(Norm, Infinity) {
+  // double
+  double x[] = {1.0, 2.0, -3.0};
+  double rx = InfinityNorm(x, 3);
+  EXPECT_NEAR(rx, 3.0, 1.0e-5);
+
+  // int
+  int y[] = {1, 2, -3};
+  int ry = InfinityNorm(y, 3);
+  EXPECT_EQ(ry, 3);
+}
+
+TEST(Trace, Mat123) {
+  // matrix
+  std::vector<double> mat = {1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0};
+
+  // compute trace
+  double trace = Trace(mat.data(), 3);
+
+  // test
+  EXPECT_NEAR(trace, 6.0, 1.0e-5);
+}
+
+TEST(Determinant, Mat3) {
+  // matrix
+  double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // determinant
+  double det = Determinant3(mat);
+
+  // test
+  EXPECT_NEAR(det, 0.9801, 1.0e-5);
+}
+
+TEST(Inverse, Mat3) {
+  // matrix
+  double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // solution
+  double sol[9] = {1.0101,   -0.10101, 0.0,      -0.10101, 1.0202,
+                   -0.10101, 0.0,      -0.10101, 1.0101};
+
+  // inverse
+  double res[9];
+  Inverse3(res, mat);
+
+  // test
+  EXPECT_NEAR(res[0], sol[0], 1.0e-5);
+  EXPECT_NEAR(res[1], sol[1], 1.0e-5);
+  EXPECT_NEAR(res[2], sol[2], 1.0e-5);
+  EXPECT_NEAR(res[3], sol[3], 1.0e-5);
+  EXPECT_NEAR(res[4], sol[4], 1.0e-5);
+  EXPECT_NEAR(res[5], sol[5], 1.0e-5);
+  EXPECT_NEAR(res[6], sol[6], 1.0e-5);
+  EXPECT_NEAR(res[7], sol[7], 1.0e-5);
+  EXPECT_NEAR(res[8], sol[8], 1.0e-5);
+}
+
+TEST(ConditionMatrixDense, Mat3Dense) {
+  // dimensions
+  const int n = 3;
+  const int n0 = 1;
+  const int n1 = n - n0;
+
+  // symmetric matrix
+  double mat[n * n] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
+
+  // scratch
+  double mat00[n0 * n0];
+  double mat10[n1 * n0];
+  double mat11[n1 * n1];
+  double tmp0[n1 * n0];
+  double tmp1[n1 * n1];
+  double res[n1 * n1];
+
+  // condition matrix
+  ConditionMatrix(res, mat, mat00, mat10, mat11, tmp0, tmp1, n, n0, n1);
+
+  // solution
+  double solution[4] = {0.99, 0.099, 0.099, 0.9999};
+
+  // test
+  double error[n1 * n1];
+  mju_sub(error, res, solution, n1 * n1);
+
+  EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
+}
+
+TEST(ConditionMatrixBand, Mat4Band) {
+  // dimensions
+  const int n = 4;
+  const int n0 = 3;
+  const int n1 = n - n0;
+  const int nband = 2;
+
+  // symmetric matrix
+  double mat[n * n] = {1.0, 0.1, 0.0, 0.0, 0.1, 1.0, 0.1, 0.0,
+                       0.0, 0.1, 1.0, 0.1, 0.0, 0.0, 0.1, 1.0};
+
+  // scratch
+  double mat00[n0 * n0];
+  double mat10[n1 * n0];
+  double mat11[n1 * n1];
+  double tmp0[n1 * n0];
+  double tmp1[n1 * n1];
+  double bandfactor[n0 * n0];
+  double res[n1 * n1];
+
+  // condition matrix
+  ConditionMatrix(res, mat, mat00, mat10, mat11, tmp0, tmp1, n, n0, n1,
+                  bandfactor, nband);
+
+  // solution
+  double solution[n1 * n1] = {0.98989796};
+
+  // test
+  double error[n1 * n1];
+  mju_sub(error, res, solution, n1 * n1);
+
+  EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
 }
 
 }  // namespace

@@ -14,13 +14,14 @@
 
 #include "mjpc/estimators/buffer.h"
 
-#include <stdio.h>
 #include <algorithm>
 #include <vector>
 #include <cstring>
 
-#include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>
+#include <stdio.h>
+
+#include "mjpc/estimators/trajectory.h"
 
 namespace mjpc {
 
@@ -28,19 +29,19 @@ namespace mjpc {
 void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl,
                         int max_length) {
   // sensor
-  sensor_.Initialize(dim_sensor, 0);
+  sensor.Initialize(dim_sensor, 0);
 
   // sensor mask
-  sensor_mask_.Initialize(num_sensor, 0);
+  sensor_mask.Initialize(num_sensor, 0);
 
   // mask (for single time step)
-  mask_.resize(num_sensor);
-  std::fill(mask_.begin(), mask_.end(), 1);
+  mask.resize(num_sensor);
+  std::fill(mask.begin(), mask.end(), 1);
 
   // ctrl
-  ctrl_.Initialize(dim_ctrl, 0);
+  ctrl.Initialize(dim_ctrl, 0);
 
-  time_.Initialize(1, 0);
+  time.Initialize(1, 0);
 
   // maximum buffer length
   max_length_ = max_length;
@@ -49,66 +50,66 @@ void Buffer::Initialize(int dim_sensor, int num_sensor, int dim_ctrl,
   // sensor
 // reset
 void Buffer::Reset() {
-  sensor_.Reset();
-  sensor_.length_ = 0;
+  sensor.Reset();
+  sensor.SetLength(0);
 
   // sensor mask
-  sensor_mask_.Reset();
-
-  // TODO(etom): use a public interface:
-  sensor_mask_.length_ = 0;
+  sensor_mask.Reset();
+  sensor_mask.SetLength(0);
 
   // mask
   // ctrl
-  std::fill(mask_.begin(), mask_.end(), 1);  // set to true
+  std::fill(mask.begin(), mask.end(), 1);  // set to true
+  ctrl.Reset();
+  ctrl.SetLength(0);
 
-  ctrl_.Reset();
   // time
-  ctrl_.length_ = 0;
-
-  time_.Reset();
-  time_.length_ = 0;
+  time.Reset();
+  time.SetLength(0);
 }
 
 // update
 void Buffer::Update(const double* sensor, const int* mask, const double* ctrl,
                     double time) {
-  if (time_.length_ <= max_length_) {  // fill buffer
+  if (this->time.Length() <= max_length_) {  // fill buffer
     // time
-    time_.data_[time_.length_++] = time;
+    this->time.Data()[this->time.Length()] = time;
+    this->time.SetLength(this->time.Length() + 1);
 
     // ctrl
-    int nu = ctrl_.dim_;
-    mju_copy(ctrl_.data_.data() + ctrl_.length_ * nu, ctrl, nu);
-    ctrl_.length_++;
+    int nu = this->ctrl.Dimension();
+    mju_copy(this->ctrl.Data() + this->ctrl.Length() * nu, ctrl, nu);
+    this->ctrl.SetLength(this->ctrl.Length() + 1);
 
     // sensor
-    int ns = sensor_.dim_;
-    mju_copy(sensor_.data_.data() + sensor_.length_ * ns, sensor, ns);
-    sensor_.length_++;
+    int ns = this->sensor.Dimension();
+    mju_copy(this->sensor.Data() + this->sensor.Length() * ns, sensor, ns);
+    this->sensor.SetLength(this->sensor.Length() + 1);
 
     // TODO(taylor): external method must set mask
-    int num_sensor = sensor_mask_.dim_;
-    std::memcpy(sensor_mask_.data_.data() + sensor_mask_.length_ * num_sensor,
+    int num_sensor = sensor_mask.Dimension();
+    std::memcpy(sensor_mask.Data() + sensor_mask.Length() * num_sensor,
                 mask, num_sensor * sizeof(int));
-    sensor_mask_.length_++;
+    sensor_mask.SetLength(sensor_mask.Length() + 1);
+
   } else {  // update buffer
     // time
-    time_.ShiftHeadIndex(1);
-    time_.Set(&time, time_.length_ - 1);
+    this->time.Shift(1);
+    this->time.Set(&time, this->time.Length() - 1);
 
     // ctrl
-    ctrl_.ShiftHeadIndex(1);
-    ctrl_.Set(ctrl, ctrl_.length_ - 1);
+    this->ctrl.Shift(1);
+    this->ctrl.Set(ctrl, this->ctrl.Length() - 1);
 
     // sensor
-    sensor_.ShiftHeadIndex(1);
-    sensor_.Set(sensor, sensor_.length_ - 1);
+    this->sensor.Shift(1);
+    this->sensor.Set(sensor, this->sensor.Length() - 1);
 
     // TODO(taylor): external method must set mask
-    sensor_mask_.ShiftHeadIndex(1);
-    sensor_mask_.Set(mask, sensor_.length_ - 1);
+    sensor_mask.Shift(1);
+    sensor_mask.Set(mask, this->sensor.Length() - 1);
   }
+
   // update mask
 }
 
@@ -118,22 +119,22 @@ void Buffer::UpdateMask() {
 }
 
 void Buffer::Print() {
-  for (int i = 0; i < time_.length_; i++) {
+  for (int i = 0; i < time.Length(); i++) {
     printf("(%i)\n\n", i);
-    printf("time = %.4f\n\n", *time_.Get(i));
+    printf("time = %.4f\n\n", *time.Get(i));
     printf("sensor = ");
-    mju_printMat(sensor_.Get(i), 1, sensor_.dim_);
+    mju_printMat(sensor.Get(i), 1, sensor.Dimension());
     printf("sensor mask = ");
-    for (int j = 0; j < sensor_mask_.dim_; j++)
-      printf("%i ", sensor_mask_.Get(i)[j]);
+    for (int j = 0; j < sensor_mask.Dimension(); j++)
+      printf("%i ", sensor_mask.Get(i)[j]);
     printf("\n");
     printf("ctrl = ");
-    mju_printMat(ctrl_.Get(i), 1, ctrl_.dim_);
+    mju_printMat(ctrl.Get(i), 1, ctrl.Dimension());
     printf("\n");
   }
 }
 
 // length
-int Buffer::Length() const { return time_.length_; }
+int Buffer::Length() const { return time.Length(); }
 
 }  // namespace mjpc

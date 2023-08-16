@@ -22,12 +22,12 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
-#include "mjpc/states/state.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
@@ -272,4 +272,4 @@ grpc::Status AgentService::GetMode(grpc::ServerContext* context,
   return grpc_agent_util::GetMode(request, &agent_, response);
 }
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc

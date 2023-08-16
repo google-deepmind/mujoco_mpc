@@ -15,13 +15,13 @@
 
 from absl.testing import absltest
 import mujoco
-from mujoco_mpc import estimator as estimator_lib
+from mujoco_mpc import estimator as batch_lib
 import numpy as np
 
 import pathlib
 
 
-class EstimatorTest(absltest.TestCase):
+class BatchTest(absltest.TestCase):
 
   def test_data(self):
     # load model
@@ -33,108 +33,124 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
+    batch = batch_lib.Batch(
         model=model, configuration_length=configuration_length
-    ) as estimator:
-      # time index
-      index = 0
+    )
 
-      ## configuration
+    # time index
+    index = 0
 
-      # set
-      configuration = np.random.rand(model.nq)
-      data = estimator.data(index, configuration=configuration)
+    ## configuration
 
-      # test that input and output match
-      self.assertTrue(
-          np.linalg.norm(configuration - data["configuration"]) < 1.0e-3
-      )
+    # set
+    configuration = np.random.rand(model.nq)
+    data = batch.data(index, configuration=configuration)
 
-      ## velocity
+    # test that input and output match
+    self.assertTrue(
+        np.linalg.norm(configuration - data["configuration"]) < 1.0e-5
+    )
 
-      # set
-      velocity = np.random.rand(model.nv)
-      data = estimator.data(index, velocity=velocity)
+    ## velocity
 
-      # test that input and output match
-      self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-3)
+    # set
+    velocity = np.random.rand(model.nv)
+    data = batch.data(index, velocity=velocity)
 
-      ## acceleration
+    # test that input and output match
+    self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-5)
 
-      # set
-      acceleration = np.random.rand(model.nv)
-      data = estimator.data(index, acceleration=acceleration)
+    ## acceleration
 
-      # test that input and output match
-      self.assertLess(
-          np.linalg.norm(acceleration - data["acceleration"]), 1.0e-3
-      )
+    # set
+    acceleration = np.random.rand(model.nv)
+    data = batch.data(index, acceleration=acceleration)
 
-      ## time
+    # test that input and output match
+    self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-5)
 
-      # set
-      time = np.random.rand(1)
-      data = estimator.data(index, time=time)
+    ## time
 
-      # test that input and output match
-      self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-3)
+    # set
+    time = np.random.rand(1)
+    data = batch.data(index, time=time)
 
-      ## configuration prior
+    # test that input and output match
+    self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-5)
 
-      # set
-      configuration_prior = np.random.rand(model.nq)
-      data = estimator.data(index, configuration_prior=configuration_prior)
+    ## ctrl
 
-      # test that input and output match
-      self.assertLess(
-          np.linalg.norm(configuration_prior - data["configuration_prior"]),
-          1.0e-3,
-      )
+    # set
+    ctrl = np.random.rand(model.nu)
+    data = batch.data(index, ctrl=ctrl)
 
-      ## sensor measurement
+    # test that input and output match
+    self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
 
-      # set
-      sensor_measurement = np.random.rand(model.nsensordata)
-      data = estimator.data(index, sensor_measurement=sensor_measurement)
+    ## configuration prev
 
-      # test that input and output match
-      self.assertTrue(
-          np.linalg.norm(sensor_measurement - data["sensor_measurement"])
-          < 1.0e-3
-      )
+    # set
+    configuration_previous = np.random.rand(model.nq)
+    data = batch.data(index, configuration_previous=configuration_previous)
 
-      ## sensor prediction
+    # test that input and output match
+    self.assertLess(
+        np.linalg.norm(configuration_previous - data["configuration_previous"]),
+        1.0e-5,
+    )
 
-      # set
-      sensor_prediction = np.random.rand(model.nsensordata)
-      data = estimator.data(index, sensor_prediction=sensor_prediction)
+    ## sensor measurement
 
-      # test that input and output match
-      self.assertTrue(
-          np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-3
-      )
+    # set
+    sensor_measurement = np.random.rand(model.nsensordata)
+    data = batch.data(index, sensor_measurement=sensor_measurement)
 
-      ## force measurement
+    # test that input and output match
+    self.assertTrue(
+        np.linalg.norm(sensor_measurement - data["sensor_measurement"]) < 1.0e-5
+    )
 
-      # set
-      force_measurement = np.random.rand(model.nv)
-      data = estimator.data(index, force_measurement=force_measurement)
+    ## sensor prediction
 
-      # test that input and output match
-      self.assertTrue(
-          np.linalg.norm(force_measurement - data["force_measurement"]) < 1.0e-3
-      )
+    # set
+    sensor_prediction = np.random.rand(model.nsensordata)
+    data = batch.data(index, sensor_prediction=sensor_prediction)
 
-      ## force prediction
+    # test that input and output match
+    self.assertTrue(
+        np.linalg.norm(sensor_prediction - data["sensor_prediction"]) < 1.0e-5
+    )
 
-      # set
-      force_prediction = np.random.rand(model.nv)
-      data = estimator.data(index, force_prediction=force_prediction)
+    ## sensor mask
 
-      # test that input and output match
-      self.assertTrue(
-          np.linalg.norm(force_prediction - data["force_prediction"]) < 1.0e-3
-      )
+    # set
+    sensor_mask = np.array([1, 0, 1, 0])
+    data = batch.data(index, sensor_mask=sensor_mask)
+
+    # test that input and output match
+    self.assertTrue(np.linalg.norm(sensor_mask - data["sensor_mask"]) < 1.0e-5)
+
+    ## force measurement
+
+    # set
+    force_measurement = np.random.rand(model.nv)
+    data = batch.data(index, force_measurement=force_measurement)
+
+    # test that input and output match
+    self.assertTrue(
+        np.linalg.norm(force_measurement - data["force_measurement"]) < 1.0e-5
+    )
+
+    ## force prediction
+
+    # set
+    force_prediction = np.random.rand(model.nv)
+    data = batch.data(index, force_prediction=force_prediction)
+
+    # test that input and output match
+    self.assertTrue(
+        np.linalg.norm(force_prediction - data["force_prediction"]) < 1.0e-5
+    )
 
   def test_settings(self):
     # load model
@@ -145,53 +161,145 @@ class EstimatorTest(absltest.TestCase):
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
     # initialize
-    configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # initial configuration length
-      settings = estimator.settings()
-      self.assertTrue(configuration_length == settings["configuration_length"])
+    configuration_length = 15
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # get/set configuration length
-      in_configuration_length = 7
-      settings = estimator.settings(
-          configuration_length=in_configuration_length
-      )
-      self.assertTrue(
-          in_configuration_length == settings["configuration_length"]
-      )
+    # initial configuration length
+    settings = batch.settings()
+    self.assertTrue(configuration_length == settings["configuration_length"])
 
-      # get/set search type
-      in_search_type = 1
-      settings = estimator.settings(search_type=in_search_type)
+    # get/set configuration length
+    in_configuration_length = 7
+    settings = batch.settings(configuration_length=in_configuration_length)
+    self.assertTrue(in_configuration_length == settings["configuration_length"])
 
-      self.assertTrue(in_search_type == settings["search_type"])
+    # get/set prior flag
+    in_prior_flag = False
+    settings = batch.settings(prior_flag=in_prior_flag)
+    self.assertTrue(in_prior_flag == settings["prior_flag"])
 
-      # get/set prior flag
-      in_prior_flag = False
-      settings = estimator.settings(prior_flag=in_prior_flag)
-      self.assertTrue(in_prior_flag == settings["prior_flag"])
+    # get/set sensor flag
+    in_sensor_flag = False
+    settings = batch.settings(sensor_flag=in_sensor_flag)
+    self.assertTrue(in_sensor_flag == settings["sensor_flag"])
 
-      # get/set sensor flag
-      in_sensor_flag = False
-      settings = estimator.settings(sensor_flag=in_sensor_flag)
-      self.assertTrue(in_sensor_flag == settings["sensor_flag"])
+    # get/set force flag
+    in_force_flag = False
+    settings = batch.settings(force_flag=in_force_flag)
+    self.assertTrue(in_force_flag == settings["force_flag"])
 
-      # get/set force flag
-      in_force_flag = False
-      settings = estimator.settings(force_flag=in_force_flag)
-      self.assertTrue(in_force_flag == settings["force_flag"])
+    # get/set search iterations
+    in_search_iterations = 25
+    settings = batch.settings(max_search_iterations=in_search_iterations)
+    self.assertTrue(in_search_iterations == settings["max_search_iterations"])
 
-      # get/set smoother iterations
-      in_iterations = 25
-      settings = estimator.settings(smoother_iterations=in_iterations)
-      self.assertTrue(in_iterations == settings["smoother_iterations"])
+    # get/set smoother iterations
+    in_smoother_iterations = 25
+    settings = batch.settings(max_smoother_iterations=in_smoother_iterations)
+    self.assertTrue(in_smoother_iterations == settings["max_smoother_iterations"])
 
-      # get/set skip prior weight update
-      in_skip = True
-      settings = estimator.settings(skip_prior_weight_update=in_skip)
-      self.assertTrue(in_skip == settings["skip_prior_weight_update"])
+    # get/set gradient tolerance
+    gradient_tolerance = 1.23456
+    settings = batch.settings(gradient_tolerance=gradient_tolerance)
+    self.assertTrue(
+        np.abs(gradient_tolerance - settings["gradient_tolerance"]) < 1.0e-6
+    )
+
+    # get/set verbose iteration
+    verbose_iteration = True
+    settings = batch.settings(verbose_iteration=verbose_iteration)
+    self.assertTrue(verbose_iteration == settings["verbose_iteration"])
+
+    # get/set verbose optimize
+    verbose_optimize = True
+    settings = batch.settings(verbose_optimize=verbose_optimize)
+    self.assertTrue(verbose_optimize == settings["verbose_optimize"])
+
+    # get/set verbose cost
+    verbose_cost = True
+    settings = batch.settings(verbose_cost=verbose_cost)
+    self.assertTrue(verbose_cost == settings["verbose_cost"])
+
+    # get/set verbose prior
+    verbose_prior = True
+    settings = batch.settings(verbose_prior=verbose_prior)
+    self.assertTrue(verbose_prior == settings["verbose_prior"])
+
+    # get/set band prior
+    band_prior = False
+    settings = batch.settings(band_prior=band_prior)
+    self.assertTrue(band_prior == settings["band_prior"])
+
+    # get/set search type
+    in_search_type = 0
+    settings = batch.settings(search_type=in_search_type)
+    self.assertTrue(in_search_type == settings["search_type"])
+
+    # get/set step scaling
+    in_step_scaling = 2.5
+    settings = batch.settings(step_scaling=in_step_scaling)
+    self.assertTrue(np.abs(in_step_scaling - settings["step_scaling"]) < 1.0e-4)
+
+    # get/set regularization initial
+    in_regularization_initial = 3.0e1
+    settings = batch.settings(regularization_initial=in_regularization_initial)
+    self.assertTrue(
+        np.abs(in_regularization_initial - settings["regularization_initial"]) < 1.0e-4
+    )
+
+    # get/set regularization scaling
+    in_regularization_scaling = 7.1
+    settings = batch.settings(regularization_scaling=in_regularization_scaling)
+    self.assertTrue(
+        np.abs(in_regularization_scaling - settings["regularization_scaling"]) < 1.0e-4
+    )
+
+    # get/set band copy
+    in_band_copy = False
+    settings = batch.settings(band_copy=in_band_copy)
+    self.assertTrue(in_band_copy == settings["band_copy"])
+
+    # get/set search direction tolerance
+    search_direction_tolerance = 3.3
+    settings = batch.settings(search_direction_tolerance=search_direction_tolerance)
+    self.assertTrue(
+        np.abs(search_direction_tolerance - settings["search_direction_tolerance"])
+        < 1.0e-5
+    )
+
+    # get/set cost tolerance
+    cost_tolerance = 1.0e-3
+    settings = batch.settings(cost_tolerance=cost_tolerance)
+    self.assertTrue(np.abs(cost_tolerance - settings["cost_tolerance"]) < 1.0e-5)
+
+    # get/set assemble prior Jacobian
+    assemble_prior_jacobian = True
+    settings = batch.settings(assemble_prior_jacobian=assemble_prior_jacobian)
+    self.assertTrue(assemble_prior_jacobian == settings["assemble_prior_jacobian"])
+
+    # get/set assemble sensor Jacobian
+    assemble_sensor_jacobian = True
+    settings = batch.settings(assemble_sensor_jacobian=assemble_sensor_jacobian)
+    self.assertTrue(assemble_sensor_jacobian == settings["assemble_sensor_jacobian"])
+
+    # get/set assemble force Jacobian
+    assemble_force_jacobian = True
+    settings = batch.settings(assemble_force_jacobian=assemble_force_jacobian)
+    self.assertTrue(assemble_force_jacobian == settings["assemble_force_jacobian"])
+
+    # get/set assemble sensor norm Hessian
+    assemble_sensor_norm_hessian = True
+    settings = batch.settings(assemble_sensor_norm_hessian=assemble_sensor_norm_hessian)
+    self.assertTrue(
+        assemble_sensor_norm_hessian == settings["assemble_sensor_norm_hessian"]
+    )
+
+    # get/set assemble force norm Hessian
+    assemble_force_norm_hessian = True
+    settings = batch.settings(assemble_force_norm_hessian=assemble_force_norm_hessian)
+    self.assertTrue(
+        assemble_force_norm_hessian == settings["assemble_force_norm_hessian"]
+    )
 
   def test_costs(self):
     # load model
@@ -203,29 +311,57 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # TODO(taylor): better tests
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # cost
-      cost = estimator.cost()
+    # TODO(taylor): better tests
 
-      self.assertTrue(np.abs(cost["total"] - 0.0) < 1.0e-5)
+    # cost
+    cost = batch.cost(derivatives=True, internals=True)
 
-      # cost prior
-      self.assertTrue(np.abs(cost["prior"] - 0.0) < 1.0e-5)
+    self.assertTrue(np.abs(cost["total"] - 0.0) < 1.0e-5)
 
-      # cost sensor
-      self.assertTrue(np.abs(cost["sensor"] - 0.0) < 1.0e-5)
+    # cost prior
+    self.assertTrue(np.abs(cost["prior"] - 0.0) < 1.0e-5)
 
-      # cost force
-      self.assertTrue(np.abs(cost["force"] - 0.0) < 1.0e-5)
+    # cost sensor
+    self.assertTrue(np.abs(cost["sensor"] - 0.0) < 1.0e-5)
 
-      # cost initial
-      self.assertTrue(np.abs(cost["initial"] - 0.0) < 1.0e-5)
+    # cost force
+    self.assertTrue(np.abs(cost["force"] - 0.0) < 1.0e-5)
 
-  def test_weights(self):
+    # cost initial
+    self.assertTrue(np.abs(cost["initial"] - 0.0) < 1.0e-5)
+
+    # derivatives
+    nvar = model.nv * configuration_length
+    nsensor = model.nsensordata * (configuration_length - 1)
+    nforce = model.nv * (configuration_length - 2)
+
+    self.assertTrue(nvar == cost["nvar"])
+    self.assertTrue(nsensor == cost["nsensor"])
+    self.assertTrue(nforce == cost["nforce"])
+
+    self.assertTrue(cost["gradient"].size == nvar)
+    self.assertTrue(cost["hessian"].shape == (nvar, nvar))
+
+    self.assertTrue(cost["residual_prior"].size == nvar)
+    self.assertTrue(cost["residual_sensor"].size == nsensor)
+    self.assertTrue(cost["residual_force"].size == nforce)
+
+    self.assertTrue(cost["jacobian_prior"].shape == (nvar, nvar))
+    self.assertTrue(cost["jacobian_sensor"].shape == (nsensor, nvar))
+    self.assertTrue(cost["jacobian_force"].shape == (nforce, nvar))
+
+    self.assertTrue(cost["norm_gradient_sensor"].size == nsensor)
+    self.assertTrue(cost["norm_gradient_force"].size == nforce)
+
+    self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
+    self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
+    self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
+
+    # TODO(taylor): internals
+
+  def test_noise(self):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -235,27 +371,17 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      ## prior
-      in_prior_weight = 2.5
-      weight = estimator.weight(prior=in_prior_weight)
-      self.assertTrue(np.abs(in_prior_weight - weight["prior"]) < 1.0e-5)
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      ## sensor
-      in_sensor_weight = np.random.rand(model.nsensordata)
-      weight = estimator.weight(sensor=in_sensor_weight)
-      self.assertTrue(
-          np.linalg.norm(in_sensor_weight - weight["sensor"]) < 1.0e-5
-      )
+    ## process
+    in_process = np.random.rand(model.nv)
+    noise = batch.noise(process=in_process)
+    self.assertTrue(np.linalg.norm(in_process - noise["process"]) < 1.0e-5)
 
-      ## force
-      in_force_weight = np.random.rand(3)
-      weight = estimator.weight(force=in_force_weight)
-      self.assertTrue(
-          np.linalg.norm(in_force_weight - weight["force"]) < 1.0e-5
-      )
+    ## sensor
+    in_sensor = np.random.rand(model.nsensor)
+    noise = batch.noise(sensor=in_sensor)
+    self.assertTrue(np.linalg.norm(in_sensor - noise["sensor"]) < 1.0e-5)
 
   def test_shift(self):
     # load model
@@ -267,21 +393,20 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # no shift
-      head = estimator.shift(0)
-      self.assertTrue(head == 0)
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # shift
-      shift = 1
-      head = estimator.shift(shift)
-      self.assertTrue(head == 1)
+    # no shift
+    head = batch.shift(0)
+    self.assertTrue(head == 0)
 
-      shift = 2
-      head = estimator.shift(shift)
-      self.assertTrue(head == 3)
+    # shift
+    shift = 1
+    head = batch.shift(shift)
+    self.assertTrue(head == 1)
+
+    shift = 2
+    head = batch.shift(shift)
+    self.assertTrue(head == 3)
 
   def test_reset(self):
     # load model
@@ -293,32 +418,29 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # set
-      index = 1
-      configuration = np.random.rand(model.nq)
-      sensor_measurement = np.random.rand(model.nsensordata)
-      data = estimator.data(
-          index,
-          configuration=configuration,
-          sensor_measurement=sensor_measurement,
-      )
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # check that elements are set
-      self.assertTrue(np.linalg.norm(data["configuration"]) > 0.0)
-      self.assertTrue(np.linalg.norm(data["sensor_measurement"]) > 0.0)
+    # set
+    index = 1
+    configuration = np.random.rand(model.nq)
+    sensor_measurement = np.random.rand(model.nsensordata)
+    data = batch.data(
+        index, configuration=configuration, sensor_measurement=sensor_measurement
+    )
 
-      # reset
-      estimator.reset()
+    # check that elements are set
+    self.assertTrue(np.linalg.norm(data["configuration"]) > 0.0)
+    self.assertTrue(np.linalg.norm(data["sensor_measurement"]) > 0.0)
 
-      # get data
-      data = estimator.data(index)
+    # reset
+    batch.reset()
 
-      # check that elements are reset to zero
-      self.assertTrue(np.linalg.norm(data["configuration"]) < 1.0e-5)
-      self.assertTrue(np.linalg.norm(data["sensor_measurement"]) < 1.0e-5)
+    # get data
+    data = batch.data(index)
+
+    # check that elements are reset to zero
+    self.assertTrue(np.linalg.norm(data["configuration"]) < 1.0e-5)
+    self.assertTrue(np.linalg.norm(data["sensor_measurement"]) < 1.0e-5)
 
   def test_optimize(self):
     # load model
@@ -330,15 +452,12 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      pass
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # TODO(taylor): setup
+    # TODO(taylor): setup
 
-      # optimize
-      # estimator.optimize()
+    # optimize
+    # batch.optimize()
 
   def test_status(self):
     # load model
@@ -350,28 +469,39 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # TODO(taylor): setup
-      status = estimator.status()
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # search iterations
-      self.assertTrue(status["search_iterations"] == 0)
+    # TODO(taylor): setup
+    status = batch.status()
 
-      # smoother iterations
-      self.assertTrue(status["smoother_iterations"] == 0)
+    # search iterations
+    self.assertTrue(status["search_iterations"] == 0)
 
-      # step size
-      self.assertTrue(np.abs(status["step_size"] - 1.0) < 1.0e-5)
+    # smoother iterations
+    self.assertTrue(status["smoother_iterations"] == 0)
 
-      # regularization
-      self.assertTrue(np.abs(status["regularization"] - 1.0e-5) < 1.0e-6)
+    # step size
+    self.assertTrue(np.abs(status["step_size"] - 1.0) < 1.0e-5)
 
-      # gradient norm
-      self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-3)
+    # regularization
+    self.assertTrue(
+        np.abs(status["regularization"] - batch.settings()["regularization_initial"])
+        < 1.0e-6
+    )
 
-  def test_cost_hessian(self):
+    # gradient norm
+    self.assertTrue(np.abs(status["gradient_norm"]) < 1.0e-5)
+
+    # search direction norm
+    self.assertTrue(np.abs(status["search_direction_norm"]) < 1.0e-5)
+
+    # solve status
+    self.assertTrue(status["solve_status"] == 0)
+
+    # cost difference
+    self.assertTrue(np.abs(status["cost_difference"]) < 1.0e-5)
+
+  def test_prior_weights(self):
     # load model
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -381,138 +511,24 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # Hessian
-      hessian = estimator.cost_hessian()
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # test dimension
-      dim = configuration_length * model.nv
-      self.assertTrue(hessian.shape == (dim, dim))
+    # dimension
+    dim = configuration_length * model.nv
 
-  def test_prior_matrix(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
+    # get uninitialized (zero) matrix
+    prior0 = batch.prior_weights()
 
-    # initialize
-    configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # dimension
-      dim = configuration_length * model.nv
+    # test
+    self.assertTrue(prior0.shape == (dim, dim))
+    self.assertTrue(not prior0.any())
 
-      # get uninitialized (zero) matrix
-      prior0 = estimator.prior_matrix()
+    # random
+    in_weights = np.random.rand(dim, dim)
+    out_prior = batch.prior_weights(weights=in_weights)
 
-      # test
-      self.assertTrue(prior0.shape == (dim, dim))
-      self.assertTrue(not prior0.any())
-
-      # random
-      in_prior = np.random.rand(dim, dim)
-      out_prior = estimator.prior_matrix(prior=in_prior)
-
-      # test
-      self.assertTrue(np.linalg.norm(in_prior - out_prior) < 1.0e-4)
-
-  def test_buffer(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # data for buffer
-      sensor = np.random.rand(model.nsensordata)
-      mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-      ctrl = np.random.rand(model.nu)
-      time = np.random.rand(1)
-
-      # update buffer
-      length = estimator.update_buffer(sensor, mask, ctrl, time)
-
-      # test buffer length
-      self.assertTrue(length == 1)
-
-      # data from buffer
-      index = 0
-      buffer = estimator.buffer(index)
-
-      # test
-      self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-      self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-      self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-      self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-      # set sensor
-      sensor = np.random.rand(model.nsensordata)
-      buffer = estimator.buffer(index, sensor=sensor)
-      self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-
-      # set mask
-      mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-      buffer = estimator.buffer(index, mask=mask)
-      self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-
-      # set ctrl
-      ctrl = np.random.rand(model.nu)
-      buffer = estimator.buffer(index, ctrl=ctrl)
-      self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-
-      # set time
-      time = np.random.rand(1)
-      buffer = estimator.buffer(index, time=time)
-      self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-      # data for buffer
-      sensor = np.random.rand(model.nsensordata)
-      mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-      ctrl = np.random.rand(model.nu)
-      time = np.random.rand(1)
-
-      # update buffer
-      length = estimator.update_buffer(sensor, mask, ctrl, time)
-
-      # test buffer length
-      self.assertTrue(length == 2)
-
-      # index
-      index = 1
-
-      # set sensor
-      sensor = np.random.rand(model.nsensordata)
-      buffer = estimator.buffer(index, sensor=sensor)
-      self.assertLess(np.linalg.norm(sensor - buffer["sensor"]), 1.0e-4)
-
-      # set mask
-      mask = np.random.randint(0, high=1, size=model.nsensor, dtype=int)
-      buffer = estimator.buffer(index, mask=mask)
-      self.assertLess(np.linalg.norm(mask - buffer["mask"]), 1.0e-4)
-
-      # set ctrl
-      ctrl = np.random.rand(model.nu)
-      buffer = estimator.buffer(index, ctrl=ctrl)
-      self.assertLess(np.linalg.norm(ctrl - buffer["ctrl"]), 1.0e-4)
-
-      # set time
-      time = np.random.rand(1)
-      buffer = estimator.buffer(index, time=time)
-      self.assertLess(np.linalg.norm(time - buffer["time"]), 1.0e-4)
-
-      # buffer length
-      self.assertTrue(buffer["length"] == 2)
+    # test
+    self.assertTrue(np.linalg.norm(in_weights - out_prior) < 1.0e-4)
 
   def test_norm(self):
     # load model
@@ -524,41 +540,32 @@ class EstimatorTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    with estimator_lib.Estimator(
-        model=model, configuration_length=configuration_length
-    ) as estimator:
-      # get norm data
-      data = estimator.norm()
+    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
 
-      # test norm types
-      self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
-      self.assertTrue((data["force_type"] == np.zeros(3)).all())
+    # get norm data
+    data = batch.norm()
 
-      # test norm paramters
-      self.assertTrue(not data["sensor_parameters"].any())
-      self.assertTrue(not data["force_parameters"].any())
+    # test norm types
+    self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
 
-      # set norm data
-      sensor_type = np.array([1, 2, 3, 4])
-      sensor_parameters = np.random.rand(3 * model.nsensor)
-      force_type = np.array([5, 6, 7])
-      force_parameters = np.random.rand(9)
-      data = estimator.norm(
-          sensor_type=sensor_type,
-          sensor_parameters=sensor_parameters,
-          force_type=force_type,
-          force_parameters=force_parameters,
-      )
+    # test norm paramters
+    self.assertTrue(not data["sensor_parameters"].any())
 
-      # test
-      self.assertTrue((sensor_type == data["sensor_type"]).all())
-      self.assertLess(
-          np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
-      )
-      self.assertTrue((force_type == data["force_type"]).all())
-      self.assertLess(
-          np.linalg.norm(force_parameters - data["force_parameters"]), 1.0e-5
-      )
+    # set norm data
+    sensor_type = np.array([1, 2, 3, 4])
+    sensor_parameters = np.random.rand(3 * model.nsensor)
+    data = batch.norm(
+        sensor_type=sensor_type,
+        sensor_parameters=sensor_parameters,
+    )
+
+    # test
+    self.assertTrue((sensor_type == data["sensor_type"]).all())
+    self.assertLess(
+        np.linalg.norm(sensor_parameters - data["sensor_parameters"]), 1.0e-5
+    )
+
+  # TODO(taylor): test initialize_data, update_data()
 
 
 if __name__ == "__main__":

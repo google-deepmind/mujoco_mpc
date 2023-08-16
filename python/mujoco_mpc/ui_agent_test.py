@@ -13,8 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""A test for agent.py that brings up a UI. Can only be run locally.
-"""
+"""A test for agent.py that brings up a UI. Can only be run locally."""
 
 import time
 
@@ -44,11 +43,11 @@ def environment_reset(model, data):
 
 
 class UiAgentTest(absltest.TestCase):
+
   def test_stepping_on_agent_side(self):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -67,9 +66,7 @@ class UiAgentTest(absltest.TestCase):
         data.qvel = state.qvel
         data.act = state.act
         data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-        data.mocap_quat = np.array(state.mocap_quat).reshape(
-            data.mocap_quat.shape
-        )
+        data.mocap_quat = np.array(state.mocap_quat).reshape(data.mocap_quat.shape)
         data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
         observations.append(get_observation(model, data))
 
@@ -80,8 +77,7 @@ class UiAgentTest(absltest.TestCase):
 
   def test_set_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -110,8 +106,7 @@ class UiAgentTest(absltest.TestCase):
 
   def test_get_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -161,15 +156,14 @@ class UiAgentTest(absltest.TestCase):
 
   def test_set_get_mode(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with self.get_agent(task_id="Cartpole", model=model) as agent:
       agent.set_mode("default_mode")
       self.assertEqual(agent.get_mode(), "default_mode")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_get_set_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -180,7 +174,7 @@ class UiAgentTest(absltest.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -192,7 +186,9 @@ class UiAgentTest(absltest.TestCase):
 
   def get_agent(self, **kwargs) -> agent_lib.Agent:
     return agent_lib.Agent(
-        server_binary_path=pathlib.Path(agent_lib.__file__).parent / "mjpc" / "ui_agent_server",
+        server_binary_path=pathlib.Path(agent_lib.__file__).parent
+        / "mjpc"
+        / "ui_agent_server",
         **kwargs
     )
 

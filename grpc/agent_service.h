@@ -14,8 +14,8 @@
 
 // An implementation of the `Agent` gRPC service.
 
-#ifndef GRPC_AGENT_SERVICE_H
-#define GRPC_AGENT_SERVICE_H
+#ifndef GRPC_AGENT_SERVICE_H_
+#define GRPC_AGENT_SERVICE_H_
 
 #include <memory>
 #include <vector>
@@ -23,6 +23,7 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "mjpc/agent.h"
@@ -30,7 +31,7 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-namespace agent_grpc {
+namespace mjpc::agent_grpc {
 
 class AgentService final : public agent::Agent::Service {
  public:
@@ -112,6 +113,6 @@ class AgentService final : public agent::Agent::Service {
   mjpc::State rollout_state_;
 };
 
-}  // namespace agent_grpc
+}  // namespace mjpc::agent_grpc
 
-#endif  // GRPC_AGENT_SERVICE_H
+#endif  // GRPC_AGENT_SERVICE_H_

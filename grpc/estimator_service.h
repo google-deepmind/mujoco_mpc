@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// An implementation of the `Estimator` gRPC service.
+// An implementation of the `Batch` gRPC service.
 
-#ifndef GRPC_ESTIMATOR_SERVICE_H
-#define GRPC_ESTIMATOR_SERVICE_H
+#ifndef GRPC_ESTIMATOR_SERVICE_H_
+#define GRPC_ESTIMATOR_SERVICE_H_
 
 #include <memory>
 #include <vector>
@@ -23,97 +23,81 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
 #include "grpc/estimator.grpc.pb.h"
 #include "grpc/estimator.pb.h"
-#include "mjpc/estimators/buffer.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-namespace estimator_grpc {
+namespace mjpc::batch_grpc {
 
-class EstimatorService final : public estimator::Estimator::Service {
+class BatchService final : public batch::Batch::Service {
  public:
-  explicit EstimatorService()
-      : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
-  ~EstimatorService();
+  explicit BatchService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  ~BatchService();
 
   grpc::Status Init(grpc::ServerContext* context,
-                    const estimator::InitRequest* request,
-                    estimator::InitResponse* response) override;
+                    const batch::InitRequest* request,
+                    batch::InitResponse* response) override;
 
   grpc::Status Data(grpc::ServerContext* context,
-                    const estimator::DataRequest* request,
-                    estimator::DataResponse* response) override;
+                    const batch::DataRequest* request,
+                    batch::DataResponse* response) override;
 
   grpc::Status Settings(grpc::ServerContext* context,
-                        const estimator::SettingsRequest* request,
-                        estimator::SettingsResponse* response) override;
+                        const batch::SettingsRequest* request,
+                        batch::SettingsResponse* response) override;
 
   grpc::Status Cost(grpc::ServerContext* context,
-                    const estimator::CostRequest* request,
-                    estimator::CostResponse* response) override;
+                    const batch::CostRequest* request,
+                    batch::CostResponse* response) override;
 
-  grpc::Status Weights(grpc::ServerContext* context,
-                       const estimator::WeightsRequest* request,
-                       estimator::WeightsResponse* response) override;
+  grpc::Status Noise(grpc::ServerContext* context,
+                     const batch::NoiseRequest* request,
+                     batch::NoiseResponse* response) override;
 
   grpc::Status Norms(grpc::ServerContext* context,
-                     const estimator::NormRequest* request,
-                     estimator::NormResponse* response) override;
+                     const batch::NormRequest* request,
+                     batch::NormResponse* response) override;
 
   grpc::Status Shift(grpc::ServerContext* context,
-                     const estimator::ShiftRequest* request,
-                     estimator::ShiftResponse* response) override;
+                     const batch::ShiftRequest* request,
+                     batch::ShiftResponse* response) override;
 
   grpc::Status Reset(grpc::ServerContext* context,
-                     const estimator::ResetRequest* request,
-                     estimator::ResetResponse* response) override;
+                     const batch::ResetRequest* request,
+                     batch::ResetResponse* response) override;
 
   grpc::Status Optimize(grpc::ServerContext* context,
-                        const estimator::OptimizeRequest* request,
-                        estimator::OptimizeResponse* response) override;
+                        const batch::OptimizeRequest* request,
+                        batch::OptimizeResponse* response) override;
 
   grpc::Status Status(grpc::ServerContext* context,
-                      const estimator::StatusRequest* request,
-                      estimator::StatusResponse* response) override;
+                      const batch::StatusRequest* request,
+                      batch::StatusResponse* response) override;
 
-  grpc::Status CostHessian(grpc::ServerContext* context,
-                           const estimator::CostHessianRequest* request,
-                           estimator::CostHessianResponse* response) override;
+  grpc::Status Timing(grpc::ServerContext* context,
+                      const batch::TimingRequest* request,
+                      batch::TimingResponse* response) override;
 
-  grpc::Status PriorMatrix(grpc::ServerContext* context,
-                           const estimator::PriorMatrixRequest* request,
-                           estimator::PriorMatrixResponse* response) override;
-
-  grpc::Status ResetBuffer(grpc::ServerContext* context,
-                           const estimator::ResetBufferRequest* request,
-                           estimator::ResetBufferResponse* response) override;
-
-  grpc::Status BufferData(grpc::ServerContext* context,
-                          const estimator::BufferDataRequest* request,
-                          estimator::BufferDataResponse* response) override;
-
-  grpc::Status UpdateBuffer(grpc::ServerContext* context,
-                            const estimator::UpdateBufferRequest* request,
-                            estimator::UpdateBufferResponse* response) override;
+  grpc::Status PriorWeights(grpc::ServerContext* context,
+                            const batch::PriorWeightsRequest* request,
+                            batch::PriorWeightsResponse* response) override;
 
  private:
   bool Initialized() const {
-    return estimator_.model_ && estimator_.configuration_length_ >= 3;
+    return batch_.model && batch_.ConfigurationLength() >= 3;
   }
 
-  // estimator
-  mjpc::Estimator estimator_;
-  mjpc::UniqueMjModel estimator_model_override_ = {nullptr, mj_deleteModel};
-
-  // buffer
-  mjpc::Buffer buffer_;
+  // batch
+  mjpc::Batch batch_;
+  mjpc::UniqueMjModel batch_model_override_ = {nullptr, mj_deleteModel};
 
   // threadpool
   mjpc::ThreadPool thread_pool_;
 };
 
-}  // namespace estimator_grpc
+}  // namespace mjpc::batch_grpc
 
-#endif  // GRPC_ESTIMATOR_SERVICE_H
+#endif  // GRPC_ESTIMATOR_SERVICE_H_

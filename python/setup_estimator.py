@@ -90,7 +90,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     self.spawn(["touch", str(estimator_proto_destination_path.parent / "__init__.py")])
 
 
-class CopyEstimatorServerBinaryCommand(setuptools.Command):
+class CopyBatchServerBinaryCommand(setuptools.Command):
   """Specialized setup command to copy `estimator_server` next to `estimator.py`.
 
   Assumes that the C++ gRPC `estimator_server` binary has been manually built and
@@ -136,8 +136,7 @@ class CopyTaskAssetsCommand(setuptools.Command):
   """
 
   description = (
-      "Copy task assets over to python source to make them accessible by"
-      " `Estimator`."
+      "Copy task assets over to python source to make them accessible by" " `Batch`."
   )
   user_options = []
 
@@ -287,7 +286,7 @@ setuptools.setup(
         "build_py": BuildPyCommand,
         "build_ext": BuildCMakeExtension,
         "generate_proto_grpc": GenerateProtoGrpcCommand,
-        "copy_estimator_server_binary": CopyEstimatorServerBinaryCommand,
+        "copy_estimator_server_binary": CopyBatchServerBinaryCommand,
         "copy_task_assets": CopyTaskAssetsCommand,
     },
     package_data={

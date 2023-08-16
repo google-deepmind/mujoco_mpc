@@ -14,14 +14,14 @@
 
 // Startup code for `Batch` server.
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
-
-#include <cstdint>
-#include <memory>
-#include <string>
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>

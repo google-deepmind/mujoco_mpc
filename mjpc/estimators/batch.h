@@ -15,11 +15,11 @@
 #ifndef MJPC_ESTIMATORS_BATCH_H_
 #define MJPC_ESTIMATORS_BATCH_H_
 
-#include <mujoco/mujoco.h>
-
 #include <mutex>
 #include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/trajectory.h"

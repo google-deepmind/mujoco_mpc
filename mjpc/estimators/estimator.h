@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include <mujoco/mujoco.h>
+
 namespace mjpc {
 
 // maximum terms

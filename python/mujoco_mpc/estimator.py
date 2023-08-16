@@ -340,7 +340,7 @@ class Batch:
 
   def cost(
       self, derivatives: Optional[bool] = False, internals: Optional[bool] = False
-  ) -> dict[str, float]:
+  ) -> dict[str, float | np.ndarray | int]:
     # cost request
     request = estimator_pb2.CostRequest(derivatives=derivatives, internals=internals)
 

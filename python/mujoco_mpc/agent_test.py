@@ -44,8 +44,7 @@ class AgentTest(parameterized.TestCase):
 
   def test_set_task_parameters(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
@@ -90,8 +89,7 @@ class AgentTest(parameterized.TestCase):
     # when calling get_action with action averaging, the Agent needs to roll
     # out physics, but the API should be implemented not to mutate the state
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -110,9 +108,7 @@ class AgentTest(parameterized.TestCase):
           mocap_quat=data.mocap_quat,
           userdata=data.userdata,
       )
-      agent.get_action(
-          averaging_duration=control_timestep, nominal_action=nominal
-      )
+      agent.get_action(averaging_duration=control_timestep, nominal_action=nominal)
       state_after = agent.get_state()
       self.assertEqual(data.time, state_after.time)
       np.testing.assert_allclose(data.qpos, state_after.qpos)
@@ -125,8 +121,7 @@ class AgentTest(parameterized.TestCase):
     # repeats, and with action averaging.
     # expect action averaging to be a bit better
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -177,8 +172,7 @@ class AgentTest(parameterized.TestCase):
   def test_stepping_on_agent_side(self):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -197,9 +191,7 @@ class AgentTest(parameterized.TestCase):
         data.qvel = state.qvel
         data.act = state.act
         data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-        data.mocap_quat = np.array(state.mocap_quat).reshape(
-            data.mocap_quat.shape
-        )
+        data.mocap_quat = np.array(state.mocap_quat).reshape(data.mocap_quat.shape)
         data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
         observations.append(get_observation(model, data))
 
@@ -210,8 +202,7 @@ class AgentTest(parameterized.TestCase):
 
   def test_set_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -235,8 +226,7 @@ class AgentTest(parameterized.TestCase):
 
   def test_get_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -277,7 +267,6 @@ class AgentTest(parameterized.TestCase):
     data = mujoco.MjData(model)
 
     with agent_lib.Agent(task_id="Particle", model=model) as agent:
-
       agent.set_state(
           time=data.time,
           qpos=list(data.qpos),
@@ -291,15 +280,14 @@ class AgentTest(parameterized.TestCase):
 
   def test_get_set_default_mode(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
       agent.set_mode("default_mode")
       self.assertEqual(agent.get_mode(), "default_mode")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_get_set_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -310,7 +298,7 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

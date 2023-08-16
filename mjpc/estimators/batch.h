@@ -18,6 +18,7 @@
 #include <mujoco/mujoco.h>
 
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "mjpc/estimators/estimator.h"
@@ -79,7 +80,7 @@ class Batch : public Estimator {
   // destructor
   ~Batch() {
     if (model) mj_deleteModel(model);
-  };
+  }
 
   // initialize
   void Initialize(const mjModel* model) override;
@@ -156,7 +157,7 @@ class Batch : public Estimator {
   void SetMaxHistory(int length) { max_history_ = length; }
 
   // get max history
-  int GetMaxHistory() { return max_history_; };
+  int GetMaxHistory() { return max_history_; }
 
   // set configuration length
   void SetConfigurationLength(int length);
@@ -174,13 +175,13 @@ class Batch : public Estimator {
   void Optimize(ThreadPool& pool);
 
   // cost
-  double GetCost() { return cost_; };
-  double GetCostInitial() { return cost_initial_; };
-  double GetCostPrior() { return cost_prior_; };
-  double GetCostSensor() { return cost_sensor_; };
-  double GetCostForce() { return cost_force_; };
-  double* GetCostGradient() { return cost_gradient.data(); };
-  double* GetCostHessian() { return cost_hessian.data(); };
+  double GetCost() { return cost_; }
+  double GetCostInitial() { return cost_initial_; }
+  double GetCostPrior() { return cost_prior_; }
+  double GetCostSensor() { return cost_sensor_; }
+  double GetCostForce() { return cost_force_; }
+  double* GetCostGradient() { return cost_gradient.data(); }
+  double* GetCostHessian() { return cost_hessian.data(); }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
@@ -201,7 +202,7 @@ class Batch : public Estimator {
   int NumberSensors() const { return nsensor_; }
 
   // measurement sensor start index
-  int SensorStartIndex() const { return sensor_start_index_; };
+  int SensorStartIndex() const { return sensor_start_index_; }
 
   // get status
   int IterationsSmoother() const { return iterations_smoother_; }

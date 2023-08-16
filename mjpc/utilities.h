@@ -370,21 +370,21 @@ void ZeroBlockInMatrix(double* mat, int rm, int cm, int rb, int cb, int ri,
 // square dense to block band matrix
 void DenseToBlockBand(double* res, int dim, int dblock, int nblock);
 
-// infinity norm 
-template <typename T> 
+// infinity norm
+template <typename T>
 T InfinityNorm(T* x, int n) {
   return std::abs(*std::max_element(x, x + n, [](T a, T b) -> bool {
     return (std::abs(a) < std::abs(b));
   }));
 }
 
-// trace of square matrix 
+// trace of square matrix
 double Trace(const double* mat, int n);
 
-// determinant of 3x3 matrix 
+// determinant of 3x3 matrix
 double Determinant3(const double* mat);
 
-// inverse of 3x3 matrix 
+// inverse of 3x3 matrix
 void Inverse3(double* res, const double* mat);
 
 // condition matrix: res = mat11 - mat10 * mat00 \ mat10^T; return rank of mat00
@@ -393,7 +393,7 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
                      double* mat10, double* mat11, double* tmp0, double* tmp1,
                      int n, int n0, int n1, double* bandfactor = NULL,
                      int nband = 0);
-                     
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

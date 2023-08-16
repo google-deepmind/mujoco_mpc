@@ -25,6 +25,7 @@
 #include <mujoco/mjmodel.h>
 #include <mujoco/mjui.h>
 #include <mujoco/mujoco.h>
+
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"
 #include "mjpc/agent.h"

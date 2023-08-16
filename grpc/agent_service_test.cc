@@ -14,13 +14,9 @@
 
 // Unit tests for the `AgentService` class.
 
-#include "grpc/agent_service.h"
-
 #include <memory>
 #include <string_view>
 
-#include "testing/base/public/gmock.h"
-#include "testing/base/public/gunit.h"
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/security/server_credentials.h>
@@ -30,10 +26,14 @@
 #include <grpcpp/support/channel_arguments.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
+#include "grpc/agent_service.h"
 #include "grpc/agent.grpc.pb.h"
 #include "grpc/agent.pb.h"
 #include "grpc/agent.proto.h"
 #include "mjpc/tasks/tasks.h"
+#include "testing/base/public/gmock.h"
+#include "testing/base/public/gunit.h"
 
 namespace mjpc::agent_grpc {
 

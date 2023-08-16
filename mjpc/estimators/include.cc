@@ -16,8 +16,7 @@
 
 namespace mjpc {
 
-const char kEstimatorNames[] =
-    "Batch";
+const char kEstimatorNames[] = "Batch";
 
 // load all available estimators
 std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
@@ -25,7 +24,7 @@ std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
   std::vector<std::unique_ptr<mjpc::Estimator>> estimators;
 
   // add estimators
-  estimators.emplace_back(new mjpc::Batch(1)); // filter mode
+  estimators.emplace_back(new mjpc::Batch(1));  // filter mode
 
   return estimators;
 }

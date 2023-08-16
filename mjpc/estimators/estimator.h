@@ -15,9 +15,8 @@
 #ifndef MJPC_ESTIMATORS_ESTIMATOR_H_
 #define MJPC_ESTIMATORS_ESTIMATOR_H_
 
-#include <mujoco/mujoco.h>
-
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace mjpc {

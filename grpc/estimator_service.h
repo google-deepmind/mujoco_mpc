@@ -14,8 +14,8 @@
 
 // An implementation of the `Batch` gRPC service.
 
-#ifndef GRPC_ESTIMATOR_SERVICE_H
-#define GRPC_ESTIMATOR_SERVICE_H
+#ifndef GRPC_ESTIMATOR_SERVICE_H_
+#define GRPC_ESTIMATOR_SERVICE_H_
 
 #include <memory>
 #include <vector>
@@ -100,4 +100,4 @@ class BatchService final : public batch::Batch::Service {
 
 }  // namespace mjpc::batch_grpc
 
-#endif  // GRPC_ESTIMATOR_SERVICE_H
+#endif  // GRPC_ESTIMATOR_SERVICE_H_

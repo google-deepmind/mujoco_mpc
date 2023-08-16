@@ -22,6 +22,7 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
+
 #include "grpc/agent.pb.h"
 #include "grpc/grpc_agent_util.h"
 #include "mjpc/task.h"

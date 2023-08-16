@@ -16,6 +16,9 @@
 
 #include "grpc/estimator_service.h"
 
+#include <memory>
+#include <string_view>
+
 #include <grpcpp/channel.h>
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
@@ -24,9 +27,6 @@
 #include <grpcpp/support/channel_arguments.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <memory>
-#include <string_view>
 
 #include "grpc/batch.grpc.pb.h"
 #include "grpc/batch.pb.h"

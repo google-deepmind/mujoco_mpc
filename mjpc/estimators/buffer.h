@@ -30,7 +30,7 @@ class Buffer {
   Buffer() = default;
   Buffer(int dim_sensor, int num_sensor, int dim_ctrl, int max_length) {
     Initialize(dim_sensor, num_sensor, dim_ctrl, max_length);
-  };
+  }
 
   // destructor
   ~Buffer() = default;

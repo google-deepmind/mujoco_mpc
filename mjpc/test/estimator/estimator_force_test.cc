@@ -89,7 +89,7 @@ TEST(ForceCost, Particle) {
     // initialize
     double cost = 0.0;
 
-    // time scaling 
+    // time scaling
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_force) {
@@ -269,10 +269,11 @@ TEST(ForceCost, Box) {
     // initialize
     double cost = 0.0;
 
-    // time scaling 
+    // time scaling
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_force) {
-      time_scale2 = estimator.model->opt.timestep * estimator.model->opt.timestep;
+      time_scale2 =
+          estimator.model->opt.timestep * estimator.model->opt.timestep;
     }
 
     // loop over predictions

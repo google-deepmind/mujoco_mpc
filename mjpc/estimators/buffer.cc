@@ -14,13 +14,14 @@
 
 #include "mjpc/estimators/buffer.h"
 
-#include <stdio.h>
 #include <algorithm>
 #include <vector>
 #include <cstring>
 
-#include "mjpc/estimators/trajectory.h"
 #include <mujoco/mujoco.h>
+#include <stdio.h>
+
+#include "mjpc/estimators/trajectory.h"
 
 namespace mjpc {
 

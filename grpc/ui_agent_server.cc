@@ -28,6 +28,7 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
+
 #include "mjpc/app.h"
 #include "mjpc/tasks/tasks.h"
 #include "grpc/ui_agent_service.h"

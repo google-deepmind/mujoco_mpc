@@ -23,7 +23,7 @@
       <body name="pole_1" childclass="pole">
         <joint name="hinge_1" damping="1.0e-4"/>
         <geom name="pole_1"/>
-        <site name="tip" pos="0 0 -1"/>
+        <site name="tip" pos="0 0 1"/>
       </body>
     </body>
   </worldbody>

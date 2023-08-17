@@ -80,7 +80,7 @@ class KalmanService final : public kalman::Kalman::Service {
 
   // kalman
   mjpc::Kalman kalman_;
-  mjpc::UniqueMjModel kalman_model_override_ = {nullptr, mj_deleteModel};
+  mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 
   // threadpool
   mjpc::ThreadPool thread_pool_;

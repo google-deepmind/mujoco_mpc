@@ -2764,7 +2764,7 @@ std::string StatusString(int code) {
     case kSmallDirectionFailure:
       return "SMALL_DIRECTION_FAILURE";
     case kMaxRegularizationFailure:
-      return "kMaxBatchRegularization_FAILURE";
+      return "MAX_REGULARIZATION_FAILURE";
     case kCostDifferenceFailure:
       return "COST_DIFFERENCE_FAILURE";
     case kExpectedDecreaseFailure:

@@ -15,6 +15,7 @@
 #include "grpc/batch_service.h"
 
 #include <cstring>
+#include <memory>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -30,6 +31,7 @@
 
 #include "grpc/batch.pb.h"
 #include "mjpc/estimators/batch.h"
+#include "mjpc/norm.h"
 
 namespace mjpc::batch_grpc {
 

@@ -1,5 +1,5 @@
 <mujoco>
-  <option timestep="0.005"> </option>
+  <option timestep="0.01"> </option>
 
   <custom>
     <numeric name="estimator_configuration_length" data="32" />
@@ -7,8 +7,9 @@
 
   <worldbody>
     <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
-    <!-- <geom type="plane" size="1 1 0.1" rgba=".9 0 0 1"/> -->
-    <body name="root" pos="0 0 1">
+    <camera pos="0.000 -2.655 2.655" xyaxes="1.000 -0.000 0.000 0.000 0.707 0.707"/>
+    <geom type="plane" size="1 1 0.1" rgba=".9 0 0 1"/>
+    <body name="root" pos="0 0 0">
       <joint type="free"/>
       <geom type="box" size=".1 .2 .3" rgba="0 .9 0 1"/>
       <site name="corner1" type="sphere" size="0.01" pos=".1 .2 .3"/>
@@ -21,8 +22,9 @@
       <site name="corner8" type="sphere" size="0.01" pos="-.1 -.2 -.3"/>
     </body>
   </worldbody>
+
   <sensor>
-    <framepos name="position" objtype="body" objname="root"/>
+    <!-- corner positions -->
     <framepos name="corner1" objtype="site" objname="corner1"/>
     <framepos name="corner2" objtype="site" objname="corner2"/>
     <framepos name="corner3" objtype="site" objname="corner3"/>
@@ -31,9 +33,5 @@
     <framepos name="corner6" objtype="site" objname="corner6"/>
     <framepos name="corner7" objtype="site" objname="corner7"/>
     <framepos name="corner8" objtype="site" objname="corner8"/>
-    <framelinvel name="linvel" objtype="body" objname="root"/>
-    <frameangvel name="angvel" objtype="body" objname="root"/>
-    <framelinacc name="linacc" objtype="body" objname="root"/>
-    <frameangacc name="angacc" objtype="body" objname="root"/>
   </sensor>
 </mujoco>

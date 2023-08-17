@@ -14,9 +14,9 @@
 
 #include "mjpc/estimators/gui.h"
 
-#include <mujoco/mujoco.h>
-
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/utilities.h"
 

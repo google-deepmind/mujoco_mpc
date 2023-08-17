@@ -22,7 +22,6 @@
 #include <absl/flags/parse.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
-
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>

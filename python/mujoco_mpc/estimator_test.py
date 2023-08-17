@@ -33,7 +33,9 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    batch = batch_lib.Batch(model=model, configuration_length=configuration_length)
+    batch = batch_lib.Batch(
+        model=model, configuration_length=configuration_length
+    )
 
     # time index
     index = 0
@@ -45,7 +47,9 @@ class BatchTest(absltest.TestCase):
     data = batch.data(index, configuration=configuration)
 
     # test that input and output match
-    self.assertTrue(np.linalg.norm(configuration - data["configuration"]) < 1.0e-5)
+    self.assertTrue(
+        np.linalg.norm(configuration - data["configuration"]) < 1.0e-5
+    )
 
     ## velocity
 
@@ -91,7 +95,8 @@ class BatchTest(absltest.TestCase):
 
     # test that input and output match
     self.assertLess(
-        np.linalg.norm(configuration_previous - data["configuration_previous"]), 1.0e-5
+        np.linalg.norm(configuration_previous - data["configuration_previous"]),
+        1.0e-5,
     )
 
     ## sensor measurement

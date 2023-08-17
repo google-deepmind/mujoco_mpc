@@ -37,7 +37,7 @@ service Batch {
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
   // Get Batch status
   rpc Status(StatusRequest) returns (StatusResponse);
-  // Get Batch timing 
+  // Get Batch timing
   rpc Timing(TimingRequest) returns (TimingResponse);
   // Batch prior matrix
   rpc PriorWeights(PriorWeightsRequest) returns (PriorWeightsResponse);
@@ -103,8 +103,8 @@ message Settings {
   optional double cost_tolerance = 21;
   optional bool assemble_prior_jacobian = 22;
   optional bool assemble_sensor_jacobian = 23;
-  optional bool assemble_force_jacobian = 24; 
-  optional bool assemble_sensor_norm_hessian = 25; 
+  optional bool assemble_force_jacobian = 24;
+  optional bool assemble_sensor_norm_hessian = 25;
   optional bool assemble_force_norm_hessian = 26;
 }
 
@@ -131,7 +131,7 @@ message CostResponse {
   double force = 4;
   double initial = 5;
   repeated double gradient = 6 [packed = true];
-  repeated double hessian = 7 [packed = true]; 
+  repeated double hessian = 7 [packed = true];
   repeated double residual_prior = 8 [packed = true];
   repeated double residual_sensor = 9 [packed = true];
   repeated double residual_force = 10 [packed = true];

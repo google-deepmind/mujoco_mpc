@@ -76,10 +76,12 @@ class Kalman:
         [str(server_binary_path), f"--mjpc_port={self.port}"],
         stdout=subprocess.PIPE if colab_logging else None,
     )
-    os.set_blocking(self.server_process.stdout.fileno(), False)
+    # os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
-    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    credentials = grpc.local_channel_credentials(
+        grpc.LocalConnectionType.LOCAL_TCP
+    )
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = kalman_pb2_grpc.KalmanStub(self.channel)
@@ -172,7 +174,9 @@ class Kalman:
     }
 
   def update_measurement(
-      self, ctrl: Optional[npt.ArrayLike] = [], sensor: Optional[npt.ArrayLike] = []
+      self,
+      ctrl: Optional[npt.ArrayLike] = [],
+      sensor: Optional[npt.ArrayLike] = [],
   ):
     # request
     request = kalman_pb2.UpdateMeasurementRequest(
@@ -218,7 +222,9 @@ class Kalman:
     # return state
     return np.array(response.state)
 
-  def covariance(self, covariance: Optional[npt.ArrayLike] = None) -> np.ndarray:
+  def covariance(
+      self, covariance: Optional[npt.ArrayLike] = None
+  ) -> np.ndarray:
     # input
     inputs = kalman_pb2.Covariance(
         covariance=covariance.flatten() if covariance is not None else None,
@@ -233,10 +239,14 @@ class Kalman:
     response = self._wait(self.stub.Covariance.future(request)).covariance
 
     # return covariance
-    return np.array(response.covariance).reshape(response.dimension, response.dimension)
+    return np.array(response.covariance).reshape(
+        response.dimension, response.dimension
+    )
 
   def noise(
-      self, process: Optional[npt.ArrayLike] = [], sensor: Optional[npt.ArrayLike] = []
+      self,
+      process: Optional[npt.ArrayLike] = [],
+      sensor: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # inputs
     inputs = kalman_pb2.Noise(
@@ -260,11 +270,11 @@ class Kalman:
 
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""
-    if self._colab_logging:
-      while True:
-        line = self.server_process.stdout.readline()
-        if line:
-          sys.stdout.write(line.decode("utf-8"))
-        if future.done():
-          break
+    # if self._colab_logging:
+    #   while True:
+    #     line = self.server_process.stdout.readline()
+    #     if line:
+    #       sys.stdout.write(line.decode("utf-8"))
+    #     if future.done():
+    #       break
     return future.result()

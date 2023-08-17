@@ -14,6 +14,11 @@
 
 #include "grpc/kalman_service.h"
 
+#include <cstring>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -22,10 +27,6 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <cstring>
-#include <string_view>
-#include <vector>
 
 #include "grpc/kalman.pb.h"
 #include "mjpc/estimators/kalman.h"
@@ -76,9 +77,8 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
 KalmanService::~KalmanService() {}
 
 grpc::Status KalmanService::Init(grpc::ServerContext* context,
-                              const kalman::InitRequest* request,
-                              kalman::InitResponse* response) {
-
+                                 const kalman::InitRequest* request,
+                                 kalman::InitResponse* response) {
   // ----- initialize with model ----- //
   mjpc::UniqueMjModel tmp_model = {nullptr, mj_deleteModel};
 
@@ -125,8 +125,8 @@ grpc::Status KalmanService::Init(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::Reset(grpc::ServerContext* context,
-                               const kalman::ResetRequest* request,
-                               kalman::ResetResponse* response) {
+                                  const kalman::ResetRequest* request,
+                                  kalman::ResetResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -138,8 +138,8 @@ grpc::Status KalmanService::Reset(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::Settings(grpc::ServerContext* context,
-                                  const kalman::SettingsRequest* request,
-                                  kalman::SettingsResponse* response) {
+                                     const kalman::SettingsRequest* request,
+                                     kalman::SettingsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -148,13 +148,13 @@ grpc::Status KalmanService::Settings(grpc::ServerContext* context,
   kalman::Settings input = request->settings();
   kalman::Settings* output = response->mutable_settings();
 
-  // epsilon 
+  // epsilon
   if (input.has_epsilon()) {
     kalman_.settings.epsilon = input.epsilon();
   }
   output->set_epsilon(kalman_.settings.epsilon);
 
-  // flg_centered 
+  // flg_centered
   if (input.has_flg_centered()) {
     kalman_.settings.flg_centered = input.flg_centered();
   }
@@ -164,7 +164,8 @@ grpc::Status KalmanService::Settings(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::UpdateMeasurement(
-    grpc::ServerContext* context, const kalman::UpdateMeasurementRequest* request,
+    grpc::ServerContext* context,
+    const kalman::UpdateMeasurementRequest* request,
     kalman::UpdateMeasurementResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
@@ -177,26 +178,27 @@ grpc::Status KalmanService::UpdateMeasurement(
 }
 
 grpc::Status KalmanService::UpdatePrediction(
-    grpc::ServerContext* context, const kalman::UpdatePredictionRequest* request,
+    grpc::ServerContext* context,
+    const kalman::UpdatePredictionRequest* request,
     kalman::UpdatePredictionResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // prediction update 
+  // prediction update
   kalman_.UpdatePrediction();
 
   return grpc::Status::OK;
 }
 
 grpc::Status KalmanService::Timers(grpc::ServerContext* context,
-                                const kalman::TimersRequest* request,
-                                kalman::TimersResponse* response) {
+                                   const kalman::TimersRequest* request,
+                                   kalman::TimersResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // measurement 
+  // measurement
   response->set_measurement(kalman_.TimerMeasurement());
 
   // prediction
@@ -206,8 +208,8 @@ grpc::Status KalmanService::Timers(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::State(grpc::ServerContext* context,
-                               const kalman::StateRequest* request,
-                               kalman::StateResponse* response) {
+                                  const kalman::StateRequest* request,
+                                  kalman::StateResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -233,8 +235,8 @@ grpc::Status KalmanService::State(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::Covariance(grpc::ServerContext* context,
-                                    const kalman::CovarianceRequest* request,
-                                    kalman::CovarianceResponse* response) {
+                                       const kalman::CovarianceRequest* request,
+                                       kalman::CovarianceResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -247,7 +249,7 @@ grpc::Status KalmanService::Covariance(grpc::ServerContext* context,
   int nvelocity = 2 * kalman_.model->nv;
   int ncovariance = nvelocity * nvelocity;
 
-  // set dimension 
+  // set dimension
   output->set_dimension(nvelocity);
 
   // set covariance
@@ -266,8 +268,8 @@ grpc::Status KalmanService::Covariance(grpc::ServerContext* context,
 }
 
 grpc::Status KalmanService::Noise(grpc::ServerContext* context,
-                               const kalman::NoiseRequest* request,
-                               kalman::NoiseResponse* response) {
+                                  const kalman::NoiseRequest* request,
+                                  kalman::NoiseResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }

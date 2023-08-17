@@ -14,15 +14,15 @@
 
 // An implementation of the `Kalman` gRPC service.
 
-#ifndef GRPC_KALMAN_SERVICE_H
-#define GRPC_KALMAN_SERVICE_H
+#ifndef GRPC_KALMAN_SERVICE_H_
+#define GRPC_KALMAN_SERVICE_H_
+
+#include <memory>
+#include <vector>
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <memory>
-#include <vector>
 
 #include "grpc/kalman.grpc.pb.h"
 #include "grpc/kalman.pb.h"
@@ -55,7 +55,8 @@ class KalmanService final : public kalman::Kalman::Service {
       kalman::UpdateMeasurementResponse* response) override;
 
   grpc::Status UpdatePrediction(
-      grpc::ServerContext* context, const kalman::UpdatePredictionRequest* request,
+      grpc::ServerContext* context,
+      const kalman::UpdatePredictionRequest* request,
       kalman::UpdatePredictionResponse* response) override;
 
   grpc::Status Timers(grpc::ServerContext* context,
@@ -87,4 +88,4 @@ class KalmanService final : public kalman::Kalman::Service {
 
 }  // namespace kalman_grpc
 
-#endif  // GRPC_KALMAN_SERVICE_H
+#endif  // GRPC_KALMAN_SERVICE_H_

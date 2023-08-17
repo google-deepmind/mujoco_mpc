@@ -14,6 +14,12 @@
 
 #include "grpc/batch_service.h"
 
+#include <cstring>
+#include <memory>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -23,12 +29,9 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include <cstring>
-#include <string_view>
-#include <vector>
-
 #include "grpc/batch.pb.h"
 #include "mjpc/estimators/batch.h"
+#include "mjpc/norm.h"
 
 namespace mjpc::batch_grpc {
 
@@ -144,7 +147,7 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   }
 
   // valid index
-  int index = (int)(request->index());
+  int index = static_cast<int>(request->index());
   if (index < 0 || index >= batch_.ConfigurationLength()) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid index."};
   }
@@ -307,7 +310,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   // configuration length
   if (input.has_configuration_length()) {
     // unpack
-    int configuration_length = (int)(input.configuration_length());
+    int configuration_length = static_cast<int>(input.configuration_length());
 
     // check for valid length
     if (configuration_length < mjpc::kMinBatchHistory ||
@@ -412,7 +415,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     // set
     batch_.settings.search_type = search_type;
   }
-  output->set_search_type((int)batch_.settings.search_type);
+  output->set_search_type(static_cast<int>(batch_.settings.search_type));
 
   // step scaling
   if (input.has_step_scaling()) {
@@ -647,7 +650,8 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     const double* norm_hessian_sensor = batch_.GetNormHessianSensor();
     for (int i = 0; i < nsensor_; i++) {
       for (int j = 0; j < nsensor_; j++) {
-        response->add_norm_hessian_sensor(norm_hessian_sensor[i * nsensor_ + j]);
+        response->add_norm_hessian_sensor(
+            norm_hessian_sensor[i * nsensor_ + j]);
       }
     }
 
@@ -819,7 +823,7 @@ grpc::Status BatchService::Status(grpc::ServerContext* context,
   status->set_search_direction_norm(batch_.SearchDirectionNorm());
 
   // solve status
-  status->set_solve_status((int)batch_.SolveStatus());
+  status->set_solve_status(static_cast<int>(batch_.SolveStatus()));
 
   // cost difference
   status->set_cost_difference(batch_.CostDifference());

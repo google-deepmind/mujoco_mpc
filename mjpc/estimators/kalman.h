@@ -15,10 +15,10 @@
 #ifndef MJPC_ESTIMATORS_KALMAN_H_
 #define MJPC_ESTIMATORS_KALMAN_H_
 
-#include <mujoco/mujoco.h>
-
 #include <mutex>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/gui.h"
@@ -62,7 +62,7 @@ class Kalman : public Estimator {
     // propagate state forward in time with model
     UpdatePrediction();
 
-    // set time 
+    // set time
     time = data_->time;
   }
 
@@ -98,26 +98,24 @@ class Kalman : public Estimator {
     mju_copy(this->state.data(), state, ndstate_);
   };
 
-  // set time 
-  void SetTime(double time) override {
-    this->time = time;
-  }
+  // set time
+  void SetTime(double time) override { this->time = time; }
 
   // set covariance
   void SetCovariance(const double* covariance) override {
     mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
-  };
+  }
 
   // get measurement timer (ms)
-  double TimerMeasurement() const { return timer_measurement_; };
+  double TimerMeasurement() const { return timer_measurement_; }
 
   // get prediction timer (ms)
-  double TimerPrediction() const { return timer_prediction_; };
+  double TimerPrediction() const { return timer_prediction_; }
 
   // estimator-specific GUI elements
   void GUI(mjUI& ui, EstimatorGUIData& data) override;
 
-  // set GUI data 
+  // set GUI data
   void SetGUIData(EstimatorGUIData& data) override;
 
   // estimator-specific plots

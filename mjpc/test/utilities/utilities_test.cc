@@ -54,31 +54,31 @@ TEST(ConvexHull2d, Nearest) {
   mjtNum points1[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
   mjtNum query1[2] = {0.5, 0.5};
   mjtNum nearest1[2] = {0.5, 0.5};
-  TestNearest(4, (mjtNum *)points1, query1, nearest1);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points1), query1, nearest1);
 
   // A point in the interior of the square is unchanged
   // counter-clockwise points
   mjtNum points2[4][2] = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query2[2] = {0.5, 0.5};
   mjtNum nearest2[2] = {0.5, 0.5};
-  TestNearest(4, (mjtNum *)points2, query2, nearest2);
+  TestNearest(4, reinterpret_cast<mjtNum *>(points2), query2, nearest2);
 
   // A point in the interior of the square is unchanged
   // clockwise points, not all on hull
   mjtNum points3[5][2] = {{0, 0}, {0.5, 0.1}, {0, 1}, {1, 1}, {1, 0}};
   mjtNum query3[2] = {0.5, 0.5};
   mjtNum nearest3[2] = {0.5, 0.5};
-  TestNearest(5, (mjtNum *)points3, query3, nearest3);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query3, nearest3);
 
   // A point outside is projected into the middle of an edge
   mjtNum query4[2] = {1.5, 0.5};
   mjtNum nearest4[2] = {1.0, 0.5};
-  TestNearest(5, (mjtNum *)points3, query4, nearest4);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query4, nearest4);
 
   // A point outside is projected into the middle of an edge
   mjtNum query5[2] = {0.5, -0.5};
   mjtNum nearest5[2] = {0.5, 0.0};
-  TestNearest(5, (mjtNum *)points3, query5, nearest5);
+  TestNearest(5, reinterpret_cast<mjtNum *>(points3), query5, nearest5);
 }
 
 #define ARRAY(arr, n) (mjtNum[n][2] arr)
@@ -106,16 +106,17 @@ TEST(ConvexHull2d, PointsHullDegenerate) {
 
   // A square and its midpoint
   TestHull(5,
-           (mjtNum *)(mjtNum[5][2]){{0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
+           (mjtNum *)(mjtNum[5][2]){
+               {0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
            4, (int[]){1, 0, 3, 2});
 
   // Three collinear points on the x-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}}, 2,
-           (int[]){2, 0});
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}},
+           2, (int[]){2, 0});
 
   // Three collinear points along the y-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}}, 2,
-           (int[]){2, 0});
+  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}},
+           2, (int[]){2, 0});
 
   // Three collinear points on a generic line
   TestHull(3,
@@ -336,10 +337,10 @@ TEST(DifferentiateQuaternionTest, DifferentiatePosBox2D) {
   mj_differentiatePos(model, v, model->opt.timestep, qa, qb);
 
   double eps = 1.0e-6;
-  double Ja[9];      // Jacobian wrt to qa
-  double Jb[9];      // Jacobian wrt to qb
-  double JaT[9];     // Jacobian wrt to qa transposed
-  double JbT[9];     // Jacobian wrt to qb transposed
+  double Ja[9];       // Jacobian wrt to qa
+  double Jb[9];       // Jacobian wrt to qb
+  double JaT[9];      // Jacobian wrt to qa transposed
+  double JbT[9];      // Jacobian wrt to qb transposed
   double dv[3];       // differentiatePos perturbation
   double dq[3];       // qpos perturbation
   double qa_copy[3];  // qa copy
@@ -609,7 +610,7 @@ TEST(Norm, Infinity) {
 }
 
 TEST(Trace, Mat123) {
-  // matrix 
+  // matrix
   std::vector<double> mat = {1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0};
 
   // compute trace
@@ -620,28 +621,29 @@ TEST(Trace, Mat123) {
 }
 
 TEST(Determinant, Mat3) {
-  // matrix 
+  // matrix
   double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
 
-  // determinant 
+  // determinant
   double det = Determinant3(mat);
 
-  // test 
+  // test
   EXPECT_NEAR(det, 0.9801, 1.0e-5);
 }
 
 TEST(Inverse, Mat3) {
-  // matrix 
+  // matrix
   double mat[9] = {1.0, 0.1, 0.01, 0.1, 1.0, 0.1, 0.01, 0.1, 1.0};
 
-  // solution 
-  double sol[9] = {1.0101, -0.10101, 0.0, -0.10101, 1.0202, -0.10101, 0.0, -0.10101, 1.0101};
+  // solution
+  double sol[9] = {1.0101,   -0.10101, 0.0,      -0.10101, 1.0202,
+                   -0.10101, 0.0,      -0.10101, 1.0101};
 
-  // inverse 
+  // inverse
   double res[9];
   Inverse3(res, mat);
 
-  // test 
+  // test
   EXPECT_NEAR(res[0], sol[0], 1.0e-5);
   EXPECT_NEAR(res[1], sol[1], 1.0e-5);
   EXPECT_NEAR(res[2], sol[2], 1.0e-5);

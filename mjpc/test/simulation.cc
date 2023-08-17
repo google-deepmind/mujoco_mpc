@@ -14,9 +14,9 @@
 
 #include "mjpc/test/simulation.h"
 
-#include <mujoco/mujoco.h>
-
 #include <functional>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/trajectory.h"
 

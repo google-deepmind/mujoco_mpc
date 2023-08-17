@@ -14,6 +14,11 @@
 
 #include "grpc/unscented_service.h"
 
+#include <cstring>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include <absl/log/check.h>
 #include <absl/status/status.h>
 #include <absl/strings/match.h>
@@ -22,10 +27,6 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <cstring>
-#include <string_view>
-#include <vector>
 
 #include "grpc/unscented.pb.h"
 #include "mjpc/estimators/unscented.h"

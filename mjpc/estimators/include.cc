@@ -28,10 +28,10 @@ std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators() {
   std::vector<std::unique_ptr<mjpc::Estimator>> estimators;
 
   // add estimators
-  estimators.emplace_back(new mjpc::GroundTruth()); // ground truth state
-  estimators.emplace_back(new mjpc::Kalman());      // extended Kalman filter
-  estimators.emplace_back(new mjpc::Unscented());   // unscented Kalman filter
-  estimators.emplace_back(new mjpc::Batch(1));      // recursive batch filter
+  estimators.emplace_back(new mjpc::GroundTruth());  // ground truth state
+  estimators.emplace_back(new mjpc::Kalman());       // extended Kalman filter
+  estimators.emplace_back(new mjpc::Unscented());    // unscented Kalman filter
+  estimators.emplace_back(new mjpc::Batch(1));       // recursive batch filter
 
   return estimators;
 }

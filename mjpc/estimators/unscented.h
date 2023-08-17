@@ -101,7 +101,7 @@ class Unscented : public Estimator {
     mju_copy(this->state.data(), state, ndstate_);
   };
 
-  // set time 
+  // set time
   void SetTime(double time) override {
     this->time = time;
   }
@@ -112,12 +112,12 @@ class Unscented : public Estimator {
   };
 
   // get update timer (ms)
-  double TimerUpdate() const { return timer_update_; };
+  double TimerUpdate() const { return timer_update_; }
 
   // estimator-specific GUI elements
   void GUI(mjUI& ui, EstimatorGUIData& data) override;
 
-  // set GUI data 
+  // set GUI data
   void SetGUIData(EstimatorGUIData& data) override;
 
   // estimator-specific plots

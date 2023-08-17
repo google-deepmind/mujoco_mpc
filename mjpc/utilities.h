@@ -398,7 +398,7 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
 // QUEST: "Three-Axis Attitude Determination from Vector Observations"
 void PrincipalEigenVector4(double* res, const double* mat,
                            double eigenvalue_init = 12.0);
-                                          
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

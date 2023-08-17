@@ -59,11 +59,17 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
     unscented_proto_filename = "unscented.proto"
-    unscented_proto_source_path = Path("..", "grpc", unscented_proto_filename).resolve()
+    unscented_proto_source_path = Path(
+        "..", "grpc", unscented_proto_filename
+    ).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
-    proto_module_relative_path = Path("mujoco_mpc", "proto", unscented_proto_filename)
-    unscented_proto_destination_path = Path(build_lib_path, proto_module_relative_path)
+    proto_module_relative_path = Path(
+        "mujoco_mpc", "proto", unscented_proto_filename
+    )
+    unscented_proto_destination_path = Path(
+        build_lib_path, proto_module_relative_path
+    )
     unscented_proto_destination_path.parent.mkdir(parents=True, exist_ok=True)
     # Copy `unscented_proto_filename` into current source.
     shutil.copy(unscented_proto_source_path, unscented_proto_destination_path)
@@ -87,7 +93,9 @@ class GenerateProtoGrpcCommand(setuptools.Command):
           cmd=f"`protoc.main({protoc_command_parts})`",
       )
 
-    self.spawn(["touch", str(unscented_proto_destination_path.parent / "__init__.py")])
+    self.spawn(
+        ["touch", str(unscented_proto_destination_path.parent / "__init__.py")]
+    )
 
 
 class CopyUnscentedServerBinaryCommand(setuptools.Command):
@@ -150,7 +158,9 @@ class CopyTaskAssetsCommand(setuptools.Command):
   def run(self):
     mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
     source_paths = tuple(mjpc_tasks_path.rglob("*.xml"))
-    relative_source_paths = tuple(p.relative_to(mjpc_tasks_path) for p in source_paths)
+    relative_source_paths = tuple(
+        p.relative_to(mjpc_tasks_path) for p in source_paths
+    )
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     destination_dir_path = Path(build_lib_path, "mujoco_mpc", "mjpc", "tasks")
@@ -159,7 +169,9 @@ class CopyTaskAssetsCommand(setuptools.Command):
         f" {mjpc_tasks_path} over to {destination_dir_path}."
     )
 
-    for source_path, relative_source_path in zip(source_paths, relative_source_paths):
+    for source_path, relative_source_path in zip(
+        source_paths, relative_source_paths
+    ):
       destination_path = destination_dir_path / relative_source_path
       destination_path.parent.mkdir(exist_ok=True, parents=True)
       shutil.copy(source_path, destination_path)
@@ -217,7 +229,9 @@ class BuildCMakeExtension(build_ext.build_ext):
         osx_archs.append("x86_64")
       if "-arch arm64" in os.environ["ARCHFLAGS"]:
         osx_archs.append("arm64")
-      cmake_configure_args.append(f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}")
+      cmake_configure_args.append(
+          f"-DCMAKE_OSX_ARCHITECTURES={';'.join(osx_archs)}"
+      )
 
     # TODO(hartikainen): We currently configure the builds into
     # `mujoco_mpc/build`. This should use `self.build_{temp,lib}` instead, to

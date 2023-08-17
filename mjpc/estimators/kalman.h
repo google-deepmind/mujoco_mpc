@@ -99,9 +99,7 @@ class Kalman : public Estimator {
   };
 
   // set time
-  void SetTime(double time) override {
-    this->time = time;
-  }
+  void SetTime(double time) override { this->time = time; }
 
   // set covariance
   void SetCovariance(const double* covariance) override {

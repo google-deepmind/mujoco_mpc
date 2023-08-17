@@ -15,7 +15,7 @@
 
 from absl.testing import absltest
 import mujoco
-from mujoco_mpc import estimator as batch_lib
+from mujoco_mpc import batch as batch_lib
 import numpy as np
 
 import pathlib

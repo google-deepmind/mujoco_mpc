@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/estimators/estimator.h"
+#include "mjpc/estimators/batch.h"
 
 #include <algorithm>
 #include <chrono>
@@ -22,7 +22,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
-#include "mjpc/estimators/buffer.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"

@@ -23,7 +23,6 @@ from setuptools.command import build_ext
 from setuptools.command import build_py
 import subprocess
 
-
 Path = pathlib.Path
 
 

@@ -14,10 +14,11 @@
 
 #include "mjpc/estimators/kalman.h"
 
-#include <mujoco/mujoco.h>
-
 #include <chrono>
+#include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
@@ -44,10 +45,9 @@ void Kalman::Initialize(const mjModel* model) {
   // dimension
   nstate_ = model->nq + model->nv + model->na;
   ndstate_ = 2 * model->nv + model->na;
-  
+
   // sensor start index
-  sensor_start_ =
-      GetNumberOrDefault(0, model, "estimator_sensor_start");
+  sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
   // number of sensors
   nsensor_ =
@@ -59,7 +59,7 @@ void Kalman::Initialize(const mjModel* model) {
     nsensordata_ += model->sensor_dim[sensor_start_ + i];
   }
 
-  // sensor start index 
+  // sensor start index
   sensor_start_index_ = 0;
   for (int i = 0; i < sensor_start_; i++) {
     sensor_start_index_ += model->sensor_dim[i];
@@ -106,7 +106,7 @@ void Kalman::Reset(const mjData* data) {
     mju_copy(state.data(), data->qpos, nq);
     mju_copy(state.data() + nq, data->qvel, nv);
     mju_copy(state.data() + nq + nv, data->act, na);
-    time = data->time; 
+    time = data->time;
   } else {
     // set home keyframe
     int home_id = mj_name2id(model, mjOBJ_KEY, "home");
@@ -116,9 +116,9 @@ void Kalman::Reset(const mjData* data) {
     mju_copy(state.data(), data_->qpos, nq);
     mju_copy(state.data() + nq, data_->qvel, nv);
     mju_copy(state.data() + nq + nv, data_->act, na);
-    time = data_->time; 
+    time = data_->time;
   }
-  
+
   // covariance
   mju_eye(covariance.data(), ndstate_);
   double covariance_scl =
@@ -299,7 +299,6 @@ void Kalman::UpdatePrediction() {
 
 // estimator-specific GUI elements
 void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
- 
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
       {mjITEM_SECTION, "Estimator", 1, nullptr,
@@ -310,7 +309,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
        "Euler\nRK4\nImplicit\nFastImplicit"},
       {mjITEM_END}};
 
-  // add estimator 
+  // add estimator
   mjui_add(&ui, defEstimator);
 
   // -- process noise -- //
@@ -325,12 +324,12 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
   // add UI elements
   for (int i = 0; i < DimensionProcess(); i++) {
     // element
-    defProcessNoise[process_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
-                                            data.process_noise.data() + i, "1.0e-8 0.01"};
+    defProcessNoise[process_noise_shift] = {
+        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
-    
+
     // shift
     process_noise_shift++;
   }
@@ -344,7 +343,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
   for (int i = 0; i < model->njnt; i++) {
     int name_jntadr = model->name_jntadr[i];
     std::string jnt_name(model->names + name_jntadr);
-    
+
     // get joint type
     int jnt_type = model->jnt_type[i];
 
@@ -495,8 +494,8 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
     for (int j = 0; j < dim_sensor; j++) {
       // element
       defSensorNoise[sensor_noise_shift] = {
-          mjITEM_SLIDERNUM, "", 2, data.sensor_noise.data() + sensor_noise_shift - 1,
-          "1.0e-8 0.01"};
+          mjITEM_SLIDERNUM, "", 2,
+          data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
       // sensor name
       sensor_str = name_sensor;
@@ -524,20 +523,17 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
 
 // set GUI data
 void Kalman::SetGUIData(EstimatorGUIData& data) {
-  mju_copy(noise_process.data(),
-           data.process_noise.data(),
-           DimensionProcess());
-  mju_copy(noise_sensor.data(),
-           data.sensor_noise.data(),
-           DimensionSensor());
+  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
   model->opt.timestep = data.timestep;
   model->opt.integrator = data.integrator;
-};
+}
 
 // estimator-specific plots
-void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-                int timer_shift, int planning, int* shift) {
-  // Kalman info 
+void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
+                   int planner_shift, int timer_shift, int planning,
+                   int* shift) {
+  // Kalman info
   double estimator_bounds[2] = {-6, 6};
 
   // covariance trace
@@ -547,8 +543,7 @@ void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shi
                        mju_log10(trace), 100, planner_shift + 0, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[planner_shift + 0],
-                  "Covariance Trace");
+  mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
 
   // Kalman timers
   double timer_bounds[2] = {0.0, 1.0};

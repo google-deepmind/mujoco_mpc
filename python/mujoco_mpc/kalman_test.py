@@ -37,9 +37,7 @@ class KalmanTest(absltest.TestCase):
     # settings
     epsilon = 2.0
     flg_centered = True
-    settings = kalman.settings(
-        epsilon=epsilon, flg_centered=flg_centered
-    )
+    settings = kalman.settings(epsilon=epsilon, flg_centered=flg_centered)
 
     # test
     self.assertLess(np.abs(settings["epsilon"] - epsilon), 1.0e-5)
@@ -65,12 +63,16 @@ class KalmanTest(absltest.TestCase):
 
     # covariance
     nvelocity = 2 * model.nv
-    F = np.random.normal(scale=1.0, size=(nvelocity**2)).reshape(nvelocity, nvelocity)
+    F = np.random.normal(scale=1.0, size=(nvelocity**2)).reshape(
+        nvelocity, nvelocity
+    )
     covariance = F.T @ F
     covariance_response = kalman.covariance(covariance=covariance)
 
     # test covariance
-    self.assertLess(np.linalg.norm((covariance_response - covariance).ravel()), 1.0e-5)
+    self.assertLess(
+        np.linalg.norm((covariance_response - covariance).ravel()), 1.0e-5
+    )
     self.assertTrue(covariance_response.shape == (nvelocity, nvelocity))
 
     # noise
@@ -93,8 +95,9 @@ class KalmanTest(absltest.TestCase):
     # timers
     timer = kalman.timers()
 
-    self.assertTrue(timer["measurement"] > 0.0)
-    self.assertTrue(timer["prediction"] > 0.0)
+    self.assertLess(0.0, timer["measurement"])
+    self.assertLess(0.0, timer["prediction"])
+
 
 if __name__ == "__main__":
   absltest.main()

@@ -15,10 +15,11 @@
 #ifndef MJPC_ESTIMATORS_ESTIMATOR_H_
 #define MJPC_ESTIMATORS_ESTIMATOR_H_
 
-#include <mujoco/mujoco.h>
-
 #include <mutex>
+#include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/gui.h"
 #include "mjpc/utilities.h"
@@ -41,40 +42,40 @@ class Estimator {
   // reset memory
   virtual void Reset(const mjData* data = nullptr) = 0;
 
-  // update 
+  // update
   virtual void Update(const double* ctrl, const double* sensor) = 0;
 
-  // get state 
+  // get state
   virtual double* State() = 0;
 
-  // get covariance 
+  // get covariance
   virtual double* Covariance() = 0;
 
-  // get time 
+  // get time
   virtual double& Time() = 0;
 
-  // get model 
+  // get model
   virtual mjModel* Model() = 0;
 
-  // get data 
+  // get data
   virtual mjData* Data() = 0;
 
-  // process noise 
+  // process noise
   virtual double* ProcessNoise() = 0;
 
-  // sensor noise 
+  // sensor noise
   virtual double* SensorNoise() = 0;
 
-  // process dimension 
+  // process dimension
   virtual int DimensionProcess() const = 0;
-  
+
   // sensor dimension
   virtual int DimensionSensor() const = 0;
 
   // set state
   virtual void SetState(const double* state) = 0;
 
-  // set time 
+  // set time
   virtual void SetTime(double time) = 0;
 
   // set covariance
@@ -83,7 +84,7 @@ class Estimator {
   // estimator-specific GUI elements
   virtual void GUI(mjUI& ui, EstimatorGUIData& data) = 0;
 
-  // set GUI data 
+  // set GUI data
   virtual void SetGUIData(EstimatorGUIData& data) = 0;
 
   // estimator-specific plots
@@ -94,21 +95,21 @@ class Estimator {
 
 // ground truth estimator
 class GroundTruth : public Estimator {
-  public:
-  // constructor 
+ public:
+  // constructor
   GroundTruth() = default;
   GroundTruth(const mjModel* model) {
     Initialize(model);
     Reset();
   }
 
-  // destructor 
+  // destructor
   ~GroundTruth() {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
   }
 
-  // initialize 
+  // initialize
   void Initialize(const mjModel* model) override {
     // model
     if (this->model) mj_deleteModel(this->model);
@@ -137,17 +138,17 @@ class GroundTruth : public Estimator {
       nsensordata_ += model->sensor_dim[sensor_start_ + i];
     }
 
-    // state 
+    // state
     state.resize(model->nq + model->nv + model->na);
 
-    // covariance 
+    // covariance
     covariance.resize(ndstate_ * ndstate_);
 
-    // process noise 
+    // process noise
     noise_process.resize(ndstate_);
 
-    // sensor noise 
-    noise_sensor.resize(nsensordata_); // over allocate
+    // sensor noise
+    noise_sensor.resize(nsensordata_);  // over allocate
   }
 
   // reset
@@ -161,7 +162,7 @@ class GroundTruth : public Estimator {
       mju_copy(state.data() + nq, data->qvel, nv);
       mju_copy(state.data() + nq + nv, data->act, na);
       time = data->time;
-    } else { // model default
+    } else {  // model default
       // set home keyframe
       int home_id = mj_name2id(model, mjOBJ_KEY, "home");
       if (home_id >= 0) mj_resetDataKeyframe(model, data_, home_id);
@@ -172,7 +173,7 @@ class GroundTruth : public Estimator {
       mju_copy(state.data() + nq + nv, data_->act, na);
       time = data_->time;
     }
-    
+
     // covariance
     mju_eye(covariance.data(), ndstate);
     double covariance_scl =
@@ -191,34 +192,34 @@ class GroundTruth : public Estimator {
     std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
   }
 
-  // update 
-  void Update(const double* ctrl, const double* sensor) override {};
+  // update
+  void Update(const double* ctrl, const double* sensor) override{};
 
   // get state
   double* State() override { return state.data(); };
 
-  // get covariance 
+  // get covariance
   double* Covariance() override { return covariance.data(); };
 
   // get time
   double& Time() override { return time; };
 
-  // get model 
+  // get model
   mjModel* Model() override { return model; };
 
-  // get data 
+  // get data
   mjData* Data() override { return data_; };
 
-  // get process noise 
+  // get process noise
   double* ProcessNoise() override { return noise_process.data(); };
 
-  // get sensor noise 
+  // get sensor noise
   double* SensorNoise() override { return noise_sensor.data(); };
 
-  // process dimension 
+  // process dimension
   int DimensionProcess() const override { return ndstate_; };
 
-  // sensor dimension 
+  // sensor dimension
   int DimensionSensor() const override { return nsensordata_; };
 
   // set state
@@ -226,10 +227,8 @@ class GroundTruth : public Estimator {
     mju_copy(this->state.data(), state, ndstate_);
   };
 
-  // set time 
-  void SetTime(double time) override {
-    this->time = time;
-  }
+  // set time
+  void SetTime(double time) override { this->time = time; }
 
   // set covariance
   void SetCovariance(const double* covariance) override {
@@ -237,14 +236,14 @@ class GroundTruth : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override {};
+  void GUI(mjUI& ui, EstimatorGUIData& data) override{};
 
-  // set GUI data 
-  void SetGUIData(EstimatorGUIData& data) override {};
+  // set GUI data
+  void SetGUIData(EstimatorGUIData& data) override{};
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-             int timer_shift, int planning, int* shift) override {};
+             int timer_shift, int planning, int* shift) override{};
 
   // model
   mjModel* model = nullptr;

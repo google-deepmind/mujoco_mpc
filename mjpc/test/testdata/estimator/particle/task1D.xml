@@ -8,7 +8,7 @@
     <map znear=".01"/>
     <quality shadowsize="2048"/>
   </visual>
-  
+
   <default>
     <geom solimp="0 0.95 0.001"/>
   </default>

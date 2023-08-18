@@ -14,10 +14,10 @@
 
 #include "mjpc/estimators/unscented.h"
 
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/trajectory.h"

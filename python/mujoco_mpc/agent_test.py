@@ -110,9 +110,7 @@ class AgentTest(parameterized.TestCase):
           mocap_quat=data.mocap_quat,
           userdata=data.userdata,
       )
-      agent.get_action(
-          averaging_duration=control_timestep, nominal_action=nominal
-      )
+      agent.get_action(averaging_duration=control_timestep, nominal_action=nominal)
       state_after = agent.get_state()
       self.assertEqual(data.time, state_after.time)
       np.testing.assert_allclose(data.qpos, state_after.qpos)
@@ -197,9 +195,7 @@ class AgentTest(parameterized.TestCase):
         data.qvel = state.qvel
         data.act = state.act
         data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-        data.mocap_quat = np.array(state.mocap_quat).reshape(
-            data.mocap_quat.shape
-        )
+        data.mocap_quat = np.array(state.mocap_quat).reshape(data.mocap_quat.shape)
         data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
         observations.append(get_observation(model, data))
 
@@ -277,7 +273,6 @@ class AgentTest(parameterized.TestCase):
     data = mujoco.MjData(model)
 
     with agent_lib.Agent(task_id="Particle", model=model) as agent:
-
       agent.set_state(
           time=data.time,
           qpos=list(data.qpos),
@@ -299,7 +294,7 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("default_mode")
       self.assertEqual(agent.get_mode(), "default_mode")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_get_set_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
@@ -310,7 +305,7 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
-  @absltest.skip('asset import issue')
+  @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

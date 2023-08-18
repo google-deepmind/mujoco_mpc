@@ -14,10 +14,11 @@
 
 #include "mjpc/estimators/unscented.h"
 
-#include <mujoco/mujoco.h>
-
 #include <chrono>
+#include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
@@ -171,7 +172,7 @@ void Unscented::Reset(const mjData* data) {
     mju_copy(state.data() + nq + nv, data_->act, na);
     time = data_->time;
   }
-  
+
   // covariance
   mju_eye(covariance.data(), ndstate_);
   double covariance_scl =
@@ -326,7 +327,7 @@ void Unscented::EvaluateSigmaPoints() {
   mju_zero(state_mean_.data(), nstate_);
   mju_zero(sensor_mean_.data(), nsensordata_);
 
-  // time cache 
+  // time cache
   double time_cache = data_->time;
 
   // loop over sigma points
@@ -357,7 +358,7 @@ void Unscented::EvaluateSigmaPoints() {
     mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
   }
 
-  // compute correct quaternion means 
+  // compute correct quaternion means
   QuaternionMeans();
 }
 
@@ -453,7 +454,7 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // time cache 
+  // time cache
   double time_cache = data_->time;
 
   // dimensions
@@ -511,7 +512,6 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   // qvel + act
   mju_addTo(state.data() + nq, correction_.data() + nv, nv + na);
 
-
   // -- covariance update -- //
 
   mju_copy(covariance.data(), covariance_state_state_.data(),
@@ -535,28 +535,28 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   // symmetrize
   mju_symmetrize(covariance.data(), covariance.data(), ndstate_);
 
-  // update time 
+  // update time
   time = time_cache + model->opt.timestep;
 
   // stop timer (ms)
   timer_update_ = 1.0e-3 * GetDuration(start);
 }
 
-// quaternion means 
+// quaternion means
 // "Averaging Quaternions"
 void Unscented::QuaternionMeans() {
-  // K matrix 
+  // K matrix
   double K[16];
 
-  // outer product 
+  // outer product
   double Q[16];
 
-  // loop over joints 
+  // loop over joints
   for (int i = 0; i < model->njnt; i++) {
     // joint type
     int jnt_type = model->jnt_type[i];
 
-    // free or ball joint 
+    // free or ball joint
     if (jnt_type == mjJNT_FREE || jnt_type == mjJNT_BALL) {
       // qpos address
       int qpos_adr = model->jnt_qposadr[i];
@@ -564,22 +564,24 @@ void Unscented::QuaternionMeans() {
       // shift to quaternion address for free joint
       if (jnt_type == mjJNT_FREE) qpos_adr += 3;
 
-      // zero K memory 
+      // zero K memory
       mju_zero(K, 16);
 
-      // loop over states 
+      // loop over states
       for (int j = 0; j < nsigma__; j++) {
         // get quaternion
         double* quat = states_.data() + j * nstate_ + qpos_adr;
 
-        // compute outer product 
+        // compute outer product
         mju_mulMatMatT(Q, quat, quat, 4, 1, 4);
 
-        // add outerproduct to K 
-        mju_addToScl(K, Q, 4.0 * (j == nsigma__ - 1 ? weight_covariance0 : weight_sigma), 16);
+        // add outerproduct to K
+        mju_addToScl(
+            K, Q, 4.0 * (j == nsigma__ - 1 ? weight_covariance0 : weight_sigma),
+            16);
       }
 
-      // K = K - total_weight * I 
+      // K = K - total_weight * I
       double total_weight = weight_covariance0 + (nsigma__ - 1) * weight_sigma;
       K[0] -= total_weight;
       K[5] -= total_weight;
@@ -619,8 +621,8 @@ void Unscented::GUI(mjUI& ui, EstimatorGUIData& data) {
   // add UI elements
   for (int i = 0; i < DimensionProcess(); i++) {
     // element
-    defProcessNoise[process_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
-                                            data.process_noise.data() + i, "1.0e-8 0.01"};
+    defProcessNoise[process_noise_shift] = {
+        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
@@ -789,8 +791,8 @@ void Unscented::GUI(mjUI& ui, EstimatorGUIData& data) {
     for (int j = 0; j < dim_sensor; j++) {
       // element
       defSensorNoise[sensor_noise_shift] = {
-          mjITEM_SLIDERNUM, "", 2, data.sensor_noise.data() + sensor_noise_shift - 1,
-          "1.0e-8 0.01"};
+          mjITEM_SLIDERNUM, "", 2,
+          data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
       // sensor name
       sensor_str = name_sensor;
@@ -818,15 +820,11 @@ void Unscented::GUI(mjUI& ui, EstimatorGUIData& data) {
 
 // set GUI data
 void Unscented::SetGUIData(EstimatorGUIData& data) {
-  mju_copy(noise_process.data(),
-           data.process_noise.data(),
-           DimensionProcess());
-  mju_copy(noise_sensor.data(),
-           data.sensor_noise.data(),
-           DimensionSensor());
+  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
   model->opt.timestep = data.timestep;
   model->opt.integrator = data.integrator;
-};
+}
 
 // estimator-specific plots
 void Unscented::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,

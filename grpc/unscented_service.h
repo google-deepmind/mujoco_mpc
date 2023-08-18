@@ -14,15 +14,15 @@
 
 // An implementation of the `Unscented` gRPC service.
 
-#ifndef GRPC_UNSCENTED_SERVICE_H
-#define GRPC_UNSCENTED_SERVICE_H
+#ifndef GRPC_UNSCENTED_SERVICE_H_
+#define GRPC_UNSCENTED_SERVICE_H_
+
+#include <memory>
+#include <vector>
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
-#include <memory>
-#include <vector>
 
 #include "grpc/unscented.grpc.pb.h"
 #include "grpc/unscented.pb.h"
@@ -82,4 +82,4 @@ class UnscentedService final : public unscented::Unscented::Service {
 
 }  // namespace unscented_grpc
 
-#endif  // GRPC_UNSCENTED_SERVICE_H
+#endif  // GRPC_UNSCENTED_SERVICE_H_

@@ -37,10 +37,8 @@ class UnscentedTest(absltest.TestCase):
     # settings
     alpha = 7.0
     beta = 1.4
-  
-    settings = unscented.settings(
-        alpha=alpha, beta=beta
-    )
+
+    settings = unscented.settings(alpha=alpha, beta=beta)
 
     # test
     self.assertLess(np.abs(settings["alpha"] - alpha), 1.0e-5)
@@ -66,12 +64,16 @@ class UnscentedTest(absltest.TestCase):
 
     # covariance
     nvelocity = 2 * model.nv
-    F = np.random.normal(scale=1.0, size=(nvelocity**2)).reshape(nvelocity, nvelocity)
+    F = np.random.normal(scale=1.0, size=(nvelocity**2)).reshape(
+        nvelocity, nvelocity
+    )
     covariance = F.T @ F
     covariance_response = unscented.covariance(covariance=covariance)
 
     # test covariance
-    self.assertLess(np.linalg.norm((covariance_response - covariance).ravel()), 1.0e-5)
+    self.assertLess(
+        np.linalg.norm((covariance_response - covariance).ravel()), 1.0e-5
+    )
     self.assertTrue(covariance_response.shape == (nvelocity, nvelocity))
 
     # noise
@@ -92,6 +94,7 @@ class UnscentedTest(absltest.TestCase):
     timer = unscented.timers()
 
     self.assertTrue(timer["update"] > 0.0)
+
 
 if __name__ == "__main__":
   absltest.main()

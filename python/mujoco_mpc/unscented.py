@@ -79,7 +79,9 @@ class Unscented:
     os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
-    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    credentials = grpc.local_channel_credentials(
+        grpc.LocalConnectionType.LOCAL_TCP
+    )
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = unscented_pb2_grpc.UnscentedStub(self.channel)
@@ -172,7 +174,9 @@ class Unscented:
     }
 
   def update(
-      self, ctrl: Optional[npt.ArrayLike] = [], sensor: Optional[npt.ArrayLike] = []
+      self,
+      ctrl: Optional[npt.ArrayLike] = [],
+      sensor: Optional[npt.ArrayLike] = [],
   ):
     # request
     request = unscented_pb2.UpdateRequest(
@@ -210,7 +214,9 @@ class Unscented:
     # return state
     return np.array(response.state)
 
-  def covariance(self, covariance: Optional[npt.ArrayLike] = None) -> np.ndarray:
+  def covariance(
+      self, covariance: Optional[npt.ArrayLike] = None
+  ) -> np.ndarray:
     # input
     inputs = unscented_pb2.Covariance(
         covariance=covariance.flatten() if covariance is not None else None,
@@ -225,10 +231,14 @@ class Unscented:
     response = self._wait(self.stub.Covariance.future(request)).covariance
 
     # return covariance
-    return np.array(response.covariance).reshape(response.dimension, response.dimension)
+    return np.array(response.covariance).reshape(
+        response.dimension, response.dimension
+    )
 
   def noise(
-      self, process: Optional[npt.ArrayLike] = [], sensor: Optional[npt.ArrayLike] = []
+      self,
+      process: Optional[npt.ArrayLike] = [],
+      sensor: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # inputs
     inputs = unscented_pb2.Noise(

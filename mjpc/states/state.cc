@@ -64,6 +64,8 @@ void State::Set(const mjModel* model, const mjData* data) {
   }
 }
 
+// TODO: make all these "Set*" functions thread-safe, or change their name.
+
 // set qpos
 void State::SetPosition(const mjModel* model, const double* qpos) {
   mju_copy(state_.data(), qpos, model->nq);
@@ -80,7 +82,8 @@ void State::SetAct(const mjModel* model, const double* act) {
 }
 
 // set mocap
-void State::SetMocap(const mjModel* model, const double* mocap_pos, const double* mocap_quat) {
+void State::SetMocap(const mjModel* model, const double* mocap_pos,
+                     const double* mocap_quat) {
   // mocap
   for (int i = 0; i < model->nmocap; i++) {
     mju_copy(DataAt(mocap_, 7 * i), mocap_pos + 3 * i, 3);

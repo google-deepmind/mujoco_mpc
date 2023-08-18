@@ -50,7 +50,7 @@ def find_free_port() -> int:
 
 
 class Batch:
-  """`Batch` class to interface with MuJoCo MPC batch.
+  """`Batch` class to interface with MuJoCo MPC batch estimator.
 
   Attributes:
     port:
@@ -77,10 +77,12 @@ class Batch:
         [str(server_binary_path), f"--mjpc_port={self.port}"],
         stdout=subprocess.PIPE if colab_logging else None,
     )
-    os.set_blocking(self.server_process.stdout.fileno(), False)
+    # os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
-    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    credentials = grpc.local_channel_credentials(
+        grpc.LocalConnectionType.LOCAL_TCP
+    )
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = batch_pb2_grpc.BatchStub(self.channel)
@@ -103,7 +105,7 @@ class Batch:
       configuration_length: int,
       send_as: Literal["mjb", "xml"] = "xml",
   ):
-    """Initialize the batch for estimation horizon `configuration_length`.
+    """Initialize the batch estimator estimation horizon with `configuration_length`.
 
     Args:
       model: optional `MjModel` instance, which, if provided, will be used as
@@ -339,10 +341,14 @@ class Batch:
     }
 
   def cost(
-      self, derivatives: Optional[bool] = False, internals: Optional[bool] = False
-  ) -> dict[str, float]:
+      self,
+      derivatives: Optional[bool] = False,
+      internals: Optional[bool] = False,
+  ) -> dict[str, float | np.ndarray | int]:
     # cost request
-    request = batch_pb2.CostRequest(derivatives=derivatives, internals=internals)
+    request = batch_pb2.CostRequest(
+        derivatives=derivatives, internals=internals
+    )
 
     # cost response
     cost = self._wait(self.stub.Cost.future(request))
@@ -361,7 +367,9 @@ class Batch:
         "residual_prior": np.array(cost.residual_prior) if internals else [],
         "residual_sensor": np.array(cost.residual_sensor) if internals else [],
         "residual_force": np.array(cost.residual_force) if internals else [],
-        "jacobian_prior": np.array(cost.jacobian_prior).reshape(cost.nvar, cost.nvar)
+        "jacobian_prior": np.array(cost.jacobian_prior).reshape(
+            cost.nvar, cost.nvar
+        )
         if internals
         else [],
         "jacobian_sensor": np.array(cost.jacobian_sensor).reshape(
@@ -369,14 +377,20 @@ class Batch:
         )
         if internals
         else [],
-        "jacobian_force": np.array(cost.jacobian_force).reshape(cost.nforce, cost.nvar)
+        "jacobian_force": np.array(cost.jacobian_force).reshape(
+            cost.nforce, cost.nvar
+        )
         if internals
         else [],
         "norm_gradient_sensor": np.array(cost.norm_gradient_sensor)
         if internals
         else [],
-        "norm_gradient_force": np.array(cost.norm_gradient_force) if internals else [],
-        "prior_matrix": np.array(cost.prior_matrix).reshape(cost.nvar, cost.nvar)
+        "norm_gradient_force": np.array(cost.norm_gradient_force)
+        if internals
+        else [],
+        "prior_matrix": np.array(cost.prior_matrix).reshape(
+            cost.nvar, cost.nvar
+        )
         if internals
         else [],
         "norm_hessian_sensor": np.array(cost.norm_hessian_sensor).reshape(
@@ -437,7 +451,9 @@ class Batch:
     # optimize response
     self._wait(self.stub.Optimize.future(request))
 
-  def prior_weights(self, weights: Optional[npt.ArrayLike] = None) -> np.ndarray:
+  def prior_weights(
+      self, weights: Optional[npt.ArrayLike] = None
+  ) -> np.ndarray:
     # prior request
     request = batch_pb2.PriorWeightsRequest(
         weights=weights.flatten() if weights is not None else None
@@ -447,7 +463,9 @@ class Batch:
     response = self._wait(self.stub.PriorWeights.future(request))
 
     # reshape prior to (dimension, dimension)
-    mat = np.array(response.weights).reshape(response.dimension, response.dimension)
+    mat = np.array(response.weights).reshape(
+        response.dimension, response.dimension
+    )
 
     # return prior matrix
     return mat
@@ -500,11 +518,11 @@ class Batch:
 
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""
-    if self._colab_logging:
-      while True:
-        line = self.server_process.stdout.readline()
-        if line:
-          sys.stdout.write(line.decode("utf-8"))
-        if future.done():
-          break
+    # if self._colab_logging:
+    #     while True:
+    # line = self.server_process.stdout.readline()
+    # if line:
+    #     sys.stdout.write(line.decode("utf-8"))
+    # if future.done():
+    #     break
     return future.result()

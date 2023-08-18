@@ -15,6 +15,7 @@
 #define MJPC_AGENT_H_
 
 #include <atomic>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -24,6 +25,7 @@
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/states/state.h"
@@ -46,7 +48,8 @@ class Agent {
   friend class AgentTest;
 
   // constructor
-  Agent() : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
+  Agent()
+      : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -129,12 +132,14 @@ class Agent {
   // Sets a custom model (not from the task), to be returned by the next
   // call to LoadModel. Passing nullptr model clears the override and will
   // return the normal task's model.
-  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
+  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel})
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
-  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; };
-  mjpc::Estimator& PreviousEstimator() const { return *estimators_[previous_estimator]; };
-  int ActiveEstimatorIndex() const { return estimator_; };
+  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
+  mjpc::Estimator& PreviousEstimator() const {
+    return *estimators_[previous_estimator];
+  }
+  int ActiveEstimatorIndex() const { return estimator_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -178,7 +183,7 @@ class Agent {
   // state
   mjpc::State state;
 
-  // estimator 
+  // estimator
   std::vector<double> sensor;
   std::vector<double> ctrl;
   std::vector<double> estimator_state;
@@ -215,7 +220,7 @@ class Agent {
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;
   int planner_;
 
-  // estimators 
+  // estimators
   std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
   int estimator_;
 
@@ -245,7 +250,7 @@ class Agent {
   // max threads for planning
   int planner_threads_;
 
-  // max threads for estimation 
+  // max threads for estimation
   int estimator_threads_;
 };
 

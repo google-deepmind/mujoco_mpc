@@ -14,16 +14,6 @@
 
 #include "mjpc/agent.h"
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_join.h>
-#include <absl/strings/str_split.h>
-#include <absl/strings/strip.h>
-#include <mujoco/mjmodel.h>
-#include <mujoco/mjui.h>
-#include <mujoco/mjvisualize.h>
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -33,6 +23,17 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
+
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjui.h>
+#include <mujoco/mjvisualize.h>
+#include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/include.h"
@@ -103,14 +104,14 @@ void Agent::Initialize(const mjModel* model) {
   // initialize state
   state.Initialize(model);
 
-  // initialize estimator 
+  // initialize estimator
   if (reset_estimator) {
     for (const auto& estimator : estimators_) {
       estimator->Initialize(model_);
       estimator->Reset();
     }
   }
-  
+
   // get Kalman estimator
   Estimator* estimator = estimators_[0].get();
 
@@ -149,11 +150,12 @@ void Agent::Initialize(const mjModel* model) {
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
   mju::strcpy_arr(this->estimator_names_, kEstimatorNames);
 
-  // estimator threads 
+  // estimator threads
   estimator_threads_ = 1;
 
   // planner threads
-  planner_threads_ = std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_ - 1);
+  planner_threads_ =
+      std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_ - 1);
 }
 
 // allocate memory
@@ -183,13 +185,13 @@ void Agent::Reset() {
   // state
   state.Reset();
 
-  // estimator 
+  // estimator
   if (reset_estimator) {
     for (const auto& estimator : estimators_) {
       estimator->Reset();
     }
   }
-  
+
   // cost
   cost_ = 0.0;
 
@@ -644,21 +646,21 @@ void Agent::GUI(mjUI& ui) {
   }
 
   // ----- agent ----- //
-  mjuiDef defAgent[] = {
-      {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
-      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-      {mjITEM_SELECT, "Planner", 2, &planner_, ""},
-      {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
-      {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
-      {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
-      {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
-      {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
-      {mjITEM_SEPARATOR, "Agent Settings", 1},
-      {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-      {mjITEM_SELECT, "Integrator", 2, &integrator_, "Euler\nRK4\nImplicit\nFastImplicit"},
-      {mjITEM_SEPARATOR, "Planner Settings", 1},
-      {mjITEM_END}};
+  mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
+                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+                        {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+                        {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
+                        {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
+                        {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
+                        {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
+                        {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
+                        {mjITEM_SEPARATOR, "Agent Settings", 1},
+                        {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
+                        {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
+                        {mjITEM_SELECT, "Integrator", 2, &integrator_,
+                         "Euler\nRK4\nImplicit\nFastImplicit"},
+                        {mjITEM_SEPARATOR, "Planner Settings", 1},
+                        {mjITEM_END}};
 
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
@@ -742,7 +744,6 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       }
       // reset
       if (model_) {
-        
         // reset plots
         this->PlotInitialize();
         this->PlotReset();
@@ -752,16 +753,16 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
 
         // copy covariance
         ActiveEstimator().SetCovariance(PreviousEstimator().Covariance());
-        
-        // reset estimator 
+
+        // reset estimator
         // ActiveEstimator().Reset(data);
 
         // reset agent
-        reset_estimator = false;    // skip estimator reset
-        uiloadrequest.fetch_sub(1); // reset 
-        reset_estimator = true;     // restore estimator reset
+        reset_estimator = false;     // skip estimator reset
+        uiloadrequest.fetch_sub(1);  // reset
+        reset_estimator = true;      // restore estimator reset
 
-        // set previous 
+        // set previous
         previous_estimator = estimator_;
       }
       break;
@@ -903,9 +904,8 @@ void Agent::PlotInitialize() {
   // initialize
   for (int j = 0; j < 20; j++) {
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[j][2 * i] = (float)-i;
-      plots_.timer.linedata[j][2 * i] = (float)-i;
-
+      plots_.planner.linedata[j][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[j][2 * i] = static_cast<float>(-i);
 
       // colors
       if (j == 0) continue;
@@ -939,8 +939,8 @@ void Agent::PlotReset() {
 
     // reset x tick marks
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[k][2 * i] = (float)-i;
-      plots_.timer.linedata[k][2 * i] = (float)-i;
+      plots_.planner.linedata[k][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[k][2 * i] = static_cast<float>(-i);
     }
   }
 }
@@ -1086,7 +1086,8 @@ void Agent::Plots(const mjData* data, int shift) {
 
   // planner-specific plotting
   int planner_shift[2] {0, 0};
-  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled, planner_shift);
+  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled,
+                        planner_shift);
 
   // estimator-specific plotting
   if (ActiveEstimatorIndex() > 0) {

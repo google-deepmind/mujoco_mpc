@@ -139,7 +139,7 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
   return mnew;
 }
 
-// estimator in background thread 
+// estimator in background thread
 void EstimatorLoop(mj::Simulate& sim) {
   // run until asked to exit
   while (!sim.exitrequest.load()) {
@@ -296,12 +296,13 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // misalignment condition: distance from target sim time is bigger
           // than syncmisalign
-          bool misaligned =
-              mju_abs(Seconds(elapsedCPU).count()/slowdown - elapsedSim) > syncMisalign;
+          bool misaligned = mju_abs(Seconds(elapsedCPU).count() / slowdown -
+                                    elapsedSim) > syncMisalign;
 
           // out-of-sync (for any reason): reset sync times, step
-          if (elapsedSim < 0 || elapsedCPU.count() < 0 || syncCPU.time_since_epoch().count() == 0 ||
-              misaligned || sim.speed_changed) {
+          if (elapsedSim < 0 || elapsedCPU.count() < 0 ||
+              syncCPU.time_since_epoch().count() == 0 || misaligned ||
+              sim.speed_changed) {
             // re-sync
             syncCPU = startCPU;
             syncSim = d->time;
@@ -321,12 +322,15 @@ void PhysicsLoop(mj::Simulate& sim) {
             double refreshTime = simRefreshFraction / sim.refresh_rate;
 
             // step while sim lags behind cpu and within refreshTime
-            while (Seconds((d->time - syncSim)*slowdown) < mj::Simulate::Clock::now() - syncCPU &&
-                   mj::Simulate::Clock::now() - startCPU < Seconds(refreshTime)) {
+            while (Seconds((d->time - syncSim) * slowdown) <
+                       mj::Simulate::Clock::now() - syncCPU &&
+                   mj::Simulate::Clock::now() - startCPU <
+                       Seconds(refreshTime)) {
               // measure slowdown before first step
               if (!measured && elapsedSim) {
                 sim.measured_slowdown =
-                    std::chrono::duration<double>(elapsedCPU).count() / elapsedSim;
+                    std::chrono::duration<double>(elapsedCPU).count() /
+                    elapsedSim;
                 measured = true;
               }
 
@@ -363,7 +367,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       // unpack state
       mjpc::State* state = &sim.agent->state;
 
-      // estimator 
+      // estimator
       int active_estimator = sim.agent->ActiveEstimatorIndex();
 
       // set state
@@ -375,7 +379,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         state->SetTime(m, sim.agent->time);
         state->SetMocap(m, d->mocap_pos, d->mocap_quat);
         state->SetUserData(m, d->userdata);
-      } else { // == 0
+      } else {  // == 0
         // from simulation
         state->Set(m, d);
       }
@@ -389,7 +393,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
-  // MJPC 
+  // MJPC
   printf("MuJoCo MPC (MJPC)\n");
 
   // MuJoCo
@@ -485,10 +489,10 @@ void MjpcApp::Start() {
   mjpc::ThreadPool physics_pool(1);
   physics_pool.Schedule([]() { PhysicsLoop(*sim.get()); });
 
-  // start estimator thread 
+  // start estimator thread
   mjpc::ThreadPool estimator_pool(1);
   estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
-  
+
   {
     // start plan thread
     mjpc::ThreadPool plan_pool(1);
@@ -513,4 +517,5 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   MjpcApp app(std::move(tasks), task_id);
   app.Start();
 }
+
 }  // namespace mjpc

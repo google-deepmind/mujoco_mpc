@@ -132,7 +132,7 @@ class Agent {
   // Sets a custom model (not from the task), to be returned by the next
   // call to LoadModel. Passing nullptr model clears the override and will
   // return the normal task's model.
-  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel})
+  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }

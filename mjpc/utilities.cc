@@ -1586,10 +1586,10 @@ void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
     int width = i + 1;
 
     // number of leading zeros in band row
-    int row_shift = nband - width;
+    int column_shift = nband - width;
 
     // row segments
-    double* band_row = band + (shift + row_skip + i) * nband + row_shift;
+    double* band_row = band + (shift + row_skip + i) * nband + column_shift;
     const double* block_row = block + (row_skip + i) * nblock;
 
     // copy block row segment into band row

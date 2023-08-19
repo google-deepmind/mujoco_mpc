@@ -541,21 +541,28 @@ class Batch : public Estimator {
   std::vector<double>
       cost_hessian_prior_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
+      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv)
+  std::vector<double>
       cost_hessian_sensor_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
       cost_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
-      cost_hessian_band_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_force_band_;            // (nv * max_history_) * (3 * nv)
+  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_band_factor_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_factor_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_factor_;  // (nv * max_history_) * (nv * max_history)
 
   // cost scratch
   std::vector<double>
       scratch0_prior_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       scratch1_prior_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
+      scratch2_prior_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       scratch0_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
   std::vector<double>

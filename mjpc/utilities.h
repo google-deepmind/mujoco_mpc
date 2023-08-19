@@ -399,9 +399,9 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
 void PrincipalEigenVector4(double* res, const double* mat,
                            double eigenvalue_init = 12.0);
 
-// set symmetric block matrix in band matrix
-void SetBlockInBand(double* band, const double* block, int ntotal, int nband,
-                    int nblock, int shift);
+// set scaled symmetric block matrix in band matrix
+void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
+                    int nband, int nblock, int shift, int row_skip = 0);
 
 }  // namespace mjpc
 

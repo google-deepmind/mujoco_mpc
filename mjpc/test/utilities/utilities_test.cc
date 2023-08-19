@@ -730,7 +730,7 @@ TEST(BlockInBand, Set) {
   double band0[9] = {0};
 
   // set block in band
-  SetBlockInBand(band0, block0, ntotal, nband, nblock, 0);
+  SetBlockInBand(band0, block0, 1.0, ntotal, nband, nblock, 0);
 
   // band solution
   double band0_sol[9] = {0, 0, 1, 0, 2, 4, 3, 5, 6};
@@ -751,10 +751,10 @@ TEST(BlockInBand, Set) {
   double band1[8] = {0};
 
   // set blocka in band
-  SetBlockInBand(band1, block1a, ntotal, nband, nblock, 0);
+  SetBlockInBand(band1, block1a, 1.0, ntotal, nband, nblock, 0);
 
   // set blockb in band
-  SetBlockInBand(band1, block1b, ntotal, nband, nblock, 2);
+  SetBlockInBand(band1, block1b, 1.0, ntotal, nband, nblock, 2);
 
   // band solution
   double band1_sol[8] = {0, 1, 2, 3, 0, 6, 8, 9};
@@ -775,10 +775,10 @@ TEST(BlockInBand, Set) {
   double band2[12] = {0};
 
   // set block2a in band
-  SetBlockInBand(band2, block2a, ntotal, nband, nblock, 0);
+  SetBlockInBand(band2, block2a, 1.0, ntotal, nband, nblock, 0);
 
   // set block2b in band
-  SetBlockInBand(band2, block2b, ntotal, nband, nblock, 1);
+  SetBlockInBand(band2, block2b, 1.0, ntotal, nband, nblock, 1);
 
   // band solution
   double band2_sol[12] = {0, 0, 1, 0, 2, 3, 4, 5, 6, 7, 8, 9};

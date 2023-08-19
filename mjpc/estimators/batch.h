@@ -67,6 +67,7 @@ class Batch : public Estimator {
   Batch() = default;
   Batch(int mode) {
     settings.filter = mode;
+    settings.prior_flag = true;
     max_history_ = kMaxFilterHistory;
   }
   Batch(const mjModel* model, int length = 3, int max_history_ = 0) {
@@ -285,7 +286,7 @@ class Batch : public Estimator {
 
   // settings
   struct BatchSettings {
-    bool prior_flag = true;   // flag for prior cost computation
+    bool prior_flag = false;  // flag for prior cost computation
     bool sensor_flag = true;  // flag for sensor cost computation
     bool force_flag = true;   // flag for force cost computation
     int max_search_iterations =

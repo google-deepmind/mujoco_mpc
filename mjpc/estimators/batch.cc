@@ -916,24 +916,26 @@ double Batch::CostPrior(double* gradient, double* hessian) {
 
   // zero memory
   if (gradient) mju_zero(gradient, dim);
-  if (hessian) mju_zero(hessian, dim * dim);
+  if (hessian) mju_zero(hessian, dim * (3 * nv));
 
   // initial cost
   double cost = 0.0;
+
+  // dimensions
+  int ntotal = dim;
+  int nband = 3 * model->nv;
+  int ndense = 0;
+
+  // dense2band
+  mju_dense2Band(weight_prior_band_.data(), weight_prior.data(), ntotal, nband,
+                 ndense);
+  mju_band2Dense(weight_prior.data(), weight_prior_band_.data(), ntotal, nband,
+                 0, 1);
 
   // compute cost
   if (!cost_skip_) {
     // residual
     ResidualPrior();
-
-    // dimensions
-    int ntotal = dim;
-    int nband = 3 * model->nv;
-    int ndense = 0;
-
-    // dense2band
-    mju_dense2Band(weight_prior_band_.data(), weight_prior.data(), ntotal,
-                   nband, ndense);
 
     // multiply: tmp = P * r
     mju_bandMulMatVec(tmp, weight_prior_band_.data(), r, ntotal, nband, ndense,
@@ -966,64 +968,24 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       mju_scl(gt, gt, scale, nv);
     }
 
-
     // cost Hessian wrt configuration (sparse)
     if (hessian) {
       // number of columns to loop over for row
-      int num_cols = mju_min(3, configuration_length_ - t);
-
-      for (int j = t; j < t + num_cols; j++) {
-        // shift index
-        int shift = 0;  // shift_index(i, j);
-
-        // unpack
-        double* bbij =
-            scratch1_prior_.data() + 4 * nv * nv * shift + 0 * nv * nv;
-        double* tmp0 =
-            scratch1_prior_.data() + 4 * nv * nv * shift + 1 * nv * nv;
-        double* tmp1 =
-            scratch1_prior_.data() + 4 * nv * nv * shift + 2 * nv * nv;
-        double* tmp2 =
-            scratch1_prior_.data() + 4 * nv * nv * shift + 3 * nv * nv;
-
-        // get matrices
-        BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim, t * nv,
-                        j * nv);
-        const double* bdi = block_prior_current_configuration_.Get(t);
-        const double* bdj = block_prior_current_configuration_.Get(j);
-
-        // -- bdi' * bbij * bdj -- //
-
-        // tmp0 = bbij * bdj
-        mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
-
-        // tmp1 = bdi' * tmp0
-        mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
-
-        // set scaled block in matrix
-        SetBlockInMatrix(hessian, tmp1, scale, dim, dim, nv, nv, t * nv,
-                         j * nv);
-        if (j > t) {
-          mju_transpose(tmp2, tmp1, nv, nv);
-          SetBlockInMatrix(hessian, tmp2, scale, dim, dim, nv, nv, j * nv,
-                           t * nv);
-        }
-      }
-      // // number of columns to loop over for row
       // int num_cols = mju_min(3, configuration_length_ - t);
 
-      // // mat
-      // double* mat = scratch2_prior_.data();
-      // mju_zero(mat, nband * nband);
-
       // for (int j = t; j < t + num_cols; j++) {
+      //   // shift index
+      //   int shift = 0;  // shift_index(i, j);
+
       //   // unpack
       //   double* bbij =
-      //       scratch1_prior_.data();
+      //       scratch1_prior_.data() + 4 * nv * nv * shift + 0 * nv * nv;
       //   double* tmp0 =
-      //       scratch1_prior_.data() + 1 * nv * nv;
+      //       scratch1_prior_.data() + 4 * nv * nv * shift + 1 * nv * nv;
       //   double* tmp1 =
-      //       scratch1_prior_.data() + 2 * nv * nv;
+      //       scratch1_prior_.data() + 4 * nv * nv * shift + 2 * nv * nv;
+      //   double* tmp2 =
+      //       scratch1_prior_.data() + 4 * nv * nv * shift + 3 * nv * nv;
 
       //   // get matrices
       //   BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim, t * nv,
@@ -1039,14 +1001,103 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       //   // tmp1 = bdi' * tmp0
       //   mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
 
-      //   // set scaled block in mat
-      //   SetBlockInMatrix(mat, tmp1, scale, num_cols * nv, num_cols * nv, nv, nv,
-      //                    (num_cols - 1) * nv, (j - t) * nv);
+      //   // set scaled block in matrix
+      //   SetBlockInMatrix(hessian, tmp1, scale, dim, dim, nv, nv, t * nv,
+      //                    j * nv);
+      //   if (j > t) {
+      //     mju_transpose(tmp2, tmp1, nv, nv);
+      //     SetBlockInMatrix(hessian, tmp2, scale, dim, dim, nv, nv, j * nv,
+      //                      t * nv);
+      //   }
       // }
 
-      // // set mat in band Hessian
-      // SetBlockInBand(hessian, mat, 1.0, dim, nband, num_cols * nv,
-      //                std::max(-2 * nv + t * nv, 0), (num_cols - 1) * nv);
+      if (t < configuration_length_ - 2) {
+        // mat
+        double* mat = scratch2_prior_.data();
+        mju_zero(mat, nband * nband);
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            if (j <= i) {
+              // unpack
+              double* bbij =
+                  scratch1_prior_.data() + 0 * nv * nv;
+              double* tmp0 =
+                  scratch1_prior_.data() + 1 * nv * nv;
+              double* tmp1 =
+                  scratch1_prior_.data() + 2 * nv * nv;
+              double* tmp2 =
+                  scratch1_prior_.data() + 3 * nv * nv;
+
+              // get matrices
+              BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim,
+                              (i + t) * nv, (j + t) * nv);
+              const double* bdi = block_prior_current_configuration_.Get(i + t);
+              const double* bdj = block_prior_current_configuration_.Get(j + t);
+
+              // -- bdi' * bbij * bdj -- //
+
+              // tmp0 = bbij * bdj
+              mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
+
+              // tmp1 = bdi' * tmp0
+              mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
+
+              // set scaled block in matrix
+              SetBlockInMatrix(mat, tmp1, scale, nband, nband, nv, nv, i * nv,
+                               j * nv);
+              if (i != j) {
+                mju_transpose(tmp2, tmp1, nv, nv);
+                SetBlockInMatrix(mat, tmp2, scale, nband, nband, nv, nv, j * nv,
+                                 i * nv);
+              }
+            }
+          }
+        }
+
+        // set mat in band Hessian
+        SetBlockInBand(hessian, mat, 1.0, dim, nband, nband, t * nv, 0, false);
+      }
+
+
+    //   // number of columns to loop over for row
+    //   int num_cols = mju_min(3, t + 1);
+
+    //   // mat
+    //   double* mat = scratch2_prior_.data();
+    //   mju_zero(mat, nband * nband);
+
+    //   for (int j = t; j < t + num_cols; j++) {
+    //     // unpack
+    //     double* bbij =
+    //         scratch1_prior_.data();
+    //     double* tmp0 =
+    //         scratch1_prior_.data() + 1 * nv * nv;
+    //     double* tmp1 =
+    //         scratch1_prior_.data() + 2 * nv * nv;
+
+    //     // get matrices
+    //     BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim, t * nv,
+    //                     j * nv);
+    //     const double* bdi = block_prior_current_configuration_.Get(t);
+    //     const double* bdj = block_prior_current_configuration_.Get(j);
+
+    //     // -- bdi' * bbij * bdj -- //
+
+    //     // tmp0 = bbij * bdj
+    //     mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
+
+    //     // tmp1 = bdi' * tmp0
+    //     mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
+
+    //     // set scaled block in mat
+    //     SetBlockInMatrix(mat, tmp1, scale, num_cols * nv, num_cols * nv, nv, nv,
+    //                      (num_cols - 1) * nv, (j - t) * nv);
+    //   }
+
+    //   // set mat in band Hessian
+    //   SetBlockInBand(hessian, mat, 1.0, dim, nband, num_cols * nv,
+    //                  std::max(-2 * nv + t * nv, 0), (num_cols - 1) * nv);
     }
   }
 
@@ -2186,14 +2237,14 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
     pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
       batch.cost_prior_ = batch.CostPrior(
           gradient_flag ? batch.cost_gradient_prior_.data() : NULL,
-          hessian_flag ? batch.cost_hessian_prior_.data() : NULL);
+          hessian_flag ? batch.cost_hessian_prior_band_.data() : NULL);
 
-      if (hessian_flag) {
-        mju_dense2Band(batch.cost_hessian_prior_band_.data(),
-                       batch.cost_hessian_prior_.data(),
-                       batch.model->nv * batch.configuration_length_,
-                       3 * batch.model->nv, 0);
-      }
+      // if (hessian_flag) {
+      //   mju_dense2Band(batch.cost_hessian_prior_band_.data(),
+      //                  batch.cost_hessian_prior_.data(),
+      //                  batch.model->nv * batch.configuration_length_,
+      //                  3 * batch.model->nv, 0);
+      // }
     });
   }
 

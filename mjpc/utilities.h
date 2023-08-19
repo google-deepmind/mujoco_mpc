@@ -401,7 +401,7 @@ void PrincipalEigenVector4(double* res, const double* mat,
 
 // set scaled symmetric block matrix in band matrix
 void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
-                    int nband, int nblock, int shift, int row_skip = 0);
+                    int nband, int nblock, int shift, int row_skip = 0, bool add = true);
 
 }  // namespace mjpc
 

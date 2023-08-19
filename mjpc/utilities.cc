@@ -1579,7 +1579,7 @@ void PrincipalEigenVector4(double* res, const double* mat,
 
 // set scaled symmetric block matrix in band matrix
 void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
-                    int nband, int nblock, int shift, int row_skip) {
+                    int nband, int nblock, int shift, int row_skip, bool add) {
   // loop over block rows
   for (int i = row_skip; i < nblock; i++) {
     // width of block lower triangle row
@@ -1593,7 +1593,12 @@ void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
     const double* block_row = block + (row_skip + i) * nblock;
 
     // copy block row segment into band row
-    mju_addToScl(band_row, block_row, scale, width);
+    if (add) {
+      mju_addToScl(band_row, block_row, scale, width);
+    } else {
+      mju_copy(band_row, block_row, width);
+      mju_scl(band_row, band_row, scale, width);
+    }
   }
 }
 

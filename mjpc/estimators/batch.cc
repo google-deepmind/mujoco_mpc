@@ -543,7 +543,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   mjData* d = data_[0].get();
 
   // current time index
-  int t = current_time_index;
+  int t = current_time_index_;
 
   // configurations
   double* q0 = configuration.Get(t - 1);
@@ -585,7 +585,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   int configuration_length_cache = configuration_length_;
 
   // set reduced configuration length for optimization
-  configuration_length_ = current_time_index + 2;
+  configuration_length_ = current_time_index_ + 2;
   if (configuration_length_ != configuration_length_cache) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
@@ -642,7 +642,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   } else {
     // dimension
     int nvar_new = nvar;
-    if (current_time_index < configuration_length_ - 2) {
+    if (current_time_index_ < configuration_length_ - 2) {
       nvar_new += nv;
     }
 
@@ -674,8 +674,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   configuration_length_ = configuration_length_cache;
 
   // check estimation horizon
-  if (current_time_index < configuration_length_ - 2) {
-    current_time_index++;
+  if (current_time_index_ < configuration_length_ - 2) {
+    current_time_index_++;
   } else {
     // shift trajectories once estimation horizon is filled
     Shift(1);
@@ -1940,7 +1940,7 @@ void Batch::InitializeFilter() {
   int nq = model->nq, nv = model->nv;
 
   // filter mode status
-  current_time_index = 1;
+  current_time_index_ = 1;
 
   // filter settings
   settings.gradient_tolerance = 1.0e-6;
@@ -2711,6 +2711,7 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
       {mjITEM_SELECT, "Integrator", 2, &data.integrator,
        "Euler\nRK4\nImplicit\nFastImplicit"},
       {mjITEM_SLIDERINT, "Horizon", 2, &data.horizon, "3 3"},
+      {mjITEM_SLIDERNUM, "Prior Scale", 2, &data.scale_prior, "1.0e-8 0.1"},
       {mjITEM_END}};
 
   // set estimation horizon limits
@@ -2932,7 +2933,7 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
 
     // update configuration length and current time index
     configuration_length_ = horizon;
-    current_time_index -= horizon_diff;
+    current_time_index_ -= horizon_diff;
   }
 }
 

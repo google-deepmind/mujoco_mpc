@@ -159,7 +159,7 @@ class Batch : public Estimator {
     times.Set(&time_copy, 0);
 
     // reset current time index
-    current_time_index = 1;
+    current_time_index_ = 1;
   }
 
   // set covariance
@@ -474,9 +474,6 @@ class Batch : public Estimator {
     bool flg_actuation = 1;
   } finite_difference;
 
-  // filter mode status
-  int current_time_index;
-
  private:
   // convert sequence of configurations to velocities, accelerations
   void ConfigurationToVelocityAcceleration();
@@ -714,6 +711,9 @@ class Batch : public Estimator {
   std::vector<double> condmat_;
   std::vector<double> scratch0_condmat_;
   std::vector<double> scratch1_condmat_;
+
+  // filter mode status
+  int current_time_index_;
 
   // status (internal)
   int cost_count_;          // number of cost evaluations

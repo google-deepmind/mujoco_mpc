@@ -45,6 +45,9 @@ class EstimatorGUIData {
   // sensor noise
   std::vector<double> sensor_noise;
 
+  // scale prior 
+  double scale_prior;
+
   // estimation horizon
   int horizon;
 };

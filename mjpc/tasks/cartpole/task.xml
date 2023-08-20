@@ -35,8 +35,6 @@
     <!-- estimator -->
     <jointpos name="slider_pos" joint="slider"/>
     <jointpos name="hinge_pos" joint="hinge_1"/>
-    <!-- <jointvel name="vslider_pos" joint="slider"/>
-    <jointvel name="vhinge_post" joint="hinge_1"/> -->
     <accelerometer name="tip_acc" site="tip"/>
 
     <!-- trace -->

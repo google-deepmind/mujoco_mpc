@@ -277,13 +277,15 @@ void iLQSPlanner::GUI(mjUI& ui) {
 
 // planner-specific plots
 void iLQSPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                        int planner_shift, int timer_shift, int planning) {
+                        int planner_shift, int timer_shift, int planning,
+                        int* shift) {
   // Sampling
-  sampling.Plots(fig_planner, fig_timer, planner_shift, timer_shift, planning);
+  sampling.Plots(fig_planner, fig_timer, planner_shift, timer_shift, planning,
+                 shift);
 
   // iLQG
   ilqg.Plots(fig_planner, fig_timer, planner_shift + 1, timer_shift + 4,
-             planning);
+             planning, shift);
 
   // ----- re-label ----- //
   // planner plots

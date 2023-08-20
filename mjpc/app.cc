@@ -164,6 +164,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         sim.agent->Allocate();
         sim.agent->Reset();
         sim.agent->PlotInitialize();
+
         // set home keyframe
         int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
@@ -226,9 +227,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               ctrlnoise[i] =
                   rate * ctrlnoise[i] + scale * mju_standardNormal(nullptr);
 
-              // apply noise
-              // d->ctrl[i] += ctrlnoise[i]; // noise is now added in controller
-              // callback
+              // noise added in controller callback
             }
           }
 
@@ -237,12 +236,13 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // misalignment condition: distance from target sim time is bigger
           // than syncmisalign
-          bool misaligned =
-              mju_abs(Seconds(elapsedCPU).count()/slowdown - elapsedSim) > syncMisalign;
+          bool misaligned = mju_abs(Seconds(elapsedCPU).count() / slowdown -
+                                    elapsedSim) > syncMisalign;
 
           // out-of-sync (for any reason): reset sync times, step
-          if (elapsedSim < 0 || elapsedCPU.count() < 0 || syncCPU.time_since_epoch().count() == 0 ||
-              misaligned || sim.speed_changed) {
+          if (elapsedSim < 0 || elapsedCPU.count() < 0 ||
+              syncCPU.time_since_epoch().count() == 0 || misaligned ||
+              sim.speed_changed) {
             // re-sync
             syncCPU = startCPU;
             syncSim = d->time;
@@ -262,12 +262,15 @@ void PhysicsLoop(mj::Simulate& sim) {
             double refreshTime = simRefreshFraction / sim.refresh_rate;
 
             // step while sim lags behind cpu and within refreshTime
-            while (Seconds((d->time - syncSim)*slowdown) < mj::Simulate::Clock::now() - syncCPU &&
-                   mj::Simulate::Clock::now() - startCPU < Seconds(refreshTime)) {
+            while (Seconds((d->time - syncSim) * slowdown) <
+                       mj::Simulate::Clock::now() - syncCPU &&
+                   mj::Simulate::Clock::now() - startCPU <
+                       Seconds(refreshTime)) {
               // measure slowdown before first step
               if (!measured && elapsedSim) {
                 sim.measured_slowdown =
-                    std::chrono::duration<double>(elapsedCPU).count() / elapsedSim;
+                    std::chrono::duration<double>(elapsedCPU).count() /
+                    elapsedSim;
                 measured = true;
               }
 
@@ -312,13 +315,17 @@ void PhysicsLoop(mj::Simulate& sim) {
 namespace mjpc {
 
 MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
-  std::printf("MuJoCo version %s\n", mj_versionString());
+  // MJPC
+  printf("MuJoCo MPC (MJPC)\n");
+
+  // MuJoCo
+  std::printf(" MuJoCo version  :  %s\n", mj_versionString());
   if (mjVERSION_HEADER != mj_version()) {
     mju_error("Headers and library have Different versions");
   }
 
   // threads
-  printf("Hardware threads: %i\n", mjpc::NumAvailableHardwareThreads());
+  printf(" Hardware threads:  %i\n", mjpc::NumAvailableHardwareThreads());
 
   if (sim != nullptr) {
     mju_error("Multiple instances of MjpcApp created.");
@@ -358,6 +365,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   ctrlnoise = (mjtNum*)malloc(sizeof(mjtNum) * m->nu);
   mju_zero(ctrlnoise, m->nu);
 
+  // agent
   sim->agent->Initialize(m);
   sim->agent->Allocate();
   sim->agent->Reset();
@@ -385,8 +393,11 @@ MjpcApp::~MjpcApp() {
 
 // run event loop
 void MjpcApp::Start() {
-  // planning threads
-  printf("Agent threads: %i\n", sim->agent->max_threads());
+  // threads
+  printf("  physics        :  %i\n", 1);
+  printf("  render         :  %i\n", 1);
+  printf("  Planner        :  %i\n", 1);
+  printf("    planning     :  %i\n", sim->agent->planner_threads());
 
   // set control callback
   mjcb_control = controller;
@@ -408,6 +419,7 @@ void MjpcApp::Start() {
 
     // one-off preparation:
     sim->InitializeRenderLoop();
+
     // start simulation UI loop (blocking call)
     sim->RenderLoop();
   }
@@ -421,4 +433,5 @@ void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   MjpcApp app(std::move(tasks), task_id);
   app.Start();
 }
+
 }  // namespace mjpc

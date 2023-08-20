@@ -46,7 +46,7 @@ class RobustPlanner : public Planner {
   void Traces(mjvScene* scn) override;
   void GUI(mjUI& ui) override;
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-             int timer_shift, int planning) override;
+             int timer_shift, int planning, int* shift) override;
 
  private:
   void ResizeTrajectories(int ntrajectories);

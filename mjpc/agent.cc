@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/match.h>
@@ -33,6 +34,7 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
@@ -110,10 +112,12 @@ void Agent::Initialize(const mjModel* model) {
   // counter
   count_ = 0;
 
+  // names
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
 
-  // max threads
-  max_threads_ = std::max(1, NumAvailableHardwareThreads() - 3);
+  // planner threads
+  planner_threads_ =
+      std::max(1, NumAvailableHardwareThreads() - 3);
 }
 
 // allocate memory
@@ -267,7 +271,7 @@ void Agent::PlanIteration(ThreadPool* pool) {
 void Agent::Plan(std::atomic<bool>& exitrequest,
                  std::atomic<int>& uiloadrequest) {
   // instantiate thread pool
-  ThreadPool pool(max_threads_);
+  ThreadPool pool(planner_threads_);
 
   // main loop
   while (!exitrequest.load()) {
@@ -597,20 +601,20 @@ void Agent::GUI(mjUI& ui) {
   }
 
   // ----- agent ----- //
-  mjuiDef defAgent[] = {
-      {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
-      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-      {mjITEM_SELECT, "Planner", 2, &planner_, ""},
-      {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
-      {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
-      {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
-      {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
-      {mjITEM_SEPARATOR, "Agent Settings", 1},
-      {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-      {mjITEM_SELECT, "Integrator", 2, &integrator_, "Euler\nRK4\nImplicit\nFastImplicit"},
-      {mjITEM_SEPARATOR, "Planner Settings", 1},
-      {mjITEM_END}};
+  mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
+                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+                        {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+                        {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
+                        {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
+                        {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
+                        {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
+                        {mjITEM_SEPARATOR, "Agent Settings", 1},
+                        {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
+                        {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
+                        {mjITEM_SELECT, "Integrator", 2, &integrator_,
+                         "Euler\nRK4\nImplicit\nFastImplicit"},
+                        {mjITEM_SEPARATOR, "Planner Settings", 1},
+                        {mjITEM_END}};
 
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
@@ -666,8 +670,11 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       break;
     case 1:  // planner change
       if (model_) {
+        // reset plots
         this->PlotInitialize();
         this->PlotReset();
+
+        // reset agent
         uiloadrequest.fetch_sub(1);
       }
       break;
@@ -695,7 +702,7 @@ void Agent::PlotInitialize() {
   // title
   mju::strcpy_arr(plots_.cost.title, "Objective");
   mju::strcpy_arr(plots_.action.title, "Actions");
-  mju::strcpy_arr(plots_.planner.title, "Planner (log10)");
+  mju::strcpy_arr(plots_.planner.title, "Agent (log10)");
   mju::strcpy_arr(plots_.timer.title, "CPU time (msec)");
 
   // x-labels
@@ -795,9 +802,8 @@ void Agent::PlotInitialize() {
   // initialize
   for (int j = 0; j < 20; j++) {
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[j][2 * i] = (float)-i;
-      plots_.timer.linedata[j][2 * i] = (float)-i;
-
+      plots_.planner.linedata[j][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[j][2 * i] = static_cast<float>(-i);
 
       // colors
       if (j == 0) continue;
@@ -831,8 +837,8 @@ void Agent::PlotReset() {
 
     // reset x tick marks
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[k][2 * i] = (float)-i;
-      plots_.timer.linedata[k][2 * i] = (float)-i;
+      plots_.planner.linedata[k][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[k][2 * i] = static_cast<float>(-i);
     }
   }
 }
@@ -977,7 +983,9 @@ void Agent::Plots(const mjData* data, int shift) {
   if (!plan_enabled) return;
 
   // planner-specific plotting
-  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled);
+  int planner_shift[2] {0, 0};
+  ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled,
+                        planner_shift);
 
   // total (agent) compute time
   double timer_bounds[2] = {0.0, 1.0};

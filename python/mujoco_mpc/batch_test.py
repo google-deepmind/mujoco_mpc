@@ -232,11 +232,6 @@ class BatchTest(absltest.TestCase):
     settings = batch.settings(verbose_prior=verbose_prior)
     self.assertTrue(verbose_prior == settings["verbose_prior"])
 
-    # get/set band prior
-    band_prior = False
-    settings = batch.settings(band_prior=band_prior)
-    self.assertTrue(band_prior == settings["band_prior"])
-
     # get/set search type
     in_search_type = 0
     settings = batch.settings(search_type=in_search_type)
@@ -262,11 +257,6 @@ class BatchTest(absltest.TestCase):
         np.abs(in_regularization_scaling - settings["regularization_scaling"]),
         1.0e-4,
     )
-
-    # get/set band copy
-    in_band_copy = False
-    settings = batch.settings(band_copy=in_band_copy)
-    self.assertTrue(in_band_copy == settings["band_copy"])
 
     # get/set search direction tolerance
     search_direction_tolerance = 3.3

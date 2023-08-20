@@ -396,12 +396,6 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   }
   output->set_verbose_prior(batch_.settings.verbose_prior);
 
-  // band prior
-  if (input.has_band_prior()) {
-    batch_.settings.band_prior = input.band_prior();
-  }
-  output->set_band_prior(batch_.settings.band_prior);
-
   // search type
   if (input.has_search_type()) {
     // unpack
@@ -434,12 +428,6 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     batch_.settings.regularization_scaling = input.regularization_scaling();
   }
   output->set_regularization_scaling(batch_.settings.regularization_scaling);
-
-  // band copy
-  if (input.has_band_copy()) {
-    batch_.settings.band_copy = input.band_copy();
-  }
-  output->set_band_copy(batch_.settings.band_copy);
 
   // time scaling (force)
   if (input.has_time_scaling_force()) {
@@ -639,7 +627,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // prior matrix
-    const double* prior_matrix = batch_.weight_prior.data();
+    const double* prior_matrix = batch_.weight_prior_.data();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
         response->add_prior_matrix(prior_matrix[i * nvar + j]);
@@ -894,17 +882,16 @@ grpc::Status BatchService::PriorWeights(
   response->set_dimension(dim);
 
   // set prior matrix
-  // TODO(taylor): loop over upper triangle only
   if (request->weights_size() > 0) {
     CHECK_SIZE("prior weights", dim * dim, request->weights_size());
-    batch_.weight_prior.assign(request->weights().begin(),
-                               request->weights().end());
+    batch_.SetPriorWeights(request->weights().data());
   }
 
   // get prior matrix
+  const double* weights = batch_.PriorWeights();
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_weights(batch_.weight_prior[dim * i + j]);
+      response->add_weights(weights[dim * i + j]);
     }
   }
 

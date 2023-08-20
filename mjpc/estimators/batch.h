@@ -67,6 +67,7 @@ class Batch : public Estimator {
   Batch() = default;
   Batch(int mode) {
     settings.filter = mode;
+    settings.prior_flag = true;
     max_history_ = kMaxFilterHistory;
   }
   Batch(const mjModel* model, int length = 3, int max_history_ = 0) {
@@ -158,7 +159,7 @@ class Batch : public Estimator {
     times.Set(&time_copy, 0);
 
     // reset current time index
-    current_time_index = 1;
+    current_time_index_ = 1;
   }
 
   // set covariance
@@ -204,20 +205,141 @@ class Batch : public Estimator {
   double GetCostPrior() { return cost_prior_; }
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
-  double* GetCostGradient() { return cost_gradient.data(); }
-  double* GetCostHessian() { return cost_hessian.data(); }
+  const double* GetCostGradient() { return cost_gradient_.data(); }
+  const double* GetCostHessian() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nband = 3 * nv;
+
+    // resize
+    cost_hessian_.resize(ntotal * ntotal);
+
+    // band to dense
+    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal,
+                   nband, 0, 1);
+
+    // return dense Hessian
+    return cost_hessian_.data();
+  }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
-  const double* GetJacobianPrior() { return jacobian_prior_.data(); }
-  const double* GetJacobianSensor() { return jacobian_sensor_.data(); }
-  const double* GetJacobianForce() { return jacobian_force_.data(); }
+  const double* GetJacobianPrior() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+
+    // resize
+    jacobian_prior_.resize(ntotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_prior_jacobian;
+    settings.assemble_prior_jacobian = true;
+
+    // loop over configurations to assemble Jacobian
+    for (int t = 0; t < configuration_length_; t++) {
+      BlockPrior(t);
+    }
+
+    // restore setting
+    settings.assemble_prior_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_prior_.data();
+  }
+  const double* GetJacobianSensor() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+    // resize
+    jacobian_sensor_.resize(nsensortotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_sensor_jacobian;
+    settings.assemble_sensor_jacobian = true;
+
+    // loop over sensors
+    for (int t = 0; t < configuration_length_ - 1; t++) {
+      BlockSensor(t);
+    }
+
+    // restore setting
+    settings.assemble_sensor_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_sensor_.data();
+  }
+  const double* GetJacobianForce() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nforcetotal = nv * (configuration_length_ - 2);
+
+    // resize
+    jacobian_force_.resize(nforcetotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_force_jacobian;
+    settings.assemble_force_jacobian = true;
+
+    // loop over sensors
+    for (int t = 1; t < configuration_length_ - 1; t++) {
+      BlockForce(t);
+    }
+
+    // restore setting
+    settings.assemble_force_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_force_.data();
+  }
   const double* GetNormGradientSensor() { return norm_gradient_sensor_.data(); }
   const double* GetNormGradientForce() { return norm_gradient_force_.data(); }
-  const double* GetNormHessianSensor() { return norm_hessian_sensor_.data(); }
-  const double* GetNormHessianForce() { return norm_hessian_force_.data(); }
+  const double* GetNormHessianSensor() {
+    // dimensions
+    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+    // resize
+    norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
+
+    // change setting
+    int settings_cache = settings.assemble_sensor_norm_hessian;
+    settings.assemble_sensor_norm_hessian = true;
+
+    // evalute
+    CostSensor(NULL, NULL);
+
+    // restore setting
+    settings.assemble_sensor_norm_hessian = settings_cache;
+
+    // return dense Hessian
+    return norm_hessian_sensor_.data();
+  }
+  const double* GetNormHessianForce() {
+    // dimensions
+    int nforcetotal = model->nv * (configuration_length_ - 2);
+
+    // resize
+    norm_hessian_force_.resize(nforcetotal * nforcetotal);
+
+    // change setting
+    int settings_cache = settings.assemble_force_norm_hessian;
+    settings.assemble_force_norm_hessian = true;
+
+    // evalute
+    CostForce(NULL, NULL);
+
+    // restore setting
+    settings.assemble_force_norm_hessian = settings_cache;
+
+    // return dense Hessian
+    return norm_hessian_force_.data();
+  }
 
   // get configuration length
   int ConfigurationLength() const { return configuration_length_; }
@@ -241,6 +363,37 @@ class Batch : public Estimator {
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
 
+  // set prior weights
+  void SetPriorWeights(const double* weights, double scale = 1.0) {
+    // dimension
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nband = 3 * nv;
+
+    // allocate memory
+    weight_prior_.resize(ntotal * ntotal);
+    weight_prior_band_.resize(ntotal * (3 * nv));
+
+    // set weights
+    mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
+
+    // make block band
+    DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
+
+    // dense to band
+    mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal,
+                   nband, 0);
+
+    // set scaling
+    scale_prior = scale;
+
+    // set flag
+    settings.prior_flag = true;
+  }
+
+  // get prior weights
+  const double* PriorWeights() { return weight_prior_.data(); }
+
   // model
   mjModel* model = nullptr;
 
@@ -259,8 +412,6 @@ class Batch : public Estimator {
 
   // prior
   double scale_prior;
-  std::vector<double>
-      weight_prior;  // (nv * max_history_) * (nv * max_history_)
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -285,7 +436,7 @@ class Batch : public Estimator {
 
   // settings
   struct BatchSettings {
-    bool prior_flag = true;   // flag for prior cost computation
+    bool prior_flag = false;  // flag for prior cost computation
     bool sensor_flag = true;  // flag for sensor cost computation
     bool force_flag = true;   // flag for force cost computation
     int max_search_iterations =
@@ -297,13 +448,11 @@ class Batch : public Estimator {
     bool verbose_optimize = false;   // flag for printing optimize status
     bool verbose_cost = false;       // flag for printing cost
     bool verbose_prior = false;  // flag for printing prior weight update status
-    bool band_prior = true;      // approximate covariance for prior
     SearchType search_type =
         kCurveSearch;           // search type (line search, curve search)
     double step_scaling = 0.5;  // step size scaling
     double regularization_initial = 1.0e-12;       // initial regularization
     double regularization_scaling = mju_sqrt(10);  // regularization scaling
-    bool band_copy = true;                       // copy band matrices by block
     bool time_scaling_force = true;              // scale force costs
     bool time_scaling_sensor = true;             // scale sensor costs
     double search_direction_tolerance = 1.0e-8;  // search direction tolerance
@@ -324,9 +473,6 @@ class Batch : public Estimator {
     double tolerance = 1.0e-7;
     bool flg_actuation = 1;
   } finite_difference;
-
-  // filter mode status
-  int current_time_index;
 
  private:
   // convert sequence of configurations to velocities, accelerations
@@ -436,15 +582,6 @@ class Batch : public Estimator {
   double cost_initial_;
   double cost_previous_;
 
-  // TODO(taylor): underscore
-
-  // cost gradient
-  std::vector<double> cost_gradient;  // nv * max_history_
-
-  // cost Hessian
-  std::vector<double>
-      cost_hessian;  // (nv * max_history_) * (nv * max_history_)
-
   // lengths
   int configuration_length_;  // T
 
@@ -536,53 +673,36 @@ class Batch : public Estimator {
   std::vector<double> cost_gradient_prior_;   // nv * max_history_
   std::vector<double> cost_gradient_sensor_;  // nv * max_history_
   std::vector<double> cost_gradient_force_;   // nv * max_history_
+  std::vector<double> cost_gradient_;  // nv * max_history_
 
   // cost Hessian
   std::vector<double>
-      cost_hessian_prior_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_sensor_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_band_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_band_factor_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      cost_hessian_factor_;  // (nv * max_history_) * (nv * max_history_)
+      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)
 
   // cost scratch
+  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv
   std::vector<double>
-      scratch0_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch0_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double>
-      scratch1_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double>
-      scratch0_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch2_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch_prior_weight_;  // 2 * nv * nv
-  std::vector<double> scratch_expected_;      // nv * max_history_
+      scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
+  std::vector<double> scratch_force_;     // 12 * nv * nv
+  std::vector<double> scratch_expected_;  // nv * max_history_
 
   // search direction
   std::vector<double> search_direction_;  // nv * max_history_
 
   // prior weights
   std::vector<double>
+      weight_prior_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double>
       weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
-
-  // covariance
-  std::vector<double>
-      prior_matrix_factor_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch0_covariance_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_covariance_;  // (nv * max_history_) * (nv * max_history_)
 
   // conditioned matrix
   std::vector<double> mat00_;
@@ -591,6 +711,9 @@ class Batch : public Estimator {
   std::vector<double> condmat_;
   std::vector<double> scratch0_condmat_;
   std::vector<double> scratch1_condmat_;
+
+  // filter mode status
+  int current_time_index_;
 
   // status (internal)
   int cost_count_;          // number of cost evaluations

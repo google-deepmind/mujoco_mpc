@@ -14,7 +14,7 @@
 
 // Unit tests for the `BatchService` class.
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_service.h"
 
 #include <memory>
 #include <string_view>
@@ -30,8 +30,8 @@
 
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
-#include "grpc/estimator.grpc.pb.h"
-#include "grpc/estimator.pb.h"
+#include "grpc/batch.grpc.pb.h"
+#include "grpc/batch.pb.h"
 
 namespace mjpc::batch_grpc {
 

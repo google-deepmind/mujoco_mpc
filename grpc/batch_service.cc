@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_service.h"
 
 #include <cstring>
 #include <memory>
@@ -29,8 +29,8 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/estimator.pb.h"
-#include "mjpc/estimators/estimator.h"
+#include "grpc/batch.pb.h"
+#include "mjpc/estimators/batch.h"
 #include "mjpc/norm.h"
 
 namespace mjpc::batch_grpc {

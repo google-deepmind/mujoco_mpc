@@ -27,7 +27,7 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
-#include "grpc/estimator_service.h"
+#include "grpc/batch_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 

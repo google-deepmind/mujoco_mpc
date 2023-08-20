@@ -328,8 +328,6 @@ class BatchTest(absltest.TestCase):
         model=model, configuration_length=configuration_length
     )
 
-    # TODO(taylor): better tests
-
     # cost
     cost = batch.cost(derivatives=True, internals=True)
 
@@ -373,8 +371,6 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
     self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
     self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
-
-    # TODO(taylor): internals
 
   def test_noise(self):
     # load model
@@ -555,8 +551,8 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(prior0.shape == (dim, dim))
     self.assertTrue(not prior0.any())
 
-    # random
-    in_weights = np.random.rand(dim, dim)
+    # identity
+    in_weights = np.eye(dim)
     out_prior = batch.prior_weights(weights=in_weights)
 
     # test
@@ -599,9 +595,6 @@ class BatchTest(absltest.TestCase):
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
         1.0e-5,
     )
-
-  # TODO(taylor): test initialize_data, update_data()
-
 
 if __name__ == "__main__":
   absltest.main()

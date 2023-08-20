@@ -500,32 +500,14 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // cache settings
-  bool assemble_prior_jacobian = batch_.settings.assemble_prior_jacobian;
-  bool assemble_sensor_jacobian = batch_.settings.assemble_sensor_jacobian;
-  bool assemble_force_jacobian = batch_.settings.assemble_force_jacobian;
-  bool assemble_sensor_norm_hessian =
-      batch_.settings.assemble_sensor_norm_hessian;
-  bool assemble_force_norm_hessian =
-      batch_.settings.assemble_force_norm_hessian;
-
-  if (request->internals()) {
-    // compute dense cost internals
-    batch_.settings.assemble_prior_jacobian = true;
-    batch_.settings.assemble_sensor_jacobian = true;
-    batch_.settings.assemble_force_jacobian = true;
-    batch_.settings.assemble_sensor_norm_hessian = true;
-    batch_.settings.assemble_force_norm_hessian = true;
-  }
-
   // compute derivatives
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  double total_cost =
-      batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
-                  derivatives ? batch_.GetCostHessian() : NULL, thread_pool_);
-
+  double total_cost = batch_.Cost(
+      derivatives ? batch_.GetCostGradient() : NULL,
+      derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
+  
   // cost
   response->set_total(total_cost);
 
@@ -627,10 +609,11 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // prior matrix
-    const double* prior_matrix = batch_.weight_prior_.data();
+    const double* prior_matrix = batch_.PriorWeights();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
-        response->add_prior_matrix(prior_matrix[i * nvar + j]);
+        response->add_prior_matrix(
+            batch_.settings.prior_flag ? prior_matrix[i * nvar + j] : 0.0);
       }
     }
 
@@ -650,13 +633,6 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
         response->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
       }
     }
-
-    // reset settings
-    batch_.settings.assemble_prior_jacobian = assemble_prior_jacobian;
-    batch_.settings.assemble_sensor_jacobian = assemble_sensor_jacobian;
-    batch_.settings.assemble_force_jacobian = assemble_force_jacobian;
-    batch_.settings.assemble_sensor_norm_hessian = assemble_sensor_norm_hessian;
-    batch_.settings.assemble_force_norm_hessian = assemble_force_norm_hessian;
   }
 
   return grpc::Status::OK;
@@ -891,7 +867,8 @@ grpc::Status BatchService::PriorWeights(
   const double* weights = batch_.PriorWeights();
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_weights(weights[dim * i + j]);
+      response->add_weights(batch_.settings.prior_flag ? weights[dim * i + j]
+                                                       : 0.0);
     }
   }
 

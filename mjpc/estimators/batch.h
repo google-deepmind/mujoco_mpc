@@ -205,8 +205,8 @@ class Batch : public Estimator {
   double GetCostPrior() { return cost_prior_; }
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
-  const double* GetCostGradient() { return cost_gradient_.data(); }
-  const double* GetCostHessian() {
+  double* GetCostGradient() { return cost_gradient_.data(); }
+  double* GetCostHessian() {
     // dimensions
     int nv = model->nv;
     int ntotal = nv * configuration_length_;
@@ -222,6 +222,7 @@ class Batch : public Estimator {
     // return dense Hessian
     return cost_hessian_.data();
   }
+  double* GetCostHessianBand() { return cost_hessian_band_.data(); }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }

@@ -250,11 +250,11 @@ class Batch : public Estimator {
     int nband = 3 * nv;
 
     // allocate memory
-    weight_prior.resize(ntotal * ntotal);
+    weight_prior_.resize(ntotal * ntotal);
     weight_prior_band_.resize(ntotal * (3 * nv));
 
     // set weights
-    mju_copy(weight_prior.data(), weights, ntotal * ntotal);
+    mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
     mju_dense2Band(weight_prior_band_.data(), weights, ntotal, nband, 0);
 
     // set scaling
@@ -263,6 +263,9 @@ class Batch : public Estimator {
     // set flag
     settings.prior_flag = true;
   }
+
+  // get prior weights
+  const double* PriorWeights() { return weight_prior_.data(); }
 
   // model
   mjModel* model = nullptr;
@@ -282,8 +285,6 @@ class Batch : public Estimator {
 
   // prior
   double scale_prior;
-  std::vector<double>
-      weight_prior;  // (nv * max_history_) * (nv * max_history_)
 
   // trajectories
   EstimatorTrajectory<double> configuration;           // nq x T
@@ -578,14 +579,14 @@ class Batch : public Estimator {
       scratch0_force_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       scratch1_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch2_force_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double> scratch_expected_;      // nv * max_history_
 
   // search direction
   std::vector<double> search_direction_;  // nv * max_history_
 
   // prior weights
+  std::vector<double>
+      weight_prior_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
 

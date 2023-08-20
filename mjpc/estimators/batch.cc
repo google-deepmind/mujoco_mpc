@@ -200,7 +200,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior.resize(settings.prior_flag * (nv * max_history_) *
+  weight_prior_.resize(settings.prior_flag * (nv * max_history_) *
                       (nv * max_history_));
   weight_prior_band_.resize(settings.prior_flag * (nv * max_history_) *
                             (3 * nv));
@@ -234,9 +234,11 @@ void Batch::Initialize(const mjModel* model) {
   norm_gradient_force_.resize(nv * max_history_);
 
   // norm Hessian
-  norm_hessian_sensor_.resize((nsensordata_ * max_history_) *
+  norm_hessian_sensor_.resize(settings.assemble_sensor_norm_hessian *
+                              (nsensordata_ * max_history_) *
                               (nsensordata_ * max_history_));
-  norm_hessian_force_.resize((nv * max_history_) * (nv * max_history_));
+  norm_hessian_force_.resize(settings.assemble_force_norm_hessian *
+                             (nv * max_history_) * (nv * max_history_));
 
   norm_blocks_sensor_.resize(nsensordata_ * nsensordata_ * max_history_);
   norm_blocks_force_.resize(nv * nv * max_history_);
@@ -253,7 +255,6 @@ void Batch::Initialize(const mjModel* model) {
 
   scratch0_force_.resize((nv * max_history_) * (nv * max_history_));
   scratch1_force_.resize((nv * max_history_) * (nv * max_history_));
-  scratch2_force_.resize((nv * max_history_) * (nv * max_history_));
 
   scratch_expected_.resize(nv * max_history_);
 
@@ -464,7 +465,7 @@ void Batch::Reset(const mjData* data) {
             0.0);
 
   // weight
-  std::fill(weight_prior.begin(), weight_prior.end(), 0.0);
+  std::fill(weight_prior_.begin(), weight_prior_.end(), 0.0);
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
 
   // norm
@@ -492,7 +493,6 @@ void Batch::Reset(const mjData* data) {
 
   std::fill(scratch0_force_.begin(), scratch0_force_.end(), 0.0);
   std::fill(scratch1_force_.begin(), scratch1_force_.end(), 0.0);
-  std::fill(scratch2_force_.begin(), scratch2_force_.end(), 0.0);
 
   std::fill(scratch_expected_.begin(), scratch_expected_.end(), 0.0);
 
@@ -634,7 +634,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   int nband = 3 * nv;
 
   // prior weights
-  double* weights = weight_prior.data();
+  double* weights = weight_prior_.data();
 
   // recursive update
   if (settings.recursive_prior_update &&
@@ -927,9 +927,9 @@ double Batch::CostPrior(double* gradient, double* hessian) {
   int ndense = 0;
 
   // dense2band
-  mju_dense2Band(weight_prior_band_.data(), weight_prior.data(), ntotal, nband,
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal, nband,
                  ndense);
-  mju_band2Dense(weight_prior.data(), weight_prior_band_.data(), ntotal, nband,
+  mju_band2Dense(weight_prior_.data(), weight_prior_band_.data(), ntotal, nband,
                  0, 1);
 
   // compute cost
@@ -988,7 +988,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
                   scratch1_prior_.data() + 2 * nv * nv;
 
               // get matrices
-              BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim,
+              BlockFromMatrix(bbij, weight_prior_.data(), nv, nv, dim, dim,
                               (i + t) * nv, (j + t) * nv);
               const double* bdi = block_prior_current_configuration_.Get(i + t);
               const double* bdj = block_prior_current_configuration_.Get(j + t);
@@ -2045,7 +2045,7 @@ void Batch::InitializeFilter() {
   // prior weight
   int nvar = nv * configuration_length_;
   for (int i = 0; i < nvar; i++) {
-    weight_prior[nvar * i + i] = scale_prior;
+    weight_prior_[nvar * i + i] = scale_prior;
   }
 }
 
@@ -2921,7 +2921,7 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
     int nvar_new = model->nv * horizon;
 
     // get previous weights
-    double* weights = weight_prior.data();
+    double* weights = weight_prior_.data();
     double* previous_weights = scratch0_condmat_.data();
     mju_copy(previous_weights, weights, nvar * nvar);
 
@@ -2946,7 +2946,7 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
     int nvar_new = model->nv * horizon;
 
     // get previous weights
-    double* weights = weight_prior.data();
+    double* weights = weight_prior_.data();
     double* previous_weights = scratch0_condmat_.data();
     BlockFromMatrix(previous_weights, weights, nvar_new, nvar_new, nvar, nvar,
                     0, 0);

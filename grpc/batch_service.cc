@@ -627,7 +627,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // prior matrix
-    const double* prior_matrix = batch_.weight_prior.data();
+    const double* prior_matrix = batch_.weight_prior_.data();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
         response->add_prior_matrix(prior_matrix[i * nvar + j]);
@@ -882,17 +882,16 @@ grpc::Status BatchService::PriorWeights(
   response->set_dimension(dim);
 
   // set prior matrix
-  // TODO(taylor): loop over upper triangle only
   if (request->weights_size() > 0) {
     CHECK_SIZE("prior weights", dim * dim, request->weights_size());
-    batch_.weight_prior.assign(request->weights().begin(),
-                               request->weights().end());
+    batch_.SetPriorWeights(request->weights().data());
   }
 
   // get prior matrix
+  const double* weights = batch_.PriorWeights();
   for (int i = 0; i < dim; i++) {
     for (int j = 0; j < dim; j++) {
-      response->add_weights(batch_.weight_prior[dim * i + j]);
+      response->add_weights(weights[dim * i + j]);
     }
   }
 

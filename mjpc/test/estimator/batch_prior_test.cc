@@ -105,8 +105,8 @@ TEST(PriorCost, Particle) {
 
     // weights band
     std::vector<double> weight_band(nvar * nvar);
-    mju_dense2Band(weight_band.data(), estimator.weight_prior.data(), nvar,
-                   3 * nv, 0);
+    mju_dense2Band(weight_band.data(), estimator.PriorWeights(), nvar, 3 * nv,
+                   0);
 
     // scratch
     std::vector<double> scratch(nvar);
@@ -257,8 +257,8 @@ TEST(PriorCost, Box) {
 
     // scratch
     std::vector<double> scratch(nvar);
-    mju_mulMatVec(scratch.data(), estimator.weight_prior.data(),
-                  residual.data(), nvar, nvar);
+    mju_mulMatVec(scratch.data(), estimator.PriorWeights(), residual.data(),
+                  nvar, nvar);
 
     // weighted cost
     return 0.5 * estimator.scale_prior / nvar *

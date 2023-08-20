@@ -522,9 +522,17 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  double total_cost =
-      batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
-                  derivatives ? batch_.GetCostHessian() : NULL, thread_pool_);
+  double total_cost = batch_.Cost(
+      derivatives ? batch_.GetCostGradient() : NULL,
+      derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
+
+  // band to dense cost Hessian
+  if (derivatives) {
+    mju_band2Dense(batch_.GetCostHessian(), batch_.GetCostHessianBand(),
+                   batch_.model->nv * batch_.ConfigurationLength(),
+                   3 * batch_.Model()->nv, 0, 1);
+  }
+  
 
   // cost
   response->set_total(total_cost);
@@ -627,10 +635,11 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // prior matrix
-    const double* prior_matrix = batch_.weight_prior_.data();
+    const double* prior_matrix = batch_.PriorWeights();
     for (int i = 0; i < nvar; i++) {
       for (int j = 0; j < nvar; j++) {
-        response->add_prior_matrix(prior_matrix[i * nvar + j]);
+        response->add_prior_matrix(
+            batch_.settings.prior_flag ? prior_matrix[i * nvar + j] : 0.0);
       }
     }
 

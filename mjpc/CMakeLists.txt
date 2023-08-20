@@ -108,6 +108,8 @@ add_library(
   estimators/kalman.cc
   estimators/kalman.h
   estimators/trajectory.h
+  estimators/unscented.cc
+  estimators/unscented.h
   app.cc
   app.h
   norm.cc

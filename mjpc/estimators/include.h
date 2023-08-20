@@ -20,6 +20,7 @@
 
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/kalman.h"
+#include "mjpc/estimators/unscented.h"
 
 namespace mjpc {
 

@@ -30,8 +30,8 @@
 
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
-#include "grpc/estimator.grpc.pb.h"
-#include "grpc/estimator.pb.h"
+#include "grpc/batch.grpc.pb.h"
+#include "grpc/batch.pb.h"
 
 namespace mjpc::batch_grpc {
 

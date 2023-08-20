@@ -344,7 +344,7 @@ class Batch:
       self,
       derivatives: Optional[bool] = False,
       internals: Optional[bool] = False,
-  ) -> dict[str, float | np.ndarray | int]:
+  ) -> dict[str, float | np.ndarray | int | list]:
     # cost request
     request = batch_pb2.CostRequest(
         derivatives=derivatives, internals=internals

@@ -18,7 +18,6 @@
 #include <memory>
 #include <vector>
 
-#include "mjpc/estimators/batch.h"
 #include "mjpc/estimators/estimator.h"
 
 namespace mjpc {

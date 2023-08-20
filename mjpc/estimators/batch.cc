@@ -668,6 +668,9 @@ void Batch::Update(const double* ctrl, const double* sensor) {
     for (int i = ncondition; i < nvar; i++) {
       weights[nvar * i + i] = scale_prior;
     }
+
+    // make block band
+    DenseToBlockBand(weights, nvar, nv, 3);
   } else {
     // dimension
     int nvar_new = nvar;
@@ -690,6 +693,9 @@ void Batch::Update(const double* ctrl, const double* sensor) {
       for (int i = nvar; i < nvar_new; i++) {
         weights[nvar_new * i + i] = scale_prior;
       }
+
+      // make block band
+      DenseToBlockBand(weights, nvar_new, nv, 3);
     }
   }
 
@@ -905,7 +911,6 @@ double Batch::CostPrior(double* gradient, double* hessian) {
   // residual dimension
   int nv = model->nv;
   int dim = model->nv * configuration_length_;
-  // int nband = 3 * model->nv;
 
   // total scaling
   double scale = scale_prior / dim;
@@ -970,47 +975,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
 
     // cost Hessian wrt configuration (sparse)
     if (hessian) {
-      // number of columns to loop over for row
-      // int num_cols = mju_min(3, configuration_length_ - t);
-
-      // for (int j = t; j < t + num_cols; j++) {
-      //   // shift index
-      //   int shift = 0;  // shift_index(i, j);
-
-      //   // unpack
-      //   double* bbij =
-      //       scratch1_prior_.data() + 4 * nv * nv * shift + 0 * nv * nv;
-      //   double* tmp0 =
-      //       scratch1_prior_.data() + 4 * nv * nv * shift + 1 * nv * nv;
-      //   double* tmp1 =
-      //       scratch1_prior_.data() + 4 * nv * nv * shift + 2 * nv * nv;
-      //   double* tmp2 =
-      //       scratch1_prior_.data() + 4 * nv * nv * shift + 3 * nv * nv;
-
-      //   // get matrices
-      //   BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim, t * nv,
-      //                   j * nv);
-      //   const double* bdi = block_prior_current_configuration_.Get(t);
-      //   const double* bdj = block_prior_current_configuration_.Get(j);
-
-      //   // -- bdi' * bbij * bdj -- //
-
-      //   // tmp0 = bbij * bdj
-      //   mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
-
-      //   // tmp1 = bdi' * tmp0
-      //   mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
-
-      //   // set scaled block in matrix
-      //   SetBlockInMatrix(hessian, tmp1, scale, dim, dim, nv, nv, t * nv,
-      //                    j * nv);
-      //   if (j > t) {
-      //     mju_transpose(tmp2, tmp1, nv, nv);
-      //     SetBlockInMatrix(hessian, tmp2, scale, dim, dim, nv, nv, j * nv,
-      //                      t * nv);
-      //   }
-      // }
-
+      // TODO(taylor): skip terms for efficiency
       if (t < configuration_length_ - 2) {
         // mat
         double* mat = scratch2_prior_.data();
@@ -1026,8 +991,6 @@ double Batch::CostPrior(double* gradient, double* hessian) {
                   scratch1_prior_.data() + 1 * nv * nv;
               double* tmp1 =
                   scratch1_prior_.data() + 2 * nv * nv;
-              double* tmp2 =
-                  scratch1_prior_.data() + 3 * nv * nv;
 
               // get matrices
               BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim,
@@ -1046,58 +1009,12 @@ double Batch::CostPrior(double* gradient, double* hessian) {
               // set scaled block in matrix
               SetBlockInMatrix(mat, tmp1, scale, nband, nband, nv, nv, i * nv,
                                j * nv);
-              if (i != j) {
-                mju_transpose(tmp2, tmp1, nv, nv);
-                SetBlockInMatrix(mat, tmp2, scale, nband, nband, nv, nv, j * nv,
-                                 i * nv);
-              }
             }
           }
         }
-
         // set mat in band Hessian
         SetBlockInBand(hessian, mat, 1.0, dim, nband, nband, t * nv, 0, false);
       }
-
-
-    //   // number of columns to loop over for row
-    //   int num_cols = mju_min(3, t + 1);
-
-    //   // mat
-    //   double* mat = scratch2_prior_.data();
-    //   mju_zero(mat, nband * nband);
-
-    //   for (int j = t; j < t + num_cols; j++) {
-    //     // unpack
-    //     double* bbij =
-    //         scratch1_prior_.data();
-    //     double* tmp0 =
-    //         scratch1_prior_.data() + 1 * nv * nv;
-    //     double* tmp1 =
-    //         scratch1_prior_.data() + 2 * nv * nv;
-
-    //     // get matrices
-    //     BlockFromMatrix(bbij, weight_prior.data(), nv, nv, dim, dim, t * nv,
-    //                     j * nv);
-    //     const double* bdi = block_prior_current_configuration_.Get(t);
-    //     const double* bdj = block_prior_current_configuration_.Get(j);
-
-    //     // -- bdi' * bbij * bdj -- //
-
-    //     // tmp0 = bbij * bdj
-    //     mju_mulMatMat(tmp0, bbij, bdj, nv, nv, nv);
-
-    //     // tmp1 = bdi' * tmp0
-    //     mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
-
-    //     // set scaled block in mat
-    //     SetBlockInMatrix(mat, tmp1, scale, num_cols * nv, num_cols * nv, nv, nv,
-    //                      (num_cols - 1) * nv, (j - t) * nv);
-    //   }
-
-    //   // set mat in band Hessian
-    //   SetBlockInBand(hessian, mat, 1.0, dim, nband, num_cols * nv,
-    //                  std::max(-2 * nv + t * nv, 0), (num_cols - 1) * nv);
     }
   }
 
@@ -2230,7 +2147,7 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   bool gradient_flag = (gradient ? true : false);
   bool hessian_flag = (hessian ? true : false);
 
-  // -- individual derivatives -- //
+  // -- individual cost derivatives -- //
 
   // prior
   if (settings.prior_flag) {

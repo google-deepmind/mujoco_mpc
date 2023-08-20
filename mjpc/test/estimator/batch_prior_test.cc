@@ -35,7 +35,7 @@ TEST(PriorCost, Particle) {
   int nq = model->nq, nv = model->nv;
 
   // ----- rollout ----- //
-  int T = 10;
+  int T = 5;
   Simulation sim(model, T);
   auto controller = [](double* ctrl, double time) {
     ctrl[0] = mju_sin(10 * time);
@@ -74,6 +74,9 @@ TEST(PriorCost, Particle) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
+
+  // make block band 
+  DenseToBlockBand(P.data(), nvar, nv, 3);
 
   // set prior
   mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
@@ -161,7 +164,7 @@ TEST(PriorCost, Particle) {
   mju_sub(hessian_error.data(), cost_hessian.data(), fdh.hessian.data(),
           nvar * nvar);
   EXPECT_NEAR(mju_norm(hessian_error.data(), nvar * nvar) / (nvar * nvar), 0.0,
-              1.0e-3);
+              1.0e-4);
 
   // delete data + model
   mj_deleteData(data);
@@ -217,6 +220,9 @@ TEST(PriorCost, Box) {
     F[i] = 0.1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
+
+  // make block band 
+  DenseToBlockBand(P.data(), nvar, nv, 3);
 
   // set prior
   mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);

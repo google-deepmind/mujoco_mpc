@@ -255,7 +255,12 @@ class Batch : public Estimator {
 
     // set weights
     mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
-    mju_dense2Band(weight_prior_band_.data(), weights, ntotal, nband, 0);
+
+    // make block band
+    DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
+    
+    // dense to band
+    mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal, nband, 0);
 
     // set scaling
     scale_prior = scale;
@@ -565,21 +570,11 @@ class Batch : public Estimator {
       cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)
 
   // cost scratch
+  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv
   std::vector<double>
-      scratch0_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch2_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch0_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double>
-      scratch1_sensor_;  // (max(ns, 3 * nv) * max(ns, 3 * nv) * max_history_)
-  std::vector<double>
-      scratch0_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> scratch_expected_;      // nv * max_history_
+      scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
+  std::vector<double> scratch_force_;     // 12 * nv * nv
+  std::vector<double> scratch_expected_;  // nv * max_history_
 
   // search direction
   std::vector<double> search_direction_;  // nv * max_history_
@@ -589,14 +584,6 @@ class Batch : public Estimator {
       weight_prior_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
-
-  // covariance
-  std::vector<double>
-      prior_matrix_factor_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch0_covariance_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      scratch1_covariance_;  // (nv * max_history_) * (nv * max_history_)
 
   // conditioned matrix
   std::vector<double> mat00_;

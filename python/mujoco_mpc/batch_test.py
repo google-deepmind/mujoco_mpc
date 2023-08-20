@@ -328,53 +328,49 @@ class BatchTest(absltest.TestCase):
         model=model, configuration_length=configuration_length
     )
 
-    # TODO(taylor): better tests
-
     # cost
-    # cost = batch.cost(derivatives=True, internals=True)
+    cost = batch.cost(derivatives=True, internals=True)
 
-    # self.assertLess(np.abs(cost["total"] - 0.0), 1.0e-5)
+    self.assertLess(np.abs(cost["total"] - 0.0), 1.0e-5)
 
-    # # cost prior
-    # self.assertLess(np.abs(cost["prior"] - 0.0), 1.0e-5)
+    # cost prior
+    self.assertLess(np.abs(cost["prior"] - 0.0), 1.0e-5)
 
-    # # cost sensor
-    # self.assertLess(np.abs(cost["sensor"] - 0.0), 1.0e-5)
+    # cost sensor
+    self.assertLess(np.abs(cost["sensor"] - 0.0), 1.0e-5)
 
-    # # cost force
-    # self.assertLess(np.abs(cost["force"] - 0.0), 1.0e-5)
+    # cost force
+    self.assertLess(np.abs(cost["force"] - 0.0), 1.0e-5)
 
-    # # cost initial
-    # self.assertLess(np.abs(cost["initial"] - 0.0), 1.0e-5)
+    # cost initial
+    self.assertLess(np.abs(cost["initial"] - 0.0), 1.0e-5)
 
-    # # derivatives
-    # nvar = model.nv * configuration_length
-    # nsensor = model.nsensordata * (configuration_length - 1)
-    # nforce = model.nv * (configuration_length - 2)
+    # derivatives
+    nvar = model.nv * configuration_length
+    nsensor = model.nsensordata * (configuration_length - 1)
+    nforce = model.nv * (configuration_length - 2)
 
-    # self.assertTrue(nvar == cost["nvar"])
-    # self.assertTrue(nsensor == cost["nsensor"])
-    # self.assertTrue(nforce == cost["nforce"])
+    self.assertTrue(nvar == cost["nvar"])
+    self.assertTrue(nsensor == cost["nsensor"])
+    self.assertTrue(nforce == cost["nforce"])
 
-    # self.assertTrue(cost["gradient"].size == nvar)
-    # self.assertTrue(cost["hessian"].shape == (nvar, nvar))
+    self.assertTrue(cost["gradient"].size == nvar)
+    self.assertTrue(cost["hessian"].shape == (nvar, nvar))
 
-    # self.assertTrue(cost["residual_prior"].size == nvar)
-    # self.assertTrue(cost["residual_sensor"].size == nsensor)
-    # self.assertTrue(cost["residual_force"].size == nforce)
+    self.assertTrue(cost["residual_prior"].size == nvar)
+    self.assertTrue(cost["residual_sensor"].size == nsensor)
+    self.assertTrue(cost["residual_force"].size == nforce)
 
-    # self.assertTrue(cost["jacobian_prior"].shape == (nvar, nvar))
-    # self.assertTrue(cost["jacobian_sensor"].shape == (nsensor, nvar))
-    # self.assertTrue(cost["jacobian_force"].shape == (nforce, nvar))
+    self.assertTrue(cost["jacobian_prior"].shape == (nvar, nvar))
+    self.assertTrue(cost["jacobian_sensor"].shape == (nsensor, nvar))
+    self.assertTrue(cost["jacobian_force"].shape == (nforce, nvar))
 
-    # self.assertTrue(cost["norm_gradient_sensor"].size == nsensor)
-    # self.assertTrue(cost["norm_gradient_force"].size == nforce)
+    self.assertTrue(cost["norm_gradient_sensor"].size == nsensor)
+    self.assertTrue(cost["norm_gradient_force"].size == nforce)
 
-    # self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
-    # self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
-    # self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
-
-    # TODO(taylor): internals
+    self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
+    self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
+    self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
 
   def test_noise(self):
     # load model
@@ -549,18 +545,18 @@ class BatchTest(absltest.TestCase):
     dim = configuration_length * model.nv
 
     # get uninitialized (zero) matrix
-    # prior0 = batch.prior_weights()
+    prior0 = batch.prior_weights()
 
-    # # test
-    # self.assertTrue(prior0.shape == (dim, dim))
-    # self.assertTrue(not prior0.any())
+    # test
+    self.assertTrue(prior0.shape == (dim, dim))
+    self.assertTrue(not prior0.any())
 
-    # random
-    # in_weights = np.random.rand(dim, dim)
-    # out_prior = batch.prior_weights(weights=in_weights)
+    # identity
+    in_weights = np.eye(dim)
+    out_prior = batch.prior_weights(weights=in_weights)
 
-    # # test
-    # self.assertLess(np.linalg.norm(in_weights - out_prior), 1.0e-4)
+    # test
+    self.assertLess(np.linalg.norm(in_weights - out_prior), 1.0e-4)
 
   def test_norm(self):
     # load model
@@ -599,9 +595,6 @@ class BatchTest(absltest.TestCase):
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
         1.0e-5,
     )
-
-  # TODO(taylor): test initialize_data, update_data()
-
 
 if __name__ == "__main__":
   absltest.main()

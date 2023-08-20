@@ -338,7 +338,7 @@ class Batch:
       self,
       derivatives: Optional[bool] = False,
       internals: Optional[bool] = False,
-  ) -> dict[str, float | np.ndarray | int | list]:
+  ):
     # cost request
     request = batch_pb2.CostRequest(
         derivatives=derivatives, internals=internals
@@ -498,7 +498,7 @@ class Batch:
       elif code == 3:
         return "SMALL_DIRECTION_FAILURE"
       elif code == 4:
-        return "kMaxBatchRegularization_FAILURE"
+        return "MAX_REGULARIZATION_FAILURE"
       elif code == 5:
         return "COST_DIFFERENCE_FAILURE"
       elif code == 6:

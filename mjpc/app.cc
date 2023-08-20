@@ -166,7 +166,6 @@ void EstimatorLoop(mj::Simulate& sim) {
           mju_copy(sim.agent->sensor.data(), d->sensordata, m->nsensordata);
 
           // copy simulation time
-          sim.agent->time = d->time;
           estimator->Data()->time = d->time;
 
           // copy simulation mocap
@@ -183,7 +182,7 @@ void EstimatorLoop(mj::Simulate& sim) {
         // copy state
         mju_copy(sim.agent->estimator_state.data(), estimator->State(),
                  m->nq + m->nv + m->na);
-        sim.agent->time = estimator->Data()->time;
+        sim.agent->time = estimator->Time();
 
         // wait (ms)
         while (1.0e-3 * mjpc::GetDuration(start) <

@@ -197,13 +197,11 @@ void Batch::Initialize(const mjModel* model) {
   cost_hessian_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_band_.resize((nv * max_history_) * (3 * nv));
   cost_hessian_band_factor_.resize((nv * max_history_) * (3 * nv));
-  cost_hessian_factor_.resize((nv * max_history_) * (nv * max_history_));
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
   weight_prior.resize((nv * max_history_) * (nv * max_history_));
   weight_prior_band_.resize((nv * max_history_) * (nv * max_history_));
-  scratch_prior_weight_.resize(2 * nv * nv);
 
   // cost norms
   norm_type_sensor.resize(nsensor_);
@@ -465,12 +463,10 @@ void Batch::Reset(const mjData* data) {
   std::fill(cost_hessian_band_.begin(), cost_hessian_band_.end(), 0.0);
   std::fill(cost_hessian_band_factor_.begin(), cost_hessian_band_factor_.end(),
             0.0);
-  std::fill(cost_hessian_factor_.begin(), cost_hessian_factor_.end(), 0.0);
 
   // weight
   std::fill(weight_prior.begin(), weight_prior.end(), 0.0);
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
-  std::fill(scratch_prior_weight_.begin(), scratch_prior_weight_.end(), 0.0);
 
   // norm
   std::fill(norm_sensor_.begin(), norm_sensor_.end(), 0.0);

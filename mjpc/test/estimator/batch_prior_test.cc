@@ -49,7 +49,6 @@ TEST(PriorCost, Particle) {
   estimator.settings.prior_flag = true;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = false;
-  estimator.settings.band_prior = true;
 
   // copy configuration, prior
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -193,7 +192,6 @@ TEST(PriorCost, Box) {
   estimator.settings.prior_flag = true;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = false;
-  estimator.settings.band_prior = true;
 
   // copy configuration, prior
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);

@@ -298,13 +298,11 @@ class Batch : public Estimator {
     bool verbose_optimize = false;   // flag for printing optimize status
     bool verbose_cost = false;       // flag for printing cost
     bool verbose_prior = false;  // flag for printing prior weight update status
-    bool band_prior = true;      // approximate covariance for prior
     SearchType search_type =
         kCurveSearch;           // search type (line search, curve search)
     double step_scaling = 0.5;  // step size scaling
     double regularization_initial = 1.0e-12;       // initial regularization
     double regularization_scaling = mju_sqrt(10);  // regularization scaling
-    bool band_copy = true;                       // copy band matrices by block
     bool time_scaling_force = true;              // scale force costs
     bool time_scaling_sensor = true;             // scale sensor costs
     double search_direction_tolerance = 1.0e-8;  // search direction tolerance

@@ -429,12 +429,6 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   }
   output->set_regularization_scaling(batch_.settings.regularization_scaling);
 
-  // band copy
-  if (input.has_band_copy()) {
-    batch_.settings.band_copy = input.band_copy();
-  }
-  output->set_band_copy(batch_.settings.band_copy);
-
   // time scaling (force)
   if (input.has_time_scaling_force()) {
     batch_.settings.time_scaling_force = input.time_scaling_force();

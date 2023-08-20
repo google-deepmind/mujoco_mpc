@@ -91,21 +91,19 @@ message Settings {
   optional bool verbose_optimize = 9;
   optional bool verbose_cost = 10;
   optional bool verbose_prior = 11;
-  optional bool band_prior = 12;
-  optional int32 search_type = 13;
-  optional double step_scaling = 14;
-  optional double regularization_initial = 15;
-  optional double regularization_scaling = 16;
-  optional bool band_copy = 17;
-  optional bool time_scaling_force = 18;
-  optional bool time_scaling_sensor = 19;
-  optional double search_direction_tolerance = 20;
-  optional double cost_tolerance = 21;
-  optional bool assemble_prior_jacobian = 22;
-  optional bool assemble_sensor_jacobian = 23;
-  optional bool assemble_force_jacobian = 24;
-  optional bool assemble_sensor_norm_hessian = 25;
-  optional bool assemble_force_norm_hessian = 26;
+  optional int32 search_type = 12;
+  optional double step_scaling = 13;
+  optional double regularization_initial = 14;
+  optional double regularization_scaling = 15;
+  optional bool time_scaling_force = 16;
+  optional bool time_scaling_sensor = 17;
+  optional double search_direction_tolerance = 18;
+  optional double cost_tolerance = 19;
+  optional bool assemble_prior_jacobian = 20;
+  optional bool assemble_sensor_jacobian = 21;
+  optional bool assemble_force_jacobian = 22;
+  optional bool assemble_sensor_norm_hessian = 23;
+  optional bool assemble_force_norm_hessian = 24;
 }
 
 message SettingsRequest {

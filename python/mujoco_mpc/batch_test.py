@@ -258,11 +258,6 @@ class BatchTest(absltest.TestCase):
         1.0e-4,
     )
 
-    # get/set band copy
-    in_band_copy = False
-    settings = batch.settings(band_copy=in_band_copy)
-    self.assertTrue(in_band_copy == settings["band_copy"])
-
     # get/set search direction tolerance
     search_direction_tolerance = 3.3
     settings = batch.settings(

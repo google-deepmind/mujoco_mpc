@@ -2255,7 +2255,6 @@ void Batch::TotalHessian(double* hessian) {
   int ntotal = nv * configuration_length_;
   int nband = 3 * nv;
 
-  // if (settings.band_copy) {
   // zero memory
   mju_zero(hessian, ntotal * nband);
 

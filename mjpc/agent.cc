@@ -36,7 +36,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
-#include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -641,6 +640,19 @@ void Agent::TaskEvent(mjuiItem* it, mjData* data,
     case 0:  // task reset
       ActiveTask()->Reset(model_);
       ActiveTask()->reset = 0;
+      break;
+    case 2:  // task switch
+      // the GUI changed the value of gui_task_id, but it's unsafe to switch
+      // tasks now.
+      // turn off agent and traces
+      plan_enabled = false;
+      action_enabled = false;
+      visualize_enabled = false;
+      ActiveTask()->visualize = 0;
+      ActiveTask()->reset = 0;
+      allocate_enabled = true;
+      // request model loading
+      uiloadrequest.fetch_add(1);
       break;
   }
 }

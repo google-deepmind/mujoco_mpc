@@ -48,7 +48,7 @@ class Agent {
 
   // constructor
   Agent()
-      : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
+      : planners_(mjpc::LoadPlanners()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor

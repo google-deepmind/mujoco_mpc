@@ -26,8 +26,6 @@
 
 namespace mjpc {
 
-// TODO(taylor): implement UKF algorithm
-
 // THE SQUARE-ROOT UNSCENTED Kalman FILTER FOR STATE AND PARAMETER-ESTIMATION
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
 class Unscented : public Estimator {

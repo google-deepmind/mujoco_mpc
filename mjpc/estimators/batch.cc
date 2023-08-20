@@ -185,7 +185,7 @@ void Batch::Initialize(const mjModel* model) {
   cost_gradient_prior_.resize(nv * max_history_);
   cost_gradient_sensor_.resize(nv * max_history_);
   cost_gradient_force_.resize(nv * max_history_);
-  cost_gradient.resize(nv * max_history_);
+  cost_gradient_.resize(nv * max_history_);
 
   // cost Hessian
   cost_hessian_prior_.resize((nv * max_history_) * (nv * max_history_));
@@ -194,7 +194,7 @@ void Batch::Initialize(const mjModel* model) {
   cost_hessian_sensor_band_.resize((nv * max_history_) * (3 * nv));
   cost_hessian_force_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_force_band_.resize((nv * max_history_) * (3 * nv));
-  cost_hessian.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_band_.resize((nv * max_history_) * (3 * nv));
   cost_hessian_band_factor_.resize((nv * max_history_) * (3 * nv));
   cost_hessian_factor_.resize((nv * max_history_) * (nv * max_history_));
@@ -449,7 +449,7 @@ void Batch::Reset(const mjData* data) {
   std::fill(cost_gradient_prior_.begin(), cost_gradient_prior_.end(), 0.0);
   std::fill(cost_gradient_sensor_.begin(), cost_gradient_sensor_.end(), 0.0);
   std::fill(cost_gradient_force_.begin(), cost_gradient_force_.end(), 0.0);
-  std::fill(cost_gradient.begin(), cost_gradient.end(), 0.0);
+  std::fill(cost_gradient_.begin(), cost_gradient_.end(), 0.0);
 
   // cost Hessian
   std::fill(cost_hessian_prior_.begin(), cost_hessian_prior_.end(), 0.0);
@@ -461,7 +461,7 @@ void Batch::Reset(const mjData* data) {
   std::fill(cost_hessian_force_.begin(), cost_hessian_force_.end(), 0.0);
   std::fill(cost_hessian_force_band_.begin(), cost_hessian_force_band_.end(),
             0.0);
-  std::fill(cost_hessian.begin(), cost_hessian.end(), 0.0);
+  std::fill(cost_hessian_.begin(), cost_hessian_.end(), 0.0);
   std::fill(cost_hessian_band_.begin(), cost_hessian_band_.end(), 0.0);
   std::fill(cost_hessian_band_factor_.begin(), cost_hessian_band_factor_.end(),
             0.0);
@@ -648,12 +648,12 @@ void Batch::Update(const double* ctrl, const double* sensor) {
     int ncondition = nv * (configuration_length_ - 1);
 
     // band to dense cost Hessian
-    mju_band2Dense(cost_hessian.data(), cost_hessian_band_.data(), nvar, nband,
+    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), nvar, nband,
                    0, 1);
 
     // compute conditioned matrix
     double* condmat = condmat_.data();
-    ConditionMatrix(condmat, cost_hessian.data(), mat00_.data(), mat10_.data(),
+    ConditionMatrix(condmat, cost_hessian_.data(), mat00_.data(), mat10_.data(),
                     mat11_.data(), scratch0_condmat_.data(),
                     scratch1_condmat_.data(), nvar, nv, ncondition);
 
@@ -2312,13 +2312,13 @@ void Batch::Optimize(ThreadPool& pool) {
        iterations_smoother_++) {
     // evalute cost derivatives
     cost_skip_ = true;
-    Cost(cost_gradient.data(), cost_hessian_band_.data(), pool);
+    Cost(cost_gradient_.data(), cost_hessian_band_.data(), pool);
 
     // start timer
     auto start_search = std::chrono::steady_clock::now();
 
     // -- gradient -- //
-    double* gradient = cost_gradient.data();
+    double* gradient = cost_gradient_.data();
 
     // gradient tolerance check
     gradient_norm_ = mju_norm(gradient, nvar) / nvar;
@@ -2439,7 +2439,7 @@ void Batch::Optimize(ThreadPool& pool) {
       // expected = g' d + 0.5 d' H d
 
       // g' * d
-      expected_ = mju_dot(cost_gradient.data(), search_direction_.data(), nvar);
+      expected_ = mju_dot(cost_gradient_.data(), search_direction_.data(), nvar);
 
       // tmp = H * d
       double* tmp = scratch_expected_.data();
@@ -2511,7 +2511,7 @@ void Batch::SearchDirection() {
 
   // unpack
   double* direction = search_direction_.data();
-  double* gradient = cost_gradient.data();
+  double* gradient = cost_gradient_.data();
   double* hessian_band = cost_hessian_band_.data();
   double* hessian_band_factor = cost_hessian_band_factor_.data();
 

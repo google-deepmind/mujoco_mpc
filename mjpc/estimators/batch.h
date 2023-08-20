@@ -205,8 +205,8 @@ class Batch : public Estimator {
   double GetCostPrior() { return cost_prior_; }
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
-  double* GetCostGradient() { return cost_gradient.data(); }
-  double* GetCostHessian() { return cost_hessian.data(); }
+  double* GetCostGradient() { return cost_gradient_.data(); }
+  double* GetCostHessian() { return cost_hessian_.data(); }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
@@ -435,15 +435,6 @@ class Batch : public Estimator {
   double cost_initial_;
   double cost_previous_;
 
-  // TODO(taylor): underscore
-
-  // cost gradient
-  std::vector<double> cost_gradient;  // nv * max_history_
-
-  // cost Hessian
-  std::vector<double>
-      cost_hessian;  // (nv * max_history_) * (nv * max_history_)
-
   // lengths
   int configuration_length_;  // T
 
@@ -535,6 +526,7 @@ class Batch : public Estimator {
   std::vector<double> cost_gradient_prior_;   // nv * max_history_
   std::vector<double> cost_gradient_sensor_;  // nv * max_history_
   std::vector<double> cost_gradient_force_;   // nv * max_history_
+  std::vector<double> cost_gradient_;  // nv * max_history_
 
   // cost Hessian
   std::vector<double>
@@ -549,6 +541,8 @@ class Batch : public Estimator {
       cost_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       cost_hessian_force_band_;            // (nv * max_history_) * (3 * nv)
+  std::vector<double>
+      cost_hessian_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
       cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)

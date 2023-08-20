@@ -2088,7 +2088,6 @@ void Batch::ShiftResizeTrajectory(int new_head, int new_length) {
 }
 
 // compute total cost
-// TODO(taylor): fix timers
 double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   // start timer
   auto start = std::chrono::steady_clock::now();
@@ -2118,13 +2117,6 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
       batch.cost_prior_ = batch.CostPrior(
           gradient_flag ? batch.cost_gradient_prior_.data() : NULL,
           hessian_flag ? batch.cost_hessian_prior_band_.data() : NULL);
-
-      // if (hessian_flag) {
-      //   mju_dense2Band(batch.cost_hessian_prior_band_.data(),
-      //                  batch.cost_hessian_prior_.data(),
-      //                  batch.model->nv * batch.configuration_length_,
-      //                  3 * batch.model->nv, 0);
-      // }
     });
   }
 

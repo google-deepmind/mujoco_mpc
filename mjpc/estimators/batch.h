@@ -228,11 +228,11 @@ class Batch : public Estimator {
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
   const double* GetJacobianPrior() {
-    // dimensions 
+    // dimensions
     int nv = model->nv;
     int ntotal = nv * configuration_length_;
 
-    // resize 
+    // resize
     jacobian_prior_.resize(ntotal * ntotal);
 
     // change setting
@@ -363,9 +363,9 @@ class Batch : public Estimator {
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
 
-  // set prior weights 
+  // set prior weights
   void SetPriorWeights(const double* weights, double scale = 1.0) {
-    // dimension 
+    // dimension
     int nv = model->nv;
     int ntotal = nv * configuration_length_;
     int nband = 3 * nv;
@@ -381,7 +381,8 @@ class Batch : public Estimator {
     DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
 
     // dense to band
-    mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal, nband, 0);
+    mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal,
+                   nband, 0);
 
     // set scaling
     scale_prior = scale;

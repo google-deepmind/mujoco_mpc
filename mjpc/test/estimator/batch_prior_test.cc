@@ -72,7 +72,7 @@ TEST(PriorCost, Particle) {
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
 
-  // make block band 
+  // make block band
   DenseToBlockBand(P.data(), nvar, nv, 3);
 
   // set prior weights
@@ -215,7 +215,7 @@ TEST(PriorCost, Box) {
   }
   mju_mulMatTMat(P.data(), F.data(), F.data(), nvar, nvar, nvar);
 
-  // make block band 
+  // make block band
   DenseToBlockBand(P.data(), nvar, nv, 3);
 
   // set prior weights

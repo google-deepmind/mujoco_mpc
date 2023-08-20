@@ -2402,7 +2402,8 @@ void Batch::Optimize(ThreadPool& pool) {
       // expected = g' d + 0.5 d' H d
 
       // g' * d
-      expected_ = mju_dot(cost_gradient_.data(), search_direction_.data(), nvar);
+      expected_ =
+          mju_dot(cost_gradient_.data(), search_direction_.data(), nvar);
 
       // tmp = H * d
       double* tmp = scratch_expected_.data();

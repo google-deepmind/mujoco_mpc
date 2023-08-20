@@ -396,12 +396,6 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   }
   output->set_verbose_prior(batch_.settings.verbose_prior);
 
-  // band prior
-  if (input.has_band_prior()) {
-    batch_.settings.band_prior = input.band_prior();
-  }
-  output->set_band_prior(batch_.settings.band_prior);
-
   // search type
   if (input.has_search_type()) {
     // unpack

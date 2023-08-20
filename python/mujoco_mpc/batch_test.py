@@ -232,11 +232,6 @@ class BatchTest(absltest.TestCase):
     settings = batch.settings(verbose_prior=verbose_prior)
     self.assertTrue(verbose_prior == settings["verbose_prior"])
 
-    # get/set band prior
-    band_prior = False
-    settings = batch.settings(band_prior=band_prior)
-    self.assertTrue(band_prior == settings["band_prior"])
-
     # get/set search type
     in_search_type = 0
     settings = batch.settings(search_type=in_search_type)

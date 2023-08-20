@@ -507,13 +507,6 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   double total_cost = batch_.Cost(
       derivatives ? batch_.GetCostGradient() : NULL,
       derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
-
-  // band to dense cost Hessian
-  if (derivatives) {
-    mju_band2Dense(batch_.GetCostHessian(), batch_.GetCostHessianBand(),
-                   batch_.model->nv * batch_.ConfigurationLength(),
-                   3 * batch_.Model()->nv, 0, 1);
-  }
   
   // cost
   response->set_total(total_cost);

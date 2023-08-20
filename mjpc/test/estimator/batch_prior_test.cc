@@ -45,8 +45,6 @@ TEST(PriorCost, Particle) {
 
   // ----- estimator ----- //
   Batch estimator(model, T);
-  estimator.scale_prior = 5.0;
-  estimator.settings.prior_flag = true;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = false;
 
@@ -77,8 +75,8 @@ TEST(PriorCost, Particle) {
   // make block band 
   DenseToBlockBand(P.data(), nvar, nv, 3);
 
-  // set prior
-  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
+  // set prior weights
+  estimator.SetPriorWeights(P.data(), 5.0);
 
   // ----- cost ----- //
   auto cost_prior = [&estimator = estimator,
@@ -188,8 +186,6 @@ TEST(PriorCost, Box) {
 
   // ----- estimator ----- //
   Batch estimator(model, T);
-  estimator.scale_prior = 5.0;
-  estimator.settings.prior_flag = true;
   estimator.settings.sensor_flag = false;
   estimator.settings.force_flag = false;
 
@@ -222,8 +218,8 @@ TEST(PriorCost, Box) {
   // make block band 
   DenseToBlockBand(P.data(), nvar, nv, 3);
 
-  // set prior
-  mju_copy(estimator.weight_prior.data(), P.data(), nvar * nvar);
+  // set prior weights
+  estimator.SetPriorWeights(P.data(), 5.0);
 
   // ----- cost ----- //
   auto cost_prior = [&estimator = estimator,

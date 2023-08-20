@@ -120,9 +120,12 @@ void Batch::Initialize(const mjModel* model) {
   residual_force_.resize(nv * max_history_);
 
   // Jacobian
-  jacobian_prior_.resize((nv * max_history_) * (nv * max_history_));
-  jacobian_sensor_.resize((nsensordata_ * max_history_) * (nv * max_history_));
-  jacobian_force_.resize((nv * max_history_) * (nv * max_history_));
+  jacobian_prior_.resize(settings.assemble_prior_jacobian *
+                         (nv * max_history_) * (nv * max_history_));
+  jacobian_sensor_.resize(settings.assemble_sensor_jacobian *
+                          (nsensordata_ * max_history_) * (nv * max_history_));
+  jacobian_force_.resize(settings.assemble_force_jacobian *
+                         (nv * max_history_) * (nv * max_history_));
 
   // prior Jacobian block
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
@@ -188,20 +191,19 @@ void Batch::Initialize(const mjModel* model) {
   cost_gradient_.resize(nv * max_history_);
 
   // cost Hessian
-  cost_hessian_prior_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_prior_band_.resize((nv * max_history_) * (3 * nv));
-  cost_hessian_sensor_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_sensor_band_.resize((nv * max_history_) * (3 * nv));
-  cost_hessian_force_.resize((nv * max_history_) * (nv * max_history_));
   cost_hessian_force_band_.resize((nv * max_history_) * (3 * nv));
-  cost_hessian_.resize((nv * max_history_) * (nv * max_history_));
+  cost_hessian_.resize(settings.filter * (nv * max_history_) * (nv * max_history_));
   cost_hessian_band_.resize((nv * max_history_) * (3 * nv));
   cost_hessian_band_factor_.resize((nv * max_history_) * (3 * nv));
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior.resize((nv * max_history_) * (nv * max_history_));
-  weight_prior_band_.resize((nv * max_history_) * (nv * max_history_));
+  weight_prior.resize(settings.prior_flag * (nv * max_history_) *
+                      (nv * max_history_));
+  weight_prior_band_.resize(settings.prior_flag * (nv * max_history_) *
+                            (3 * nv));
 
   // cost norms
   norm_type_sensor.resize(nsensor_);
@@ -450,13 +452,10 @@ void Batch::Reset(const mjData* data) {
   std::fill(cost_gradient_.begin(), cost_gradient_.end(), 0.0);
 
   // cost Hessian
-  std::fill(cost_hessian_prior_.begin(), cost_hessian_prior_.end(), 0.0);
   std::fill(cost_hessian_prior_band_.begin(), cost_hessian_prior_band_.end(),
             0.0);
-  std::fill(cost_hessian_sensor_.begin(), cost_hessian_sensor_.end(), 0.0);
   std::fill(cost_hessian_sensor_band_.begin(), cost_hessian_sensor_band_.end(),
             0.0);
-  std::fill(cost_hessian_force_.begin(), cost_hessian_force_.end(), 0.0);
   std::fill(cost_hessian_force_band_.begin(), cost_hessian_force_band_.end(),
             0.0);
   std::fill(cost_hessian_.begin(), cost_hessian_.end(), 0.0);

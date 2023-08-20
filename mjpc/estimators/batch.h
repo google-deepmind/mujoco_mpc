@@ -242,6 +242,28 @@ class Batch : public Estimator {
   double Expected() const { return expected_; }
   double ReductionRatio() const { return reduction_ratio_; }
 
+  // set prior weights 
+  void SetPriorWeights(const double* weights, double scale = 1.0) {
+    // dimension 
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nband = 3 * nv;
+
+    // allocate memory
+    weight_prior.resize(ntotal * ntotal);
+    weight_prior_band_.resize(ntotal * (3 * nv));
+
+    // set weights
+    mju_copy(weight_prior.data(), weights, ntotal * ntotal);
+    mju_dense2Band(weight_prior_band_.data(), weights, ntotal, nband, 0);
+
+    // set scaling
+    scale_prior = scale;
+
+    // set flag
+    settings.prior_flag = true;
+  }
+
   // model
   mjModel* model = nullptr;
 
@@ -530,17 +552,11 @@ class Batch : public Estimator {
 
   // cost Hessian
   std::vector<double>
-      cost_hessian_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
       cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv)
-  std::vector<double>
-      cost_hessian_sensor_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double>
       cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
-      cost_hessian_force_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      cost_hessian_force_band_;            // (nv * max_history_) * (3 * nv)
+      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv)
   std::vector<double>
       cost_hessian_;  // (nv * max_history_) * (nv * max_history_)
   std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)

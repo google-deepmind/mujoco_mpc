@@ -205,20 +205,141 @@ class Batch : public Estimator {
   double GetCostPrior() { return cost_prior_; }
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
-  double* GetCostGradient() { return cost_gradient_.data(); }
-  double* GetCostHessian() { return cost_hessian_.data(); }
+  const double* GetCostGradient() { return cost_gradient_.data(); }
+  const double* GetCostHessian() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nband = 3 * nv;
+
+    // resize
+    cost_hessian_.resize(ntotal * ntotal);
+
+    // band to dense
+    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal,
+                   nband, 0, 1);
+
+    // return dense Hessian
+    return cost_hessian_.data();
+  }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
-  const double* GetJacobianPrior() { return jacobian_prior_.data(); }
-  const double* GetJacobianSensor() { return jacobian_sensor_.data(); }
-  const double* GetJacobianForce() { return jacobian_force_.data(); }
+  const double* GetJacobianPrior() {
+    // dimensions 
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+
+    // resize 
+    jacobian_prior_.resize(ntotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_prior_jacobian;
+    settings.assemble_prior_jacobian = true;
+
+    // loop over configurations to assemble Jacobian
+    for (int t = 0; t < configuration_length_; t++) {
+      BlockPrior(t);
+    }
+
+    // restore setting
+    settings.assemble_prior_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_prior_.data();
+  }
+  const double* GetJacobianSensor() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+    // resize
+    jacobian_sensor_.resize(nsensortotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_sensor_jacobian;
+    settings.assemble_sensor_jacobian = true;
+
+    // loop over sensors
+    for (int t = 0; t < configuration_length_ - 1; t++) {
+      BlockSensor(t);
+    }
+
+    // restore setting
+    settings.assemble_sensor_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_sensor_.data();
+  }
+  const double* GetJacobianForce() {
+    // dimensions
+    int nv = model->nv;
+    int ntotal = nv * configuration_length_;
+    int nforcetotal = nv * (configuration_length_ - 2);
+
+    // resize
+    jacobian_force_.resize(nforcetotal * ntotal);
+
+    // change setting
+    int settings_cache = settings.assemble_force_jacobian;
+    settings.assemble_force_jacobian = true;
+
+    // loop over sensors
+    for (int t = 1; t < configuration_length_ - 1; t++) {
+      BlockForce(t);
+    }
+
+    // restore setting
+    settings.assemble_force_jacobian = settings_cache;
+
+    // return dense Jacobian
+    return jacobian_force_.data();
+  }
   const double* GetNormGradientSensor() { return norm_gradient_sensor_.data(); }
   const double* GetNormGradientForce() { return norm_gradient_force_.data(); }
-  const double* GetNormHessianSensor() { return norm_hessian_sensor_.data(); }
-  const double* GetNormHessianForce() { return norm_hessian_force_.data(); }
+  const double* GetNormHessianSensor() {
+    // dimensions
+    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+    // resize
+    norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
+
+    // change setting
+    int settings_cache = settings.assemble_sensor_norm_hessian;
+    settings.assemble_sensor_norm_hessian = true;
+
+    // evalute
+    CostSensor(NULL, NULL);
+
+    // restore setting
+    settings.assemble_sensor_norm_hessian = settings_cache;
+
+    // return dense Hessian
+    return norm_hessian_sensor_.data();
+  }
+  const double* GetNormHessianForce() {
+    // dimensions
+    int nforcetotal = model->nv * (configuration_length_ - 2);
+
+    // resize
+    norm_hessian_force_.resize(nforcetotal * nforcetotal);
+
+    // change setting
+    int settings_cache = settings.assemble_force_norm_hessian;
+    settings.assemble_force_norm_hessian = true;
+
+    // evalute
+    CostForce(NULL, NULL);
+
+    // restore setting
+    settings.assemble_force_norm_hessian = settings_cache;
+
+    // return dense Hessian
+    return norm_hessian_force_.data();
+  }
 
   // get configuration length
   int ConfigurationLength() const { return configuration_length_; }
@@ -258,7 +379,7 @@ class Batch : public Estimator {
 
     // make block band
     DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
-    
+
     // dense to band
     mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal, nband, 0);
 

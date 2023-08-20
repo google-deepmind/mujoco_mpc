@@ -22,6 +22,8 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
+#include "mjpc/estimators/estimator.h"
+#include "mjpc/estimators/gui.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -84,6 +86,11 @@ void Batch::Initialize(const mjModel* model) {
   // length of configuration trajectory
   configuration_length_ =
       GetNumberOrDefault(3, model, "batch_configuration_length");
+
+  // check configuration length
+  if (configuration_length_ > max_history_) {
+    mju_error("configuration_length > max_history: increase max history\n");
+  }
 
   // -- trajectories -- //
   configuration.Initialize(nq, configuration_length_);
@@ -257,6 +264,14 @@ void Batch::Initialize(const mjModel* model) {
   scratch0_covariance_.resize((nv * max_history_) * (nv * max_history_));
   scratch1_covariance_.resize((nv * max_history_) * (nv * max_history_));
 
+  // conditioned matrix
+  mat00_.resize((nv * max_history_) * (nv * max_history_));
+  mat10_.resize((nv * max_history_) * (nv * max_history_));
+  mat11_.resize((nv * max_history_) * (nv * max_history_));
+  condmat_.resize((nv * max_history_) * (nv * max_history_));
+  scratch0_condmat_.resize((nv * max_history_) * (nv * max_history_));
+  scratch1_condmat_.resize((nv * max_history_) * (nv * max_history_));
+
   // regularization
   regularization_ = settings.regularization_initial;
 
@@ -278,19 +293,46 @@ void Batch::Initialize(const mjModel* model) {
   // settings
   settings.band_prior =
       static_cast<bool>(GetNumberOrDefault(1, model, "batch_band_covariance"));
+
+  // -- trajectory cache -- //
+  configuration_cache_.Initialize(nq, configuration_length_);
+  velocity_cache_.Initialize(nv, configuration_length_);
+  acceleration_cache_.Initialize(nv, configuration_length_);
+  act_cache_.Initialize(na, configuration_length_);
+  times_cache_.Initialize(1, configuration_length_);
+
+  // ctrl
+  ctrl_cache_.Initialize(model->nu, configuration_length_);
+
+  // prior
+  configuration_previous_cache_.Initialize(nq, configuration_length_);
+
+  // sensor
+  sensor_measurement_cache_.Initialize(nsensordata_, configuration_length_);
+  sensor_prediction_cache_.Initialize(nsensordata_, configuration_length_);
+  sensor_mask_cache_.Initialize(nsensor_, configuration_length_);
+
+  // force
+  force_measurement_cache_.Initialize(nv, configuration_length_);
+  force_prediction_cache_.Initialize(nv, configuration_length_);
 }
 
 // reset memory
-void Batch::Reset() {
+void Batch::Reset(const mjData* data) {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na;
 
   // data
   mjData* d = data_[0].get();
 
-  // set home keyframe
-  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
-  if (home_id >= 0) mj_resetDataKeyframe(model, d, home_id);
+  if (data) {
+    // copy input data
+    mj_copyData(d, model, data);
+  } else {
+    // set home keyframe
+    int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+    if (home_id >= 0) mj_resetDataKeyframe(model, d, home_id);
+  }
 
   // forward evaluation
   mj_forward(model, d);
@@ -299,8 +341,7 @@ void Batch::Reset() {
   mju_copy(state.data(), d->qpos, nq);
   mju_copy(state.data() + nq, d->qvel, nv);
   mju_copy(state.data() + nq + nv, d->act, na);
-  d->time = 0.0;
-  time = 0.0;
+  time = d->time;
 
   // covariance
   mju_eye(covariance.data(), ndstate_);
@@ -319,6 +360,9 @@ void Batch::Reset() {
       GetNumberOrDefault(1.0e-4, model, "estimator_sensor_noise_scale");
   std::fill(noise_sensor.begin(), noise_sensor.end(), noise_sensor_scl);
 
+  // scale prior
+  scale_prior = GetNumberOrDefault(1.0e-1, model, "batch_scale_prior");
+
   // trajectories
   configuration.Reset();
   velocity.Reset();
@@ -336,7 +380,7 @@ void Batch::Reset() {
 
   // sensor mask
   sensor_mask.Reset();
-  for (int i = 0; i < nsensor_ * configuration_length_; i++) {
+  for (int i = 0; i < nsensor_ * max_history_; i++) {
     sensor_mask.Data()[i] = 1;  // sensor on
   }
 
@@ -461,6 +505,14 @@ void Batch::Reset() {
   std::fill(scratch0_covariance_.begin(), scratch0_covariance_.end(), 0.0);
   std::fill(scratch1_covariance_.begin(), scratch1_covariance_.end(), 0.0);
 
+  // conditioned matrix
+  std::fill(mat00_.begin(), mat00_.end(), 0.0);
+  std::fill(mat10_.begin(), mat10_.end(), 0.0);
+  std::fill(mat11_.begin(), mat11_.end(), 0.0);
+  std::fill(condmat_.begin(), condmat_.end(), 0.0);
+  std::fill(scratch0_condmat_.begin(), scratch0_condmat_.end(), 0.0);
+  std::fill(scratch1_condmat_.begin(), scratch1_condmat_.end(), 0.0);
+
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
   std::fill(timer_.sensor_step.begin(), timer_.sensor_step.end(), 0.0);
@@ -475,79 +527,33 @@ void Batch::Reset() {
   cost_count_ = 0;
   solve_status_ = kUnsolved;
 
-  // -- initialize -- //
-  if (settings.filter) {
-    settings.gradient_tolerance = 1.0e-8;
-    settings.max_smoother_iterations = 1;
-    settings.max_search_iterations = 10;
+  // initialize filter
+  if (settings.filter) InitializeFilter();
 
-    // timestep
-    double timestep = model->opt.timestep;
+  // trajectory cache
+  configuration_cache_.Reset();
+  velocity_cache_.Reset();
+  acceleration_cache_.Reset();
+  act_cache_.Reset();
+  times_cache_.Reset();
+  ctrl_cache_.Reset();
 
-    // set q1
-    configuration.Set(state.data(), 1);
-    configuration_previous.Set(configuration.Get(1), 1);
+  // prior
+  configuration_previous_cache_.Reset();
 
-    // set q0
-    double* q0 = configuration.Get(0);
-    mju_copy(q0, state.data(), nq);
-    mj_integratePos(model, q0, state.data() + nq, -1.0 * timestep);
-    configuration_previous.Set(configuration.Get(0), 0);
+  // sensor
+  sensor_measurement_cache_.Reset();
+  sensor_prediction_cache_.Reset();
 
-    // set times
-    double current_time = -1.0 * timestep;
-    times.Set(&current_time, 0);
-    for (int i = 1; i < configuration_length_; i++) {
-      // increment time
-      current_time += timestep;
-
-      // set
-      times.Set(&current_time, i);
-    }
-
-    // -- set initial position-based measurements -- //
-
-    // data
-    mjData* data = data_[0].get();
-
-    // set q0
-    mju_copy(data->qpos, q0, model->nq);
-
-    // evaluate position
-    mj_fwdPosition(model, data);
-    mj_sensorPos(model, data);
-
-    // y0
-    double* y0 = sensor_measurement.Get(0);
-    mju_zero(y0, nsensordata_);
-
-    // loop over sensors
-    for (int i = 0; i < nsensor_; i++) {
-      // measurement sensor index
-      int index = sensor_start_ + i;
-
-      // need stage
-      int sensor_stage = model->sensor_needstage[index];
-
-      if (sensor_stage == mjSTAGE_POS) {
-        // address
-        int sensor_adr = model->sensor_adr[index];
-
-        // dimension
-        int sensor_dim = model->sensor_dim[index];
-
-        // set sensor
-        mju_copy(y0 + sensor_adr - sensor_start_index_,
-                 data->sensordata + sensor_adr, sensor_dim);
-      }
-    }
-
-    // prior weight (skip act)
-    for (int i = 0; i < ndstate_ - na; i++) {
-      weight_prior[nv * configuration_length_ * i + i] =
-          1.0 / covariance[ndstate_ * i + i];
-    }
+  // sensor mask
+  sensor_mask_cache_.Reset();
+  for (int i = 0; i < nsensor_ * configuration_length_; i++) {
+    sensor_mask_cache_.Data()[i] = 1;  // sensor on
   }
+
+  // force
+  force_measurement_cache_.Reset();
+  force_prediction_cache_.Reset();
 }
 
 // update
@@ -555,31 +561,24 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
-  // check configuration length
-  if (configuration_length_ != 3) {
-    mju_error("batch filter only supports configuration length = 3\n");
-  }
-
   // dimensions
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu;
 
+  // data
+  mjData* d = data_[0].get();
+
   // current time index
-  int t = 1;
+  int t = current_time_index;
 
   // configurations
   double* q0 = configuration.Get(t - 1);
   double* q1 = configuration.Get(t);
-
-  // data
-  mjData* d = data_[0].get();
 
   // -- next qpos -- //
 
   // set state
   mju_copy(d->qpos, q1, model->nq);
   mj_differentiatePos(model, d->qvel, model->opt.timestep, q0, q1);
-
-  // TODO(taylor): set time
 
   // set ctrl
   mju_copy(d->ctrl, ctrl, nu);
@@ -588,6 +587,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   mj_step(model, d);
 
   // -- set batch data -- //
+
   // set next qpos
   configuration.Set(d->qpos, t + 1);
   configuration_previous.Set(d->qpos, t + 1);
@@ -604,7 +604,17 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   // set force measurement
   force_measurement.Set(d->qfrc_actuator, t);
 
-  // measurement update
+  // -- measurement update -- //
+
+  // cache configuration length
+  int configuration_length_cache = configuration_length_;
+
+  // set reduced configuration length for optimization
+  configuration_length_ = current_time_index + 2;
+  if (configuration_length_ != configuration_length_cache) {
+    ShiftResizeTrajectory(0, configuration_length_);
+  }
+
   // TODO(taylor): preallocate pool
   ThreadPool pool(1);
   Optimize(pool);
@@ -613,13 +623,77 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   mju_copy(state.data(), configuration.Get(t + 1), nq);
   mju_copy(state.data() + nq, velocity.Get(t + 1), nv);
   mju_copy(state.data() + nq + nv, act.Get(t + 1), na);
-  time = d->time;
+  time = times.Get(t + 1)[0];
 
-  // update prior weights
-  // TODO(taylor)
+  // -- update prior weights -- //
 
-  // shift trajectories
-  Shift(1);
+  // dimension
+  int nvar = nv * configuration_length_;
+
+  // prior weights
+  double* weights = weight_prior.data();
+
+  // recursive update
+  if (settings.recursive_prior_update &&
+      configuration_length_ == configuration_length_cache) {
+    // condition dimension
+    int ncondition = nv * (configuration_length_ - 1);
+
+    // compute conditioned matrix
+    double* condmat = condmat_.data();
+    ConditionMatrix(condmat, cost_hessian.data(), mat00_.data(), mat10_.data(),
+                    mat11_.data(), scratch0_condmat_.data(),
+                    scratch1_condmat_.data(), nvar, nv, ncondition);
+
+    // zero memory
+    mju_zero(weights, nvar * nvar);
+
+    // set conditioned matrix in prior weights
+    SetBlockInMatrix(weights, condmat, 1.0, nvar, nvar, ncondition, ncondition,
+                     0, 0);
+
+    // set bottom right to scale_prior * I
+    for (int i = ncondition; i < nvar; i++) {
+      weights[nvar * i + i] = scale_prior;
+    }
+  } else {
+    // dimension
+    int nvar_new = nvar;
+    if (current_time_index < configuration_length_ - 2) {
+      nvar_new += nv;
+    }
+
+    // check same size
+    if (nvar != nvar_new) {
+      // get previous weights
+      double* previous_weights = scratch0_condmat_.data();
+      mju_copy(previous_weights, weights, nvar * nvar);
+
+      // set previous in new weights (dimension may have increased)
+      mju_zero(weights, nvar_new * nvar_new);
+      SetBlockInMatrix(weights, previous_weights, 1.0, nvar_new, nvar_new, nvar,
+                       nvar, 0, 0);
+
+      // scale_prior * I
+      for (int i = nvar; i < nvar_new; i++) {
+        weights[nvar_new * i + i] = scale_prior;
+      }
+    }
+  }
+
+  // restore configuration length
+  if (configuration_length_ != configuration_length_cache) {
+    ShiftResizeTrajectory(0, configuration_length_cache);
+  }
+  configuration_length_ = configuration_length_cache;
+
+  // check estimation horizon
+  if (current_time_index < configuration_length_ - 2) {
+    current_time_index++;
+  } else {
+    // shift trajectories once estimation horizon is filled
+    Shift(1);
+  }
 
   // stop timer
   timer_.update = 1.0e-3 * GetDuration(start);
@@ -1895,6 +1969,159 @@ void Batch::VelocityAccelerationDerivatives() {
   timer_.velacc_derivatives += GetDuration(start);
 }
 
+// initialize filter mode
+void Batch::InitializeFilter() {
+  // dimensions
+  int nq = model->nq, nv = model->nv;
+
+  // filter mode status
+  current_time_index = 1;
+
+  // filter settings
+  settings.gradient_tolerance = 1.0e-6;
+  settings.max_smoother_iterations = 1;
+  settings.max_search_iterations = 10;
+  settings.recursive_prior_update = true;
+
+  // timestep
+  double timestep = model->opt.timestep;
+
+  // set q1
+  configuration.Set(state.data(), 1);
+  configuration_previous.Set(configuration.Get(1), 1);
+
+  // set q0
+  double* q0 = configuration.Get(0);
+  mju_copy(q0, state.data(), nq);
+  mj_integratePos(model, q0, state.data() + nq, -1.0 * timestep);
+  configuration_previous.Set(configuration.Get(0), 0);
+
+  // set times
+  double current_time = time - timestep;
+  times.Set(&current_time, 0);
+  for (int i = 1; i < configuration_length_; i++) {
+    // increment time
+    current_time += timestep;
+
+    // set
+    times.Set(&current_time, i);
+  }
+
+  // -- set initial position-based measurements -- //
+
+  // data
+  mjData* data = data_[0].get();
+
+  // set q0
+  mju_copy(data->qpos, q0, model->nq);
+
+  // evaluate position
+  mj_fwdPosition(model, data);
+  mj_sensorPos(model, data);
+
+  // y0
+  double* y0 = sensor_measurement.Get(0);
+  mju_zero(y0, nsensordata_);
+
+  // loop over sensors
+  for (int i = 0; i < nsensor_; i++) {
+    // measurement sensor index
+    int index = sensor_start_ + i;
+
+    // need stage
+    int sensor_stage = model->sensor_needstage[index];
+
+    // position sensor
+    if (sensor_stage == mjSTAGE_POS) {
+      // address
+      int sensor_adr = model->sensor_adr[index];
+
+      // dimension
+      int sensor_dim = model->sensor_dim[index];
+
+      // set sensor
+      mju_copy(y0 + sensor_adr - sensor_start_index_,
+               data->sensordata + sensor_adr, sensor_dim);
+    }
+  }
+
+  // prior weight
+  int nvar = nv * configuration_length_;
+  for (int i = 0; i < nvar; i++) {
+    weight_prior[nvar * i + i] = scale_prior;
+  }
+}
+
+// shift head and resize trajectories
+void Batch::ShiftResizeTrajectory(int new_head, int new_length) {
+  // reset cache
+  configuration_cache_.Reset();
+  configuration_previous_cache_.Reset();
+  velocity_cache_.Reset();
+  acceleration_cache_.Reset();
+  act_cache_.Reset();
+  times_cache_.Reset();
+  ctrl_cache_.Reset();
+  sensor_measurement_cache_.Reset();
+  sensor_prediction_cache_.Reset();
+  sensor_mask_cache_.Reset();
+  force_measurement_cache_.Reset();
+  force_prediction_cache_.Reset();
+
+  // -- set cache length -- //
+  int length = configuration_length_;
+
+  configuration_cache_.SetLength(length);
+  configuration_previous_cache_.SetLength(length);
+  velocity_cache_.SetLength(length);
+  acceleration_cache_.SetLength(length);
+  act_cache_.SetLength(length);
+  times_cache_.SetLength(length);
+  ctrl_cache_.SetLength(length);
+  sensor_measurement_cache_.SetLength(length);
+  sensor_prediction_cache_.SetLength(length);
+  sensor_mask_cache_.SetLength(length);
+  force_measurement_cache_.SetLength(length);
+  force_prediction_cache_.SetLength(length);
+
+  // copy data to cache
+  for (int i = 0; i < length; i++) {
+    configuration_cache_.Set(configuration.Get(i), i);
+    configuration_previous_cache_.Set(configuration_previous.Get(i), i);
+    velocity_cache_.Set(velocity.Get(i), i);
+    acceleration_cache_.Set(acceleration.Get(i), i);
+    act_cache_.Set(act.Get(i), i);
+    times_cache_.Set(times.Get(i), i);
+    ctrl_cache_.Set(ctrl.Get(i), i);
+    sensor_measurement_cache_.Set(sensor_measurement.Get(i), i);
+    sensor_prediction_cache_.Set(sensor_prediction.Get(i), i);
+    sensor_mask_cache_.Set(sensor_mask.Get(i), i);
+    force_measurement_cache_.Set(force_measurement.Get(i), i);
+    force_prediction_cache_.Set(force_prediction.Get(i), i);
+  }
+
+  // set configuration length
+  SetConfigurationLength(new_length);
+
+  // set trajectory data
+  int length_copy = std::min(length, new_length);
+  for (int i = 0; i < length_copy; i++) {
+    configuration.Set(configuration_cache_.Get(new_head + i), i);
+    configuration_previous.Set(configuration_previous_cache_.Get(new_head + i),
+                               i);
+    velocity.Set(velocity_cache_.Get(new_head + i), i);
+    acceleration.Set(acceleration_cache_.Get(new_head + i), i);
+    act.Set(act_cache_.Get(new_head + i), i);
+    times.Set(times_cache_.Get(new_head + i), i);
+    ctrl.Set(ctrl_cache_.Get(new_head + i), i);
+    sensor_measurement.Set(sensor_measurement_cache_.Get(new_head + i), i);
+    sensor_prediction.Set(sensor_prediction_cache_.Get(new_head + i), i);
+    sensor_mask.Set(sensor_mask_cache_.Get(new_head + i), i);
+    force_measurement.Set(force_measurement_cache_.Get(new_head + i), i);
+    force_prediction.Set(force_prediction_cache_.Get(new_head + i), i);
+  }
+}
+
 // compute total cost
 // TODO(taylor): fix timers
 double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
@@ -2111,7 +2338,7 @@ void Batch::Optimize(ThreadPool& pool) {
     // -- search direction -- //
 
     // check regularization
-    if (regularization_ >= MAX_REGULARIZATION - 1.0e-6) {
+    if (regularization_ >= kMaxBatchRegularization - 1.0e-6) {
       // set solve status
       solve_status_ = kMaxRegularizationFailure;
 
@@ -2241,12 +2468,12 @@ void Batch::Optimize(ThreadPool& pool) {
       if (reduction_ratio_ > 0.75) {
         // decrease
         regularization_ =
-            mju_max(MIN_REGULARIZATION,
+            mju_max(kMinBatchRegularization,
                     regularization_ / settings.regularization_scaling);
       } else if (reduction_ratio_ < 0.25) {
         // increase
         regularization_ =
-            mju_min(MAX_REGULARIZATION,
+            mju_min(kMaxBatchRegularization,
                     regularization_ * settings.regularization_scaling);
       }
     }
@@ -2302,7 +2529,7 @@ void Batch::SearchDirection() {
     double min_diag = 0.0;
     while (min_diag <= 0.0) {
       // failure
-      if (regularization_ >= MAX_REGULARIZATION) {
+      if (regularization_ >= kMaxBatchRegularization) {
         printf("min diag = %f\n", min_diag);
         mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
       }
@@ -2332,7 +2559,7 @@ void Batch::SearchDirection() {
     int rank = 0;
     while (rank < ntotal) {
       // failure
-      if (regularization_ >= MAX_REGULARIZATION) {
+      if (regularization_ >= kMaxBatchRegularization) {
         mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
       }
 
@@ -2359,6 +2586,13 @@ void Batch::SearchDirection() {
 
   // search direction norm
   search_direction_norm_ = InfinityNorm(direction, ntotal);
+
+  // set regularization
+  if (regularization_ > 0.0) {
+    for (int i = 0; i < ntotal; i++) {
+      hessian[i * ntotal + i] += regularization_;
+    }
+  }
 
   // end timer
   timer_.search_direction += GetDuration(search_direction_start);
@@ -2543,17 +2777,21 @@ std::string StatusString(int code) {
 }
 
 // estimator-specific GUI elements
-void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
-                double& timestep, int& integrator) {
+void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
       {mjITEM_SECTION, "Estimator Settings", 1, nullptr,
        "AP"},  // needs new section to satisfy mjMAXUIITEM
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep, "1.0e-3 0.1"},
-      {mjITEM_SELECT, "Integrator", 2, &integrator,
+      {mjITEM_SLIDERNUM, "Timestep", 2, &data.timestep, "1.0e-3 0.1"},
+      {mjITEM_SELECT, "Integrator", 2, &data.integrator,
        "Euler\nRK4\nImplicit\nFastImplicit"},
+      {mjITEM_SLIDERINT, "Horizon", 2, &data.horizon, "3 3"},
       {mjITEM_END}};
+
+  // set estimation horizon limits
+  mju::sprintf_arr(defEstimator[4].other, "%i %i", kMinBatchHistory,
+                   kMaxFilterHistory);
 
   // add estimator
   mjui_add(&ui, defEstimator);
@@ -2570,8 +2808,8 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
   // add UI elements
   for (int i = 0; i < nv; i++) {
     // element
-    defProcessNoise[process_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
-                                            process_noise + i, "1.0e-8 0.01"};
+    defProcessNoise[process_noise_shift] = {
+        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
@@ -2689,9 +2927,9 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
                             model->name_sensoradr[sensor_start_ + i]);
 
     // element
-    defSensorNoise[sensor_noise_shift] = {mjITEM_SLIDERNUM, "", 2,
-                                          sensor_noise + sensor_noise_shift - 1,
-                                          "1.0e-8 0.01"};
+    defSensorNoise[sensor_noise_shift] = {
+        mjITEM_SLIDERNUM, "", 2,
+        data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
     // sensor name
     sensor_str = name_sensor;
@@ -2709,6 +2947,69 @@ void Batch::GUI(mjUI& ui, double* process_noise, double* sensor_noise,
 
   // add sensor noise
   mjui_add(&ui, defSensorNoise);
+}
+
+// set GUI data
+void Batch::SetGUIData(EstimatorGUIData& data) {
+  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
+  model->opt.timestep = data.timestep;
+  model->opt.integrator = data.integrator;
+
+  // store estimation horizon
+  int horizon = data.horizon;
+
+  // changing horizon cases
+  if (horizon > configuration_length_) {  // increase horizon
+    // -- prior weights resize -- //
+    int nvar = model->nv * configuration_length_;
+    int nvar_new = model->nv * horizon;
+
+    // get previous weights
+    double* weights = weight_prior.data();
+    double* previous_weights = scratch0_condmat_.data();
+    mju_copy(previous_weights, weights, nvar * nvar);
+
+    // set previous in new weights (dimension may have increased)
+    mju_zero(weights, nvar_new * nvar_new);
+    SetBlockInMatrix(weights, previous_weights, 1.0, nvar_new, nvar_new, nvar,
+                     nvar, 0, 0);
+
+    // scale_prior * I
+    for (int i = nvar; i < nvar_new; i++) {
+      weights[nvar_new * i + i] = scale_prior;
+    }
+
+    // modify trajectories
+    ShiftResizeTrajectory(0, horizon);
+
+    // update configuration length
+    configuration_length_ = horizon;
+  } else if (horizon < configuration_length_) {  // decrease horizon
+    // -- prior weights resize -- //
+    int nvar = model->nv * configuration_length_;
+    int nvar_new = model->nv * horizon;
+
+    // get previous weights
+    double* weights = weight_prior.data();
+    double* previous_weights = scratch0_condmat_.data();
+    BlockFromMatrix(previous_weights, weights, nvar_new, nvar_new, nvar, nvar,
+                    0, 0);
+
+    // set previous in new weights (dimension may have increased)
+    mju_zero(weights, nvar * nvar);
+    mju_copy(weights, previous_weights, nvar_new * nvar_new);
+
+    // compute difference in estimation horizons
+    int horizon_diff = configuration_length_ - horizon;
+
+    // modify trajectories
+    ShiftResizeTrajectory(horizon_diff, horizon);
+
+    // update configuration length and current time index
+    configuration_length_ = horizon;
+    current_time_index -= horizon_diff;
+  }
 }
 
 // estimator-specific plots
@@ -2744,7 +3045,7 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
 // increase regularization
 void Batch::IncreaseRegularization() {
-  regularization_ = mju_min(MAX_REGULARIZATION,
+  regularization_ = mju_min(kMaxBatchRegularization,
                             regularization_ * settings.regularization_scaling);
 }
 

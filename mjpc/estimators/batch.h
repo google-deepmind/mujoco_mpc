@@ -22,6 +22,7 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
+#include "mjpc/estimators/gui.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -32,6 +33,8 @@ namespace mjpc {
 // defaults
 inline constexpr int kMinBatchHistory =
     3;  // minimum configuration trajectory length
+inline constexpr int kMaxFilterHistory =
+    32;  // maximum batch filter estimation horizon
 
 // batch estimator status
 enum BatchStatus : int {
@@ -53,8 +56,8 @@ enum SearchType : int {
 };
 
 // maximum / minimum regularization
-const double MAX_REGULARIZATION = 1.0e12;
-const double MIN_REGULARIZATION = 1.0e-12;
+inline constexpr double kMaxBatchRegularization = 1.0e12;
+inline constexpr double kMinBatchRegularization = 1.0e-12;
 
 // ----- batch estimator ----- //
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
@@ -62,7 +65,10 @@ class Batch : public Estimator {
  public:
   // constructor
   Batch() = default;
-  Batch(int mode) { settings.filter = mode; }
+  Batch(int mode) {
+    settings.filter = mode;
+    max_history_ = kMaxFilterHistory;
+  }
   Batch(const mjModel* model, int length = 3, int max_history_ = 0) {
     // set max history length
     this->max_history_ = (max_history_ == 0 ? length : max_history_);
@@ -86,7 +92,7 @@ class Batch : public Estimator {
   void Initialize(const mjModel* model) override;
 
   // reset memory
-  void Reset() override;
+  void Reset(const mjData* data = nullptr) override;
 
   // update
   void Update(const double* ctrl, const double* sensor) override;
@@ -139,6 +145,22 @@ class Batch : public Estimator {
     mj_integratePos(model, q0, state + nq, -1.0 * model->opt.timestep);
   };
 
+  // set time
+  void SetTime(double time) override {
+    // copy
+    double time_copy = time;
+
+    // t1
+    times.Set(&time_copy, 1);
+
+    // t0
+    time_copy -= model->opt.timestep;
+    times.Set(&time_copy, 0);
+
+    // reset current time index
+    current_time_index = 1;
+  }
+
   // set covariance
   void SetCovariance(const double* covariance) override {
     mju_copy(this->covariance.data(), covariance, ndstate_ * ndstate_);
@@ -146,8 +168,10 @@ class Batch : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, double* process_noise, double* sensor_noise,
-           double& timestep, int& integrator) override;
+  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+
+  // set GUI data
+  void SetGUIData(EstimatorGUIData& data) override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -290,8 +314,9 @@ class Batch : public Estimator {
     bool assemble_sensor_norm_hessian =
         false;  // assemble dense sensor norm Hessian
     bool assemble_force_norm_hessian =
-        false;            // assemble dense force norm Hessian
-    bool filter = false;  // filter mode
+        false;                            // assemble dense force norm Hessian
+    bool filter = false;                  // filter mode
+    bool recursive_prior_update = false;  // recursively update prior matrix
   } settings;
 
   // finite-difference settings
@@ -299,6 +324,9 @@ class Batch : public Estimator {
     double tolerance = 1.0e-7;
     bool flg_actuation = 1;
   } finite_difference;
+
+  // filter mode status
+  int current_time_index;
 
  private:
   // convert sequence of configurations to velocities, accelerations
@@ -366,6 +394,12 @@ class Batch : public Estimator {
                            const EstimatorTrajectory<double>& configuration,
                            const double* search_direction, double step_size);
 
+  // initialize filter mode
+  void InitializeFilter();
+
+  // shift head and resize trajectories
+  void ShiftResizeTrajectory(int new_head, int new_length);
+
   // reset timers
   void ResetTimers();
 
@@ -401,6 +435,8 @@ class Batch : public Estimator {
   double cost_;
   double cost_initial_;
   double cost_previous_;
+
+  // TODO(taylor): underscore
 
   // cost gradient
   std::vector<double> cost_gradient;  // nv * max_history_
@@ -548,6 +584,14 @@ class Batch : public Estimator {
   std::vector<double>
       scratch1_covariance_;  // (nv * max_history_) * (nv * max_history_)
 
+  // conditioned matrix
+  std::vector<double> mat00_;
+  std::vector<double> mat10_;
+  std::vector<double> mat11_;
+  std::vector<double> condmat_;
+  std::vector<double> scratch0_condmat_;
+  std::vector<double> scratch1_condmat_;
+
   // status (internal)
   int cost_count_;          // number of cost evaluations
   bool cost_skip_ = false;  // flag for only evaluating cost derivatives
@@ -605,6 +649,20 @@ class Batch : public Estimator {
 
   // max history
   int max_history_ = 3;
+
+  // trajectory cache
+  EstimatorTrajectory<double> configuration_cache_;           // nq x T
+  EstimatorTrajectory<double> configuration_previous_cache_;  // nq x T
+  EstimatorTrajectory<double> velocity_cache_;                // nv x T
+  EstimatorTrajectory<double> acceleration_cache_;            // nv x T
+  EstimatorTrajectory<double> act_cache_;                     // na x T
+  EstimatorTrajectory<double> times_cache_;                   //  1 x T
+  EstimatorTrajectory<double> ctrl_cache_;                    // nu x T
+  EstimatorTrajectory<double> sensor_measurement_cache_;      // ns x T
+  EstimatorTrajectory<double> sensor_prediction_cache_;       // ns x T
+  EstimatorTrajectory<int> sensor_mask_cache_;                // num_sensor x T
+  EstimatorTrajectory<double> force_measurement_cache_;       // nv x T
+  EstimatorTrajectory<double> force_prediction_cache_;        // nv x T
 };
 
 // estimator status string

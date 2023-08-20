@@ -29,3 +29,6 @@ target_link_libraries(estimator_trajectory_test gmock)
 
 test(estimator_utilities_test)
 target_link_libraries(estimator_utilities_test load simulation gmock)
+
+test(kalman_test)
+target_link_libraries(kalman_test load simulation gmock)

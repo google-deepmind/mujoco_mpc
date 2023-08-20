@@ -59,9 +59,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
     batch_proto_filename = "batch.proto"
-    batch_proto_source_path = Path(
-        "..", "grpc", batch_proto_filename
-    ).resolve()
+    batch_proto_source_path = Path("..", "grpc", batch_proto_filename).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     proto_module_relative_path = Path(

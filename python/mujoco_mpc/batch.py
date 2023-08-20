@@ -504,7 +504,7 @@ class Batch:
       elif code == 3:
         return "SMALL_DIRECTION_FAILURE"
       elif code == 4:
-        return "MAX_REGULARIZATION_FAILURE"
+        return "kMaxBatchRegularization_FAILURE"
       elif code == 5:
         return "COST_DIFFERENCE_FAILURE"
       elif code == 6:

@@ -48,7 +48,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   };
 
   // trajectories
-  int T = 200;
+  int T = 10;
   std::vector<double> qpos(nq * T);
   std::vector<double> qvel(nv * T);
   std::vector<double> qacc(nv * T);

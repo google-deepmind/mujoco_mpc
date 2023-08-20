@@ -100,9 +100,13 @@ add_library(
   planners/ilqs/planner.h
   estimators/batch.cc
   estimators/batch.h
+  estimators/estimator.h
+  estimators/gui.cc
+  estimators/gui.h
   estimators/include.cc
   estimators/include.h
-  estimators/estimator.h
+  estimators/kalman.cc
+  estimators/kalman.h
   estimators/trajectory.h
   app.cc
   app.h

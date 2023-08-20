@@ -56,7 +56,6 @@ get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
 get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
 get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
 
-
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
 set(agent_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.h")
@@ -209,4 +208,3 @@ target_include_directories(batch_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_SERVICE_COMPILE_OPTIONS})
 target_compile_options(batch_server PUBLIC ${BATCH_SERVICE_COMPILE_OPTIONS})
 target_link_options(batch_server PRIVATE ${BATCH_SERVICE_LINK_OPTIONS})
-

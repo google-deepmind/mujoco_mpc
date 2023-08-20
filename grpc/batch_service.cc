@@ -35,30 +35,30 @@
 
 namespace mjpc::batch_grpc {
 
-using ::batch::CostRequest;
-using ::batch::CostResponse;
-using ::batch::DataRequest;
-using ::batch::DataResponse;
-using ::batch::InitRequest;
-using ::batch::InitResponse;
-using ::batch::NoiseRequest;
-using ::batch::NoiseResponse;
-using ::batch::NormRequest;
-using ::batch::NormResponse;
-using ::batch::OptimizeRequest;
-using ::batch::OptimizeResponse;
-using ::batch::PriorWeightsRequest;
-using ::batch::PriorWeightsResponse;
-using ::batch::ResetRequest;
-using ::batch::ResetResponse;
-using ::batch::SettingsRequest;
-using ::batch::SettingsResponse;
-using ::batch::ShiftRequest;
-using ::batch::ShiftResponse;
-using ::batch::StatusRequest;
-using ::batch::StatusResponse;
-using ::batch::TimingRequest;
-using ::batch::TimingResponse;
+// using ::batch::CostRequest;
+// using ::batch::CostResponse;
+// using ::batch::DataRequest;
+// using ::batch::DataResponse;
+// using ::batch::InitRequest;
+// using ::batch::InitResponse;
+// using ::batch::NoiseRequest;
+// using ::batch::NoiseResponse;
+// using ::batch::NormRequest;
+// using ::batch::NormResponse;
+// using ::batch::OptimizeRequest;
+// using ::batch::OptimizeResponse;
+// using ::batch::PriorWeightsRequest;
+// using ::batch::PriorWeightsResponse;
+// using ::batch::ResetRequest;
+// using ::batch::ResetResponse;
+// using ::batch::SettingsRequest;
+// using ::batch::SettingsResponse;
+// using ::batch::ShiftRequest;
+// using ::batch::ShiftResponse;
+// using ::batch::StatusRequest;
+// using ::batch::StatusResponse;
+// using ::batch::TimingRequest;
+// using ::batch::TimingResponse;
 
 // TODO(taylor): make CheckSize utility function for agent and batch
 namespace {

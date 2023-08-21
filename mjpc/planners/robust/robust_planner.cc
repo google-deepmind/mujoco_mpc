@@ -176,9 +176,10 @@ void RobustPlanner::GUI(mjUI& ui) {
   mjui_add(&ui, defRobust);
 }
 void RobustPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                          int planner_shift, int timer_shift, int planning) {
-  delegate_->Plots(fig_planner, fig_timer, planner_shift, timer_shift,
-                   planning);
+                          int planner_shift, int timer_shift, int planning,
+                          int* shift) {
+  delegate_->Plots(fig_planner, fig_timer, planner_shift, timer_shift, planning,
+                   shift);
 }
 
 void RobustPlanner::ResizeTrajectories(int ntrajectories) {

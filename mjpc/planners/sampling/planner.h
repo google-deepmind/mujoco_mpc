@@ -88,7 +88,7 @@ class SamplingPlanner : public RankedPlanner {
 
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
-             int timer_shift, int planning) override;
+             int timer_shift, int planning, int* shift) override;
 
   // optimizes policies, but rather than picking the best, generate up to
   // ncandidates. returns number of candidates created.

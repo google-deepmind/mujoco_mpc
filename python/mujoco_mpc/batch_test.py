@@ -232,11 +232,6 @@ class BatchTest(absltest.TestCase):
     settings = batch.settings(verbose_prior=verbose_prior)
     self.assertTrue(verbose_prior == settings["verbose_prior"])
 
-    # get/set band prior
-    band_prior = False
-    settings = batch.settings(band_prior=band_prior)
-    self.assertTrue(band_prior == settings["band_prior"])
-
     # get/set search type
     in_search_type = 0
     settings = batch.settings(search_type=in_search_type)
@@ -262,11 +257,6 @@ class BatchTest(absltest.TestCase):
         np.abs(in_regularization_scaling - settings["regularization_scaling"]),
         1.0e-4,
     )
-
-    # get/set band copy
-    in_band_copy = False
-    settings = batch.settings(band_copy=in_band_copy)
-    self.assertTrue(in_band_copy == settings["band_copy"])
 
     # get/set search direction tolerance
     search_direction_tolerance = 3.3
@@ -338,8 +328,6 @@ class BatchTest(absltest.TestCase):
         model=model, configuration_length=configuration_length
     )
 
-    # TODO(taylor): better tests
-
     # cost
     cost = batch.cost(derivatives=True, internals=True)
 
@@ -383,8 +371,6 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
     self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
     self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
-
-    # TODO(taylor): internals
 
   def test_noise(self):
     # load model
@@ -565,8 +551,8 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(prior0.shape == (dim, dim))
     self.assertTrue(not prior0.any())
 
-    # random
-    in_weights = np.random.rand(dim, dim)
+    # identity
+    in_weights = np.eye(dim)
     out_prior = batch.prior_weights(weights=in_weights)
 
     # test
@@ -609,9 +595,6 @@ class BatchTest(absltest.TestCase):
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
         1.0e-5,
     )
-
-  # TODO(taylor): test initialize_data, update_data()
-
 
 if __name__ == "__main__":
   absltest.main()

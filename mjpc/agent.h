@@ -15,6 +15,7 @@
 #define MJPC_AGENT_H_
 
 #include <atomic>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -24,6 +25,7 @@
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
+
 #include "mjpc/planners/include.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
@@ -45,7 +47,8 @@ class Agent {
   friend class AgentTest;
 
   // constructor
-  Agent() : planners_(mjpc::LoadPlanners()) {}
+  Agent()
+      : planners_(mjpc::LoadPlanners()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -55,13 +58,13 @@ class Agent {
 
   // ----- methods ----- //
 
-  // initialize data, settings, planners, state
+  // initialize data, settings, planners, states
   void Initialize(const mjModel* model);
 
   // allocate memory
   void Allocate();
 
-  // reset data, settings, planners, state
+  // reset data, settings, planners, states
   void Reset();
 
   // single planner iteration
@@ -155,7 +158,8 @@ class Agent {
   std::vector<std::string> GetAllModeNames() const;
   std::string GetModeName() const;
 
-  int max_threads() const { return max_threads_;}
+  // threads
+  int planner_threads() const { return planner_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
   int plan_enabled;
@@ -188,6 +192,7 @@ class Agent {
 
   std::vector<std::shared_ptr<Task>> tasks_;
   int active_task_id_ = 0;
+
   // residual function for the active task, updated once per planning iteration
   std::unique_ptr<ResidualFn> residual_fn_;
 
@@ -218,7 +223,7 @@ class Agent {
   AgentPlots plots_;
 
   // max threads for planning
-  int max_threads_;
+  int planner_threads_;
 };
 
 }  // namespace mjpc

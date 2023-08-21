@@ -1,0 +1,56 @@
+<mujoco model="Particle1D">
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
+    <map znear=".01"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <default>
+    <geom solimp="0 0.95 0.001"/>
+  </default>
+
+  <asset>
+    <texture name="skybox" type="skybox" builtin="gradient" rgb1="0 0 0" rgb2="0 0 0"
+             width="800" height="800" mark="random" markrgb="0 0 0"/>
+  </asset>
+
+  <asset>
+      <texture name="grid" type="2d" builtin="checker" rgb1=".1 .2 .3" rgb2=".2 .3 .4" width="300" height="300" mark="edge" markrgb=".2 .3 .4"/>
+      <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+      <material name="self" rgba=".7 .5 .3 1"/>
+      <material name="self_default" rgba=".7 .5 .3 1"/>
+      <material name="self_highlight" rgba="0 .5 .3 1"/>
+      <material name="effector" rgba=".7 .4 .2 1"/>
+      <material name="effector_default" rgba=".7 .4 .2 1"/>
+      <material name="effector_highlight" rgba="0 .5 .3 1"/>
+      <material name="decoration" rgba=".3 .5 .7 1"/>
+      <material name="eye" rgba="0 .2 1 1"/>
+      <material name="target" rgba="0 1 0 0.5"/>
+      <material name="target_default" rgba=".6 .3 .3 1"/>
+      <material name="target_highlight" rgba=".6 .3 .3 .4"/>
+      <material name="site" rgba=".5 .5 .5 .3"/>
+  </asset>
+
+  <option timestep="0.002" />
+
+  <worldbody>
+    <light name="light" pos="0 0 1"/>
+    <camera name="fixed" pos="0 0 .75" quat="1 0 0 0"/>
+    <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid" />
+
+    <body name="pointmass" pos="0 0 0">
+      <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
+      <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
+      <site name="center" type="sphere" size="0.01" rgba="1 0 0 0" pos="0 0 0"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="z_motor" joint="root_z"/>
+  </actuator>
+
+  <sensor>
+    <jointpos name="joint_z" joint="root_z" />
+    <accelerometer name="linacc" site="center" />
+  </sensor>
+</mujoco>

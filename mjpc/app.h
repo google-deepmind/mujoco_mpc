@@ -37,4 +37,5 @@ class MjpcApp {
 void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id = 0);
 
 }  // namespace mjpc
+
 #endif  // MJPC_APP_H_

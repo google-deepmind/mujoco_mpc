@@ -1489,4 +1489,118 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
   mju_sub(res, mat11, tmp1, n1 * n1);
 }
 
+// principal eigenvector of 4x4 matrix
+// QUEST algorithm from "Three-Axis Attitude Determination from Vector
+// Observations"
+void PrincipalEigenVector4(double* res, const double* mat,
+                           double eigenvalue_init) {
+  // Z = mat[0:3, 3]
+  double Z[3] = {mat[3], mat[7], mat[11]};
+
+  // S = mat[0:3, 0:3] + mat[3, 3] * I
+  double S[9] = {mat[0] + mat[15], mat[1],           mat[2],
+                 mat[4],           mat[5] + mat[15], mat[6],
+                 mat[8],           mat[9],           mat[10] + mat[15]};
+
+  // delta = det(S)
+  double delta = Determinant3(S);
+
+  // kappa = trace(delta * S^-1)
+  double tmp0[9];
+  Inverse3(tmp0, S);
+  mju_scl(tmp0, tmp0, delta, 9);
+  double kappa = Trace(tmp0, 3);
+
+  // sigma = 0.5 * trace(S)
+  double sigma = 0.5 * Trace(S, 3);
+  double sigma2 = sigma * sigma;
+
+  // S * Z
+  double SZ[3];
+  mju_mulMatVec(SZ, S, Z, 3, 3);
+
+  // d = Z' * S * S * Z
+  double d = mju_dot(SZ, SZ, 3);
+
+  // c = delta + Z' * S * Z
+  double c = delta + mju_dot(Z, SZ, 3);
+
+  // b = sigma * sigma + Z' * Z
+  double b = sigma2 + mju_dot(Z, Z, 3);
+
+  // a = sigma * sigma - kappa
+  double a = sigma2 - kappa;
+
+  // -- find largest eigenvalue -- //
+
+  // initialize
+  double x = eigenvalue_init;
+
+  // coefficients
+  double ab = a + b;
+  double bias = a * b + c * sigma - d;
+
+  // iterate
+  for (int i = 0; i < 10; i++) {
+    // eigenvalue powers
+    double x2 = x * x;
+    double x3 = x2 * x;
+    double x4 = x3 * x;
+
+    // root
+    double num = x4 - ab * x2 - c * x + bias;
+
+    // root derivative
+    double den = 4.0 * x3 - 2.0 * ab * x - c;
+
+    // update
+    x -= num / den;
+  }
+
+  // -- principal eigenvector -- //
+  double alpha = x * x - sigma2 + kappa;
+  double beta = x - sigma;
+  double gamma = (x + sigma) * alpha - delta;
+
+  // X = alpha * Z + beta * S * Z + S * S * Z
+  double X[3];
+  mju_mulMatVec(X, S, SZ, 3, 3);
+  mju_addToScl(X, SZ, beta, 3);
+  mju_addToScl(X, Z, alpha, 3);
+
+  // scale
+  double scl = 1.0 / mju_sqrt(gamma * gamma + mju_dot(X, X, 3));
+
+  // eigenvector
+  res[0] = scl * X[0];
+  res[1] = scl * X[1];
+  res[2] = scl * X[2];
+  res[3] = scl * gamma;
+}
+
+// set scaled symmetric block matrix in band matrix
+void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
+                    int nband, int nblock, int shift, int row_skip, bool add) {
+  // loop over block rows
+  for (int i = row_skip; i < nblock; i++) {
+    // width of block lower triangle row
+    int width = i + 1;
+
+    // number of leading zeros in band row
+    int column_shift = nband - width;
+
+    // row segments
+    double* band_row = band + (shift + row_skip + i) * nband + column_shift;
+    const double* block_row = block + (row_skip + i) * nblock;
+
+    // copy block row segment into band row
+    if (add) {
+      mju_addToScl(band_row, block_row, scale, width);
+    } else {
+      mju_copy(band_row, block_row, width);
+      mju_scl(band_row, band_row, scale, width);
+    }
+  }
+}
+
 }  // namespace mjpc

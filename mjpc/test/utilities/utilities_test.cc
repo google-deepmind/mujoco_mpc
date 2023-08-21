@@ -719,5 +719,75 @@ TEST(ConditionMatrixBand, Mat4Band) {
   EXPECT_NEAR(mju_norm(error, n1 * n1), 0.0, 1.0e-4);
 }
 
+TEST(BlockInBand, Set) {
+  // set up (0)
+  double block0[9] = {1, 2, 3, 2, 4, 5, 3, 5, 6};
+  int ntotal = 3;
+  int nband = 3;
+  int nblock = 3;
+
+  // band
+  double band0[9] = {0};
+
+  // set block in band
+  SetBlockInBand(band0, block0, 1.0, ntotal, nband, nblock, 0);
+
+  // band solution
+  double band0_sol[9] = {0, 0, 1, 0, 2, 4, 3, 5, 6};
+
+  // test
+  for (int i = 0; i < 9; i++) {
+    EXPECT_NEAR(band0[i], band0_sol[i], 1.0e-6);
+  }
+
+  // set up (1)
+  double block1a[4] = {1, 2, 2, 3};
+  double block1b[4] = {6, 8, 8, 9};
+
+  ntotal = 4;
+  nband = 2;
+  nblock = 2;
+
+  double band1[8] = {0};
+
+  // set blocka in band
+  SetBlockInBand(band1, block1a, 1.0, ntotal, nband, nblock, 0);
+
+  // set blockb in band
+  SetBlockInBand(band1, block1b, 1.0, ntotal, nband, nblock, 2);
+
+  // band solution
+  double band1_sol[8] = {0, 1, 2, 3, 0, 6, 8, 9};
+
+  // test
+  for (int i = 0; i < 8; i++) {
+    EXPECT_NEAR(band1[i], band1_sol[i], 1.0e-6);
+  }
+
+  // set up (2)
+  double block2a[9] = {1, 2, 4, 2, 2, 4, 4, 4, 5};
+  double block2b[9] = {1, 1, 7, 1, 1, 8, 7, 8, 9};
+
+  ntotal = 4;
+  nband = 3;
+  nblock = 3;
+
+  double band2[12] = {0};
+
+  // set block2a in band
+  SetBlockInBand(band2, block2a, 1.0, ntotal, nband, nblock, 0);
+
+  // set block2b in band
+  SetBlockInBand(band2, block2b, 1.0, ntotal, nband, nblock, 1);
+
+  // band solution
+  double band2_sol[12] = {0, 0, 1, 0, 2, 3, 4, 5, 6, 7, 8, 9};
+
+  // test
+  for (int i = 0; i < 12; i++) {
+    EXPECT_NEAR(band2[i], band2_sol[i], 1.0e-6);
+  }
+}
+
 }  // namespace
 }  // namespace mjpc

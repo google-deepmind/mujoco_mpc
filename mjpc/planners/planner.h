@@ -67,7 +67,8 @@ class Planner {
 
   // planner-specific plots
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                     int planner_shift, int timer_shift, int planning) = 0;
+                     int planner_shift, int timer_shift, int planning,
+                     int* shift) = 0;
 
   std::vector<UniqueMjData> data_;
   void ResizeMjData(const mjModel* model, int num_threads);

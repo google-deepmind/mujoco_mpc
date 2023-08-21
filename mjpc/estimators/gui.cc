@@ -12,24 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_INCLUDE_H_
-#define MJPC_ESTIMATORS_INCLUDE_H_
+#include "mjpc/estimators/gui.h"
 
-#include <memory>
 #include <vector>
 
-#include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/kalman.h"
-#include "mjpc/estimators/unscented.h"
+#include <mujoco/mujoco.h>
+
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 
-// Estimator names, separated by '\n'.
-extern const char kEstimatorNames[];
+// Initialize
+void EstimatorGUIData::Initialize(const mjModel* model, int nprocess,
+                                  int nsensor) {
+  // timestep
+  timestep = model->opt.timestep;
 
-// Loads all available estimators
-std::vector<std::unique_ptr<mjpc::Estimator>> LoadEstimators();
+  // integrator
+  integrator = model->opt.integrator;
+
+  // process noise
+  process_noise.resize(nprocess);
+
+  // sensor noise
+  sensor_noise.resize(nsensor);
+
+  // scale prior
+  scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
+
+  // estimation horizon
+  horizon = GetNumberOrDefault(3, model, "batch_configuration_length");
+}
 
 }  // namespace mjpc
-
-#endif  // MJPC_ESTIMATORS_INCLUDE_H_

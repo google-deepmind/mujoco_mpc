@@ -35,7 +35,6 @@ findorfetch(
   gRPC
 )
 
-
 find_package(ZLIB REQUIRED)
 set(gRPC_ZLIB_PROVIDER "package" CACHE INTERNAL "")
 
@@ -55,7 +54,6 @@ get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
 get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
 get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
-
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -136,6 +134,7 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
+
 target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(AGENT_SERVICE_COMPILE_OPTIONS=${AGENT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
@@ -173,10 +172,10 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
+
 target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
-
 
 add_executable(
   batch_server
@@ -209,4 +208,3 @@ target_include_directories(batch_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_SERVICE_COMPILE_OPTIONS})
 target_compile_options(batch_server PUBLIC ${BATCH_SERVICE_COMPILE_OPTIONS})
 target_link_options(batch_server PRIVATE ${BATCH_SERVICE_LINK_OPTIONS})
-

@@ -802,8 +802,8 @@ void Agent::PlotInitialize() {
   // initialize
   for (int j = 0; j < 20; j++) {
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[j][2 * i] = static_cast<float>(-i);
-      plots_.timer.linedata[j][2 * i] = static_cast<float>(-i);
+      plots_.planner.linedata[j][2 * i] = -1.0 * i;
+      plots_.timer.linedata[j][2 * i] = -1.0 * i;
 
       // colors
       if (j == 0) continue;
@@ -837,8 +837,8 @@ void Agent::PlotReset() {
 
     // reset x tick marks
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[k][2 * i] = static_cast<float>(-i);
-      plots_.timer.linedata[k][2 * i] = static_cast<float>(-i);
+      plots_.planner.linedata[k][2 * i] = -1.0 * i;
+      plots_.timer.linedata[k][2 * i] = -1.0 * i;
     }
   }
 }
@@ -983,7 +983,7 @@ void Agent::Plots(const mjData* data, int shift) {
   if (!plan_enabled) return;
 
   // planner-specific plotting
-  int planner_shift[2] {0, 0};
+  int planner_shift[2] = {0, 0};
   ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled,
                         planner_shift);
 

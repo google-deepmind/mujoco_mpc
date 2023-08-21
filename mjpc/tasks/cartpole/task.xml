@@ -31,7 +31,7 @@
     <user name="Centered" dim="1" user="6 10.0 0 100.0 0.1"/>
     <user name="Velocity" dim="1" user="0 0.1 0.0 1.0"/>
     <user name="Control" dim="1" user="0 0.1 0.0 1.0"/>
-    
+
     <!-- estimator -->
     <jointpos name="slider_pos" joint="slider"/>
     <jointpos name="hinge_pos" joint="hinge_1"/>

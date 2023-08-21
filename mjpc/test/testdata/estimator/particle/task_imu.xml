@@ -4,7 +4,7 @@
     <map znear=".01"/>
     <quality shadowsize="2048"/>
   </visual>
-  
+
   <default>
     <geom solimp="0 0.95 0.001"/>
   </default>
@@ -41,7 +41,7 @@
     <body name="pointmass" pos="0 0 0">
       <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
       <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
-      <site name="center" type="sphere" size="0.01" rgba="1 0 0 0" pos="0 0 0"/> 
+      <site name="center" type="sphere" size="0.01" rgba="1 0 0 0" pos="0 0 0"/>
     </body>
   </worldbody>
 

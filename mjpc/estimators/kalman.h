@@ -31,7 +31,7 @@ class Kalman : public Estimator {
  public:
   // constructor
   Kalman() = default;
-  Kalman(const mjModel* model) {
+  explicit Kalman(const mjModel* model) {
     Initialize(model);
     Reset();
   }

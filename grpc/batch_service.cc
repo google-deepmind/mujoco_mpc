@@ -507,7 +507,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   double total_cost = batch_.Cost(
       derivatives ? batch_.GetCostGradient() : NULL,
       derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
-  
+
   // cost
   response->set_total(total_cost);
 

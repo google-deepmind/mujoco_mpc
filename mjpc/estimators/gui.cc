@@ -37,7 +37,7 @@ void EstimatorGUIData::Initialize(const mjModel* model, int nprocess,
   // sensor noise
   sensor_noise.resize(nsensor);
 
-  // scale prior 
+  // scale prior
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
 
   // estimation horizon

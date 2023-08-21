@@ -98,7 +98,7 @@ class GroundTruth : public Estimator {
  public:
   // constructor
   GroundTruth() = default;
-  GroundTruth(const mjModel* model) {
+  explicit GroundTruth(const mjModel* model) {
     Initialize(model);
     Reset();
   }

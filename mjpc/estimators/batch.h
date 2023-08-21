@@ -70,9 +70,9 @@ class Batch : public Estimator {
     settings.prior_flag = true;
     max_history_ = kMaxFilterHistory;
   }
-  Batch(const mjModel* model, int length = 3, int max_history_ = 0) {
+  Batch(const mjModel* model, int length = 3, int max_history = 0) {
     // set max history length
-    this->max_history_ = (max_history_ == 0 ? length : max_history_);
+    this->max_history_ = (max_history == 0 ? length : max_history);
 
     // initialize memory
     Initialize(model);

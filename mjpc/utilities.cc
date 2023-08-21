@@ -1490,7 +1490,8 @@ void ConditionMatrix(double* res, const double* mat, double* mat00,
 }
 
 // principal eigenvector of 4x4 matrix
-// QUEST: "Three-Axis Attitude Determination from Vector Observations"
+// QUEST algorithm from "Three-Axis Attitude Determination from Vector
+// Observations"
 void PrincipalEigenVector4(double* res, const double* mat,
                            double eigenvalue_init) {
   // Z = mat[0:3, 3]

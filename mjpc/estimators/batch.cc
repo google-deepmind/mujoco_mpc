@@ -1847,6 +1847,9 @@ void Batch::UpdateConfiguration(
     mj_integratePos(model, ct, dqt, step_size);
   }
 
+  // joint limits
+  if (settings.joint_limits) JointLimits();
+
   // stop timer
   timer_.configuration_update += GetDuration(start);
 }
@@ -2246,6 +2249,9 @@ void Batch::Optimize(ThreadPool& pool) {
 
   // reset timers
   ResetTimers();
+
+  // joint limits 
+  if (settings.joint_limits) JointLimits();
 
   // initial cost
   cost_count_ = 0;
@@ -2964,6 +2970,28 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 void Batch::IncreaseRegularization() {
   regularization_ = mju_min(kMaxBatchRegularization,
                             regularization_ * settings.regularization_scaling);
+}
+
+// project configurations onto joint limits
+void Batch::JointLimits() {
+  // loop over configurations
+  for (int t = 0; t < configuration_length_; t++) {
+    // configuration
+    double* qt = configuration.Get(t);
+
+    // loop over joints
+    for (int i = 0; i < model->njnt; i++) {
+      // check for limits
+      if (model->jnt_limited[i]) {
+        // get joint element
+        double* qti = qt + model->jnt_qposadr[i];
+
+        // clip
+        qti[0] = mju_clip(qti[0], model->jnt_range[2 * i],
+                          model->jnt_range[2 * i + 1]);
+      }
+    }
+  }
 }
 
 }  // namespace mjpc

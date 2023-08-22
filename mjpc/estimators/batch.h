@@ -467,6 +467,7 @@ class Batch : public Estimator {
         false;                            // assemble dense force norm Hessian
     bool filter = false;                  // filter mode
     bool recursive_prior_update = false;  // recursively update prior matrix
+    bool joint_limits = true;  // enforce joint limits
   } settings;
 
   // finite-difference settings
@@ -561,6 +562,9 @@ class Batch : public Estimator {
 
   // increase regularization
   void IncreaseRegularization();
+
+  // enforce joint limits
+  void JointLimits();
 
   // dimensions
   int nstate_;

@@ -223,6 +223,7 @@ class Batch:
       assemble_force_jacobian: Optional[bool] = None,
       assemble_sensor_norm_hessian: Optional[bool] = None,
       assemble_force_norm_hessian: Optional[bool] = None,
+      joint_limits: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = batch_pb2.Settings(
@@ -250,6 +251,7 @@ class Batch:
         assemble_force_jacobian=assemble_force_jacobian,
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
         assemble_force_norm_hessian=assemble_force_norm_hessian,
+        joint_limits=joint_limits,
     )
 
     # settings request
@@ -286,6 +288,7 @@ class Batch:
         "assemble_force_jacobian": settings.assemble_force_jacobian,
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
+        "joint_limits": settings.joint_limits,
     }
 
   def noise(

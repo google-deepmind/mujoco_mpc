@@ -104,6 +104,7 @@ message Settings {
   optional bool assemble_force_jacobian = 22;
   optional bool assemble_sensor_norm_hessian = 23;
   optional bool assemble_force_norm_hessian = 24;
+  optional bool joint_limits = 25;
 }
 
 message SettingsRequest {

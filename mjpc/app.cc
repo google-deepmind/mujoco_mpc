@@ -377,6 +377,8 @@ void PhysicsLoop(mj::Simulate& sim) {
         state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
         state->SetAct(m, sim.agent->estimator_state.data() + m->nq + m->nv);
         state->SetTime(m, sim.agent->time);
+
+        // ground truth
         state->SetMocap(m, d->mocap_pos, d->mocap_quat);
         state->SetUserData(m, d->userdata);
       } else {  // == 0

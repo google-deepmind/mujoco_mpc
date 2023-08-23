@@ -29,6 +29,8 @@ $$
 \end{align*}
 $$
 
+The constraints are handled implicitly. Velocities and accelerations are computed using finite-difference approximations from the configuration decision variables.
+
 **Variables**
 - $q \in \mathbf{R}^{n_q}$: configuration
 - $v \in \mathbf{R}^{n_v}$: velocity
@@ -137,7 +139,64 @@ Gerald Smith, Stanley Schmidt, Leonard McGee. 1962.
 
 ## Algorithm
 
+**Sigma points**
+$$
+\begin{aligned}
+z^{(0)} &= x_t\\
+z^{(i)} &= x_t + \gamma \cdot \textbf{cholesky}(P_t)^{(i)} \quad \text{for} \quad i = 1, \dots, n_{dx}\\
+z^{(n_{dx} + i)} &= x_t - \gamma \cdot \textbf{cholesky}(P_t)^{(i)} \quad \text{for} \quad i = 1, \dots, n_{dx}
+\end{aligned}
+$$
+where $\textbf{cholesky}(\cdot)^{(i)}$ is the $i$-th column of a postive definite matrix's Cholesky factorization.
+
+**Sigma point evaluation**
+$$
+\begin{aligned}
+\hat{x}_{t+1}^{(i)} &= f(z^{(i)}, u_t) \quad \text{for} \quad i = 0, \dots, 2n_{dx}\\
+\hat{y}_t^{(i)} &= h(z^{(i)}, u_t) \quad \text{for} \quad i = 0, \dots, 2n_{dx}
+\end{aligned}
+$$
+
+**Sigma point means**
+$$
+\begin{aligned}
+\bar{x}_{t+1} &= \sum \limits_{i = 0}^{2 n_{dx}} w_m^{(i)} \cdot \hat{x}_{t+1}^{(i)}\\
+\bar{y}_{t} &= \sum \limits_{i = 0}^{2 n_{dx}} w_m^{(i)} \cdot \hat{y}_t^{(i)}
+\end{aligned}
+$$
+
+Note: states containing quaternions are corrected by computing a quaternion "average", [Averaging Quaternions](http://www.acsu.buffalo.edu/~johnc/ave_quat07.pdf).
+
+**Sigma point covariances**
+$$
+\begin{aligned}
+\Sigma_{xx} &= \sum \limits_{i = 0}^{2 n_{dx}} w_c^{(i)} \cdot (\hat{x}_{t+1}^{(i)} - \bar{x}_{t+1}) (\hat{x}_{t+1}^{(i)} - \bar{x}_{t+1})^T + Q\\
+\Sigma_{ss} &= \sum \limits_{i = 0}^{2 n_{dx}} w_c^{(i)} \cdot (\hat{y}_{t}^{(i)} - \bar{y}_{t}) (\hat{y}_{t}^{(i)} - \bar{y}_{t})^T + R\\
+\Sigma_{xs} &= \sum \limits_{i = 0}^{2 n_{dx}} w_c^{(i)} \cdot (\hat{x}_{t+1}^{(i)} - \bar{x}_{t+1}) (\hat{y}_{t}^{(i)} - \bar{y}_{t})^T\\
+\end{aligned}
+$$
+
+**Update**
+$$
+\begin{aligned}
+x_{t+1} &= \bar{x}_{t+1} + \Sigma_{xx} \Sigma_{ss}^{-1} (y_t - \bar{y}_t)\\
+P_{t+1} &= \Sigma_{xx} - \Sigma_{xs} \Sigma_{yy}^{-1} \Sigma_{xs}^T
+\end{aligned}
+$$
+### Dimensions
+- $n_x = n_q + n_v + na$: state dimension
+- $n_{dx} = 2 n_v + na$: state derivative dimension
+
+### Weights
+- $\lambda = n_{dx} \cdot (\alpha^2 - 1)$
+- $\gamma = \sqrt{n_{dx} + \lambda}$: sigma point step size
+- $w_m^{(0)} = \lambda / (n_{dx} + \lambda)$: mean weight 0
+- $w_c^{(0)} = w_m^{(0)} + 1 - \alpha^2 + \beta$: covariance weight 0
+- $w_m^{(i)} = w_c^{(i)} = 1 / (2 (n_{dx} + \lambda))$: weights
+
 ### Settings
+- $\alpha$: 
+- $\beta$:
 
 ## Reference
 [Unscented Filtering and Nonlinear Estimation](https://www.cs.ubc.ca/~murphyk/Papers/Julier_Uhlmann_mar04.pdf).

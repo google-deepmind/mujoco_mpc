@@ -4,14 +4,18 @@
 
 - [Batch Estimator](#batch-estimator)
   - [Cost Function](#cost-function)
+  - [Cost Derivatives](#cost-derivatives)
   - [Filter](#batch-filter)
   - [Settings](#batch-settings)
+  - [API](#batch-api)
   - [Reference](#batch-reference)
 - [Extended Kalman Filter](#kalman-filter)
   - [Algorithm](#kalman-algorithm)
+  - [API](#kalman-api)
   - [Reference](#kalman-reference)
 - [Unscented Kalman Filter](#unscented-filter)
   - [Algorithm](#unscented-algorithm)
+  - [API](#unscented-api)
   - [Reference](#unscented-reference)
 
 # Batch Estimator
@@ -58,6 +62,8 @@ Rescaled:
 - $ w_f^{(i)} = p / (\sigma_g^{(i)} \cdot n_v \cdot (T - 1))$
   - $p = \begin{cases} h^2 & {\texttt{settings.time\_scaling}} \\ 1 & {\texttt{else}} \end{cases}$
 
+## Cost Derivatives
+
 ## Filter
 
 An additional *prior* cost
@@ -90,9 +96,35 @@ Kendall Lowrey, Svetoslav Kolev, Yuval Tassa, Tom Erez, Emo Todorov. 2014.
 
 ### Prediction Update
 
+$$
+\begin{aligned}
+x_{t+1} &= f(x_t, u_t)\\
+P_{t+1} &= A_t^T P_t A_t + Q
+\end{aligned}
+$$
+
 ### Measurement Update
 
-### Settings
+$$
+\begin{aligned}
+x_t &\mathrel{+}= P_t C_t^T (C_t P_t C_t^T + R)^{-1} (y_t - s(x_t, u_t))\\
+P_t &\mathrel{+}= P_t C_t^T (C_t P_t C_t^T + R)^{-1} (C_t * P_t)
+\end{aligned}
+$$
+
+**Variables**
+- $x \in \mathbf{R}^{n_q + n_v + n_a}$: state
+- $u \in \mathbf{R}^{n_u}$: action
+- $y \in \mathbf{R}^{n_s}$: sensor measurement
+- $A \in \mathbf{R}^{(2 n_v + na) \times (2 n_v + na)} = \partial f / \partial x |_{x, u}$ : forward dynamics state Jacobian
+- $C \in \mathbf{R}^{n_s \times (2 n_v + na)} = \partial f / \partial x|_{x, u}$ : sensor model state Jacobian
+- $Q \in \mathbf{S}_{++}^{2 n_v + n_a}$: process noise
+- $R \in \mathbf{S}_{++}^{n_s}$: measurement noise
+- $P \in \mathbf{S}_{++}^{(2 n_v + n_a) \times (2 n_v + n_a)}$: state covariance
+
+**Models**
+- $f: \mathbf{R}^{n_q + n_v + n_a} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_q + n_v + n_a}$: forward dynamics
+- $s: \mathbf{R}^{n_q + n_v + n_a} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_s}$: sensor model
 
 ## Reference
 [A New Approach to Linear Filtering and Prediction Problems](https://www.cs.unc.edu/~welch/kalman/media/pdf/Kalman1960.pdf).

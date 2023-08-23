@@ -464,6 +464,19 @@ class Batch:
     # return prior matrix
     return mat
 
+  def sensor_info(self) -> dict[str | int]:
+    # info request
+    request = batch_pb2.SensorInfoRequest()
+
+    # info response
+    response = self._wait(self.stub.SensorInfo.future(request))
+
+    # return info
+    return {
+        "start_index": response.start_index,
+        "measurement_dimension": response.measurement_dimension,
+    }
+
   def print_cost(self):
     # get costs
     cost = self.cost()

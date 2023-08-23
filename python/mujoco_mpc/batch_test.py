@@ -596,5 +596,27 @@ class BatchTest(absltest.TestCase):
         1.0e-5,
     )
 
+  def test_sensor_info(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    batch = batch_lib.Batch(
+        model=model, configuration_length=configuration_length
+    )
+
+    # get sensor info
+    info = batch.sensor_info()
+
+    # test
+    self.assertTrue(info["start_index"] == 0)
+    self.assertTrue(info["measurement_dimension"] == 4)
+
+
 if __name__ == "__main__":
   absltest.main()

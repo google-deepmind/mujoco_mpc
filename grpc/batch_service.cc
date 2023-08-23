@@ -875,6 +875,22 @@ grpc::Status BatchService::PriorWeights(
   return grpc::Status::OK;
 }
 
+grpc::Status BatchService::SensorInfo(grpc::ServerContext* context,
+                                      const batch::SensorInfoRequest* request,
+                                      batch::SensorInfoResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // start index
+  response->set_start_index(batch_.SensorStartIndex());
+
+  // sensor measurement dimension
+  response->set_measurement_dimension(batch_.DimensionSensor());
+
+  return grpc::Status::OK;
+}
+
 #undef CHECK_SIZE
 
 }  // namespace mjpc::batch_grpc

@@ -36,6 +36,7 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
+#include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -75,6 +76,10 @@ void Agent::Initialize(const mjModel* model) {
   // planner
   planner_ = GetNumberOrDefault(0, model, "agent_planner");
 
+  // estimator
+  estimator_ = GetNumberOrDefault(0, model, "estimator");
+  previous_estimator = estimator_;
+
   // integrator
   integrator_ =
       GetNumberOrDefault(model->opt.integrator, model, "agent_integrator");
@@ -99,6 +104,35 @@ void Agent::Initialize(const mjModel* model) {
   // initialize state
   state.Initialize(model);
 
+  // initialize estimator
+  if (reset_estimator) {
+    for (const auto& estimator : estimators_) {
+      estimator->Initialize(model_);
+      estimator->Reset();
+    }
+  }
+
+  // get Kalman estimator
+  Estimator* estimator = estimators_[0].get();
+
+  // initialize estimator data
+  ctrl.resize(model->nu);
+  sensor.resize(model->nsensordata);
+  estimator_state.resize(model->nq + model->nv + model->na);
+
+  // initialize estimator GUI data
+  estimator_gui_data.Initialize(estimator->Model(),
+                                estimator->DimensionProcess(),
+                                estimator->DimensionSensor());
+
+  // set initial process noise
+  mju_copy(estimator_gui_data.process_noise.data(), estimator->ProcessNoise(),
+           estimator->DimensionProcess());
+
+  // set initial sensor noise
+  mju_copy(estimator_gui_data.sensor_noise.data(), estimator->SensorNoise(),
+           estimator->DimensionSensor());
+
   // status
   plan_enabled = false;
   action_enabled = true;
@@ -114,10 +148,14 @@ void Agent::Initialize(const mjModel* model) {
 
   // names
   mju::strcpy_arr(this->planner_names_, kPlannerNames);
+  mju::strcpy_arr(this->estimator_names_, kEstimatorNames);
+
+  // estimator threads
+  estimator_threads_ = 1;
 
   // planner threads
   planner_threads_ =
-      std::max(1, NumAvailableHardwareThreads() - 3);
+      std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_ - 1);
 }
 
 // allocate memory
@@ -146,6 +184,13 @@ void Agent::Reset() {
 
   // state
   state.Reset();
+
+  // estimator
+  if (reset_estimator) {
+    for (const auto& estimator : estimators_) {
+      estimator->Reset();
+    }
+  }
 
   // cost
   cost_ = 0.0;
@@ -604,6 +649,7 @@ void Agent::GUI(mjUI& ui) {
   mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
                         {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
                         {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+                        {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
                         {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
                         {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
                         {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
@@ -619,18 +665,30 @@ void Agent::GUI(mjUI& ui) {
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
 
+  // estimator names
+  if (!mjpc::GetCustomNumericData(model_, "estimator")) {
+    mju::strcpy_arr(defAgent[3].other, "Ground Truth");
+  } else {
+    mju::strcpy_arr(defAgent[3].other, estimator_names_);
+  }
+
   // set planning horizon slider limits
-  mju::sprintf_arr(defAgent[8].other, "%f %f", kMinPlanningHorizon,
+  mju::sprintf_arr(defAgent[9].other, "%f %f", kMinPlanningHorizon,
                    kMaxPlanningHorizon);
 
   // set time step limits
-  mju::sprintf_arr(defAgent[9].other, "%f %f", kMinTimeStep, kMaxTimeStep);
+  mju::sprintf_arr(defAgent[10].other, "%f %f", kMinTimeStep, kMaxTimeStep);
 
   // add agent
   mjui_add(&ui, defAgent);
 
   // planner
   ActivePlanner().GUI(ui);
+
+  // estimator
+  if (ActiveEstimatorIndex() > 0) {
+    ActiveEstimator().GUI(ui, estimator_gui_data);
+  }
 }
 
 // task-based GUI event
@@ -678,10 +736,54 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         uiloadrequest.fetch_sub(1);
       }
       break;
-    case 3:  // controller on/off
+    case 2:  // estimator change
+      // check for estimators
+      if (!GetCustomNumericData(model_, "estimator")) {
+        estimator_ = 0;
+        break;
+      }
+      // reset
+      if (model_) {
+        // reset plots
+        this->PlotInitialize();
+        this->PlotReset();
+
+        // copy state
+        // ActiveEstimator().SetState(PreviousEstimator().State());
+
+        // // copy covariance
+        // ActiveEstimator().SetCovariance(PreviousEstimator().Covariance());
+
+        // reset estimator
+        ActiveEstimator().Reset(data);
+
+        // reset agent
+        reset_estimator = false;     // skip estimator reset
+        uiloadrequest.fetch_sub(1);  // reset
+        reset_estimator = true;      // restore estimator reset
+
+        // set previous
+        previous_estimator = estimator_;
+      }
+      break;
+    case 4:  // controller on/off
       if (model_) {
         mju_zero(data->ctrl, model_->nu);
       }
+  }
+}
+
+// agent-based GUI event
+void Agent::EstimatorEvent(mjuiItem* it, mjData* data,
+                           std::atomic<int>& uiloadrequest, int& run) {
+  switch (it->itemid) {
+    case 0:  // reset estimator
+      if (model_) {
+        this->ActiveEstimator().Reset(data);
+        this->PlotInitialize();
+        this->PlotReset();
+      }
+      break;
   }
 }
 
@@ -802,8 +904,8 @@ void Agent::PlotInitialize() {
   // initialize
   for (int j = 0; j < 20; j++) {
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[j][2 * i] = -1.0 * i;
-      plots_.timer.linedata[j][2 * i] = -1.0 * i;
+      plots_.planner.linedata[j][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[j][2 * i] = static_cast<float>(-i);
 
       // colors
       if (j == 0) continue;
@@ -837,8 +939,8 @@ void Agent::PlotReset() {
 
     // reset x tick marks
     for (int i = 0; i < mjMAXLINEPNT; i++) {
-      plots_.planner.linedata[k][2 * i] = -1.0 * i;
-      plots_.timer.linedata[k][2 * i] = -1.0 * i;
+      plots_.planner.linedata[k][2 * i] = static_cast<float>(-i);
+      plots_.timer.linedata[k][2 * i] = static_cast<float>(-i);
     }
   }
 }
@@ -983,9 +1085,15 @@ void Agent::Plots(const mjData* data, int shift) {
   if (!plan_enabled) return;
 
   // planner-specific plotting
-  int planner_shift[2] = {0, 0};
+  int planner_shift[2] {0, 0};
   ActivePlanner().Plots(&plots_.planner, &plots_.timer, 0, 1, plan_enabled,
                         planner_shift);
+
+  // estimator-specific plotting
+  if (ActiveEstimatorIndex() > 0) {
+    ActiveEstimator().Plots(&plots_.planner, &plots_.timer, planner_shift[0],
+                            planner_shift[1] + 1, plan_enabled, NULL);
+  }
 
   // total (agent) compute time
   double timer_bounds[2] = {0.0, 1.0};

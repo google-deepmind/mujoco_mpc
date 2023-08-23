@@ -491,7 +491,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
       batch_.settings.assemble_force_norm_hessian);
 
   // joint limits
-  if (input->has_joint_limits()) {
+  if (input.has_joint_limits()) {
     batch_.settings.joint_limits = input.joint_limits();
   }
   output->set_joint_limits(batch_.settings.joint_limits);

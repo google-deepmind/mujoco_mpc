@@ -491,47 +491,50 @@ class Batch : public Estimator {
   // evaluate configurations derivatives
   void ConfigurationDerivative(ThreadPool& pool);
 
-  // prior cost
+  // ----- prior ----- //
+  // cost
   double CostPrior(double* gradient, double* hessian);
 
-  // sensor cost
+  // residual
+  void ResidualPrior();
+
+  // Jacobian block
+  void BlockPrior(int index);
+
+  // Jacobian
+  void JacobianPrior(ThreadPool& pool);
+
+  // ----- sensor ----- //
+  // cost
   double CostSensor(double* gradient, double* hessian);
 
-  // force cost
+  // residual
+  void ResidualSensor();
+
+  // Jacobian blocks (dsdq0, dsdq1, dsdq2)
+  void BlockSensor(int index);
+
+  // Jacobian
+  void JacobianSensor(ThreadPool& pool);
+
+  // ----- force ----- //
+  // cost
   double CostForce(double* gradient, double* hessian);
+
+  // residual
+  void ResidualForce();
+
+  // Jacobian blocks (dfdq0, dfdq1, dfdq2)
+  void BlockForce(int index);
+
+  // Jacobian
+  void JacobianForce(ThreadPool& pool);
 
   // compute total gradient
   void TotalGradient(double* gradient);
 
   // compute total Hessian
   void TotalHessian(double* hessian);
-
-  // prior residual
-  void ResidualPrior();
-
-  // prior Jacobian block
-  void BlockPrior(int index);
-
-  // prior Jacobian
-  void JacobianPrior(ThreadPool& pool);
-
-  // sensor residual
-  void ResidualSensor();
-
-  // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
-  void BlockSensor(int index);
-
-  // sensor Jacobian
-  void JacobianSensor(ThreadPool& pool);
-
-  // force residual
-  void ResidualForce();
-
-  // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
-  void BlockForce(int index);
-
-  // force Jacobian
-  void JacobianForce(ThreadPool& pool);
 
   // search direction
   void SearchDirection();

@@ -1217,117 +1217,6 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   return cost;
 }
 
-// force cost
-double Batch::CostForce(double* gradient, double* hessian) {
-  // start timer
-  auto start = std::chrono::steady_clock::now();
-
-  // update dimension
-  int nv = model->nv;
-  int nvar = nv * configuration_length_;
-  int nforce = nv * (configuration_length_ - 2);
-
-  // residual
-  if (!cost_skip_) ResidualForce();
-
-  // ----- cost ----- //
-
-  // initialize
-  double cost = 0.0;
-
-  // zero memory
-  if (gradient) mju_zero(gradient, nvar);
-  if (hessian) mju_zero(hessian, nvar * (3 * nv));
-
-  // time scaling
-  double time_scale2 = 1.0;
-  if (settings.time_scaling_force) {
-    time_scale2 = model->opt.timestep * model->opt.timestep;
-  }
-
-  // loop over predictions
-  for (int t = 1; t < configuration_length_ - 1; t++) {
-    // unpack block
-    double* block = block_force_configurations_.Get(t);
-
-    // start cost timer
-    auto start_cost = std::chrono::steady_clock::now();
-
-    // residual
-    double* rt = residual_force_.data() + t * nv;
-
-    // norm gradient
-    double* norm_gradient = norm_gradient_force_.data() + t * nv;
-
-    // norm block
-    double* norm_block = norm_blocks_force_.data() + t * nv * nv;
-    mju_zero(norm_block, nv * nv);
-
-    // ----- cost ----- //
-
-    // quadratic cost
-    for (int i = 0; i < nv; i++) {
-      // weight
-      double weight =
-          time_scale2 / noise_process[i] / nv / (configuration_length_ - 2);
-
-      // gradient
-      norm_gradient[i] = weight * rt[i];
-
-      // Hessian
-      norm_block[nv * i + i] = weight;
-    }
-
-    // norm
-    norm_sensor_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
-
-    // weighted norm
-    cost += norm_sensor_[t];
-
-    // stop cost timer
-    timer_.cost_force += GetDuration(start_cost);
-
-    // assemble dense norm Hessian
-    if (settings.assemble_force_norm_hessian) {
-      // zero memory
-      if (t == 1) mju_zero(norm_hessian_force_.data(), nforce * nforce);
-
-      // set block
-      SetBlockInMatrix(norm_hessian_force_.data(), norm_block, 1.0, nforce,
-                       nforce, nv, nv, (t - 1) * nv, (t - 1) * nv);
-    }
-
-    // gradient wrt configuration: dridq012' * dndri
-    if (gradient) {
-      // scratch = dridq012' * dndri
-      mju_mulMatTVec(scratch_force_.data(), block, norm_gradient, nv, 3 * nv);
-
-      // add
-      mju_addToScl(gradient + (t - 1) * nv, scratch_force_.data(), 1.0,
-                   3 * nv);
-    }
-
-    // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
-    if (hessian) {
-      // step 1: tmp0 = d2ndri2 * dridq
-      double* tmp0 = scratch_force_.data();
-      mju_mulMatMat(tmp0, norm_block, block, nv, nv, 3 * nv);
-
-      // step 2: hessian = dridq' * tmp
-      double* tmp1 = tmp0 + 3 * nv * nv;
-      mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
-
-      // set block in band Hessian
-      SetBlockInBand(hessian, tmp1, 1.0, nvar, 3 * nv, 3 * nv, nv * (t - 1));
-    }
-  }
-
-  // stop timer
-  timer_.cost_force_derivatives += GetDuration(start);
-
-  return cost;
-}
-
 // sensor residual
 void Batch::ResidualSensor() {
   // start timer
@@ -1490,6 +1379,117 @@ void Batch::JacobianSensor(ThreadPool& pool) {
   }
 }
 
+// force cost
+double Batch::CostForce(double* gradient, double* hessian) {
+  // start timer
+  auto start = std::chrono::steady_clock::now();
+
+  // update dimension
+  int nv = model->nv;
+  int nvar = nv * configuration_length_;
+  int nforce = nv * (configuration_length_ - 2);
+
+  // residual
+  if (!cost_skip_) ResidualForce();
+
+  // ----- cost ----- //
+
+  // initialize
+  double cost = 0.0;
+
+  // zero memory
+  if (gradient) mju_zero(gradient, nvar);
+  if (hessian) mju_zero(hessian, nvar * (3 * nv));
+
+  // time scaling
+  double time_scale2 = 1.0;
+  if (settings.time_scaling_force) {
+    time_scale2 = model->opt.timestep * model->opt.timestep;
+  }
+
+  // loop over predictions
+  for (int t = 1; t < configuration_length_ - 1; t++) {
+    // unpack block
+    double* block = block_force_configurations_.Get(t);
+
+    // start cost timer
+    auto start_cost = std::chrono::steady_clock::now();
+
+    // residual
+    double* rt = residual_force_.data() + t * nv;
+
+    // norm gradient
+    double* norm_gradient = norm_gradient_force_.data() + t * nv;
+
+    // norm block
+    double* norm_block = norm_blocks_force_.data() + t * nv * nv;
+    mju_zero(norm_block, nv * nv);
+
+    // ----- cost ----- //
+
+    // quadratic cost
+    for (int i = 0; i < nv; i++) {
+      // weight
+      double weight =
+          time_scale2 / noise_process[i] / nv / (configuration_length_ - 2);
+
+      // gradient
+      norm_gradient[i] = weight * rt[i];
+
+      // Hessian
+      norm_block[nv * i + i] = weight;
+    }
+
+    // norm
+    norm_sensor_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
+
+    // weighted norm
+    cost += norm_sensor_[t];
+
+    // stop cost timer
+    timer_.cost_force += GetDuration(start_cost);
+
+    // assemble dense norm Hessian
+    if (settings.assemble_force_norm_hessian) {
+      // zero memory
+      if (t == 1) mju_zero(norm_hessian_force_.data(), nforce * nforce);
+
+      // set block
+      SetBlockInMatrix(norm_hessian_force_.data(), norm_block, 1.0, nforce,
+                       nforce, nv, nv, (t - 1) * nv, (t - 1) * nv);
+    }
+
+    // gradient wrt configuration: dridq012' * dndri
+    if (gradient) {
+      // scratch = dridq012' * dndri
+      mju_mulMatTVec(scratch_force_.data(), block, norm_gradient, nv, 3 * nv);
+
+      // add
+      mju_addToScl(gradient + (t - 1) * nv, scratch_force_.data(), 1.0,
+                   3 * nv);
+    }
+
+    // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+    if (hessian) {
+      // step 1: tmp0 = d2ndri2 * dridq
+      double* tmp0 = scratch_force_.data();
+      mju_mulMatMat(tmp0, norm_block, block, nv, nv, 3 * nv);
+
+      // step 2: hessian = dridq' * tmp
+      double* tmp1 = tmp0 + 3 * nv * nv;
+      mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
+
+      // set block in band Hessian
+      SetBlockInBand(hessian, tmp1, 1.0, nvar, 3 * nv, 3 * nv, nv * (t - 1));
+    }
+  }
+
+  // stop timer
+  timer_.cost_force_derivatives += GetDuration(start);
+
+  return cost;
+}
+
 // force residual
 void Batch::ResidualForce() {
   // start timer
@@ -1616,7 +1616,6 @@ void Batch::JacobianForce(ThreadPool& pool) {
 }
 
 // compute force
-// TODO(taylor): combine with Jacobian method
 void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   // compute sensor and force predictions
   auto start = std::chrono::steady_clock::now();

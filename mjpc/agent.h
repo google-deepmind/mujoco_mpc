@@ -137,9 +137,6 @@ class Agent {
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
-  mjpc::Estimator& PreviousEstimator() const {
-    return *estimators_[previous_estimator];
-  }
   int ActiveEstimatorIndex() const { return estimator_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
@@ -189,7 +186,6 @@ class Agent {
   std::vector<double> ctrl;
   std::vector<double> estimator_state;
   double time = 0.0;
-  int previous_estimator;
   bool reset_estimator = true;
   EstimatorGUIData estimator_gui_data;
 

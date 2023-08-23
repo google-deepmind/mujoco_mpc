@@ -78,7 +78,6 @@ void Agent::Initialize(const mjModel* model) {
 
   // estimator
   estimator_ = GetNumberOrDefault(0, model, "estimator");
-  previous_estimator = estimator_;
 
   // integrator
   integrator_ =
@@ -748,12 +747,6 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         this->PlotInitialize();
         this->PlotReset();
 
-        // copy state
-        // ActiveEstimator().SetState(PreviousEstimator().State());
-
-        // // copy covariance
-        // ActiveEstimator().SetCovariance(PreviousEstimator().Covariance());
-
         // reset estimator
         ActiveEstimator().Reset(data);
 
@@ -761,9 +754,6 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         reset_estimator = false;     // skip estimator reset
         uiloadrequest.fetch_sub(1);  // reset
         reset_estimator = true;      // restore estimator reset
-
-        // set previous
-        previous_estimator = estimator_;
       }
       break;
     case 4:  // controller on/off

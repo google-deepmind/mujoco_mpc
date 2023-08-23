@@ -7,15 +7,12 @@
   - [Cost Derivatives](#cost-derivatives)
   - [Filter](#batch-filter)
   - [Settings](#batch-settings)
-  - [API](#batch-api)
   - [Reference](#batch-reference)
 - [Extended Kalman Filter](#kalman-filter)
   - [Algorithm](#kalman-algorithm)
-  - [API](#kalman-api)
   - [Reference](#kalman-reference)
 - [Unscented Kalman Filter](#unscented-filter)
   - [Algorithm](#unscented-algorithm)
-  - [API](#unscented-api)
   - [Reference](#unscented-reference)
 
 # Batch Estimator
@@ -92,6 +89,8 @@ $$
 [Physically-Consistent Sensor Fusion in Contact-Rich Behaviors](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=31c0842aa1d4808541a64014c24928123e1d949e).
 Kendall Lowrey, Svetoslav Kolev, Yuval Tassa, Tom Erez, Emo Todorov. 2014.
 
+[Batch API](../mjpc/estimators/batch.h)
+
 # Extended Kalman Filter
 
 ## Algorithm
@@ -122,7 +121,7 @@ $$
 - $C \in \mathbf{R}^{n_s \times (2 n_v + na)} = \partial f / \partial x|_{x, u}$ : sensor model state Jacobian
 - $Q \in \mathbf{S}_{++}^{2 n_v + n_a}$: process noise
 - $R \in \mathbf{S}_{++}^{n_s}$: measurement noise
-- $P \in \mathbf{S}_{++}^{(2 n_v + n_a) \times (2 n_v + n_a)}$: state covariance
+- $P \in \mathbf{S}_{++}^{(2 n_v + n_a)}$: state covariance
 
 **Models**
 - $f: \mathbf{R}^{n_q + n_v + n_a} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_q + n_v + n_a}$: forward dynamics
@@ -134,6 +133,8 @@ Rudolph Kalman. 1960.
 
 [Application Of Statistical Filter Theory To The Optimal Estimation Of Position And Velocity On Board A Circumlunar Vehicle](https://archive.org/details/nasa_techdoc_19620006857/page/n31/mode/2up).
 Gerald Smith, Stanley Schmidt, Leonard McGee. 1962.
+
+[Kalman API](../mjpc/estimators/kalman.h)
 
 # Unscented Kalman Filter
 
@@ -183,9 +184,22 @@ x_{t+1} &= \bar{x}_{t+1} + \Sigma_{xx} \Sigma_{ss}^{-1} (y_t - \bar{y}_t)\\
 P_{t+1} &= \Sigma_{xx} - \Sigma_{xs} \Sigma_{yy}^{-1} \Sigma_{xs}^T
 \end{aligned}
 $$
+
 ### Dimensions
 - $n_x = n_q + n_v + na$: state dimension
 - $n_{dx} = 2 n_v + na$: state derivative dimension
+
+**Variables**
+- $x \in \mathbf{R}^{n_x}$: state
+- $u \in \mathbf{R}^{n_u}$: action
+- $y \in \mathbf{R}^{n_s}$: sensor measurement
+- $Q \in \mathbf{S}_{++}^{n_{dx}}$: process noise
+- $R \in \mathbf{S}_{++}^{n_s}$: measurement noise
+- $P \in \mathbf{S}_{++}^{n_{dx}}$: state covariance
+
+**Models**
+- $f: \mathbf{R}^{n_q + n_v + n_a} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_q + n_v + n_a}$: forward dynamics
+- $s: \mathbf{R}^{n_q + n_v + n_a} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_s}$: sensor model
 
 ### Weights
 - $\lambda = n_{dx} \cdot (\alpha^2 - 1)$
@@ -195,9 +209,11 @@ $$
 - $w_m^{(i)} = w_c^{(i)} = 1 / (2 (n_{dx} + \lambda))$: weights
 
 ### Settings
-- $\alpha$: 
-- $\beta$:
+- $\alpha$: controls spread of sigma points around mean
+- $\beta$: encodes prior information (Gaussian: $\beta = 2$)
 
 ## Reference
 [Unscented Filtering and Nonlinear Estimation](https://www.cs.ubc.ca/~murphyk/Papers/Julier_Uhlmann_mar04.pdf).
 Simon Julier, Jeffrey Uhulmann. 2004.
+
+[Unscented API](../mjpc/estimators/unscented.h)

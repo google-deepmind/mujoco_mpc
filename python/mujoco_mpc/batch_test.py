@@ -615,8 +615,8 @@ class BatchTest(absltest.TestCase):
 
     # test
     self.assertTrue(info["start_index"] == 0)
-    self.assertTrue(info["measurement_dimension"] == 4)
-
+    self.assertTrue(info["num_measurements"] == 4)
+    self.assertTrue(info["dim_measurements"] == 4)
 
 if __name__ == "__main__":
   absltest.main()

@@ -474,8 +474,18 @@ class Batch:
     # return info
     return {
         "start_index": response.start_index,
-        "measurement_dimension": response.measurement_dimension,
+        "num_measurements": response.num_measurements,
+        "dim_measurements": response.dim_measurements,
     }
+  
+  def measurements_from_sensordata(self, data: npt.ArrayLike) -> np.ndarray:
+    # get sensor info
+    info = self.sensor_info()
+
+    # return measurements from sensor data
+    index = info["start_index"]
+    dim = info["dim_measurements"]
+    return data[index:(index + dim)]
 
   def print_cost(self):
     # get costs

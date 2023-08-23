@@ -77,7 +77,7 @@ class Batch:
         [str(server_binary_path), f"--mjpc_port={self.port}"],
         stdout=subprocess.PIPE if colab_logging else None,
     )
-    # os.set_blocking(self.server_process.stdout.fileno(), False)
+    os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(
@@ -535,11 +535,11 @@ class Batch:
 
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""
-    # if self._colab_logging:
-    #     while True:
-    # line = self.server_process.stdout.readline()
-    # if line:
-    #     sys.stdout.write(line.decode("utf-8"))
-    # if future.done():
-    #     break
+    if self._colab_logging:
+      while True:
+        line = self.server_process.stdout.readline()
+        if line:
+            sys.stdout.write(line.decode("utf-8"))
+        if future.done():
+            break
     return future.result()

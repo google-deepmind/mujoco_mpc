@@ -1848,7 +1848,7 @@ void Batch::UpdateConfiguration(
   }
 
   // joint limits
-  if (settings.joint_limits) JointLimits();
+  if (settings.joint_limits) ClipByJointLimits();
 
   // stop timer
   timer_.configuration_update += GetDuration(start);
@@ -2251,7 +2251,7 @@ void Batch::Optimize(ThreadPool& pool) {
   ResetTimers();
 
   // joint limits 
-  if (settings.joint_limits) JointLimits();
+  if (settings.joint_limits) ClipByJointLimits();
 
   // initial cost
   cost_count_ = 0;
@@ -2972,8 +2972,8 @@ void Batch::IncreaseRegularization() {
                             regularization_ * settings.regularization_scaling);
 }
 
-// project configurations onto joint limits
-void Batch::JointLimits() {
+// clip configurations within joint limits
+void Batch::ClipByJointLimits() {
   // loop over configurations
   for (int t = 0; t < configuration_length_; t++) {
     // configuration

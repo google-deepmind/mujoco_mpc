@@ -563,8 +563,8 @@ class Batch : public Estimator {
   // increase regularization
   void IncreaseRegularization();
 
-  // enforce joint limits
-  void JointLimits();
+  // clip configurations within joint limits
+  void ClipByJointLimits();
 
   // dimensions
   int nstate_;

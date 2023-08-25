@@ -58,7 +58,7 @@ Computed with user inputs:
 Rescaled:
 - $ w_s^{(i)} = p / (\sigma_s^{(i)} \cdot n_s^{(i)} \cdot (T - 1))$
   - $p = \begin{cases} h^2 & {\texttt{settings.time\_scaling \& acceleration sensor}} \\ h & {\texttt{settings.time\_scaling \& velocity sensor}} \\ 1 & {\texttt{else}} \end{cases}$
-- $ w_f^{(i)} = p / (\sigma_g^{(i)} \cdot n_v \cdot (T - 1))$
+- $ w_g^{(i)} = p / (\sigma_g^{(i)} \cdot n_v \cdot (T - 1))$
   - $p = \begin{cases} h^2 & {\texttt{settings.time\_scaling}} \\ 1 & {\texttt{else}} \end{cases}$
 
 ## Cost Derivatives
@@ -118,7 +118,7 @@ $$
 - $u \in \mathbf{R}^{n_u}$: action
 - $y \in \mathbf{R}^{n_s}$: sensor measurement
 - $A \in \mathbf{R}^{(2 n_v + na) \times (2 n_v + na)} = \partial f / \partial x |_{x, u}$ : forward dynamics state Jacobian
-- $C \in \mathbf{R}^{n_s \times (2 n_v + na)} = \partial f / \partial x|_{x, u}$ : sensor model state Jacobian
+- $C \in \mathbf{R}^{n_s \times (2 n_v + na)} = \partial f / \partial u|_{x, u}$ : sensor model state Jacobian
 - $Q \in \mathbf{S}_{++}^{2 n_v + n_a}$: process noise
 - $R \in \mathbf{S}_{++}^{n_s}$: measurement noise
 - $P \in \mathbf{S}_{++}^{(2 n_v + n_a)}$: state covariance
@@ -181,13 +181,13 @@ $$
 $$
 \begin{aligned}
 x_{t+1} &= \bar{x}_{t+1} + \Sigma_{xx} \Sigma_{ss}^{-1} (y_t - \bar{y}_t)\\
-P_{t+1} &= \Sigma_{xx} - \Sigma_{xs} \Sigma_{yy}^{-1} \Sigma_{xs}^T
+P_{t+1} &= \Sigma_{xx} - \Sigma_{xs} \Sigma_{ss}^{-1} \Sigma_{xs}^T
 \end{aligned}
 $$
 
 ### Dimensions
-- $n_x = n_q + n_v + na$: state dimension
-- $n_{dx} = 2 n_v + na$: state derivative dimension
+- $n_x = n_q + n_v + n_a$: state dimension
+- $n_{dx} = 2 n_v + n_a$: state derivative dimension
 
 **Variables**
 - $x \in \mathbf{R}^{n_x}$: state
@@ -204,8 +204,8 @@ $$
 ### Weights
 - $\lambda = n_{dx} \cdot (\alpha^2 - 1)$
 - $\gamma = \sqrt{n_{dx} + \lambda}$: sigma point step size
-- $w_m^{(0)} = \lambda / (n_{dx} + \lambda)$: mean weight 0
-- $w_c^{(0)} = w_m^{(0)} + 1 - \alpha^2 + \beta$: covariance weight 0
+- $w_m^{(0)} = \lambda / (n_{dx} + \lambda)$: mean weight
+- $w_c^{(0)} = w_m^{(0)} + 1 - \alpha^2 + \beta$: covariance weight
 - $w_m^{(i)} = w_c^{(i)} = 1 / (2 (n_{dx} + \lambda))$: weights
 
 ### Settings

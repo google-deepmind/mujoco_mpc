@@ -14,12 +14,12 @@
     <numeric name="gradient_spline_points" data="10" />
 
     <!-- estimator -->
-    <!-- <numeric name="estimator" data="0" /> -->
+    <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="2" />
     <numeric name="estimator_number_sensor" data="8" />
     <numeric name="estimator_timestep" data="0.0075" />
-    <numeric name="batch_configuration_length" data="5" />
-    <numeric name="batch_scale_prior" data="1.0e-8" />
+    <numeric name="batch_configuration_length" data="3" />
+    <numeric name="batch_scale_prior" data="1.0e-3" />
   </custom>
 
   <worldbody>
@@ -43,6 +43,15 @@
     <jointpos name="joint2" joint="joint_2" />
     <jointpos name="joint3" joint="joint_3" />
     <jointpos name="joint4" joint="joint_4" />
+
+    <!-- <jointvel name="vrootx" joint="rootx" />
+    <jointvel name="vrooty" joint="rooty" />
+    <jointvel name="vrootz" joint="rootz" />
+    <jointvel name="vjoint0" joint="joint_0" />
+    <jointvel name="vjoint1" joint="joint_1" />
+    <jointvel name="vjoint2" joint="joint_2" />
+    <jointvel name="vjoint3" joint="joint_3" />
+    <jointvel name="vjoint4" joint="joint_4" /> -->
 
     <!-- trace -->
     <framepos name="trace0" objtype="geom" objname="nose"/>

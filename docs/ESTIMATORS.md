@@ -100,7 +100,7 @@ Kendall Lowrey, Svetoslav Kolev, Yuval Tassa, Tom Erez, Emo Todorov. 2014.
 $$
 \begin{aligned}
 x_{t+1} &= f(x_t, u_t)\\
-P_{t+1} &= A_t^T P_t A_t + Q
+P_{t+1} &= A_t P_t A_t^T + Q
 \end{aligned}
 $$
 

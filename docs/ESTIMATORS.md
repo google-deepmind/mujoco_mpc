@@ -193,7 +193,7 @@ $$
 - $x \in \mathbf{R}^{n_x}$: state
 - $u \in \mathbf{R}^{n_u}$: action
 - $y \in \mathbf{R}^{n_s}$: sensor measurement
-- $Q \in \mathbf{S}_{++}^{n_{dx}}$: process noise
+- $Q \in \mathbf{S}_{+}^{n_{dx}}$: process noise
 - $R \in \mathbf{S}_{++}^{n_s}$: measurement noise
 - $P \in \mathbf{S}_{++}^{n_{dx}}$: state covariance
 

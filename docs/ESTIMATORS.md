@@ -20,7 +20,7 @@
 ## Cost Function
 $$
 \begin{align*}
-    \underset{q_{0:T}}{\text{minimize }} & \quad \sum_{t = 1}^{T - 1} \Big(\sum_{i = 1}^{S} w_s^{(i)} \| s^{(i)}(q_t, v_t, a_t, u_t) - y_t^{(i)} \| + \frac{1}{2} \| g(q_t, v_t, a_t, u_t) - \tau_t \|_{\textbf{diag}(w_{g})}^2 \Big) \\
+    \underset{q_{0:T}}{\text{minimize }} & \quad \sum_{t = 1}^{T - 1} \Big(\sum_{i = 1}^{S} w_s^{(i)} \textbf{n}^{(i)}(s^{(i)}(q_t, v_t, a_t, u_t) - y_t^{(i)}) + \frac{1}{2} \| g(q_t, v_t, a_t, u_t) - \tau_t \|_{\textbf{diag}(w_{g})}^2 \Big) \\
     \text{subject to} & \quad v_t = (q_t - q_{t - 1}) / h\\
     & \quad a_t = (q_{t + 1} - 2 q_t + q_{t - 1}) / h^2 = (v_{t+1} - v_t) / h,
 \end{align*}
@@ -29,19 +29,20 @@ $$
 The constraints are handled implicitly. Velocities and accelerations are computed using finite-difference approximations from the configuration decision variables.
 
 **Variables**
-- $q \in \mathbf{R}^{n_q}$: configuration
-- $v \in \mathbf{R}^{n_v}$: velocity
-- $a \in \mathbf{R}^{n_v}$: accelerations
-- $u \in \mathbf{R}^{n_u}$: action
-- $y \in \mathbf{R}^{n_s}$: sensor measurement
-- $\tau \in \mathbf{R}^{n_v}$: inverse dynamics force
-- $h \in \mathbf{R}_{+}\,$: time step
+- $q \in \mathbf{R}^{n_q}$: configuration ```[qpos]```
+- $v \in \mathbf{R}^{n_v}$: velocity ```[qvel]```
+- $a \in \mathbf{R}^{n_v}$: accelerations ```[qacc]```
+- $u \in \mathbf{R}^{n_u}$: action ```[ctrl]```
+- $y \in \mathbf{R}^{n_s}$: sensor measurement ```[sensordata]```
+- $\tau \in \mathbf{R}^{n_v}$: inverse dynamics force ```[qfrc_actuator]```
+- $h \in \mathbf{R}_{+}\,$: time step ```[timestep]```
 - $T$: estimation horizon
 - $t$: discrete time step
 
 **Models**
 - $s : \mathbf{R}^{n_q} \times \mathbf{R}^{n_v} \times \mathbf{R}^{n_v} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_s}$: sensor model
 - $g : \mathbf{R}^{n_q} \times \mathbf{R}^{n_v} \times \mathbf{R}^{n_v} \times \mathbf{R}^{n_u} \rightarrow \mathbf{R}^{n_v}$: inverse dynamics model
+- $\textbf{n}: \mathbf{R}^{n} \rightarrow \mathbf{R}_{+}$: user-specified [convex norm](../mjpc/norm.h)
 
 **Weights**
 
@@ -63,6 +64,42 @@ Rescaled:
 
 ## Cost Derivatives
 
+**Residuals**
+
+Sensor residual
+
+$r_s = \Big(s^{(0)}(q_1, v_1, a_1, u_1) - y_1^{(0)}, \dots, s^{(i)}(q_t, v_t, a_t, u_t) - y_t^{(i)}, \dots, s^{(S)}(q_{T - 1}, v_{T - 1}, a_{T - 1}, u_{T - 1}) - y_{T -1 }^{(S)}\Big) \in \mathbf{R}^{n_s (T - 2)}$
+
+Force residual
+
+$r_g = \Big(g(q_1, v_1, a_1, u_1) - \tau_1, \dots, g(q_t, v_t, a_t, u_t) - \tau_t, \dots, g(q_{T - 1}, v_{T - 1}, a_{T - 1}, u_{T - 1}) - \tau_{T - 1}\Big) \in \mathbf{R}^{n_v (T - 2)}$
+
+**Gradient**
+
+The gradient of the cost $c$ with respect to the configuration trajectory $q_{0:T}$:
+
+$d c/ d q_{0:T} = J_s^T N_s + J_g^T N_g$
+
+where 
+
+- $J_s = dr_s / d q_{0:T} \in \mathbf{R}^{n_s (T - 2) \times n_v T}$: Jacobian of sensor residual with respect to configuration trajectory
+- $J_g = dr_g / d q_{0:T} \in \mathbf{R}^{n_v (T - 2) \times n_v T}$: Jacobian of force residual with respect to configuration trajectory
+- $N_s = \Big(w_s^{(0} d \textbf{n}^{(0)} / d (r_s^{(0)})_1, \dots, w_s^{(i)} d \textbf{n}^{(i)} / d (r_s^{(i)})_t, \dots, w_s^{(S)}  d \textbf{n}^{(S)} / d (r_s^{(S)})_{T - 1}\Big)$
+- $N_g = \Big(\textbf{diag}(w_g) (r_g)_1, \dots, \textbf{diag}(w_g) (r_g)_{t} \dots, \textbf{diag}(w_g) (r_g)_{T-1} \Big)$
+
+**Hessian**
+
+The [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm) approximation of the cost Hessian: 
+
+$d^2 c / d q_{0:T}^2 \approx J_s^T N_{ss} J_s + J_g^T N_{gg} J_g$
+
+where
+
+- $N_{ss} = \Big(w_s^{(0} d^2 \textbf{n}^{(0)} / d (r_s^{(0)})_1^2, \dots, w_s^{(i)} d^2 \textbf{n}^{(i)} / d (r_s^{(i)})_t^2, \dots, w_s^{(S)} d^2 \textbf{n}^{(S)} / d (r_s^{(S)})_{T - 1}^2\Big)$
+- $N_{gg} = \Big(\textbf{diag}(w_g) (r_g)_1, \dots, \textbf{diag}(w_g) (r_g)_{t} \dots, \textbf{diag}(w_g) (r_g)_{T-1} \Big)$
+
+This approximation: 1) is computationally less expensive compared to computing the exact Hessian 2) ensures the matrix is [positive semidefinite](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm).
+
 ## Filter
 
 An additional *prior* cost
@@ -71,7 +108,7 @@ $$
 \frac{1}{2} (q_{0:T} - \bar{q}_{0:T})^T P (q_{0:T} - \bar{q}_{0:T})
 $$
 
-with $P \in \mathbf{S}_{++}^{n_v \times T}$ and overbar ($\bar{\,\,\,}$) denoting a reference configuration is added to the cost when filtering.
+with $P \in \mathbf{S}_{++}^{n_v  T}$ and overbar ($\bar{\,\,\,}$) denoting a reference configuration is added to the cost when filtering.
 
 The prior weights
 $$
@@ -166,7 +203,7 @@ $$
 \end{aligned}
 $$
 
-Note: states containing quaternions are corrected by computing a quaternion "average", [Averaging Quaternions](http://www.acsu.buffalo.edu/~johnc/ave_quat07.pdf).
+Note: states containing quaternions are corrected by computing a quaternion "average": [Averaging Quaternions](http://www.acsu.buffalo.edu/~johnc/ave_quat07.pdf).
 
 **Sigma point covariances**
 $$

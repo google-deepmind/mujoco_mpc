@@ -31,6 +31,9 @@ TEST(PriorCost, Particle) {
   mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
+  // discrete inverse dynamics
+  model->opt.enableflags |= mjENBL_INVDISCRETE;
+
   // dimension
   int nq = model->nq, nv = model->nv;
 
@@ -172,6 +175,9 @@ TEST(PriorCost, Box) {
   // load model
   mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
+
+  // discrete inverse dynamics
+  model->opt.enableflags |= mjENBL_INVDISCRETE;
 
   // dimension
   int nq = model->nq, nv = model->nv;

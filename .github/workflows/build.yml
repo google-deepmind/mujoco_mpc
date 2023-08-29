@@ -27,6 +27,13 @@ jobs:
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
+          - os: windows-2022
+            cmake_args: >-
+              -G Ninja
+              -DCMAKE_C_COMPILER:STRING=clang
+              -DCMAKE_CXX_COMPILER:STRING=clang++
+              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
+            tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"
     runs-on: ${{ matrix.os }}
@@ -48,7 +55,12 @@ jobs:
       run: brew install ninja
     - name: Prepare Windows
       if: ${{ runner.os == 'Windows' }}
-      run: choco install nasm
+      # Install llvm 16 manually, remove after
+      # https://github.com/actions/runner-images/issues/8125 is resolved and that
+      # version is included in the image by default
+      run: >
+        choco install nasm
+        choco upgrade llvm
     - name: Configure MuJoCo MPC
       run: >
         mkdir build &&

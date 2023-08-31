@@ -224,6 +224,8 @@ class Batch:
       assemble_sensor_norm_hessian: Optional[bool] = None,
       assemble_force_norm_hessian: Optional[bool] = None,
       first_step_position_sensors: Optional[bool] = None,
+      last_step_position_sensors: Optional[bool] = None,
+      last_step_velocity_sensors: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = batch_pb2.Settings(
@@ -252,6 +254,8 @@ class Batch:
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
         assemble_force_norm_hessian=assemble_force_norm_hessian,
         first_step_position_sensors=first_step_position_sensors,
+        last_step_position_sensors=last_step_position_sensors,
+        last_step_velocity_sensors=last_step_velocity_sensors,
     )
 
     # settings request
@@ -289,6 +293,8 @@ class Batch:
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
         "first_step_position_sensors": settings.first_step_position_sensors,
+        "last_step_position_sensors": settings.last_step_position_sensors,
+        "last_step_velocity_sensors": settings.last_step_velocity_sensors,
     }
 
   def noise(

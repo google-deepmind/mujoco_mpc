@@ -317,10 +317,28 @@ class BatchTest(absltest.TestCase):
     # get/set first step position sensors
     first_step_position_sensors = True
     settings = batch.settings(
-      first_step_position_sensors=first_step_position_sensors
+        first_step_position_sensors=first_step_position_sensors
     )
     self.assertTrue(
-      first_step_position_sensors == settings["first_step_position_sensors"]
+        first_step_position_sensors == settings["first_step_position_sensors"]
+    )
+
+    # get/set last step position sensors
+    last_step_position_sensors = True
+    settings = batch.settings(
+        last_step_position_sensors=last_step_position_sensors
+    )
+    self.assertTrue(
+        last_step_position_sensors == settings["last_step_position_sensors"]
+    )
+
+    # get/set last step velocity sensors
+    last_step_velocity_sensors = True
+    settings = batch.settings(
+        last_step_velocity_sensors=last_step_velocity_sensors
+    )
+    self.assertTrue(
+        last_step_velocity_sensors == settings["last_step_velocity_sensors"]
     )
 
   def test_costs(self):
@@ -604,6 +622,7 @@ class BatchTest(absltest.TestCase):
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
         1.0e-5,
     )
+
 
 if __name__ == "__main__":
   absltest.main()

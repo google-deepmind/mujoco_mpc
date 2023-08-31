@@ -469,6 +469,10 @@ class Batch : public Estimator {
     bool recursive_prior_update = false;  // recursively update prior matrix
     bool first_step_position_sensors =
         true;  // evaluate position sensors at first time step
+    bool last_step_position_sensors =
+        false;  // evaluate position sensors at last time step
+    bool last_step_velocity_sensors =
+        false;  // evaluate velocity sensors at last time step
   } settings;
 
   // finite-difference settings

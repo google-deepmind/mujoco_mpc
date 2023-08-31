@@ -37,6 +37,9 @@ void Batch::Initialize(const mjModel* model) {
   if (this->model) mj_deleteModel(this->model);
   this->model = mj_copyModel(nullptr, model);
 
+  // set discrete inverse dynamics
+  this->model->opt.enableflags |= mjENBL_INVDISCRETE;
+
   // data
   data_.clear();
   for (int i = 0; i < max_history_; i++) {

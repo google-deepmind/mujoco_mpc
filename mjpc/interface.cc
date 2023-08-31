@@ -15,15 +15,13 @@
 #include "mjpc/interface.h"
 
 #include <memory>
-#include <string>
+#include <utility>
 #include <vector>
 #include <mujoco/mujoco.h>
 #include "mjpc/agent.h"
 #include "mjpc/task.h"
 #include "mjpc/tasks/tasks.h"
 #include "mjpc/threadpool.h"
-#include "mjpc/utilities.h"
-
 
 namespace mjpc {
 AgentRunner::AgentRunner(const mjModel* model, std::shared_ptr<Task> task)
@@ -65,6 +63,7 @@ void AgentRunner::Residual(const mjModel* model, mjData* data) {
 
 namespace {
 mjpc::AgentRunner* runner = nullptr;
+std::shared_ptr<mjpc::Task> task_;
 
 // not exposed to Unity, "extern C" is for MuJoco's callback assignment:
 extern "C" void residual_sensor_callback(const mjModel* model, mjData* data,
@@ -78,8 +77,10 @@ extern "C" void residual_sensor_callback(const mjModel* model, mjData* data,
 
 extern "C" void destroy_policy() {
   if (runner != nullptr) {
+    task_ = nullptr;
     delete runner;
     runner = nullptr;
+    mjcb_sensor = nullptr;
   }
 }
 
@@ -90,15 +91,25 @@ extern "C" void create_policy_from_task_id(const mjModel* model, int task_id) {
 
 extern "C" void create_policy(const mjModel* model,
                               std::shared_ptr<mjpc::Task> task) {
-  if (!mjcb_sensor) {
+  destroy_policy();
+  if (mjcb_sensor == nullptr) {
     mjcb_sensor = residual_sensor_callback;
   }
-  destroy_policy();
   runner = new mjpc::AgentRunner(model, task);
+  task_ = std::move(task);
 }
 
 extern "C" void step_policy(mjData* data) {
   if (runner != nullptr) {
     runner->Step(data);
+  }
+}
+
+extern "C" void set_weights(double* weights) {
+  if (task_ != nullptr) {
+    for (int i = 0; i < task_->weight.size(); ++i) {
+      task_->weight[i] = weights[i];
+    }
+    task_->UpdateResidual();
   }
 }

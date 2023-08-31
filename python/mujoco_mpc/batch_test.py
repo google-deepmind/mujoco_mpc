@@ -314,6 +314,15 @@ class BatchTest(absltest.TestCase):
         assemble_force_norm_hessian == settings["assemble_force_norm_hessian"]
     )
 
+    # get/set first step position sensors
+    first_step_position_sensors = True
+    settings = batch.settings(
+      first_step_position_sensors=first_step_position_sensors
+    )
+    self.assertTrue(
+      first_step_position_sensors == settings["first_step_position_sensors"]
+    )
+
   def test_costs(self):
     # load model
     model_path = (

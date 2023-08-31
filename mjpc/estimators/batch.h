@@ -467,6 +467,8 @@ class Batch : public Estimator {
         false;                            // assemble dense force norm Hessian
     bool filter = false;                  // filter mode
     bool recursive_prior_update = false;  // recursively update prior matrix
+    bool first_step_position_sensors =
+        true;  // evaluate position sensors at first time step
   } settings;
 
   // finite-difference settings

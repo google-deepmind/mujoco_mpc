@@ -490,6 +490,13 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   output->set_assemble_force_norm_hessian(
       batch_.settings.assemble_force_norm_hessian);
 
+  // first step position sensors
+  if (input.has_first_step_position_sensors()) {
+    batch_.settings.first_step_position_sensors =
+        input.first_step_position_sensors();
+  }
+  output->set_first_step_position_sensors(
+      batch_.settings.first_step_position_sensors());
   return grpc::Status::OK;
 }
 

@@ -127,6 +127,9 @@ TEST(SensorCost, Particle) {
         // position sensors
         mj_fwdPosition(model, data);
         mj_sensorPos(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyPos(model, data);
+        }
 
         // measurement error
         mju_sub(rk, data->sensordata, y0, ns);
@@ -187,10 +190,16 @@ TEST(SensorCost, Particle) {
         // position sensors
         mj_fwdPosition(model, data);
         mj_sensorPos(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyPos(model, data);
+        }
 
         // velocity sensors
         mj_fwdVelocity(model, data);
         mj_sensorVel(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyVel(model, data);
+        }
 
         // measurement error
         mju_sub(rk, data->sensordata, y1, ns);
@@ -475,6 +484,9 @@ TEST(SensorCost, Box) {
         // position sensors
         mj_fwdPosition(model, data);
         mj_sensorPos(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyPos(model, data);
+        }
 
         // measurement error
         mju_sub(rk, data->sensordata, y0, ns);
@@ -535,10 +547,16 @@ TEST(SensorCost, Box) {
         // position sensors
         mj_fwdPosition(model, data);
         mj_sensorPos(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyPos(model, data);
+        }
 
         // velocity sensors
         mj_fwdVelocity(model, data);
         mj_sensorVel(model, data);
+        if (model->opt.enableflags & (mjENBL_ENERGY)) {
+          mj_energyVel(model, data);
+        }
 
         // measurement error
         mju_sub(rk, data->sensordata, y1, ns);

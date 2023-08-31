@@ -496,7 +496,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
         input.first_step_position_sensors();
   }
   output->set_first_step_position_sensors(
-      batch_.settings.first_step_position_sensors());
+      batch_.settings.first_step_position_sensors);
 
   // last step position sensors
   if (input.has_last_step_position_sensors()) {
@@ -504,7 +504,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
         input.last_step_position_sensors();
   }
   output->set_last_step_position_sensors(
-      batch_.settings.last_step_position_sensors());
+      batch_.settings.last_step_position_sensors);
 
   // last step velocity sensors
   if (input.has_last_step_velocity_sensors()) {
@@ -512,7 +512,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
         input.last_step_velocity_sensors();
   }
   output->set_last_step_velocity_sensors(
-      batch_.settings.last_step_velocity_sensors());
+      batch_.settings.last_step_velocity_sensors);
 
   return grpc::Status::OK;
 }

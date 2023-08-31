@@ -1746,6 +1746,9 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // position sensors
     mj_fwdPosition(batch.model, d);
     mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
 
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
@@ -1827,10 +1830,16 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // position sensors
     mj_fwdPosition(batch.model, d);
     mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
 
     // velocity sensors
     mj_fwdVelocity(batch.model, d);
     mj_sensorVel(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyVel(batch.model, d);
+    }
 
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
@@ -2183,6 +2192,9 @@ void Batch::InitializeFilter() {
   // evaluate position
   mj_fwdPosition(model, data);
   mj_sensorPos(model, data);
+  if (model->opt.enableflags & (mjENBL_ENERGY)) {
+    mj_energyPos(model, data);
+  }
 
   // y0
   double* y0 = sensor_measurement.Get(0);

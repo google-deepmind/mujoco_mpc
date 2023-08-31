@@ -623,6 +623,5 @@ class BatchTest(absltest.TestCase):
         1.0e-5,
     )
 
-
 if __name__ == "__main__":
   absltest.main()

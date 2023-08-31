@@ -32,6 +32,9 @@ TEST(BatchOptimize, Particle2D) {
   mjModel* model = LoadTestModel("estimator/particle/task.xml");
   mjData* data = mj_makeData(model);
 
+  // discrete inverse dynamics
+  model->opt.enableflags |= mjENBL_INVDISCRETE;
+
   // dimensions
   int nq = model->nq, nv = model->nv, ns = model->nsensordata;
 
@@ -109,6 +112,9 @@ TEST(BatchOptimize, Box3D) {
   // load model
   mjModel* model = LoadTestModel("estimator/box/task0.xml");
   mjData* data = mj_makeData(model);
+
+  // discrete inverse dynamics
+  model->opt.enableflags |= mjENBL_INVDISCRETE;
 
   // dimension
   int nq = model->nq, nv = model->nv;
@@ -195,6 +201,9 @@ TEST(BatchOptimize, Quadruped) {
   // load model
   mjModel* model = LoadTestModel("estimator/quadruped/task.xml");
   mjData* data = mj_makeData(model);
+
+  // discrete inverse dynamics
+  model->opt.enableflags |= mjENBL_INVDISCRETE;
 
   // dimension
   int nq = model->nq, nv = model->nv, nu = model->nu;

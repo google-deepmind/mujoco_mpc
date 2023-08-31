@@ -27,13 +27,6 @@ jobs:
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             additional_targets: "agent_server"
             tmpdir: "/tmp"
-          - os: windows-2022
-            cmake_args: >-
-              -G Ninja
-              -DCMAKE_C_COMPILER:STRING=clang
-              -DCMAKE_CXX_COMPILER:STRING=clang++
-              -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
-            tmpdir: "C:/Temp"
 
     name: "MuJoCo MPC on ${{ matrix.os }} ${{ matrix.additional_label }}"
     runs-on: ${{ matrix.os }}

@@ -252,8 +252,8 @@ void Tracking::TransitionLocked(mjModel *model, mjData *d) {
 
   mjMARKSTACK;
 
-  mjtNum *mocap_pos_0 = mj_stackAlloc(d, 3 * model->nmocap);
-  mjtNum *mocap_pos_1 = mj_stackAlloc(d, 3 * model->nmocap);
+  mjtNum *mocap_pos_0 = mj_stackAllocNum(d, 3 * model->nmocap);
+  mjtNum *mocap_pos_1 = mj_stackAllocNum(d, 3 * model->nmocap);
 
   // Compute interpolated frame.
   mju_scl(mocap_pos_0, model->key_mpos + model->nmocap * 3 * key_index_0,

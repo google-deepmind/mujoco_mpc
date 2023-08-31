@@ -487,8 +487,8 @@ void UpdateInfoText(mj::Simulate* sim,
   if (best_trajectory) {
     mju::sprintf_arr(content, "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
                      best_trajectory->total_return, m->nv, m->nu, d->time,
-                     d->maxuse_arena / (double)(d->nstack * sizeof(mjtNum)),
-                     mju_writeNumBytes(d->nstack * sizeof(mjtNum)));
+                     d->maxuse_arena / (double)(d->narena),
+                     mju_writeNumBytes(d->narena));
   }
 
   // add Energy if enabled

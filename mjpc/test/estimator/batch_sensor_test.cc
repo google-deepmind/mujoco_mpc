@@ -51,6 +51,7 @@ TEST(SensorCost, Particle) {
 
   // ----- estimator ----- //
   Batch estimator(model, T);
+  estimator.settings.first_step_position_sensors = false;
 
   // copy configuration, measurement
   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
@@ -136,6 +137,9 @@ TEST(SensorCost, Particle) {
           // weight
           double weight = 1.0 / estimator.noise_sensor[i] / nsi /
                           (estimator.ConfigurationLength() - 1);
+
+          // first time step
+          if (t == 0) weight *= estimator.settings.first_step_position_sensors;
 
           // parameters
           double* pi =
@@ -412,6 +416,9 @@ TEST(SensorCost, Box) {
           double weight = 1.0 / estimator.noise_sensor[i] / nsi /
                           (estimator.ConfigurationLength() - 1);
 
+          // first time step
+          if (t == 0) weight *= estimator.settings.first_step_position_sensors;
+          
           // parameters
           double* pi =
               estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;

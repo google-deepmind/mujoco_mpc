@@ -1138,6 +1138,9 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       double weight =
           time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
 
+      // first time step
+      if (t == 0) weight *= settings.first_step_position_sensors;
+
       // parameters
       double* pi = norm_parameters_sensor.data() + kMaxNormParameters * i;
 

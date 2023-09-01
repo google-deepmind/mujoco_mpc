@@ -268,10 +268,10 @@ class Batch : public Estimator {
     double step_scaling = 0.5;  // step size scaling
     double regularization_initial = 1.0e-12;       // initial regularization
     double regularization_scaling = mju_sqrt(10);  // regularization scaling
-    bool time_scaling_force = true;              // scale force costs
-    bool time_scaling_sensor = true;             // scale sensor costs
-    double search_direction_tolerance = 1.0e-8;  // search direction tolerance
-    double cost_tolerance = 1.0e-8;              // cost difference tolernace
+    bool time_scaling_force = true;                // scale force costs
+    bool time_scaling_sensor = true;               // scale sensor costs
+    double search_direction_tolerance = 1.0e-8;    // search direction tolerance
+    double cost_tolerance = 1.0e-8;                // cost difference tolernace
     bool assemble_prior_jacobian = false;   // assemble dense prior Jacobian
     bool assemble_sensor_jacobian = false;  // assemble dense sensor Jacobian
     bool assemble_force_jacobian = false;   // assemble dense force Jacobian
@@ -281,6 +281,12 @@ class Batch : public Estimator {
         false;                            // assemble dense force norm Hessian
     bool filter = false;                  // filter mode
     bool recursive_prior_update = false;  // recursively update prior matrix
+    bool first_step_position_sensors =
+        true;  // evaluate position sensors at first time step
+    bool last_step_position_sensors =
+        false;  // evaluate position sensors at last time step
+    bool last_step_velocity_sensors =
+        false;  // evaluate velocity sensors at last time step
   } settings;
 
   // finite-difference settings
@@ -491,7 +497,7 @@ class Batch : public Estimator {
   std::vector<double> cost_gradient_prior_;   // nv * max_history_
   std::vector<double> cost_gradient_sensor_;  // nv * max_history_
   std::vector<double> cost_gradient_force_;   // nv * max_history_
-  std::vector<double> cost_gradient_;  // nv * max_history_
+  std::vector<double> cost_gradient_;         // nv * max_history_
 
   // cost Hessian
   std::vector<double>

@@ -1014,13 +1014,14 @@ void Batch::ConfigurationEvaluation(ThreadPool& pool) {
 // configurations derivatives
 void Batch::ConfigurationDerivative(ThreadPool& pool) {
   // dimension
-  int nvar = model->nv * configuration_length_;
-  int nsen = nsensordata_ * (configuration_length_ - 1);
-  int nforce = nsensordata_ * (configuration_length_ - 2);
+  int nv = model->nv;
+  int nvar = nv * configuration_length_;
+  int nsen = nsensordata_ * configuration_length_;
+  int nforce = nv * (configuration_length_ - 2);
 
   // operations
   int opprior = settings.prior_flag * configuration_length_;
-  int opsensor = settings.sensor_flag * (configuration_length_ - 1);
+  int opsensor = settings.sensor_flag * configuration_length_;
   int opforce = settings.force_flag * (configuration_length_ - 2);
 
   // inverse dynamics derivatives
@@ -1253,7 +1254,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int nv = model->nv, ns = nsensordata_;
   int nvar = nv * configuration_length_;
-  int nsen = ns * (configuration_length_ - 1);
+  int nsen = ns * configuration_length_;
 
   // residual
   if (!cost_skip_) ResidualSensor();
@@ -1279,7 +1280,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   int shift_matrix = 0;
 
   // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int t = 0; t < configuration_length_; t++) {
     // residual
     double* rt = residual_sensor_.data() + ns * t;
 
@@ -1292,6 +1293,9 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     if (t == 0) {  // only position sensors
       block = block_sensor_configuration_.Get(t) + sensor_start_index_ * nv;
       block_columns = nv;
+    } else if (t == configuration_length_ - 1) {
+      block = block_sensor_configurations_.Get(t);
+      block_columns = 2 * nv;
     } else {  // position, velocity, acceleration sensors
       block = block_sensor_configurations_.Get(t);
       block_columns = 3 * nv;
@@ -1323,9 +1327,17 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       double* rti = rt + shift_sensor;
 
       // weight
-      double weight = mask[i] ? time_weight / noise_sensor[i] / nsi /
-                                    (configuration_length_ - 1)
-                              : 0.0;
+      double weight =
+          mask[i] ? time_weight / noise_sensor[i] / nsi / configuration_length_
+                  : 0.0;
+
+      // first time step
+      if (t == 0) weight *= settings.first_step_position_sensors;
+
+      // last time step
+      if (t == configuration_length_ - 1)
+        weight *= (settings.last_step_position_sensors ||
+                   settings.last_step_velocity_sensors);
 
       // parameters
       double* pi = norm_parameters_sensor.data() + kMaxNormParameters * i;
@@ -1415,7 +1427,7 @@ void Batch::ResidualSensor() {
   auto start = std::chrono::steady_clock::now();
 
   // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int t = 0; t < configuration_length_; t++) {
     // terms
     double* rt = residual_sensor_.data() + t * nsensordata_;
     double* yt_sensor = sensor_measurement.Get(t);
@@ -1432,16 +1444,42 @@ void Batch::ResidualSensor() {
         int sensor_stage = model->sensor_needstage[sensor_start_ + i];
 
         // check for position
-        if (sensor_stage != mjSTAGE_POS) {
-          // dimension
-          int sensor_dim = model->sensor_dim[sensor_start_ + i];
+        if (sensor_stage == mjSTAGE_POS) continue;
 
-          // address
-          int sensor_adr = model->sensor_adr[sensor_start_ + i];
+        // -- zero memory -- //
+        // dimension
+        int sensor_dim = model->sensor_dim[sensor_start_ + i];
 
-          // copy sensor data
-          mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
-        }
+        // address
+        int sensor_adr = model->sensor_adr[sensor_start_ + i];
+
+        // copy sensor data
+        mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
+      }
+    }
+
+    // zero out acceleration sensors at last time step
+    if (t == configuration_length_ - 1) {
+      // loop over position sensors
+      for (int i = 0; i < nsensor_; i++) {
+        // sensor stage
+        int sensor_stage = model->sensor_needstage[sensor_start_ + i];
+
+        // check for position
+        if (sensor_stage == mjSTAGE_POS && settings.last_step_position_sensors) continue;
+
+        // check for velocity
+        if (sensor_stage == mjSTAGE_VEL && settings.last_step_velocity_sensors) continue;
+
+        // -- zero memory -- //
+        // dimension
+        int sensor_dim = model->sensor_dim[sensor_start_ + i];
+
+        // address
+        int sensor_adr = model->sensor_adr[sensor_start_ + i];
+
+        // copy sensor data
+        mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
       }
     }
   }
@@ -1455,7 +1493,7 @@ void Batch::BlockSensor(int index) {
   // dimensions
   int nv = model->nv, ns = nsensordata_;
   int nvar = nv * configuration_length_;
-  int nsen = nsensordata_ * (configuration_length_ - 1);
+  int nsen = nsensordata_ * configuration_length_;
 
   // shift
   int shift = sensor_start_index_ * nv;
@@ -1477,6 +1515,60 @@ void Batch::BlockSensor(int index) {
     }
     return;
   }
+
+  // last time step
+  if (index == configuration_length_ - 1) {
+    // dqds
+    double* dsdq = block_sensor_configuration_.Get(index) + shift;
+
+    // dvds
+    double* dsdv = block_sensor_velocity_.Get(index) + shift;
+
+    // -- configuration previous: dsdq0 = dsdv * dvdq0-- //
+
+    // unpack
+    double* dsdq0 = block_sensor_previous_configuration_.Get(index);
+    double* tmp = block_sensor_scratch_.Get(index);
+
+    // dsdq0 <- dvds' * dvdq0
+    double* dvdq0 = block_velocity_previous_configuration_.Get(index);
+    mju_mulMatMat(dsdq0, dsdv, dvdq0, ns, nv, nv);
+
+    // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 --
+
+    // unpack
+    double* dsdq1 = block_sensor_current_configuration_.Get(index);
+
+    // dsdq1 <- dqds'
+    mju_copy(dsdq1, dsdq, ns * nv);
+
+    // dsdq1 += dvds' * dvdq1
+    double* dvdq1 = block_velocity_current_configuration_.Get(index);
+    mju_mulMatMat(tmp, dsdv, dvdq1, ns, nv, nv);
+    mju_addTo(dsdq1, tmp, ns * nv);
+
+    // -- assemble dsdq01 block -- //
+
+    // unpack
+    double* dsdq01 = block_sensor_configurations_.Get(index);
+
+    // set dfdq0
+    SetBlockInMatrix(dsdq01, dsdq0, 1.0, ns, 2 * nv, ns, nv, 0, 0 * nv);
+
+    // set dfdq1
+    SetBlockInMatrix(dsdq01, dsdq1, 1.0, ns, 2 * nv, ns, nv, 0, 1 * nv);
+
+    // assemble dense Jacobian
+    if (settings.assemble_sensor_jacobian) {
+      // set block
+      SetBlockInMatrix(jacobian_sensor_.data(), dsdq01, 1.0, nsen, nvar,
+                       nsensordata_, 2 * nv, index * nsensordata_,
+                       (index - 1) * nv);
+    }
+    return;
+  }
+
+  // -- timesteps [1,...,T - 1] -- //
 
   // dqds
   double* dsdq = block_sensor_configuration_.Get(index) + shift;
@@ -1556,7 +1648,7 @@ void Batch::BlockSensor(int index) {
 // note: pool wait is called outside this function
 void Batch::JacobianSensor(ThreadPool& pool) {
   // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
     pool.Schedule([&batch = *this, t]() {
       // start Jacobian timer
@@ -1835,12 +1927,16 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
+    mju_zero(d->qacc, nv);
     mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // position sensors
     mj_fwdPosition(batch.model, d);
     mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
 
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
@@ -1898,8 +1994,63 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     });
   }
 
+  // last time step
+  pool.Schedule([&batch = *this, nq, nv, nu]() {
+    // time index
+    int t = batch.ConfigurationLength() - 1;
+
+    // data
+    mjData* d = batch.data_[t].get();
+
+    // terms
+    double* qT = batch.configuration.Get(t);
+    double* vT = batch.velocity.Get(t);
+    double* yT = batch.sensor_prediction.Get(t);
+    mju_zero(yT, batch.nsensordata_);
+
+    // set data
+    mju_copy(d->qpos, qT, nq);
+    mju_copy(d->qvel, vT, nv);
+    mju_zero(d->qacc, nv);
+    mju_zero(d->ctrl, nu);
+    d->time = batch.times.Get(t)[0];
+
+    // position sensors
+    mj_fwdPosition(batch.model, d);
+    mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
+
+    // velocity sensors
+    mj_fwdVelocity(batch.model, d);
+    mj_sensorVel(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyVel(batch.model, d);
+    }
+
+    // loop over position sensors
+    for (int i = 0; i < batch.nsensor_; i++) {
+      // sensor stage
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+
+      // check for position
+      if (sensor_stage == mjSTAGE_POS || sensor_stage == mjSTAGE_VEL) {
+        // dimension
+        int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+
+        // address
+        int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+
+        // copy sensor data
+        mju_copy(yT + sensor_adr - batch.sensor_start_index_,
+                 d->sensordata + sensor_adr, sensor_dim);
+      }
+    }
+  });
+
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 1);
+  pool.WaitCount(count_before + configuration_length_);
   pool.ResetCount();
 
   // stop timer
@@ -1932,6 +2083,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
+    mju_zero(d->qacc, nv);
     mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
@@ -2001,8 +2153,59 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     });
   }
 
+  // last time step
+  pool.Schedule([&batch = *this, nq, nv, nu]() {
+    // time index
+    int t = batch.ConfigurationLength() - 1;
+
+    // data
+    mjData* d = batch.data_[t].get();
+
+    // terms
+    double* qT = batch.configuration.Get(t);
+    double* vT = batch.velocity.Get(t);
+    double* dsdq = batch.block_sensor_configuration_.Get(t);
+    double* dsdv = batch.block_sensor_velocity_.Get(t);
+
+    // set data
+    mju_copy(d->qpos, qT, nq);
+    mju_copy(d->qvel, vT, nv);
+    mju_zero(d->qacc, nv);
+    mju_zero(d->ctrl, nu);
+    d->time = batch.times.Get(t)[0];
+
+    // finite-difference derivatives
+    double* dqds = batch.block_sensor_configurationT_.Get(t);
+    double* dvds = batch.block_sensor_velocityT_.Get(t);
+    mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
+                  batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
+                  dvds, NULL, NULL);
+    // transpose
+    mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
+    mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
+
+    // loop over position sensors
+    for (int i = 0; i < batch.nsensor_; i++) {
+      // sensor stage
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+
+      // dimension
+      int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+
+      // address
+      int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+
+      // check for position
+      if (sensor_stage == mjSTAGE_ACC) {
+        // zero remaining rows
+        mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
+        mju_zero(dsdv + sensor_adr * nv, sensor_dim * nv);
+      }
+    }
+  });
+
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 1);
+  pool.WaitCount(count_before + configuration_length_);
 
   // reset pool count
   pool.ResetCount();
@@ -2138,6 +2341,9 @@ void Batch::InitializeFilter() {
   settings.max_smoother_iterations = 1;
   settings.max_search_iterations = 10;
   settings.recursive_prior_update = true;
+  settings.first_step_position_sensors = true;
+  settings.last_step_position_sensors = false;
+  settings.last_step_velocity_sensors = false;
 
   // timestep
   double timestep = model->opt.timestep;
@@ -2174,6 +2380,9 @@ void Batch::InitializeFilter() {
   // evaluate position
   mj_fwdPosition(model, data);
   mj_sensorPos(model, data);
+  if (model->opt.enableflags & (mjENBL_ENERGY)) {
+    mj_energyPos(model, data);
+  }
 
   // y0
   double* y0 = sensor_measurement.Get(0);

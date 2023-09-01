@@ -106,6 +106,9 @@ message Settings {
   optional bool assemble_force_jacobian = 22;
   optional bool assemble_sensor_norm_hessian = 23;
   optional bool assemble_force_norm_hessian = 24;
+  optional bool first_step_position_sensors = 25;
+  optional bool last_step_position_sensors = 26;
+  optional bool last_step_velocity_sensors = 27;
 }
 
 message SettingsRequest {

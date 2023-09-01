@@ -284,26 +284,26 @@ void Batch::Initialize(const mjModel* model) {
   solve_status_ = kUnsolved;
 
   // -- trajectory cache -- //
-  configuration_cache_.Initialize(nq, configuration_length_);
-  velocity_cache_.Initialize(nv, configuration_length_);
-  acceleration_cache_.Initialize(nv, configuration_length_);
-  act_cache_.Initialize(na, configuration_length_);
-  times_cache_.Initialize(1, configuration_length_);
+  configuration_cache_.Initialize(nq, max_history_);
+  velocity_cache_.Initialize(nv, max_history_);
+  acceleration_cache_.Initialize(nv, max_history_);
+  act_cache_.Initialize(na, max_history_);
+  times_cache_.Initialize(1, max_history_);
 
   // ctrl
-  ctrl_cache_.Initialize(model->nu, configuration_length_);
+  ctrl_cache_.Initialize(model->nu, max_history_);
 
   // prior
-  configuration_previous_cache_.Initialize(nq, configuration_length_);
+  configuration_previous_cache_.Initialize(nq, max_history_);
 
   // sensor
-  sensor_measurement_cache_.Initialize(nsensordata_, configuration_length_);
-  sensor_prediction_cache_.Initialize(nsensordata_, configuration_length_);
-  sensor_mask_cache_.Initialize(nsensor_, configuration_length_);
+  sensor_measurement_cache_.Initialize(nsensordata_, max_history_);
+  sensor_prediction_cache_.Initialize(nsensordata_, max_history_);
+  sensor_mask_cache_.Initialize(nsensor_, max_history_);
 
   // force
-  force_measurement_cache_.Initialize(nv, configuration_length_);
-  force_prediction_cache_.Initialize(nv, configuration_length_);
+  force_measurement_cache_.Initialize(nv, max_history_);
+  force_prediction_cache_.Initialize(nv, max_history_);
 }
 
 // reset memory
@@ -773,42 +773,6 @@ void Batch::Shift(int shift) {
 
   force_measurement.Shift(shift);
   force_prediction.Shift(shift);
-
-  // not reusing Jacobian data--no need to shift
-
-  // block_prior_current_configuration_.Shift(shift);
-
-  // block_sensor_configuration_.Shift(shift);
-  // block_sensor_velocity_.Shift(shift);
-  // block_sensor_acceleration_.Shift(shift);
-  // block_sensor_configurationT_.Shift(shift);
-  // block_sensor_velocityT_.Shift(shift);
-  // block_sensor_accelerationT_.Shift(shift);
-
-  // block_sensor_previous_configuration_.Shift(shift);
-  // block_sensor_current_configuration_.Shift(shift);
-  // block_sensor_next_configuration_.Shift(shift);
-  // block_sensor_configurations_.Shift(shift);
-
-  // block_sensor_scratch_.Shift(shift);
-
-  // block_force_configuration_.Shift(shift);
-  // block_force_velocity_.Shift(shift);
-  // block_force_acceleration_.Shift(shift);
-
-  // block_force_previous_configuration_.Shift(shift);
-  // block_force_current_configuration_.Shift(shift);
-  // block_force_next_configuration_.Shift(shift);
-  // block_force_configurations_.Shift(shift);
-
-  // block_force_scratch_.Shift(shift);
-
-  // block_velocity_previous_configuration_.Shift(shift);
-  // block_velocity_current_configuration_.Shift(shift);
-
-  // block_acceleration_previous_configuration_.Shift(shift);
-  // block_acceleration_current_configuration_.Shift(shift);
-  // block_acceleration_next_configuration_.Shift(shift);
 }
 
 // evaluate configurations
@@ -1094,7 +1058,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     double* rt = residual_sensor_.data() + ns * t;
 
     // mask
-    // int* mask = sensor_mask.Get(t);
+    int* mask = sensor_mask.Get(t);
 
     // unpack block
     double* block;
@@ -1129,9 +1093,6 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         time_weight = time_scale2;
       }
 
-      // check mask, skip if missing measurement
-      // if (!mask[i]) continue;
-
       // dimension
       int nsi = model->sensor_dim[sensor_start_ + i];
 
@@ -1140,7 +1101,8 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
       // weight
       double weight =
-          time_weight / noise_sensor[i] / nsi / configuration_length_;
+          mask[i] ? time_weight / noise_sensor[i] / nsi / configuration_length_
+                  : 0.0;
 
       // first time step
       if (t == 0) weight *= settings.first_step_position_sensors;

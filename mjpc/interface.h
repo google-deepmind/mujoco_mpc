@@ -46,5 +46,6 @@ extern "C" void create_policy_from_task_id(const mjModel* model, int task_id);
 extern "C" void create_policy(const mjModel* model,
                               std::shared_ptr<mjpc::Task> task);
 extern "C" void step_policy(mjData* data);
+extern "C" void set_weights(double* weights);
 
 #endif  // MJPC_MJPC_INTERFACE_H_

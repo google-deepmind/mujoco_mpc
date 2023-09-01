@@ -126,7 +126,7 @@ class BatchTest(absltest.TestCase):
     ## sensor mask
 
     # set
-    sensor_mask = np.array([1, 0, 1, 0])
+    sensor_mask = np.array([1, 0, 1, 0], dtype=int)
     data = batch.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match

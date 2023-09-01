@@ -65,24 +65,12 @@ class Batch : public Estimator {
  public:
   // constructor
   Batch() = default;
-  Batch(int mode) {
-    settings.filter = mode;
-    settings.prior_flag = true;
-    max_history_ = kMaxFilterHistory;
-  }
-  Batch(const mjModel* model, int length = 3, int max_history = 0) {
-    // set max history length
-    this->max_history_ = (max_history == 0 ? length : max_history);
 
-    // initialize memory
-    Initialize(model);
+  // batch filter constructor
+  Batch(int mode);
 
-    // set trajectory lengths
-    SetConfigurationLength(length);
-
-    // reset memory
-    Reset();
-  }
+  // batch smoother constructor
+  Batch(const mjModel* model, int length = 3, int max_history = 0);
 
   // destructor
   ~Batch() {
@@ -129,38 +117,10 @@ class Batch : public Estimator {
   int DimensionSensor() const override { return nsensordata_; };
 
   // set state
-  void SetState(const double* state) override {
-    // state
-    mju_copy(this->state.data(), state, ndstate_);
-
-    // -- configurations -- //
-    int nq = model->nq;
-    int t = 1;
-
-    // q1
-    configuration.Set(state, t);
-
-    // q0
-    double* q0 = configuration.Get(t - 1);
-    mju_copy(q0, state, nq);
-    mj_integratePos(model, q0, state + nq, -1.0 * model->opt.timestep);
-  };
+  void SetState(const double* state) override;
 
   // set time
-  void SetTime(double time) override {
-    // copy
-    double time_copy = time;
-
-    // t1
-    times.Set(&time_copy, 1);
-
-    // t0
-    time_copy -= model->opt.timestep;
-    times.Set(&time_copy, 0);
-
-    // reset current time index
-    current_time_index_ = 1;
-  }
+  void SetTime(double time) override;
 
   // set covariance
   void SetCovariance(const double* covariance) override {
@@ -206,141 +166,20 @@ class Batch : public Estimator {
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
   double* GetCostGradient() { return cost_gradient_.data(); }
-  double* GetCostHessian() {
-    // dimensions
-    int nv = model->nv;
-    int ntotal = nv * configuration_length_;
-    int nband = 3 * nv;
-
-    // resize
-    cost_hessian_.resize(ntotal * ntotal);
-
-    // band to dense
-    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal,
-                   nband, 0, 1);
-
-    // return dense Hessian
-    return cost_hessian_.data();
-  }
+  double* GetCostHessian();
   double* GetCostHessianBand() { return cost_hessian_band_.data(); }
 
   // cost internals
   const double* GetResidualPrior() { return residual_prior_.data(); }
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
-  const double* GetJacobianPrior() {
-    // dimensions
-    int nv = model->nv;
-    int ntotal = nv * configuration_length_;
-
-    // resize
-    jacobian_prior_.resize(ntotal * ntotal);
-
-    // change setting
-    int settings_cache = settings.assemble_prior_jacobian;
-    settings.assemble_prior_jacobian = true;
-
-    // loop over configurations to assemble Jacobian
-    for (int t = 0; t < configuration_length_; t++) {
-      BlockPrior(t);
-    }
-
-    // restore setting
-    settings.assemble_prior_jacobian = settings_cache;
-
-    // return dense Jacobian
-    return jacobian_prior_.data();
-  }
-  const double* GetJacobianSensor() {
-    // dimensions
-    int nv = model->nv;
-    int ntotal = nv * configuration_length_;
-    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
-
-    // resize
-    jacobian_sensor_.resize(nsensortotal * ntotal);
-
-    // change setting
-    int settings_cache = settings.assemble_sensor_jacobian;
-    settings.assemble_sensor_jacobian = true;
-
-    // loop over sensors
-    for (int t = 0; t < configuration_length_ - 1; t++) {
-      BlockSensor(t);
-    }
-
-    // restore setting
-    settings.assemble_sensor_jacobian = settings_cache;
-
-    // return dense Jacobian
-    return jacobian_sensor_.data();
-  }
-  const double* GetJacobianForce() {
-    // dimensions
-    int nv = model->nv;
-    int ntotal = nv * configuration_length_;
-    int nforcetotal = nv * (configuration_length_ - 2);
-
-    // resize
-    jacobian_force_.resize(nforcetotal * ntotal);
-
-    // change setting
-    int settings_cache = settings.assemble_force_jacobian;
-    settings.assemble_force_jacobian = true;
-
-    // loop over sensors
-    for (int t = 1; t < configuration_length_ - 1; t++) {
-      BlockForce(t);
-    }
-
-    // restore setting
-    settings.assemble_force_jacobian = settings_cache;
-
-    // return dense Jacobian
-    return jacobian_force_.data();
-  }
+  const double* GetJacobianPrior();
+  const double* GetJacobianSensor();
+  const double* GetJacobianForce();
   const double* GetNormGradientSensor() { return norm_gradient_sensor_.data(); }
   const double* GetNormGradientForce() { return norm_gradient_force_.data(); }
-  const double* GetNormHessianSensor() {
-    // dimensions
-    int nsensortotal = nsensordata_ * (configuration_length_ - 1);
-
-    // resize
-    norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
-
-    // change setting
-    int settings_cache = settings.assemble_sensor_norm_hessian;
-    settings.assemble_sensor_norm_hessian = true;
-
-    // evalute
-    CostSensor(NULL, NULL);
-
-    // restore setting
-    settings.assemble_sensor_norm_hessian = settings_cache;
-
-    // return dense Hessian
-    return norm_hessian_sensor_.data();
-  }
-  const double* GetNormHessianForce() {
-    // dimensions
-    int nforcetotal = model->nv * (configuration_length_ - 2);
-
-    // resize
-    norm_hessian_force_.resize(nforcetotal * nforcetotal);
-
-    // change setting
-    int settings_cache = settings.assemble_force_norm_hessian;
-    settings.assemble_force_norm_hessian = true;
-
-    // evalute
-    CostForce(NULL, NULL);
-
-    // restore setting
-    settings.assemble_force_norm_hessian = settings_cache;
-
-    // return dense Hessian
-    return norm_hessian_force_.data();
-  }
+  const double* GetNormHessianSensor();
+  const double* GetNormHessianForce();
 
   // get configuration length
   int ConfigurationLength() const { return configuration_length_; }
@@ -365,32 +204,7 @@ class Batch : public Estimator {
   double ReductionRatio() const { return reduction_ratio_; }
 
   // set prior weights
-  void SetPriorWeights(const double* weights, double scale = 1.0) {
-    // dimension
-    int nv = model->nv;
-    int ntotal = nv * configuration_length_;
-    int nband = 3 * nv;
-
-    // allocate memory
-    weight_prior_.resize(ntotal * ntotal);
-    weight_prior_band_.resize(ntotal * (3 * nv));
-
-    // set weights
-    mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
-
-    // make block band
-    DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
-
-    // dense to band
-    mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal,
-                   nband, 0);
-
-    // set scaling
-    scale_prior = scale;
-
-    // set flag
-    settings.prior_flag = true;
-  }
+  void SetPriorWeights(const double* weights, double scale = 1.0);
 
   // get prior weights
   const double* PriorWeights() { return weight_prior_.data(); }
@@ -454,10 +268,10 @@ class Batch : public Estimator {
     double step_scaling = 0.5;  // step size scaling
     double regularization_initial = 1.0e-12;       // initial regularization
     double regularization_scaling = mju_sqrt(10);  // regularization scaling
-    bool time_scaling_force = true;              // scale force costs
-    bool time_scaling_sensor = true;             // scale sensor costs
-    double search_direction_tolerance = 1.0e-8;  // search direction tolerance
-    double cost_tolerance = 1.0e-8;              // cost difference tolernace
+    bool time_scaling_force = true;                // scale force costs
+    bool time_scaling_sensor = true;               // scale sensor costs
+    double search_direction_tolerance = 1.0e-8;    // search direction tolerance
+    double cost_tolerance = 1.0e-8;                // cost difference tolernace
     bool assemble_prior_jacobian = false;   // assemble dense prior Jacobian
     bool assemble_sensor_jacobian = false;  // assemble dense sensor Jacobian
     bool assemble_force_jacobian = false;   // assemble dense force Jacobian
@@ -467,6 +281,12 @@ class Batch : public Estimator {
         false;                            // assemble dense force norm Hessian
     bool filter = false;                  // filter mode
     bool recursive_prior_update = false;  // recursively update prior matrix
+    bool first_step_position_sensors =
+        true;  // evaluate position sensors at first time step
+    bool last_step_position_sensors =
+        false;  // evaluate position sensors at last time step
+    bool last_step_velocity_sensors =
+        false;  // evaluate velocity sensors at last time step
   } settings;
 
   // finite-difference settings
@@ -491,47 +311,50 @@ class Batch : public Estimator {
   // evaluate configurations derivatives
   void ConfigurationDerivative(ThreadPool& pool);
 
-  // prior cost
+  // ----- prior ----- //
+  // cost
   double CostPrior(double* gradient, double* hessian);
 
-  // sensor cost
+  // residual
+  void ResidualPrior();
+
+  // Jacobian block
+  void BlockPrior(int index);
+
+  // Jacobian
+  void JacobianPrior(ThreadPool& pool);
+
+  // ----- sensor ----- //
+  // cost
   double CostSensor(double* gradient, double* hessian);
 
-  // force cost
+  // residual
+  void ResidualSensor();
+
+  // Jacobian blocks (dsdq0, dsdq1, dsdq2)
+  void BlockSensor(int index);
+
+  // Jacobian
+  void JacobianSensor(ThreadPool& pool);
+
+  // ----- force ----- //
+  // cost
   double CostForce(double* gradient, double* hessian);
+
+  // residual
+  void ResidualForce();
+
+  // Jacobian blocks (dfdq0, dfdq1, dfdq2)
+  void BlockForce(int index);
+
+  // Jacobian
+  void JacobianForce(ThreadPool& pool);
 
   // compute total gradient
   void TotalGradient(double* gradient);
 
   // compute total Hessian
   void TotalHessian(double* hessian);
-
-  // prior residual
-  void ResidualPrior();
-
-  // prior Jacobian block
-  void BlockPrior(int index);
-
-  // prior Jacobian
-  void JacobianPrior(ThreadPool& pool);
-
-  // sensor residual
-  void ResidualSensor();
-
-  // sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
-  void BlockSensor(int index);
-
-  // sensor Jacobian
-  void JacobianSensor(ThreadPool& pool);
-
-  // force residual
-  void ResidualForce();
-
-  // force Jacobian blocks (dfdq0, dfdq1, dfdq2)
-  void BlockForce(int index);
-
-  // force Jacobian
-  void JacobianForce(ThreadPool& pool);
 
   // search direction
   void SearchDirection();
@@ -674,7 +497,7 @@ class Batch : public Estimator {
   std::vector<double> cost_gradient_prior_;   // nv * max_history_
   std::vector<double> cost_gradient_sensor_;  // nv * max_history_
   std::vector<double> cost_gradient_force_;   // nv * max_history_
-  std::vector<double> cost_gradient_;  // nv * max_history_
+  std::vector<double> cost_gradient_;         // nv * max_history_
 
   // cost Hessian
   std::vector<double>

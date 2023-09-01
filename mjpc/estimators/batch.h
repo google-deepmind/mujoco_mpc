@@ -113,7 +113,7 @@ class Batch : public Estimator {
   // process dimension
   int DimensionProcess() const override { return ndstate_; };
 
-  // sensor dimensino
+  // sensor dimension
   int DimensionSensor() const override { return nsensordata_; };
 
   // set state

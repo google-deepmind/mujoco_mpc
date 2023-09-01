@@ -31,6 +31,32 @@
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
+// batch filter constructor
+Batch::Batch(int mode) {
+  // not filter mode, return
+  if (mode != 1) return;
+
+  // filter settings
+  settings.filter = mode;
+  settings.prior_flag = true;
+  max_history_ = kMaxFilterHistory;
+}
+
+// batch smoother constructor
+Batch::Batch(const mjModel* model, int length, int max_history) {
+  // set max history length
+  this->max_history_ = (max_history == 0 ? length : max_history);
+
+  // initialize memory
+  Initialize(model);
+
+  // set trajectory lengths
+  SetConfigurationLength(length);
+
+  // reset memory
+  Reset();
+}
+
 // initialize batch estimator
 void Batch::Initialize(const mjModel* model) {
   // model
@@ -284,26 +310,26 @@ void Batch::Initialize(const mjModel* model) {
   solve_status_ = kUnsolved;
 
   // -- trajectory cache -- //
-  configuration_cache_.Initialize(nq, configuration_length_);
-  velocity_cache_.Initialize(nv, configuration_length_);
-  acceleration_cache_.Initialize(nv, configuration_length_);
-  act_cache_.Initialize(na, configuration_length_);
-  times_cache_.Initialize(1, configuration_length_);
+  configuration_cache_.Initialize(nq, max_history_);
+  velocity_cache_.Initialize(nv, max_history_);
+  acceleration_cache_.Initialize(nv, max_history_);
+  act_cache_.Initialize(na, max_history_);
+  times_cache_.Initialize(1, max_history_);
 
   // ctrl
-  ctrl_cache_.Initialize(model->nu, configuration_length_);
+  ctrl_cache_.Initialize(model->nu, max_history_);
 
   // prior
-  configuration_previous_cache_.Initialize(nq, configuration_length_);
+  configuration_previous_cache_.Initialize(nq, max_history_);
 
   // sensor
-  sensor_measurement_cache_.Initialize(nsensordata_, configuration_length_);
-  sensor_prediction_cache_.Initialize(nsensordata_, configuration_length_);
-  sensor_mask_cache_.Initialize(nsensor_, configuration_length_);
+  sensor_measurement_cache_.Initialize(nsensordata_, max_history_);
+  sensor_prediction_cache_.Initialize(nsensordata_, max_history_);
+  sensor_mask_cache_.Initialize(nsensor_, max_history_);
 
   // force
-  force_measurement_cache_.Initialize(nv, configuration_length_);
-  force_prediction_cache_.Initialize(nv, configuration_length_);
+  force_measurement_cache_.Initialize(nv, max_history_);
+  force_prediction_cache_.Initialize(nv, max_history_);
 }
 
 // reset memory
@@ -688,6 +714,207 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   timer_.update = 1.0e-3 * GetDuration(start);
 }
 
+// set state
+void Batch::SetState(const double* state) {
+  // state
+  mju_copy(this->state.data(), state, ndstate_);
+
+  // -- configurations -- //
+  int nq = model->nq;
+  int t = 1;
+
+  // q1
+  configuration.Set(state, t);
+
+  // q0
+  double* q0 = configuration.Get(t - 1);
+  mju_copy(q0, state, nq);
+  mj_integratePos(model, q0, state + nq, -1.0 * model->opt.timestep);
+}
+
+// set time
+void Batch::SetTime(double time) {
+  // copy
+  double time_copy = time;
+
+  // t1
+  times.Set(&time_copy, 1);
+
+  // t0
+  time_copy -= model->opt.timestep;
+  times.Set(&time_copy, 0);
+
+  // reset current time index
+  current_time_index_ = 1;
+}
+
+// compute and return dense cost Hessian
+double* Batch::GetCostHessian() {
+  // dimensions
+  int nv = model->nv;
+  int ntotal = nv * configuration_length_;
+  int nband = 3 * nv;
+
+  // resize
+  cost_hessian_.resize(ntotal * ntotal);
+
+  // band to dense
+  mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal,
+                  nband, 0, 1);
+
+  // return dense Hessian
+  return cost_hessian_.data();
+}
+
+// compute and return dense prior Jacobian
+const double* Batch::GetJacobianPrior() {
+  // dimensions
+  int nv = model->nv;
+  int ntotal = nv * configuration_length_;
+
+  // resize
+  jacobian_prior_.resize(ntotal * ntotal);
+
+  // change setting
+  int settings_cache = settings.assemble_prior_jacobian;
+  settings.assemble_prior_jacobian = true;
+
+  // loop over configurations to assemble Jacobian
+  for (int t = 0; t < configuration_length_; t++) {
+    BlockPrior(t);
+  }
+
+  // restore setting
+  settings.assemble_prior_jacobian = settings_cache;
+
+  // return dense Jacobian
+  return jacobian_prior_.data();
+}
+
+// compute and return dense sensor Jacobian
+const double* Batch::GetJacobianSensor() {
+  // dimensions
+  int nv = model->nv;
+  int ntotal = nv * configuration_length_;
+  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+  // resize
+  jacobian_sensor_.resize(nsensortotal * ntotal);
+
+  // change setting
+  int settings_cache = settings.assemble_sensor_jacobian;
+  settings.assemble_sensor_jacobian = true;
+
+  // loop over sensors
+  for (int t = 0; t < configuration_length_ - 1; t++) {
+    BlockSensor(t);
+  }
+
+  // restore setting
+  settings.assemble_sensor_jacobian = settings_cache;
+
+  // return dense Jacobian
+  return jacobian_sensor_.data();
+}
+
+// compute and return dense force Jacobian
+const double* Batch::GetJacobianForce() {
+  // dimensions
+  int nv = model->nv;
+  int ntotal = nv * configuration_length_;
+  int nforcetotal = nv * (configuration_length_ - 2);
+
+  // resize
+  jacobian_force_.resize(nforcetotal * ntotal);
+
+  // change setting
+  int settings_cache = settings.assemble_force_jacobian;
+  settings.assemble_force_jacobian = true;
+
+  // loop over sensors
+  for (int t = 1; t < configuration_length_ - 1; t++) {
+    BlockForce(t);
+  }
+
+  // restore setting
+  settings.assemble_force_jacobian = settings_cache;
+
+  // return dense Jacobian
+  return jacobian_force_.data();
+}
+
+// compute and return dense sensor norm Hessian
+const double* Batch::GetNormHessianSensor() {
+  // dimensions
+  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+
+  // resize
+  norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
+
+  // change setting
+  int settings_cache = settings.assemble_sensor_norm_hessian;
+  settings.assemble_sensor_norm_hessian = true;
+
+  // evalute
+  CostSensor(NULL, NULL);
+
+  // restore setting
+  settings.assemble_sensor_norm_hessian = settings_cache;
+
+  // return dense Hessian
+  return norm_hessian_sensor_.data();
+}
+
+// compute and return dense force norm Hessian
+const double* Batch::GetNormHessianForce() {
+  // dimensions
+  int nforcetotal = model->nv * (configuration_length_ - 2);
+
+  // resize
+  norm_hessian_force_.resize(nforcetotal * nforcetotal);
+
+  // change setting
+  int settings_cache = settings.assemble_force_norm_hessian;
+  settings.assemble_force_norm_hessian = true;
+
+  // evalute
+  CostForce(NULL, NULL);
+
+  // restore setting
+  settings.assemble_force_norm_hessian = settings_cache;
+
+  // return dense Hessian
+  return norm_hessian_force_.data();
+}
+
+// set prior weights
+void Batch::SetPriorWeights(const double* weights, double scale) {
+  // dimension
+  int nv = model->nv;
+  int ntotal = nv * configuration_length_;
+  int nband = 3 * nv;
+
+  // allocate memory
+  weight_prior_.resize(ntotal * ntotal);
+  weight_prior_band_.resize(ntotal * (3 * nv));
+
+  // set weights
+  mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
+
+  // make block band
+  DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
+
+  // dense to band
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal,
+                  nband, 0);
+
+  // set scaling
+  scale_prior = scale;
+
+  // set flag
+  settings.prior_flag = true;
+}
+
 // set configuration length
 void Batch::SetConfigurationLength(int length) {
   // check length
@@ -773,42 +1000,6 @@ void Batch::Shift(int shift) {
 
   force_measurement.Shift(shift);
   force_prediction.Shift(shift);
-
-  // not reusing Jacobian data--no need to shift
-
-  // block_prior_current_configuration_.Shift(shift);
-
-  // block_sensor_configuration_.Shift(shift);
-  // block_sensor_velocity_.Shift(shift);
-  // block_sensor_acceleration_.Shift(shift);
-  // block_sensor_configurationT_.Shift(shift);
-  // block_sensor_velocityT_.Shift(shift);
-  // block_sensor_accelerationT_.Shift(shift);
-
-  // block_sensor_previous_configuration_.Shift(shift);
-  // block_sensor_current_configuration_.Shift(shift);
-  // block_sensor_next_configuration_.Shift(shift);
-  // block_sensor_configurations_.Shift(shift);
-
-  // block_sensor_scratch_.Shift(shift);
-
-  // block_force_configuration_.Shift(shift);
-  // block_force_velocity_.Shift(shift);
-  // block_force_acceleration_.Shift(shift);
-
-  // block_force_previous_configuration_.Shift(shift);
-  // block_force_current_configuration_.Shift(shift);
-  // block_force_next_configuration_.Shift(shift);
-  // block_force_configurations_.Shift(shift);
-
-  // block_force_scratch_.Shift(shift);
-
-  // block_velocity_previous_configuration_.Shift(shift);
-  // block_velocity_current_configuration_.Shift(shift);
-
-  // block_acceleration_previous_configuration_.Shift(shift);
-  // block_acceleration_current_configuration_.Shift(shift);
-  // block_acceleration_next_configuration_.Shift(shift);
 }
 
 // evaluate configurations
@@ -823,13 +1014,14 @@ void Batch::ConfigurationEvaluation(ThreadPool& pool) {
 // configurations derivatives
 void Batch::ConfigurationDerivative(ThreadPool& pool) {
   // dimension
-  int nvar = model->nv * configuration_length_;
-  int nsen = nsensordata_ * (configuration_length_ - 1);
-  int nforce = nsensordata_ * (configuration_length_ - 2);
+  int nv = model->nv;
+  int nvar = nv * configuration_length_;
+  int nsen = nsensordata_ * configuration_length_;
+  int nforce = nv * (configuration_length_ - 2);
 
   // operations
   int opprior = settings.prior_flag * configuration_length_;
-  int opsensor = settings.sensor_flag * (configuration_length_ - 1);
+  int opsensor = settings.sensor_flag * configuration_length_;
   int opforce = settings.force_flag * (configuration_length_ - 2);
 
   // inverse dynamics derivatives
@@ -1062,7 +1254,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   // update dimension
   int nv = model->nv, ns = nsensordata_;
   int nvar = nv * configuration_length_;
-  int nsen = ns * (configuration_length_ - 1);
+  int nsen = ns * configuration_length_;
 
   // residual
   if (!cost_skip_) ResidualSensor();
@@ -1088,12 +1280,12 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   int shift_matrix = 0;
 
   // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
+  for (int t = 0; t < configuration_length_; t++) {
     // residual
     double* rt = residual_sensor_.data() + ns * t;
 
     // mask
-    // int* mask = sensor_mask.Get(t);
+    int* mask = sensor_mask.Get(t);
 
     // unpack block
     double* block;
@@ -1101,6 +1293,9 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     if (t == 0) {  // only position sensors
       block = block_sensor_configuration_.Get(t) + sensor_start_index_ * nv;
       block_columns = nv;
+    } else if (t == configuration_length_ - 1) {
+      block = block_sensor_configurations_.Get(t);
+      block_columns = 2 * nv;
     } else {  // position, velocity, acceleration sensors
       block = block_sensor_configurations_.Get(t);
       block_columns = 3 * nv;
@@ -1125,9 +1320,6 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         time_weight = time_scale2;
       }
 
-      // check mask, skip if missing measurement
-      // if (!mask[i]) continue;
-
       // dimension
       int nsi = model->sensor_dim[sensor_start_ + i];
 
@@ -1136,7 +1328,16 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
       // weight
       double weight =
-          time_weight / noise_sensor[i] / nsi / (configuration_length_ - 1);
+          mask[i] ? time_weight / noise_sensor[i] / nsi / configuration_length_
+                  : 0.0;
+
+      // first time step
+      if (t == 0) weight *= settings.first_step_position_sensors;
+
+      // last time step
+      if (t == configuration_length_ - 1)
+        weight *= (settings.last_step_position_sensors ||
+                   settings.last_step_velocity_sensors);
 
       // parameters
       double* pi = norm_parameters_sensor.data() + kMaxNormParameters * i;
@@ -1218,6 +1419,248 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   timer_.cost_sensor_derivatives += GetDuration(start);
 
   return cost;
+}
+
+// sensor residual
+void Batch::ResidualSensor() {
+  // start timer
+  auto start = std::chrono::steady_clock::now();
+
+  // loop over predictions
+  for (int t = 0; t < configuration_length_; t++) {
+    // terms
+    double* rt = residual_sensor_.data() + t * nsensordata_;
+    double* yt_sensor = sensor_measurement.Get(t);
+    double* yt_model = sensor_prediction.Get(t);
+
+    // sensor difference
+    mju_sub(rt, yt_model, yt_sensor, nsensordata_);
+
+    // zero out non-position sensors at first time step
+    if (t == 0) {
+      // loop over position sensors
+      for (int i = 0; i < nsensor_; i++) {
+        // sensor stage
+        int sensor_stage = model->sensor_needstage[sensor_start_ + i];
+
+        // check for position
+        if (sensor_stage == mjSTAGE_POS) continue;
+
+        // -- zero memory -- //
+        // dimension
+        int sensor_dim = model->sensor_dim[sensor_start_ + i];
+
+        // address
+        int sensor_adr = model->sensor_adr[sensor_start_ + i];
+
+        // copy sensor data
+        mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
+      }
+    }
+
+    // zero out acceleration sensors at last time step
+    if (t == configuration_length_ - 1) {
+      // loop over position sensors
+      for (int i = 0; i < nsensor_; i++) {
+        // sensor stage
+        int sensor_stage = model->sensor_needstage[sensor_start_ + i];
+
+        // check for position
+        if (sensor_stage == mjSTAGE_POS && settings.last_step_position_sensors) continue;
+
+        // check for velocity
+        if (sensor_stage == mjSTAGE_VEL && settings.last_step_velocity_sensors) continue;
+
+        // -- zero memory -- //
+        // dimension
+        int sensor_dim = model->sensor_dim[sensor_start_ + i];
+
+        // address
+        int sensor_adr = model->sensor_adr[sensor_start_ + i];
+
+        // copy sensor data
+        mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
+      }
+    }
+  }
+
+  // stop timer
+  timer_.residual_sensor += GetDuration(start);
+}
+
+// sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
+void Batch::BlockSensor(int index) {
+  // dimensions
+  int nv = model->nv, ns = nsensordata_;
+  int nvar = nv * configuration_length_;
+  int nsen = nsensordata_ * configuration_length_;
+
+  // shift
+  int shift = sensor_start_index_ * nv;
+
+  // first time step
+  if (index == 0) {
+    double* block = block_sensor_configuration_.Get(0) + shift;
+
+    // unpack
+    double* dsdq012 = block_sensor_configurations_.Get(0);
+
+    // set dsdq1
+    SetBlockInMatrix(dsdq012, block, 1.0, ns, 3 * nv, ns, nv, 0, nv);
+
+    // set block in dense Jacobian
+    if (settings.assemble_sensor_jacobian) {
+      SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
+                       nsensordata_, nv, 0, 0);
+    }
+    return;
+  }
+
+  // last time step
+  if (index == configuration_length_ - 1) {
+    // dqds
+    double* dsdq = block_sensor_configuration_.Get(index) + shift;
+
+    // dvds
+    double* dsdv = block_sensor_velocity_.Get(index) + shift;
+
+    // -- configuration previous: dsdq0 = dsdv * dvdq0-- //
+
+    // unpack
+    double* dsdq0 = block_sensor_previous_configuration_.Get(index);
+    double* tmp = block_sensor_scratch_.Get(index);
+
+    // dsdq0 <- dvds' * dvdq0
+    double* dvdq0 = block_velocity_previous_configuration_.Get(index);
+    mju_mulMatMat(dsdq0, dsdv, dvdq0, ns, nv, nv);
+
+    // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 --
+
+    // unpack
+    double* dsdq1 = block_sensor_current_configuration_.Get(index);
+
+    // dsdq1 <- dqds'
+    mju_copy(dsdq1, dsdq, ns * nv);
+
+    // dsdq1 += dvds' * dvdq1
+    double* dvdq1 = block_velocity_current_configuration_.Get(index);
+    mju_mulMatMat(tmp, dsdv, dvdq1, ns, nv, nv);
+    mju_addTo(dsdq1, tmp, ns * nv);
+
+    // -- assemble dsdq01 block -- //
+
+    // unpack
+    double* dsdq01 = block_sensor_configurations_.Get(index);
+
+    // set dfdq0
+    SetBlockInMatrix(dsdq01, dsdq0, 1.0, ns, 2 * nv, ns, nv, 0, 0 * nv);
+
+    // set dfdq1
+    SetBlockInMatrix(dsdq01, dsdq1, 1.0, ns, 2 * nv, ns, nv, 0, 1 * nv);
+
+    // assemble dense Jacobian
+    if (settings.assemble_sensor_jacobian) {
+      // set block
+      SetBlockInMatrix(jacobian_sensor_.data(), dsdq01, 1.0, nsen, nvar,
+                       nsensordata_, 2 * nv, index * nsensordata_,
+                       (index - 1) * nv);
+    }
+    return;
+  }
+
+  // -- timesteps [1,...,T - 1] -- //
+
+  // dqds
+  double* dsdq = block_sensor_configuration_.Get(index) + shift;
+
+  // dvds
+  double* dsdv = block_sensor_velocity_.Get(index) + shift;
+
+  // dads
+  double* dsda = block_sensor_acceleration_.Get(index) + shift;
+
+  // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
+
+  // unpack
+  double* dsdq0 = block_sensor_previous_configuration_.Get(index);
+  double* tmp = block_sensor_scratch_.Get(index);
+
+  // dsdq0 <- dvds' * dvdq0
+  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
+  mju_mulMatMat(dsdq0, dsdv, dvdq0, ns, nv, nv);
+
+  // dsdq0 += dads' * dadq0
+  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
+  mju_mulMatMat(tmp, dsda, dadq0, ns, nv, nv);
+  mju_addTo(dsdq0, tmp, ns * nv);
+
+  // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
+
+  // unpack
+  double* dsdq1 = block_sensor_current_configuration_.Get(index);
+
+  // dsdq1 <- dqds'
+  mju_copy(dsdq1, dsdq, ns * nv);
+
+  // dsdq1 += dvds' * dvdq1
+  double* dvdq1 = block_velocity_current_configuration_.Get(index);
+  mju_mulMatMat(tmp, dsdv, dvdq1, ns, nv, nv);
+  mju_addTo(dsdq1, tmp, ns * nv);
+
+  // dsdq1 += dads' * dadq1
+  double* dadq1 = block_acceleration_current_configuration_.Get(index);
+  mju_mulMatMat(tmp, dsda, dadq1, ns, nv, nv);
+  mju_addTo(dsdq1, tmp, ns * nv);
+
+  // -- configuration next: dsdq2 = dsda * dadq2 -- //
+
+  // unpack
+  double* dsdq2 = block_sensor_next_configuration_.Get(index);
+
+  // dsdq2 = dads' * dadq2
+  double* dadq2 = block_acceleration_next_configuration_.Get(index);
+  mju_mulMatMat(dsdq2, dsda, dadq2, ns, nv, nv);
+
+  // -- assemble dsdq012 block -- //
+
+  // unpack
+  double* dsdq012 = block_sensor_configurations_.Get(index);
+
+  // set dfdq0
+  SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
+
+  // set dfdq1
+  SetBlockInMatrix(dsdq012, dsdq1, 1.0, ns, 3 * nv, ns, nv, 0, 1 * nv);
+
+  // set dfdq0
+  SetBlockInMatrix(dsdq012, dsdq2, 1.0, ns, 3 * nv, ns, nv, 0, 2 * nv);
+
+  // assemble dense Jacobian
+  if (settings.assemble_sensor_jacobian) {
+    // set block
+    SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
+                     nsensordata_, 3 * nv, index * nsensordata_,
+                     (index - 1) * nv);
+  }
+}
+
+// sensor Jacobian
+// note: pool wait is called outside this function
+void Batch::JacobianSensor(ThreadPool& pool) {
+  // loop over predictions
+  for (int t = 0; t < configuration_length_; t++) {
+    // schedule by time step
+    pool.Schedule([&batch = *this, t]() {
+      // start Jacobian timer
+      auto jacobian_sensor_start = std::chrono::steady_clock::now();
+
+      // block
+      batch.BlockSensor(t);
+
+      // stop Jacobian timer
+      batch.timer_.sensor_step[t] = GetDuration(jacobian_sensor_start);
+    });
+  }
 }
 
 // force cost
@@ -1329,168 +1772,6 @@ double Batch::CostForce(double* gradient, double* hessian) {
   timer_.cost_force_derivatives += GetDuration(start);
 
   return cost;
-}
-
-// sensor residual
-void Batch::ResidualSensor() {
-  // start timer
-  auto start = std::chrono::steady_clock::now();
-
-  // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
-    // terms
-    double* rt = residual_sensor_.data() + t * nsensordata_;
-    double* yt_sensor = sensor_measurement.Get(t);
-    double* yt_model = sensor_prediction.Get(t);
-
-    // sensor difference
-    mju_sub(rt, yt_model, yt_sensor, nsensordata_);
-
-    // zero out non-position sensors at first time step
-    if (t == 0) {
-      // loop over position sensors
-      for (int i = 0; i < nsensor_; i++) {
-        // sensor stage
-        int sensor_stage = model->sensor_needstage[sensor_start_ + i];
-
-        // check for position
-        if (sensor_stage != mjSTAGE_POS) {
-          // dimension
-          int sensor_dim = model->sensor_dim[sensor_start_ + i];
-
-          // address
-          int sensor_adr = model->sensor_adr[sensor_start_ + i];
-
-          // copy sensor data
-          mju_zero(rt + sensor_adr - sensor_start_index_, sensor_dim);
-        }
-      }
-    }
-  }
-
-  // stop timer
-  timer_.residual_sensor += GetDuration(start);
-}
-
-// sensor Jacobian blocks (dsdq0, dsdq1, dsdq2)
-void Batch::BlockSensor(int index) {
-  // dimensions
-  int nv = model->nv, ns = nsensordata_;
-  int nvar = nv * configuration_length_;
-  int nsen = nsensordata_ * (configuration_length_ - 1);
-
-  // shift
-  int shift = sensor_start_index_ * nv;
-
-  // first time step
-  if (index == 0) {
-    double* block = block_sensor_configuration_.Get(0) + shift;
-
-    // unpack
-    double* dsdq012 = block_sensor_configurations_.Get(0);
-
-    // set dsdq1
-    SetBlockInMatrix(dsdq012, block, 1.0, ns, 3 * nv, ns, nv, 0, nv);
-
-    // set block in dense Jacobian
-    if (settings.assemble_sensor_jacobian) {
-      SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
-                       nsensordata_, nv, 0, 0);
-    }
-    return;
-  }
-
-  // dqds
-  double* dsdq = block_sensor_configuration_.Get(index) + shift;
-
-  // dvds
-  double* dsdv = block_sensor_velocity_.Get(index) + shift;
-
-  // dads
-  double* dsda = block_sensor_acceleration_.Get(index) + shift;
-
-  // -- configuration previous: dsdq0 = dsdv * dvdq0 + dsda * dadq0 -- //
-
-  // unpack
-  double* dsdq0 = block_sensor_previous_configuration_.Get(index);
-  double* tmp = block_sensor_scratch_.Get(index);
-
-  // dsdq0 <- dvds' * dvdq0
-  double* dvdq0 = block_velocity_previous_configuration_.Get(index);
-  mju_mulMatMat(dsdq0, dsdv, dvdq0, ns, nv, nv);
-
-  // dsdq0 += dads' * dadq0
-  double* dadq0 = block_acceleration_previous_configuration_.Get(index);
-  mju_mulMatMat(tmp, dsda, dadq0, ns, nv, nv);
-  mju_addTo(dsdq0, tmp, ns * nv);
-
-  // -- configuration current: dsdq1 = dsdq + dsdv * dvdq1 + dsda * dadq1 --
-
-  // unpack
-  double* dsdq1 = block_sensor_current_configuration_.Get(index);
-
-  // dsdq1 <- dqds'
-  mju_copy(dsdq1, dsdq, ns * nv);
-
-  // dsdq1 += dvds' * dvdq1
-  double* dvdq1 = block_velocity_current_configuration_.Get(index);
-  mju_mulMatMat(tmp, dsdv, dvdq1, ns, nv, nv);
-  mju_addTo(dsdq1, tmp, ns * nv);
-
-  // dsdq1 += dads' * dadq1
-  double* dadq1 = block_acceleration_current_configuration_.Get(index);
-  mju_mulMatMat(tmp, dsda, dadq1, ns, nv, nv);
-  mju_addTo(dsdq1, tmp, ns * nv);
-
-  // -- configuration next: dsdq2 = dsda * dadq2 -- //
-
-  // unpack
-  double* dsdq2 = block_sensor_next_configuration_.Get(index);
-
-  // dsdq2 = dads' * dadq2
-  double* dadq2 = block_acceleration_next_configuration_.Get(index);
-  mju_mulMatMat(dsdq2, dsda, dadq2, ns, nv, nv);
-
-  // -- assemble dsdq012 block -- //
-
-  // unpack
-  double* dsdq012 = block_sensor_configurations_.Get(index);
-
-  // set dfdq0
-  SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
-
-  // set dfdq1
-  SetBlockInMatrix(dsdq012, dsdq1, 1.0, ns, 3 * nv, ns, nv, 0, 1 * nv);
-
-  // set dfdq0
-  SetBlockInMatrix(dsdq012, dsdq2, 1.0, ns, 3 * nv, ns, nv, 0, 2 * nv);
-
-  // assemble dense Jacobian
-  if (settings.assemble_sensor_jacobian) {
-    // set block
-    SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
-                     nsensordata_, 3 * nv, index * nsensordata_,
-                     (index - 1) * nv);
-  }
-}
-
-// sensor Jacobian
-// note: pool wait is called outside this function
-void Batch::JacobianSensor(ThreadPool& pool) {
-  // loop over predictions
-  for (int t = 0; t < configuration_length_ - 1; t++) {
-    // schedule by time step
-    pool.Schedule([&batch = *this, t]() {
-      // start Jacobian timer
-      auto jacobian_sensor_start = std::chrono::steady_clock::now();
-
-      // block
-      batch.BlockSensor(t);
-
-      // stop Jacobian timer
-      batch.timer_.sensor_step[t] = GetDuration(jacobian_sensor_start);
-    });
-  }
 }
 
 // force residual
@@ -1619,7 +1900,6 @@ void Batch::JacobianForce(ThreadPool& pool) {
 }
 
 // compute force
-// TODO(taylor): combine with Jacobian method
 void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   // compute sensor and force predictions
   auto start = std::chrono::steady_clock::now();
@@ -1647,12 +1927,16 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
+    mju_zero(d->qacc, nv);
     mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // position sensors
     mj_fwdPosition(batch.model, d);
     mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
 
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
@@ -1710,8 +1994,63 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
     });
   }
 
+  // last time step
+  pool.Schedule([&batch = *this, nq, nv, nu]() {
+    // time index
+    int t = batch.ConfigurationLength() - 1;
+
+    // data
+    mjData* d = batch.data_[t].get();
+
+    // terms
+    double* qT = batch.configuration.Get(t);
+    double* vT = batch.velocity.Get(t);
+    double* yT = batch.sensor_prediction.Get(t);
+    mju_zero(yT, batch.nsensordata_);
+
+    // set data
+    mju_copy(d->qpos, qT, nq);
+    mju_copy(d->qvel, vT, nv);
+    mju_zero(d->qacc, nv);
+    mju_zero(d->ctrl, nu);
+    d->time = batch.times.Get(t)[0];
+
+    // position sensors
+    mj_fwdPosition(batch.model, d);
+    mj_sensorPos(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(batch.model, d);
+    }
+
+    // velocity sensors
+    mj_fwdVelocity(batch.model, d);
+    mj_sensorVel(batch.model, d);
+    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyVel(batch.model, d);
+    }
+
+    // loop over position sensors
+    for (int i = 0; i < batch.nsensor_; i++) {
+      // sensor stage
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+
+      // check for position
+      if (sensor_stage == mjSTAGE_POS || sensor_stage == mjSTAGE_VEL) {
+        // dimension
+        int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+
+        // address
+        int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+
+        // copy sensor data
+        mju_copy(yT + sensor_adr - batch.sensor_start_index_,
+                 d->sensordata + sensor_adr, sensor_dim);
+      }
+    }
+  });
+
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 1);
+  pool.WaitCount(count_before + configuration_length_);
   pool.ResetCount();
 
   // stop timer
@@ -1744,6 +2083,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
+    mju_zero(d->qacc, nv);
     mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
@@ -1813,8 +2153,59 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     });
   }
 
+  // last time step
+  pool.Schedule([&batch = *this, nq, nv, nu]() {
+    // time index
+    int t = batch.ConfigurationLength() - 1;
+
+    // data
+    mjData* d = batch.data_[t].get();
+
+    // terms
+    double* qT = batch.configuration.Get(t);
+    double* vT = batch.velocity.Get(t);
+    double* dsdq = batch.block_sensor_configuration_.Get(t);
+    double* dsdv = batch.block_sensor_velocity_.Get(t);
+
+    // set data
+    mju_copy(d->qpos, qT, nq);
+    mju_copy(d->qvel, vT, nv);
+    mju_zero(d->qacc, nv);
+    mju_zero(d->ctrl, nu);
+    d->time = batch.times.Get(t)[0];
+
+    // finite-difference derivatives
+    double* dqds = batch.block_sensor_configurationT_.Get(t);
+    double* dvds = batch.block_sensor_velocityT_.Get(t);
+    mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
+                  batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
+                  dvds, NULL, NULL);
+    // transpose
+    mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
+    mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
+
+    // loop over position sensors
+    for (int i = 0; i < batch.nsensor_; i++) {
+      // sensor stage
+      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+
+      // dimension
+      int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+
+      // address
+      int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+
+      // check for position
+      if (sensor_stage == mjSTAGE_ACC) {
+        // zero remaining rows
+        mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
+        mju_zero(dsdv + sensor_adr * nv, sensor_dim * nv);
+      }
+    }
+  });
+
   // wait
-  pool.WaitCount(count_before + configuration_length_ - 1);
+  pool.WaitCount(count_before + configuration_length_);
 
   // reset pool count
   pool.ResetCount();
@@ -1950,6 +2341,9 @@ void Batch::InitializeFilter() {
   settings.max_smoother_iterations = 1;
   settings.max_search_iterations = 10;
   settings.recursive_prior_update = true;
+  settings.first_step_position_sensors = true;
+  settings.last_step_position_sensors = false;
+  settings.last_step_velocity_sensors = false;
 
   // timestep
   double timestep = model->opt.timestep;
@@ -1986,6 +2380,9 @@ void Batch::InitializeFilter() {
   // evaluate position
   mj_fwdPosition(model, data);
   mj_sensorPos(model, data);
+  if (model->opt.enableflags & (mjENBL_ENERGY)) {
+    mj_energyPos(model, data);
+  }
 
   // y0
   double* y0 = sensor_measurement.Get(0);

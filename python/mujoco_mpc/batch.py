@@ -77,7 +77,7 @@ class Batch:
         [str(server_binary_path), f"--mjpc_port={self.port}"],
         stdout=subprocess.PIPE if colab_logging else None,
     )
-    # os.set_blocking(self.server_process.stdout.fileno(), False)
+    os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(
@@ -223,6 +223,9 @@ class Batch:
       assemble_force_jacobian: Optional[bool] = None,
       assemble_sensor_norm_hessian: Optional[bool] = None,
       assemble_force_norm_hessian: Optional[bool] = None,
+      first_step_position_sensors: Optional[bool] = None,
+      last_step_position_sensors: Optional[bool] = None,
+      last_step_velocity_sensors: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
     inputs = batch_pb2.Settings(
@@ -250,6 +253,9 @@ class Batch:
         assemble_force_jacobian=assemble_force_jacobian,
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
         assemble_force_norm_hessian=assemble_force_norm_hessian,
+        first_step_position_sensors=first_step_position_sensors,
+        last_step_position_sensors=last_step_position_sensors,
+        last_step_velocity_sensors=last_step_velocity_sensors,
     )
 
     # settings request
@@ -286,6 +292,9 @@ class Batch:
         "assemble_force_jacobian": settings.assemble_force_jacobian,
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
         "assemble_force_norm_hessian": settings.assemble_force_norm_hessian,
+        "first_step_position_sensors": settings.first_step_position_sensors,
+        "last_step_position_sensors": settings.last_step_position_sensors,
+        "last_step_velocity_sensors": settings.last_step_velocity_sensors,
     }
 
   def noise(
@@ -464,6 +473,29 @@ class Batch:
     # return prior matrix
     return mat
 
+  def sensor_info(self) -> dict[str | int]:
+    # info request
+    request = batch_pb2.SensorInfoRequest()
+
+    # info response
+    response = self._wait(self.stub.SensorInfo.future(request))
+
+    # return info
+    return {
+        "start_index": response.start_index,
+        "num_measurements": response.num_measurements,
+        "dim_measurements": response.dim_measurements,
+    }
+  
+  def measurements_from_sensordata(self, data: npt.ArrayLike) -> np.ndarray:
+    # get sensor info
+    info = self.sensor_info()
+
+    # return measurements from sensor data
+    index = info["start_index"]
+    dim = info["dim_measurements"]
+    return data[index:(index + dim)]
+
   def print_cost(self):
     # get costs
     cost = self.cost()
@@ -512,11 +544,11 @@ class Batch:
 
   def _wait(self, future):
     """Waits for the future to complete, while printing out subprocess stdout."""
-    # if self._colab_logging:
-    #     while True:
-    # line = self.server_process.stdout.readline()
-    # if line:
-    #     sys.stdout.write(line.decode("utf-8"))
-    # if future.done():
-    #     break
+    if self._colab_logging:
+      while True:
+        line = self.server_process.stdout.readline()
+        if line:
+            sys.stdout.write(line.decode("utf-8"))
+        if future.done():
+            break
     return future.result()

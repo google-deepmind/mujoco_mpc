@@ -470,11 +470,11 @@ class Batch:
 
     # print
     print("cost:")
-    print("  [total] = ", cost["total"])
-    print("   - prior = ", cost["prior"])
-    print("   - sensor = ", cost["sensor"])
-    print("   - force = ", cost["force"])
-    print("  (initial = ", cost["initial"], ")")
+    print("  [total]   = ", cost["total"])
+    print("     prior  = ", cost["prior"])
+    print("     sensor = ", cost["sensor"])
+    print("     force  = ", cost["force"])
+    print("  (initial  = ", cost["initial"], ")")
 
   def print_status(self):
     # get status
@@ -482,11 +482,11 @@ class Batch:
 
     # print
     print("status:")
-    print("- search iterations = ", status["search_iterations"])
-    print("- smoother iterations = ", status["smoother_iterations"])
-    print("- step size = ", status["step_size"])
-    print("- regularization = ", status["regularization"])
-    print("- gradient norm = ", status["gradient_norm"])
+    print("   search iterations   = ", status["search_iterations"])
+    print("   smoother iterations = ", status["smoother_iterations"])
+    print("   step size           = ", status["step_size"])
+    print("   regularization      = ", status["regularization"])
+    print("   gradient norm       = ", status["gradient_norm"])
 
     def status_code(code):
       if code == 0:

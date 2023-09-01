@@ -126,7 +126,7 @@ class BatchTest(absltest.TestCase):
     ## sensor mask
 
     # set
-    sensor_mask = np.array([1, 0, 1, 0])
+    sensor_mask = np.array([1, 0, 1, 0], dtype=int)
     data = batch.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match
@@ -595,6 +595,28 @@ class BatchTest(absltest.TestCase):
         np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
         1.0e-5,
     )
+
+  def test_sensor_info(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 5
+    batch = batch_lib.Batch(
+        model=model, configuration_length=configuration_length
+    )
+
+    # get sensor info
+    info = batch.sensor_info()
+
+    # test
+    self.assertTrue(info["start_index"] == 0)
+    self.assertTrue(info["num_measurements"] == 4)
+    self.assertTrue(info["dim_measurements"] == 4)
 
 if __name__ == "__main__":
   absltest.main()

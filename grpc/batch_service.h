@@ -85,6 +85,10 @@ class BatchService final : public batch::Batch::Service {
                             const batch::PriorWeightsRequest* request,
                             batch::PriorWeightsResponse* response) override;
 
+  grpc::Status SensorInfo(grpc::ServerContext* context,
+                          const batch::SensorInfoRequest* request,
+                          batch::SensorInfoResponse* response) override;
+
  private:
   bool Initialized() const {
     return batch_.model && batch_.ConfigurationLength() >= 3;

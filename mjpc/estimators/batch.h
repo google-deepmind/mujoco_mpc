@@ -472,6 +472,13 @@ class Batch : public Estimator {
 
   EstimatorTrajectory<double> block_force_scratch_;  // (nv * nv) x T
 
+  // sensor Jacobian blocks wrt parameters (dpdf)
+  EstimatorTrajectory<double>
+      block_sensor_parameters_;  // (nparam_ * nsensordata) x T
+
+  // force Jacobian blocks wrt parameters (dpds)
+  EstimatorTrajectory<double> block_force_parameters_;  // (nparam_ * nv) x T
+
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
   EstimatorTrajectory<double>
       block_velocity_previous_configuration_;  // (nv * nv) x T

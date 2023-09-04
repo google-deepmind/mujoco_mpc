@@ -213,7 +213,13 @@ void Batch::Initialize(const mjModel* model) {
 
   block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
-  // velocity Jacobian blocks
+  // sensor Jacobian blocks wrt parameters
+  block_sensor_parameters_.Initialize(nparam_ * model->nsensordata, configuration_length_);
+
+  // force Jacobian blocks
+  block_force_parameters_.Initialize(nparam_ * nv, configuration_length_);
+
+  // velocity Jacobian blocks wrt parameters
   block_velocity_previous_configuration_.Initialize(nv * nv,
                                                     configuration_length_);
   block_velocity_current_configuration_.Initialize(nv * nv,
@@ -457,6 +463,12 @@ void Batch::Reset(const mjData* data) {
   block_force_configurations_.Reset();
 
   block_force_scratch_.Reset();
+
+  // sensor Jacobian blocks wrt parameters
+  block_sensor_parameters_.Reset();
+
+  // force Jacobian blocks wrt parameters
+  block_force_parameters_.Reset();
 
   // velocity Jacobian blocks
   block_velocity_previous_configuration_.Reset();
@@ -963,6 +975,9 @@ void Batch::SetConfigurationLength(int length) {
   block_sensor_configurations_.SetLength(configuration_length_);
 
   block_sensor_scratch_.SetLength(configuration_length_);
+
+  block_sensor_parameters_.SetLength(configuration_length_);
+  block_force_parameters_.SetLength(configuration_length_);
 
   block_force_configuration_.SetLength(configuration_length_);
   block_force_velocity_.SetLength(configuration_length_);

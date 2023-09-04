@@ -49,6 +49,9 @@ namespace {
 namespace mj = ::mujoco;
 namespace mju = ::mujoco::util_mjpc;
 
+// flag to enable online filtering for state estimation
+const bool estimator_enabled = true;
+
 // maximum mis-alignment before re-sync (simulation seconds)
 const double syncMisalign = 0.1;
 
@@ -142,14 +145,14 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
 // estimator in background thread
 void EstimatorLoop(mj::Simulate& sim) {
   // run until asked to exit
-  while (!sim.exitrequest.load()) {
+  while (!sim.exitrequest.load() && sim.agent->estimator_enabled) {
     if (sim.uiloadrequest.load() == 0) {
       // estimator
       int active_estimator = sim.agent->ActiveEstimatorIndex();
       mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
 
       // estimator update
-      if (active_estimator > 0) {
+      if (active_estimator > 0 && sim.agent->estimator_enabled) {
         // start timer
         auto start = std::chrono::steady_clock::now();
 
@@ -371,7 +374,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       int active_estimator = sim.agent->ActiveEstimatorIndex();
 
       // set state
-      if (active_estimator > 0) {
+      if (active_estimator > 0 && sim.agent->estimator_enabled) {
         // from estimator
         state->SetPosition(m, sim.agent->estimator_state.data());
         state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
@@ -446,6 +449,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   mju_zero(ctrlnoise, m->nu);
 
   // agent
+  sim->agent->estimator_enabled = estimator_enabled;
   sim->agent->Initialize(m);
   sim->agent->Allocate();
   sim->agent->Reset();
@@ -479,7 +483,7 @@ void MjpcApp::Start() {
   printf("  Planner        :  %i\n", 1);
   printf("    planning     :  %i\n", sim->agent->planner_threads());
   printf("  Estimator      :  %i\n", sim->agent->estimator_threads());
-  printf("    estimation   :  %i\n", 1);
+  printf("    estimation   :  %i\n", sim->agent->estimator_enabled);
 
   // set control callback
   mjcb_control = controller;

@@ -188,6 +188,7 @@ class Agent {
   double time = 0.0;
   bool reset_estimator = true;
   EstimatorGUIData estimator_gui_data;
+  bool estimator_enabled = false;
 
  private:
   // model

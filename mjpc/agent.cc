@@ -150,7 +150,7 @@ void Agent::Initialize(const mjModel* model) {
   mju::strcpy_arr(this->estimator_names_, kEstimatorNames);
 
   // estimator threads
-  estimator_threads_ = 1;
+  estimator_threads_ = estimator_enabled;
 
   // planner threads
   planner_threads_ =
@@ -665,7 +665,7 @@ void Agent::GUI(mjUI& ui) {
   mju::strcpy_arr(defAgent[2].other, planner_names_);
 
   // estimator names
-  if (!mjpc::GetCustomNumericData(model_, "estimator")) {
+  if (!mjpc::GetCustomNumericData(model_, "estimator") || !estimator_enabled) {
     mju::strcpy_arr(defAgent[3].other, "Ground Truth");
   } else {
     mju::strcpy_arr(defAgent[3].other, estimator_names_);
@@ -737,7 +737,7 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
       break;
     case 2:  // estimator change
       // check for estimators
-      if (!GetCustomNumericData(model_, "estimator")) {
+      if (!GetCustomNumericData(model_, "estimator") || !estimator_enabled) {
         estimator_ = 0;
         break;
       }

@@ -41,6 +41,8 @@ service Batch {
   rpc Timing(TimingRequest) returns (TimingResponse);
   // Batch prior matrix
   rpc PriorWeights(PriorWeightsRequest) returns (PriorWeightsResponse);
+  // Sensor dimension info
+  rpc SensorInfo(SensorInfoRequest) returns (SensorInfoResponse);
 }
 
 message MjModel {
@@ -104,6 +106,9 @@ message Settings {
   optional bool assemble_force_jacobian = 22;
   optional bool assemble_sensor_norm_hessian = 23;
   optional bool assemble_force_norm_hessian = 24;
+  optional bool first_step_position_sensors = 25;
+  optional bool last_step_position_sensors = 26;
+  optional bool last_step_velocity_sensors = 27;
 }
 
 message SettingsRequest {
@@ -259,3 +264,12 @@ message PriorWeightsResponse {
   repeated double weights = 1 [packed = true];
   int32 dimension = 2;
 }
+
+message SensorInfoRequest {}
+
+message SensorInfoResponse {
+  int32 start_index = 1;
+  int32 num_measurements = 2;
+  int32 dim_measurements = 3;
+}
+

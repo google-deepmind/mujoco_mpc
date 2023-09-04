@@ -105,7 +105,8 @@ TEST(SensorCost, Particle) {
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_sensor) {
-      time_scale = estimator.model->opt.timestep;
+      time_scale =
+          estimator.model->opt.timestep * estimator.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
@@ -462,7 +463,8 @@ TEST(SensorCost, Box) {
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_sensor) {
-      time_scale = estimator.model->opt.timestep;
+      time_scale =
+          estimator.model->opt.timestep * estimator.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 

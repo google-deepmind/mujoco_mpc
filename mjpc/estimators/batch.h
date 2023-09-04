@@ -242,6 +242,9 @@ class Batch : public Estimator {
   EstimatorTrajectory<double> force_measurement;       // nv x T
   EstimatorTrajectory<double> force_prediction;        // nv x T
 
+  // parameters
+  std::vector<double> parameters;                      // nparam
+
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor
 
@@ -390,6 +393,11 @@ class Batch : public Estimator {
   int ndstate_;
   int nsensordata_;
   int nsensor_;
+
+  int ntotal_; // total number of decision variable
+  int nconfig_; // number of configuration (derivatives) variables
+  int nparam_; // number of parameter variable (ndense)
+  int nband_; // cost Hessian band dimension
 
   // sensor indexing
   int sensor_start_;

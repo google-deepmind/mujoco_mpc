@@ -320,8 +320,11 @@ void Batch::Initialize(const mjModel* model) {
 
   // scratch
   scratch_prior_.resize(ntotal_max + 12 * nv * nv);
-  scratch_sensor_.resize(nband_ + nsensordata_ * nband_ + 9 * nv * nv);
-  scratch_force_.resize(12 * nv * nv);
+  scratch_sensor_.resize(nband_ + nsensordata_ * nband_ + 9 * nv * nv +
+                         nparam_ * nband_ + nparam_ * nparam_ +
+                         nsensordata_ * nparam_);
+  scratch_force_.resize(12 * nv * nv + nparam_ * nband_ + nparam_ * nparam_ +
+                        nv * nparam_);
   scratch_parameters_.resize(nparam_ + nv + model->nsensordata);
   scratch_expected_.resize(ntotal_max);
 
@@ -955,7 +958,7 @@ void Batch::SetPriorWeights(const double* weights, double scale) {
 
   // allocate memory
   weight_prior_.resize(ntotal_ * ntotal_);
-  weight_prior_band_.resize(ntotal_ * nband_);
+  weight_prior_band_.resize(nvel_ * nband_ + nparam_ * ntotal_);
 
   // set weights
   mju_copy(weight_prior_.data(), weights, ntotal_ * ntotal_);
@@ -1147,7 +1150,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
 
   // zero memory
   if (gradient) mju_zero(gradient, ntotal_);
-  if (hessian) mju_zero(hessian, ntotal_ * nband_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
 
   // initial cost
   double cost = 0.0;
@@ -1323,7 +1326,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
   // zero memory
   if (gradient) mju_zero(gradient, ntotal_);
-  if (hessian) mju_zero(hessian, ntotal_ * nband_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
 
   // time scaling
   double time_scale = 1.0;
@@ -1449,22 +1452,26 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
         // parameters
         if (nparam_ > 0) {
-          // TODO(taylor):
-          // tmp = drdp' dndr
-          // mju_addToScl(gradient + nvel, tmp, weight, nparam_);
+          // tmp = dsidp' dndsi
+          double* dsidp = block_sensor_parameters_.Get(t) +
+                          (sensor_start_index_ + shift_sensor) * nparam_;
+          mju_mulMatTVec(scratch_sensor_.data(), dsidp, norm_gradient, nsi,
+                         nparam_);
+          mju_addToScl(gradient + nvel_, scratch_sensor_.data(), weight,
+                       nparam_);
         }
       }
 
-      // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+      // Hessian (Gauss-Newton): dsidq012' * d2ndsi2 * dsidq
       if (hessian) {
         // sensor block
         double* blocki = block + block_columns * shift_sensor;
 
-        // step 1: tmp0 = d2ndri2 * dridq
+        // step 1: tmp0 = d2ndsi2 * dsidq
         double* tmp0 = scratch_sensor_.data();
         mju_mulMatMat(tmp0, norm_block, blocki, nsi, nsi, block_columns);
 
-        // step 2: hessian = dridq' * tmp
+        // step 2: hessian = dsidq' * tmp
         double* tmp1 = scratch_sensor_.data() + nsensordata_ * nband_;
         mju_mulMatTMat(tmp1, blocki, tmp0, nsi, block_columns, block_columns);
 
@@ -1474,7 +1481,30 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         
         // parameters
         if (nparam_ > 0) {
-          // TODO(taylor):
+          // parameter Jacobian
+          double* dsidp = block_sensor_parameters_.Get(t) +
+                          (sensor_start_index_ + shift_sensor) * nparam_;
+
+          // step 1: tmp2 = dsidp' * d2ndsi2
+          double* tmp2 = scratch_sensor_.data();
+          mju_mulMatTMat(tmp2, dsidp, norm_block, nsi, nparam_, nsi);
+
+          // step 2: tmp3 = tmp2 * dsidp = dsidp' d2ndsi2 dsidp
+          double* tmp3 = tmp2 + nparam_ * nsi;
+          mju_mulMatMat(tmp3, tmp2, dsidp, nparam_, nsi, nparam_);
+
+          // add dsidp' d2ndsi2 dsidp in dense rows
+          AddBlockInMatrix(dense_sensor_parameter_.data(), tmp3, weight,
+                           nparam_, ntotal_, nparam_, nparam_, 0, nvel_);
+
+          // step 3: tmp4 = dsidp' * d2ndsi2 * dsidq012
+          double* tmp4 = tmp3 + nparam_ * nparam_;
+          mju_mulMatTMat(tmp4, dsidp, block, nsi, nparam_, block_columns);
+
+          // add dsidp' * d2ndsi2 * dsidq012 in dense rows
+          AddBlockInMatrix(dense_sensor_parameter_.data(), tmp4, weight,
+                           nparam_, ntotal_, nparam_, block_columns, 0,
+                           nv * std::max(0, t - 1));
         }
       }
 
@@ -1482,6 +1512,12 @@ double Batch::CostSensor(double* gradient, double* hessian) {
       shift_sensor += nsi;
       shift_matrix += nsi * nsi;
     }
+  }
+
+  // set dense rows in band matrix
+  if (hessian && nparam_ > 0) {
+    mju_copy(hessian + nvel_ * nband_, dense_sensor_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop timer
@@ -1752,7 +1788,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
   // zero memory
   if (gradient) mju_zero(gradient, ntotal_);
-  if (hessian) mju_zero(hessian, ntotal_ * nband_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
+  if (nparam_ > 0) mju_zero(dense_force_parameter_.data(), nparam_ * ntotal_);
 
   // time scaling
   double time_scale2 = 1.0;
@@ -1813,9 +1850,9 @@ double Batch::CostForce(double* gradient, double* hessian) {
                        nforce, nv, nv, (t - 1) * nv, (t - 1) * nv);
     }
 
-    // gradient wrt configuration: dridq012' * dndri
+    // gradient wrt configuration: dfdq012' * dndf
     if (gradient) {
-      // scratch = dridq012' * dndri
+      // scratch = dfdq012' * dndf
       mju_mulMatTVec(scratch_force_.data(), block, norm_gradient, nv, nband_);
 
       // add
@@ -1823,19 +1860,21 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
       // parameters
       if (nparam_ > 0) {
-        // TODO(taylor):
-        // tmp = drdp' dndr
-        // mju_addToScl(gradient + nvel, tmp, 1.0, nparam_);
+        // tmp = dfdp' dndf
+        double* dpdf =
+            block_force_parameters_.Get(t);  // note, already transposed
+        mju_mulMatVec(scratch_force_.data(), dpdf, norm_gradient, nparam_, nv);
+        mju_addToScl(gradient + nvel_, scratch_force_.data(), 1.0, nparam_);
       }
     }
 
-    // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+    // Hessian (Gauss-Newton): drdq012' * d2ndf2 * dfdq012
     if (hessian) {
-      // step 1: tmp0 = d2ndri2 * dridq
+      // step 1: tmp0 = d2ndf2 * dfdq012
       double* tmp0 = scratch_force_.data();
       mju_mulMatMat(tmp0, norm_block, block, nv, nv, nband_);
 
-      // step 2: hessian = dridq' * tmp
+      // step 2: hessian = dfdq012' * tmp
       double* tmp1 = tmp0 + nv * nband_;
       mju_mulMatTMat(tmp1, block, tmp0, nv, nband_, nband_);
 
@@ -1844,9 +1883,36 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
       // parameters
       if (nparam_ > 0) {
-        // TODO(taylor)
+        // parameter Jacobian
+        double* dpdf = block_force_parameters_.Get(t);
+
+        // step 1: tmp2 = dpdf * d2ndf2
+        double* tmp2 = scratch_force_.data();
+        mju_mulMatMat(tmp2, dpdf, norm_block, nparam_, nv, nv);
+
+        // step 2: tmp3 = tmp2 * dpdf' = dpdf * d2ndf2 * dpdf'
+        double* tmp3 = tmp2 + nparam_ * nv;
+        mju_mulMatMatT(tmp3, tmp2, dpdf, nparam_, nv, nparam_);
+
+        // add dpdf * d2ndf2 * dfdp in dense rows
+        AddBlockInMatrix(dense_force_parameter_.data(), tmp3, 1.0, nparam_,
+                         ntotal_, nparam_, nparam_, 0, nvel_);
+
+        // step 3: tmp4 = dpdf * d2ndf2 * dfdq012
+        double* tmp4 = tmp3 + nparam_ * nparam_;
+        mju_mulMatMat(tmp4, tmp2, block, nparam_, nv, nband_);
+
+        // add dpdf * d2ndf2 * dfdq012 in dense rows
+        AddBlockInMatrix(dense_force_parameter_.data(), tmp4, 1.0, nparam_,
+                         ntotal_, nparam_, nband_, 0, (t - 1) * nv);
       }
     }
+  }
+
+  // set dense rows in band Hessian
+  if (hessian && nparam_ > 0) {
+    mju_copy(hessian + nvel_ * nband_, dense_force_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop timer
@@ -2722,19 +2788,22 @@ void Batch::TotalHessian(double* hessian) {
   auto start = std::chrono::steady_clock::now();
 
   // zero memory
-  mju_zero(hessian, ntotal_ * nband_);
+  mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
 
   // individual Hessians
   if (settings.prior_flag) {
-    mju_addTo(hessian, cost_hessian_prior_band_.data(), ntotal_ * nband_);
+    mju_addTo(hessian, cost_hessian_prior_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   if (settings.sensor_flag) {
-    mju_addTo(hessian, cost_hessian_sensor_band_.data(), ntotal_ * nband_);
+    mju_addTo(hessian, cost_hessian_sensor_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   if (settings.force_flag) {
-    mju_addTo(hessian, cost_hessian_force_band_.data(), ntotal_ * nband_);
+    mju_addTo(hessian, cost_hessian_force_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   // stop Hessian timer
@@ -2995,7 +3064,8 @@ void Batch::SearchDirection() {
     }
 
     // copy
-    mju_copy(hessian_band_factor, hessian_band, ntotal_ * nband_);
+    mju_copy(hessian_band_factor, hessian_band,
+             nvel_ * nband_ + nparam_ * ntotal_);
 
     // factorize
     min_diag = mju_cholFactorBand(hessian_band_factor, ntotal_, nband_, nparam_,

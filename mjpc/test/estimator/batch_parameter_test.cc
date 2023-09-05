@@ -37,11 +37,13 @@ void ModelParameterJacobians(double* dfdp, double* dsdp, mjModel* model,
                              int dim_parameters, double* scratch,
                              double eps = 1.0e-7) {
   // unpack
-  double* dpdf = scratch; // transposed force Jacobian
-  double* dpds = scratch + dim_parameters * model->nv; // transposed sensor Jacobian
-  double* f = dpds + dim_parameters * model->nsensordata; // nominal force (qfrc_inverse)
-  double* s = f + model->nv; // nominal sensors (sensordata)
-  
+  double* dpdf = scratch;  // transposed force Jacobian
+  double* dpds =
+      scratch + dim_parameters * model->nv;  // transposed sensor Jacobian
+  double* f = dpds + dim_parameters *
+                         model->nsensordata;  // nominal force (qfrc_inverse)
+  double* s = f + model->nv;                  // nominal sensors (sensordata)
+
   // evaluate nominal parameters
   SetModelParameters(model, parameters, dim_parameters);
   mju_copy(f, data->qfrc_inverse, model->nv);
@@ -91,7 +93,8 @@ TEST(BatchParameter, ParticleDamping) {
   printf("test parameter jacobian (finite difference)\n");
   // load model
   mjModel* model = LoadTestModel("estimator/particle/task1D_damped.xml");
-  model->opt.enableflags |= mjENBL_INVDISCRETE;   // set discrete inverse dynamics
+  model->opt.enableflags |=
+      mjENBL_INVDISCRETE;  // set discrete inverse dynamics
 
   // create data
   mjData* data = mj_makeData(model);

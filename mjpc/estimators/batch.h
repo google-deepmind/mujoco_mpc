@@ -24,7 +24,7 @@
 
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/gui.h"
-#include "mjpc/estimators/model_parameters.h" // temporary until we make nice API
+#include "mjpc/estimators/model_parameters.h"  // temporary until we make nice API
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -66,7 +66,7 @@ inline constexpr double kMinBatchRegularization = 1.0e-12;
 class Batch : public Estimator {
  public:
   // constructor
-  Batch() : model_parameters_(LoadModelParameters()){};
+  Batch() : model_parameters_(LoadModelParameters()) {}
 
   // batch filter constructor
   Batch(int mode);
@@ -245,9 +245,9 @@ class Batch : public Estimator {
   EstimatorTrajectory<double> force_prediction;        // nv x T
 
   // parameters
-  std::vector<double> parameters;                      // nparam
-  std::vector<double> parameters_previous;             // nparam
-  std::vector<double> parameter_weight;                // nparam
+  std::vector<double> parameters;           // nparam
+  std::vector<double> parameters_previous;  // nparam
+  std::vector<double> parameter_weight;     // nparam
 
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor
@@ -401,10 +401,10 @@ class Batch : public Estimator {
   int nsensordata_;
   int nsensor_;
 
-  int ntotal_; // total number of decision variable
-  int nvel_; // number of configuration (derivatives) variables
-  int nparam_; // number of parameter variable (ndense)
-  int nband_; // cost Hessian band dimension
+  int ntotal_;  // total number of decision variable
+  int nvel_;    // number of configuration (derivatives) variables
+  int nparam_;  // number of parameter variable (ndense)
+  int nband_;   // cost Hessian band dimension
 
   // sensor indexing
   int sensor_start_;
@@ -528,32 +528,40 @@ class Batch : public Estimator {
 
   // cost Hessian
   std::vector<double>
-      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
+      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                 // (nv * max_history_)
   std::vector<double>
-      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
+      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                  // (nv * max_history_)
   std::vector<double>
-      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
+      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                 // (nv * max_history_)
+  std::vector<double> cost_hessian_;  // (nv * max_history_ + nparam) * (nv *
+                                      // max_history_ + nparam)
+  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv) +
+                                           // nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
-  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
-  std::vector<double>
-      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
+      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                  // (nv * max_history_)
 
   // cost scratch
-  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv + nparam * (nv * max_history_)
+  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv +
+                                       // nparam * (nv * max_history_)
   std::vector<double>
       scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
-  std::vector<double> scratch_force_;     // 12 * nv * nv
-  std::vector<double> scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
+  std::vector<double> scratch_force_;  // 12 * nv * nv
+  std::vector<double>
+      scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // search direction
-  std::vector<double> search_direction_;  // nv * max_history_ + nparam * (nv * max_history_)
+  std::vector<double>
+      search_direction_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // prior weights
-  std::vector<double>
-      weight_prior_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
-  std::vector<double>
-      weight_prior_band_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
+  std::vector<double> weight_prior_;  // (nv * max_history_ + nparam) * (nv *
+                                      // max_history_ + nparam)
+  std::vector<double> weight_prior_band_;  // (nv * max_history_ + nparam) * (nv
+                                           // * max_history_ + nparam)
 
   // conditioned matrix
   std::vector<double> mat00_;
@@ -564,7 +572,7 @@ class Batch : public Estimator {
   std::vector<double> scratch1_condmat_;
 
   // parameters copy
-  std::vector<double> parameters_copy_; // nparam x T
+  std::vector<double> parameters_copy_;  // nparam x T
 
   // dense cost Hessian rows (for parameter derivatives)
   std::vector<double> dense_prior_parameter_;   // nparam x ntotal

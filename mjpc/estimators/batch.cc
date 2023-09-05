@@ -104,7 +104,7 @@ void Batch::Initialize(const mjModel* model) {
     for (int i = 0; i < max_history_; i++) {
       // add model
       model_perturb_.push_back(MakeUniqueMjModel(mj_copyModel(nullptr, model)));
-      
+
       // set discrete inverse dynamics
       model_perturb_[i].get()->opt.enableflags |= mjENBL_INVDISCRETE;
     }
@@ -597,7 +597,8 @@ void Batch::Reset(const mjData* data) {
   // dense cost Hessian rows (for parameter derivatives)
   std::fill(dense_prior_parameter_.begin(), dense_prior_parameter_.end(), 0.0);
   std::fill(dense_force_parameter_.begin(), dense_force_parameter_.end(), 0.0);
-  std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(), 0.0);
+  std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(),
+            0.0);
 
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
@@ -988,8 +989,8 @@ void Batch::SetPriorWeights(const double* weights, double scale) {
   DenseToBlockBand(weight_prior_.data(), nvel_, nv, 3);
 
   // dense to band
-  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_,
-                 nband_, 0);
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_, nband_,
+                 0);
 
   // set scaling
   scale_prior = scale;
@@ -1177,8 +1178,8 @@ double Batch::CostPrior(double* gradient, double* hessian) {
   double cost = 0.0;
 
   // dense2band
-  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_,
-                 nband_, 0);
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_, nband_,
+                 0);
 
   // compute cost
   if (!cost_skip_) {
@@ -1233,8 +1234,8 @@ double Batch::CostPrior(double* gradient, double* hessian) {
               double* tmp1 = tmp0 + nv * nv;
 
               // get matrices
-              BlockFromMatrix(bbij, weight_prior_.data(), nv, nv, nvel_,
-                              nvel_, (i + t) * nv, (j + t) * nv);
+              BlockFromMatrix(bbij, weight_prior_.data(), nv, nv, nvel_, nvel_,
+                              (i + t) * nv, (j + t) * nv);
               const double* bdi = block_prior_current_configuration_.Get(i + t);
               const double* bdj = block_prior_current_configuration_.Get(j + t);
 
@@ -1269,7 +1270,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       // parameter difference
       double parameter_diff = parameters[i] - parameters_previous[i];
 
-      // weight 
+      // weight
       double weight = parameter_weight[i] / nparam_;
 
       // cost
@@ -1532,7 +1533,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         // set block in band Hessian
         SetBlockInBand(hessian, tmp1, weight, ntotal_, nband_, block_columns,
                        nv * std::max(0, t - 1));
-        
+
         // parameters
         if (nparam_ > 0) {
           // parameter Jacobian
@@ -1915,8 +1916,7 @@ double Batch::CostForce(double* gradient, double* hessian) {
       // parameters
       if (nparam_ > 0) {
         // tmp = dfdp' dndf
-        double* dpdf =
-            block_force_parameters_.Get(t);  // already transposed
+        double* dpdf = block_force_parameters_.Get(t);  // already transposed
         mju_mulMatVec(scratch_force_.data(), dpdf, norm_gradient, nparam_, nv);
         mju_addToScl(gradient + nvel_, scratch_force_.data(), 1.0, nparam_);
       }
@@ -3653,7 +3653,8 @@ void Batch::ParameterJacobian(int index) {
     mju_sub(dpidf, data->qfrc_inverse, force_prediction.Get(index), model->nv);
 
     // scale
-    mju_scl(dpids, dpids, 1.0 / finite_difference.tolerance, model->nsensordata);
+    mju_scl(dpids, dpids, 1.0 / finite_difference.tolerance,
+            model->nsensordata);
     mju_scl(dpidf, dpidf, 1.0 / finite_difference.tolerance, model->nv);
 
     // restore

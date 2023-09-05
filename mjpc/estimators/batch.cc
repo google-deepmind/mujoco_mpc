@@ -2169,7 +2169,8 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
 
         // parameter Jacobian
         if (batch.nparam_) {
-          mju_zero(batch.block_sensor_parameters_.Get(t) + sensor_adr * nv,
+          mju_zero(batch.block_sensor_parameters_.Get(t) +
+                       sensor_adr * batch.nparam_,
                    sensor_dim * batch.nparam_);
         }
       }
@@ -2275,7 +2276,8 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
 
         // parameter Jacobian
         if (batch.nparam_) {
-          mju_zero(batch.block_sensor_parameters_.Get(t) + sensor_adr * nv,
+          mju_zero(batch.block_sensor_parameters_.Get(t) +
+                       sensor_adr * batch.nparam_,
                    sensor_dim * batch.nparam_);
         }
       }

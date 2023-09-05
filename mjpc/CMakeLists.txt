@@ -107,6 +107,8 @@ add_library(
   estimators/include.h
   estimators/kalman.cc
   estimators/kalman.h
+  estimators/model_parameters.cc
+  estimators/model_parameters.h
   estimators/trajectory.h
   estimators/unscented.cc
   estimators/unscented.h

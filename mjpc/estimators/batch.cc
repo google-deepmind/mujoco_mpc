@@ -91,6 +91,13 @@ void Batch::Initialize(const mjModel* model) {
     mju_error("parameter optimization not implemented\n");
   }
 
+  // model parameters id
+  model_parameters_id_ =
+      GetNumberOrDefault(-1, model, "batch_model_parameters_id");
+  if (model_parameters_id_ == -1 && nparam_ > 0) {
+    mju_error("nparam > 0 but model_parameter_id is missing\n");
+  }
+
   // perturbation models
   if (nparam_ > 0) {
     // clear memory
@@ -969,7 +976,7 @@ void Batch::SetPriorWeights(const double* weights, double scale) {
 
 // set model parameters
 // TODO(taylor): implement
-void Batch::SetModelParameters(const mjModel* model, const double* parameters,
+void Batch::SetModelParameters(mjModel* model, const double* parameters,
                                int dim) {}
 
 // set configuration length

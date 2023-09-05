@@ -15,6 +15,7 @@
 #ifndef MJPC_ESTIMATORS_BATCH_H_
 #define MJPC_ESTIMATORS_BATCH_H_
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -23,6 +24,7 @@
 
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/gui.h"
+#include "mjpc/estimators/model_parameters.h" // temporary until we make nice API
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -64,7 +66,7 @@ inline constexpr double kMinBatchRegularization = 1.0e-12;
 class Batch : public Estimator {
  public:
   // constructor
-  Batch() = default;
+  Batch() : model_parameters_(LoadModelParameters()){};
 
   // batch filter constructor
   Batch(int mode);
@@ -210,7 +212,7 @@ class Batch : public Estimator {
   const double* PriorWeights() { return weight_prior_.data(); }
 
   // set model parameters
-  void SetModelParameters(const mjModel* model, const double* parameters, int dim);
+  void SetModelParameters(mjModel* model, const double* parameters, int dim);
 
   // model
   mjModel* model = nullptr;
@@ -569,6 +571,10 @@ class Batch : public Estimator {
   // dense cost Hessian rows (for parameter derivatives)
   std::vector<double> dense_force_parameter_;   // nparam x ntotal
   std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
+
+  // model parameters
+  std::vector<std::unique_ptr<mjpc::ModelParameters>> model_parameters_;
+  int model_parameters_id_;
 
   // filter mode status
   int current_time_index_;

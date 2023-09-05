@@ -43,8 +43,9 @@
     <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid" />
 
     <body name="pointmass" pos="0 0 0">
-      <joint name="root_z" type="slide" damping="1.0" pos="0 0 0" axis="0 0 1" />
+      <joint name="root_z" type="slide" damping="0.0" pos="0 0 0" axis="0 0 1" />
       <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
+      <site name="tip" />
     </body>
   </worldbody>
 
@@ -55,6 +56,7 @@
   <sensor>
     <jointpos name="joint_z" joint="root_z" />
     <jointvel name="vel_z" joint="root_z" />
+    <accelerometer name="acc" site="tip" />
   </sensor>
 
   <keyframe>

@@ -219,9 +219,10 @@ void Batch::Initialize(const mjModel* model) {
   block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
   // sensor Jacobian blocks wrt parameters
-  block_sensor_parameters_.Initialize(nparam_ * model->nsensordata,
+  block_sensor_parameters_.Initialize(model->nsensordata * nparam_,
                                       configuration_length_);
-
+  block_sensor_parametersT_.Initialize(nparam_ * model->nsensordata,
+                                       configuration_length_);
   // force Jacobian blocks
   block_force_parameters_.Initialize(nparam_ * nv, configuration_length_);
 
@@ -300,6 +301,7 @@ void Batch::Initialize(const mjModel* model) {
   scratch_prior_.resize(ntotal_max + 12 * nv * nv);
   scratch_sensor_.resize(nband_ + nsensordata_ * nband_ + 9 * nv * nv);
   scratch_force_.resize(12 * nv * nv);
+  scratch_parameters_.resize(nparam_ + nv + model->nsensordata);
   scratch_expected_.resize(ntotal_max);
 
   // copy
@@ -473,6 +475,7 @@ void Batch::Reset(const mjData* data) {
 
   // sensor Jacobian blocks wrt parameters
   block_sensor_parameters_.Reset();
+  block_sensor_parametersT_.Reset();
 
   // force Jacobian blocks wrt parameters
   block_force_parameters_.Reset();
@@ -535,6 +538,7 @@ void Batch::Reset(const mjData* data) {
   std::fill(scratch_prior_.begin(), scratch_prior_.end(), 0.0);
   std::fill(scratch_sensor_.begin(), scratch_sensor_.end(), 0.0);
   std::fill(scratch_force_.begin(), scratch_force_.end(), 0.0);
+  std::fill(scratch_parameters_.begin(), scratch_parameters_.end(), 0.0);
   std::fill(scratch_expected_.begin(), scratch_expected_.end(), 0.0);
 
   // candidate
@@ -935,6 +939,11 @@ void Batch::SetPriorWeights(const double* weights, double scale) {
   settings.prior_flag = true;
 }
 
+// set model parameters
+// TODO(taylor): implement
+void Batch::SetModelParameters(const mjModel* model, const double* parameters,
+                               int dim) {}
+
 // set configuration length
 void Batch::SetConfigurationLength(int length) {
   // check length
@@ -984,6 +993,7 @@ void Batch::SetConfigurationLength(int length) {
   block_sensor_scratch_.SetLength(configuration_length_);
 
   block_sensor_parameters_.SetLength(configuration_length_);
+  block_sensor_parametersT_.SetLength(configuration_length_);
   block_force_parameters_.SetLength(configuration_length_);
 
   block_force_configuration_.SetLength(configuration_length_);

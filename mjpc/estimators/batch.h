@@ -209,6 +209,9 @@ class Batch : public Estimator {
   // get prior weights
   const double* PriorWeights() { return weight_prior_.data(); }
 
+  // set model parameters
+  void SetModelParameters(const mjModel* model, const double* parameters, int dim);
+
   // model
   mjModel* model = nullptr;
 
@@ -472,11 +475,13 @@ class Batch : public Estimator {
 
   EstimatorTrajectory<double> block_force_scratch_;  // (nv * nv) x T
 
-  // sensor Jacobian blocks wrt parameters (dpdf)
+  // sensor Jacobian blocks wrt parameters (dsdp, dpds)
   EstimatorTrajectory<double>
-      block_sensor_parameters_;  // (nparam_ * nsensordata) x T
+      block_sensor_parameters_;  // (nsensordata * nparam_) x T
+  EstimatorTrajectory<double>
+      block_sensor_parametersT_;  // (nparam_ * nsensordata) x T
 
-  // force Jacobian blocks wrt parameters (dpds)
+  // force Jacobian blocks wrt parameters (dpdf)
   EstimatorTrajectory<double> block_force_parameters_;  // (nparam_ * nv) x T
 
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
@@ -532,6 +537,7 @@ class Batch : public Estimator {
   std::vector<double>
       scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
   std::vector<double> scratch_force_;     // 12 * nv * nv
+  std::vector<double> scratch_parameters_; // nparam + nv + nsensordata
   std::vector<double> scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // search direction

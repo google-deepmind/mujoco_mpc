@@ -182,6 +182,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // parameters
   parameters.resize(nparam_);
+  parameters_previous.resize(nparam_);
 
   // residual
   residual_prior_.resize(nvel_max);
@@ -463,6 +464,7 @@ void Batch::Reset(const mjData* data) {
 
   // parameters
   std::fill(parameters.begin(), parameters.end(), 0.0);
+  std::fill(parameters_previous.begin(), parameters_previous.end(), 0.0);
 
   // residual
   std::fill(residual_prior_.begin(), residual_prior_.end(), 0.0);

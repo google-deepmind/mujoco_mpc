@@ -246,6 +246,7 @@ class Batch : public Estimator {
 
   // parameters
   std::vector<double> parameters;                      // nparam
+  std::vector<double> parameters_previous;             // nparam
 
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor

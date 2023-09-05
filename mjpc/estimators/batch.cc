@@ -91,6 +91,20 @@ void Batch::Initialize(const mjModel* model) {
     mju_error("parameter optimization not implemented\n");
   }
 
+  // perturbation models
+  if (nparam_ > 0) {
+    // clear memory
+    model_perturb_.clear();
+
+    // add model for each time step (need for threaded evaluation)
+    for (int i = 0; i < max_history_; i++) {
+      // add model
+      model_perturb_.push_back(MakeUniqueMjModel(mj_copyModel(nullptr, model)));
+      // set discrete inverse dynamics
+      model_perturb_[i].get()->opt.enableflags |= mjENBL_INVDISCRETE;
+    }
+  }
+
   // sensor start index
   sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
@@ -317,6 +331,9 @@ void Batch::Initialize(const mjModel* model) {
   condmat_.resize(settings.filter * ntotal_max * ntotal_max);
   scratch0_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
   scratch1_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+
+  // parameters copy
+  parameters_copy_.resize(nparam_ * max_history_);
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -554,6 +571,9 @@ void Batch::Reset(const mjData* data) {
   std::fill(condmat_.begin(), condmat_.end(), 0.0);
   std::fill(scratch0_condmat_.begin(), scratch0_condmat_.end(), 0.0);
   std::fill(scratch1_condmat_.begin(), scratch1_condmat_.end(), 0.0);
+
+  // parameters copy
+  std::fill(parameters_copy_.begin(), parameters_copy_.end(), 0.0);
 
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
@@ -1934,6 +1954,11 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
       ns = nsensordata_;
 
+  // set parameters
+  if (nparam_ > 0) {
+    SetModelParameters(model, parameters.data(), nparam_);
+  }
+
   // pool count
   int count_before = pool.GetCount();
 
@@ -2121,6 +2146,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     // transpose
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
 
+    // parameters
+    if (batch.nparam_ > 0) {
+      batch.ParameterJacobian(t);
+    }
+
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
@@ -2136,6 +2166,12 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
       if (sensor_stage != mjSTAGE_POS) {
         // zero remaining rows
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
+
+        // parameter Jacobian
+        if (batch.nparam_) {
+          mju_zero(batch.block_sensor_parameters_.Get(t) + sensor_adr * nv,
+                   sensor_dim * batch.nparam_);
+        }
       }
     }
   });
@@ -2176,6 +2212,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
       mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
       mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
       mju_transpose(dsda, dads, nv, batch.model->nsensordata);
+
+      // parameters
+      if (batch.nparam_ > 0) {
+        batch.ParameterJacobian(t);
+      }
     });
   }
 
@@ -2210,6 +2251,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
     mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
 
+    // parameters
+    if (batch.nparam_ > 0) {
+      batch.ParameterJacobian(t);
+    }
+
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
@@ -2226,6 +2272,12 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
         // zero remaining rows
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
         mju_zero(dsdv + sensor_adr * nv, sensor_dim * nv);
+
+        // parameter Jacobian
+        if (batch.nparam_) {
+          mju_zero(batch.block_sensor_parameters_.Get(t) + sensor_adr * nv,
+                   sensor_dim * batch.nparam_);
+        }
       }
     }
   });
@@ -3378,6 +3430,51 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 void Batch::IncreaseRegularization() {
   regularization_ = mju_min(kMaxBatchRegularization,
                             regularization_ * settings.regularization_scaling);
+}
+
+// derivatives of sensor model wrt parameters
+void Batch::ParameterJacobian(int index) {
+  // unpack
+  mjModel* model = model_perturb_[index].get();
+  mjData* data = data_[index].get();
+  double* dsdp = block_sensor_parameters_.Get(index);
+  double* dpds = block_sensor_parametersT_.Get(index);
+  double* dpdf = block_force_parameters_.Get(index);
+  double* param = parameters_copy_.data() + index * nparam_;
+  mju_copy(param, parameters.data(), nparam_);
+
+  // loop over parameters
+  for (int i = 0; i < nparam_; i++) {
+    // unpack
+    double* dpids = dpds + i * model->nsensordata;
+    double* dpidf = dpdf + i * model->nv;
+
+    // nudge
+    param[i] += finite_difference.tolerance;
+
+    // set parameters
+    SetModelParameters(model, param, nparam_);
+
+    // inverse dynamics
+    mj_inverse(model, data);
+
+    // sensor difference
+    mju_sub(dpids, data->sensordata, sensor_prediction.Get(index),
+            model->nsensordata);
+
+    // force difference
+    mju_sub(dpidf, data->qfrc_inverse, force_prediction.Get(index), model->nv);
+
+    // scale
+    mju_scl(dpids, dpids, 1.0 / finite_difference.tolerance, model->nsensordata);
+    mju_scl(dpidf, dpidf, 1.0 / finite_difference.tolerance, model->nv);
+
+    // restore
+    param[i] -= finite_difference.tolerance;
+  }
+
+  // transpose
+  mju_transpose(dsdp, dpds, nparam_, model->nsensordata);
 }
 
 }  // namespace mjpc

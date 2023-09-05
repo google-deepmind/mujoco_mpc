@@ -391,6 +391,9 @@ class Batch : public Estimator {
   // increase regularization
   void IncreaseRegularization();
 
+  // derivatives of force and sensor model wrt parameters
+  void ParameterJacobian(int index);
+
   // dimensions
   int nstate_;
   int ndstate_;
@@ -405,6 +408,9 @@ class Batch : public Estimator {
   // sensor indexing
   int sensor_start_;
   int sensor_start_index_;
+
+  // perturbed models (for parameter estimation)
+  std::vector<UniqueMjModel> model_perturb_;
 
   // data
   std::vector<UniqueMjData> data_;
@@ -556,6 +562,9 @@ class Batch : public Estimator {
   std::vector<double> condmat_;
   std::vector<double> scratch0_condmat_;
   std::vector<double> scratch1_condmat_;
+
+  // parameters copy
+  std::vector<double> parameters_copy_; // nparam x T
 
   // filter mode status
   int current_time_index_;

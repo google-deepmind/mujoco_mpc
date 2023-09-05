@@ -544,7 +544,6 @@ class Batch : public Estimator {
   std::vector<double>
       scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
   std::vector<double> scratch_force_;     // 12 * nv * nv
-  std::vector<double> scratch_parameters_; // nparam + nv + nsensordata
   std::vector<double> scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // search direction

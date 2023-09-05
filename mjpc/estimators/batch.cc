@@ -87,6 +87,9 @@ void Batch::Initialize(const mjModel* model) {
 
   // number of parameters
   nparam_ = GetNumberOrDefault(0, model, "batch_num_parameters");
+  if (nparam_ != 0) {
+    mju_error("parameter optimization not implemented\n");
+  }
 
   // sensor start index
   sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
@@ -107,19 +110,19 @@ void Batch::Initialize(const mjModel* model) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
-  // dimension
+  // allocatation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
-  int nconfig = nv * max_history_;
-  int nsensortotal = nsensordata_ * max_history_;
-  int ntotal = nconfig + nparam_;
+  int nvel_max = nv * max_history_;
+  int nsensor_max = nsensordata_ * max_history_;
+  int ntotal_max = nvel_max + nparam_;
 
   // state dimensions
   nstate_ = nq + nv + na;
   ndstate_ = 2 * nv + na;
 
   // problem dimensions
-  nconfig_ = nv * configuration_length_;
-  ntotal_ = nconfig_ + nparam_;
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
   nband_ = 3 * nv;
 
   // state
@@ -160,15 +163,17 @@ void Batch::Initialize(const mjModel* model) {
   parameters.resize(nparam_);
 
   // residual
-  residual_prior_.resize(nconfig);
-  residual_sensor_.resize(nsensortotal);
-  residual_force_.resize(nconfig);
+  residual_prior_.resize(nvel_max);
+  residual_sensor_.resize(nsensor_max);
+  residual_force_.resize(nvel_max);
 
   // Jacobian
-  jacobian_prior_.resize(settings.assemble_prior_jacobian * nconfig * ntotal);
-  jacobian_sensor_.resize(settings.assemble_sensor_jacobian * nsensortotal *
-                          ntotal);
-  jacobian_force_.resize(settings.assemble_force_jacobian * nconfig * ntotal);
+  jacobian_prior_.resize(settings.assemble_prior_jacobian * nvel_max *
+                         ntotal_max);
+  jacobian_sensor_.resize(settings.assemble_sensor_jacobian * nsensor_max *
+                          ntotal_max);
+  jacobian_force_.resize(settings.assemble_force_jacobian * nvel_max *
+                         ntotal_max);
 
   // prior Jacobian block
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
@@ -214,7 +219,8 @@ void Batch::Initialize(const mjModel* model) {
   block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
   // sensor Jacobian blocks wrt parameters
-  block_sensor_parameters_.Initialize(nparam_ * model->nsensordata, configuration_length_);
+  block_sensor_parameters_.Initialize(nparam_ * model->nsensordata,
+                                      configuration_length_);
 
   // force Jacobian blocks
   block_force_parameters_.Initialize(nparam_ * nv, configuration_length_);
@@ -234,23 +240,24 @@ void Batch::Initialize(const mjModel* model) {
                                                     configuration_length_);
 
   // cost gradient
-  cost_gradient_prior_.resize(ntotal);
-  cost_gradient_sensor_.resize(ntotal);
-  cost_gradient_force_.resize(ntotal);
-  cost_gradient_.resize(ntotal);
+  cost_gradient_prior_.resize(ntotal_max);
+  cost_gradient_sensor_.resize(ntotal_max);
+  cost_gradient_force_.resize(ntotal_max);
+  cost_gradient_.resize(ntotal_max);
 
   // cost Hessian
-  cost_hessian_prior_band_.resize(ntotal * nband_);
-  cost_hessian_sensor_band_.resize(ntotal * nband_);
-  cost_hessian_force_band_.resize(ntotal * nband_);
-  cost_hessian_.resize(settings.filter * ntotal * ntotal);
-  cost_hessian_band_.resize(ntotal * nband_);
-  cost_hessian_band_factor_.resize(ntotal * nband_);
+  cost_hessian_prior_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_sensor_band_.resize(ntotal_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_force_band_.resize(ntotal_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_.resize(settings.filter * ntotal_max * ntotal_max);
+  cost_hessian_band_.resize(ntotal_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_band_factor_.resize(ntotal_max * nband_ + nparam_ * ntotal_max);
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior_.resize(settings.prior_flag * ntotal * ntotal);
-  weight_prior_band_.resize(settings.prior_flag * ntotal * nband_);
+  weight_prior_.resize(settings.prior_flag * ntotal_max * ntotal_max);
+  weight_prior_band_.resize(settings.prior_flag * ntotal_max * nband_ +
+                            nparam_ * ntotal_max);
 
   // cost norms
   norm_type_sensor.resize(nsensor_);
@@ -274,40 +281,40 @@ void Batch::Initialize(const mjModel* model) {
 
   // norm
   norm_sensor_.resize(nsensor_ * max_history_);
-  norm_force_.resize(ntotal);
+  norm_force_.resize(ntotal_max);
 
   // norm gradient
-  norm_gradient_sensor_.resize(nsensortotal);
-  norm_gradient_force_.resize(ntotal);
+  norm_gradient_sensor_.resize(nsensor_max);
+  norm_gradient_force_.resize(ntotal_max);
 
   // norm Hessian
   norm_hessian_sensor_.resize(settings.assemble_sensor_norm_hessian *
-                              nsensortotal * nsensortotal);
-  norm_hessian_force_.resize(settings.assemble_force_norm_hessian * ntotal *
-                             ntotal);
+                              nsensor_max * nsensor_max);
+  norm_hessian_force_.resize(settings.assemble_force_norm_hessian * ntotal_max *
+                             ntotal_max);
 
-  norm_blocks_sensor_.resize(nsensordata_ * nsensortotal);
-  norm_blocks_force_.resize(nv * ntotal);
+  norm_blocks_sensor_.resize(nsensordata_ * nsensor_max);
+  norm_blocks_force_.resize(nv * ntotal_max);
 
   // scratch
-  scratch_prior_.resize(ntotal + 12 * nv * nv);
+  scratch_prior_.resize(ntotal_max + 12 * nv * nv);
   scratch_sensor_.resize(nband_ + nsensordata_ * nband_ + 9 * nv * nv);
   scratch_force_.resize(12 * nv * nv);
-  scratch_expected_.resize(ntotal);
+  scratch_expected_.resize(ntotal_max);
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
 
   // search direction
-  search_direction_.resize(ntotal);
+  search_direction_.resize(ntotal_max);
 
   // conditioned matrix
-  mat00_.resize(settings.filter * ntotal * ntotal);
-  mat10_.resize(settings.filter * ntotal * ntotal);
-  mat11_.resize(settings.filter * ntotal * ntotal);
-  condmat_.resize(settings.filter * ntotal * ntotal);
-  scratch0_condmat_.resize(settings.filter * ntotal * ntotal);
-  scratch1_condmat_.resize(settings.filter * ntotal * ntotal);
+  mat00_.resize(settings.filter * ntotal_max * ntotal_max);
+  mat10_.resize(settings.filter * ntotal_max * ntotal_max);
+  mat11_.resize(settings.filter * ntotal_max * ntotal_max);
+  condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+  scratch0_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+  scratch1_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -642,8 +649,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // set reduced configuration length for optimization
   configuration_length_ = current_time_index_ + 2;
-  nconfig_ = nv * configuration_length_;
-  ntotal_ = nconfig_ + nparam_;
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
   if (configuration_length_ != configuration_length_cache) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
@@ -667,7 +674,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   if (settings.recursive_prior_update &&
       configuration_length_ == configuration_length_cache) {
     // condition dimension
-    int ncondition = nconfig_ - nv;
+    int ncondition = nvel_ - nv;
 
     // band to dense cost Hessian
     mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal_,
@@ -726,8 +733,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
     ShiftResizeTrajectory(0, configuration_length_cache);
   }
   configuration_length_ = configuration_length_cache;
-  nconfig_ = nv * configuration_length_;
-  ntotal_ = nconfig_ + nparam_;
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
 
   // check estimation horizon
   if (current_time_index_ < configuration_length_ - 2) {
@@ -812,10 +819,10 @@ const double* Batch::GetJacobianPrior() {
 // compute and return dense sensor Jacobian
 const double* Batch::GetJacobianSensor() {
   // dimension
-  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
 
   // resize
-  jacobian_sensor_.resize(nsensortotal * ntotal_);
+  jacobian_sensor_.resize(nsensor_max * ntotal_);
 
   // change setting
   int settings_cache = settings.assemble_sensor_jacobian;
@@ -861,10 +868,10 @@ const double* Batch::GetJacobianForce() {
 // compute and return dense sensor norm Hessian
 const double* Batch::GetNormHessianSensor() {
   // dimensions
-  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
 
   // resize
-  norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
+  norm_hessian_sensor_.resize(nsensor_max * nsensor_max);
 
   // change setting
   int settings_cache = settings.assemble_sensor_norm_hessian;
@@ -937,8 +944,8 @@ void Batch::SetConfigurationLength(int length) {
 
   // set configuration length
   configuration_length_ = std::max(length, kMinBatchHistory);
-  nconfig_ = model->nv * configuration_length_;
-  ntotal_ = nconfig_ + nparam_;
+  nvel_ = model->nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
 
   // update trajectory lengths
   configuration.SetLength(configuration_length_);
@@ -3296,8 +3303,8 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
 
     // update configuration length
     configuration_length_ = horizon;
-    nconfig_ = model->nv * configuration_length_;
-    ntotal_ = nconfig_ + nparam_;
+    nvel_ = model->nv * configuration_length_;
+    ntotal_ = nvel_ + nparam_;
   } else if (horizon < configuration_length_) {  // decrease horizon
     // -- prior weights resize -- //
     int ntotal_new = model->nv * horizon;
@@ -3320,8 +3327,8 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
 
     // update configuration length and current time index
     configuration_length_ = horizon;
-    nconfig_ = model->nv * configuration_length_;
-    ntotal_ = nconfig_ + nparam_;
+    nvel_ = model->nv * configuration_length_;
+    ntotal_ = nvel_ + nparam_;
     current_time_index_ -= horizon_diff;
   }
 }

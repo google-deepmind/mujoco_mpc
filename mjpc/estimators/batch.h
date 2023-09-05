@@ -395,7 +395,7 @@ class Batch : public Estimator {
   int nsensor_;
 
   int ntotal_; // total number of decision variable
-  int nconfig_; // number of configuration (derivatives) variables
+  int nvel_; // number of configuration (derivatives) variables
   int nparam_; // number of parameter variable (ndense)
   int nband_; // cost Hessian band dimension
 
@@ -426,9 +426,9 @@ class Batch : public Estimator {
   std::vector<double> residual_force_;   // nv x (T - 2)
 
   // Jacobian
-  std::vector<double> jacobian_prior_;   // (nv * T) * (nv * T)
-  std::vector<double> jacobian_sensor_;  // (ns * (T - 1)) * (nv * T)
-  std::vector<double> jacobian_force_;   // (nv * (T - 2)) * (nv * T)
+  std::vector<double> jacobian_prior_;   // (nv * T) * (nv * T + nparam)
+  std::vector<double> jacobian_sensor_;  // (ns * (T - 1)) * (nv * T + nparam)
+  std::vector<double> jacobian_force_;   // (nv * (T - 2)) * (nv * T + nparam)
 
   // prior Jacobian block
   EstimatorTrajectory<double>
@@ -509,39 +509,39 @@ class Batch : public Estimator {
   std::vector<double> norm_blocks_force_;   // (nv * nv) x max_history_
 
   // cost gradient
-  std::vector<double> cost_gradient_prior_;   // nv * max_history_
-  std::vector<double> cost_gradient_sensor_;  // nv * max_history_
-  std::vector<double> cost_gradient_force_;   // nv * max_history_
-  std::vector<double> cost_gradient_;         // nv * max_history_
+  std::vector<double> cost_gradient_prior_;   // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_sensor_;  // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_force_;   // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_;         // nv * max_history_ + nparam
 
   // cost Hessian
   std::vector<double>
-      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
+  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv) + nparam * (nv * max_history_)
 
   // cost scratch
-  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv
+  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv + nparam * (nv * max_history_)
   std::vector<double>
       scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
   std::vector<double> scratch_force_;     // 12 * nv * nv
-  std::vector<double> scratch_expected_;  // nv * max_history_
+  std::vector<double> scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // search direction
-  std::vector<double> search_direction_;  // nv * max_history_
+  std::vector<double> search_direction_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // prior weights
   std::vector<double>
-      weight_prior_;  // (nv * max_history_) * (nv * max_history_)
+      weight_prior_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
   std::vector<double>
-      weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
+      weight_prior_band_;  // (nv * max_history_ + nparam) * (nv * max_history_ + nparam)
 
   // conditioned matrix
   std::vector<double> mat00_;

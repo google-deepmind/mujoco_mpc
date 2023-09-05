@@ -335,6 +335,10 @@ void Batch::Initialize(const mjModel* model) {
   // parameters copy
   parameters_copy_.resize(nparam_ * max_history_);
 
+  // dense cost Hessian rows (for parameter derivatives)
+  dense_force_parameter_.resize(nparam_ * ntotal_max);
+  dense_sensor_parameter_.resize(nparam_ * ntotal_max);
+
   // regularization
   regularization_ = settings.regularization_initial;
 
@@ -574,6 +578,10 @@ void Batch::Reset(const mjData* data) {
 
   // parameters copy
   std::fill(parameters_copy_.begin(), parameters_copy_.end(), 0.0);
+
+  // dense cost Hessian rows (for parameter derivatives)
+  std::fill(dense_force_parameter_.begin(), dense_force_parameter_.end(), 0.0);
+  std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(), 0.0);
 
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
@@ -1436,6 +1444,13 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         // add
         mju_addToScl(gradient + nv * std::max(0, t - 1), scratch_sensor_.data(),
                      weight, block_columns);
+
+        // parameters
+        if (nparam_ > 0) {
+          // TODO(taylor):
+          // tmp = drdp' dndr
+          // mju_addToScl(gradient + nvel, tmp, weight, nparam_);
+        }
       }
 
       // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -1454,6 +1469,11 @@ double Batch::CostSensor(double* gradient, double* hessian) {
         // set block in band Hessian
         SetBlockInBand(hessian, tmp1, weight, ntotal_, nband_, block_columns,
                        nv * std::max(0, t - 1));
+        
+        // parameters
+        if (nparam_ > 0) {
+          // TODO(taylor):
+        }
       }
 
       // shift by individual sensor dimension
@@ -1798,6 +1818,13 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
       // add
       mju_addToScl(gradient + (t - 1) * nv, scratch_force_.data(), 1.0, nband_);
+
+      // parameters
+      if (nparam_ > 0) {
+        // TODO(taylor):
+        // tmp = drdp' dndr
+        // mju_addToScl(gradient + nvel, tmp, 1.0, nparam_);
+      }
     }
 
     // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
@@ -1812,6 +1839,11 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
       // set block in band Hessian
       SetBlockInBand(hessian, tmp1, 1.0, ntotal_, nband_, nband_, nv * (t - 1));
+
+      // parameters
+      if (nparam_ > 0) {
+        // TODO(taylor)
+      }
     }
   }
 
@@ -2759,6 +2791,9 @@ void Batch::Optimize(ThreadPool& pool) {
     mju_copy(configuration_copy_.Data(), configuration.Data(),
              model->nq * configuration_length_);
 
+    // copy parameters
+    mju_copy(parameters_copy_.data(), parameters.data(), nparam_);
+
     // initialize
     double cost_candidate = cost_;
     int iteration_search = 0;
@@ -2830,9 +2865,16 @@ void Batch::Optimize(ThreadPool& pool) {
         }
       }
 
-      // candidate
+      // candidate configurations
       UpdateConfiguration(configuration, configuration_copy_,
                           search_direction_.data(), -1.0 * step_size_);
+
+      // candidate parameters
+      if (nparam_ > 0) {
+        mju_copy(parameters.data(), parameters_copy_.data(), nparam_);
+        mju_addToScl(parameters.data(), search_direction_.data() + nvel_,
+                     -1.0 * step_size_, nparam_);
+      }
 
       // cost
       cost_skip_ = false;

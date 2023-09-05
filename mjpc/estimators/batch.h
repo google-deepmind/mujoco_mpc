@@ -566,6 +566,10 @@ class Batch : public Estimator {
   // parameters copy
   std::vector<double> parameters_copy_; // nparam x T
 
+  // dense cost Hessian rows (for parameter derivatives)
+  std::vector<double> dense_force_parameter_;   // nparam x ntotal
+  std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
+
   // filter mode status
   int current_time_index_;
 

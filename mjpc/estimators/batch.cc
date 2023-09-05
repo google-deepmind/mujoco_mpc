@@ -974,11 +974,6 @@ void Batch::SetPriorWeights(const double* weights, double scale) {
   settings.prior_flag = true;
 }
 
-// set model parameters
-// TODO(taylor): implement
-void Batch::SetModelParameters(mjModel* model, const double* parameters,
-                               int dim) {}
-
 // set configuration length
 void Batch::SetConfigurationLength(int length) {
   // check length
@@ -1995,7 +1990,8 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
 
   // set parameters
   if (nparam_ > 0) {
-    SetModelParameters(model, parameters.data(), nparam_);
+    model_parameters_[model_parameters_id_]->Set(model, parameters.data(),
+                                                 nparam_);
   }
 
   // pool count
@@ -3504,7 +3500,7 @@ void Batch::ParameterJacobian(int index) {
     param[i] += finite_difference.tolerance;
 
     // set parameters
-    SetModelParameters(model, param, nparam_);
+    model_parameters_[model_parameters_id_]->Set(model, param, nparam_);
 
     // inverse dynamics
     mj_inverse(model, data);

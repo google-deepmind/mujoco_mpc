@@ -211,9 +211,6 @@ class Batch : public Estimator {
   // get prior weights
   const double* PriorWeights() { return weight_prior_.data(); }
 
-  // set model parameters
-  void SetModelParameters(mjModel* model, const double* parameters, int dim);
-
   // model
   mjModel* model = nullptr;
 

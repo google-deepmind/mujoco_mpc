@@ -247,6 +247,7 @@ class Batch : public Estimator {
   // parameters
   std::vector<double> parameters;                      // nparam
   std::vector<double> parameters_previous;             // nparam
+  std::vector<double> parameter_weight;                // nparam
 
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor
@@ -567,6 +568,7 @@ class Batch : public Estimator {
   std::vector<double> parameters_copy_; // nparam x T
 
   // dense cost Hessian rows (for parameter derivatives)
+  std::vector<double> dense_prior_parameter_;   // nparam x ntotal
   std::vector<double> dense_force_parameter_;   // nparam x ntotal
   std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
 

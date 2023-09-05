@@ -183,6 +183,7 @@ void Batch::Initialize(const mjModel* model) {
   // parameters
   parameters.resize(nparam_);
   parameters_previous.resize(nparam_);
+  parameter_weight.resize(nparam_);
 
   // residual
   residual_prior_.resize(nvel_max);
@@ -347,6 +348,7 @@ void Batch::Initialize(const mjModel* model) {
   parameters_copy_.resize(nparam_ * max_history_);
 
   // dense cost Hessian rows (for parameter derivatives)
+  dense_prior_parameter_.resize(nparam_ * ntotal_max);
   dense_force_parameter_.resize(nparam_ * ntotal_max);
   dense_sensor_parameter_.resize(nparam_ * ntotal_max);
 
@@ -465,6 +467,11 @@ void Batch::Reset(const mjData* data) {
   // parameters
   std::fill(parameters.begin(), parameters.end(), 0.0);
   std::fill(parameters_previous.begin(), parameters_previous.end(), 0.0);
+
+  // parameter weights
+  double weight_parameter =
+      GetNumberOrDefault(0.0, model, "batch_parameter_weight");
+  std::fill(parameter_weight.begin(), parameter_weight.end(), weight_parameter);
 
   // residual
   std::fill(residual_prior_.begin(), residual_prior_.end(), 0.0);
@@ -592,6 +599,7 @@ void Batch::Reset(const mjData* data) {
   std::fill(parameters_copy_.begin(), parameters_copy_.end(), 0.0);
 
   // dense cost Hessian rows (for parameter derivatives)
+  std::fill(dense_prior_parameter_.begin(), dense_prior_parameter_.end(), 0.0);
   std::fill(dense_force_parameter_.begin(), dense_force_parameter_.end(), 0.0);
   std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(), 0.0);
 
@@ -1238,6 +1246,35 @@ double Batch::CostPrior(double* gradient, double* hessian) {
                        false);
       }
     }
+  }
+
+  // parameters
+  if (nparam_ > 0) {
+    // zero dense rows
+    mju_zero(dense_prior_parameter_.data(), nparam_ * ntotal_);
+
+    // loop over parameters
+    for (int i = 0; i < nparam_; i++) {
+      // parameter difference
+      double parameter_diff = parameters[i] - parameters_previous[i];
+
+      // cost
+      cost += 0.5 * parameter_weight[i] * parameter_diff * parameter_diff;
+
+      // gradient
+      if (gradient) {
+        gradient[nvel_ + i] = parameter_weight[i] * parameter_diff;
+      }
+
+      // Hessian
+      if (hessian) {
+        dense_prior_parameter_[i * ntotal_ + nvel_ + i] = parameter_weight[i];
+      }
+    }
+
+    // set dense rows in band Hessian
+    mju_copy(hessian + nvel_ * nband_, dense_prior_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop derivatives timer

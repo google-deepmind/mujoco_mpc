@@ -86,70 +86,70 @@ TEST(ConvexHull2d, Nearest) {
 TEST(ConvexHull2d, PointsHullDegenerate) {
   // A triangle with an interior point
   TestHull(4,
-           (mjtNum *)(mjtNum[4][2]){
-               {0, 0},
-               {0, 3},
-               {1, 1},
-               {4, 2},
-           },
-           3, (int[]){3, 1, 0});
+           std::array<mjtNum, 8>{{
+               0, 0,
+               0, 3,
+               1, 1,
+               4, 2,
+           }}.data(),
+           3, std::array<int, 3>{3, 1, 0}.data());
 
   // A quadrilateral
   TestHull(4,
-           (mjtNum *)(mjtNum[4][2]){
-               {0, 0},
-               {0, 3},
-               {4, 1},
-               {4, 2},
-           },
-           4, (int[]){3, 1, 0, 2});
+           std::array<mjtNum,8>{{
+               0, 0,
+               0, 3,
+               4, 1,
+               4, 2,
+           }}.data(),
+           4, std::array<int, 4>{3, 1, 0, 2}.data());
 
   // A square and its midpoint
   TestHull(5,
-           (mjtNum *)(mjtNum[5][2]){
-               {0, 1}, {1, 1}, {1, 0}, {0, 0}, {0.5, 0.5}},
-           4, (int[]){1, 0, 3, 2});
+           std::array<mjtNum, 10>{{
+               0, 1, 1, 1, 1, 0, 0, 0, 0.5, 0.5}}.data(),
+           4, std::array<int, 4>{1, 0, 3, 2}.data());
 
   // Three collinear points on the x-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {1, 0}, {2, 0}},
-           2, (int[]){2, 0});
+  TestHull(3, std::array<mjtNum, 6>{{0, 0, 1, 0, 2, 0}}.data(),
+           2, std::array<int, 2>{2, 0}.data());
 
   // Three collinear points along the y-axis
-  TestHull(3, (mjtNum *)(mjtNum[3][2]){{0, 0}, {0, 1}, {0, 2}},
-           2, (int[]){2, 0});
+  TestHull(3, std::array<mjtNum, 6>{{0, 0, 0, 1, 0, 2}}.data(),
+           2, std::array<int, 2>{2, 0}.data());
 
   // Three collinear points on a generic line
   TestHull(3,
-           (mjtNum *)(mjtNum[3][2]){
-               {0.30629114, 0.59596112},
-               {0.7818747, 0.81709791},
-               {(0.30629114 + 0.7818747) / 2, (0.59596112 + 0.81709791) / 2}},
-           2, (int[]){1, 0});
+           std::array<mjtNum, 6>{{
+               0.30629114, 0.59596112,
+               0.7818747, 0.81709791,
+               (0.30629114 + 0.7818747) / 2, (0.59596112 + 0.81709791) / 2}}.data(),
+           2, std::array<int, 2>{1, 0}.data());
 
   // A square plus the midpoints of the edges
   TestHull(8,
-           (mjtNum *)(mjtNum[8][2]){
-               {0, 1},
-               {0, 2},
-               {1, 2},
-               {2, 2},
-               {2, 1},
-               {2, 0},
-               {1, 0},
-               {0, 0},
-           },
-           4, (int[]){3, 1, 7, 5});
+           std::array<mjtNum, 16>{{
+               0, 1,
+               0, 2,
+               1, 2,
+               2, 2,
+               2, 1,
+               2, 0,
+               1, 0,
+               0, 0,
+           }}.data(),
+           4, std::array<int, 4>{3, 1, 7, 5}.data());
 
   // A generic triangle plus the midpoints of the edges
   TestHull(6,
-           (mjtNum *)(mjtNum[6][2]){
-               {0.30629114, 0.59596112},
-               {0.7818747, 0.81709791},
-               {0.17100688, 0.32822273},
-               {(0.30629114 + 0.7818747) / 2, (0.59596112 + 0.81709791) / 2},
-               {(0.7818747 + 0.17100688) / 2, (0.81709791 + 0.32822273) / 2},
-               {(0.30629114 + 0.17100688) / 2, (0.59596112 + 0.32822273) / 2}},
-           3, (int[]){1, 0, 2});
+           std::array<mjtNum, 12>{{
+               0.30629114, 0.59596112,
+               0.7818747, 0.81709791,
+               0.17100688, 0.32822273,
+               (0.30629114 + 0.7818747) / 2, (0.59596112 + 0.81709791) / 2,
+               (0.7818747 + 0.17100688) / 2, (0.81709791 + 0.32822273) / 2,
+               (0.30629114 + 0.17100688) / 2, (0.59596112 + 0.32822273) / 2}}.data(),
+           3, std::array<int, 3>{1, 0, 2}.data());
 }
 
 const double FD_TOLERANCE = 1.0e-3;

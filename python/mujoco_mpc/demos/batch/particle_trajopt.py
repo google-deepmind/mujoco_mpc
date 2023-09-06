@@ -19,7 +19,7 @@ import mediapy as media
 
 # set current directory to mjpc/python/mujoco_mpc
 from mujoco_mpc import batch as batch_lib
-
+# %%
 # 2D Particle Model
 xml = """
 <mujoco model="Particle">
@@ -78,7 +78,7 @@ xml = """
 model = mujoco.MjModel.from_xml_string(xml)
 data = mujoco.MjData(model)
 renderer = mujoco.Renderer(model)
-
+# %%
 # initialization
 T = 100
 q0 = np.array([-0.25, -0.25])
@@ -95,10 +95,9 @@ for t in range(T):
   # interpolation
   qinterp[:, t] = q0 + t * slope
 
-
 # time
 time = [t * model.opt.timestep for t in range(T)]
-
+# %%
 # plot position
 fig = plt.figure()
 
@@ -112,7 +111,7 @@ plt.plot(qT[0], qT[1], color="magenta", marker="o")
 plt.legend()
 plt.xlabel("X")
 plt.ylabel("Y")
-
+# %%
 # estimator model
 model_estimator = mujoco.MjModel.from_xml_string(xml)
 
@@ -122,7 +121,7 @@ estimator = batch_lib.Batch(
     model=model_estimator,
     configuration_length=configuration_length,
 )
-
+# %%
 # set data
 for t in range(configuration_length):
   # unpack
@@ -170,10 +169,7 @@ for t in range(configuration_length):
       force_measurement=ft,
       time=tt,
   )
-
-  # print("sensor (", t, ") = ", data_["sensor_measurement"])
-  # print("sensor mask (", t, ") = ", data_["sensor_mask"])
-
+# %%
 # set std
 estimator.noise(process=np.array([1000.0, 1000.0]), sensor=np.array([1.0, 1.0]))
 
@@ -200,7 +196,7 @@ estimator.print_cost()
 
 # status
 estimator.print_status()
-
+# %%
 # get estimated trajectories
 q_est = np.zeros((model_estimator.nq, configuration_length))
 v_est = np.zeros((model_estimator.nv, configuration_length))
@@ -214,7 +210,7 @@ for t in range(configuration_length):
   s_est[:, t] = data_["sensor_prediction"]
   f_est[:, t] = data_["force_prediction"]
   t_est[t] = data_["time"]
-
+# %%
 # plot position
 fig = plt.figure()
 
@@ -241,7 +237,7 @@ plt.plot(
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Velocity")
-
+# %%
 # frames optimized
 frames_opt = []
 
@@ -262,4 +258,4 @@ for t in range(configuration_length - 1):
   frames_opt.append(pixels)
 
 # display video
-media.show_video(frames_opt, fps=1.0 / model.opt.timestep, loop=False)
+# media.show_video(frames_opt, fps=1.0 / model.opt.timestep, loop=False)

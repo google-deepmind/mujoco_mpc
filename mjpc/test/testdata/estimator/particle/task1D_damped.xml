@@ -57,6 +57,7 @@
     <jointpos name="joint_z" joint="root_z" />
     <jointvel name="vel_z" joint="root_z" />
     <accelerometer name="acc" site="tip" />
+    <framepos name="tip" objtype="site" objname="tip" />
   </sensor>
 
   <keyframe>

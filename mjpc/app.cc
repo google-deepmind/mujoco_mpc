@@ -152,7 +152,7 @@ void EstimatorLoop(mj::Simulate& sim) {
       mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
 
       // estimator update
-      if (active_estimator > 0 && sim.agent->estimator_enabled) {
+      if (active_estimator > 0) {
         // start timer
         auto start = std::chrono::steady_clock::now();
 
@@ -182,21 +182,15 @@ void EstimatorLoop(mj::Simulate& sim) {
         // update
         estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
 
-        // copy state
-        mju_copy(sim.agent->estimator_state.data(), estimator->State(),
-                 m->nq + m->nv + m->na);
-        sim.agent->time = estimator->Time();
+        // estimator state to planner
+        double* state = estimator->State();
+        sim.agent->state.Set(m, state, state + m->nq, d->act, d->mocap_pos,
+                             d->mocap_quat, d->userdata, d->time);
 
         // wait (ms)
         while (1.0e-3 * mjpc::GetDuration(start) <
                1.0e3 * estimator->Model()->opt.timestep) {
         }
-      } else {
-        // ground truth
-        mju_copy(estimator->State(), d->qpos, m->nq);
-        mju_copy(estimator->State() + m->nq, d->qvel, m->nv);
-        mju_copy(estimator->State() + m->nq + m->nv, d->act, m->na);
-        estimator->Time() = d->time;
       }
     }
   }
@@ -370,22 +364,26 @@ void PhysicsLoop(mj::Simulate& sim) {
       // unpack state
       mjpc::State* state = &sim.agent->state;
 
-      // estimator
-      int active_estimator = sim.agent->ActiveEstimatorIndex();
+      // // estimator
+      // int active_estimator = sim.agent->ActiveEstimatorIndex();
 
-      // set state
-      if (active_estimator > 0 && sim.agent->estimator_enabled) {
-        // from estimator
-        state->SetPosition(m, sim.agent->estimator_state.data());
-        state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
-        state->SetAct(m, sim.agent->estimator_state.data() + m->nq + m->nv);
-        state->SetTime(m, sim.agent->time);
+      // // set state
+      // if (active_estimator > 0 && sim.agent->estimator_enabled) {
+      //   // from estimator
+      //   state->SetPosition(m, sim.agent->estimator_state.data());
+      //   state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
+      //   state->SetAct(m, sim.agent->estimator_state.data() + m->nq + m->nv);
+      //   state->SetTime(m, sim.agent->time);
 
-        // ground truth
-        state->SetMocap(m, d->mocap_pos, d->mocap_quat);
-        state->SetUserData(m, d->userdata);
-      } else {  // == 0
-        // from simulation
+      //   // ground truth
+      //   state->SetMocap(m, d->mocap_pos, d->mocap_quat);
+      //   state->SetUserData(m, d->userdata);
+      // } else {  // == 0
+      //   // from simulation
+      //   state->Set(m, d);
+      // }
+      if (sim.agent->ActiveEstimatorIndex() == 0 ||
+          !sim.agent->estimator_enabled) {
         state->Set(m, d);
       }
     }

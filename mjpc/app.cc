@@ -157,7 +157,7 @@ void EstimatorLoop(mj::Simulate& sim) {
         auto start = std::chrono::steady_clock::now();
 
         // set values from GUI
-        estimator->SetGUIData(sim.agent->estimator_gui_data);
+        estimator->SetGUIData();
 
         // get simulation state (lock physics thread)
         {

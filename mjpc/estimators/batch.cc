@@ -23,7 +23,6 @@
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -331,6 +330,25 @@ void Batch::Initialize(const mjModel* model) {
   // force
   force_measurement_cache_.Initialize(nv, max_history_);
   force_prediction_cache_.Initialize(nv, max_history_);
+
+  // -- GUI data -- //
+  // time step
+  gui_timestep_ = model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = model->opt.integrator;
+
+  // process noise
+  gui_process_noise_.resize(ndstate_);
+
+  // sensor noise
+  gui_sensor_noise_.resize(nsensordata_);
+
+  // scale prior
+  gui_scale_prior_ = scale_prior;
+
+  // estimation horizon
+  gui_horizon_ = configuration_length_;
 }
 
 // reset memory
@@ -559,6 +577,25 @@ void Batch::Reset(const mjData* data) {
   // force
   force_measurement_cache_.Reset();
   force_prediction_cache_.Reset();
+
+  // -- GUI data -- //
+  // time step
+  gui_timestep_ = model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = model->opt.integrator;
+
+  // process noise
+  std::fill(gui_process_noise_.begin(), gui_process_noise_.end(), noise_process_scl);
+
+  // sensor noise
+  std::fill(gui_sensor_noise_.begin(), gui_sensor_noise_.end(), noise_sensor_scl);
+
+  // scale prior
+  gui_scale_prior_ = scale_prior;
+
+  // estimation horizon
+  gui_horizon_ = configuration_length_;
 }
 
 // update
@@ -3093,17 +3130,17 @@ std::string StatusString(int code) {
 }
 
 // estimator-specific GUI elements
-void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
+void Batch::GUI(mjUI& ui) {
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
       {mjITEM_SECTION, "Estimator", 1, nullptr,
        "AP"},  // needs new section to satisfy mjMAXUIITEM
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &data.timestep, "1.0e-3 0.1"},
-      {mjITEM_SELECT, "Integrator", 2, &data.integrator,
+      {mjITEM_SLIDERNUM, "Timestep", 2, &gui_timestep_, "1.0e-3 0.1"},
+      {mjITEM_SELECT, "Integrator", 2, &gui_integrator_,
        "Euler\nRK4\nImplicit\nFastImplicit"},
-      {mjITEM_SLIDERINT, "Horizon", 2, &data.horizon, "3 3"},
-      {mjITEM_SLIDERNUM, "Prior Scale", 2, &data.scale_prior, "1.0e-8 0.1"},
+      {mjITEM_SLIDERINT, "Horizon", 2, &gui_horizon_, "3 3"},
+      {mjITEM_SLIDERNUM, "Prior Scale", 2, &gui_scale_prior_, "1.0e-8 0.1"},
       {mjITEM_END}};
 
   // set estimation horizon limits
@@ -3126,7 +3163,7 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
   for (int i = 0; i < nv; i++) {
     // element
     defProcessNoise[process_noise_shift] = {
-        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
+        mjITEM_SLIDERNUM, "", 2, gui_process_noise_.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
@@ -3246,7 +3283,7 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
     // element
     defSensorNoise[sensor_noise_shift] = {
         mjITEM_SLIDERNUM, "", 2,
-        data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
+        gui_sensor_noise_.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
     // sensor name
     sensor_str = name_sensor;
@@ -3267,14 +3304,24 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
 }
 
 // set GUI data
-void Batch::SetGUIData(EstimatorGUIData& data) {
-  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
-  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
-  model->opt.timestep = data.timestep;
-  model->opt.integrator = data.integrator;
+void Batch::SetGUIData() {
+  // time step
+  model->opt.timestep = gui_timestep_;
+
+  // integrator
+  model->opt.integrator = gui_integrator_;
+
+  // TODO(taylor): update models if nparam > 0
+
+  // noise
+  mju_copy(noise_process.data(), gui_process_noise_.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), gui_sensor_noise_.data(), DimensionSensor());
+
+  // scale prior
+  scale_prior = gui_scale_prior_;
 
   // store estimation horizon
-  int horizon = data.horizon;
+  int horizon = gui_horizon_;
 
   // changing horizon cases
   if (horizon > configuration_length_) {  // increase horizon

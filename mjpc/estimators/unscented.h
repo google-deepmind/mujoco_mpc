@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -113,10 +112,10 @@ class Unscented : public Estimator {
   double TimerUpdate() const { return timer_update_; }
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+  void GUI(mjUI& ui) override;
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override;
+  void SetGUIData() override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -227,6 +226,20 @@ class Unscented : public Estimator {
   // scratch
   std::vector<double> tmp0_;
   std::vector<double> tmp1_;
+
+  // -- GUI data -- //
+  
+  // time step
+  double gui_timestep_;
+
+  // integrator
+  int gui_integrator_;
+
+  // process noise
+  std::vector<double> gui_process_noise_;
+
+  // sensor noise
+  std::vector<double> gui_sensor_noise_;
 };
 
 }  // namespace mjpc

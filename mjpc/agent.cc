@@ -111,25 +111,9 @@ void Agent::Initialize(const mjModel* model) {
     }
   }
 
-  // get Kalman estimator
-  Estimator* estimator = estimators_[0].get();
-
   // initialize estimator data
   ctrl.resize(model->nu);
   sensor.resize(model->nsensordata);
-
-  // initialize estimator GUI data
-  estimator_gui_data.Initialize(estimator->Model(),
-                                estimator->DimensionProcess(),
-                                estimator->DimensionSensor());
-
-  // set initial process noise
-  mju_copy(estimator_gui_data.process_noise.data(), estimator->ProcessNoise(),
-           estimator->DimensionProcess());
-
-  // set initial sensor noise
-  mju_copy(estimator_gui_data.sensor_noise.data(), estimator->SensorNoise(),
-           estimator->DimensionSensor());
 
   // status
   plan_enabled = false;
@@ -685,11 +669,11 @@ void Agent::GUI(mjUI& ui) {
 
   // estimator
   if (ActiveEstimatorIndex() > 0) {
-    ActiveEstimator().GUI(ui, estimator_gui_data);
+    ActiveEstimator().GUI(ui);
   }
 }
 
-// task-based GUI event
+// task-based es event
 void Agent::TaskEvent(mjuiItem* it, mjData* data,
                       std::atomic<int>& uiloadrequest, int& run) {
   switch (it->itemid) {

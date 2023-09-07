@@ -22,7 +22,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -129,10 +128,10 @@ class Batch : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+  void GUI(mjUI& ui) override;
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override;
+  void SetGUIData() override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -613,6 +612,26 @@ class Batch : public Estimator {
 
   // threadpool
   ThreadPool pool_;
+
+  // -- GUI data -- //
+
+  // time step
+  double gui_timestep_;
+
+  // integrator
+  int gui_integrator_;
+
+  // process noise
+  std::vector<double> gui_process_noise_;
+
+  // sensor noise
+  std::vector<double> gui_sensor_noise_;
+
+  // scale prior
+  double gui_scale_prior_;
+
+  // estimation horizon
+  int gui_horizon_;
 };
 
 // estimator status string

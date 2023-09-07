@@ -186,7 +186,6 @@ class Agent {
   std::vector<double> ctrl;
   double time = 0.0;
   bool reset_estimator = true;
-  EstimatorGUIData estimator_gui_data;
   bool estimator_enabled = false;
 
  private:

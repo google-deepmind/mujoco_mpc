@@ -117,7 +117,6 @@ void Agent::Initialize(const mjModel* model) {
   // initialize estimator data
   ctrl.resize(model->nu);
   sensor.resize(model->nsensordata);
-  estimator_state.resize(model->nq + model->nv + model->na);
 
   // initialize estimator GUI data
   estimator_gui_data.Initialize(estimator->Model(),

@@ -1781,11 +1781,6 @@ void Simulate::PrepareScene() {
     mjui_update(SECT_AGENT, -1, &this->ui0, &this->uistate, &this->platform_ui->mjr_context());
   }
 
-  // update estimator 
-  if (this->ui0_enable && this->ui0.sect[SECT_ESTIMATOR].state) {
-    // mjui_update(SECT_ESTIMATOR, -1, &this->ui0, &this->uistate, &this->platform_ui->mjr_context());
-  }
-
   // update agent profiler
   if (this->agent->plot_enabled && this->uiloadrequest.load() == 0) {
     this->agent->Plots(this->d, this->run);

@@ -19,7 +19,6 @@
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -35,9 +34,6 @@ TEST(ForceCost, Particle) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
-
-  // threadpool
-  ThreadPool pool(1);
 
   // ----- rollout ----- //
   int T = 10;
@@ -171,7 +167,7 @@ TEST(ForceCost, Particle) {
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
   double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data(), pool);
+      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,
@@ -210,9 +206,6 @@ TEST(ForceCost, Box) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
-
-  // threadpool
-  ThreadPool pool(1);
 
   // ----- rollout ----- //
   int T = 10;
@@ -360,7 +353,7 @@ TEST(ForceCost, Box) {
 
   // ----- estimator ----- //
   std::vector<double> cost_gradient(nvar);
-  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
+  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL);
 
   // ----- error ----- //
 
@@ -388,10 +381,6 @@ TEST(ForceCost, ParticleDamped) {
 
   // dimension
   int nq = model->nq, nv = model->nv;
-  // int nv = model->nv;
-
-  // threadpool
-  ThreadPool pool(1);
 
   // ----- rollout ----- //
   int T = 3;
@@ -524,7 +513,7 @@ TEST(ForceCost, ParticleDamped) {
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
   double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data(), pool);
+      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,

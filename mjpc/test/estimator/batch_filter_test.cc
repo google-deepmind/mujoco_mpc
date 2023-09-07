@@ -21,7 +21,6 @@
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {

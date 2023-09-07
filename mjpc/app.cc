@@ -364,24 +364,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       // unpack state
       mjpc::State* state = &sim.agent->state;
 
-      // // estimator
-      // int active_estimator = sim.agent->ActiveEstimatorIndex();
-
-      // // set state
-      // if (active_estimator > 0 && sim.agent->estimator_enabled) {
-      //   // from estimator
-      //   state->SetPosition(m, sim.agent->estimator_state.data());
-      //   state->SetVelocity(m, sim.agent->estimator_state.data() + m->nq);
-      //   state->SetAct(m, sim.agent->estimator_state.data() + m->nq + m->nv);
-      //   state->SetTime(m, sim.agent->time);
-
-      //   // ground truth
-      //   state->SetMocap(m, d->mocap_pos, d->mocap_quat);
-      //   state->SetUserData(m, d->userdata);
-      // } else {  // == 0
-      //   // from simulation
-      //   state->Set(m, d);
-      // }
+      // set ground truth state 
       if (sim.agent->ActiveEstimatorIndex() == 0 ||
           !sim.agent->estimator_enabled) {
         state->Set(m, d);

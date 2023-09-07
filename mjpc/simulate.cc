@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -23,11 +24,11 @@
 #include <ratio>
 #include <string>
 
-#include <absl/strings/match.h>
 #include "lodepng.h"
 #include <mujoco/mjmodel.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mjxmacro.h>
+#include <mujoco/mujoco.h>
 #include <platform_ui_adapter.h>
 #include "mjpc/array_safety.h"
 
@@ -143,8 +144,6 @@ const char help_title[] =
 
 // init profiler figures
 void InitializeProfiler(mj::Simulate* sim) {
-  int i, n;
-
   // set figures to default
   mjv_defaultFigure(&sim->figconstraint);
   mjv_defaultFigure(&sim->figcost);
@@ -229,20 +228,19 @@ void InitializeProfiler(mj::Simulate* sim) {
   sim->figtimer.range[1][1] = 0.4f;
 
   // init x axis on history figures (do not show yet)
-  for (n=0; n<6; n++)
-    for (i=0; i<mjMAXLINEPNT; i++) {
+  for (int n=0; n<6; n++) {
+    for (int i=0; i<mjMAXLINEPNT; i++) {
       sim->figtimer.linedata[n][2*i] = -i;
       sim->figsize.linedata[n][2*i] = -i;
     }
+  }
 }
 
 // update profiler figures
 void UpdateProfiler(mj::Simulate* sim) {
-  int i, n;
-
   // update constraint figure
   sim->figconstraint.linepnt[0] = mjMIN(mjMIN(sim->d->solver_iter, mjNSOLVER), mjMAXLINEPNT);
-  for (i=1; i<5; i++) {
+  for (int i=1; i<5; i++) {
     sim->figconstraint.linepnt[i] = sim->figconstraint.linepnt[0];
   }
   if (sim->m->opt.solver==mjSOL_PGS) {
@@ -252,7 +250,7 @@ void UpdateProfiler(mj::Simulate* sim) {
   if (sim->m->opt.solver==mjSOL_CG) {
     sim->figconstraint.linepnt[4] = 0;
   }
-  for (i=0; i<sim->figconstraint.linepnt[0]; i++) {
+  for (int i=0; i<sim->figconstraint.linepnt[0]; i++) {
     // x
     sim->figconstraint.linedata[0][2*i] = i;
     sim->figconstraint.linedata[1][2*i] = i;
@@ -270,7 +268,7 @@ void UpdateProfiler(mj::Simulate* sim) {
 
   // update cost figure
   sim->figcost.linepnt[0] = mjMIN(mjMIN(sim->d->solver_iter, mjNSOLVER), mjMAXLINEPNT);
-  for (i=1; i<3; i++) {
+  for (int i=1; i<3; i++) {
     sim->figcost.linepnt[i] = sim->figcost.linepnt[0];
   }
   if (sim->m->opt.solver==mjSOL_PGS) {
@@ -278,7 +276,7 @@ void UpdateProfiler(mj::Simulate* sim) {
     sim->figcost.linepnt[2] = 0;
   }
 
-  for (i=0; i<sim->figcost.linepnt[0]; i++) {
+  for (int i=0; i<sim->figcost.linepnt[0]; i++) {
     // x
     sim->figcost.linedata[0][2*i] = i;
     sim->figcost.linedata[1][2*i] = i;
@@ -310,9 +308,9 @@ void UpdateProfiler(mj::Simulate* sim) {
 
   // update figtimer
   int pnt = mjMIN(201, sim->figtimer.linepnt[0]+1);
-  for (n=0; n<5; n++) {
+  for (int n=0; n<5; n++) {
     // shift data
-    for (i=pnt-1; i>0; i--) {
+    for (int i=pnt-1; i>0; i--) {
       sim->figtimer.linedata[n][2*i+1] = sim->figtimer.linedata[n][2*i-1];
     }
 
@@ -333,9 +331,9 @@ void UpdateProfiler(mj::Simulate* sim) {
 
   // update figsize
   pnt = mjMIN(201, sim->figsize.linepnt[0]+1);
-  for (n=0; n<6; n++) {
+  for (int n=0; n<6; n++) {
     // shift data
-    for (i=pnt-1; i>0; i--) {
+    for (int i=pnt-1; i>0; i--) {
       sim->figsize.linedata[n][2*i+1] = sim->figsize.linedata[n][2*i-1];
     }
 
@@ -506,6 +504,13 @@ void UpdateInfoText(mj::Simulate* sim,
       mju::strcat_arr(content, tmp);
       mju::strcat_arr(title, "\nFwdInv");
     }
+
+    // add islands if enabled
+    if (mjENABLED(mjENBL_ISLAND)) {
+      mju::sprintf_arr(tmp, "\n%d", d->nisland);
+      mju::strcat_arr(content, tmp);
+      mju::strcat_arr(title, "\nIslands");
+    }
   }
 }
 
@@ -544,32 +549,35 @@ void UpdateWatch(mj::Simulate* sim) {
 
 // make physics section of UI
 void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
-  int i;
-  mjOption& opt = sim->m->opt;
+  mjOption* opt = &sim->m->opt;
 
   mjuiDef defPhysics[] = {
     {mjITEM_SECTION,   "Physics",       oldstate, nullptr,           "AP"},
-    {mjITEM_SELECT,    "Integrator",    2, &(opt.integrator),        "Euler\nRK4\nimplicit"},
-    {mjITEM_SELECT,    "Collision",     2, &(opt.collision),         "All\nPair\nDynamic"},
-    {mjITEM_SELECT,    "Cone",          2, &(opt.cone),              "Pyramidal\nElliptic"},
-    {mjITEM_SELECT,    "Jacobian",      2, &(opt.jacobian),          "Dense\nSparse\nAuto"},
-    {mjITEM_SELECT,    "Solver",        2, &(opt.solver),            "PGS\nCG\nNewton"},
+    {mjITEM_SELECT,    "Integrator",    2, &(opt->integrator),        "Euler\nRK4\nimplicit\nimplicitfast"},
+    {mjITEM_SELECT,    "Collision",     2, &(opt->collision),         "All\nPair\nDynamic"},
+    {mjITEM_SELECT,    "Cone",          2, &(opt->cone),              "Pyramidal\nElliptic"},
+    {mjITEM_SELECT,    "Jacobian",      2, &(opt->jacobian),          "Dense\nSparse\nAuto"},
+    {mjITEM_SELECT,    "Solver",        2, &(opt->solver),            "PGS\nCG\nNewton"},
     {mjITEM_SEPARATOR, "Algorithmic Parameters", 1},
-    {mjITEM_EDITNUM,   "Timestep",      2, &(opt.timestep),          "1 0 1"},
-    {mjITEM_EDITINT,   "Iterations",    2, &(opt.iterations),        "1 0 1000"},
-    {mjITEM_EDITNUM,   "Tolerance",     2, &(opt.tolerance),         "1 0 1"},
-    {mjITEM_EDITINT,   "Noslip Iter",   2, &(opt.noslip_iterations), "1 0 1000"},
-    {mjITEM_EDITNUM,   "Noslip Tol",    2, &(opt.noslip_tolerance),  "1 0 1"},
-    {mjITEM_EDITINT,   "MRR Iter",      2, &(opt.mpr_iterations),    "1 0 1000"},
-    {mjITEM_EDITNUM,   "MPR Tol",       2, &(opt.mpr_tolerance),     "1 0 1"},
-    {mjITEM_EDITNUM,   "API Rate",      2, &(opt.apirate),           "1 0 1000"},
+    {mjITEM_EDITNUM,   "Timestep",      2, &(opt->timestep),          "1 0 1"},
+    {mjITEM_EDITINT,   "Iterations",    2, &(opt->iterations),        "1 0 1000"},
+    {mjITEM_EDITNUM,   "Tolerance",     2, &(opt->tolerance),         "1 0 1"},
+    {mjITEM_EDITINT,   "LS Iter",       2, &(opt->ls_iterations),     "1 0 100"},
+    {mjITEM_EDITNUM,   "LS Tol",        2, &(opt->ls_tolerance),      "1 0 0.1"},
+    {mjITEM_EDITINT,   "Noslip Iter",   2, &(opt->noslip_iterations), "1 0 1000"},
+    {mjITEM_EDITNUM,   "Noslip Tol",    2, &(opt->noslip_tolerance),  "1 0 1"},
+    {mjITEM_EDITINT,   "MPR Iter",      2, &(opt->mpr_iterations),    "1 0 1000"},
+    {mjITEM_EDITNUM,   "MPR Tol",       2, &(opt->mpr_tolerance),     "1 0 1"},
+    {mjITEM_EDITNUM,   "API Rate",      2, &(opt->apirate),           "1 0 1000"},
+    {mjITEM_EDITINT,   "SDF Iter",      2, &(opt->sdf_iterations),    "1 1 20"},
+    {mjITEM_EDITINT,   "SDF Init",      2, &(opt->sdf_initpoints),    "1 1 100"},
     {mjITEM_SEPARATOR, "Physical Parameters", 1},
-    {mjITEM_EDITNUM,   "Gravity",       2, opt.gravity,              "3"},
-    {mjITEM_EDITNUM,   "Wind",          2, opt.wind,                 "3"},
-    {mjITEM_EDITNUM,   "Magnetic",      2, opt.magnetic,             "3"},
-    {mjITEM_EDITNUM,   "Density",       2, &(opt.density),           "1"},
-    {mjITEM_EDITNUM,   "Viscosity",     2, &(opt.viscosity),         "1"},
-    {mjITEM_EDITNUM,   "Imp Ratio",     2, &(opt.impratio),          "1"},
+    {mjITEM_EDITNUM,   "Gravity",       2, opt->gravity,              "3"},
+    {mjITEM_EDITNUM,   "Wind",          2, opt->wind,                 "3"},
+    {mjITEM_EDITNUM,   "Magnetic",      2, opt->magnetic,             "3"},
+    {mjITEM_EDITNUM,   "Density",       2, &(opt->density),           "1"},
+    {mjITEM_EDITNUM,   "Viscosity",     2, &(opt->viscosity),         "1"},
+    {mjITEM_EDITNUM,   "Imp Ratio",     2, &(opt->impratio),          "1"},
     {mjITEM_SEPARATOR, "Disable Flags", 1},
     {mjITEM_END}
   };
@@ -579,9 +587,9 @@ void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
   };
   mjuiDef defOverride[] = {
     {mjITEM_SEPARATOR, "Contact Override", 1},
-    {mjITEM_EDITNUM,   "Margin",        2, &(opt.o_margin),          "1"},
-    {mjITEM_EDITNUM,   "Sol Imp",       2, &(opt.o_solimp),          "5"},
-    {mjITEM_EDITNUM,   "Sol Ref",       2, &(opt.o_solref),          "2"},
+    {mjITEM_EDITNUM,   "Margin",        2, &(opt->o_margin),          "1"},
+    {mjITEM_EDITNUM,   "Sol Imp",       2, &(opt->o_solimp),          "5"},
+    {mjITEM_EDITNUM,   "Sol Ref",       2, &(opt->o_solref),          "2"},
     {mjITEM_END}
   };
 
@@ -593,13 +601,13 @@ void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
     {mjITEM_CHECKINT,  "", 2, nullptr, ""},
     {mjITEM_END}
   };
-  for (i=0; i<mjNDISABLE; i++) {
+  for (int i=0; i<mjNDISABLE; i++) {
     mju::strcpy_arr(defFlag[0].name, mjDISABLESTRING[i]);
     defFlag[0].pdata = sim->disable + i;
     mjui_add(&sim->ui0, defFlag);
   }
   mjui_add(&sim->ui0, defEnableFlags);
-  for (i=0; i<mjNENABLE; i++) {
+  for (int i=0; i<mjNENABLE; i++) {
     mju::strcpy_arr(defFlag[0].name, mjENABLESTRING[i]);
     defFlag[0].pdata = sim->enable + i;
     mjui_add(&sim->ui0, defFlag);
@@ -613,8 +621,6 @@ void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
 
 // make rendering section of UI
 void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
-  int i, j;
-
   mjuiDef defRendering[] = {
     {
       mjITEM_SECTION,
@@ -636,7 +642,7 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
       2,
       &(sim->opt.label),
       "None\nBody\nJoint\nGeom\nSite\nCamera\nLight\nTendon\n"
-      "Actuator\nConstraint\nSkin\nSelection\nSel Pnt\nForce"
+      "Actuator\nConstraint\nSkin\nSelection\nSel Pnt\nContact\nForce\nIsland"
     },
     {
       mjITEM_SELECT,
@@ -667,9 +673,9 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
   };
 
   // add model cameras, up to UI limit
-  for (i=0; i<mjMIN(sim->m->ncam, mjMAXUIMULTI-2); i++) {
+  for (int i=0; i<mjMIN(sim->m->ncam, mjMAXUIMULTI-2); i++) {
     // prepare name
-    char camname[mjMAXUITEXT] = "\n";
+    char camname[mjMAXUINAME] = "\n";
     if (sim->m->names[sim->m->name_camadr[i]]) {
       mju::strcat_arr(camname, sim->m->names+sim->m->name_camadr[i]);
     } else {
@@ -693,10 +699,10 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
     {mjITEM_CHECKBYTE,  "", 2, nullptr, ""},
     {mjITEM_END}
   };
-  for (i=0; i<mjNVISFLAG; i++) {
+  for (int i=0; i<mjNVISFLAG; i++) {
     // set name, remove "&"
     mju::strcpy_arr(defFlag[0].name, mjVISSTRING[i][0]);
-    for (j=0; j<strlen(mjVISSTRING[i][0]); j++) {
+    for (int j=0; j<strlen(mjVISSTRING[i][0]); j++) {
       if (mjVISSTRING[i][0][j]=='&') {
         mju_strncpy(
           defFlag[0].name+j, mjVISSTRING[i][0]+j+1, mju::sizeof_arr(defFlag[0].name)-j);
@@ -713,8 +719,17 @@ void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
     defFlag[0].pdata = sim->opt.flags + i;
     mjui_add(&sim->ui0, defFlag);
   }
+
+  // create tree slider
+  mjuiDef defTree[] = {
+      {mjITEM_SLIDERINT, "Tree depth", 2, &sim->opt.bvh_depth, "0 20"},
+      {mjITEM_END}
+  };
+  mjui_add(&sim->ui0, defTree);
+
+  // add rendering flags
   mjui_add(&sim->ui0, defOpenGL);
-  for (i=0; i<mjNRNDFLAG; i++) {
+  for (int i=0; i<mjNRNDFLAG; i++) {
     mju::strcpy_arr(defFlag[0].name, mjRNDSTRING[i][0]);
     if (mjRNDSTRING[i][2][0]) {
       mju::sprintf_arr(defFlag[0].other, " %s", mjRNDSTRING[i][2]);
@@ -784,8 +799,6 @@ void MakeGroupSection(mj::Simulate* sim, int oldstate) {
 
 // make joint section of UI
 void MakeJointSection(mj::Simulate* sim, int oldstate) {
-  int i;
-
   mjuiDef defJoint[] = {
     {mjITEM_SECTION, "Joint", oldstate, nullptr, "AJ"},
     {mjITEM_END}
@@ -801,7 +814,7 @@ void MakeJointSection(mj::Simulate* sim, int oldstate) {
 
   // add scalar joints, exit if UI limit reached
   int itemcnt = 0;
-  for (i=0; i<sim->m->njnt && itemcnt<mjMAXUIITEM; i++)
+  for (int i=0; i<sim->m->njnt && itemcnt<mjMAXUIITEM; i++)
     if ((sim->m->jnt_type[i]==mjJNT_HINGE || sim->m->jnt_type[i]==mjJNT_SLIDE)) {
       // skip if joint group is disabled
       if (!sim->opt.jointgroup[mjMAX(0, mjMIN(mjNGROUP-1, sim->m->jnt_group[i]))]) {
@@ -834,8 +847,6 @@ void MakeJointSection(mj::Simulate* sim, int oldstate) {
 
 // make control section of UI
 void MakeControlSection(mj::Simulate* sim, int oldstate) {
-  int i;
-
   mjuiDef defControl[] = {
     {mjITEM_SECTION, "Control", oldstate, nullptr, "AC"},
     {mjITEM_BUTTON,  "Clear all", 2},
@@ -852,7 +863,7 @@ void MakeControlSection(mj::Simulate* sim, int oldstate) {
 
   // add controls, exit if UI limit reached (Clear button already added)
   int itemcnt = 1;
-  for (i=0; i<sim->m->nu && itemcnt<mjMAXUIITEM; i++) {
+  for (int i=0; i<sim->m->nu && itemcnt<mjMAXUIITEM; i++) {
     // skip if actuator group is disabled
     if (!sim->opt.actuatorgroup[mjMAX(0, mjMIN(mjNGROUP-1, sim->m->actuator_group[i]))]) {
       continue;
@@ -882,11 +893,9 @@ void MakeControlSection(mj::Simulate* sim, int oldstate) {
 
 // make model-dependent UI sections
 void MakeUiSections(mj::Simulate* sim) {
-  int i;
-
   // get section open-close state, UI 0
   int oldstate0[NSECT0];
-  for (i=0; i<NSECT0; i++) {
+  for (int i=0; i<NSECT0; i++) {
     oldstate0[i] = 0;
     if (sim->ui0.nsect>i) {
       oldstate0[i] = sim->ui0.sect[i].state;
@@ -895,7 +904,7 @@ void MakeUiSections(mj::Simulate* sim) {
 
   // get section open-close state, UI 1
   int oldstate1[NSECT1];
-  for (i=0; i<NSECT1; i++) {
+  for (int i=0; i<NSECT1; i++) {
     oldstate1[i] = 0;
     if (sim->ui1.nsect>i) {
       oldstate1[i] = sim->ui1.sect[i].state;
@@ -982,13 +991,11 @@ void CopyCamera(mj::Simulate* sim) {
 
 // update UI 0 when MuJoCo structures change (except for joint sliders)
 void UpdateSettings(mj::Simulate* sim) {
-  int i;
-
   // physics flags
-  for (i=0; i<mjNDISABLE; i++) {
+  for (int i=0; i<mjNDISABLE; i++) {
     sim->disable[i] = ((sim->m->opt.disableflags & (1<<i)) !=0);
   }
-  for (i=0; i<mjNENABLE; i++) {
+  for (int i=0; i<mjNENABLE; i++) {
     sim->enable[i] = ((sim->m->opt.enableflags & (1<<i)) !=0);
   }
 
@@ -1938,6 +1945,10 @@ void Simulate::Render() {
     }
 
     // save as PNG
+    // TODO(b/241577466): Parse the stem of the filename and use a .PNG extension.
+    // Unfortunately, if we just yank ".xml"/".mjb" from the filename and append .PNG, the macOS
+    // file dialog does not automatically open that location. Thus, we defer to a default
+    // "screenshot.png" for now.
     const std::string path = GetSavePath("screenshot.png");
     if (!path.empty()) {
       if (lodepng::encode(path, rgb.get(), w, h, LCT_RGB)) {
@@ -1969,6 +1980,7 @@ void Simulate::InitializeRenderLoop() {
     this->scn.flags[mjRND_SHADOW] = 0;
     this->scn.flags[mjRND_REFLECTION] = 0;
   }
+
   // select default font
   int fontscale = ComputeFontScale(*this->platform_ui);
   this->font = fontscale/50 - 1;
@@ -2019,7 +2031,7 @@ void Simulate::InitializeRenderLoop() {
 
 void Simulate::RenderLoop() {
   // run event loop
-  while (!this->platform_ui->ShouldCloseWindow()  && !this->exitrequest.load()) {
+  while (!this->platform_ui->ShouldCloseWindow() && !this->exitrequest.load()) {
     {
       const std::lock_guard<std::mutex> lock(this->mtx);
 

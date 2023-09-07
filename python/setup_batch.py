@@ -271,7 +271,7 @@ setuptools.setup(
     author="DeepMind",
     author_email="mujoco@deepmind.com",
     description="MuJoCo MPC (MJPC)",
-    url="https://github.com/deepmind/mujoco_mpc",
+    url="https://github.com/google-deepmind/mujoco_mpc",
     license="MIT",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

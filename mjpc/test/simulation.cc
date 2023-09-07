@@ -69,7 +69,7 @@ void Simulation::Rollout(
 
     // step using mj_Euler since mj_forward has been called
     // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // https://github.com/google-deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data_);
   }
 }

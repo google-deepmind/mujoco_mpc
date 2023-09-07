@@ -92,7 +92,8 @@ TEST(ForceCost, Particle) {
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_force) {
-      time_scale = estimator.model->opt.timestep;
+      time_scale =
+          estimator.model->opt.timestep * estimator.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
@@ -276,6 +277,7 @@ TEST(ForceCost, Box) {
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_force) {
       time_scale2 =
+          estimator.model->opt.timestep * estimator.model->opt.timestep *
           estimator.model->opt.timestep * estimator.model->opt.timestep;
     }
 
@@ -438,7 +440,8 @@ TEST(ForceCost, ParticleDamped) {
     double time_scale = 1.0;
     double time_scale2 = 1.0;
     if (estimator.settings.time_scaling_force) {
-      time_scale = estimator.model->opt.timestep;
+      time_scale =
+          estimator.model->opt.timestep * estimator.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 

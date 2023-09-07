@@ -45,7 +45,7 @@ void Unscented::Initialize(const mjModel* model) {
   int nq = model->nq, nv = model->nv, na = model->na;
   nstate_ = nq + nv + na;
   ndstate_ = 2 * nv + na;
-  nsigma__ = 2 * ndstate_ + 1;
+  nsigma_ = 2 * ndstate_ + 1;
 
   // sensor start index
   sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
@@ -79,13 +79,13 @@ void Unscented::Initialize(const mjModel* model) {
   noise_sensor.resize(nsensordata_);
 
   // sigma points (nstate x (2 * ndstate_ + 1))
-  sigma_.resize(nstate_ * nsigma__);
+  sigma_.resize(nstate_ * nsigma_);
 
   // states (nstate x (2 * ndstate_ + 1))
-  states_.resize(nstate_ * nsigma__);
+  states_.resize(nstate_ * nsigma_);
 
   // sensors (nsensordata x (2 * ndstate + 1))
-  sensors_.resize(nsensordata_ * nsigma__);
+  sensors_.resize(nsensordata_ * nsigma_);
 
   // state mean (nstate)
   state_mean_.resize(nstate_);
@@ -100,10 +100,10 @@ void Unscented::Initialize(const mjModel* model) {
   factor_column_.resize(ndstate_);
 
   // state difference (ndstate x nsigma_)
-  state_difference_.resize(ndstate_ * nsigma__);
+  state_difference_.resize(ndstate_ * nsigma_);
 
   // sensor difference (nsensordata_ x nsigma_)
-  sensor_difference_.resize(nsensordata_ * nsigma__);
+  sensor_difference_.resize(nsensordata_ * nsigma_);
 
   // covariance sensor (nsensordata_ x nsensordata_)
   covariance_sensor_.resize(nsensordata_ * nsensordata_);
@@ -303,7 +303,7 @@ void Unscented::SigmaPoints() {
   // -- loop over points -- //
 
   // nominal
-  mju_copy(sigma_.data() + (nsigma__ - 1) * nstate_, state.data(), nstate_);
+  mju_copy(sigma_.data() + (nsigma_ - 1) * nstate_, state.data(), nstate_);
 
   // unpack
   double* column = factor_column_.data();
@@ -358,7 +358,7 @@ void Unscented::EvaluateSigmaPoints() {
   double time_cache = data_->time;
 
   // loop over sigma points
-  for (int i = 0; i < nsigma__; i++) {
+  for (int i = 0; i < nsigma_; i++) {
     // set state
     double* sigma = sigma_.data() + i * nstate_;
     mju_copy(data_->qpos, sigma, nq);
@@ -380,7 +380,7 @@ void Unscented::EvaluateSigmaPoints() {
     mju_copy(y, data_->sensordata + sensor_start_index_, nsensordata_);
 
     // update means
-    double weight = (i == nsigma__ - 1 ? weight_mean0 : weight_sigma);
+    double weight = (i == nsigma_ - 1 ? weight_mean0 : weight_sigma);
     mju_addToScl(state_mean_.data(), s, weight, nstate_);
     mju_addToScl(sensor_mean_.data(), y, weight, nsensordata_);
   }
@@ -399,7 +399,7 @@ void Unscented::SigmaPointDifferences() {
   double* ym = sensor_mean_.data();
 
   // loop over sigma points
-  for (int i = 0; i < nsigma__; i++) {
+  for (int i = 0; i < nsigma_; i++) {
     // -- state difference -- //
     double* ds = state_difference_.data() + i * ndstate_;
     double* si = states_.data() + i * nstate_;
@@ -446,7 +446,7 @@ void Unscented::SigmaCovariances() {
   }
 
   // loop over sigma points
-  for (int i = 0; i < nsigma__; i++) {
+  for (int i = 0; i < nsigma_; i++) {
     // unpack
     double* dy = sensor_difference_.data() + i * nsensordata_;
     double* ds = state_difference_.data() + i * ndstate_;
@@ -463,7 +463,7 @@ void Unscented::SigmaCovariances() {
     // -- update -- //
 
     // weight
-    double weight = (i == nsigma__ - 1 ? weight_covariance0 : weight_sigma);
+    double weight = (i == nsigma_ - 1 ? weight_covariance0 : weight_sigma);
 
     // covariance sensor
     mju_addScl(cov_yy, cov_yy, dydy, weight, nsensordata_ * nsensordata_);
@@ -552,7 +552,7 @@ void Unscented::Update(const double* ctrl, const double* sensor) {
   }
 
   // tmp1 = covariance_state_sensor * (covariance_sensor)^-1
-  // covariance_state_sensor' = covariance_state_senor * tmp0'
+  // covariance_state_sensor' = covariance_state_sensor * tmp0'
   mju_mulMatMatT(tmp1_.data(), covariance_state_sensor_.data(), tmp0_.data(),
                  ndstate_, nsensordata_, ndstate_);
 
@@ -595,7 +595,7 @@ void Unscented::QuaternionMeans() {
       mju_zero(K, 16);
 
       // loop over states
-      for (int j = 0; j < nsigma__; j++) {
+      for (int j = 0; j < nsigma_; j++) {
         // get quaternion
         double* quat = states_.data() + j * nstate_ + qpos_adr;
 
@@ -604,12 +604,12 @@ void Unscented::QuaternionMeans() {
 
         // add outerproduct to K
         mju_addToScl(
-            K, Q, 4.0 * (j == nsigma__ - 1 ? weight_covariance0 : weight_sigma),
+            K, Q, 4.0 * (j == nsigma_ - 1 ? weight_covariance0 : weight_sigma),
             16);
       }
 
       // K = K - total_weight * I
-      double total_weight = weight_covariance0 + (nsigma__ - 1) * weight_sigma;
+      double total_weight = weight_covariance0 + (nsigma_ - 1) * weight_sigma;
       K[0] -= total_weight;
       K[5] -= total_weight;
       K[10] -= total_weight;

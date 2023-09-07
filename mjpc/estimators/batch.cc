@@ -1309,7 +1309,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   double time_scale = 1.0;
   double time_scale2 = 1.0;
   if (settings.time_scaling_sensor) {
-    time_scale = model->opt.timestep;
+    time_scale = model->opt.timestep * model->opt.timestep;
     time_scale2 = time_scale * time_scale;
   }
 
@@ -1727,7 +1727,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
   // time scaling
   double time_scale2 = 1.0;
   if (settings.time_scaling_force) {
-    time_scale2 = model->opt.timestep * model->opt.timestep;
+    time_scale2 = model->opt.timestep * model->opt.timestep *
+                  model->opt.timestep * model->opt.timestep;
   }
 
   // loop over predictions

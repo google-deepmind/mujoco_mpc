@@ -88,7 +88,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang
   set(EXTRA_COMPILE_OPTIONS
       -Werror
       -Wall
-      -Wpedantic
       -Wimplicit-fallthrough
       -Wunused
       -Wvla

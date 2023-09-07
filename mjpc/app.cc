@@ -159,7 +159,7 @@ void EstimatorLoop(mj::Simulate& sim) {
         // set values from GUI
         estimator->SetGUIData(sim.agent->estimator_gui_data);
 
-        // get simulation state
+        // get simulation state (lock physics thread)
         {
           const std::lock_guard<std::mutex> lock(sim.mtx);
           // copy simulation ctrl
@@ -184,8 +184,8 @@ void EstimatorLoop(mj::Simulate& sim) {
 
         // estimator state to planner
         double* state = estimator->State();
-        sim.agent->state.Set(m, state, state + m->nq, d->act, d->mocap_pos,
-                             d->mocap_quat, d->userdata, d->time);
+        sim.agent->state.Set(m, state, state + m->nq, state + m->nq + m->nv,
+                             d->mocap_pos, d->mocap_quat, d->userdata, d->time);
 
         // wait (ms)
         while (1.0e-3 * mjpc::GetDuration(start) <
@@ -364,7 +364,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       // unpack state
       mjpc::State* state = &sim.agent->state;
 
-      // set ground truth state 
+      // set ground truth state
       if (sim.agent->ActiveEstimatorIndex() == 0 ||
           !sim.agent->estimator_enabled) {
         state->Set(m, d);

@@ -473,7 +473,7 @@ class Batch:
     # return prior matrix
     return mat
 
-  def sensor_info(self) -> dict[str | int]:
+  def sensor_info(self) -> dict[str, int]:
     # info request
     request = batch_pb2.SensorInfoRequest()
 
@@ -486,7 +486,7 @@ class Batch:
         "num_measurements": response.num_measurements,
         "dim_measurements": response.dim_measurements,
     }
-  
+
   def measurements_from_sensordata(self, data: npt.ArrayLike) -> np.ndarray:
     # get sensor info
     info = self.sensor_info()

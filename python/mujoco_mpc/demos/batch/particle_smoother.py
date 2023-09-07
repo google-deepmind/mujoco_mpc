@@ -19,7 +19,7 @@ import numpy as np
 
 # set current directory to mjpc/python/mujoco_mpc
 from mujoco_mpc import batch as batch_lib
-
+# %%
 # 1D Particle Model
 xml = """
 <mujoco model="Particle1D">
@@ -64,7 +64,7 @@ xml = """
 model = mujoco.MjModel.from_xml_string(xml)
 data = mujoco.MjData(model)
 renderer = mujoco.Renderer(model)
-
+# %%
 ## rollout
 np.random.seed(0)
 
@@ -115,14 +115,14 @@ for t in range(T):
   mujoco.mj_Euler(model, data)
 
   # render and save frames
-  renderer.update_scene(data)
-  pixels = renderer.render()
-  frames.append(pixels)
+  # renderer.update_scene(data)
+  # pixels = renderer.render()
+  # frames.append(pixels)
 
 # display video.
-SLOWDOWN = 0.5
-media.show_video(frames, fps=SLOWDOWN * FPS)
-
+# SLOWDOWN = 0.5
+# media.show_video(frames, fps=SLOWDOWN * FPS)
+# %%
 # plot position
 fig = plt.figure()
 
@@ -145,7 +145,7 @@ plt.plot(time, qvel[0, :], label="simulation", color="black")
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Velocity")
-
+# %%
 # estimator model
 model_estimator = mujoco.MjModel.from_xml_string(xml)
 
@@ -154,7 +154,7 @@ configuration_length = T
 estimator = batch_lib.Batch(
     model=model_estimator, configuration_length=configuration_length
 )
-
+# %%
 # configuration initialization
 qinit = np.zeros((model.nq, configuration_length))
 
@@ -172,7 +172,7 @@ for t in range(configuration_length):
       force_measurement=qfrc[:, t],
       time=np.array([time[t]]),
   )
-
+# %%
 # set noise std
 estimator.noise(
     process=np.full(model.nv, 1.0), sensor=np.full(model.nsensor, 5.0e-1)
@@ -198,7 +198,7 @@ estimator.print_cost()
 
 # status
 estimator.print_status()
-
+# %%
 # get estimator solution
 q_est = np.zeros((model_estimator.nq, configuration_length))
 v_est = np.zeros((model_estimator.nv, configuration_length))

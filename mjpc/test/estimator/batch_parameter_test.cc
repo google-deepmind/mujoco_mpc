@@ -29,6 +29,11 @@ namespace {
 void SetModelParameters(mjModel* model, const double* parameters, int dim) {
   // change damping
   model->dof_damping[0] = parameters[0];
+
+  // change tip site pos
+  for (int i = 0; i < 3; i++) {
+    model->site_pos[i] = parameters[1 + i];
+  }
 }
 
 // model parameter jacobians
@@ -65,6 +70,9 @@ void ModelParameterJacobians(double* dfdp, double* dsdp, mjModel* model,
 
     printf("data->qfrc = %f\n", data->qfrc_inverse[0]);
     printf("f = %f\n", f[0]);
+
+    printf("data->sensordata = \n");
+    mju_printMat(data->sensordata, 1, model->nsensordata);
 
     // force difference
     double* dpidf = dpdf + i * model->nv;
@@ -105,6 +113,13 @@ TEST(BatchParameter, ParticleDamping) {
   int dim_parameters = 1;
   std::vector<double> parameters(dim_parameters);
   parameters[0] = model->dof_damping[0];
+  parameters[1] = model->site_pos[0];
+  parameters[2] = model->site_pos[1];
+  parameters[3] = model->site_pos[2];
+
+  // set state
+  data->qpos[0] = 1.0;
+  data->qvel[0] = 0.0;
 
   // -- parameters Jacobians -- //
 

@@ -248,7 +248,7 @@ void Tracking::TransitionLocked(mjModel *model, mjData *d) {
   std::tie(key_index_0, key_index_1, weight_0, weight_1) =
       ComputeInterpolationValues(current_index, last_key_index);
 
-  mj_markStack(d);
+  // mj_markStack(d);
 
   mjtNum *mocap_pos_0 = mj_stackAllocNum(d, 3 * model->nmocap);
   mjtNum *mocap_pos_1 = mj_stackAllocNum(d, 3 * model->nmocap);
@@ -263,7 +263,7 @@ void Tracking::TransitionLocked(mjModel *model, mjData *d) {
   mju_copy(d->mocap_pos, mocap_pos_0, model->nmocap * 3);
   mju_addTo(d->mocap_pos, mocap_pos_1, model->nmocap * 3);
 
-  mj_freeStack(d);
+  // mj_freeStack(d);
 }
 
 }  // namespace mjpc::humanoid

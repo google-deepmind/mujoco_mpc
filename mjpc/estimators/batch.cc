@@ -32,7 +32,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // batch filter constructor
-Batch::Batch(int mode) {
+Batch::Batch(int mode) : model_parameters_(LoadModelParameters()) {
   // not filter mode, return
   if (mode != 1) return;
 
@@ -43,7 +43,8 @@ Batch::Batch(int mode) {
 }
 
 // batch smoother constructor
-Batch::Batch(const mjModel* model, int length, int max_history) {
+Batch::Batch(const mjModel* model, int length, int max_history)
+    : model_parameters_(LoadModelParameters()) {
   // set max history length
   this->max_history_ = (max_history == 0 ? length : max_history);
 
@@ -972,11 +973,6 @@ const double* Batch::GetNormHessianForce() {
 void Batch::SetPriorWeights(const double* weights, double scale) {
   // dimension
   int nv = model->nv;
-
-  // parameters
-  if (nparam_ > 0) {
-    mju_error("parameter prior weights not implemented\n");
-  }
 
   // allocate memory
   weight_prior_.resize(nvel_ * nvel_);

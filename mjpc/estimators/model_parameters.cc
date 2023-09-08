@@ -25,7 +25,8 @@ std::vector<std::unique_ptr<mjpc::ModelParameters>> LoadModelParameters() {
   std::vector<std::unique_ptr<mjpc::ModelParameters>> model_parameters;
 
   // add model parameters
-  model_parameters.emplace_back(new mjpc::Particle1DParameters());
+  model_parameters.emplace_back(new mjpc::Particle1DDampedParameters());
+  model_parameters.emplace_back(new mjpc::Particle1DFramePosParameters());
 
   return model_parameters;
 }

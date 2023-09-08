@@ -33,18 +33,45 @@ class ModelParameters {
 };
 
 // model parameter class for 1D particle w/ damping
-class Particle1DParameters : public ModelParameters {
+class Particle1DDampedParameters : public ModelParameters {
  public:
   // constructor
-  Particle1DParameters() = default;
+  Particle1DDampedParameters() = default;
 
   // destructor
-  ~Particle1DParameters() = default;
+  ~Particle1DDampedParameters() = default;
 
   // set parameters
   void Set(mjModel* model, const double* parameters, int dim) override {
     // set damping value
     model->dof_damping[0] = parameters[0];
+  }
+};
+
+// model parameter class for 1D particle w/ damping
+class Particle1DFramePosParameters : public ModelParameters {
+ public:
+  // constructor
+  Particle1DFramePosParameters() = default;
+
+  // destructor
+  ~Particle1DFramePosParameters() = default;
+
+  // set parameters
+  void Set(mjModel* model, const double* parameters, int dim) override {
+    // remove default setting
+    model->site_sameframe[0] = 0;
+    model->site_sameframe[1] = 0;
+
+    // set site 0 position
+    model->site_pos[0] = parameters[0];
+    model->site_pos[1] = parameters[1];
+    model->site_pos[2] = parameters[2];
+
+    // set site 1 position
+    model->site_pos[3 + 0] = parameters[3 + 0];
+    model->site_pos[3 + 1] = parameters[3 + 1];
+    model->site_pos[3 + 2] = parameters[3 + 2];
   }
 };
 

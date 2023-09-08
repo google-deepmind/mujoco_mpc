@@ -26,8 +26,8 @@
 
 namespace mjpc {
 
-// THE SQUARE-ROOT UNSCENTED Kalman FILTER FOR STATE AND PARAMETER-ESTIMATION
-// https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
+// Unscented Filtering and Nonlinear Estimation
+// https://www.cs.ubc.ca/~murphyk/Papers/Julier_Uhlmann_mar04.pdf
 class Unscented : public Estimator {
  public:
   // constructor
@@ -158,7 +158,7 @@ class Unscented : public Estimator {
   int ndstate_;
   int nsensordata_;
   int nsensor_;
-  int nsigma__;
+  int nsigma_;
 
   // sensor indexing
   int sensor_start_;

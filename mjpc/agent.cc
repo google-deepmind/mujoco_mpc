@@ -673,7 +673,7 @@ void Agent::GUI(mjUI& ui) {
   }
 }
 
-// task-based es event
+// task-based GUI event
 void Agent::TaskEvent(mjuiItem* it, mjData* data,
                       std::atomic<int>& uiloadrequest, int& run) {
   switch (it->itemid) {

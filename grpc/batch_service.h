@@ -34,7 +34,7 @@ namespace mjpc::batch_grpc {
 
 class BatchService final : public batch::Batch::Service {
  public:
-  explicit BatchService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  explicit BatchService() {}
   ~BatchService();
 
   grpc::Status Init(grpc::ServerContext* context,

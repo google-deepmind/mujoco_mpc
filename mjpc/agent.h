@@ -184,7 +184,6 @@ class Agent {
   // estimator
   std::vector<double> sensor;
   std::vector<double> ctrl;
-  double time = 0.0;
   bool reset_estimator = true;
   bool estimator_enabled = false;
 

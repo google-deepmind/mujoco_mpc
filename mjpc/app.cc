@@ -361,13 +361,10 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      // unpack state
-      mjpc::State* state = &sim.agent->state;
-
       // set ground truth state
       if (sim.agent->ActiveEstimatorIndex() == 0 ||
           !sim.agent->estimator_enabled) {
-        state->Set(m, d);
+        sim.agent->state.Set(m, d);
       }
     }
   }

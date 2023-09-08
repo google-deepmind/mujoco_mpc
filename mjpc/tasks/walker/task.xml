@@ -18,7 +18,7 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="11" />
+    <numeric name="estimator_number_sensor" data="9" />
     <numeric name="estimator_timestep" data="0.005" />
     <numeric name="batch_configuration_length" data="3" />
     <numeric name="batch_scale_prior" data="1.0e-3" />
@@ -41,8 +41,6 @@
     <jointpos name="left_hip" joint="left_hip" />
     <jointpos name="left_knee" joint="left_knee" />
     <jointpos name="left_ankle" joint="left_ankle" />
-    <accelerometer name="torso_acc" site="torso_site"/>
-    <gyro name="torso_gyro" site="torso_site"/>
 
     <!-- trace -->
     <framepos      name="trace0" objtype="site" objname="torso_site"/>

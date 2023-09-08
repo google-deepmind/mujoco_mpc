@@ -114,6 +114,7 @@
     <framepos name="FL_pos" objtype="site" objname="FL" />
     <framepos name="RR_pos" objtype="site" objname="RR" />
     <framepos name="RL_pos" objtype="site" objname="RL" />
+    
     <jointpos name="pos_FR_hip_joint" joint="FR_hip_joint" />
     <jointpos name="pos_FR_thigh_joint" joint="FR_thigh_joint" />
     <jointpos name="pos_FR_calf_joint" joint="FR_calf_joint" />
@@ -126,19 +127,6 @@
     <jointpos name="pos_RL_hip_joint" joint="RL_hip_joint" />
     <jointpos name="pos_RL_thigh_joint" joint="RL_thigh_joint" />
     <jointpos name="pos_RL_calf_joint" joint="RL_calf_joint" />
-
-    <!-- <accelerometer name="FR_acc" site="FR"/>
-    <gyro name="FR_gyro" site="FR"/>
-    <accelerometer name="FL_acc" site="FL"/>
-    <gyro name="FL_gyro" site="FL"/>
-    <accelerometer name="RR_acc" site="RR"/>
-    <gyro name="RR_gyro" site="RR"/>
-    <accelerometer name="RL_acc" site="RL"/>
-    <gyro name="RL_gyro" site="RL"/> -->
-    <!-- <framelinacc name="FR_acc" objtype="site" objname="FR"/>
-    <framelinacc name="FL_acc" objtype="site" objname="FL"/>
-    <framelinacc name="RR_acc" objtype="site" objname="RR"/>
-    <framelinacc name="RL_acc" objtype="site" objname="RL"/> -->
 
     <touch name="FR_touch" site="FR"/>
     <touch name="FL_touch" site="FL"/>

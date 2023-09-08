@@ -192,6 +192,9 @@ class Batch : public Estimator {
   // measurement sensor start index
   int SensorStartIndex() const { return sensor_start_index_; }
 
+  // get number of parameters
+  int NumberParameters() const { return nparam_; }
+
   // get status
   int IterationsSmoother() const { return iterations_smoother_; }
   int IterationsSearch() const { return iterations_search_; }
@@ -247,7 +250,7 @@ class Batch : public Estimator {
   // parameters
   std::vector<double> parameters;           // nparam
   std::vector<double> parameters_previous;  // nparam
-  std::vector<double> parameter_weight;     // nparam
+  std::vector<double> noise_parameter;     // nparam
 
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor

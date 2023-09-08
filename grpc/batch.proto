@@ -62,7 +62,7 @@ message Data {
   repeated double configuration = 1 [packed = true];
   repeated double velocity = 2 [packed = true];
   repeated double acceleration = 3 [packed = true];
-  optional double time = 4 [packed = true];
+  repeated double time = 4 [packed = true];
   repeated double ctrl = 5 [packed = true];
   repeated double configuration_previous = 6 [packed = true];
   repeated double sensor_measurement = 7 [packed = true];
@@ -159,7 +159,7 @@ message CostResponse {
 message Noise {
   repeated double process = 1 [packed = true];
   repeated double sensor = 2 [packed = true];
-  repeated double parameters = 3 [packed = true];
+  repeated double parameter = 3 [packed = true];
 }
 
 message NoiseRequest {

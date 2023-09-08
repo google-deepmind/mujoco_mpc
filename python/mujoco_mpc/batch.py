@@ -152,7 +152,7 @@ class Batch:
       configuration: Optional[npt.ArrayLike] = [],
       velocity: Optional[npt.ArrayLike] = [],
       acceleration: Optional[npt.ArrayLike] = [],
-      time: Optional[npt.ArrayLike] = [],
+      time: Optional[float] = [],
       ctrl: Optional[npt.ArrayLike] = [],
       configuration_previous: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],
@@ -308,7 +308,7 @@ class Batch:
       process: Optional[npt.ArrayLike] = [],
       sensor: Optional[npt.ArrayLike] = [],
       parameter: Optional[npt.ArrayLike] = [],
-  ) -> dict[str, float | np.ndarray]:
+  ) -> dict[str, np.ndarray]:
     # assemble input noise
     inputs = batch_pb2.Noise(
         process=process,

@@ -268,31 +268,34 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
     output->add_force_prediction(force_prediction[i]);
   }
 
-  // set parameters
+  // parameters
   int np = batch_.NumberParameters();
-  if (input.parameters_size() > 0) {
-    CHECK_SIZE("parameters", np, input.parameters_size());
-    mju_copy(batch_.parameters.data(), input.parameters().data(), np);
-  }
+  if (np > 0) {
+    // set parameters
+    if (input.parameters_size() > 0) {
+      CHECK_SIZE("parameters", np, input.parameters_size());
+      mju_copy(batch_.parameters.data(), input.parameters().data(), np);
+    }
 
-  // get parameters
-  double* parameters = batch_.parameters.data();
-  for (int i = 0; i < np; i++) {
-    output->add_parameters(parameters[i]);
-  }
+    // get parameters
+    double* parameters = batch_.parameters.data();
+    for (int i = 0; i < np; i++) {
+      output->add_parameters(parameters[i]);
+    }
 
-  // set parameters previous
-  if (input.parameters_previous_size() > 0) {
-    CHECK_SIZE("parameters previous", np, input.parameters_previous_size());
-    mju_copy(batch_.parameters_previous.data(), input.parameters_previous().data(), np);
-  }
+    // set parameters previous
+    if (input.parameters_previous_size() > 0) {
+      CHECK_SIZE("parameters previous", np, input.parameters_previous_size());
+      mju_copy(batch_.parameters_previous.data(), input.parameters_previous().data(), np);
+    }
 
-  // get parameters previous
-  double* parameters_previous = batch_.parameters_previous.data();
-  for (int i = 0; i < np; i++) {
-    output->add_parameters_previous(parameters_previous[i]);
+    // get parameters previous
+    double* parameters_previous = batch_.parameters_previous.data();
+    for (int i = 0; i < np; i++) {
+      output->add_parameters_previous(parameters_previous[i]);
+    }
   }
-
+  
   return grpc::Status::OK;
 }
 
@@ -695,14 +698,17 @@ grpc::Status BatchService::Noise(grpc::ServerContext* context,
 
   // parameters
   int num_parameters = batch_.NumberParameters();
-  if (input.parameter_size() > 0) {
-    CHECK_SIZE("noise parameter", num_parameter, input.parameter_size());
-    batch_.noise_parameter.assign(input.parameter().begin(), input.parameter().end());
+  if (num_parameters > 0) {
+    if (input.parameter_size() > 0) {
+      CHECK_SIZE("noise parameter", num_parameters, input.parameter_size());
+      batch_.noise_parameter.assign(input.parameter().begin(),
+                                    input.parameter().end());
+    }
+    for (int i = 0; i < num_parameters; i++) {
+      output->add_parameter(batch_.noise_parameter[i]);
+    }
   }
-  for (int i = 0; i < num_parameter; i++) {
-    output->add_parameter(batch_.noise_parameter[i]);
-  }
-
+  
   return grpc::Status::OK;
 }
 

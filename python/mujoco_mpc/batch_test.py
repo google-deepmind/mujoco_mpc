@@ -663,10 +663,17 @@ class BatchTest(absltest.TestCase):
     parameters = np.random.normal(size=6, scale=1.0e-1)
 
     # set / get data
-    data = batch.data(0)
+    data = batch.data(0, parameters=parameters)
 
     # test
     self.assertLess(np.linalg.norm(data["parameters"] - parameters), 1.0e-5)
+
+    # noise
+    noise = np.random.normal(size=6, scale=1.0)
+    data = batch.noise(parameter=noise)
+
+    # test
+    self.assertLess(np.linalg.norm(data["parameter"] - noise), 1.0e-5)
 
 if __name__ == "__main__":
   absltest.main()

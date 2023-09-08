@@ -130,7 +130,7 @@ void Batch::Initialize(const mjModel* model) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
-  // allocatation dimension
+  // allocation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   int nvel_max = nv * max_history_;
   int nsensor_max = nsensordata_ * max_history_;

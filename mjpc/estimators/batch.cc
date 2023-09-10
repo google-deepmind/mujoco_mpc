@@ -1272,7 +1272,7 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   double time_scale = 1.0;
   double time_scale2 = 1.0;
   if (settings.time_scaling_sensor) {
-    time_scale = model->opt.timestep;
+    time_scale = model->opt.timestep * model->opt.timestep;
     time_scale2 = time_scale * time_scale;
   }
 
@@ -1466,10 +1466,16 @@ void Batch::ResidualSensor() {
         int sensor_stage = model->sensor_needstage[sensor_start_ + i];
 
         // check for position
-        if (sensor_stage == mjSTAGE_POS && settings.last_step_position_sensors) continue;
+        if (sensor_stage == mjSTAGE_POS &&
+            settings.last_step_position_sensors) {
+          continue;
+        }
 
         // check for velocity
-        if (sensor_stage == mjSTAGE_VEL && settings.last_step_velocity_sensors) continue;
+        if (sensor_stage == mjSTAGE_VEL &&
+            settings.last_step_velocity_sensors) {
+          continue;
+        }
 
         // -- zero memory -- //
         // dimension
@@ -1688,7 +1694,8 @@ double Batch::CostForce(double* gradient, double* hessian) {
   // time scaling
   double time_scale2 = 1.0;
   if (settings.time_scaling_force) {
-    time_scale2 = model->opt.timestep * model->opt.timestep;
+    time_scale2 = model->opt.timestep * model->opt.timestep *
+                  model->opt.timestep * model->opt.timestep;
   }
 
   // loop over predictions

@@ -645,5 +645,35 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(info["num_measurements"] == 4)
     self.assertTrue(info["dim_measurements"] == 4)
 
+  def test_parameters(self):
+    # load model
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/test/testdata/estimator/particle/task1D_framepos.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    # initialize
+    configuration_length = 3
+    batch = batch_lib.Batch(
+        model=model, configuration_length=configuration_length
+    )
+
+    # random parameters
+    parameters = np.random.normal(size=6, scale=1.0e-1)
+
+    # set / get data
+    data = batch.data(0, parameters=parameters)
+
+    # test
+    self.assertLess(np.linalg.norm(data["parameters"] - parameters), 1.0e-5)
+
+    # noise
+    noise = np.random.normal(size=6, scale=1.0)
+    data = batch.noise(parameter=noise)
+
+    # test
+    self.assertLess(np.linalg.norm(data["parameter"] - noise), 1.0e-5)
+
 if __name__ == "__main__":
   absltest.main()

@@ -182,7 +182,7 @@ void Batch::Initialize(const mjModel* model) {
   // parameters
   parameters.resize(nparam_);
   parameters_previous.resize(nparam_);
-  parameter_weight.resize(nparam_);
+  noise_parameter.resize(nparam_);
 
   // residual
   residual_prior_.resize(nvel_max);
@@ -467,9 +467,10 @@ void Batch::Reset(const mjData* data) {
   std::fill(parameters_previous.begin(), parameters_previous.end(), 0.0);
 
   // parameter weights
-  double weight_parameter =
-      GetNumberOrDefault(0.0, model, "batch_parameter_weight");
-  std::fill(parameter_weight.begin(), parameter_weight.end(), weight_parameter);
+  double noise_parameter_scl =
+      GetNumberOrDefault(1.0, model, "batch_noise_parameter");
+  std::fill(noise_parameter.begin(), noise_parameter.end(),
+            noise_parameter_scl);
 
   // residual
   std::fill(residual_prior_.begin(), residual_prior_.end(), 0.0);
@@ -1267,7 +1268,7 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       double parameter_diff = parameters[i] - parameters_previous[i];
 
       // weight
-      double weight = parameter_weight[i] / nparam_;
+      double weight = 1.0 / noise_parameter[i] / nparam_;
 
       // cost
       cost += 0.5 * weight * parameter_diff * parameter_diff;

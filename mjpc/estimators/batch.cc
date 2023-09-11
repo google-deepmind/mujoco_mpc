@@ -1466,10 +1466,16 @@ void Batch::ResidualSensor() {
         int sensor_stage = model->sensor_needstage[sensor_start_ + i];
 
         // check for position
-        if (sensor_stage == mjSTAGE_POS && settings.last_step_position_sensors) continue;
+        if (sensor_stage == mjSTAGE_POS &&
+            settings.last_step_position_sensors) {
+          continue;
+        }
 
         // check for velocity
-        if (sensor_stage == mjSTAGE_VEL && settings.last_step_velocity_sensors) continue;
+        if (sensor_stage == mjSTAGE_VEL &&
+            settings.last_step_velocity_sensors) {
+          continue;
+        }
 
         // -- zero memory -- //
         // dimension

@@ -47,7 +47,7 @@ The constraints are handled implicitly. Velocities and accelerations are compute
 **Weights**
 
 Sensors:
-- $w_s \in \mathbf{R}_{+}^{S}$: 
+- $w_s \in \mathbf{R}_{+}^{S}$:
 
 Forces:
 - $w_g \in \mathbf{R}_{+}^{n_v}$:
@@ -80,7 +80,7 @@ The gradient of the cost $c$ with respect to the configuration trajectory $q_{0:
 
 $d c/ d q_{0:T} = J_s^T N_s + J_g^T N_g$
 
-where 
+where
 
 - $J_s = dr_s / d q_{0:T} \in \mathbf{R}^{n_s (T - 2) \times n_v T}$: Jacobian of sensor residual with respect to configuration trajectory
 - $J_g = dr_g / d q_{0:T} \in \mathbf{R}^{n_v (T - 2) \times n_v T}$: Jacobian of force residual with respect to configuration trajectory
@@ -89,7 +89,7 @@ where
 
 **Hessian**
 
-The [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm) approximation of the cost Hessian: 
+The [Gauss-Newton](https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm) approximation of the cost Hessian:
 
 $d^2 c / d q_{0:T}^2 \approx J_s^T N_{ss} J_s + J_g^T N_{gg} J_g$
 

@@ -130,7 +130,7 @@ void Batch::Initialize(const mjModel* model) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
-  // allocatation dimension
+  // allocation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   int nvel_max = nv * max_history_;
   int nsensor_max = nsensordata_ * max_history_;
@@ -1623,12 +1623,16 @@ void Batch::ResidualSensor() {
         int sensor_stage = model->sensor_needstage[sensor_start_ + i];
 
         // check for position
-        if (sensor_stage == mjSTAGE_POS && settings.last_step_position_sensors)
+        if (sensor_stage == mjSTAGE_POS &&
+            settings.last_step_position_sensors) {
           continue;
+        }
 
         // check for velocity
-        if (sensor_stage == mjSTAGE_VEL && settings.last_step_velocity_sensors)
+        if (sensor_stage == mjSTAGE_VEL &&
+            settings.last_step_velocity_sensors) {
           continue;
+        }
 
         // -- zero memory -- //
         // dimension

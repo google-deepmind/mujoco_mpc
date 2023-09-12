@@ -2950,7 +2950,9 @@ void Batch::Optimize(ThreadPool& pool) {
     }
 
     // compute initial search direction
-    SearchDirection();
+    if (!SearchDirection()) {
+      return;  // failure
+    }
 
     // check small search direction
     if (search_direction_norm_ < settings.search_direction_tolerance) {
@@ -2985,7 +2987,9 @@ void Batch::Optimize(ThreadPool& pool) {
             IncreaseRegularization();
 
             // recompute search direction
-            SearchDirection();
+            if (!SearchDirection()) {
+              return;  // failure
+            }
 
             // check small search direction
             if (search_direction_norm_ < settings.search_direction_tolerance) {
@@ -3106,7 +3110,7 @@ void Batch::Optimize(ThreadPool& pool) {
 }
 
 // search direction
-void Batch::SearchDirection() {
+bool Batch::SearchDirection() {
   // start timer
   auto search_direction_start = std::chrono::steady_clock::now();
 
@@ -3126,7 +3130,9 @@ void Batch::SearchDirection() {
     // failure
     if (regularization_ >= kMaxBatchRegularization) {
       printf("min diag = %f\n", min_diag);
-      mju_error("cost Hessian factorization failure: MAX REGULARIZATION\n");
+      printf("cost Hessian factorization failure: MAX REGULARIZATION\n");
+      solve_status_ = kMaxRegularizationFailure;
+      return false;
     }
 
     // copy
@@ -3165,11 +3171,7 @@ void Batch::SearchDirection() {
 
   // end timer
   timer_.search_direction += GetDuration(search_direction_start);
-}
-
-// print Optimize iteration
-void Batch::PrintIteration() {
-  if (!settings.verbose_iteration) return;
+  return true;
 }
 
 // print Optimize status

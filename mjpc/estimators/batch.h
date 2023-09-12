@@ -366,8 +366,8 @@ class Batch : public Estimator {
   // compute total Hessian
   void TotalHessian(double* hessian);
 
-  // search direction
-  void SearchDirection();
+  // search direction, returns false if regularization maxes out
+  bool SearchDirection();
 
   // update configuration trajectory
   void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
@@ -382,9 +382,6 @@ class Batch : public Estimator {
 
   // reset timers
   void ResetTimers();
-
-  // print optimize iteration
-  void PrintIteration();
 
   // print optimize status
   void PrintOptimize();

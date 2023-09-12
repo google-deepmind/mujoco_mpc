@@ -24,6 +24,7 @@
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/estimators/gui.h"
+#include "mjpc/estimators/model_parameters.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -32,7 +33,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // batch filter constructor
-Batch::Batch(int mode) {
+Batch::Batch(int mode) : model_parameters_(LoadModelParameters()) {
   // not filter mode, return
   if (mode != 1) return;
 
@@ -43,7 +44,8 @@ Batch::Batch(int mode) {
 }
 
 // batch smoother constructor
-Batch::Batch(const mjModel* model, int length, int max_history) {
+Batch::Batch(const mjModel* model, int length, int max_history)
+    : model_parameters_(LoadModelParameters()) {
   // set max history length
   this->max_history_ = (max_history == 0 ? length : max_history);
 
@@ -85,6 +87,31 @@ void Batch::Initialize(const mjModel* model) {
     mju_error("configuration_length > max_history: increase max history\n");
   }
 
+  // number of parameters
+  nparam_ = GetNumberOrDefault(0, model, "batch_num_parameters");
+
+  // model parameters id
+  model_parameters_id_ =
+      GetNumberOrDefault(-1, model, "batch_model_parameters_id");
+  if (model_parameters_id_ == -1 && nparam_ > 0) {
+    mju_error("nparam > 0 but model_parameter_id is missing\n");
+  }
+
+  // perturbation models
+  if (nparam_ > 0) {
+    // clear memory
+    model_perturb_.clear();
+
+    // add model for each time step (need for threaded evaluation)
+    for (int i = 0; i < max_history_; i++) {
+      // add model
+      model_perturb_.push_back(MakeUniqueMjModel(mj_copyModel(nullptr, model)));
+
+      // set discrete inverse dynamics
+      model_perturb_[i].get()->opt.enableflags |= mjENBL_INVDISCRETE;
+    }
+  }
+
   // sensor start index
   sensor_start_ = GetNumberOrDefault(0, model, "estimator_sensor_start");
 
@@ -104,14 +131,20 @@ void Batch::Initialize(const mjModel* model) {
     sensor_start_index_ += model->sensor_dim[i];
   }
 
-  // dimension
+  // allocation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
-  int ntotal = nv * max_history_;
-  int nsensortotal = nsensordata_ * max_history_;
+  int nvel_max = nv * max_history_;
+  int nsensor_max = nsensordata_ * max_history_;
+  int ntotal_max = nvel_max + nparam_;
 
   // state dimensions
   nstate_ = nq + nv + na;
   ndstate_ = 2 * nv + na;
+
+  // problem dimensions
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
+  nband_ = 3 * nv;
 
   // state
   state.resize(nstate_);
@@ -147,16 +180,23 @@ void Batch::Initialize(const mjModel* model) {
   force_measurement.Initialize(nv, configuration_length_);
   force_prediction.Initialize(nv, configuration_length_);
 
+  // parameters
+  parameters.resize(nparam_);
+  parameters_previous.resize(nparam_);
+  noise_parameter.resize(nparam_);
+
   // residual
-  residual_prior_.resize(ntotal);
-  residual_sensor_.resize(nsensortotal);
-  residual_force_.resize(ntotal);
+  residual_prior_.resize(nvel_max);
+  residual_sensor_.resize(nsensor_max);
+  residual_force_.resize(nvel_max);
 
   // Jacobian
-  jacobian_prior_.resize(settings.assemble_prior_jacobian * ntotal * ntotal);
-  jacobian_sensor_.resize(settings.assemble_sensor_jacobian * nsensortotal *
-                          ntotal);
-  jacobian_force_.resize(settings.assemble_force_jacobian * ntotal * ntotal);
+  jacobian_prior_.resize(settings.assemble_prior_jacobian * nvel_max *
+                         ntotal_max);
+  jacobian_sensor_.resize(settings.assemble_sensor_jacobian * nsensor_max *
+                          ntotal_max);
+  jacobian_force_.resize(settings.assemble_force_jacobian * nvel_max *
+                         ntotal_max);
 
   // prior Jacobian block
   block_prior_current_configuration_.Initialize(nv * nv, configuration_length_);
@@ -181,7 +221,7 @@ void Batch::Initialize(const mjModel* model) {
                                                  configuration_length_);
   block_sensor_next_configuration_.Initialize(nsensordata_ * nv,
                                               configuration_length_);
-  block_sensor_configurations_.Initialize(nsensordata_ * 3 * nv,
+  block_sensor_configurations_.Initialize(nsensordata_ * nband_,
                                           configuration_length_);
 
   block_sensor_scratch_.Initialize(
@@ -197,11 +237,19 @@ void Batch::Initialize(const mjModel* model) {
                                                  configuration_length_);
   block_force_current_configuration_.Initialize(nv * nv, configuration_length_);
   block_force_next_configuration_.Initialize(nv * nv, configuration_length_);
-  block_force_configurations_.Initialize(nv * 3 * nv, configuration_length_);
+  block_force_configurations_.Initialize(nv * nband_, configuration_length_);
 
   block_force_scratch_.Initialize(nv * nv, configuration_length_);
 
-  // velocity Jacobian blocks
+  // sensor Jacobian blocks wrt parameters
+  block_sensor_parameters_.Initialize(model->nsensordata * nparam_,
+                                      configuration_length_);
+  block_sensor_parametersT_.Initialize(nparam_ * model->nsensordata,
+                                       configuration_length_);
+  // force Jacobian blocks
+  block_force_parameters_.Initialize(nparam_ * nv, configuration_length_);
+
+  // velocity Jacobian blocks wrt parameters
   block_velocity_previous_configuration_.Initialize(nv * nv,
                                                     configuration_length_);
   block_velocity_current_configuration_.Initialize(nv * nv,
@@ -216,23 +264,24 @@ void Batch::Initialize(const mjModel* model) {
                                                     configuration_length_);
 
   // cost gradient
-  cost_gradient_prior_.resize(ntotal);
-  cost_gradient_sensor_.resize(ntotal);
-  cost_gradient_force_.resize(ntotal);
-  cost_gradient_.resize(ntotal);
+  cost_gradient_prior_.resize(ntotal_max);
+  cost_gradient_sensor_.resize(ntotal_max);
+  cost_gradient_force_.resize(ntotal_max);
+  cost_gradient_.resize(ntotal_max);
 
   // cost Hessian
-  cost_hessian_prior_band_.resize(ntotal * (3 * nv));
-  cost_hessian_sensor_band_.resize(ntotal * (3 * nv));
-  cost_hessian_force_band_.resize(ntotal * (3 * nv));
-  cost_hessian_.resize(settings.filter * ntotal * ntotal);
-  cost_hessian_band_.resize(ntotal * (3 * nv));
-  cost_hessian_band_factor_.resize(ntotal * (3 * nv));
+  cost_hessian_prior_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_sensor_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_force_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_.resize(settings.filter * ntotal_max * ntotal_max);
+  cost_hessian_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
+  cost_hessian_band_factor_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
 
   // prior weights
   scale_prior = GetNumberOrDefault(1.0, model, "batch_scale_prior");
-  weight_prior_.resize(settings.prior_flag * ntotal * ntotal);
-  weight_prior_band_.resize(settings.prior_flag * ntotal * (3 * nv));
+  weight_prior_.resize(settings.prior_flag * ntotal_max * ntotal_max);
+  weight_prior_band_.resize(settings.prior_flag *
+                            (nvel_max * nband_ + nparam_ * ntotal_max));
 
   // cost norms
   norm_type_sensor.resize(nsensor_);
@@ -256,40 +305,51 @@ void Batch::Initialize(const mjModel* model) {
 
   // norm
   norm_sensor_.resize(nsensor_ * max_history_);
-  norm_force_.resize(ntotal);
+  norm_force_.resize(ntotal_max);
 
   // norm gradient
-  norm_gradient_sensor_.resize(nsensortotal);
-  norm_gradient_force_.resize(ntotal);
+  norm_gradient_sensor_.resize(nsensor_max);
+  norm_gradient_force_.resize(ntotal_max);
 
   // norm Hessian
   norm_hessian_sensor_.resize(settings.assemble_sensor_norm_hessian *
-                              nsensortotal * nsensortotal);
-  norm_hessian_force_.resize(settings.assemble_force_norm_hessian * ntotal *
-                             ntotal);
+                              nsensor_max * nsensor_max);
+  norm_hessian_force_.resize(settings.assemble_force_norm_hessian * ntotal_max *
+                             ntotal_max);
 
-  norm_blocks_sensor_.resize(nsensordata_ * nsensortotal);
-  norm_blocks_force_.resize(nv * ntotal);
+  norm_blocks_sensor_.resize(nsensordata_ * nsensor_max);
+  norm_blocks_force_.resize(nv * ntotal_max);
 
   // scratch
-  scratch_prior_.resize(ntotal + 12 * nv * nv);
-  scratch_sensor_.resize(3 * nv + nsensordata_ * 3 * nv + 9 * nv * nv);
-  scratch_force_.resize(12 * nv * nv);
-  scratch_expected_.resize(ntotal);
+  scratch_prior_.resize(ntotal_max + 12 * nv * nv);
+  scratch_sensor_.resize(nband_ + nsensordata_ * nband_ + 9 * nv * nv +
+                         nparam_ * nband_ + nparam_ * nparam_ +
+                         nsensordata_ * nparam_);
+  scratch_force_.resize(12 * nv * nv + nparam_ * nband_ + nparam_ * nparam_ +
+                        nv * nparam_);
+  scratch_expected_.resize(ntotal_max);
 
   // copy
   configuration_copy_.Initialize(nq, configuration_length_);
 
   // search direction
-  search_direction_.resize(ntotal);
+  search_direction_.resize(ntotal_max);
 
   // conditioned matrix
-  mat00_.resize(settings.filter * ntotal * ntotal);
-  mat10_.resize(settings.filter * ntotal * ntotal);
-  mat11_.resize(settings.filter * ntotal * ntotal);
-  condmat_.resize(settings.filter * ntotal * ntotal);
-  scratch0_condmat_.resize(settings.filter * ntotal * ntotal);
-  scratch1_condmat_.resize(settings.filter * ntotal * ntotal);
+  mat00_.resize(settings.filter * ntotal_max * ntotal_max);
+  mat10_.resize(settings.filter * ntotal_max * ntotal_max);
+  mat11_.resize(settings.filter * ntotal_max * ntotal_max);
+  condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+  scratch0_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+  scratch1_condmat_.resize(settings.filter * ntotal_max * ntotal_max);
+
+  // parameters copy
+  parameters_copy_.resize(nparam_ * max_history_);
+
+  // dense cost Hessian rows (for parameter derivatives)
+  dense_prior_parameter_.resize(nparam_ * ntotal_max);
+  dense_force_parameter_.resize(nparam_ * ntotal_max);
+  dense_sensor_parameter_.resize(nparam_ * ntotal_max);
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -403,6 +463,16 @@ void Batch::Reset(const mjData* data) {
   force_measurement.Reset();
   force_prediction.Reset();
 
+  // parameters
+  std::fill(parameters.begin(), parameters.end(), 0.0);
+  std::fill(parameters_previous.begin(), parameters_previous.end(), 0.0);
+
+  // parameter weights
+  double noise_parameter_scl =
+      GetNumberOrDefault(1.0, model, "batch_noise_parameter");
+  std::fill(noise_parameter.begin(), noise_parameter.end(),
+            noise_parameter_scl);
+
   // residual
   std::fill(residual_prior_.begin(), residual_prior_.end(), 0.0);
   std::fill(residual_sensor_.begin(), residual_sensor_.end(), 0.0);
@@ -442,6 +512,13 @@ void Batch::Reset(const mjData* data) {
   block_force_configurations_.Reset();
 
   block_force_scratch_.Reset();
+
+  // sensor Jacobian blocks wrt parameters
+  block_sensor_parameters_.Reset();
+  block_sensor_parametersT_.Reset();
+
+  // force Jacobian blocks wrt parameters
+  block_force_parameters_.Reset();
 
   // velocity Jacobian blocks
   block_velocity_previous_configuration_.Reset();
@@ -516,6 +593,15 @@ void Batch::Reset(const mjData* data) {
   std::fill(condmat_.begin(), condmat_.end(), 0.0);
   std::fill(scratch0_condmat_.begin(), scratch0_condmat_.end(), 0.0);
   std::fill(scratch1_condmat_.begin(), scratch1_condmat_.end(), 0.0);
+
+  // parameters copy
+  std::fill(parameters_copy_.begin(), parameters_copy_.end(), 0.0);
+
+  // dense cost Hessian rows (for parameter derivatives)
+  std::fill(dense_prior_parameter_.begin(), dense_prior_parameter_.end(), 0.0);
+  std::fill(dense_force_parameter_.begin(), dense_force_parameter_.end(), 0.0);
+  std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(),
+            0.0);
 
   // timer
   std::fill(timer_.prior_step.begin(), timer_.prior_step.end(), 0.0);
@@ -615,6 +701,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // set reduced configuration length for optimization
   configuration_length_ = current_time_index_ + 2;
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
   if (configuration_length_ != configuration_length_cache) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
@@ -631,10 +719,6 @@ void Batch::Update(const double* ctrl, const double* sensor) {
 
   // -- update prior weights -- //
 
-  // dimension
-  int nvar = nv * configuration_length_;
-  int nband = 3 * nv;
-
   // prior weights
   double* weights = weight_prior_.data();
 
@@ -642,52 +726,52 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   if (settings.recursive_prior_update &&
       configuration_length_ == configuration_length_cache) {
     // condition dimension
-    int ncondition = nv * (configuration_length_ - 1);
+    int ncondition = nvel_ - nv;
 
     // band to dense cost Hessian
-    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), nvar, nband,
-                   0, 1);
+    mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal_,
+                   nband_, nparam_, 1);
 
     // compute conditioned matrix
     double* condmat = condmat_.data();
     ConditionMatrix(condmat, cost_hessian_.data(), mat00_.data(), mat10_.data(),
                     mat11_.data(), scratch0_condmat_.data(),
-                    scratch1_condmat_.data(), nvar, nv, ncondition);
+                    scratch1_condmat_.data(), ntotal_, nv, ncondition);
 
     // zero memory
-    mju_zero(weights, nvar * nvar);
+    mju_zero(weights, ntotal_ * ntotal_);
 
     // set conditioned matrix in prior weights
-    SetBlockInMatrix(weights, condmat, 1.0, nvar, nvar, ncondition, ncondition,
-                     0, 0);
+    SetBlockInMatrix(weights, condmat, 1.0, ntotal_, ntotal_, ncondition,
+                     ncondition, 0, 0);
 
     // set bottom right to scale_prior * I
-    for (int i = ncondition; i < nvar; i++) {
-      weights[nvar * i + i] = scale_prior;
+    for (int i = ncondition; i < ntotal_; i++) {
+      weights[ntotal_ * i + i] = scale_prior;
     }
 
     // make block band
-    DenseToBlockBand(weights, nvar, nv, 3);
+    DenseToBlockBand(weights, ntotal_, nv, 3);
   } else {
     // dimension
-    int nvar_new = nvar;
+    int nvar_new = ntotal_;
     if (current_time_index_ < configuration_length_ - 2) {
       nvar_new += nv;
     }
 
     // check same size
-    if (nvar != nvar_new) {
+    if (ntotal_ != nvar_new) {
       // get previous weights
       double* previous_weights = scratch0_condmat_.data();
-      mju_copy(previous_weights, weights, nvar * nvar);
+      mju_copy(previous_weights, weights, ntotal_ * ntotal_);
 
       // set previous in new weights (dimension may have increased)
       mju_zero(weights, nvar_new * nvar_new);
-      SetBlockInMatrix(weights, previous_weights, 1.0, nvar_new, nvar_new, nvar,
-                       nvar, 0, 0);
+      SetBlockInMatrix(weights, previous_weights, 1.0, nvar_new, nvar_new,
+                       ntotal_, ntotal_, 0, 0);
 
       // scale_prior * I
-      for (int i = nvar; i < nvar_new; i++) {
+      for (int i = ntotal_; i < nvar_new; i++) {
         weights[nvar_new * i + i] = scale_prior;
       }
 
@@ -701,6 +785,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
     ShiftResizeTrajectory(0, configuration_length_cache);
   }
   configuration_length_ = configuration_length_cache;
+  nvel_ = nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
 
   // check estimation horizon
   if (current_time_index_ < configuration_length_ - 2) {
@@ -750,17 +836,12 @@ void Batch::SetTime(double time) {
 
 // compute and return dense cost Hessian
 double* Batch::GetCostHessian() {
-  // dimensions
-  int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-  int nband = 3 * nv;
-
   // resize
-  cost_hessian_.resize(ntotal * ntotal);
+  cost_hessian_.resize(ntotal_ * ntotal_);
 
   // band to dense
-  mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal,
-                  nband, 0, 1);
+  mju_band2Dense(cost_hessian_.data(), cost_hessian_band_.data(), ntotal_,
+                 nband_, nparam_, 1);
 
   // return dense Hessian
   return cost_hessian_.data();
@@ -768,12 +849,8 @@ double* Batch::GetCostHessian() {
 
 // compute and return dense prior Jacobian
 const double* Batch::GetJacobianPrior() {
-  // dimensions
-  int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-
   // resize
-  jacobian_prior_.resize(ntotal * ntotal);
+  jacobian_prior_.resize(ntotal_ * ntotal_);
 
   // change setting
   int settings_cache = settings.assemble_prior_jacobian;
@@ -793,13 +870,11 @@ const double* Batch::GetJacobianPrior() {
 
 // compute and return dense sensor Jacobian
 const double* Batch::GetJacobianSensor() {
-  // dimensions
-  int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+  // dimension
+  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
 
   // resize
-  jacobian_sensor_.resize(nsensortotal * ntotal);
+  jacobian_sensor_.resize(nsensor_max * ntotal_);
 
   // change setting
   int settings_cache = settings.assemble_sensor_jacobian;
@@ -808,6 +883,11 @@ const double* Batch::GetJacobianSensor() {
   // loop over sensors
   for (int t = 0; t < configuration_length_ - 1; t++) {
     BlockSensor(t);
+  }
+
+  // TODO
+  if (nparam_ > 0) {
+    mju_error("parameter Jacobians not implemented\n");
   }
 
   // restore setting
@@ -821,11 +901,10 @@ const double* Batch::GetJacobianSensor() {
 const double* Batch::GetJacobianForce() {
   // dimensions
   int nv = model->nv;
-  int ntotal = nv * configuration_length_;
   int nforcetotal = nv * (configuration_length_ - 2);
 
   // resize
-  jacobian_force_.resize(nforcetotal * ntotal);
+  jacobian_force_.resize(nforcetotal * ntotal_);
 
   // change setting
   int settings_cache = settings.assemble_force_jacobian;
@@ -834,6 +913,11 @@ const double* Batch::GetJacobianForce() {
   // loop over sensors
   for (int t = 1; t < configuration_length_ - 1; t++) {
     BlockForce(t);
+  }
+
+  // TODO
+  if (nparam_ > 0) {
+    mju_error("parameter Jacobians not implemented\n");
   }
 
   // restore setting
@@ -846,10 +930,10 @@ const double* Batch::GetJacobianForce() {
 // compute and return dense sensor norm Hessian
 const double* Batch::GetNormHessianSensor() {
   // dimensions
-  int nsensortotal = nsensordata_ * (configuration_length_ - 1);
+  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
 
   // resize
-  norm_hessian_sensor_.resize(nsensortotal * nsensortotal);
+  norm_hessian_sensor_.resize(nsensor_max * nsensor_max);
 
   // change setting
   int settings_cache = settings.assemble_sensor_norm_hessian;
@@ -891,22 +975,20 @@ const double* Batch::GetNormHessianForce() {
 void Batch::SetPriorWeights(const double* weights, double scale) {
   // dimension
   int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-  int nband = 3 * nv;
 
   // allocate memory
-  weight_prior_.resize(ntotal * ntotal);
-  weight_prior_band_.resize(ntotal * (3 * nv));
+  weight_prior_.resize(nvel_ * nvel_);
+  weight_prior_band_.resize(nvel_ * nband_);
 
   // set weights
-  mju_copy(weight_prior_.data(), weights, ntotal * ntotal);
+  mju_copy(weight_prior_.data(), weights, nvel_ * nvel_);
 
   // make block band
-  DenseToBlockBand(weight_prior_.data(), ntotal, nv, 3);
+  DenseToBlockBand(weight_prior_.data(), nvel_, nv, 3);
 
   // dense to band
-  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal,
-                  nband, 0);
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_, nband_,
+                 0);
 
   // set scaling
   scale_prior = scale;
@@ -924,6 +1006,8 @@ void Batch::SetConfigurationLength(int length) {
 
   // set configuration length
   configuration_length_ = std::max(length, kMinBatchHistory);
+  nvel_ = model->nv * configuration_length_;
+  ntotal_ = nvel_ + nparam_;
 
   // update trajectory lengths
   configuration.SetLength(configuration_length_);
@@ -960,6 +1044,10 @@ void Batch::SetConfigurationLength(int length) {
   block_sensor_configurations_.SetLength(configuration_length_);
 
   block_sensor_scratch_.SetLength(configuration_length_);
+
+  block_sensor_parameters_.SetLength(configuration_length_);
+  block_sensor_parametersT_.SetLength(configuration_length_);
+  block_force_parameters_.SetLength(configuration_length_);
 
   block_force_configuration_.SetLength(configuration_length_);
   block_force_velocity_.SetLength(configuration_length_);
@@ -1015,7 +1103,6 @@ void Batch::ConfigurationEvaluation(ThreadPool& pool) {
 void Batch::ConfigurationDerivative(ThreadPool& pool) {
   // dimension
   int nv = model->nv;
-  int nvar = nv * configuration_length_;
   int nsen = nsensordata_ * configuration_length_;
   int nforce = nv * (configuration_length_ - 2);
 
@@ -1039,17 +1126,17 @@ void Batch::ConfigurationDerivative(ThreadPool& pool) {
   // individual derivatives
   if (settings.prior_flag) {
     if (settings.assemble_prior_jacobian)
-      mju_zero(jacobian_prior_.data(), nvar * nvar);
+      mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
     JacobianPrior(pool);
   }
   if (settings.sensor_flag) {
     if (settings.assemble_sensor_jacobian)
-      mju_zero(jacobian_sensor_.data(), nsen * nvar);
+      mju_zero(jacobian_sensor_.data(), nsen * ntotal_);
     JacobianSensor(pool);
   }
   if (settings.force_flag) {
     if (settings.assemble_force_jacobian)
-      mju_zero(jacobian_force_.data(), nforce * nvar);
+      mju_zero(jacobian_force_.data(), nforce * ntotal_);
     JacobianForce(pool);
   }
 
@@ -1071,32 +1158,26 @@ double Batch::CostPrior(double* gradient, double* hessian) {
   // start timer
   auto start_cost = std::chrono::steady_clock::now();
 
-  // residual dimension
-  int nv = model->nv;
-  int dim = model->nv * configuration_length_;
-
   // total scaling
-  double scale = scale_prior / dim;
+  double scale = scale_prior / ntotal_;
+
+  // dimension
+  int nv = model->nv;
 
   // unpack
   double* r = residual_prior_.data();
   double* tmp = scratch_prior_.data();
 
   // zero memory
-  if (gradient) mju_zero(gradient, dim);
-  if (hessian) mju_zero(hessian, dim * (3 * nv));
+  if (gradient) mju_zero(gradient, ntotal_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
 
   // initial cost
   double cost = 0.0;
 
-  // dimensions
-  int ntotal = dim;
-  int nband = 3 * model->nv;
-  int ndense = 0;
-
   // dense2band
-  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), ntotal, nband,
-                 ndense);
+  mju_dense2Band(weight_prior_band_.data(), weight_prior_.data(), nvel_, nband_,
+                 0);
 
   // compute cost
   if (!cost_skip_) {
@@ -1104,11 +1185,11 @@ double Batch::CostPrior(double* gradient, double* hessian) {
     ResidualPrior();
 
     // multiply: tmp = P * r
-    mju_bandMulMatVec(tmp, weight_prior_band_.data(), r, ntotal, nband, ndense,
-                      1, true);
+    mju_bandMulMatVec(tmp, weight_prior_band_.data(), r, nvel_, nband_, 0, 1,
+                      true);
 
     // weighted quadratic: 0.5 * w * r' * tmp
-    cost = 0.5 * scale * mju_dot(r, tmp, dim);
+    cost = 0.5 * scale * mju_dot(r, tmp, nvel_);
 
     // stop cost timer
     timer_.cost_prior += GetDuration(start_cost);
@@ -1139,19 +1220,19 @@ double Batch::CostPrior(double* gradient, double* hessian) {
       // TODO(taylor): skip terms for efficiency
       if (t < configuration_length_ - 2) {
         // mat
-        double* mat = tmp + ntotal;
-        mju_zero(mat, nband * nband);
+        double* mat = tmp + ntotal_;
+        mju_zero(mat, nband_ * nband_);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             if (j <= i) {
               // unpack
-              double* bbij = mat + nband * nband;
+              double* bbij = mat + nband_ * nband_;
               double* tmp0 = bbij + nv * nv;
               double* tmp1 = tmp0 + nv * nv;
 
               // get matrices
-              BlockFromMatrix(bbij, weight_prior_.data(), nv, nv, dim, dim,
+              BlockFromMatrix(bbij, weight_prior_.data(), nv, nv, nvel_, nvel_,
                               (i + t) * nv, (j + t) * nv);
               const double* bdi = block_prior_current_configuration_.Get(i + t);
               const double* bdj = block_prior_current_configuration_.Get(j + t);
@@ -1165,15 +1246,48 @@ double Batch::CostPrior(double* gradient, double* hessian) {
               mju_mulMatTMat(tmp1, bdi, tmp0, nv, nv, nv);
 
               // set scaled block in matrix
-              SetBlockInMatrix(mat, tmp1, scale, nband, nband, nv, nv, i * nv,
+              SetBlockInMatrix(mat, tmp1, scale, nband_, nband_, nv, nv, i * nv,
                                j * nv);
             }
           }
         }
         // set mat in band Hessian
-        SetBlockInBand(hessian, mat, 1.0, dim, nband, nband, t * nv, 0, false);
+        SetBlockInBand(hessian, mat, 1.0, nvel_, nband_, nband_, t * nv, 0,
+                       false);
       }
     }
+  }
+
+  // parameters
+  if (nparam_ > 0) {
+    // zero dense rows
+    mju_zero(dense_prior_parameter_.data(), nparam_ * ntotal_);
+
+    // loop over parameters
+    for (int i = 0; i < nparam_; i++) {
+      // parameter difference
+      double parameter_diff = parameters[i] - parameters_previous[i];
+
+      // weight
+      double weight = 1.0 / noise_parameter[i] / nparam_;
+
+      // cost
+      cost += 0.5 * weight * parameter_diff * parameter_diff;
+
+      // gradient
+      if (gradient) {
+        gradient[nvel_ + i] = weight * parameter_diff;
+      }
+
+      // Hessian
+      if (hessian) {
+        dense_prior_parameter_[i * ntotal_ + nvel_ + i] = weight;
+      }
+    }
+
+    // set dense rows in band Hessian
+    mju_copy(hessian + nvel_ * nband_, dense_prior_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop derivatives timer
@@ -1219,11 +1333,10 @@ void Batch::BlockPrior(int index) {
   if (settings.assemble_prior_jacobian) {
     // dimensions
     int nv = model->nv;
-    int nvar = nv * configuration_length_;
 
     // set block
-    SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, nvar, nvar, nv, nv,
-                     nv * index, nv * index);
+    SetBlockInMatrix(jacobian_prior_.data(), block, 1.0, ntotal_, ntotal_, nv,
+                     nv, nv * index, nv * index);
   }
 }
 
@@ -1253,7 +1366,6 @@ double Batch::CostSensor(double* gradient, double* hessian) {
 
   // update dimension
   int nv = model->nv, ns = nsensordata_;
-  int nvar = nv * configuration_length_;
   int nsen = ns * configuration_length_;
 
   // residual
@@ -1265,8 +1377,9 @@ double Batch::CostSensor(double* gradient, double* hessian) {
   double cost = 0.0;
 
   // zero memory
-  if (gradient) mju_zero(gradient, nvar);
-  if (hessian) mju_zero(hessian, nvar * (3 * nv));
+  if (gradient) mju_zero(gradient, ntotal_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
+  if (nparam_ > 0) mju_zero(dense_sensor_parameter_.data(), nparam_ * ntotal_);
 
   // time scaling
   double time_scale = 1.0;
@@ -1292,13 +1405,13 @@ double Batch::CostSensor(double* gradient, double* hessian) {
     int block_columns;
     if (t == 0) {  // only position sensors
       block = block_sensor_configuration_.Get(t) + sensor_start_index_ * nv;
-      block_columns = nv;
+      block_columns = nband_ - 2 * nv;
     } else if (t == configuration_length_ - 1) {
       block = block_sensor_configurations_.Get(t);
-      block_columns = 2 * nv;
+      block_columns = nband_ - nv;
     } else {  // position, velocity, acceleration sensors
       block = block_sensor_configurations_.Get(t);
-      block_columns = 3 * nv;
+      block_columns = nband_;
     }
 
     // shift
@@ -1377,42 +1490,87 @@ double Batch::CostSensor(double* gradient, double* hessian) {
                          ns * t + shift_sensor);
       }
 
-      // gradient wrt configuration: dridq012' * dndri
+      // gradient wrt configuration: dsidq012' * dndsi
       if (gradient) {
         // sensor block
         double* blocki = block + block_columns * shift_sensor;
 
-        // scratch = dridq012' * dndri
+        // scratch = dsidq012' * dndsi
         mju_mulMatTVec(scratch_sensor_.data(), blocki, norm_gradient, nsi,
                        block_columns);
 
         // add
-        mju_addToScl(gradient + nv * std::max(0, t - 1),
-                     scratch_sensor_.data(), weight, block_columns);
+        mju_addToScl(gradient + nv * std::max(0, t - 1), scratch_sensor_.data(),
+                     weight, block_columns);
+
+        // parameters
+        if (nparam_ > 0) {
+          // tmp = dsidp' dndsi
+          double* dsidp = block_sensor_parameters_.Get(t) +
+                          (sensor_start_index_ + shift_sensor) * nparam_;
+          mju_mulMatTVec(scratch_sensor_.data(), dsidp, norm_gradient, nsi,
+                         nparam_);
+          mju_addToScl(gradient + nvel_, scratch_sensor_.data(), weight,
+                       nparam_);
+        }
       }
 
-      // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+      // Hessian (Gauss-Newton): dsidq012' * d2ndsi2 * dsidq
       if (hessian) {
         // sensor block
         double* blocki = block + block_columns * shift_sensor;
 
-        // step 1: tmp0 = d2ndri2 * dridq
+        // step 1: tmp0 = d2ndsi2 * dsidq
         double* tmp0 = scratch_sensor_.data();
         mju_mulMatMat(tmp0, norm_block, blocki, nsi, nsi, block_columns);
 
-        // step 2: hessian = dridq' * tmp
-        double* tmp1 = scratch_sensor_.data() + nsensordata_ * 3 * nv;
+        // step 2: hessian = dsidq' * tmp
+        double* tmp1 = scratch_sensor_.data() + nsensordata_ * nband_;
         mju_mulMatTMat(tmp1, blocki, tmp0, nsi, block_columns, block_columns);
 
         // set block in band Hessian
-        SetBlockInBand(hessian, tmp1, weight, nvar, 3 * nv, block_columns,
+        SetBlockInBand(hessian, tmp1, weight, ntotal_, nband_, block_columns,
                        nv * std::max(0, t - 1));
+
+        // parameters
+        if (nparam_ > 0) {
+          // parameter Jacobian
+          double* dsidp = block_sensor_parameters_.Get(t) +
+                          (sensor_start_index_ + shift_sensor) * nparam_;
+
+          // step 1: tmp2 = dsidp' * d2ndsi2
+          double* tmp2 = scratch_sensor_.data();
+          mju_mulMatTMat(tmp2, dsidp, norm_block, nsi, nparam_, nsi);
+
+          // step 2: tmp3 = tmp2 * dsidp = dsidp' d2ndsi2 dsidp
+          double* tmp3 = tmp2 + nparam_ * nsi;
+          mju_mulMatMat(tmp3, tmp2, dsidp, nparam_, nsi, nparam_);
+
+          // add dsidp' d2ndsi2 dsidp in dense rows
+          AddBlockInMatrix(dense_sensor_parameter_.data(), tmp3, weight,
+                           nparam_, ntotal_, nparam_, nparam_, 0, nvel_);
+
+          // step 3: tmp4 = dsidp' * d2ndsi2 * dsidq012
+          double* tmp4 = tmp3 + nparam_ * nparam_;
+          mju_mulMatTMat(tmp4, dsidp, block, nsi, nparam_, block_columns);
+
+          // add dsidp' * d2ndsi2 * dsidq012 in dense rows
+          AddBlockInMatrix(dense_sensor_parameter_.data(), tmp4, weight,
+                           nparam_, ntotal_, nparam_, block_columns, 0,
+                           nv * std::max(0, t - 1));
+        }
       }
 
       // shift by individual sensor dimension
       shift_sensor += nsi;
       shift_matrix += nsi * nsi;
     }
+  }
+
+  // set dense rows in band matrix
+  if (hessian && nparam_ > 0) {
+    mju_copy(hessian + nvel_ * nband_, dense_sensor_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop timer
@@ -1498,7 +1656,6 @@ void Batch::ResidualSensor() {
 void Batch::BlockSensor(int index) {
   // dimensions
   int nv = model->nv, ns = nsensordata_;
-  int nvar = nv * configuration_length_;
   int nsen = nsensordata_ * configuration_length_;
 
   // shift
@@ -1512,11 +1669,11 @@ void Batch::BlockSensor(int index) {
     double* dsdq012 = block_sensor_configurations_.Get(0);
 
     // set dsdq1
-    SetBlockInMatrix(dsdq012, block, 1.0, ns, 3 * nv, ns, nv, 0, nv);
+    SetBlockInMatrix(dsdq012, block, 1.0, ns, nband_, ns, nv, 0, nv);
 
     // set block in dense Jacobian
     if (settings.assemble_sensor_jacobian) {
-      SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, nvar,
+      SetBlockInMatrix(jacobian_sensor_.data(), block, 1.0, nsen, ntotal_,
                        nsensordata_, nv, 0, 0);
     }
     return;
@@ -1567,7 +1724,7 @@ void Batch::BlockSensor(int index) {
     // assemble dense Jacobian
     if (settings.assemble_sensor_jacobian) {
       // set block
-      SetBlockInMatrix(jacobian_sensor_.data(), dsdq01, 1.0, nsen, nvar,
+      SetBlockInMatrix(jacobian_sensor_.data(), dsdq01, 1.0, nsen, ntotal_,
                        nsensordata_, 2 * nv, index * nsensordata_,
                        (index - 1) * nv);
     }
@@ -1633,19 +1790,19 @@ void Batch::BlockSensor(int index) {
   double* dsdq012 = block_sensor_configurations_.Get(index);
 
   // set dfdq0
-  SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, 3 * nv, ns, nv, 0, 0 * nv);
+  SetBlockInMatrix(dsdq012, dsdq0, 1.0, ns, nband_, ns, nv, 0, 0 * nv);
 
   // set dfdq1
-  SetBlockInMatrix(dsdq012, dsdq1, 1.0, ns, 3 * nv, ns, nv, 0, 1 * nv);
+  SetBlockInMatrix(dsdq012, dsdq1, 1.0, ns, nband_, ns, nv, 0, 1 * nv);
 
   // set dfdq0
-  SetBlockInMatrix(dsdq012, dsdq2, 1.0, ns, 3 * nv, ns, nv, 0, 2 * nv);
+  SetBlockInMatrix(dsdq012, dsdq2, 1.0, ns, nband_, ns, nv, 0, 2 * nv);
 
   // assemble dense Jacobian
   if (settings.assemble_sensor_jacobian) {
     // set block
-    SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, nvar,
-                     nsensordata_, 3 * nv, index * nsensordata_,
+    SetBlockInMatrix(jacobian_sensor_.data(), dsdq012, 1.0, nsen, ntotal_,
+                     nsensordata_, nband_, index * nsensordata_,
                      (index - 1) * nv);
   }
 }
@@ -1676,7 +1833,6 @@ double Batch::CostForce(double* gradient, double* hessian) {
 
   // update dimension
   int nv = model->nv;
-  int nvar = nv * configuration_length_;
   int nforce = nv * (configuration_length_ - 2);
 
   // residual
@@ -1688,8 +1844,9 @@ double Batch::CostForce(double* gradient, double* hessian) {
   double cost = 0.0;
 
   // zero memory
-  if (gradient) mju_zero(gradient, nvar);
-  if (hessian) mju_zero(hessian, nvar * (3 * nv));
+  if (gradient) mju_zero(gradient, ntotal_);
+  if (hessian) mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
+  if (nparam_ > 0) mju_zero(dense_force_parameter_.data(), nparam_ * ntotal_);
 
   // time scaling
   double time_scale2 = 1.0;
@@ -1750,29 +1907,68 @@ double Batch::CostForce(double* gradient, double* hessian) {
                        nforce, nv, nv, (t - 1) * nv, (t - 1) * nv);
     }
 
-    // gradient wrt configuration: dridq012' * dndri
+    // gradient wrt configuration: dfdq012' * dndf
     if (gradient) {
-      // scratch = dridq012' * dndri
-      mju_mulMatTVec(scratch_force_.data(), block, norm_gradient, nv, 3 * nv);
+      // scratch = dfdq012' * dndf
+      mju_mulMatTVec(scratch_force_.data(), block, norm_gradient, nv, nband_);
 
       // add
-      mju_addToScl(gradient + (t - 1) * nv, scratch_force_.data(), 1.0,
-                   3 * nv);
+      mju_addToScl(gradient + (t - 1) * nv, scratch_force_.data(), 1.0, nband_);
+
+      // parameters
+      if (nparam_ > 0) {
+        // tmp = dfdp' dndf
+        double* dpdf = block_force_parameters_.Get(t);  // already transposed
+        mju_mulMatVec(scratch_force_.data(), dpdf, norm_gradient, nparam_, nv);
+        mju_addToScl(gradient + nvel_, scratch_force_.data(), 1.0, nparam_);
+      }
     }
 
-    // Hessian (Gauss-Newton): drdq' * d2ndr2 * drdq
+    // Hessian (Gauss-Newton): drdq012' * d2ndf2 * dfdq012
     if (hessian) {
-      // step 1: tmp0 = d2ndri2 * dridq
+      // step 1: tmp0 = d2ndf2 * dfdq012
       double* tmp0 = scratch_force_.data();
-      mju_mulMatMat(tmp0, norm_block, block, nv, nv, 3 * nv);
+      mju_mulMatMat(tmp0, norm_block, block, nv, nv, nband_);
 
-      // step 2: hessian = dridq' * tmp
-      double* tmp1 = tmp0 + 3 * nv * nv;
-      mju_mulMatTMat(tmp1, block, tmp0, nv, 3 * nv, 3 * nv);
+      // step 2: hessian = dfdq012' * tmp
+      double* tmp1 = tmp0 + nv * nband_;
+      mju_mulMatTMat(tmp1, block, tmp0, nv, nband_, nband_);
 
       // set block in band Hessian
-      SetBlockInBand(hessian, tmp1, 1.0, nvar, 3 * nv, 3 * nv, nv * (t - 1));
+      SetBlockInBand(hessian, tmp1, 1.0, ntotal_, nband_, nband_, nv * (t - 1));
+
+      // parameters
+      if (nparam_ > 0) {
+        // parameter Jacobian
+        double* dpdf = block_force_parameters_.Get(t);
+
+        // step 1: tmp2 = dpdf * d2ndf2
+        double* tmp2 = scratch_force_.data();
+        mju_mulMatMat(tmp2, dpdf, norm_block, nparam_, nv, nv);
+
+        // step 2: tmp3 = tmp2 * dpdf' = dpdf * d2ndf2 * dpdf'
+        double* tmp3 = tmp2 + nparam_ * nv;
+        mju_mulMatMatT(tmp3, tmp2, dpdf, nparam_, nv, nparam_);
+
+        // add dpdf * d2ndf2 * dfdp in dense rows
+        AddBlockInMatrix(dense_force_parameter_.data(), tmp3, 1.0, nparam_,
+                         ntotal_, nparam_, nparam_, 0, nvel_);
+
+        // step 3: tmp4 = dpdf * d2ndf2 * dfdq012
+        double* tmp4 = tmp3 + nparam_ * nparam_;
+        mju_mulMatMat(tmp4, tmp2, block, nparam_, nv, nband_);
+
+        // add dpdf * d2ndf2 * dfdq012 in dense rows
+        AddBlockInMatrix(dense_force_parameter_.data(), tmp4, 1.0, nparam_,
+                         ntotal_, nparam_, nband_, 0, (t - 1) * nv);
+      }
     }
+  }
+
+  // set dense rows in band Hessian
+  if (hessian && nparam_ > 0) {
+    mju_copy(hessian + nvel_ * nband_, dense_force_parameter_.data(),
+             nparam_ * ntotal_);
   }
 
   // stop timer
@@ -1866,24 +2062,23 @@ void Batch::BlockForce(int index) {
   double* dfdq012 = block_force_configurations_.Get(index);
 
   // set dfdq0
-  SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, 3 * nv, nv, nv, 0, 0 * nv);
+  SetBlockInMatrix(dfdq012, dfdq0, 1.0, nv, nband_, nv, nv, 0, 0 * nv);
 
   // set dfdq1
-  SetBlockInMatrix(dfdq012, dfdq1, 1.0, nv, 3 * nv, nv, nv, 0, 1 * nv);
+  SetBlockInMatrix(dfdq012, dfdq1, 1.0, nv, nband_, nv, nv, 0, 1 * nv);
 
   // set dfdq0
-  SetBlockInMatrix(dfdq012, dfdq2, 1.0, nv, 3 * nv, nv, nv, 0, 2 * nv);
+  SetBlockInMatrix(dfdq012, dfdq2, 1.0, nv, nband_, nv, nv, 0, 2 * nv);
 
   // assemble dense Jacobian
   if (settings.assemble_force_jacobian) {
     // dimensions
     int nv = model->nv;
-    int nvar = nv * configuration_length_;
     int nforce = nv * (configuration_length_ - 2);
 
     // set block
-    SetBlockInMatrix(jacobian_force_.data(), dfdq012, 1.0, nforce, nvar, nv,
-                     3 * nv, (index - 1) * nv, (index - 1) * nv);
+    SetBlockInMatrix(jacobian_force_.data(), dfdq012, 1.0, nforce, ntotal_, nv,
+                     nband_, (index - 1) * nv, (index - 1) * nv);
   }
 }
 
@@ -1914,6 +2109,12 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   // dimension
   int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
       ns = nsensordata_;
+
+  // set parameters
+  if (nparam_ > 0) {
+    model_parameters_[model_parameters_id_]->Set(model, parameters.data(),
+                                                 nparam_);
+  }
 
   // pool count
   int count_before = pool.GetCount();
@@ -2072,6 +2273,12 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   // dimension
   int nq = model->nq, nv = model->nv, nu = model->nu;
 
+  // set parameters
+  if (nparam_ > 0) {
+    model_parameters_[model_parameters_id_]->Set(model, parameters.data(),
+                                                 nparam_);
+  }
+
   // pool count
   int count_before = pool.GetCount();
 
@@ -2102,6 +2309,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     // transpose
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
 
+    // parameters
+    if (batch.nparam_ > 0) {
+      batch.ParameterJacobian(t);
+    }
+
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
@@ -2117,6 +2329,13 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
       if (sensor_stage != mjSTAGE_POS) {
         // zero remaining rows
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
+
+        // parameter Jacobian
+        if (batch.nparam_) {
+          mju_zero(batch.block_sensor_parameters_.Get(t) +
+                       sensor_adr * batch.nparam_,
+                   sensor_dim * batch.nparam_);
+        }
       }
     }
   });
@@ -2157,6 +2376,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
       mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
       mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
       mju_transpose(dsda, dads, nv, batch.model->nsensordata);
+
+      // parameters
+      if (batch.nparam_ > 0) {
+        batch.ParameterJacobian(t);
+      }
     });
   }
 
@@ -2191,6 +2415,11 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
     mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
     mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
 
+    // parameters
+    if (batch.nparam_ > 0) {
+      batch.ParameterJacobian(t);
+    }
+
     // loop over position sensors
     for (int i = 0; i < batch.nsensor_; i++) {
       // sensor stage
@@ -2207,6 +2436,13 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
         // zero remaining rows
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
         mju_zero(dsdv + sensor_adr * nv, sensor_dim * nv);
+
+        // parameter Jacobian
+        if (batch.nparam_) {
+          mju_zero(batch.block_sensor_parameters_.Get(t) +
+                       sensor_adr * batch.nparam_,
+                   sensor_dim * batch.nparam_);
+        }
       }
     }
   });
@@ -2338,7 +2574,7 @@ void Batch::VelocityAccelerationDerivatives() {
 // initialize filter mode
 void Batch::InitializeFilter() {
   // dimensions
-  int nq = model->nq, nv = model->nv;
+  int nq = model->nq;
 
   // filter mode status
   current_time_index_ = 1;
@@ -2351,6 +2587,11 @@ void Batch::InitializeFilter() {
   settings.first_step_position_sensors = true;
   settings.last_step_position_sensors = false;
   settings.last_step_velocity_sensors = false;
+
+  // check for number of parameters
+  if (nparam_ != 0) {
+    mju_error("filter mode requires nparam_ == 0\n");
+  }
 
   // timestep
   double timestep = model->opt.timestep;
@@ -2418,9 +2659,8 @@ void Batch::InitializeFilter() {
   }
 
   // prior weight
-  int nvar = nv * configuration_length_;
-  for (int i = 0; i < nvar; i++) {
-    weight_prior_[nvar * i + i] = scale_prior;
+  for (int i = 0; i < ntotal_; i++) {
+    weight_prior_[ntotal_ * i + i] = scale_prior;
   }
 }
 
@@ -2587,19 +2827,19 @@ void Batch::TotalGradient(double* gradient) {
   // start gradient timer
   auto start = std::chrono::steady_clock::now();
 
-  // dimension
-  int dim = configuration_length_ * model->nv;
+  // zero memory
+  mju_zero(gradient, ntotal_);
 
   // individual gradients
   if (settings.prior_flag) {
-    mju_copy(gradient, cost_gradient_prior_.data(), dim);
-  } else {
-    mju_zero(gradient, dim);
+    mju_copy(gradient, cost_gradient_prior_.data(), ntotal_);
   }
-  if (settings.sensor_flag)
-    mju_addTo(gradient, cost_gradient_sensor_.data(), dim);
-  if (settings.force_flag)
-    mju_addTo(gradient, cost_gradient_force_.data(), dim);
+  if (settings.sensor_flag) {
+    mju_addTo(gradient, cost_gradient_sensor_.data(), ntotal_);
+  }
+  if (settings.force_flag) {
+    mju_addTo(gradient, cost_gradient_force_.data(), ntotal_);
+  }
 
   // stop gradient timer
   timer_.cost_gradient += GetDuration(start);
@@ -2612,25 +2852,23 @@ void Batch::TotalHessian(double* hessian) {
   // start Hessian timer
   auto start = std::chrono::steady_clock::now();
 
-  // dimension
-  int nv = model->nv;
-  int ntotal = nv * configuration_length_;
-  int nband = 3 * nv;
-
   // zero memory
-  mju_zero(hessian, ntotal * nband);
+  mju_zero(hessian, nvel_ * nband_ + nparam_ * ntotal_);
 
   // individual Hessians
   if (settings.prior_flag) {
-    mju_addTo(hessian, cost_hessian_prior_band_.data(), ntotal * nband);
+    mju_addTo(hessian, cost_hessian_prior_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   if (settings.sensor_flag) {
-    mju_addTo(hessian, cost_hessian_sensor_band_.data(), ntotal * nband);
+    mju_addTo(hessian, cost_hessian_sensor_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   if (settings.force_flag) {
-    mju_addTo(hessian, cost_hessian_force_band_.data(), ntotal * nband);
+    mju_addTo(hessian, cost_hessian_force_band_.data(),
+              nvel_ * nband_ + nparam_ * ntotal_);
   }
 
   // stop Hessian timer
@@ -2646,10 +2884,6 @@ void Batch::Optimize(ThreadPool& pool) {
   gradient_norm_ = 0.0;
   search_direction_norm_ = 0.0;
   solve_status_ = kUnsolved;
-
-  // dimensions
-  int nconfig = model->nq * configuration_length_;
-  int nvar = model->nv * configuration_length_;
 
   // reset timers
   ResetTimers();
@@ -2683,7 +2917,7 @@ void Batch::Optimize(ThreadPool& pool) {
     double* gradient = cost_gradient_.data();
 
     // gradient tolerance check
-    gradient_norm_ = mju_norm(gradient, nvar) / nvar;
+    gradient_norm_ = mju_norm(gradient, ntotal_) / ntotal_;
     if (gradient_norm_ < settings.gradient_tolerance) {
       break;
     }
@@ -2691,7 +2925,11 @@ void Batch::Optimize(ThreadPool& pool) {
     // ----- line / curve search ----- //
 
     // copy configuration
-    mju_copy(configuration_copy_.Data(), configuration.Data(), nconfig);
+    mju_copy(configuration_copy_.Data(), configuration.Data(),
+             model->nq * configuration_length_);
+
+    // copy parameters
+    mju_copy(parameters_copy_.data(), parameters.data(), nparam_);
 
     // initialize
     double cost_candidate = cost_;
@@ -2764,9 +3002,16 @@ void Batch::Optimize(ThreadPool& pool) {
         }
       }
 
-      // candidate
+      // candidate configurations
       UpdateConfiguration(configuration, configuration_copy_,
                           search_direction_.data(), -1.0 * step_size_);
+
+      // candidate parameters
+      if (nparam_ > 0) {
+        mju_copy(parameters.data(), parameters_copy_.data(), nparam_);
+        mju_addToScl(parameters.data(), search_direction_.data() + nvel_,
+                     -1.0 * step_size_, nparam_);
+      }
 
       // cost
       cost_skip_ = false;
@@ -2802,16 +3047,16 @@ void Batch::Optimize(ThreadPool& pool) {
 
       // g' * d
       expected_ =
-          mju_dot(cost_gradient_.data(), search_direction_.data(), nvar);
+          mju_dot(cost_gradient_.data(), search_direction_.data(), ntotal_);
 
       // tmp = H * d
       double* tmp = scratch_expected_.data();
       mju_bandMulMatVec(tmp, cost_hessian_band_.data(),
-                        search_direction_.data(), nvar, 3 * model->nv, 0, 1,
+                        search_direction_.data(), ntotal_, nband_, nparam_, 1,
                         true);
 
       // expected += 0.5 d' tmp
-      expected_ += 0.5 * mju_dot(search_direction_.data(), tmp, nvar);
+      expected_ += 0.5 * mju_dot(search_direction_.data(), tmp, ntotal_);
 
       // check for no expected decrease
       if (expected_ <= 0.0) {
@@ -2865,11 +3110,6 @@ void Batch::SearchDirection() {
   // start timer
   auto search_direction_start = std::chrono::steady_clock::now();
 
-  // dimensions
-  int ntotal = configuration_length_ * model->nv;
-  int nband = 3 * model->nv;
-  int ndense = 0;
-
   // -- band Hessian -- //
 
   // unpack
@@ -2891,10 +3131,10 @@ void Batch::SearchDirection() {
 
     // copy
     mju_copy(hessian_band_factor, hessian_band,
-              ntotal * (3 * model->nv));
+             nvel_ * nband_ + nparam_ * ntotal_);
 
     // factorize
-    min_diag = mju_cholFactorBand(hessian_band_factor, ntotal, nband, ndense,
+    min_diag = mju_cholFactorBand(hessian_band_factor, ntotal_, nband_, nparam_,
                                   regularization_, 0.0);
 
     // increase regularization
@@ -2904,16 +3144,22 @@ void Batch::SearchDirection() {
   }
 
   // compute search direction
-  mju_cholSolveBand(direction, hessian_band_factor, gradient, ntotal, nband,
-                    ndense);
+  mju_cholSolveBand(direction, hessian_band_factor, gradient, ntotal_, nband_,
+                    nparam_);
 
   // search direction norm
-  search_direction_norm_ = InfinityNorm(direction, ntotal);
+  search_direction_norm_ = InfinityNorm(direction, ntotal_);
 
   // set regularization
   if (regularization_ > 0.0) {
-    for (int i = 0; i < ntotal; i++) {
-      hessian_band[i * nband + nband - 1] += regularization_;
+    // configurations
+    for (int i = 0; i < ntotal_; i++) {
+      hessian_band[i * nband_ + nband_ - 1] += regularization_;
+    }
+
+    // parameters
+    for (int i = 0; i < nparam_; i++) {
+      hessian_band[nvel_ * nband_ + i * ntotal_ + nvel_ + i] += regularization_;
     }
   }
 
@@ -3286,22 +3532,21 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
   // changing horizon cases
   if (horizon > configuration_length_) {  // increase horizon
     // -- prior weights resize -- //
-    int nvar = model->nv * configuration_length_;
-    int nvar_new = model->nv * horizon;
+    int ntotal_new = model->nv * horizon;
 
     // get previous weights
     double* weights = weight_prior_.data();
     double* previous_weights = scratch0_condmat_.data();
-    mju_copy(previous_weights, weights, nvar * nvar);
+    mju_copy(previous_weights, weights, ntotal_ * ntotal_);
 
     // set previous in new weights (dimension may have increased)
-    mju_zero(weights, nvar_new * nvar_new);
-    SetBlockInMatrix(weights, previous_weights, 1.0, nvar_new, nvar_new, nvar,
-                     nvar, 0, 0);
+    mju_zero(weights, ntotal_new * ntotal_new);
+    SetBlockInMatrix(weights, previous_weights, 1.0, ntotal_new, ntotal_new,
+                     ntotal_, ntotal_, 0, 0);
 
     // scale_prior * I
-    for (int i = nvar; i < nvar_new; i++) {
-      weights[nvar_new * i + i] = scale_prior;
+    for (int i = ntotal_; i < ntotal_new; i++) {
+      weights[ntotal_new * i + i] = scale_prior;
     }
 
     // modify trajectories
@@ -3309,20 +3554,21 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
 
     // update configuration length
     configuration_length_ = horizon;
+    nvel_ = model->nv * configuration_length_;
+    ntotal_ = nvel_ + nparam_;
   } else if (horizon < configuration_length_) {  // decrease horizon
     // -- prior weights resize -- //
-    int nvar = model->nv * configuration_length_;
-    int nvar_new = model->nv * horizon;
+    int ntotal_new = model->nv * horizon;
 
     // get previous weights
     double* weights = weight_prior_.data();
     double* previous_weights = scratch0_condmat_.data();
-    BlockFromMatrix(previous_weights, weights, nvar_new, nvar_new, nvar, nvar,
-                    0, 0);
+    BlockFromMatrix(previous_weights, weights, ntotal_new, ntotal_new, ntotal_,
+                    ntotal_, 0, 0);
 
     // set previous in new weights (dimension may have increased)
-    mju_zero(weights, nvar * nvar);
-    mju_copy(weights, previous_weights, nvar_new * nvar_new);
+    mju_zero(weights, ntotal_ * ntotal_);
+    mju_copy(weights, previous_weights, ntotal_new * ntotal_new);
 
     // compute difference in estimation horizons
     int horizon_diff = configuration_length_ - horizon;
@@ -3332,6 +3578,8 @@ void Batch::SetGUIData(EstimatorGUIData& data) {
 
     // update configuration length and current time index
     configuration_length_ = horizon;
+    nvel_ = model->nv * configuration_length_;
+    ntotal_ = nvel_ + nparam_;
     current_time_index_ -= horizon_diff;
   }
 }
@@ -3371,6 +3619,52 @@ void Batch::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 void Batch::IncreaseRegularization() {
   regularization_ = mju_min(kMaxBatchRegularization,
                             regularization_ * settings.regularization_scaling);
+}
+
+// derivatives of sensor model wrt parameters
+void Batch::ParameterJacobian(int index) {
+  // unpack
+  mjModel* model_perturb = model_perturb_[index].get();
+  mjData* data = data_[index].get();
+  double* dsdp = block_sensor_parameters_.Get(index);
+  double* dpds = block_sensor_parametersT_.Get(index);
+  double* dpdf = block_force_parameters_.Get(index);
+  double* param = parameters_copy_.data() + index * nparam_;
+  mju_copy(param, parameters.data(), nparam_);
+
+  // loop over parameters
+  for (int i = 0; i < nparam_; i++) {
+    // unpack
+    double* dpids = dpds + i * model->nsensordata;
+    double* dpidf = dpdf + i * model->nv;
+
+    // nudge
+    param[i] += finite_difference.tolerance;
+
+    // set parameters
+    model_parameters_[model_parameters_id_]->Set(model_perturb, param, nparam_);
+
+    // inverse dynamics
+    mj_inverse(model_perturb, data);
+
+    // sensor difference
+    mju_sub(dpids, data->sensordata, sensor_prediction.Get(index),
+            model->nsensordata);
+
+    // force difference
+    mju_sub(dpidf, data->qfrc_inverse, force_prediction.Get(index), model->nv);
+
+    // scale
+    mju_scl(dpids, dpids, 1.0 / finite_difference.tolerance,
+            model->nsensordata);
+    mju_scl(dpidf, dpidf, 1.0 / finite_difference.tolerance, model->nv);
+
+    // restore
+    param[i] -= finite_difference.tolerance;
+  }
+
+  // transpose
+  mju_transpose(dsdp, dpds, nparam_, model->nsensordata);
 }
 
 }  // namespace mjpc

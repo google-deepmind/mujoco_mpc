@@ -1,6 +1,8 @@
 <mujoco model="Particle1D">
   <custom>
-    <numeric name="estimator_configuration_length" data="32" />
+    <numeric name="batch_configuration_length" data="3" />
+    <numeric name="batch_num_parameters" data="6" />
+    <numeric name="batch_model_parameters_id" data="1" />
   </custom>
 
   <visual>
@@ -45,7 +47,8 @@
     <body name="pointmass" pos="0 0 0">
       <joint name="root_z" type="slide" damping="0.0" pos="0 0 0" axis="0 0 1" />
       <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
-      <site name="tip" />
+      <site name="tip0" pos="0 0 0.1" />
+      <site name="tip1" pos="0 0 -0.1" />
     </body>
   </worldbody>
 
@@ -54,9 +57,8 @@
   </actuator>
 
   <sensor>
-    <jointpos name="joint_z" joint="root_z" />
-    <jointvel name="vel_z" joint="root_z" />
-    <accelerometer name="acc" site="tip" />
+    <framepos name="tip0" objtype="site" objname="tip0" />
+    <framepos name="tip1" objtype="site" objname="tip1" />
   </sensor>
 
   <keyframe>

@@ -286,7 +286,8 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
     // set parameters previous
     if (input.parameters_previous_size() > 0) {
       CHECK_SIZE("parameters previous", np, input.parameters_previous_size());
-      mju_copy(batch_.parameters_previous.data(), input.parameters_previous().data(), np);
+      mju_copy(batch_.parameters_previous.data(),
+               input.parameters_previous().data(), np);
     }
 
     // get parameters previous
@@ -295,7 +296,7 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
       output->add_parameters_previous(parameters_previous[i]);
     }
   }
-  
+
   return grpc::Status::OK;
 }
 
@@ -708,7 +709,7 @@ grpc::Status BatchService::Noise(grpc::ServerContext* context,
       output->add_parameter(batch_.noise_parameter[i]);
     }
   }
-  
+
   return grpc::Status::OK;
 }
 

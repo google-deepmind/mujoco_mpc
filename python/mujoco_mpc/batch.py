@@ -152,7 +152,7 @@ class Batch:
       configuration: Optional[npt.ArrayLike] = [],
       velocity: Optional[npt.ArrayLike] = [],
       acceleration: Optional[npt.ArrayLike] = [],
-      time: Optional[float] = [],
+      time: Optional[npt.ArrayLike] = [],
       ctrl: Optional[npt.ArrayLike] = [],
       configuration_previous: Optional[npt.ArrayLike] = [],
       sensor_measurement: Optional[npt.ArrayLike] = [],

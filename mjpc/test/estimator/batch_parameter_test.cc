@@ -26,7 +26,7 @@ namespace mjpc {
 namespace {
 
 TEST(BatchParameter, ParticleFramePos) {
-  // verbose 
+  // verbose
   bool verbose = false;
 
   // load model
@@ -103,7 +103,6 @@ TEST(BatchParameter, ParticleFramePos) {
     printf("measurements initial = \n");
     mju_printMat(estimator.sensor_measurement.Data(), T, model->nsensordata);
   }
-  
 
   // optimize
   ThreadPool pool(1);
@@ -129,7 +128,7 @@ TEST(BatchParameter, ParticleFramePos) {
     printf("parameters optimized = \n");
     mju_printMat(estimator.parameters.data(), 1, 6);
   }
-  
+
   // delete data + model
   mj_deleteData(data);
   mj_deleteModel(model);

@@ -275,4 +275,3 @@ message SensorInfoResponse {
   int32 num_measurements = 2;
   int32 dim_measurements = 3;
 }
-

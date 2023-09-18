@@ -20,7 +20,7 @@
 #include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
-class CartpoleTestTask : public mjpc::ThreadSafeTask {
+class CartpoleTestTask : public mjpc::Task {
  public:
   CartpoleTestTask() : residual_(this) {}
   std::string Name() const override {return ""; }

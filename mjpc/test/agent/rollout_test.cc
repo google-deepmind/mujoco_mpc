@@ -22,7 +22,7 @@
 namespace mjpc {
 namespace {
 
-class ParticleCopyTestTask : public mjpc::ThreadSafeTask {
+class ParticleCopyTestTask : public mjpc::Task {
  public:
   ParticleCopyTestTask() : residual_(this) {}
 

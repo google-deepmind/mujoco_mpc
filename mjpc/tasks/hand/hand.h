@@ -20,7 +20,7 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Hand : public ThreadSafeTask {
+class Hand : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;

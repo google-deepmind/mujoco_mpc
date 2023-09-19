@@ -60,7 +60,7 @@ void Quadrotor::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_sub(residuals + 15, angular_velocity, parameters_.data() + 3, 3);
 
   // ---------- Residual (4) ----------
-  mju_copy(residuals + 18, data->ctrl, model->nu);
+  mju_copy(residuals + 18, data->qfrc_actuator, model->nu);
 }
 
 // ----- Transition for quadrotor task -----

@@ -44,13 +44,12 @@ ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
+ABSL_FLAG(bool, estimator_enable, false,
+          "If true, estimator loop will run on startup");
 
 namespace {
 namespace mj = ::mujoco;
 namespace mju = ::mujoco::util_mjpc;
-
-// flag to enable online filtering for state estimation
-const bool estimator_enabled = true;
 
 // maximum mis-alignment before re-sync (simulation seconds)
 const double syncMisalign = 0.1;
@@ -152,7 +151,10 @@ void EstimatorLoop(mj::Simulate& sim) {
       mjpc::Estimator* estimator = &sim.agent->ActiveEstimator();
 
       // estimator update
-      if (active_estimator > 0) {
+      if (!active_estimator) {
+        std::this_thread::yield();
+        continue;
+      } else {
         // start timer
         auto start = std::chrono::steady_clock::now();
 
@@ -179,7 +181,7 @@ void EstimatorLoop(mj::Simulate& sim) {
           mju_copy(estimator->Data()->userdata, d->userdata, m->nuserdata);
         }
 
-        // update
+        // update filter using latest ctrl and sensor copied from physics thread
         estimator->Update(sim.agent->ctrl.data(), sim.agent->sensor.data());
 
         // estimator state to planner
@@ -187,9 +189,10 @@ void EstimatorLoop(mj::Simulate& sim) {
         sim.agent->state.Set(m, state, state + m->nq, state + m->nq + m->nv,
                              d->mocap_pos, d->mocap_quat, d->userdata, d->time);
 
-        // wait (ms)
-        while (1.0e-3 * mjpc::GetDuration(start) <
-               1.0e3 * estimator->Model()->opt.timestep) {
+        // wait (us)
+        // TODO(taylor): confirm valid for slowdown
+        while (mjpc::GetDuration(start) <
+               1.0e6 * estimator->Model()->opt.timestep) {
         }
       }
     }

@@ -15,6 +15,9 @@
 test(batch_force_test)
 target_link_libraries(batch_force_test load simulation gmock)
 
+test(batch_parameter_test)
+target_link_libraries(batch_parameter_test load simulation gmock)
+
 test(batch_optimize_test)
 target_link_libraries(batch_optimize_test load simulation gmock)
 

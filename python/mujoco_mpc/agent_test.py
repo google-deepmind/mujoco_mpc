@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-
+import os
 from absl.testing import absltest
 from absl.testing import parameterized
 import grpc
@@ -49,6 +49,26 @@ class AgentTest(parameterized.TestCase):
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      agent.set_task_parameters({"Goal": 13})
+      self.assertEqual(agent.get_task_parameters()["Goal"], 13)
+
+  def test_set_subprocess_working_dir(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    cwd = "$$$INVALID_PATH$$$"
+    with self.assertRaises(FileNotFoundError):
+      agent_lib.Agent(
+          task_id="Cartpole", model=model, subprocess_kwargs={"cwd": cwd}
+      )
+
+    cwd = os.getcwd()
+    with agent_lib.Agent(
+        task_id="Cartpole", model=model, subprocess_kwargs={"cwd": cwd}
+    ) as agent:
       agent.set_task_parameters({"Goal": 13})
       self.assertEqual(agent.get_task_parameters()["Goal"], 13)
 

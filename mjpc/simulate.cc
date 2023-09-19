@@ -143,6 +143,10 @@ const char help_title[] =
 
 //-------------------------------- profiler, sensor, info, watch -----------------------------------
 
+// number of lines in the Constraint ("Counts") and Cost ("Convergence") figures
+static constexpr int kConstraintNum = 5;
+static constexpr int kCostNum = 3;
+
 // init profiler figures
 void InitializeProfiler(mj::Simulate* sim) {
   // set figures to default
@@ -178,6 +182,20 @@ void InitializeProfiler(mj::Simulate* sim) {
   sim->figcost.figurergba[3]       = 0.5f;
   sim->figsize.figurergba[3]       = 0.5f;
   sim->figtimer.figurergba[3]      = 0.5f;
+
+  // repeat line colors for constraint and cost figures
+  mjvFigure* fig = &sim->figcost;
+  for (int i=kCostNum; i<mjMAXLINE; i++) {
+    fig->linergb[i][0] = fig->linergb[i - kCostNum][0];
+    fig->linergb[i][1] = fig->linergb[i - kCostNum][1];
+    fig->linergb[i][2] = fig->linergb[i - kCostNum][2];
+  }
+  fig = &sim->figconstraint;
+  for (int i=kConstraintNum; i<mjMAXLINE; i++) {
+    fig->linergb[i][0] = fig->linergb[i - kConstraintNum][0];
+    fig->linergb[i][1] = fig->linergb[i - kConstraintNum][1];
+    fig->linergb[i][2] = fig->linergb[i - kConstraintNum][2];
+  }
 
   // legends
   mju::strcpy_arr(sim->figconstraint.linename[0], "total");
@@ -239,54 +257,75 @@ void InitializeProfiler(mj::Simulate* sim) {
 
 // update profiler figures
 void UpdateProfiler(mj::Simulate* sim) {
-  // update constraint figure
-  sim->figconstraint.linepnt[0] = mjMIN(mjMIN(sim->d->solver_iter, mjNSOLVER), mjMAXLINEPNT);
-  for (int i=1; i<5; i++) {
-    sim->figconstraint.linepnt[i] = sim->figconstraint.linepnt[0];
-  }
-  if (sim->m->opt.solver==mjSOL_PGS) {
-    sim->figconstraint.linepnt[3] = 0;
-    sim->figconstraint.linepnt[4] = 0;
-  }
-  if (sim->m->opt.solver==mjSOL_CG) {
-    sim->figconstraint.linepnt[4] = 0;
-  }
-  for (int i=0; i<sim->figconstraint.linepnt[0]; i++) {
-    // x
-    sim->figconstraint.linedata[0][2*i] = i;
-    sim->figconstraint.linedata[1][2*i] = i;
-    sim->figconstraint.linedata[2][2*i] = i;
-    sim->figconstraint.linedata[3][2*i] = i;
-    sim->figconstraint.linedata[4][2*i] = i;
+  // reset lines in Constraint and Cost figures
+  memset(sim->figconstraint.linepnt, 0, mjMAXLINE*sizeof(int));
+  memset(sim->figcost.linepnt, 0, mjMAXLINE*sizeof(int));
 
-    // y
-    sim->figconstraint.linedata[0][2*i+1] = sim->d->nefc;
-    sim->figconstraint.linedata[1][2*i+1] = sim->d->solver[i].nactive;
-    sim->figconstraint.linedata[2][2*i+1] = sim->d->solver[i].nchange;
-    sim->figconstraint.linedata[3][2*i+1] = sim->d->solver[i].neval;
-    sim->figconstraint.linedata[4][2*i+1] = sim->d->solver[i].nupdate;
-  }
+  // number of islands that have diagnostics
+  int nisland = mjMIN(sim->d->solver_nisland, mjNISLAND);
 
-  // update cost figure
-  sim->figcost.linepnt[0] = mjMIN(mjMIN(sim->d->solver_iter, mjNSOLVER), mjMAXLINEPNT);
-  for (int i=1; i<3; i++) {
-    sim->figcost.linepnt[i] = sim->figcost.linepnt[0];
-  }
-  if (sim->m->opt.solver==mjSOL_PGS) {
-    sim->figcost.linepnt[1] = 0;
-    sim->figcost.linepnt[2] = 0;
-  }
+  // iterate over islands
+  for (int k=0; k < nisland; k++) {
+    // ==== update Constraint ("Counts") figure
 
-  for (int i=0; i<sim->figcost.linepnt[0]; i++) {
-    // x
-    sim->figcost.linedata[0][2*i] = i;
-    sim->figcost.linedata[1][2*i] = i;
-    sim->figcost.linedata[2][2*i] = i;
+    // number of points to plot, starting line
+    int npoints = mjMIN(mjMIN(sim->d->solver_niter[k], mjNSOLVER), mjMAXLINEPNT);
+    int start = kConstraintNum * k;
 
-    // y
-    sim->figcost.linedata[0][2*i+1] = mju_log10(mju_max(mjMINVAL, sim->d->solver[i].improvement));
-    sim->figcost.linedata[1][2*i+1] = mju_log10(mju_max(mjMINVAL, sim->d->solver[i].gradient));
-    sim->figcost.linedata[2][2*i+1] = mju_log10(mju_max(mjMINVAL, sim->d->solver[i].lineslope));
+    sim->figconstraint.linepnt[start + 0] = npoints;
+    for (int i=1; i < kConstraintNum; i++) {
+      sim->figconstraint.linepnt[start + i] = npoints;
+    }
+    if (sim->m->opt.solver == mjSOL_PGS) {
+      sim->figconstraint.linepnt[start + 3] = 0;
+      sim->figconstraint.linepnt[start + 4] = 0;
+    }
+    if (sim->m->opt.solver == mjSOL_CG) {
+      sim->figconstraint.linepnt[start + 4] = 0;
+    }
+    for (int i=0; i<npoints; i++) {
+      // x
+      sim->figconstraint.linedata[start + 0][2*i] = i;
+      sim->figconstraint.linedata[start + 1][2*i] = i;
+      sim->figconstraint.linedata[start + 2][2*i] = i;
+      sim->figconstraint.linedata[start + 3][2*i] = i;
+      sim->figconstraint.linedata[start + 4][2*i] = i;
+
+      // y
+      int nefc = nisland == 1 ? sim->d->nefc : sim->d->island_efcnum[k];
+      sim->figconstraint.linedata[start + 0][2*i+1] = nefc;
+      const mjSolverStat* stat = sim->d->solver + k*mjNSOLVER + i;
+      sim->figconstraint.linedata[start + 1][2*i+1] = stat->nactive;
+      sim->figconstraint.linedata[start + 2][2*i+1] = stat->nchange;
+      sim->figconstraint.linedata[start + 3][2*i+1] = stat->neval;
+      sim->figconstraint.linedata[start + 4][2*i+1] = stat->nupdate;
+    }
+
+    // update cost figure
+    sim->figcost.linepnt[start + 0] = npoints;
+    for (int i=1; i<kCostNum; i++) {
+      sim->figcost.linepnt[start + i] = npoints;
+    }
+    if (sim->m->opt.solver==mjSOL_PGS) {
+      sim->figcost.linepnt[start + 1] = 0;
+      sim->figcost.linepnt[start + 2] = 0;
+    }
+
+    for (int i=0; i<sim->figcost.linepnt[0]; i++) {
+      // x
+      sim->figcost.linedata[start + 0][2*i] = i;
+      sim->figcost.linedata[start + 1][2*i] = i;
+      sim->figcost.linedata[start + 2][2*i] = i;
+
+      // y
+      const mjSolverStat* stat = sim->d->solver + k*mjNSOLVER + i;
+      sim->figcost.linedata[start + 0][2*i + 1] =
+          mju_log10(mju_max(mjMINVAL, stat->improvement));
+      sim->figcost.linedata[start + 1][2*i + 1] =
+          mju_log10(mju_max(mjMINVAL, stat->gradient));
+      sim->figcost.linedata[start + 2][2*i + 1] =
+          mju_log10(mju_max(mjMINVAL, stat->lineslope));
+    }
   }
 
   // get timers: total, collision, prepare, solve, other
@@ -320,14 +359,22 @@ void UpdateProfiler(mj::Simulate* sim) {
     sim->figtimer.linedata[n][1] = tdata[n];
   }
 
+  // get total number of iterations and nonzeros
+  mjtNum sqrt_nnz = 0;
+  int solver_niter = 0;
+  for (int island=0; island < nisland; island++) {
+    sqrt_nnz += mju_sqrt(sim->d->solver_nnz[island]);
+    solver_niter += sim->d->solver_niter[island];
+  }
+
   // get sizes: nv, nbody, nefc, sqrt(nnz), ncont, iter
   float sdata[6] = {
     static_cast<float>(sim->m->nv),
     static_cast<float>(sim->m->nbody),
     static_cast<float>(sim->d->nefc),
-    static_cast<float>(mju_sqrt(sim->d->solver_nnz)),
+    static_cast<float>(sqrt_nnz),
     static_cast<float>(sim->d->ncon),
-    static_cast<float>(sim->d->solver_iter)
+    static_cast<float>(solver_niter)
   };
 
   // update figsize
@@ -468,12 +515,14 @@ void UpdateInfoText(mj::Simulate* sim,
   char tmp[20];
 
   // compute solver error
+  int island = 0;  // first island only
   mjtNum solerr = 0;
-  if (d->solver_iter) {
-    int ind = mjMIN(d->solver_iter-1, mjNSOLVER-1);
-    solerr = mju_min(d->solver[ind].improvement, d->solver[ind].gradient);
+  if (d->solver_niter[island]) {
+    int ind = mjMIN(sim->d->solver_niter[island]-1, mjNSOLVER-1);
+    const mjSolverStat* stat = sim->d->solver + island*mjNSOLVER + ind;
+    solerr = mju_min(stat->improvement, stat->gradient);
     if (solerr == 0) {
-      solerr = mju_max(d->solver[ind].improvement, d->solver[ind].gradient);
+      solerr = mju_max(stat->improvement, stat->gradient);
     }
   }
   solerr = mju_log10(mju_max(mjMINVAL, solerr));

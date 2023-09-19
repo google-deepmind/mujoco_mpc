@@ -26,7 +26,7 @@ project(
   mujoco_mpc
   VERSION 0.1.0
   DESCRIPTION "MuJoCo predictive control"
-  HOMEPAGE_URL "https://github.com/deepmind/mujoco_mpc"
+  HOMEPAGE_URL "https://github.com/google-deepmind/mujoco_mpc"
 )
 
 enable_language(C)
@@ -63,7 +63,7 @@ findorfetch(
   LIBRARY_NAME
   mujoco
   GIT_REPO
-  https://github.com/deepmind/mujoco.git
+  https://github.com/google-deepmind/mujoco.git
   GIT_TAG
   main
   TARGETS
@@ -158,7 +158,7 @@ unset(BUILD_SHARED_LIBS_OLD)
 
 FetchContent_Declare(
   menagerie
-  GIT_REPOSITORY https://github.com/deepmind/mujoco_menagerie.git
+  GIT_REPOSITORY https://github.com/google-deepmind/mujoco_menagerie.git
   GIT_TAG main
 )
 

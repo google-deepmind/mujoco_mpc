@@ -66,9 +66,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
     mju_copy(qacc.data() + t * nv, data->qacc, nv);
 
     // step using mj_Euler since mj_forward has been called
-    // see mj_ step implementation here
-    // https://
-    // github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // see mj_step implementation here
+    // https://github.com/google-deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
 
@@ -150,8 +149,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
     mju_copy(sensordata.data() + t * ns, data->sensordata, ns);
 
     // step using mj_Euler since mj_forward has been called
-    // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // see mj_step implementation here
+    // https://github.com/google-deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
 

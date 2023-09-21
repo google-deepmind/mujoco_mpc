@@ -23,7 +23,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/estimators/model_parameters.h"  // temporary until we make nice API
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"

@@ -23,7 +23,7 @@
 namespace mjpc {
 namespace humanoid {
 
-class Stand : public ThreadSafeTask {
+class Stand : public Task {
  public:
   class ResidualFn : public mjpc::BaseResidualFn {
    public:

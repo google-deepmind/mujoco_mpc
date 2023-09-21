@@ -137,7 +137,7 @@ void Agent::Initialize(const mjModel* model) {
 
   // planner threads
   planner_threads_ =
-      std::max(1, NumAvailableHardwareThreads() - 3 - estimator_threads_ - 1);
+      std::max(1, NumAvailableHardwareThreads() - 3 - 2 * estimator_threads_);
 }
 
 // allocate memory

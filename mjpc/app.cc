@@ -44,7 +44,7 @@ ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
-ABSL_FLAG(bool, estimator_enable, false,
+ABSL_FLAG(bool, estimator_enabled, false,
           "If true, estimator loop will run on startup");
 
 namespace {
@@ -430,7 +430,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   mju_zero(ctrlnoise, m->nu);
 
   // agent
-  sim->agent->estimator_enabled = estimator_enabled;
+  sim->agent->estimator_enabled = absl::GetFlag(FLAGS_estimator_enabled);
   sim->agent->Initialize(m);
   sim->agent->Allocate();
   sim->agent->Reset();

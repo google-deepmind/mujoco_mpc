@@ -32,7 +32,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // batch filter constructor
-Batch::Batch(int mode) : pool_(1), model_parameters_(LoadModelParameters()) {
+Batch::Batch(int mode) : model_parameters_(LoadModelParameters()), pool_(1) {
   // not filter mode, return
   if (mode != 1) return;
 
@@ -44,8 +44,8 @@ Batch::Batch(int mode) : pool_(1), model_parameters_(LoadModelParameters()) {
 
 // batch smoother constructor
 Batch::Batch(const mjModel* model, int length, int max_history)
-    : pool_(NumAvailableHardwareThreads()),
-      model_parameters_(LoadModelParameters()) {
+    : model_parameters_(LoadModelParameters()),
+      pool_(NumAvailableHardwareThreads()) {
   // set max history length
   this->max_history_ = (max_history == 0 ? length : max_history);
 
@@ -1164,17 +1164,17 @@ void Batch::ConfigurationDerivative() {
   if (settings.prior_flag) {
     if (settings.assemble_prior_jacobian)
       mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
-    JacobianPrior(pool);
+    JacobianPrior();
   }
   if (settings.sensor_flag) {
     if (settings.assemble_sensor_jacobian)
       mju_zero(jacobian_sensor_.data(), nsen * ntotal_);
-    JacobianSensor(pool);
+    JacobianSensor();
   }
   if (settings.force_flag) {
     if (settings.assemble_force_jacobian)
       mju_zero(jacobian_force_.data(), nforce * ntotal_);
-    JacobianForce(pool);
+    JacobianForce();
   }
 
   // wait

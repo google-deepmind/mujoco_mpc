@@ -66,8 +66,8 @@ class Batch : public Estimator {
  public:
   // constructor
   Batch()
-      : pool_(NumAvailableHardwareThreads()),
-        model_parameters_(LoadModelParameters()) {}
+      : model_parameters_(LoadModelParameters()),
+        pool_(NumAvailableHardwareThreads()) {}
 
   // batch filter constructor
   Batch(int mode);

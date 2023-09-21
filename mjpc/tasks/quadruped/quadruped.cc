@@ -513,9 +513,6 @@ void QuadrupedFlat::ModifyScene(const mjModel* model, const mjData* data,
 //  ============  task-state utilities  ============
 // save task-related ids
 void QuadrupedFlat::ResetLocked(const mjModel* model) {
-  // call method from base class
-  Task::Reset(model);
-
   // ----------  task identifiers  ----------
   residual_.gait_param_id_ = ParameterIndex(model, "select_Gait");
   residual_.gait_switch_param_id_ = ParameterIndex(model, "select_Gait switch");

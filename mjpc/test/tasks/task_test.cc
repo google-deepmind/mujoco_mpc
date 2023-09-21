@@ -21,7 +21,7 @@
 namespace mjpc {
 namespace {
 
-class TestTask : public ThreadSafeTask {
+class TestTask : public Task {
  public:
   TestTask() : residual_(this) {}
   std::string Name() const override { return ""; }

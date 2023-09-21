@@ -21,7 +21,7 @@
 
 namespace mjpc {
 
-class QuadrupedFlat : public ThreadSafeTask {
+class QuadrupedFlat : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
@@ -248,7 +248,7 @@ class QuadrupedFlat : public ThreadSafeTask {
 };
 
 
-class QuadrupedHill : public ThreadSafeTask {
+class QuadrupedHill : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;

@@ -74,47 +74,52 @@ class BaseResidualFn : public ResidualFn {
   const Task* task_;
 };
 
-// interface for classes that implement MJPC task specifications
-//
-// NOTE: Rather than deriving from this class, derive from ThreadSafeTask
-// TODO(nimrod): Rename ThreadSafeTask and clean up by assuming it's the only
-// implementation
+// Thread-safe interface for classes that implement MJPC task specifications
 class Task {
  public:
   // constructor
   Task() = default;
   virtual ~Task() = default;
 
-  // ----- methods ----- //
-  // returns an object which can compute the residual function.
-  virtual std::unique_ptr<ResidualFn> Residual() const = 0;
+  // delegates to ResidualLocked, while holding a lock
+  std::unique_ptr<ResidualFn> Residual() const;
 
-  // should be overridden by subclasses to use internal ResidualFn
-  virtual void Residual(const mjModel* model, const mjData* data,
-                        double* residual) const = 0;
+  // ----- methods ----- //
+  // calls Residual on the pointer returned from InternalResidual(), while
+  // holding a lock
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const;
 
   // Must be called whenever parameters or weights change outside Transition or
   // Reset, so that calls to Residual use the new parameters.
-  virtual void UpdateResidual() {}
+  // Calls InternalResidual()->Update() with a lock.
+  void UpdateResidual();
 
   // Changes to data will affect the planner at the next set_state.  Changes to
   // model will only affect the physics and render threads, and will not affect
   // the planner. This is useful for studying planning under model discrepancy,
-  virtual void Transition(mjModel* model, mjData* data) = 0;
+  // calls TransitionLocked and InternalResidual()->Update() while holding a
+  // lock
+  void Transition(mjModel* model, mjData* data);
 
   // get information from model
-  virtual void Reset(const mjModel* model);
+  // calls ResetLocked and InternalResidual()->Update() while holding a lock
+  void Reset(const mjModel* model);
+
+  // calls CostTerms on the pointer returned from InternalResidual(), while
+  // holding a lock
+  void CostTerms(double* terms, const double* residual) const;
+
+  // calls CostTerms on the pointer returned from InternalResidual(), while
+  // holding a lock
+  void UnweightedCostTerms(double* terms, const double* residual) const;
+
+  // calls CostValue on the pointer returned from InternalResidual(), while
+  // holding a lock
+  double CostValue(const double* residual) const;
 
   virtual void ModifyScene(const mjModel* model, const mjData* data,
                            mjvScene* scene) const {}
-
-  // compute cost terms
-  virtual void CostTerms(double* terms, const double* residual) const = 0;
-  virtual void UnweightedCostTerms(double* terms,
-                                   const double* residual) const = 0;
-
-  // compute weighted cost
-  virtual double CostValue(const double* residual) const = 0;
 
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
@@ -140,54 +145,12 @@ class Task {
   // residual parameters
   std::vector<double> parameters;
 
- private:
-  // initial residual parameters from model
-  void SetFeatureParameters(const mjModel* model);
-};
-
-// A version of Task which provides a Residual that can be run independently
-// of the class, and where the parameters and weights used in the residual
-// computations are guarded with a lock.
-class ThreadSafeTask : public Task {
- public:
-  virtual ~ThreadSafeTask() override = default;
-
-  // delegates to ResidualLocked, while holding a lock
-  std::unique_ptr<ResidualFn> Residual() const final;
-
-  // calls Residual on the pointer returned from InternalResidual(), while
-  // holding a lock
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const final;
-
-  // Calls InternalResidual()->Update() with a lock.
-  void UpdateResidual() final;
-
-  // calls TransitionLocked and InternalResidual()->Update() while holding a
-  // lock
-  void Transition(mjModel* model, mjData* data) final;
-
-  // calls ResetLocked and InternalResidual()->Update() while holding a lock
-  void Reset(const mjModel* model) final;
-
-  // calls CostTerms on the pointer returned from InternalResidual(), while
-  // holding a lock
-  void CostTerms(double* terms, const double* residual) const final;
-
-  // calls CostTerms on the pointer returned from InternalResidual(), while
-  // holding a lock
-  void UnweightedCostTerms(double* terms, const double* residual) const final;
-
-  // calls CostValue on the pointer returned from InternalResidual(), while
-  // holding a lock
-  double CostValue(const double* residual) const final;
-
  protected:
   // returns a pointer to the ResidualFn instance that's used for physics
   // stepping and plotting, and is internal to the class
   virtual BaseResidualFn* InternalResidual() = 0;
   const BaseResidualFn* InternalResidual() const {
-    return const_cast<ThreadSafeTask*>(this)->InternalResidual();
+    return const_cast<Task*>(this)->InternalResidual();
   }
   // returns an object which can compute the residual function. the function
   // can assume that a lock on mutex_ is held when it's called
@@ -202,6 +165,10 @@ class ThreadSafeTask : public Task {
   virtual void ResetLocked(const mjModel* model) {}
   // mutex which should be held on changes to InternalResidual.
   mutable std::mutex mutex_;
+
+ private:
+  // initial residual parameters from model
+  void SetFeatureParameters(const mjModel* model);
 };
 
 }  // namespace mjpc

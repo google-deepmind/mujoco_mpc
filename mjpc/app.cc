@@ -364,9 +364,8 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // state
     if (sim.uiloadrequest.load() == 0) {
-      // set ground truth state
-      if (sim.agent->ActiveEstimatorIndex() == 0 ||
-          !sim.agent->estimator_enabled) {
+      // set ground truth state if no active estimator
+      if (!sim.agent->ActiveEstimatorIndex() || !sim.agent->estimator_enabled) {
         sim.agent->state.Set(m, d);
       }
     }

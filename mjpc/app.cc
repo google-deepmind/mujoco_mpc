@@ -144,7 +144,7 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
 // estimator in background thread
 void EstimatorLoop(mj::Simulate& sim) {
   // run until asked to exit
-  while (!sim.exitrequest.load() && sim.agent->estimator_enabled) {
+  while (!sim.exitrequest.load()) {
     if (sim.uiloadrequest.load() == 0) {
       // estimator
       int active_estimator = sim.agent->ActiveEstimatorIndex();
@@ -478,7 +478,9 @@ void MjpcApp::Start() {
 
   // start estimator thread
   mjpc::ThreadPool estimator_pool(1);
-  estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
+  if (sim->agent->estimator_enabled) {
+    estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
+  }
 
   {
     // start plan thread

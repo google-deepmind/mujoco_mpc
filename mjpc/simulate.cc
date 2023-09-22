@@ -1248,6 +1248,12 @@ void UiEvent(mjuiState* state) {
           if (key_qvel) {
             mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
           }
+          // set initial act via keyframe
+          double* act = mjpc::KeyActByName(sim->mnew, sim->dnew,
+                                           "home");
+          if (act) {
+            mju_copy(sim->dnew->act, act, sim->mnew->na);
+          }
 
           sim->agent->PlotReset();
         }

@@ -22,7 +22,6 @@
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -35,9 +34,6 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv;
-
-  // pool
-  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -82,7 +78,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   mju_copy(estimator.configuration.Data(), qpos.data(), nq * T);
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation(pool);
+  estimator.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * (T - 1));
@@ -116,9 +112,6 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
-
-  // pool
-  ThreadPool pool(1);
 
   // ----- simulate ----- //
   // trajectories
@@ -175,7 +168,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mju_copy(estimator.configuration.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation(pool);
+  estimator.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * T);

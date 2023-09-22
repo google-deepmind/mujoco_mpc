@@ -22,7 +22,6 @@
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -94,6 +93,20 @@ void Kalman::Initialize(const mjModel* model) {
   tmp1_.resize(nsensordata_ * nsensordata_);
   tmp2_.resize(nsensordata_ * ndstate_);
   tmp3_.resize(ndstate_ * ndstate_);
+
+  // -- GUI data -- //
+
+  // time step
+  gui_timestep_ = this->model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = this->model->opt.integrator;
+
+  // process noise
+  gui_process_noise_.resize(ndstate_);
+
+  // sensor noise
+  gui_sensor_noise_.resize(nsensordata_);
 }
 
 // reset memory
@@ -157,6 +170,18 @@ void Kalman::Reset(const mjData* data) {
   std::fill(tmp1_.begin(), tmp1_.end(), 0.0);
   std::fill(tmp2_.begin(), tmp2_.end(), 0.0);
   std::fill(tmp3_.begin(), tmp3_.end(), 0.0);
+
+  // time step
+  gui_timestep_ = model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = model->opt.integrator;
+
+  // process noise
+  std::fill(gui_process_noise_.begin(), gui_process_noise_.end(), noise_process_scl);
+
+  // sensor noise
+  std::fill(gui_sensor_noise_.begin(), gui_sensor_noise_.end(), noise_sensor_scl);
 }
 
 // update measurement
@@ -298,14 +323,14 @@ void Kalman::UpdatePrediction() {
 }
 
 // estimator-specific GUI elements
-void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
+void Kalman::GUI(mjUI& ui) {
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
       {mjITEM_SECTION, "Estimator", 1, nullptr,
        "AP"},  // needs new section to satisfy mjMAXUIITEM
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &data.timestep, "1.0e-3 0.1"},
-      {mjITEM_SELECT, "Integrator", 2, &data.integrator,
+      {mjITEM_SLIDERNUM, "Timestep", 2, &gui_timestep_, "1.0e-3 0.1"},
+      {mjITEM_SELECT, "Integrator", 2, &gui_integrator_,
        "Euler\nRK4\nImplicit\nFastImplicit"},
       {mjITEM_END}};
 
@@ -325,7 +350,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
   for (int i = 0; i < DimensionProcess(); i++) {
     // element
     defProcessNoise[process_noise_shift] = {
-        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
+        mjITEM_SLIDERNUM, "", 2, gui_process_noise_.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
@@ -495,7 +520,7 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
       // element
       defSensorNoise[sensor_noise_shift] = {
           mjITEM_SLIDERNUM, "", 2,
-          data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
+          gui_sensor_noise_.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
       // sensor name
       sensor_str = name_sensor;
@@ -522,11 +547,11 @@ void Kalman::GUI(mjUI& ui, EstimatorGUIData& data) {
 }
 
 // set GUI data
-void Kalman::SetGUIData(EstimatorGUIData& data) {
-  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
-  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
-  model->opt.timestep = data.timestep;
-  model->opt.integrator = data.integrator;
+void Kalman::SetGUIData() {
+  mju_copy(noise_process.data(), gui_process_noise_.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), gui_sensor_noise_.data(), DimensionSensor());
+  model->opt.timestep = gui_timestep_;
+  model->opt.integrator = gui_integrator_;
 }
 
 // estimator-specific plots

@@ -19,10 +19,10 @@
     <!-- estimator -->
     <numeric name="estimator" data="0" />
     <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="3" />
-    <numeric name="estimator_timestep" data="0.0025" />
-    <numeric name="batch_configuration_length" data="32" />
-    <numeric name="batch_scale_prior" data="1.0e-1" />
+    <numeric name="estimator_number_sensor" data="2" />
+    <numeric name="estimator_timestep" data="0.005" />
+    <numeric name="batch_configuration_length" data="3" />
+    <numeric name="batch_scale_prior" data="1.0e-3" />
   </custom>
 
   <sensor>
@@ -35,8 +35,7 @@
     <!-- estimator -->
     <jointpos name="slider_pos" joint="slider"/>
     <jointpos name="hinge_pos" joint="hinge_1"/>
-    <accelerometer name="tip_acc" site="tip"/>
-
+ 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="tip"/>
 

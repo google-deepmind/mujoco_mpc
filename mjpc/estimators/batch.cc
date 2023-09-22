@@ -23,7 +23,6 @@
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/estimators/model_parameters.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -33,7 +32,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // batch filter constructor
-Batch::Batch(int mode) : model_parameters_(LoadModelParameters()) {
+Batch::Batch(int mode) : model_parameters_(LoadModelParameters()), pool_(1) {
   // not filter mode, return
   if (mode != 1) return;
 
@@ -45,7 +44,8 @@ Batch::Batch(int mode) : model_parameters_(LoadModelParameters()) {
 
 // batch smoother constructor
 Batch::Batch(const mjModel* model, int length, int max_history)
-    : model_parameters_(LoadModelParameters()) {
+    : model_parameters_(LoadModelParameters()),
+      pool_(NumAvailableHardwareThreads()) {
   // set max history length
   this->max_history_ = (max_history == 0 ? length : max_history);
 
@@ -390,6 +390,25 @@ void Batch::Initialize(const mjModel* model) {
   // force
   force_measurement_cache_.Initialize(nv, max_history_);
   force_prediction_cache_.Initialize(nv, max_history_);
+
+  // -- GUI data -- //
+  // time step
+  gui_timestep_ = model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = model->opt.integrator;
+
+  // process noise
+  gui_process_noise_.resize(ndstate_);
+
+  // sensor noise
+  gui_sensor_noise_.resize(nsensordata_);
+
+  // scale prior
+  gui_scale_prior_ = scale_prior;
+
+  // estimation horizon
+  gui_horizon_ = configuration_length_;
 }
 
 // reset memory
@@ -644,6 +663,25 @@ void Batch::Reset(const mjData* data) {
   // force
   force_measurement_cache_.Reset();
   force_prediction_cache_.Reset();
+
+  // -- GUI data -- //
+  // time step
+  gui_timestep_ = model->opt.timestep;
+
+  // integrator
+  gui_integrator_ = model->opt.integrator;
+
+  // process noise
+  std::fill(gui_process_noise_.begin(), gui_process_noise_.end(), noise_process_scl);
+
+  // sensor noise
+  std::fill(gui_sensor_noise_.begin(), gui_sensor_noise_.end(), noise_sensor_scl);
+
+  // scale prior
+  gui_scale_prior_ = scale_prior;
+
+  // estimation horizon
+  gui_horizon_ = configuration_length_;
 }
 
 // update
@@ -707,9 +745,8 @@ void Batch::Update(const double* ctrl, const double* sensor) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
 
-  // TODO(taylor): preallocate pool
-  ThreadPool pool(1);
-  Optimize(pool);
+  // optimize measurement corrected state
+  Optimize();
 
   // update state
   mju_copy(state.data(), configuration.Get(t + 1), nq);
@@ -1091,16 +1128,16 @@ void Batch::Shift(int shift) {
 }
 
 // evaluate configurations
-void Batch::ConfigurationEvaluation(ThreadPool& pool) {
+void Batch::ConfigurationEvaluation() {
   // finite-difference velocities, accelerations
   ConfigurationToVelocityAcceleration();
 
   // compute sensor and force predictions
-  InverseDynamicsPrediction(pool);
+  InverseDynamicsPrediction();
 }
 
 // configurations derivatives
-void Batch::ConfigurationDerivative(ThreadPool& pool) {
+void Batch::ConfigurationDerivative() {
   // dimension
   int nv = model->nv;
   int nsen = nsensordata_ * configuration_length_;
@@ -1112,7 +1149,7 @@ void Batch::ConfigurationDerivative(ThreadPool& pool) {
   int opforce = settings.force_flag * (configuration_length_ - 2);
 
   // inverse dynamics derivatives
-  InverseDynamicsDerivatives(pool);
+  InverseDynamicsDerivatives();
 
   // velocity, acceleration derivatives
   VelocityAccelerationDerivatives();
@@ -1121,30 +1158,30 @@ void Batch::ConfigurationDerivative(ThreadPool& pool) {
   auto timer_jacobian_start = std::chrono::steady_clock::now();
 
   // pool count
-  int count_begin = pool.GetCount();
+  int count_begin = pool_.GetCount();
 
   // individual derivatives
   if (settings.prior_flag) {
     if (settings.assemble_prior_jacobian)
       mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
-    JacobianPrior(pool);
+    JacobianPrior();
   }
   if (settings.sensor_flag) {
     if (settings.assemble_sensor_jacobian)
       mju_zero(jacobian_sensor_.data(), nsen * ntotal_);
-    JacobianSensor(pool);
+    JacobianSensor();
   }
   if (settings.force_flag) {
     if (settings.assemble_force_jacobian)
       mju_zero(jacobian_force_.data(), nforce * ntotal_);
-    JacobianForce(pool);
+    JacobianForce();
   }
 
   // wait
-  pool.WaitCount(count_begin + opprior + opsensor + opforce);
+  pool_.WaitCount(count_begin + opprior + opsensor + opforce);
 
   // reset count
-  pool.ResetCount();
+  pool_.ResetCount();
 
   // timers
   timer_.jacobian_prior += mju_sum(timer_.prior_step.data(), opprior);
@@ -1342,11 +1379,11 @@ void Batch::BlockPrior(int index) {
 
 // prior Jacobian
 // note: pool wait is called outside this function
-void Batch::JacobianPrior(ThreadPool& pool) {
+void Batch::JacobianPrior() {
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, t]() {
+    pool_.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_prior_start = std::chrono::steady_clock::now();
 
@@ -1809,11 +1846,11 @@ void Batch::BlockSensor(int index) {
 
 // sensor Jacobian
 // note: pool wait is called outside this function
-void Batch::JacobianSensor(ThreadPool& pool) {
+void Batch::JacobianSensor() {
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, t]() {
+    pool_.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
@@ -2084,11 +2121,11 @@ void Batch::BlockForce(int index) {
 
 // force Jacobian
 // note: pool wait is called outside this function
-void Batch::JacobianForce(ThreadPool& pool) {
+void Batch::JacobianForce() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule by time step
-    pool.Schedule([&batch = *this, t]() {
+    pool_.Schedule([&batch = *this, t]() {
       // start Jacobian timer
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
@@ -2102,7 +2139,7 @@ void Batch::JacobianForce(ThreadPool& pool) {
 }
 
 // compute force
-void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
+void Batch::InverseDynamicsPrediction() {
   // compute sensor and force predictions
   auto start = std::chrono::steady_clock::now();
 
@@ -2117,10 +2154,10 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   }
 
   // pool count
-  int count_before = pool.GetCount();
+  int count_before = pool_.GetCount();
 
   // first time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv, nu]() {
     // time index
     int t = 0;
 
@@ -2169,7 +2206,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool.Schedule([&batch = *this, nq, nv, na, ns, nu, t]() {
+    pool_.Schedule([&batch = *this, nq, nv, na, ns, nu, t]() {
       // terms
       double* qt = batch.configuration.Get(t);
       double* vt = batch.velocity.Get(t);
@@ -2203,7 +2240,7 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   }
 
   // last time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv, nu]() {
     // time index
     int t = batch.ConfigurationLength() - 1;
 
@@ -2258,15 +2295,15 @@ void Batch::InverseDynamicsPrediction(ThreadPool& pool) {
   });
 
   // wait
-  pool.WaitCount(count_before + configuration_length_);
-  pool.ResetCount();
+  pool_.WaitCount(count_before + configuration_length_);
+  pool_.ResetCount();
 
   // stop timer
   timer_.cost_prediction += GetDuration(start);
 }
 
 // compute inverse dynamics derivatives (via finite difference)
-void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
+void Batch::InverseDynamicsDerivatives() {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
@@ -2280,10 +2317,10 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   }
 
   // pool count
-  int count_before = pool.GetCount();
+  int count_before = pool_.GetCount();
 
   // first time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv, nu]() {
     // time index
     int t = 0;
 
@@ -2343,7 +2380,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool.Schedule([&batch = *this, nq, nv, nu, t]() {
+    pool_.Schedule([&batch = *this, nq, nv, nu, t]() {
       // unpack
       double* q = batch.configuration.Get(t);
       double* v = batch.velocity.Get(t);
@@ -2385,7 +2422,7 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   }
 
   // last time step
-  pool.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv, nu]() {
     // time index
     int t = batch.ConfigurationLength() - 1;
 
@@ -2448,10 +2485,10 @@ void Batch::InverseDynamicsDerivatives(ThreadPool& pool) {
   });
 
   // wait
-  pool.WaitCount(count_before + configuration_length_);
+  pool_.WaitCount(count_before + configuration_length_);
 
   // reset pool count
-  pool.ResetCount();
+  pool_.ResetCount();
 
   // stop timer
   timer_.inverse_dynamics_derivatives += GetDuration(start);
@@ -2735,23 +2772,23 @@ void Batch::ShiftResizeTrajectory(int new_head, int new_length) {
 }
 
 // compute total cost
-double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
+double Batch::Cost(double* gradient, double* hessian) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 
   // evaluate configurations
-  if (!cost_skip_) ConfigurationEvaluation(pool);
+  if (!cost_skip_) ConfigurationEvaluation();
 
   // derivatives
   if (gradient || hessian) {
-    ConfigurationDerivative(pool);
+    ConfigurationDerivative();
   }
 
   // start cost derivative timer
   auto start_cost_derivatives = std::chrono::steady_clock::now();
 
   // pool count
-  int count_begin = pool.GetCount();
+  int count_begin = pool_.GetCount();
 
   bool gradient_flag = (gradient ? true : false);
   bool hessian_flag = (hessian ? true : false);
@@ -2760,7 +2797,7 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
 
   // prior
   if (settings.prior_flag) {
-    pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
+    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
       batch.cost_prior_ = batch.CostPrior(
           gradient_flag ? batch.cost_gradient_prior_.data() : NULL,
           hessian_flag ? batch.cost_hessian_prior_band_.data() : NULL);
@@ -2769,7 +2806,7 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
 
   // sensor
   if (settings.sensor_flag) {
-    pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
+    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
       batch.cost_sensor_ = batch.CostSensor(
           gradient_flag ? batch.cost_gradient_sensor_.data() : NULL,
           hessian_flag ? batch.cost_hessian_sensor_band_.data() : NULL);
@@ -2778,7 +2815,7 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
 
   // force
   if (settings.force_flag) {
-    pool.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
+    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
       batch.cost_force_ = batch.CostForce(
           gradient_flag ? batch.cost_gradient_force_.data() : NULL,
           hessian_flag ? batch.cost_hessian_force_band_.data() : NULL);
@@ -2786,9 +2823,9 @@ double Batch::Cost(double* gradient, double* hessian, ThreadPool& pool) {
   }
 
   // wait
-  pool.WaitCount(count_begin + settings.prior_flag + settings.sensor_flag +
-                 settings.force_flag);
-  pool.ResetCount();
+  pool_.WaitCount(count_begin + settings.prior_flag + settings.sensor_flag +
+                  settings.force_flag);
+  pool_.ResetCount();
 
   // total cost
   double cost = cost_prior_ + cost_sensor_ + cost_force_;
@@ -2876,7 +2913,7 @@ void Batch::TotalHessian(double* hessian) {
 }
 
 // optimize trajectory estimate
-void Batch::Optimize(ThreadPool& pool) {
+void Batch::Optimize() {
   // start timer
   auto start_optimize = std::chrono::steady_clock::now();
 
@@ -2891,7 +2928,7 @@ void Batch::Optimize(ThreadPool& pool) {
   // initial cost
   cost_count_ = 0;
   cost_skip_ = false;
-  cost_ = Cost(NULL, NULL, pool);
+  cost_ = Cost(NULL, NULL);
   cost_initial_ = cost_;
 
   // print initial cost
@@ -2908,7 +2945,7 @@ void Batch::Optimize(ThreadPool& pool) {
        iterations_smoother_++) {
     // evalute cost derivatives
     cost_skip_ = true;
-    Cost(cost_gradient_.data(), cost_hessian_band_.data(), pool);
+    Cost(cost_gradient_.data(), cost_hessian_band_.data());
 
     // start timer
     auto start_search = std::chrono::steady_clock::now();
@@ -3019,7 +3056,7 @@ void Batch::Optimize(ThreadPool& pool) {
 
       // cost
       cost_skip_ = false;
-      cost_candidate = Cost(NULL, NULL, pool);
+      cost_candidate = Cost(NULL, NULL);
 
       // improvement
       improvement_ = cost_ - cost_candidate;
@@ -3348,17 +3385,17 @@ std::string StatusString(int code) {
 }
 
 // estimator-specific GUI elements
-void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
+void Batch::GUI(mjUI& ui) {
   // ----- estimator ------ //
   mjuiDef defEstimator[] = {
       {mjITEM_SECTION, "Estimator", 1, nullptr,
        "AP"},  // needs new section to satisfy mjMAXUIITEM
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &data.timestep, "1.0e-3 0.1"},
-      {mjITEM_SELECT, "Integrator", 2, &data.integrator,
+      {mjITEM_SLIDERNUM, "Timestep", 2, &gui_timestep_, "1.0e-3 0.1"},
+      {mjITEM_SELECT, "Integrator", 2, &gui_integrator_,
        "Euler\nRK4\nImplicit\nFastImplicit"},
-      {mjITEM_SLIDERINT, "Horizon", 2, &data.horizon, "3 3"},
-      {mjITEM_SLIDERNUM, "Prior Scale", 2, &data.scale_prior, "1.0e-8 0.1"},
+      {mjITEM_SLIDERINT, "Horizon", 2, &gui_horizon_, "3 3"},
+      {mjITEM_SLIDERNUM, "Prior Scale", 2, &gui_scale_prior_, "1.0e-8 0.1"},
       {mjITEM_END}};
 
   // set estimation horizon limits
@@ -3381,7 +3418,7 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
   for (int i = 0; i < nv; i++) {
     // element
     defProcessNoise[process_noise_shift] = {
-        mjITEM_SLIDERNUM, "", 2, data.process_noise.data() + i, "1.0e-8 0.01"};
+        mjITEM_SLIDERNUM, "", 2, gui_process_noise_.data() + i, "1.0e-8 0.01"};
 
     // set name
     mju::strcpy_arr(defProcessNoise[process_noise_shift].name, "");
@@ -3501,7 +3538,7 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
     // element
     defSensorNoise[sensor_noise_shift] = {
         mjITEM_SLIDERNUM, "", 2,
-        data.sensor_noise.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
+        gui_sensor_noise_.data() + sensor_noise_shift - 1, "1.0e-8 0.01"};
 
     // sensor name
     sensor_str = name_sensor;
@@ -3522,14 +3559,24 @@ void Batch::GUI(mjUI& ui, EstimatorGUIData& data) {
 }
 
 // set GUI data
-void Batch::SetGUIData(EstimatorGUIData& data) {
-  mju_copy(noise_process.data(), data.process_noise.data(), DimensionProcess());
-  mju_copy(noise_sensor.data(), data.sensor_noise.data(), DimensionSensor());
-  model->opt.timestep = data.timestep;
-  model->opt.integrator = data.integrator;
+void Batch::SetGUIData() {
+  // time step
+  model->opt.timestep = gui_timestep_;
+
+  // integrator
+  model->opt.integrator = gui_integrator_;
+
+  // TODO(taylor): update models if nparam > 0
+
+  // noise
+  mju_copy(noise_process.data(), gui_process_noise_.data(), DimensionProcess());
+  mju_copy(noise_sensor.data(), gui_sensor_noise_.data(), DimensionSensor());
+
+  // scale prior
+  scale_prior = gui_scale_prior_;
 
   // store estimation horizon
-  int horizon = data.horizon;
+  int horizon = gui_horizon_;
 
   // changing horizon cases
   if (horizon > configuration_length_) {  // increase horizon

@@ -21,7 +21,6 @@
 #include "mjpc/estimators/batch.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -37,9 +36,6 @@ TEST(BatchOptimize, Particle2D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-
-  // threadpool
-  ThreadPool pool(1);
 
   // ----- simulate ----- //
   int T = 10;
@@ -85,7 +81,7 @@ TEST(BatchOptimize, Particle2D) {
   std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
 
   // optimize
-  estimator.Optimize(pool);
+  estimator.Optimize();
 
   // error
   std::vector<double> configuration_error(nq * T);
@@ -119,10 +115,6 @@ TEST(BatchOptimize, Box3D) {
   // dimension
   int nq = model->nq, nv = model->nv;
   int ns = model->nsensordata;
-
-  // pool
-  int num_thread = 1;
-  ThreadPool pool(num_thread);
 
   // ----- simulate ----- //
 
@@ -171,7 +163,7 @@ TEST(BatchOptimize, Box3D) {
   std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(), 1.0);
 
   // optimize
-  estimator.Optimize(pool);
+  estimator.Optimize();
 
   // error
   std::vector<double> configuration_error(nq * T);
@@ -216,11 +208,6 @@ TEST(BatchOptimize, Quadruped) {
     printf("nu: %i\n", nu);
     printf("ns: %i\n", ns);
   }
-
-  // pool
-  int num_thread = 10;
-  ThreadPool pool(num_thread);
-  if (verbose) printf("num thread: %i\n", num_thread);
 
   // ----- simulate ----- //
   int T = 64;
@@ -267,7 +254,7 @@ TEST(BatchOptimize, Quadruped) {
   mju_fill(estimator.noise_sensor.data(), 1.0, estimator.DimensionSensor());
 
   // optimize
-  estimator.Optimize(pool);
+  estimator.Optimize();
 
   // error
   std::vector<double> configuration_error(nq * T);

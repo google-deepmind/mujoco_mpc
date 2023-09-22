@@ -101,8 +101,6 @@ add_library(
   estimators/batch.cc
   estimators/batch.h
   estimators/estimator.h
-  estimators/gui.cc
-  estimators/gui.h
   estimators/include.cc
   estimators/include.h
   estimators/kalman.cc

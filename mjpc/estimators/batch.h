@@ -23,7 +23,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/estimators/model_parameters.h"  // temporary until we make nice API
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
@@ -66,7 +65,9 @@ inline constexpr double kMinBatchRegularization = 1.0e-12;
 class Batch : public Estimator {
  public:
   // constructor
-  Batch() : model_parameters_(LoadModelParameters()) {}
+  Batch()
+      : model_parameters_(LoadModelParameters()),
+        pool_(NumAvailableHardwareThreads()) {}
 
   // batch filter constructor
   Batch(int mode);
@@ -131,10 +132,10 @@ class Batch : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+  void GUI(mjUI& ui) override;
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override;
+  void SetGUIData() override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -153,13 +154,13 @@ class Batch : public Estimator {
   void Shift(int shift);
 
   // evaluate configurations
-  void ConfigurationEvaluation(ThreadPool& pool);
+  void ConfigurationEvaluation();
 
   // compute total cost_
-  double Cost(double* gradient, double* hessian, ThreadPool& pool);
+  double Cost(double* gradient, double* hessian);
 
   // optimize trajectory estimate
-  void Optimize(ThreadPool& pool);
+  void Optimize();
 
   // cost
   double GetCost() { return cost_; }
@@ -310,16 +311,16 @@ class Batch : public Estimator {
   void ConfigurationToVelocityAcceleration();
 
   // compute sensor and force predictions via inverse dynamics
-  void InverseDynamicsPrediction(ThreadPool& pool);
+  void InverseDynamicsPrediction();
 
   // compute finite-difference velocity, acceleration derivatives
   void VelocityAccelerationDerivatives();
 
   // compute inverse dynamics derivatives (via finite difference)
-  void InverseDynamicsDerivatives(ThreadPool& pool);
+  void InverseDynamicsDerivatives();
 
   // evaluate configurations derivatives
-  void ConfigurationDerivative(ThreadPool& pool);
+  void ConfigurationDerivative();
 
   // ----- prior ----- //
   // cost
@@ -332,7 +333,7 @@ class Batch : public Estimator {
   void BlockPrior(int index);
 
   // Jacobian
-  void JacobianPrior(ThreadPool& pool);
+  void JacobianPrior();
 
   // ----- sensor ----- //
   // cost
@@ -345,7 +346,7 @@ class Batch : public Estimator {
   void BlockSensor(int index);
 
   // Jacobian
-  void JacobianSensor(ThreadPool& pool);
+  void JacobianSensor();
 
   // ----- force ----- //
   // cost
@@ -358,7 +359,7 @@ class Batch : public Estimator {
   void BlockForce(int index);
 
   // Jacobian
-  void JacobianForce(ThreadPool& pool);
+  void JacobianForce();
 
   // compute total gradient
   void TotalGradient(double* gradient);
@@ -657,6 +658,29 @@ class Batch : public Estimator {
   EstimatorTrajectory<int> sensor_mask_cache_;                // num_sensor x T
   EstimatorTrajectory<double> force_measurement_cache_;       // nv x T
   EstimatorTrajectory<double> force_prediction_cache_;        // nv x T
+
+  // threadpool
+  ThreadPool pool_;
+
+  // -- GUI data -- //
+
+  // time step
+  double gui_timestep_;
+
+  // integrator
+  int gui_integrator_;
+
+  // process noise
+  std::vector<double> gui_process_noise_;
+
+  // sensor noise
+  std::vector<double> gui_sensor_noise_;
+
+  // scale prior
+  double gui_scale_prior_;
+
+  // estimation horizon
+  int gui_horizon_;
 };
 
 // estimator status string

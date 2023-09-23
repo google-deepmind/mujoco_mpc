@@ -63,5 +63,6 @@
     <jointpos name="joint_y" joint="root_y" />
     <jointvel name="velocity_x" joint="root_x" />
     <jointvel name="velocity_y" joint="root_y" />
+    <accelerometer name="acc" site="tip" />
   </sensor>
 </mujoco>

@@ -160,6 +160,8 @@ class Batch:
       sensor_mask: Optional[npt.ArrayLike] = [],
       force_measurement: Optional[npt.ArrayLike] = [],
       force_prediction: Optional[npt.ArrayLike] = [],
+      parameters: Optional[npt.ArrayLike] = [],
+      parameters_previous: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble inputs
     inputs = batch_pb2.Data(
@@ -174,6 +176,8 @@ class Batch:
         sensor_mask=sensor_mask,
         force_measurement=force_measurement,
         force_prediction=force_prediction,
+        parameters=parameters,
+        parameters_previous=parameters_previous,
     )
 
     # data request
@@ -195,6 +199,8 @@ class Batch:
         "sensor_mask": np.array(data.sensor_mask),
         "force_measurement": np.array(data.force_measurement),
         "force_prediction": np.array(data.force_prediction),
+        "parameters": np.array(data.parameters),
+        "parameters_previous": np.array(data.parameters_previous),
     }
 
   def settings(
@@ -301,11 +307,13 @@ class Batch:
       self,
       process: Optional[npt.ArrayLike] = [],
       sensor: Optional[npt.ArrayLike] = [],
-  ) -> dict[str, float | np.ndarray]:
+      parameter: Optional[npt.ArrayLike] = [],
+  ) -> dict[str, np.ndarray]:
     # assemble input noise
     inputs = batch_pb2.Noise(
         process=process,
         sensor=sensor,
+        parameter=parameter,
     )
 
     # noise request
@@ -318,6 +326,7 @@ class Batch:
     return {
         "process": np.array(noise.process),
         "sensor": np.array(noise.sensor),
+        "parameter": np.array(noise.parameter),
     }
 
   def norm(
@@ -473,7 +482,7 @@ class Batch:
     # return prior matrix
     return mat
 
-  def sensor_info(self) -> dict[str | int]:
+  def sensor_info(self) -> dict[str, int]:
     # info request
     request = batch_pb2.SensorInfoRequest()
 
@@ -486,7 +495,7 @@ class Batch:
         "num_measurements": response.num_measurements,
         "dim_measurements": response.dim_measurements,
     }
-  
+
   def measurements_from_sensordata(self, data: npt.ArrayLike) -> np.ndarray:
     # get sensor info
     info = self.sensor_info()

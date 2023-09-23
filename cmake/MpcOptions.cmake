@@ -90,6 +90,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang
       -Wall
       -Wimplicit-fallthrough
       -Wunused
+      -Wvla
       -Wno-int-in-bool-context
       -Wno-sign-compare
       -Wno-unknown-pragmas
@@ -100,15 +101,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang
                               -Wno-maybe-uninitialized
     )
   endif()
-  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
-    set(EXTRA_COMPILE_OPTIONS ${EXTRA_COMPILE_OPTIONS} -Wgnu-empty-initializer)
-  endif()
-endif()
-
-if(WIN32)
-  add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
 include(MujocoHarden)
 set(EXTRA_COMPILE_OPTIONS ${EXTRA_COMPILE_OPTIONS} ${MUJOCO_HARDEN_COMPILE_OPTIONS})
 set(EXTRA_LINK_OPTIONS ${EXTRA_LINK_OPTIONS} ${MUJOCO_HARDEN_LINK_OPTIONS})
+
+if(WIN32)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+endif()

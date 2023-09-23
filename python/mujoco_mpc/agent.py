@@ -21,7 +21,7 @@ import pathlib
 import socket
 import subprocess
 import tempfile
-from typing import Literal, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence
 
 import grpc
 import mujoco
@@ -68,6 +68,7 @@ class Agent(contextlib.AbstractContextManager):
       server_binary_path: Optional[str] = None,
       extra_flags: Sequence[str] = (),
       real_time_speed: float = 1.0,
+      subprocess_kwargs: Optional[Mapping[str, Any]] = None,
   ):
     self.task_id = task_id
     self.model = model
@@ -77,7 +78,9 @@ class Agent(contextlib.AbstractContextManager):
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self.port = find_free_port()
     self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--mjpc_port={self.port}"] + list(extra_flags)
+        [str(server_binary_path), f"--mjpc_port={self.port}"]
+        + list(extra_flags),
+        **(subprocess_kwargs or {}),
     )
     atexit.register(self.server_process.kill)
 

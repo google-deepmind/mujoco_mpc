@@ -38,4 +38,4 @@ preferred-citation:
   url: "https://arxiv.org/abs/2212.00541"
   year: 2022
 title: "MuJoCo MPC (MJPC)"
-url: "https://github.com/deepmind/mujoco_mpc"
+url: "https://github.com/google-deepmind/mujoco_mpc"

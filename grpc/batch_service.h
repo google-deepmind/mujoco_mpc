@@ -34,7 +34,7 @@ namespace mjpc::batch_grpc {
 
 class BatchService final : public batch::Batch::Service {
  public:
-  explicit BatchService() : thread_pool_(mjpc::NumAvailableHardwareThreads()) {}
+  explicit BatchService() {}
   ~BatchService();
 
   grpc::Status Init(grpc::ServerContext* context,
@@ -97,9 +97,6 @@ class BatchService final : public batch::Batch::Service {
   // batch
   mjpc::Batch batch_;
   mjpc::UniqueMjModel batch_model_override_ = {nullptr, mj_deleteModel};
-
-  // threadpool
-  mjpc::ThreadPool thread_pool_;
 };
 
 }  // namespace mjpc::batch_grpc

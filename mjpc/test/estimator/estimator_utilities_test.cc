@@ -22,7 +22,6 @@
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -35,9 +34,6 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv;
-
-  // pool
-  ThreadPool pool(1);
 
   // ----- simulate ----- //
 
@@ -70,9 +66,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
     mju_copy(qacc.data() + t * nv, data->qacc, nv);
 
     // step using mj_Euler since mj_forward has been called
-    // see mj_ step implementation here
-    // https://
-    // github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // see mj_step implementation here
+    // https://github.com/google-deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
 
@@ -83,7 +78,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   mju_copy(estimator.configuration.Data(), qpos.data(), nq * T);
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation(pool);
+  estimator.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * (T - 1));
@@ -117,9 +112,6 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // dimensions
   int nq = model->nq, nv = model->nv, nu = model->nu, ns = model->nsensordata;
-
-  // pool
-  ThreadPool pool(1);
 
   // ----- simulate ----- //
   // trajectories
@@ -157,8 +149,8 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
     mju_copy(sensordata.data() + t * ns, data->sensordata, ns);
 
     // step using mj_Euler since mj_forward has been called
-    // see mj_ step implementation here
-    // https://github.com/deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
+    // see mj_step implementation here
+    // https://github.com/google-deepmind/mujoco/blob/main/src/engine/engine_forward.c#L831
     mj_Euler(model, data);
   }
 
@@ -176,7 +168,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mju_copy(estimator.configuration.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation(pool);
+  estimator.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * T);

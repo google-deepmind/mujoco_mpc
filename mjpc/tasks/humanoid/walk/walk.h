@@ -21,7 +21,7 @@
 namespace mjpc {
 namespace humanoid {
 
-class Walk : public ThreadSafeTask {
+class Walk : public Task {
  public:
   class ResidualFn : public mjpc::BaseResidualFn {
    public:

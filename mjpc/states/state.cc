@@ -64,6 +64,30 @@ void State::Set(const mjModel* model, const mjData* data) {
   }
 }
 
+void State::Set(const mjModel* model, const double* qpos, const double* qvel,
+                const double* act, const double* mocap_pos,
+                const double* mocap_quat, const double* userdata, double time) {
+  // lock
+  const std::unique_lock<std::shared_mutex> lock(mtx_);
+
+  state_.resize(model->nq + model->nv + model->na);
+  mocap_.resize(7 * model->nmocap);
+
+  // state
+  SetPosition(model, qpos);
+  SetVelocity(model, qvel);
+  SetAct(model, act);
+
+  // mocap
+  SetMocap(model, mocap_pos, mocap_quat);
+
+  // userdata
+  SetUserData(model, userdata);
+
+  // time
+  SetTime(model, time);
+}
+
 // TODO: make all these "Set*" functions thread-safe, or change their name.
 
 // set qpos

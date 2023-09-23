@@ -268,6 +268,35 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
     output->add_force_prediction(force_prediction[i]);
   }
 
+  // parameters
+  int np = batch_.NumberParameters();
+  if (np > 0) {
+    // set parameters
+    if (input.parameters_size() > 0) {
+      CHECK_SIZE("parameters", np, input.parameters_size());
+      mju_copy(batch_.parameters.data(), input.parameters().data(), np);
+    }
+
+    // get parameters
+    double* parameters = batch_.parameters.data();
+    for (int i = 0; i < np; i++) {
+      output->add_parameters(parameters[i]);
+    }
+
+    // set parameters previous
+    if (input.parameters_previous_size() > 0) {
+      CHECK_SIZE("parameters previous", np, input.parameters_previous_size());
+      mju_copy(batch_.parameters_previous.data(),
+               input.parameters_previous().data(), np);
+    }
+
+    // get parameters previous
+    double* parameters_previous = batch_.parameters_previous.data();
+    for (int i = 0; i < np; i++) {
+      output->add_parameters_previous(parameters_previous[i]);
+    }
+  }
+
   return grpc::Status::OK;
 }
 
@@ -503,9 +532,9 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  double total_cost = batch_.Cost(
-      derivatives ? batch_.GetCostGradient() : NULL,
-      derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
+  double total_cost =
+      batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
+                  derivatives ? batch_.GetCostHessianBand() : NULL);
 
   // cost
   response->set_total(total_cost);
@@ -668,6 +697,19 @@ grpc::Status BatchService::Noise(grpc::ServerContext* context,
     output->add_sensor(batch_.noise_sensor[i]);
   }
 
+  // parameters
+  int num_parameters = batch_.NumberParameters();
+  if (num_parameters > 0) {
+    if (input.parameter_size() > 0) {
+      CHECK_SIZE("noise parameter", num_parameters, input.parameter_size());
+      batch_.noise_parameter.assign(input.parameter().begin(),
+                                    input.parameter().end());
+    }
+    for (int i = 0; i < num_parameters; i++) {
+      output->add_parameter(batch_.noise_parameter[i]);
+    }
+  }
+
   return grpc::Status::OK;
 }
 
@@ -752,7 +794,7 @@ grpc::Status BatchService::Optimize(grpc::ServerContext* context,
   }
 
   // optimize
-  batch_.Optimize(thread_pool_);
+  batch_.Optimize();
 
   return grpc::Status::OK;
 }

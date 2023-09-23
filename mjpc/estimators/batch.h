@@ -15,6 +15,7 @@
 #ifndef MJPC_ESTIMATORS_BATCH_H_
 #define MJPC_ESTIMATORS_BATCH_H_
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -22,7 +23,7 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
+#include "mjpc/estimators/model_parameters.h"  // temporary until we make nice API
 #include "mjpc/estimators/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -64,7 +65,9 @@ inline constexpr double kMinBatchRegularization = 1.0e-12;
 class Batch : public Estimator {
  public:
   // constructor
-  Batch() = default;
+  Batch()
+      : model_parameters_(LoadModelParameters()),
+        pool_(NumAvailableHardwareThreads()) {}
 
   // batch filter constructor
   Batch(int mode);
@@ -129,10 +132,10 @@ class Batch : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+  void GUI(mjUI& ui) override;
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override;
+  void SetGUIData() override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -151,13 +154,13 @@ class Batch : public Estimator {
   void Shift(int shift);
 
   // evaluate configurations
-  void ConfigurationEvaluation(ThreadPool& pool);
+  void ConfigurationEvaluation();
 
   // compute total cost_
-  double Cost(double* gradient, double* hessian, ThreadPool& pool);
+  double Cost(double* gradient, double* hessian);
 
   // optimize trajectory estimate
-  void Optimize(ThreadPool& pool);
+  void Optimize();
 
   // cost
   double GetCost() { return cost_; }
@@ -189,6 +192,9 @@ class Batch : public Estimator {
 
   // measurement sensor start index
   int SensorStartIndex() const { return sensor_start_index_; }
+
+  // get number of parameters
+  int NumberParameters() const { return nparam_; }
 
   // get status
   int IterationsSmoother() const { return iterations_smoother_; }
@@ -241,6 +247,11 @@ class Batch : public Estimator {
   EstimatorTrajectory<int> sensor_mask;                // num_sensor x T
   EstimatorTrajectory<double> force_measurement;       // nv x T
   EstimatorTrajectory<double> force_prediction;        // nv x T
+
+  // parameters
+  std::vector<double> parameters;           // nparam
+  std::vector<double> parameters_previous;  // nparam
+  std::vector<double> noise_parameter;     // nparam
 
   // norms
   std::vector<NormType> norm_type_sensor;  // num_sensor
@@ -300,16 +311,16 @@ class Batch : public Estimator {
   void ConfigurationToVelocityAcceleration();
 
   // compute sensor and force predictions via inverse dynamics
-  void InverseDynamicsPrediction(ThreadPool& pool);
+  void InverseDynamicsPrediction();
 
   // compute finite-difference velocity, acceleration derivatives
   void VelocityAccelerationDerivatives();
 
   // compute inverse dynamics derivatives (via finite difference)
-  void InverseDynamicsDerivatives(ThreadPool& pool);
+  void InverseDynamicsDerivatives();
 
   // evaluate configurations derivatives
-  void ConfigurationDerivative(ThreadPool& pool);
+  void ConfigurationDerivative();
 
   // ----- prior ----- //
   // cost
@@ -322,7 +333,7 @@ class Batch : public Estimator {
   void BlockPrior(int index);
 
   // Jacobian
-  void JacobianPrior(ThreadPool& pool);
+  void JacobianPrior();
 
   // ----- sensor ----- //
   // cost
@@ -335,7 +346,7 @@ class Batch : public Estimator {
   void BlockSensor(int index);
 
   // Jacobian
-  void JacobianSensor(ThreadPool& pool);
+  void JacobianSensor();
 
   // ----- force ----- //
   // cost
@@ -348,7 +359,7 @@ class Batch : public Estimator {
   void BlockForce(int index);
 
   // Jacobian
-  void JacobianForce(ThreadPool& pool);
+  void JacobianForce();
 
   // compute total gradient
   void TotalGradient(double* gradient);
@@ -356,8 +367,8 @@ class Batch : public Estimator {
   // compute total Hessian
   void TotalHessian(double* hessian);
 
-  // search direction
-  void SearchDirection();
+  // search direction, returns false if regularization maxes out
+  bool SearchDirection();
 
   // update configuration trajectory
   void UpdateConfiguration(EstimatorTrajectory<double>& candidate,
@@ -373,9 +384,6 @@ class Batch : public Estimator {
   // reset timers
   void ResetTimers();
 
-  // print optimize iteration
-  void PrintIteration();
-
   // print optimize status
   void PrintOptimize();
 
@@ -385,15 +393,26 @@ class Batch : public Estimator {
   // increase regularization
   void IncreaseRegularization();
 
+  // derivatives of force and sensor model wrt parameters
+  void ParameterJacobian(int index);
+
   // dimensions
   int nstate_;
   int ndstate_;
   int nsensordata_;
   int nsensor_;
 
+  int ntotal_;  // total number of decision variable
+  int nvel_;    // number of configuration (derivatives) variables
+  int nparam_;  // number of parameter variable (ndense)
+  int nband_;   // cost Hessian band dimension
+
   // sensor indexing
   int sensor_start_;
   int sensor_start_index_;
+
+  // perturbed models (for parameter estimation)
+  std::vector<UniqueMjModel> model_perturb_;
 
   // data
   std::vector<UniqueMjData> data_;
@@ -418,9 +437,9 @@ class Batch : public Estimator {
   std::vector<double> residual_force_;   // nv x (T - 2)
 
   // Jacobian
-  std::vector<double> jacobian_prior_;   // (nv * T) * (nv * T)
-  std::vector<double> jacobian_sensor_;  // (ns * (T - 1)) * (nv * T)
-  std::vector<double> jacobian_force_;   // (nv * (T - 2)) * (nv * T)
+  std::vector<double> jacobian_prior_;   // (nv * T) * (nv * T + nparam)
+  std::vector<double> jacobian_sensor_;  // (ns * (T - 1)) * (nv * T + nparam)
+  std::vector<double> jacobian_force_;   // (nv * (T - 2)) * (nv * T + nparam)
 
   // prior Jacobian block
   EstimatorTrajectory<double>
@@ -464,6 +483,15 @@ class Batch : public Estimator {
 
   EstimatorTrajectory<double> block_force_scratch_;  // (nv * nv) x T
 
+  // sensor Jacobian blocks wrt parameters (dsdp, dpds)
+  EstimatorTrajectory<double>
+      block_sensor_parameters_;  // (nsensordata * nparam_) x T
+  EstimatorTrajectory<double>
+      block_sensor_parametersT_;  // (nparam_ * nsensordata) x T
+
+  // force Jacobian blocks wrt parameters (dpdf)
+  EstimatorTrajectory<double> block_force_parameters_;  // (nparam_ * nv) x T
+
   // velocity Jacobian blocks (dv1dq0, dv1dq1)
   EstimatorTrajectory<double>
       block_velocity_previous_configuration_;  // (nv * nv) x T
@@ -494,39 +522,47 @@ class Batch : public Estimator {
   std::vector<double> norm_blocks_force_;   // (nv * nv) x max_history_
 
   // cost gradient
-  std::vector<double> cost_gradient_prior_;   // nv * max_history_
-  std::vector<double> cost_gradient_sensor_;  // nv * max_history_
-  std::vector<double> cost_gradient_force_;   // nv * max_history_
-  std::vector<double> cost_gradient_;         // nv * max_history_
+  std::vector<double> cost_gradient_prior_;   // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_sensor_;  // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_force_;   // nv * max_history_ + nparam
+  std::vector<double> cost_gradient_;         // nv * max_history_ + nparam
 
   // cost Hessian
   std::vector<double>
-      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_prior_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                 // (nv * max_history_)
   std::vector<double>
-      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_sensor_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                  // (nv * max_history_)
   std::vector<double>
-      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_force_band_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                 // (nv * max_history_)
+  std::vector<double> cost_hessian_;  // (nv * max_history_ + nparam) * (nv *
+                                      // max_history_ + nparam)
+  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv) +
+                                           // nparam * (nv * max_history_)
   std::vector<double>
-      cost_hessian_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double> cost_hessian_band_;  // (nv * max_history_) * (3 * nv)
-  std::vector<double>
-      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv)
+      cost_hessian_band_factor_;  // (nv * max_history_) * (3 * nv) + nparam *
+                                  // (nv * max_history_)
 
   // cost scratch
-  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv
+  std::vector<double> scratch_prior_;  // nv * max_history_ + 12 * nv * nv +
+                                       // nparam * (nv * max_history_)
   std::vector<double>
       scratch_sensor_;  // 3 * nv + nsensor_data * 3 * nv + 9 * nv * nv
-  std::vector<double> scratch_force_;     // 12 * nv * nv
-  std::vector<double> scratch_expected_;  // nv * max_history_
+  std::vector<double> scratch_force_;  // 12 * nv * nv
+  std::vector<double>
+      scratch_expected_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // search direction
-  std::vector<double> search_direction_;  // nv * max_history_
+  std::vector<double>
+      search_direction_;  // nv * max_history_ + nparam * (nv * max_history_)
 
   // prior weights
-  std::vector<double>
-      weight_prior_;  // (nv * max_history_) * (nv * max_history_)
-  std::vector<double>
-      weight_prior_band_;  // (nv * max_history_) * (nv * max_history_)
+  std::vector<double> weight_prior_;  // (nv * max_history_ + nparam) * (nv *
+                                      // max_history_ + nparam)
+  std::vector<double> weight_prior_band_;  // (nv * max_history_ + nparam) * (nv
+                                           // * max_history_ + nparam)
 
   // conditioned matrix
   std::vector<double> mat00_;
@@ -535,6 +571,18 @@ class Batch : public Estimator {
   std::vector<double> condmat_;
   std::vector<double> scratch0_condmat_;
   std::vector<double> scratch1_condmat_;
+
+  // parameters copy
+  std::vector<double> parameters_copy_;  // nparam x T
+
+  // dense cost Hessian rows (for parameter derivatives)
+  std::vector<double> dense_prior_parameter_;   // nparam x ntotal
+  std::vector<double> dense_force_parameter_;   // nparam x ntotal
+  std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
+
+  // model parameters
+  std::vector<std::unique_ptr<mjpc::ModelParameters>> model_parameters_;
+  int model_parameters_id_;
 
   // filter mode status
   int current_time_index_;
@@ -610,6 +658,29 @@ class Batch : public Estimator {
   EstimatorTrajectory<int> sensor_mask_cache_;                // num_sensor x T
   EstimatorTrajectory<double> force_measurement_cache_;       // nv x T
   EstimatorTrajectory<double> force_prediction_cache_;        // nv x T
+
+  // threadpool
+  ThreadPool pool_;
+
+  // -- GUI data -- //
+
+  // time step
+  double gui_timestep_;
+
+  // integrator
+  int gui_integrator_;
+
+  // process noise
+  std::vector<double> gui_process_noise_;
+
+  // sensor noise
+  std::vector<double> gui_sensor_noise_;
+
+  // scale prior
+  double gui_scale_prior_;
+
+  // estimation horizon
+  int gui_horizon_;
 };
 
 // estimator status string

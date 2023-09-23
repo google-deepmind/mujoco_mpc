@@ -19,7 +19,7 @@
 #include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
-class ParticleTestTask : public mjpc::ThreadSafeTask {
+class ParticleTestTask : public mjpc::Task {
  public:
   ParticleTestTask() : residual_(this) {}
 

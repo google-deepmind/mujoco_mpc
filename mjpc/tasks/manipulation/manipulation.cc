@@ -100,7 +100,6 @@ void manipulation::Bring::TransitionLocked(mjModel* model, mjData* data) {
 }
 
 void manipulation::Bring::ResetLocked(const mjModel* model) {
-  Task::Reset(model);
   residual_.model_vals_ = ModelValues::FromModel(model);
 }
 }  // namespace mjpc

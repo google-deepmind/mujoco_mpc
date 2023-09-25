@@ -21,7 +21,6 @@
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/estimators/gui.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -82,10 +81,10 @@ class Estimator {
   virtual void SetCovariance(const double* covariance) = 0;
 
   // estimator-specific GUI elements
-  virtual void GUI(mjUI& ui, EstimatorGUIData& data) = 0;
+  virtual void GUI(mjUI& ui) = 0;
 
   // set GUI data
-  virtual void SetGUIData(EstimatorGUIData& data) = 0;
+  virtual void SetGUIData() = 0;
 
   // estimator-specific plots
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
@@ -236,10 +235,10 @@ class GroundTruth : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override{};
+  void GUI(mjUI& ui) override {};
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override{};
+  void SetGUIData() override {};
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,

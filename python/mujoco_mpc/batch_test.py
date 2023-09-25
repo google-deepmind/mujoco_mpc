@@ -126,7 +126,7 @@ class BatchTest(absltest.TestCase):
     ## sensor mask
 
     # set
-    sensor_mask = np.array([1, 0, 1, 0], dtype=int)
+    sensor_mask = np.array([1, 0, 1, 0, 0], dtype=int)
     data = batch.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match
@@ -358,13 +358,13 @@ class BatchTest(absltest.TestCase):
     # cost
     cost = batch.cost(derivatives=True, internals=True)
 
-    self.assertLess(np.abs(cost["total"] - 0.0), 1.0e-5)
+    self.assertLess(np.abs(cost["total"] - 0.001), 1.0e-4)
 
     # cost prior
     self.assertLess(np.abs(cost["prior"] - 0.0), 1.0e-5)
 
     # cost sensor
-    self.assertLess(np.abs(cost["sensor"] - 0.0), 1.0e-5)
+    self.assertLess(np.abs(cost["sensor"] - 0.001), 1.0e-4)
 
     # cost force
     self.assertLess(np.abs(cost["force"] - 0.0), 1.0e-5)
@@ -377,27 +377,27 @@ class BatchTest(absltest.TestCase):
     nsensor = model.nsensordata * (configuration_length - 1)
     nforce = model.nv * (configuration_length - 2)
 
-    self.assertTrue(nvar == cost["nvar"])
-    self.assertTrue(nsensor == cost["nsensor"])
-    self.assertTrue(nforce == cost["nforce"])
+    self.assertEqual(nvar, cost["nvar"])
+    self.assertEqual(nsensor, cost["nsensor"])
+    self.assertEqual(nforce, cost["nforce"])
 
-    self.assertTrue(cost["gradient"].size == nvar)
-    self.assertTrue(cost["hessian"].shape == (nvar, nvar))
+    self.assertEqual(cost["gradient"].size, nvar)
+    self.assertEqual(cost["hessian"].shape, (nvar, nvar))
 
-    self.assertTrue(cost["residual_prior"].size == nvar)
-    self.assertTrue(cost["residual_sensor"].size == nsensor)
-    self.assertTrue(cost["residual_force"].size == nforce)
+    self.assertEqual(cost["residual_prior"].size, nvar)
+    self.assertEqual(cost["residual_sensor"].size, nsensor)
+    self.assertEqual(cost["residual_force"].size, nforce)
 
-    self.assertTrue(cost["jacobian_prior"].shape == (nvar, nvar))
-    self.assertTrue(cost["jacobian_sensor"].shape == (nsensor, nvar))
-    self.assertTrue(cost["jacobian_force"].shape == (nforce, nvar))
+    self.assertEqual(cost["jacobian_prior"].shape, (nvar, nvar))
+    self.assertEqual(cost["jacobian_sensor"].shape, (nsensor, nvar))
+    self.assertEqual(cost["jacobian_force"].shape, (nforce, nvar))
 
-    self.assertTrue(cost["norm_gradient_sensor"].size == nsensor)
-    self.assertTrue(cost["norm_gradient_force"].size == nforce)
+    self.assertEqual(cost["norm_gradient_sensor"].size, nsensor)
+    self.assertEqual(cost["norm_gradient_force"].size, nforce)
 
-    self.assertTrue(cost["prior_matrix"].shape == (nvar, nvar))
-    self.assertTrue(cost["norm_hessian_sensor"].shape == (nsensor, nsensor))
-    self.assertTrue(cost["norm_hessian_force"].shape == (nforce, nforce))
+    self.assertEqual(cost["prior_matrix"].shape, (nvar, nvar))
+    self.assertEqual(cost["norm_hessian_sensor"].shape, (nsensor, nsensor))
+    self.assertEqual(cost["norm_hessian_force"].shape, (nforce, nforce))
 
   def test_noise(self):
     # load model
@@ -439,16 +439,16 @@ class BatchTest(absltest.TestCase):
 
     # no shift
     head = batch.shift(0)
-    self.assertTrue(head == 0)
+    self.assertEqual(head, 0)
 
     # shift
     shift = 1
     head = batch.shift(shift)
-    self.assertTrue(head == 1)
+    self.assertEqual(head, 1)
 
     shift = 2
     head = batch.shift(shift)
-    self.assertTrue(head == 3)
+    self.assertEqual(head, 3)
 
   def test_reset(self):
     # load model
@@ -505,7 +505,7 @@ class BatchTest(absltest.TestCase):
     # TODO(taylor): setup
 
     # optimize
-    # batch.optimize()
+    batch.optimize()
 
   def test_status(self):
     # load model
@@ -525,10 +525,10 @@ class BatchTest(absltest.TestCase):
     status = batch.status()
 
     # search iterations
-    self.assertTrue(status["search_iterations"] == 0)
+    self.assertEqual(status["search_iterations"], 0)
 
     # smoother iterations
-    self.assertTrue(status["smoother_iterations"] == 0)
+    self.assertEqual(status["smoother_iterations"], 0)
 
     # step size
     self.assertLess(np.abs(status["step_size"] - 1.0), 1.0e-5)
@@ -575,7 +575,7 @@ class BatchTest(absltest.TestCase):
     prior0 = batch.prior_weights()
 
     # test
-    self.assertTrue(prior0.shape == (dim, dim))
+    self.assertEqual(prior0.shape, (dim, dim))
     self.assertTrue(not prior0.any())
 
     # identity
@@ -609,7 +609,7 @@ class BatchTest(absltest.TestCase):
     self.assertTrue(not data["sensor_parameters"].any())
 
     # set norm data
-    sensor_type = np.array([1, 2, 3, 4])
+    sensor_type = np.array([1, 2, 3, 4, 5])
     sensor_parameters = np.random.rand(3 * model.nsensor)
     data = batch.norm(
         sensor_type=sensor_type,
@@ -641,9 +641,9 @@ class BatchTest(absltest.TestCase):
     info = batch.sensor_info()
 
     # test
-    self.assertTrue(info["start_index"] == 0)
-    self.assertTrue(info["num_measurements"] == 4)
-    self.assertTrue(info["dim_measurements"] == 4)
+    self.assertEqual(info["start_index"], 0)
+    self.assertEqual(info["num_measurements"], 5)
+    self.assertEqual(info["dim_measurements"], 7)
 
   def test_parameters(self):
     # load model

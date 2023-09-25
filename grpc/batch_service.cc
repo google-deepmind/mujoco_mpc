@@ -532,9 +532,9 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   bool derivatives = request->derivatives();
 
   // evaluate cost
-  double total_cost = batch_.Cost(
-      derivatives ? batch_.GetCostGradient() : NULL,
-      derivatives ? batch_.GetCostHessianBand() : NULL, thread_pool_);
+  double total_cost =
+      batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
+                  derivatives ? batch_.GetCostHessianBand() : NULL);
 
   // cost
   response->set_total(total_cost);
@@ -794,7 +794,7 @@ grpc::Status BatchService::Optimize(grpc::ServerContext* context,
   }
 
   // optimize
-  batch_.Optimize(thread_pool_);
+  batch_.Optimize();
 
   return grpc::Status::OK;
 }

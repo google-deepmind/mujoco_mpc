@@ -69,6 +69,7 @@ enum {
   SECT_WATCH,
   SECT_TASK,
   SECT_AGENT,
+  SECT_ESTIMATOR,
   SECT_PHYSICS,
   SECT_RENDERING,
   SECT_GROUP,
@@ -511,7 +512,6 @@ void UpdateInfoText(mj::Simulate* sim,
                     double interval) {
   mjModel* m = sim->m;
   mjData* d = sim->d;
-  char tmp[20];
 
   // compute solver error
   int island = 0;  // first island only
@@ -540,6 +540,7 @@ void UpdateInfoText(mj::Simulate* sim,
   // add Energy if enabled
   {
     if (mjENABLED(mjENBL_ENERGY)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%.3f", d->energy[0]+d->energy[1]);
       mju::strcat_arr(content, tmp);
       mju::strcat_arr(title, "\nEnergy");
@@ -547,6 +548,7 @@ void UpdateInfoText(mj::Simulate* sim,
 
     // add FwdInv if enabled
     if (mjENABLED(mjENBL_FWDINV)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%.1f %.1f",
                        mju_log10(mju_max(mjMINVAL, d->solver_fwdinv[0])),
                        mju_log10(mju_max(mjMINVAL, d->solver_fwdinv[1])));
@@ -556,6 +558,7 @@ void UpdateInfoText(mj::Simulate* sim,
 
     // add islands if enabled
     if (mjENABLED(mjENBL_ISLAND)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%d", d->nisland);
       mju::strcat_arr(content, tmp);
       mju::strcat_arr(title, "\nIslands");
@@ -1309,6 +1312,11 @@ void UiEvent(mjuiState* state) {
     // agent section
     else if (it && it->sectionid == SECT_AGENT) {
       sim->agent->AgentEvent(it, sim->d, sim->uiloadrequest, sim->run);
+    }
+
+    // estimator section
+    else if (it && it->sectionid == SECT_ESTIMATOR) {
+      sim->agent->EstimatorEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
     // physics section

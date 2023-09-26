@@ -115,6 +115,10 @@ double* KeyQPosByName(const mjModel* m, const mjData* d,
 double* KeyQVelByName(const mjModel* m, const mjData* d,
                       const std::string& name);
 
+// get keyframe `act` data using string
+double* KeyActByName(const mjModel* m, const mjData* d,
+                     const std::string& name);
+
 // return a power transformed sequence
 void PowerSequence(double* t, double t_step, double t1, double t2, double p,
                    double N);

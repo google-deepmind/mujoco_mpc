@@ -228,7 +228,7 @@ class Unscented : public Estimator {
   std::vector<double> tmp1_;
 
   // -- GUI data -- //
-  
+
   // time step
   double gui_timestep_;
 

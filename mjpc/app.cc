@@ -34,6 +34,7 @@
 #include <glfw_adapter.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/agent.h"
+#include "mjpc/estimators/estimator.h"
 #include "mjpc/simulate.h"  // mjpc fork
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -132,7 +133,7 @@ mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
   }
 
   // compiler warning: print and pause
-  if (load_model.error.length()) {
+  if (!load_model.error.empty()) {
     std::cout << "Model compiled, but simulation warning (paused):\n  "
               << load_model.error << "\n";
     sim.run = 0;
@@ -471,14 +472,17 @@ void MjpcApp::Start() {
   // set sensor callback
   mjcb_sensor = sensor;
 
+  // one-off preparation:
+  sim->InitializeRenderLoop();
+
   // start physics thread
   mjpc::ThreadPool physics_pool(1);
-  physics_pool.Schedule([]() { PhysicsLoop(*sim.get()); });
+  physics_pool.Schedule([]() { PhysicsLoop(*sim); });
 
   // start estimator thread
   mjpc::ThreadPool estimator_pool(1);
   if (sim->agent->estimator_enabled) {
-    estimator_pool.Schedule([]() { EstimatorLoop(*sim.get()); });
+    estimator_pool.Schedule([]() { EstimatorLoop(*sim); });
   }
 
   {
@@ -488,9 +492,6 @@ void MjpcApp::Start() {
         []() { sim->agent->Plan(sim->exitrequest, sim->uiloadrequest); });
 
     // now that planning was forked, the main thread can render
-
-    // one-off preparation:
-    sim->InitializeRenderLoop();
 
     // start simulation UI loop (blocking call)
     sim->RenderLoop();

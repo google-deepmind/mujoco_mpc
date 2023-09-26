@@ -235,10 +235,10 @@ class GroundTruth : public Estimator {
   };
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui) override{};
+  void GUI(mjUI& ui) override {};
 
   // set GUI data
-  void SetGUIData() override{};
+  void SetGUIData() override {};
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,

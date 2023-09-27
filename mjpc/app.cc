@@ -359,6 +359,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
+          syncCPU = mj::Simulate::Clock::now();
         }
       }
     }  // release sim.mtx

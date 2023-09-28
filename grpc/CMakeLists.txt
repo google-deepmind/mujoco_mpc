@@ -66,6 +66,11 @@ set(batch_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.pb.h")
 set(batch_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.cc")
 set(batch_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/batch.grpc.pb.h")
 
+set(filter_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/filter.pb.cc")
+set(filter_service_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/filter.pb.h")
+set(filter_service_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/filter.grpc.pb.cc")
+set(filter_service_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/filter.grpc.pb.h")
+
 message("We need the following for agent/batch_protos:")
 message(_GRPC_CPP_PLUGIN_EXECUTABLE${_GRPC_CPP_PLUGIN_EXECUTABLE})
 
@@ -101,6 +106,23 @@ add_custom_command(
   "${batch_service_proto}"
   DEPENDS
   "${batch_service_proto}"
+)
+
+add_custom_command(
+  OUTPUT
+  "${filter_service_proto_srcs}"
+  "${filter_service_proto_hdrs}"
+  "${filter_service_grpc_srcs}"
+  "${filter_service_grpc_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS
+  --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  -I "${filter_service_proto_path}"
+  --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+  "${filter_service_proto}"
+  DEPENDS
+  "${filter_service_proto}"
 )
 
 # Include generated *.pb.h files
@@ -208,3 +230,35 @@ target_include_directories(batch_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 message(BATCH_SERVICE_COMPILE_OPTIONS=${BATCH_SERVICE_COMPILE_OPTIONS})
 target_compile_options(batch_server PUBLIC ${BATCH_SERVICE_COMPILE_OPTIONS})
 target_link_options(batch_server PRIVATE ${BATCH_SERVICE_LINK_OPTIONS})
+
+add_executable(
+  filter_server
+  filter_server.cc
+  ${filter_service_grpc_srcs}
+  ${filter_service_grpc_hdrs}
+  ${filter_service_proto_srcs}
+  ${filter_service_proto_hdrs}
+  filter_service.h
+  filter_service.cc
+)
+
+target_link_libraries(
+  filter_server
+  # filter_service_grpc_proto
+  absl::check
+  absl::flags
+  absl::flags_parse
+  absl::log
+  absl::random_random
+  absl::status
+  absl::strings
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  mujoco::mujoco
+  libmjpc
+)
+target_include_directories(filter_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message(FILTER_SERVICE_COMPILE_OPTIONS=${FILTER_SERVICE_COMPILE_OPTIONS})
+target_compile_options(filter_server PUBLIC ${FILTER_SERVICE_COMPILE_OPTIONS})
+target_link_options(filter_server PRIVATE ${FILTER_SERVICE_LINK_OPTIONS})

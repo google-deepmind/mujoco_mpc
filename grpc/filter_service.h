@@ -1,0 +1,81 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// An implementation of the `Filter` gRPC service.
+
+#ifndef GRPC_FILTER_SERVICE_H_
+#define GRPC_FILTER_SERVICE_H_
+
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/status.h>
+#include <mujoco/mujoco.h>
+
+#include <memory>
+#include <vector>
+
+#include "grpc/filter.grpc.pb.h"
+#include "grpc/filter.pb.h"
+#include "mjpc/estimators/include.h"
+#include "mjpc/utilities.h"
+
+namespace filter_grpc {
+
+class FilterService final : public filter::Filter::Service {
+ public:
+  explicit FilterService() : thread_pool_(1) {}
+  ~FilterService();
+
+  grpc::Status Init(grpc::ServerContext* context,
+                    const filter::InitRequest* request,
+                    filter::InitResponse* response) override;
+
+  grpc::Status Reset(grpc::ServerContext* context,
+                     const filter::ResetRequest* request,
+                     filter::ResetResponse* response) override;
+
+  grpc::Status Settings(grpc::ServerContext* context,
+                        const filter::SettingsRequest* request,
+                        filter::SettingsResponse* response) override;
+
+  grpc::Status Update(grpc::ServerContext* context,
+                      const filter::UpdateRequest* request,
+                      filter::UpdateResponse* response) override;
+
+  grpc::Status Timers(grpc::ServerContext* context,
+                      const filter::TimersRequest* request,
+                      filter::TimersResponse* response) override;
+
+  grpc::Status State(grpc::ServerContext* context,
+                     const filter::StateRequest* request,
+                     filter::StateResponse* response) override;
+
+  grpc::Status Covariance(grpc::ServerContext* context,
+                          const filter::CovarianceRequest* request,
+                          filter::CovarianceResponse* response) override;
+
+  grpc::Status Noise(grpc::ServerContext* context,
+                     const filter::NoiseRequest* request,
+                     filter::NoiseResponse* response) override;
+
+ private:
+  bool Initialized() const { return filter_.model; }
+
+  // filter
+  mjpc::Filter filter_;
+  mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
+};
+
+}  // namespace filter_grpc
+
+#endif  // GRPC_FILTER_SERVICE_H_

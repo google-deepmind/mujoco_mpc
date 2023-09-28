@@ -27,13 +27,12 @@
 #include "grpc/filter.grpc.pb.h"
 #include "grpc/filter.pb.h"
 #include "mjpc/estimators/include.h"
-#include "mjpc/utilities.h"
 
 namespace filter_grpc {
 
 class FilterService final : public filter::Filter::Service {
  public:
-  explicit FilterService() : thread_pool_(1) {}
+  explicit FilterService() : filter_(mjpc::LoadEstimators()) {}
   ~FilterService();
 
   grpc::Status Init(grpc::ServerContext* context,
@@ -69,10 +68,13 @@ class FilterService final : public filter::Filter::Service {
                      filter::NoiseResponse* response) override;
 
  private:
-  bool Initialized() const { return filter_.model; }
+  bool Initialized() const { return filters_[filter_].Model(); }
 
-  // filter
-  mjpc::Filter filter_;
+  // filters
+  std::vector<std::unique_ptr<mjpc::Estimator>> filters_;
+  int filter_;
+
+  // model
   mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 };
 

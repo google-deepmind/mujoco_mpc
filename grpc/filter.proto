@@ -72,9 +72,7 @@ message UpdateResponse {}
 
 message TimersRequest {}
 
-message TimersResponse {
-  double update = 1;
-}
+message TimersResponse {}
 
 message State {
   repeated double state = 1 [packed = true];
@@ -111,5 +109,7 @@ message NoiseRequest {
 }
 
 message NoiseResponse {
-  Noise noise = 2;
+  Noise noise = 1;
+  int32 dim_process = 2;
+  int32 dim_sensor = 3;
 }

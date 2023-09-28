@@ -242,12 +242,14 @@ class Filter:
     )
 
     # response
-    response = self._wait(self.stub.Noise.future(request)).noise
+    response = self._wait(self.stub.Noise.future(request))
 
     # return noise
     return {
-        "process": np.array(response.process),
-        "sensor": np.array(response.sensor),
+        "process": np.array(response.noise.process),
+        "sensor": np.array(response.noise.sensor),
+        "dim_process": np.array(response.dim_process),
+        "dim_sensor": np.array(response.dim_sensor),
     }
 
   def _wait(self, future):

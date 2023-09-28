@@ -98,9 +98,12 @@ grpc::Status FilterService::Init(grpc::ServerContext* context,
   model_override_ = std::move(tmp_model);
   mjModel* model = model_override_.get();
 
-  // initialize filter
-  filter_.Initialize(model);
-  filter_.Reset();
+  // initialize filters
+  filter_ = GetNumberOrDefault(0, model, "estimator");
+  for (const auto& filter : filterss_) {
+    filter->Initialize(model);
+    filter->Reset();
+  }
 
   return grpc::Status::OK;
 }
@@ -113,7 +116,7 @@ grpc::Status FilterService::Reset(grpc::ServerContext* context,
   }
 
   // reset
-  filter_.Reset();
+  filters_[filter_].Reset();
 
   return grpc::Status::OK;
 }
@@ -142,7 +145,7 @@ grpc::Status FilterService::Update(grpc::ServerContext* context,
   }
 
   // measurement update
-  filter_.Update(request->ctrl().data(), request->sensor().data());
+  filters_[filter]->Update(request->ctrl().data(), request->sensor().data());
 
   return grpc::Status::OK;
 }
@@ -170,18 +173,26 @@ grpc::Status FilterService::State(grpc::ServerContext* context,
   filter::State input = request->state();
   filter::State* output = response->mutable_state();
 
-  // // set state
-  // int nstate = filter_.model->nq + filter_.model->nv;
-  // if (input.state_size() > 0) {
-  //   CHECK_SIZE("state", nstate, input.state_size());
-  //   mju_copy(filter_.state.data(), input.state().data(), nstate);
-  // }
+  // active filter
+  mjpc::Estimator* active_filter = filters_[filter_].get();
 
-  // // get state
-  // double* state = filter_.state.data();
-  // for (int i = 0; i < nstate; i++) {
-  //   output->add_state(state[i]);
-  // }
+  // model
+  mjModel* model = active_filter->Model();
+
+  // state
+  double* state = active_filter->State();
+
+  // set state
+  int nstate = model->nq + model->nv + model->na;
+  if (input.state_size() > 0) {
+    CHECK_SIZE("state", nstate, input.state_size());
+    mju_copy(state, input.state().data(), nstate);
+  }
+
+  // get state
+  for (int i = 0; i < nstate; i++) {
+    output->add_state(state[i]);
+  }
 
   return grpc::Status::OK;
 }
@@ -197,25 +208,29 @@ grpc::Status FilterService::Covariance(grpc::ServerContext* context,
   filter::Covariance input = request->covariance();
   filter::Covariance* output = response->mutable_covariance();
 
+  // active filter
+  mjpc::Estimator* active_filter = filters_[filter_].get();
+
   // dimensions
-  // int nvelocity = 2 * filter_.model->nv;
-  // int ncovariance = nvelocity * nvelocity;
+  int nvelocity = active_filter->DimensionProcess();
+  int ncovariance = nvelocity * nvelocity;
 
-  // // set dimension
-  // output->set_dimension(nvelocity);
+  // set dimension
+  output->set_dimension(nvelocity);
 
-  // // set covariance
-  // if (input.covariance_size() > 0) {
-  //   CHECK_SIZE("covariance", ncovariance, input.covariance_size());
-  //   mju_copy(filter_.covariance.data(), input.covariance().data(),
-  //   ncovariance);
-  // }
+  // covariance
+  double* covariance = active_filter->Covariance();
 
-  // // get covariance
-  // double* covariance = filter_.covariance.data();
-  // for (int i = 0; i < ncovariance; i++) {
-  //   output->add_covariance(covariance[i]);
-  // }
+  // set covariance
+  if (input.covariance_size() > 0) {
+    CHECK_SIZE("covariance", ncovariance, input.covariance_size());
+    mju_copy(covariance, input.covariance().data(), ncovariance);
+  }
+
+  // get covariance
+  for (int i = 0; i < ncovariance; i++) {
+    output->add_covariance(covariance[i]);
+  }
 
   return grpc::Status::OK;
 }
@@ -231,33 +246,40 @@ grpc::Status FilterService::Noise(grpc::ServerContext* context,
   filter::Noise input = request->noise();
   filter::Noise* output = response->mutable_noise();
 
-  // // dimensions
-  // int nprocess = 2 * filter_.model->nv;
-  // int nsensor = filter_.model->nsensordata;
+  // active filter
+  mjpc::Estimator* active_filter = filters_[filter_].get();
 
-  // // set process noise
-  // if (input.process_size() > 0) {
-  //   CHECK_SIZE("process noise", nprocess, input.process_size());
-  //   mju_copy(filter_.noise_process.data(), input.process().data(), nprocess);
-  // }
+  // dimensions
+  int nprocess = active_filter->DimensionProcess();
+  int nsensor = active_filter->DimensionSensor();
+  response->set_dim_process(nprocess);
+  response->set_dim_sensor(nsensor);
 
-  // // get process noise
-  // double* process = filter_.noise_process.data();
-  // for (int i = 0; i < nprocess; i++) {
-  //   output->add_process(process[i]);
-  // }
+  // noise
+  double* process_noise = active_filter->ProcessNoise();
+  double* sensor_noise = active_filter->SensorNoise();
 
-  // // set sensor noise
-  // if (input.sensor_size() > 0) {
-  //   CHECK_SIZE("sensor noise", nsensor, input.sensor_size());
-  //   mju_copy(filter_.noise_sensor.data(), input.sensor().data(), nsensor);
-  // }
+  // set process noise
+  if (input.process_size() > 0) {
+    CHECK_SIZE("process noise", nprocess, input.process_size());
+    mju_copy(process_noise, input.process().data(), nprocess);
+  }
 
-  // // get sensor noise
-  // double* sensor = filter_.noise_sensor.data();
-  // for (int i = 0; i < nsensor; i++) {
-  //   output->add_sensor(sensor[i]);
-  // }
+  // get process noise
+  for (int i = 0; i < nprocess; i++) {
+    output->add_process(process_noise[i]);
+  }
+
+  // set sensor noise
+  if (input.sensor_size() > 0) {
+    CHECK_SIZE("sensor noise", nsensor, input.sensor_size());
+    mju_copy(sensor_noise, input.sensor().data(), nsensor);
+  }
+
+  // get sensor noise
+  for (int i = 0; i < nsensor; i++) {
+    output->add_sensor(sensor[i]);
+  }
 
   return grpc::Status::OK;
 }

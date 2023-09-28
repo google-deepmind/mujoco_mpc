@@ -77,7 +77,8 @@ void Agent::Initialize(const mjModel* model) {
   planner_ = GetNumberOrDefault(0, model, "agent_planner");
 
   // estimator
-  estimator_ = GetNumberOrDefault(0, model, "estimator");
+  estimator_ =
+      estimator_enabled ? GetNumberOrDefault(0, model, "estimator") : 0;
 
   // integrator
   integrator_ =

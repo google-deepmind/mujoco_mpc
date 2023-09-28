@@ -141,6 +141,14 @@ class Filter:
     # initialize response
     self._wait(self.stub.Init.future(init_request))
 
+  def available_filters(self):
+    return {
+      "ground truth",
+      "extended Kalman filter",
+      "unscented Kalman filter",
+      "batch filter",
+    }
+  
   def reset(self):
     # reset request
     request = filter_pb2.ResetRequest()

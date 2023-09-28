@@ -192,7 +192,10 @@ class GroundTruth : public Estimator {
   }
 
   // update
-  void Update(const double* ctrl, const double* sensor) override{};
+  void Update(const double* ctrl, const double* sensor) override {
+    mju_copy(data_->ctrl, ctrl, model->nu);
+    mj_step(model, data_);
+  };
 
   // get state
   double* State() override { return state.data(); };

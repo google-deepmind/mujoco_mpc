@@ -32,7 +32,7 @@ namespace filter_grpc {
 
 class FilterService final : public filter::Filter::Service {
  public:
-  explicit FilterService() : filter_(mjpc::LoadEstimators()) {}
+  explicit FilterService() : filters_(mjpc::LoadEstimators()) {}
   ~FilterService();
 
   grpc::Status Init(grpc::ServerContext* context,
@@ -68,7 +68,7 @@ class FilterService final : public filter::Filter::Service {
                      filter::NoiseResponse* response) override;
 
  private:
-  bool Initialized() const { return filters_[filter_].Model(); }
+  bool Initialized() const { return filters_[filter_]->Model(); }
 
   // filters
   std::vector<std::unique_ptr<mjpc::Estimator>> filters_;

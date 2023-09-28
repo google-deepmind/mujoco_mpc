@@ -54,6 +54,8 @@ get_filename_component(agent_service_proto "./agent.proto" ABSOLUTE)
 get_filename_component(agent_service_proto_path "${agent_service_proto}" PATH)
 get_filename_component(batch_service_proto "./batch.proto" ABSOLUTE)
 get_filename_component(batch_service_proto_path "${batch_service_proto}" PATH)
+get_filename_component(filter_service_proto "./filter.proto" ABSOLUTE)
+get_filename_component(filter_service_proto_path "${filter_service_proto}" PATH)
 
 # Generated sources
 set(agent_service_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent.pb.cc")
@@ -212,7 +214,6 @@ add_executable(
 
 target_link_libraries(
   batch_server
-  # batch_service_grpc_proto
   absl::check
   absl::flags
   absl::flags_parse
@@ -244,7 +245,6 @@ add_executable(
 
 target_link_libraries(
   filter_server
-  # filter_service_grpc_proto
   absl::check
   absl::flags
   absl::flags_parse

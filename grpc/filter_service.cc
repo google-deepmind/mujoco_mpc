@@ -99,8 +99,8 @@ grpc::Status FilterService::Init(grpc::ServerContext* context,
   mjModel* model = model_override_.get();
 
   // initialize filters
-  filter_ = GetNumberOrDefault(0, model, "estimator");
-  for (const auto& filter : filterss_) {
+  filter_ = mjpc::GetNumberOrDefault(0, model, "estimator");
+  for (const auto& filter : filters_) {
     filter->Initialize(model);
     filter->Reset();
   }
@@ -116,7 +116,7 @@ grpc::Status FilterService::Reset(grpc::ServerContext* context,
   }
 
   // reset
-  filters_[filter_].Reset();
+  filters_[filter_]->Reset();
 
   return grpc::Status::OK;
 }
@@ -129,8 +129,8 @@ grpc::Status FilterService::Settings(grpc::ServerContext* context,
   }
 
   // settings
-  filter::Settings input = request->settings();
-  filter::Settings* output = response->mutable_settings();
+  // filter::Settings input = request->settings();
+  // filter::Settings* output = response->mutable_settings();
 
   // TODO(taylor)
 
@@ -145,7 +145,7 @@ grpc::Status FilterService::Update(grpc::ServerContext* context,
   }
 
   // measurement update
-  filters_[filter]->Update(request->ctrl().data(), request->sensor().data());
+  filters_[filter_]->Update(request->ctrl().data(), request->sensor().data());
 
   return grpc::Status::OK;
 }
@@ -278,7 +278,7 @@ grpc::Status FilterService::Noise(grpc::ServerContext* context,
 
   // get sensor noise
   for (int i = 0; i < nsensor; i++) {
-    output->add_sensor(sensor[i]);
+    output->add_sensor(sensor_noise[i]);
   }
 
   return grpc::Status::OK;

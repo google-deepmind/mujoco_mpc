@@ -558,7 +558,6 @@ void Kalman::SetGUIData() {
 void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                    int planner_shift, int timer_shift, int planning,
                    int* shift) {
-  // Kalman info
   double estimator_bounds[2] = {-6, 6};
 
   // covariance trace
@@ -570,16 +569,28 @@ void Kalman::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // legend
   mju::strcpy_arr(fig_planner->linename[planner_shift + 0], "Covariance Trace");
 
+  // sensor prediction error
+  double s_error = mju_norm(sensor_error_.data(), DimensionSensor());
+  if (planner_shift + 1 >= mjMAXLINE) {
+    mju_error("Too many lines in planner plot.");
+  }
+  mjpc::PlotUpdateData(fig_planner, estimator_bounds,
+                       fig_planner->linedata[planner_shift + 1][0] + 1,
+                       mju_log10(s_error), 100, planner_shift + 1, 0, 1, -100);
+
+  // legend
+  mju::strcpy_arr(fig_planner->linename[planner_shift + 1], "Sensor Error");
+
   // Kalman timers
   double timer_bounds[2] = {0.0, 1.0};
 
   // measurement update
-  PlotUpdateData(fig_timer, timer_bounds,
-                 fig_timer->linedata[timer_shift + 0][0] + 1,
-                 TimerMeasurement() + TimerPrediction(), 100, timer_shift + 0, 0, 1, -100);
+  PlotUpdateData(
+      fig_timer, timer_bounds, fig_timer->linedata[timer_shift + 0][0] + 1,
+      TimerMeasurement() + TimerPrediction(), 100, timer_shift + 0, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Update");
+  mju::strcpy_arr(fig_timer->linename[timer_shift + 0], "Estimator Update");
 }
 
 }  // namespace mjpc

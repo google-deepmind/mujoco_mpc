@@ -21,12 +21,8 @@ service Filter {
   rpc Init(InitRequest) returns (InitResponse);
   // Reset Filter
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Filter settings
-  rpc Settings(SettingsRequest) returns (SettingsResponse);
   // Filter measurement update 
   rpc Update(UpdateRequest) returns (UpdateResponse);
-  // Filter timers 
-  rpc Timers(TimersRequest) returns (TimersResponse);
   // Filter state 
   rpc State(StateRequest) returns (StateResponse);
   // Filter covariance 
@@ -46,19 +42,6 @@ message InitRequest {
 
 message InitResponse {}
 
-message Settings {
-  optional double epsilon = 1;
-  optional bool flg_centered = 2;
-}
-
-message SettingsRequest {
-  Settings settings = 1;
-}
-
-message SettingsResponse {
-  Settings settings = 1;
-}
-
 message ResetRequest {}
 
 message ResetResponse {}
@@ -70,12 +53,9 @@ message UpdateRequest {
 
 message UpdateResponse {} 
 
-message TimersRequest {}
-
-message TimersResponse {}
-
 message State {
   repeated double state = 1 [packed = true];
+  optional double time = 2;
 }
 
 message StateRequest {
@@ -110,6 +90,4 @@ message NoiseRequest {
 
 message NoiseResponse {
   Noise noise = 1;
-  int32 dim_process = 2;
-  int32 dim_sensor = 3;
 }

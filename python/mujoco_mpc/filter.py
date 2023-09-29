@@ -143,35 +143,18 @@ class Filter:
 
   def available_filters(self):
     return {
-      "ground truth",
-      "extended Kalman filter",
-      "unscented Kalman filter",
-      "batch filter",
+        "ground truth",
+        "extended Kalman filter",
+        "unscented Kalman filter",
+        "batch filter",
     }
-  
+
   def reset(self):
     # reset request
     request = filter_pb2.ResetRequest()
 
     # reset response
     self._wait(self.stub.Reset.future(request))
-
-  def settings(
-      self,
-  ) -> dict[str, int | bool]:
-    # assemble settings
-    inputs = filter_pb2.Settings()
-
-    # settings request
-    request = filter_pb2.SettingsRequest(
-        settings=inputs,
-    )
-
-    # settings response
-    settings = self._wait(self.stub.Settings.future(request)).settings
-
-    # return all settings
-    return {}
 
   def update(
       self,
@@ -187,19 +170,11 @@ class Filter:
     # response
     self._wait(self.stub.Update.future(request))
 
-  def timers(self) -> dict[str, float]:
-    # request
-    request = filter_pb2.TimersRequest()
-
-    # response
-    response = self._wait(self.stub.Timers.future(request))
-
-    # timers
-    return {}
-
-  def state(self, state: Optional[npt.ArrayLike] = []) -> np.ndarray:
+  def state(
+      self, state: Optional[npt.ArrayLike] = [], time: Optional[float] = None
+  ) -> dict[str | float, np.ndarray]:
     # input
-    input = filter_pb2.State(state=state)
+    input = filter_pb2.State(state=state, time=time)
 
     # request
     request = filter_pb2.StateRequest(
@@ -207,10 +182,13 @@ class Filter:
     )
 
     # response
-    response = self._wait(self.stub.State.future(request)).state
+    response = self._wait(self.stub.State.future(request))
 
     # return state
-    return np.array(response.state)
+    return {
+        "state": np.array(response.state.state),
+        "time": response.state.time,
+    }
 
   def covariance(
       self, covariance: Optional[npt.ArrayLike] = None
@@ -250,14 +228,12 @@ class Filter:
     )
 
     # response
-    response = self._wait(self.stub.Noise.future(request))
+    response = self._wait(self.stub.Noise.future(request)).noise
 
     # return noise
     return {
-        "process": np.array(response.noise.process),
-        "sensor": np.array(response.noise.sensor),
-        "dim_process": np.array(response.dim_process),
-        "dim_sensor": np.array(response.dim_sensor),
+        "process": np.array(response.process),
+        "sensor": np.array(response.sensor),
     }
 
   def _wait(self, future):

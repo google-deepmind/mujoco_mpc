@@ -121,22 +121,6 @@ grpc::Status FilterService::Reset(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status FilterService::Settings(grpc::ServerContext* context,
-                                     const filter::SettingsRequest* request,
-                                     filter::SettingsResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // settings
-  // filter::Settings input = request->settings();
-  // filter::Settings* output = response->mutable_settings();
-
-  // TODO(taylor)
-
-  return grpc::Status::OK;
-}
-
 grpc::Status FilterService::Update(grpc::ServerContext* context,
                                    const filter::UpdateRequest* request,
                                    filter::UpdateResponse* response) {
@@ -146,18 +130,6 @@ grpc::Status FilterService::Update(grpc::ServerContext* context,
 
   // measurement update
   filters_[filter_]->Update(request->ctrl().data(), request->sensor().data());
-
-  return grpc::Status::OK;
-}
-
-grpc::Status FilterService::Timers(grpc::ServerContext* context,
-                                   const filter::TimersRequest* request,
-                                   filter::TimersResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // TODO(taylor)
 
   return grpc::Status::OK;
 }
@@ -193,6 +165,14 @@ grpc::Status FilterService::State(grpc::ServerContext* context,
   for (int i = 0; i < nstate; i++) {
     output->add_state(state[i]);
   }
+
+  // set time
+  if (input.has_time()) {
+    active_filter->Time() = input.time();
+  }
+
+  // get time
+  output->set_time(active_filter->Time());
 
   return grpc::Status::OK;
 }
@@ -252,8 +232,6 @@ grpc::Status FilterService::Noise(grpc::ServerContext* context,
   // dimensions
   int nprocess = active_filter->DimensionProcess();
   int nsensor = active_filter->DimensionSensor();
-  response->set_dim_process(nprocess);
-  response->set_dim_sensor(nsensor);
 
   // noise
   double* process_noise = active_filter->ProcessNoise();

@@ -43,18 +43,10 @@ class FilterService final : public filter::Filter::Service {
                      const filter::ResetRequest* request,
                      filter::ResetResponse* response) override;
 
-  grpc::Status Settings(grpc::ServerContext* context,
-                        const filter::SettingsRequest* request,
-                        filter::SettingsResponse* response) override;
-
   grpc::Status Update(grpc::ServerContext* context,
                       const filter::UpdateRequest* request,
                       filter::UpdateResponse* response) override;
-
-  grpc::Status Timers(grpc::ServerContext* context,
-                      const filter::TimersRequest* request,
-                      filter::TimersResponse* response) override;
-
+                      
   grpc::Status State(grpc::ServerContext* context,
                      const filter::StateRequest* request,
                      filter::StateResponse* response) override;

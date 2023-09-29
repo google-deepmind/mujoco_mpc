@@ -41,6 +41,7 @@ class Estimator {
   // reset memory
   virtual void Reset(const mjData* data = nullptr) = 0;
 
+  // TODO(etom): time input
   // update
   virtual void Update(const double* ctrl, const double* sensor) = 0;
 

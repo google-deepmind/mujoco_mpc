@@ -33,7 +33,7 @@ xml = """
 
   <custom>
     <!-- filters: ground truth (0), EKF (1), UKF (2), batch (3) -->
-    <numeric name="estimator" data="1" />
+    <numeric name="estimator" data="2" />
   </custom>
 
   <default>
@@ -67,8 +67,8 @@ xml = """
   <worldbody>
     <light name="light" pos="0 0 1"/>
     <camera name="fixed" pos="0 0 .75" quat="1 0 0 0"/>
+    <!-- <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid" /> -->
     <geom name="ground" type="plane" pos="0 0 0" size=".3 .3 .1" material="grid" />
-
     <body name="pointmass" pos="0 0 0.25">
       <joint name="root_z" type="slide"  pos="0 0 0" axis="0 0 1" />
       <geom name="pointmass" type="sphere" size=".01" material="self" mass="1.0"/>
@@ -115,22 +115,21 @@ frames = []
 FPS = 1.0 / model.opt.timestep
 
 ## set up filter
-F = filter_lib.Filter(model=model)
+filter = filter_lib.Filter(model=model)
 
 # initialize state
-state_initial = np.array(
-    [data.qpos[0], data.qvel[0]]
-)  # + np.random.normal(scale=1.0e-3, size=nx)
-F.state(state=state_initial)
+state_initial = np.array([data.qpos[0], data.qvel[0]])
+state_initial += np.array([0.025, -0.01]) # corrupt initialization
+filter.state(state=state_initial)
 
 # initialize covariance
 covariance_initial = np.array([[1.0e-4, 0.0], [0.0, 1.0e-4]])
-F.covariance(covariance=covariance_initial)
+filter.covariance(covariance=covariance_initial)
 
 # initialize noise
 noise_process = np.array([1.0e-4, 1.0e-4])
 noise_sensor = np.array([1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4])
-F.noise(process=noise_process, sensor=noise_sensor)
+filter.noise(process=noise_process, sensor=noise_sensor)
 
 # noisy sensor
 noisy_sensor = np.zeros((model.nsensordata, T))
@@ -138,9 +137,9 @@ noisy_sensor = np.zeros((model.nsensordata, T))
 # simulate
 for t in range(T):
   # forward computes instantaneous qacc
-  data.qpos += np.random.normal(scale=1.0e-4, size=model.nq)
-  data.qvel += np.random.normal(scale=1.0e-4, size=model.nv)
-  mujoco.mj_forward(model, data)
+  # data.qpos += np.random.normal(scale=1.0e-4, size=model.nq)
+  # data.qvel += np.random.normal(scale=1.0e-4, size=model.nv)
+  mujoco.mj_forward(model, data);
 
   # cache
   qpos[:, t] = data.qpos
@@ -149,22 +148,20 @@ for t in range(T):
   ctrl[:, t] = data.ctrl
   qfrc[:, t] = data.qfrc_actuator
   sensor[:, t] = data.sensordata
-  noisy_sensor[:, t] = sensor[:, t] + np.random.normal(
-      scale=1.0e-3, size=model.nsensordata
-  )
+  noisy_sensor[:, t] = sensor[:, t]# + np.random.normal(scale=1.0e-3, size=model.nsensordata)
   time[t] = data.time
 
   # cache filter estimate
-  state = F.state()
-  state_estimate[:, t] = state
+  state = filter.state()
+  state_estimate[:, t] = state["state"]
 
   # filter (measurement update)
-  F.update(ctrl=ctrl[:, t], sensor=noisy_sensor[:, t])
+  filter.update(ctrl=ctrl[:, t], sensor=noisy_sensor[:, t])
 
   # Euler
   mujoco.mj_Euler(model, data)
 
-  # Render and save frames.
+  # render and save frames
   renderer.update_scene(data)
   pixels = renderer.render()
   frames.append(pixels)

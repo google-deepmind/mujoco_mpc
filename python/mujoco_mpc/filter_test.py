@@ -35,11 +35,13 @@ class FilterTest(absltest.TestCase):
     filter = filter_lib.Filter(model=model)
 
     # state
+    time = 0.2
     state = np.random.normal(scale=1.0, size=(model.nq + model.nv))
-    state_response = filter.state(state=state)
+    response = filter.state(state=state, time=time)
 
     # test state
-    self.assertLess(np.linalg.norm(state_response - state), 1.0e-5)
+    self.assertLess(np.linalg.norm(state - response["state"]), 1.0e-5)
+    self.assertLess(np.linalg.norm(time - response["time"]), 1.0e-5)
 
     # covariance
     nvelocity = 2 * model.nv
@@ -65,7 +67,7 @@ class FilterTest(absltest.TestCase):
     sensor = np.random.normal(scale=1.0, size=model.nsensordata)
     filter.update(ctrl=ctrl, sensor=sensor)
 
-    # TODO(taylor): more tests
+    # TODO(etom): more tests
 
 if __name__ == "__main__":
   absltest.main()

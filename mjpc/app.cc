@@ -156,15 +156,20 @@ void EstimatorLoop(mj::Simulate& sim) {
         std::this_thread::yield();
         continue;
       } else {
-        // start timer
-        auto start = std::chrono::steady_clock::now();
-
         // set values from GUI
         estimator->SetGUIData();
 
         // get simulation state (lock physics thread)
         {
           const std::lock_guard<std::mutex> lock(sim.mtx);
+
+          if (d->time <= estimator->Time()) {
+            // The estimator's predicted state is ahead of sim time, either
+            // because of GUI slowdown or because it uses a large timestep.
+            std::this_thread::yield();
+            continue;
+          }
+
           // copy simulation ctrl
           mju_copy(sim.agent->ctrl.data(), d->ctrl, m->nu);
 
@@ -189,12 +194,6 @@ void EstimatorLoop(mj::Simulate& sim) {
         double* state = estimator->State();
         sim.agent->state.Set(m, state, state + m->nq, state + m->nq + m->nv,
                              d->mocap_pos, d->mocap_quat, d->userdata, d->time);
-
-        // wait (us)
-        // TODO(taylor): confirm valid for slowdown
-        while (mjpc::GetDuration(start) <
-               1.0e6 * estimator->Model()->opt.timestep) {
-        }
       }
     }
   }

@@ -112,6 +112,9 @@ add_library(
   estimators/trajectory.h
   estimators/unscented.cc
   estimators/unscented.h
+  direct/optimizer.cc
+  direct/optimizer.h
+  direct/trajectory.h
   app.cc
   app.h
   norm.cc

@@ -62,7 +62,7 @@ jobs:
         ${{ matrix.cmake_args }}
     - name: Build MuJoCo MPC
       working-directory: build
-      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test norm_test rollout_test threadpool_test trajectory_test utilities_test batch_force_test batch_optimize_test batch_prior_test batch_sensor_test estimator_trajectory_test estimator_utilities_test kalman_test unscented_test ${{ matrix.additional_targets }}
+      run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test norm_test rollout_test threadpool_test trajectory_test utilities_test direct_force_test direct_optimize_test direct_parameter_test direct_sensor_test direct_trajectory_test direct_utilities_test batch_filter_test batch_prior_test kalman_test unscented_test ${{ matrix.additional_targets }}
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .

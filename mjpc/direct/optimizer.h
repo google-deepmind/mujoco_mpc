@@ -61,9 +61,8 @@ inline constexpr double kMinDirectRegularization = 1.0e-12;
 class Direct {
  public:
   // constructor
-  Direct()
-      : model_parameters_(LoadModelParameters()),
-        pool_(NumAvailableHardwareThreads()) {}
+  explicit Direct(int num_threads = NumAvailableHardwareThreads())
+      : model_parameters_(LoadModelParameters()), pool_(num_threads) {}
 
   // constructor
   Direct(const mjModel* model, int length = 3, int max_history = 0);

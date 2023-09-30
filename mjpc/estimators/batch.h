@@ -40,12 +40,14 @@ inline constexpr int kMaxFilterHistory = 32;
 class Batch : public Direct, public Estimator {
  public:
   // constructor
-  Batch(const mjModel* model);
+  explicit Batch(int num_threads = 1) : Direct(num_threads) {}
+  Batch(const mjModel* model, int length = 3, int max_history = 0);
 
   // destructor
-  ~Batch() {
-    if (model) mj_deleteModel(model);
-  }
+  ~Batch() = default;
+
+  // total cost
+  double Cost(double* gradient, double* hessian) override;
 
   // initialize
   void Initialize(const mjModel* model) override;
@@ -144,7 +146,7 @@ class Batch : public Direct, public Estimator {
   struct FilterSettings {
     bool verbose_prior = false;  // flag for printing prior weight update status
     bool assemble_prior_jacobian = false;   // assemble dense prior Jacobian
-    bool recursive_prior_update = false;  // recursively update prior matrix
+    bool recursive_prior_update = true;  // recursively update prior matrix
   } filter_settings;
 
  private:
@@ -166,9 +168,6 @@ class Batch : public Direct, public Estimator {
 
   // shift head and resize trajectories
   void ShiftResizeTrajectory(int new_head, int new_length);
-
-  // total cost
-  double Cost(double* gradient, double* hessian);
 
   // reset direct and prior timers
   void ResetTimers();

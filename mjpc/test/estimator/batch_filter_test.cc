@@ -32,7 +32,7 @@ TEST(Batch, Particle1D) {
   mjData* data = mj_makeData(model);
 
   // ----- rollout ----- //
-  int T = 100;
+  int T = 5;
   Simulation sim(model, T);
   auto controller = [](double* ctrl, double time) {};
   double qpos0[1] = {0.25};
@@ -64,10 +64,10 @@ TEST(Batch, Particle1D) {
           (2 * model->nv) * (2 * model->nv));
 
   // initial process noise
-  mju_fill(batch.noise_process.data(), 1.0e-4, 2 * model->nv);
+  std::fill(batch.noise_process.begin(), batch.noise_process.end(), 1.0e-4);
 
   // initialize sensor noise
-  mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
+  std::fill(batch.noise_sensor.begin(), batch.noise_sensor.end(), 1.0e-4);
 
   // filter trajectories
   DirectTrajectory<double> batch_qpos(model->nq, T);

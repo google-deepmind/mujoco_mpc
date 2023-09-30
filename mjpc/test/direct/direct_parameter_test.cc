@@ -16,7 +16,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/direct/optimizer.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/threadpool.h"
@@ -25,114 +25,112 @@
 namespace mjpc {
 namespace {
 
-// TEST(BatchParameter, ParticleFramePos) {
-//   // verbose
-//   bool verbose = false;
+// TODO(etom): parameter cost?, shouldn't need to rely on prior for this.
 
-//   // load model
-//   mjModel* model = LoadTestModel("estimator/particle/task1D_framepos.xml");
-//   model->opt.enableflags |=
-//       mjENBL_INVDISCRETE;  // set discrete inverse dynamics
+TEST(DirectParameter, ParticleFramePos) {
+  // verbose
+  bool verbose = false;
 
-//   // create data
-//   mjData* data = mj_makeData(model);
+  // load model
+  mjModel* model = LoadTestModel("estimator/particle/task1D_framepos.xml");
+  model->opt.enableflags |=
+      mjENBL_INVDISCRETE;  // set discrete inverse dynamics
 
-//   // dimensions
-//   int nq = model->nq;
-//   int nv = model->nv;
-//   int ns = model->nsensordata;
+  // create data
+  mjData* data = mj_makeData(model);
 
-//   // ----- rollout ----- //
-//   int T = 3;
-//   Simulation sim(model, T);
-//   double q[1] = {1.0};
-//   sim.SetState(q, NULL);
-//   auto controller = [](double* ctrl, double time) {};
-//   sim.Rollout(controller);
+  // dimensions
+  int nq = model->nq;
+  int nv = model->nv;
+  int ns = model->nsensordata;
 
-//   if (verbose) {
-//     for (int t = 0; t < T; t++) {
-//       printf("q (%i) = %f\n", t, sim.qpos.Get(t)[0]);
-//     }
+  // ----- rollout ----- //
+  int T = 3;
+  Simulation sim(model, T);
+  double q[1] = {1.0};
+  sim.SetState(q, NULL);
+  auto controller = [](double* ctrl, double time) {};
+  sim.Rollout(controller);
 
-//     for (int t = 0; t < T; t++) {
-//       printf("v (%i) = %f\n", t, sim.qvel.Get(t)[0]);
-//     }
-//   }
+  if (verbose) {
+    for (int t = 0; t < T; t++) {
+      printf("q (%i) = %f\n", t, sim.qpos.Get(t)[0]);
+    }
 
-//   // ----- estimator ----- //
-//   Batch estimator(model, T);
+    for (int t = 0; t < T; t++) {
+      printf("v (%i) = %f\n", t, sim.qvel.Get(t)[0]);
+    }
+  }
 
-//   // set data
-//   mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-//   mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
-//   mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
-//            nv * T);
-//   mju_copy(estimator.parameters.data(), model->site_pos, 6);
-//   estimator.parameters[2] += 0.25;  // perturb site0 z coordinate
-//   estimator.parameters[5] -= 0.25;  // perturb site1 z coordinate
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
 
-//   // set process noise
-//   std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
-//             1.0);
+  // set data
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(optimizer.force_measurement.Data(), sim.qfrc_actuator.Data(),
+           nv * T);
+  mju_copy(optimizer.parameters.data(), model->site_pos, 6);
+  optimizer.parameters[2] += 0.25;  // perturb site0 z coordinate
+  optimizer.parameters[5] -= 0.25;  // perturb site1 z coordinate
 
-//   // set sensor noise
-//   std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(),
-//             1.0e-5);
+  // set process noise
+  std::fill(optimizer.noise_process.begin(), optimizer.noise_process.end(),
+            1.0);
 
-//   // settings
-//   estimator.settings.verbose_optimize = true;
-//   estimator.settings.verbose_cost = true;
+  // set sensor noise
+  std::fill(optimizer.noise_sensor.begin(), optimizer.noise_sensor.end(),
+            1.0e-5);
 
-//   // prior
-//   std::vector<double> prior_weights((T * model->nv) * (T * model->nv));
-//   std::fill(prior_weights.begin(), prior_weights.end(), 0.0);
-//   estimator.SetPriorWeights(prior_weights.data(), 0.0);
-//   mju_copy(estimator.parameters_previous.data(), model->site_pos, 6);
-//   std::fill(estimator.noise_parameter.begin(),
-//             estimator.noise_parameter.end(), 1.0);
+  // settings
+  optimizer.settings.verbose_optimize = true;
+  optimizer.settings.verbose_cost = true;
 
-//   if (verbose) {
-//     // initial parameters
-//     printf("parameters initial = \n");
-//     mju_printMat(estimator.parameters.data(), 1, 6);
+  // prior
+  mju_copy(optimizer.parameters_previous.data(), model->site_pos, 6);
+  std::fill(optimizer.noise_parameter.begin(),
+            optimizer.noise_parameter.end(), 1.0);
 
-//     printf("parameters previous = \n");
-//     mju_printMat(estimator.parameters_previous.data(), 1, 6);
+  if (verbose) {
+    // initial parameters
+    printf("parameters initial = \n");
+    mju_printMat(optimizer.parameters.data(), 1, 6);
 
-//     printf("measurements initial = \n");
-//     mju_printMat(estimator.sensor_measurement.Data(), T, model->nsensordata);
-//   }
+    printf("parameters previous = \n");
+    mju_printMat(optimizer.parameters_previous.data(), 1, 6);
 
-//   // optimize
-//   ThreadPool pool(1);
-//   estimator.Optimize(pool);
+    printf("measurements initial = \n");
+    mju_printMat(optimizer.sensor_measurement.Data(), T, model->nsensordata);
+  }
 
-//   // test parameter recovery
-//   for (int i = 0; i < 6; i++) {
-//     EXPECT_NEAR(estimator.parameters[i], model->site_pos[i], 1.0e-5);
-//   }
+  // optimize
+  optimizer.Optimize();
 
-//   if (verbose) {
-//     // optimized configurations
-//     printf("qpos optimized =\n");
-//     mju_printMat(estimator.configuration.Data(), T, model->nq);
+  // test parameter recovery
+  for (int i = 0; i < 6; i++) {
+    EXPECT_NEAR(optimizer.parameters[i], model->site_pos[i], 1.0e-5);
+  }
 
-//     printf("qvel optimized =\n");
-//     mju_printMat(estimator.velocity.Data(), T, model->nv);
+  if (verbose) {
+    // optimized configurations
+    printf("qpos optimized =\n");
+    mju_printMat(optimizer.configuration.Data(), T, model->nq);
 
-//     printf("measurements optimized = \n");
-//     mju_printMat(estimator.sensor_prediction.Data(), T, model->nsensordata);
+    printf("qvel optimized =\n");
+    mju_printMat(optimizer.velocity.Data(), T, model->nv);
 
-//     // optimized parameters
-//     printf("parameters optimized = \n");
-//     mju_printMat(estimator.parameters.data(), 1, 6);
-//   }
+    printf("measurements optimized = \n");
+    mju_printMat(optimizer.sensor_prediction.Data(), T, model->nsensordata);
 
-//   // delete data + model
-//   mj_deleteData(data);
-//   mj_deleteModel(model);
-// }
+    // optimized parameters
+    printf("parameters optimized = \n");
+    mju_printMat(optimizer.parameters.data(), 1, 6);
+  }
+
+  // delete data + model
+  mj_deleteData(data);
+  mj_deleteModel(model);
+}
 
 }  // namespace
 }  // namespace mjpc

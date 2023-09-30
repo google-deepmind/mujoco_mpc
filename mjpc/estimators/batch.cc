@@ -33,13 +33,13 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // batch smoother constructor
-Batch::Batch(const mjModel* model)
-    : Direct::Direct(model, 3, kMaxFilterHistory) {
+Batch::Batch(const mjModel* model, int length, int max_history)
+    : Direct::Direct(model, length, max_history) {
   // initialize memory
   Initialize(model);
 
   // set trajectory lengths
-  SetConfigurationLength(3);
+  SetConfigurationLength(length);
 
   // reset memory
   Reset();
@@ -53,17 +53,13 @@ void Batch::Initialize(const mjModel* model) {
   // allocation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   int nvel_max = nv * max_history_;
+
   // int nsensor_max = nsensordata_ * max_history_;
   int ntotal_max = nvel_max + nparam_;
 
   // state dimensions
   nstate_ = nq + nv + na;
   ndstate_ = 2 * nv + na;
-
-  // problem dimensions
-  // nvel_ = nv * configuration_length_;
-  // ntotal_ = nvel_ + nparam_;
-  // nband_ = 3 * nv;
 
   // state
   state.resize(nstate_);
@@ -85,6 +81,7 @@ void Batch::Initialize(const mjModel* model) {
   cost_gradient_prior_.resize(ntotal_max);
 
   // cost Hessian
+  cost_hessian_.resize(ntotal_max * ntotal_max);
   cost_hessian_prior_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
 
   // prior weights
@@ -343,7 +340,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   if (configuration_length_ != configuration_length_cache) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
-
+  
   // optimize measurement corrected state
   Optimize();
 
@@ -908,7 +905,7 @@ void Batch::ShiftResizeTrajectory(int new_head, int new_length) {
 // compute total cost
 double Batch::Cost(double* gradient, double* hessian) {
   // base method
-  Direct::Cost(gradient, hessian);
+  double cost = Direct::Cost(gradient, hessian);
 
   // prior Jacobian derivatives
   if (gradient || hessian) {
@@ -920,7 +917,18 @@ double Batch::Cost(double* gradient, double* hessian) {
     if (filter_settings.assemble_prior_jacobian) {
       mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
     }
+
+    // pool count
+    int count_begin = pool_.GetCount();
+
+    // compute Jacobian of prior cost
     JacobianPrior();
+
+    // wait
+    pool_.WaitCount(count_begin + configuration_length_);
+
+    // reset count
+    pool_.ResetCount();
 
     // timers
     filter_timer_.jacobian_prior +=
@@ -932,7 +940,7 @@ double Batch::Cost(double* gradient, double* hessian) {
   cost_prior_ = CostPrior(gradient, hessian);
 
   // total cost
-  double cost = cost_prior_ + cost_sensor_ + cost_force_;
+  cost += cost_prior_;
 
   // total gradient, hessian
   if (gradient) {

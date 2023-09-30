@@ -66,7 +66,6 @@ enable_testing()
 
 add_subdirectory(agent)
 add_subdirectory(direct)
-add_subdirectory(direct_planner)
 add_subdirectory(estimator)
 add_subdirectory(gradient_planner)
 add_subdirectory(ilqg_planner)

@@ -100,6 +100,10 @@ add_library(
   planners/ilqg/settings.h
   planners/ilqs/planner.cc
   planners/ilqs/planner.h
+  planners/direct/planner.cc
+  planners/direct/planner.h
+  planners/direct/policy.cc
+  planners/direct/policy.h
   estimators/batch.cc
   estimators/batch.h
   estimators/estimator.h

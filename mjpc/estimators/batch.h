@@ -40,8 +40,11 @@ inline constexpr int kMaxFilterHistory = 32;
 class Batch : public Direct, public Estimator {
  public:
   // constructor
-  explicit Batch(int num_threads = 1) : Direct(num_threads) {}
-  Batch(const mjModel* model, int length = 3, int max_history = 0);
+  explicit Batch(int num_threads = 1) : Direct(num_threads) {
+    max_history_ = kMaxFilterHistory;
+  }
+  Batch(const mjModel* model, int length = 3,
+        int max_history = kMaxFilterHistory);
 
   // destructor
   ~Batch() = default;
@@ -146,7 +149,7 @@ class Batch : public Direct, public Estimator {
   struct FilterSettings {
     bool verbose_prior = false;  // flag for printing prior weight update status
     bool assemble_prior_jacobian = false;   // assemble dense prior Jacobian
-    bool recursive_prior_update = true;  // recursively update prior matrix
+    bool recursive_prior_update = false;  // recursively update prior matrix
   } filter_settings;
 
  private:

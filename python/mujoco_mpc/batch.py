@@ -206,7 +206,6 @@ class Batch:
   def settings(
       self,
       configuration_length: Optional[int] = None,
-      prior_flag: Optional[bool] = None,
       sensor_flag: Optional[bool] = None,
       force_flag: Optional[bool] = None,
       max_search_iterations: Optional[int] = None,
@@ -215,7 +214,6 @@ class Batch:
       verbose_iteration: Optional[bool] = None,
       verbose_optimize: Optional[bool] = None,
       verbose_cost: Optional[bool] = None,
-      verbose_prior: Optional[bool] = None,
       search_type: Optional[int] = None,
       step_scaling: Optional[float] = None,
       regularization_initial: Optional[float] = None,
@@ -224,7 +222,6 @@ class Batch:
       time_scaling_sensor: Optional[bool] = None,
       search_direction_tolerance: Optional[float] = None,
       cost_tolerance: Optional[float] = None,
-      assemble_prior_jacobian: Optional[bool] = None,
       assemble_sensor_jacobian: Optional[bool] = None,
       assemble_force_jacobian: Optional[bool] = None,
       assemble_sensor_norm_hessian: Optional[bool] = None,
@@ -236,7 +233,6 @@ class Batch:
     # assemble settings
     inputs = batch_pb2.Settings(
         configuration_length=configuration_length,
-        prior_flag=prior_flag,
         sensor_flag=sensor_flag,
         force_flag=force_flag,
         max_search_iterations=max_search_iterations,
@@ -245,7 +241,6 @@ class Batch:
         verbose_iteration=verbose_iteration,
         verbose_optimize=verbose_optimize,
         verbose_cost=verbose_cost,
-        verbose_prior=verbose_prior,
         search_type=search_type,
         step_scaling=step_scaling,
         regularization_initial=regularization_initial,
@@ -254,7 +249,6 @@ class Batch:
         time_scaling_sensor=time_scaling_sensor,
         search_direction_tolerance=search_direction_tolerance,
         cost_tolerance=cost_tolerance,
-        assemble_prior_jacobian=assemble_prior_jacobian,
         assemble_sensor_jacobian=assemble_sensor_jacobian,
         assemble_force_jacobian=assemble_force_jacobian,
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian,
@@ -275,7 +269,6 @@ class Batch:
     # return all settings
     return {
         "configuration_length": settings.configuration_length,
-        "prior_flag": settings.prior_flag,
         "sensor_flag": settings.sensor_flag,
         "force_flag": settings.force_flag,
         "max_search_iterations": settings.max_search_iterations,
@@ -284,7 +277,6 @@ class Batch:
         "verbose_iteration": settings.verbose_iteration,
         "verbose_optimize": settings.verbose_optimize,
         "verbose_cost": settings.verbose_cost,
-        "verbose_prior": settings.verbose_prior,
         "search_type": settings.search_type,
         "step_scaling": settings.step_scaling,
         "regularization_initial": settings.regularization_initial,
@@ -293,7 +285,6 @@ class Batch:
         "time_scaling_sensor": settings.time_scaling_sensor,
         "search_direction_tolerance": settings.search_direction_tolerance,
         "cost_tolerance": settings.cost_tolerance,
-        "assemble_prior_jacobian": settings.assemble_prior_jacobian,
         "assemble_sensor_jacobian": settings.assemble_sensor_jacobian,
         "assemble_force_jacobian": settings.assemble_force_jacobian,
         "assemble_sensor_norm_hessian": settings.assemble_sensor_norm_hessian,
@@ -329,29 +320,6 @@ class Batch:
         "parameter": np.array(noise.parameter),
     }
 
-  def norm(
-      self,
-      sensor_type: Optional[npt.ArrayLike] = [],
-      sensor_parameters: Optional[npt.ArrayLike] = [],
-  ) -> dict[str, np.ndarray]:
-    # assemble input norm data
-    inputs = batch_pb2.Norm(
-        sensor_type=sensor_type,
-        sensor_parameters=sensor_parameters,
-    )
-
-    # norm request
-    request = batch_pb2.NormRequest(norm=inputs)
-
-    # norm response
-    norm = self._wait(self.stub.Norms.future(request)).norm
-
-    # return all norm data
-    return {
-        "sensor_type": norm.sensor_type,
-        "sensor_parameters": np.array(norm.sensor_parameters),
-    }
-
   def cost(
       self,
       derivatives: Optional[bool] = False,
@@ -368,22 +336,16 @@ class Batch:
     # return all costs
     return {
         "total": cost.total,
-        "prior": cost.prior,
         "sensor": cost.sensor,
         "force": cost.force,
+        "parameters": cost.parameter,
         "initial": cost.initial,
         "gradient": np.array(cost.gradient) if derivatives else [],
         "hessian": np.array(cost.hessian).reshape(cost.nvar, cost.nvar)
         if derivatives
         else [],
-        "residual_prior": np.array(cost.residual_prior) if internals else [],
         "residual_sensor": np.array(cost.residual_sensor) if internals else [],
         "residual_force": np.array(cost.residual_force) if internals else [],
-        "jacobian_prior": np.array(cost.jacobian_prior).reshape(
-            cost.nvar, cost.nvar
-        )
-        if internals
-        else [],
         "jacobian_sensor": np.array(cost.jacobian_sensor).reshape(
             cost.nsensor, cost.nvar
         )
@@ -398,11 +360,6 @@ class Batch:
         if internals
         else [],
         "norm_gradient_force": np.array(cost.norm_gradient_force)
-        if internals
-        else [],
-        "prior_matrix": np.array(cost.prior_matrix).reshape(
-            cost.nvar, cost.nvar
-        )
         if internals
         else [],
         "norm_hessian_sensor": np.array(cost.norm_hessian_sensor).reshape(
@@ -442,13 +399,6 @@ class Batch:
         "reduction_ratio": status.reduction_ratio,
     }
 
-  def shift(self, shift: int) -> int:
-    # shift request
-    request = batch_pb2.ShiftRequest(shift=shift)
-
-    # return head (for testing)
-    return self._wait(self.stub.Shift.future(request)).head
-
   def reset(self):
     # reset request
     request = batch_pb2.ResetRequest()
@@ -462,25 +412,6 @@ class Batch:
 
     # optimize response
     self._wait(self.stub.Optimize.future(request))
-
-  def prior_weights(
-      self, weights: Optional[npt.ArrayLike] = None
-  ) -> np.ndarray:
-    # prior request
-    request = batch_pb2.PriorWeightsRequest(
-        weights=weights.flatten() if weights is not None else None
-    )
-
-    # prior response
-    response = self._wait(self.stub.PriorWeights.future(request))
-
-    # reshape prior to (dimension, dimension)
-    mat = np.array(response.weights).reshape(
-        response.dimension, response.dimension
-    )
-
-    # return prior matrix
-    return mat
 
   def sensor_info(self) -> dict[str, int]:
     # info request
@@ -511,10 +442,10 @@ class Batch:
 
     # print
     print("cost:")
-    print("  [total]   = ", cost["total"])
-    print("     prior  = ", cost["prior"])
-    print("     sensor = ", cost["sensor"])
-    print("     force  = ", cost["force"])
+    print("  [total]      = ", cost["total"])
+    print("     sensor    = ", cost["sensor"])
+    print("     force     = ", cost["force"])
+    print("     parameter = ", cost["parameter"])
     print("  (initial  = ", cost["initial"], ")")
 
   def print_status(self):

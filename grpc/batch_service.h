@@ -26,8 +26,7 @@
 
 #include "grpc/batch.grpc.pb.h"
 #include "grpc/batch.pb.h"
-#include "mjpc/estimators/batch.h"
-#include "mjpc/threadpool.h"
+#include "mjpc/direct/optimizer.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc::batch_grpc {
@@ -57,14 +56,6 @@ class BatchService final : public batch::Batch::Service {
                      const batch::NoiseRequest* request,
                      batch::NoiseResponse* response) override;
 
-  grpc::Status Norms(grpc::ServerContext* context,
-                     const batch::NormRequest* request,
-                     batch::NormResponse* response) override;
-
-  grpc::Status Shift(grpc::ServerContext* context,
-                     const batch::ShiftRequest* request,
-                     batch::ShiftResponse* response) override;
-
   grpc::Status Reset(grpc::ServerContext* context,
                      const batch::ResetRequest* request,
                      batch::ResetResponse* response) override;
@@ -81,10 +72,6 @@ class BatchService final : public batch::Batch::Service {
                       const batch::TimingRequest* request,
                       batch::TimingResponse* response) override;
 
-  grpc::Status PriorWeights(grpc::ServerContext* context,
-                            const batch::PriorWeightsRequest* request,
-                            batch::PriorWeightsResponse* response) override;
-
   grpc::Status SensorInfo(grpc::ServerContext* context,
                           const batch::SensorInfoRequest* request,
                           batch::SensorInfoResponse* response) override;
@@ -95,8 +82,8 @@ class BatchService final : public batch::Batch::Service {
   }
 
   // batch
-  mjpc::Batch batch_;
-  mjpc::UniqueMjModel batch_model_override_ = {nullptr, mj_deleteModel};
+  mjpc::Direct optimizer_;
+  mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 };
 
 }  // namespace mjpc::batch_grpc

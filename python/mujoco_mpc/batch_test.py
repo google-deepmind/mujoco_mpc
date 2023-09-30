@@ -178,11 +178,6 @@ class BatchTest(absltest.TestCase):
     settings = batch.settings(configuration_length=in_configuration_length)
     self.assertTrue(in_configuration_length == settings["configuration_length"])
 
-    # get/set prior flag
-    in_prior_flag = False
-    settings = batch.settings(prior_flag=in_prior_flag)
-    self.assertTrue(in_prior_flag == settings["prior_flag"])
-
     # get/set sensor flag
     in_sensor_flag = False
     settings = batch.settings(sensor_flag=in_sensor_flag)
@@ -227,11 +222,6 @@ class BatchTest(absltest.TestCase):
     settings = batch.settings(verbose_cost=verbose_cost)
     self.assertTrue(verbose_cost == settings["verbose_cost"])
 
-    # get/set verbose prior
-    verbose_prior = True
-    settings = batch.settings(verbose_prior=verbose_prior)
-    self.assertTrue(verbose_prior == settings["verbose_prior"])
-
     # get/set search type
     in_search_type = 0
     settings = batch.settings(search_type=in_search_type)
@@ -274,13 +264,6 @@ class BatchTest(absltest.TestCase):
     cost_tolerance = 1.0e-3
     settings = batch.settings(cost_tolerance=cost_tolerance)
     self.assertLess(np.abs(cost_tolerance - settings["cost_tolerance"]), 1.0e-5)
-
-    # get/set assemble prior Jacobian
-    assemble_prior_jacobian = True
-    settings = batch.settings(assemble_prior_jacobian=assemble_prior_jacobian)
-    self.assertTrue(
-        assemble_prior_jacobian == settings["assemble_prior_jacobian"]
-    )
 
     # get/set assemble sensor Jacobian
     assemble_sensor_jacobian = True
@@ -360,9 +343,6 @@ class BatchTest(absltest.TestCase):
 
     self.assertLess(np.abs(cost["total"] - 0.001), 1.0e-4)
 
-    # cost prior
-    self.assertLess(np.abs(cost["prior"] - 0.0), 1.0e-5)
-
     # cost sensor
     self.assertLess(np.abs(cost["sensor"] - 0.001), 1.0e-4)
 
@@ -384,18 +364,15 @@ class BatchTest(absltest.TestCase):
     self.assertEqual(cost["gradient"].size, nvar)
     self.assertEqual(cost["hessian"].shape, (nvar, nvar))
 
-    self.assertEqual(cost["residual_prior"].size, nvar)
     self.assertEqual(cost["residual_sensor"].size, nsensor)
     self.assertEqual(cost["residual_force"].size, nforce)
 
-    self.assertEqual(cost["jacobian_prior"].shape, (nvar, nvar))
     self.assertEqual(cost["jacobian_sensor"].shape, (nsensor, nvar))
     self.assertEqual(cost["jacobian_force"].shape, (nforce, nvar))
 
     self.assertEqual(cost["norm_gradient_sensor"].size, nsensor)
     self.assertEqual(cost["norm_gradient_force"].size, nforce)
 
-    self.assertEqual(cost["prior_matrix"].shape, (nvar, nvar))
     self.assertEqual(cost["norm_hessian_sensor"].shape, (nsensor, nsensor))
     self.assertEqual(cost["norm_hessian_force"].shape, (nforce, nforce))
 
@@ -422,33 +399,6 @@ class BatchTest(absltest.TestCase):
     in_sensor = np.random.rand(model.nsensor)
     noise = batch.noise(sensor=in_sensor)
     self.assertLess(np.linalg.norm(in_sensor - noise["sensor"]), 1.0e-5)
-
-  def test_shift(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    batch = batch_lib.Batch(
-        model=model, configuration_length=configuration_length
-    )
-
-    # no shift
-    head = batch.shift(0)
-    self.assertEqual(head, 0)
-
-    # shift
-    shift = 1
-    head = batch.shift(shift)
-    self.assertEqual(head, 1)
-
-    shift = 2
-    head = batch.shift(shift)
-    self.assertEqual(head, 3)
 
   def test_reset(self):
     # load model
@@ -553,75 +503,6 @@ class BatchTest(absltest.TestCase):
 
     # cost difference
     self.assertLess(np.abs(status["cost_difference"]), 1.0e-5)
-
-  def test_prior_weights(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    batch = batch_lib.Batch(
-        model=model, configuration_length=configuration_length
-    )
-
-    # dimension
-    dim = configuration_length * model.nv
-
-    # get uninitialized (zero) matrix
-    prior0 = batch.prior_weights()
-
-    # test
-    self.assertEqual(prior0.shape, (dim, dim))
-    self.assertTrue(not prior0.any())
-
-    # identity
-    in_weights = np.eye(dim)
-    out_prior = batch.prior_weights(weights=in_weights)
-
-    # test
-    self.assertLess(np.linalg.norm(in_weights - out_prior), 1.0e-4)
-
-  def test_norm(self):
-    # load model
-    model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/test/testdata/estimator/particle/task.xml"
-    )
-    model = mujoco.MjModel.from_xml_path(str(model_path))
-
-    # initialize
-    configuration_length = 5
-    batch = batch_lib.Batch(
-        model=model, configuration_length=configuration_length
-    )
-
-    # get norm data
-    data = batch.norm()
-
-    # test norm types
-    self.assertTrue((data["sensor_type"] == np.zeros(model.nsensor)).all())
-
-    # test norm paramters
-    self.assertTrue(not data["sensor_parameters"].any())
-
-    # set norm data
-    sensor_type = np.array([1, 2, 3, 4, 5])
-    sensor_parameters = np.random.rand(3 * model.nsensor)
-    data = batch.norm(
-        sensor_type=sensor_type,
-        sensor_parameters=sensor_parameters,
-    )
-
-    # test
-    self.assertTrue((sensor_type == data["sensor_type"]).all())
-    self.assertLess(
-        np.linalg.norm(sensor_parameters - data["sensor_parameters"]),
-        1.0e-5,
-    )
 
   def test_sensor_info(self):
     # load model

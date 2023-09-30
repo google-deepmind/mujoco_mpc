@@ -899,7 +899,8 @@ double Batch::Cost(double* gradient, double* hessian) {
   }
 
   // prior cost
-  cost_prior_ = CostPrior(gradient, hessian);
+  cost_prior_ = CostPrior(gradient ? cost_gradient_prior_.data() : NULL,
+                          hessian ? cost_hessian_prior_band_.data() : NULL);
 
   // total cost
   cost += cost_prior_;

@@ -100,9 +100,6 @@ void Batch::Initialize(const mjModel* model) {
   scratch0_condmat_.resize(ntotal_max * ntotal_max);
   scratch1_condmat_.resize(ntotal_max * ntotal_max);
 
-  // dense cost Hessian rows (for parameter derivatives)
-  dense_prior_parameter_.resize(nparam_ * ntotal_max);
-
   // timer
   filter_timer_.prior_step.resize(max_history_);
 
@@ -220,9 +217,6 @@ void Batch::Reset(const mjData* data) {
   std::fill(condmat_.begin(), condmat_.end(), 0.0);
   std::fill(scratch0_condmat_.begin(), scratch0_condmat_.end(), 0.0);
   std::fill(scratch1_condmat_.begin(), scratch1_condmat_.end(), 0.0);
-
-  // dense cost Hessian rows (for parameter derivatives)
-  std::fill(dense_prior_parameter_.begin(), dense_prior_parameter_.end(), 0.0);
 
   // timer
   std::fill(filter_timer_.prior_step.begin(), filter_timer_.prior_step.end(), 0.0);
@@ -636,38 +630,6 @@ double Batch::CostPrior(double* gradient, double* hessian) {
                        false);
       }
     }
-  }
-
-  // parameters
-  if (nparam_ > 0) {
-    // zero dense rows
-    mju_zero(dense_prior_parameter_.data(), nparam_ * ntotal_);
-
-    // loop over parameters
-    for (int i = 0; i < nparam_; i++) {
-      // parameter difference
-      double parameter_diff = parameters[i] - parameters_previous[i];
-
-      // weight
-      double weight = 1.0 / noise_parameter[i] / nparam_;
-
-      // cost
-      cost += 0.5 * weight * parameter_diff * parameter_diff;
-
-      // gradient
-      if (gradient) {
-        gradient[nvel_ + i] = weight * parameter_diff;
-      }
-
-      // Hessian
-      if (hessian) {
-        dense_prior_parameter_[i * ntotal_ + nvel_ + i] = weight;
-      }
-    }
-
-    // set dense rows in band Hessian
-    mju_copy(hessian + nvel_ * nband_, dense_prior_parameter_.data(),
-             nparam_ * ntotal_);
   }
 
   // stop derivatives timer

@@ -15,8 +15,8 @@
 test(direct_force_test)
 target_link_libraries(direct_force_test load simulation gmock)
 
-# test(direct_parameter_test)
-# target_link_libraries(direct_parameter_test load simulation gmock)
+test(direct_parameter_test)
+target_link_libraries(direct_parameter_test load simulation gmock)
 
 test(direct_optimize_test)
 target_link_libraries(direct_optimize_test load simulation gmock)

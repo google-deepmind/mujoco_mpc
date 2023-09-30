@@ -211,9 +211,6 @@ class Batch : public Direct, public Estimator {
   std::vector<double> scratch0_condmat_;
   std::vector<double> scratch1_condmat_;
 
-  // dense cost Hessian rows (for parameter derivatives)
-  std::vector<double> dense_prior_parameter_;   // nparam x ntotal
-
   // filter mode status
   int current_time_index_;
 

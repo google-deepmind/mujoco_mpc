@@ -309,6 +309,7 @@ void Direct::Initialize(const mjModel* model) {
   // dense cost Hessian rows (for parameter derivatives)
   dense_force_parameter_.resize(nparam_ * ntotal_max);
   dense_sensor_parameter_.resize(nparam_ * ntotal_max);
+  dense_parameter_.resize(nparam_ * ntotal_max);
 
   // regularization
   regularization_ = settings.regularization_initial;
@@ -429,6 +430,7 @@ void Direct::Reset(const mjData* data) {
   // cost
   cost_sensor_ = 0.0;
   cost_force_ = 0.0;
+  cost_parameter_ = 0.0;
   cost_ = 0.0;
   cost_initial_ = 0.0;
   cost_previous_ = 1.0e32;
@@ -481,6 +483,7 @@ void Direct::Reset(const mjData* data) {
   std::fill(dense_force_parameter_.begin(), dense_force_parameter_.end(), 0.0);
   std::fill(dense_sensor_parameter_.begin(), dense_sensor_parameter_.end(),
             0.0);
+  std::fill(dense_parameter_.begin(), dense_parameter_.end(), 0.0);
 
   // timer
   std::fill(timer_.sensor_step.begin(), timer_.sensor_step.end(), 0.0);
@@ -2020,6 +2023,46 @@ double Direct::Cost(double* gradient, double* hessian) {
 
   // reset skip flag
   cost_skip_ = false;
+
+  // parameters
+  if (nparam_ > 0) {
+    // zero dense rows
+    mju_zero(dense_parameter_.data(), nparam_ * ntotal_);
+
+    // zero parameter cost_
+    cost_parameter_ = 0.0;
+
+    // loop over parameters
+    for (int i = 0; i < nparam_; i++) {
+      // parameter difference
+      double parameter_diff = parameters[i] - parameters_previous[i];
+
+      // weight
+      double weight = 1.0 / noise_parameter[i] / nparam_;
+
+      // cost
+      cost_parameter_ += 0.5 * weight * parameter_diff * parameter_diff;
+
+      // gradient
+      if (gradient) {
+        gradient[nvel_ + i] = weight * parameter_diff;
+      }
+
+      // Hessian
+      if (hessian) {
+        dense_parameter_[i * ntotal_ + nvel_ + i] = weight;
+      }
+    }
+
+    // total cost 
+    cost += cost_parameter_;
+
+    // set dense rows in band Hessian
+    if (hessian) {
+      mju_copy(hessian + nvel_ * nband_, dense_parameter_.data(),
+             nparam_ * ntotal_);
+    }
+  }
 
   // total cost
   return cost;

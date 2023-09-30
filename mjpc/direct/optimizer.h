@@ -102,6 +102,7 @@ class Direct {
   double GetCostInitial() { return cost_initial_; }
   double GetCostSensor() { return cost_sensor_; }
   double GetCostForce() { return cost_force_; }
+  double GetCostParameter() { return cost_parameter_; }
   double* GetCostGradient() { return cost_gradient_.data(); }
   double* GetCostHessian();
   double* GetCostHessianBand() { return cost_hessian_band_.data(); }
@@ -313,6 +314,7 @@ class Direct {
   // cost
   double cost_sensor_;
   double cost_force_;
+  double cost_parameter_;
   double cost_;
   double cost_initial_;
   double cost_previous_;
@@ -440,6 +442,7 @@ class Direct {
   // dense cost Hessian rows (for parameter derivatives)
   std::vector<double> dense_force_parameter_;   // nparam x ntotal
   std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
+  std::vector<double> dense_parameter_;   // nparam x ntotal
 
   // model parameters
   std::vector<std::unique_ptr<mjpc::ModelParameters>> model_parameters_;

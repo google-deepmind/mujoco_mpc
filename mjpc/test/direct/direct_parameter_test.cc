@@ -25,8 +25,6 @@
 namespace mjpc {
 namespace {
 
-// TODO(etom): parameter cost?, shouldn't need to rely on prior for this.
-
 TEST(DirectParameter, ParticleFramePos) {
   // verbose
   bool verbose = false;
@@ -45,7 +43,7 @@ TEST(DirectParameter, ParticleFramePos) {
   int ns = model->nsensordata;
 
   // ----- rollout ----- //
-  int T = 3;
+  int T = 5;
   Simulation sim(model, T);
   double q[1] = {1.0};
   sim.SetState(q, NULL);
@@ -102,7 +100,7 @@ TEST(DirectParameter, ParticleFramePos) {
     printf("measurements initial = \n");
     mju_printMat(optimizer.sensor_measurement.Data(), T, model->nsensordata);
   }
-
+    
   // optimize
   optimizer.Optimize();
 

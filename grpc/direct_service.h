@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// An implementation of the `Batch` gRPC service.
+// An implementation of the `Direct` gRPC service.
 
-#ifndef GRPC_BATCH_SERVICE_H_
-#define GRPC_BATCH_SERVICE_H_
+#ifndef GRPC_DIRECT_SERVICE_H_
+#define GRPC_DIRECT_SERVICE_H_
 
 #include <memory>
 #include <vector>
@@ -24,53 +24,53 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/batch.grpc.pb.h"
-#include "grpc/batch.pb.h"
+#include "grpc/direct.grpc.pb.h"
+#include "grpc/direct.pb.h"
 #include "mjpc/direct/optimizer.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc::batch_grpc {
 
-class BatchService final : public batch::Batch::Service {
+class BatchService final : public direct::Direct::Service {
  public:
   explicit BatchService() {}
   ~BatchService();
 
   grpc::Status Init(grpc::ServerContext* context,
-                    const batch::InitRequest* request,
-                    batch::InitResponse* response) override;
+                    const direct::InitRequest* request,
+                    direct::InitResponse* response) override;
 
   grpc::Status Data(grpc::ServerContext* context,
-                    const batch::DataRequest* request,
-                    batch::DataResponse* response) override;
+                    const direct::DataRequest* request,
+                    direct::DataResponse* response) override;
 
   grpc::Status Settings(grpc::ServerContext* context,
-                        const batch::SettingsRequest* request,
-                        batch::SettingsResponse* response) override;
+                        const direct::SettingsRequest* request,
+                        direct::SettingsResponse* response) override;
 
   grpc::Status Cost(grpc::ServerContext* context,
-                    const batch::CostRequest* request,
-                    batch::CostResponse* response) override;
+                    const direct::CostRequest* request,
+                    direct::CostResponse* response) override;
 
   grpc::Status Noise(grpc::ServerContext* context,
-                     const batch::NoiseRequest* request,
-                     batch::NoiseResponse* response) override;
+                     const direct::NoiseRequest* request,
+                     direct::NoiseResponse* response) override;
 
   grpc::Status Reset(grpc::ServerContext* context,
-                     const batch::ResetRequest* request,
-                     batch::ResetResponse* response) override;
+                     const direct::ResetRequest* request,
+                     direct::ResetResponse* response) override;
 
   grpc::Status Optimize(grpc::ServerContext* context,
-                        const batch::OptimizeRequest* request,
-                        batch::OptimizeResponse* response) override;
+                        const direct::OptimizeRequest* request,
+                        direct::OptimizeResponse* response) override;
 
   grpc::Status Status(grpc::ServerContext* context,
-                      const batch::StatusRequest* request,
-                      batch::StatusResponse* response) override;
+                      const direct::StatusRequest* request,
+                      direct::StatusResponse* response) override;
 
   grpc::Status SensorInfo(grpc::ServerContext* context,
-                          const batch::SensorInfoRequest* request,
-                          batch::SensorInfoResponse* response) override;
+                          const direct::SensorInfoRequest* request,
+                          direct::SensorInfoResponse* response) override;
 
  private:
   bool Initialized() const {
@@ -84,4 +84,4 @@ class BatchService final : public batch::Batch::Service {
 
 }  // namespace mjpc::batch_grpc
 
-#endif  // GRPC_BATCH_SERVICE_H_
+#endif  // GRPC_DIRECT_SERVICE_H_

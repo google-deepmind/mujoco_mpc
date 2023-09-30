@@ -2072,7 +2072,7 @@ void Direct::TotalHessian(double* hessian) {
   timer_.cost_hessian += GetDuration(start);
 }
 
-// optimize trajectory estimate
+// optimize configuration trajectory
 void Direct::Optimize() {
   // start timer
   auto start_optimize = std::chrono::steady_clock::now();

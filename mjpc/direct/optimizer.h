@@ -92,7 +92,8 @@ class Direct {
   void ConfigurationEvaluation();
 
   // compute total cost_
-  double Cost(double* gradient, double* hessian);
+  // virtual function so derived classes can add most cost terms
+  virtual double Cost(double* gradient, double* hessian);
 
   // optimize trajectory estimate
   void Optimize();

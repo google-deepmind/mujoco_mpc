@@ -536,34 +536,6 @@ void Batch::Shift(int shift) {
   force_prediction.Shift(shift);
 }
 
-// configurations derivatives
-void Batch::ConfigurationDerivative() {
-  // base method
-  Direct::ConfigurationDerivative();
-
-  // start timer for prior Jacobian
-  auto timer_jacobian_start = std::chrono::steady_clock::now();
-
-  // pool count
-  int count_begin = pool_.GetCount();
-
-  // individual derivatives
-  if (filter_settings.assemble_prior_jacobian)
-    mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
-  JacobianPrior();
-
-  // wait
-  pool_.WaitCount(count_begin + configuration_length_);
-
-  // reset count
-  pool_.ResetCount();
-
-  // timers
-  filter_timer_.jacobian_prior +=
-      mju_sum(filter_timer_.prior_step.data(), configuration_length_);
-  timer_.jacobian_total += GetDuration(timer_jacobian_start);
-}
-
 // prior cost
 double Batch::CostPrior(double* gradient, double* hessian) {
   // start timer
@@ -935,62 +907,34 @@ void Batch::ShiftResizeTrajectory(int new_head, int new_length) {
 
 // compute total cost
 double Batch::Cost(double* gradient, double* hessian) {
-  // start timer
-  auto start = std::chrono::steady_clock::now();
+  // base method
+  Direct::Cost(gradient, hessian);
 
-  // evaluate configurations
-  if (!cost_skip_) ConfigurationEvaluation();
-
-  // derivatives
+  // prior Jacobian derivatives
   if (gradient || hessian) {
-    ConfigurationDerivative();
+
+    // start timer for prior Jacobian
+    auto timer_jacobian_start = std::chrono::steady_clock::now();
+
+    // individual derivatives
+    if (filter_settings.assemble_prior_jacobian) {
+      mju_zero(jacobian_prior_.data(), ntotal_ * ntotal_);
+    }
+    JacobianPrior();
+
+    // timers
+    filter_timer_.jacobian_prior +=
+        mju_sum(filter_timer_.prior_step.data(), configuration_length_);
+    timer_.jacobian_total += GetDuration(timer_jacobian_start);
   }
 
-  // start cost derivative timer
-  auto start_cost_derivatives = std::chrono::steady_clock::now();
-
-  // pool count
-  int count_begin = pool_.GetCount();
-
-  bool gradient_flag = (gradient ? true : false);
-  bool hessian_flag = (hessian ? true : false);
-
-  // -- individual cost derivatives -- //
-
-  // prior
-  pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-    batch.cost_prior_ = batch.CostPrior(
-        gradient_flag ? batch.cost_gradient_prior_.data() : NULL,
-        hessian_flag ? batch.cost_hessian_prior_band_.data() : NULL);
-  });
-
-  // sensor
-  if (settings.sensor_flag) {
-    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_sensor_ = batch.CostSensor(
-          gradient_flag ? batch.cost_gradient_sensor_.data() : NULL,
-          hessian_flag ? batch.cost_hessian_sensor_band_.data() : NULL);
-    });
-  }
-
-  // force
-  if (settings.force_flag) {
-    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_force_ = batch.CostForce(
-          gradient_flag ? batch.cost_gradient_force_.data() : NULL,
-          hessian_flag ? batch.cost_hessian_force_band_.data() : NULL);
-    });
-  }
-
-  // wait
-  pool_.WaitCount(count_begin + 1 + settings.sensor_flag + settings.force_flag);
-  pool_.ResetCount();
+  // prior cost
+  cost_prior_ = CostPrior(gradient, hessian);
 
   // total cost
   double cost = cost_prior_ + cost_sensor_ + cost_force_;
 
   // total gradient, hessian
-  TotalGradient(gradient);
   if (gradient) {
     // start gradient timer
     auto start = std::chrono::steady_clock::now();
@@ -1002,7 +946,6 @@ double Batch::Cost(double* gradient, double* hessian) {
     timer_.cost_gradient += GetDuration(start);
   }
 
-  TotalHessian(hessian);
   if (hessian) {
     // start Hessian timer
     auto start = std::chrono::steady_clock::now();
@@ -1014,25 +957,6 @@ double Batch::Cost(double* gradient, double* hessian) {
     // stop Hessian timer
     timer_.cost_hessian += GetDuration(start);
   }
-
-  // counter
-  if (!cost_skip_) cost_count_++;
-
-  // -- stop timer -- //
-
-  // cost time
-  if (!cost_skip_) {
-    timer_.cost += GetDuration(start);
-  }
-
-  // cost derivative time
-  if (gradient || hessian) {
-    timer_.cost_derivatives += GetDuration(start);
-    timer_.cost_total_derivatives += GetDuration(start_cost_derivatives);
-  }
-
-  // reset skip flag
-  cost_skip_ = false;
 
   // total cost
   return cost;

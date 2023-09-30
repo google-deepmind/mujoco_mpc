@@ -117,9 +117,6 @@ class Batch : public Direct, public Estimator {
   // shift trajectory heads
   void Shift(int shift);
 
-  // configurations derivatives
-  void ConfigurationDerivative();
-
   // cost
   double GetCostPrior() { return cost_prior_; }
 

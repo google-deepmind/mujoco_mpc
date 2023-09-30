@@ -217,7 +217,7 @@ fig = plt.figure()
 # position
 plt.plot(time, qpos[0, :], label="simulation", color="black")
 plt.plot(time, qinit[0, :], label="initialization", color="orange")
-plt.plot(t_est, q_est[0, :], label="estimation", ls="--", color="magenta")
+plt.plot(t_est, q_est[0, :], label="optimized", ls="--", color="magenta")
 
 plt.legend()
 plt.xlabel("Time (s)")
@@ -230,7 +230,7 @@ fig = plt.figure()
 plt.plot(time, qvel[0, :], label="simulation", color="black")
 
 # velocity (optimizer)
-plt.plot(t_est[1:], v_est[0, 1:], label="estimation", ls="--", color="magenta")
+plt.plot(t_est[1:], v_est[0, 1:], label="optimized", ls="--", color="magenta")
 
 plt.legend()
 plt.xlabel("Time (s)")

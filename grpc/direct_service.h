@@ -29,12 +29,12 @@
 #include "mjpc/direct/optimizer.h"
 #include "mjpc/utilities.h"
 
-namespace mjpc::batch_grpc {
+namespace mjpc::direct_grpc {
 
-class BatchService final : public direct::Direct::Service {
+class DirectService final : public direct::Direct::Service {
  public:
-  explicit BatchService() {}
-  ~BatchService();
+  explicit DirectService() {}
+  ~DirectService();
 
   grpc::Status Init(grpc::ServerContext* context,
                     const direct::InitRequest* request,
@@ -82,6 +82,6 @@ class BatchService final : public direct::Direct::Service {
   mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 };
 
-}  // namespace mjpc::batch_grpc
+}  // namespace mjpc::direct_grpc
 
 #endif  // GRPC_DIRECT_SERVICE_H_

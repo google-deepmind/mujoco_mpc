@@ -201,7 +201,7 @@ optimizer.print_cost()
 # status
 optimizer.print_status()
 
-# get estimation trajectories
+# get optimized trajectories
 q_est = np.zeros((model_optimizer.nq, configuration_length))
 v_est = np.zeros((model_optimizer.nv, configuration_length))
 s_est = np.zeros((model_optimizer.nsensordata, configuration_length))

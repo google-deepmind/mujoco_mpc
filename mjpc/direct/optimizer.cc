@@ -22,7 +22,7 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
-#include "mjpc/estimators/model_parameters.h"
+#include "mjpc/direct/model_parameters.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -247,7 +247,8 @@ void Direct::Initialize(const mjModel* model) {
   // cost Hessian
   cost_hessian_sensor_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
   cost_hessian_force_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
-  cost_hessian_.resize(settings.assemble_cost_hessian * ntotal_max * ntotal_max);
+  cost_hessian_.resize(settings.assemble_cost_hessian * ntotal_max *
+                       ntotal_max);
   cost_hessian_band_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
   cost_hessian_band_factor_.resize(nvel_max * nband_ + nparam_ * ntotal_max);
 
@@ -1835,10 +1836,10 @@ void Direct::InverseDynamicsDerivatives() {
 }
 
 // update configuration trajectory
-void Direct::UpdateConfiguration(
-    DirectTrajectory<double>& candidate,
-    const DirectTrajectory<double>& configuration,
-    const double* search_direction, double step_size) {
+void Direct::UpdateConfiguration(DirectTrajectory<double>& candidate,
+                                 const DirectTrajectory<double>& configuration,
+                                 const double* search_direction,
+                                 double step_size) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 

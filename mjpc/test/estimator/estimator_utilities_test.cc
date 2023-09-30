@@ -18,8 +18,8 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"

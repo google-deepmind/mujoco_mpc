@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_MODEL_PARAMETERS_H_
-#define MJPC_ESTIMATORS_MODEL_PARAMETERS_H_
+#ifndef MJPC_DIRECT_MODEL_PARAMETERS_H_
+#define MJPC_DIRECT_MODEL_PARAMETERS_H_
 
 #include <memory>
 #include <vector>
@@ -80,4 +80,4 @@ std::vector<std::unique_ptr<mjpc::ModelParameters>> LoadModelParameters();
 
 }  // namespace mjpc
 
-#endif  // MJPC_ESTIMATORS_MODEL_PARAMETERS_H_
+#endif  // MJPC_DIRECT_MODEL_PARAMETERS_H_

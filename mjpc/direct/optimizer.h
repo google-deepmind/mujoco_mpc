@@ -22,7 +22,7 @@
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/estimators/model_parameters.h"  // temporary until we make nice API
+#include "mjpc/direct/model_parameters.h"  // temporary until we make nice API
 #include "mjpc/direct/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -109,7 +109,6 @@ class Direct {
   // cost internals
   const double* GetResidualSensor() { return residual_sensor_.data(); }
   const double* GetResidualForce() { return residual_force_.data(); }
-  const double* GetJacobianPrior();
   const double* GetJacobianSensor();
   const double* GetJacobianForce();
   const double* GetNormGradientSensor() { return norm_gradient_sensor_.data(); }
@@ -189,7 +188,6 @@ class Direct {
     bool verbose_iteration = false;  // flag for printing optimize iteration
     bool verbose_optimize = false;   // flag for printing optimize status
     bool verbose_cost = false;       // flag for printing cost
-    bool verbose_prior = false;  // flag for printing prior weight update status
     SearchType search_type =
         kCurveSearch;           // search type (line search, curve search)
     double step_scaling = 0.5;  // step size scaling
@@ -211,7 +209,7 @@ class Direct {
         false;  // evaluate position sensors at last time step
     bool last_step_velocity_sensors =
         false;  // evaluate velocity sensors at last time step
-    bool assemble_cost_hessian = false; // assemble dense cost Hessian
+    bool assemble_cost_hessian = false;  // assemble dense cost Hessian
   } settings;
 
   // finite-difference settings
@@ -220,7 +218,7 @@ class Direct {
     bool flg_actuation = 1;
   } finite_difference;
 
- private:
+ protected:
   // convert sequence of configurations to velocities, accelerations
   void ConfigurationToVelocityAcceleration();
 

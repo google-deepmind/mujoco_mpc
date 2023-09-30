@@ -70,9 +70,9 @@ TEST(Batch, Particle1D) {
   mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
 
   // filter trajectories
-  EstimatorTrajectory<double> batch_qpos(model->nq, T);
-  EstimatorTrajectory<double> batch_qvel(model->nv, T);
-  EstimatorTrajectory<double> batch_timer_update(1, T);
+  DirectTrajectory<double> batch_qpos(model->nq, T);
+  DirectTrajectory<double> batch_qvel(model->nv, T);
+  DirectTrajectory<double> batch_timer_update(1, T);
 
   // noisy sensor
   std::vector<double> noisy_sensor(model->nsensordata);
@@ -159,9 +159,9 @@ TEST(Batch, Box3Drot) {
   mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
 
   // filter trajectories
-  EstimatorTrajectory<double> batch_qpos(model->nq, T);
-  EstimatorTrajectory<double> batch_qvel(model->nv, T);
-  EstimatorTrajectory<double> batch_timer_update(1, T);
+  DirectTrajectory<double> batch_qpos(model->nq, T);
+  DirectTrajectory<double> batch_qvel(model->nv, T);
+  DirectTrajectory<double> batch_timer_update(1, T);
 
   // noisy sensor
   std::vector<double> noisy_sensor(model->nsensordata);

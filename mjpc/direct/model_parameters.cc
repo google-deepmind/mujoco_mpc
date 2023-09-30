@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/estimators/model_parameters.h"
+#include "mjpc/direct/model_parameters.h"
 
 #include <memory>
 #include <vector>

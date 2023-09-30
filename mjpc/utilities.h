@@ -409,6 +409,11 @@ void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
                     int nband, int nblock, int shift, int row_skip = 0,
                     bool add = true);
 
+// compute slerp between quat0 and quat1 for t in [0, 1]
+// optionally compute Jacobians wrt quat0, quat1
+void Slerp(double* res, const double* quat0, const double* quat1, double t,
+           double* jac0, double* jac1);
+
 }  // namespace mjpc
 
 #endif  // MJPC_UTILITIES_H_

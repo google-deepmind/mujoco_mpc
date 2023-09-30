@@ -1614,4 +1614,43 @@ void SetBlockInBand(double* band, const double* block, double scale, int ntotal,
   }
 }
 
+// compute slerp between quat0 and quat1 for t in [0, 1]
+// optionally compute Jacobians wrt quat0, quat1
+void Slerp(double* res, const double* quat0, const double* quat1, double t,
+           double* jac0, double* jac1) {
+  // quaternion difference
+  double dq[3];
+  mju_subQuat(dq, quat1, quat0);
+
+  // integrate
+  mju_copy4(res, quat0);
+  mju_quatIntegrate(res, dq, t);
+
+  // slerp Jacobian
+  if (jac0 || jac1) {
+    // differentiate subQuat
+    double dvdq0[9];
+    double dvdq1[9];
+    DifferentiateSubQuat(dvdq1, dvdq0, quat1, quat0);
+
+    // differentiate quatIntegratae
+    double dqdq[9];
+    double dqdv[9];
+    DifferentiateQuatIntegrate(dqdq, dqdv, quat0, dq, t);
+
+    // Jacobian wrt quat0: dqdv * dvdq0 * t + dqdq
+    if (jac0) {
+      mju_mulMatMat(jac0, dqdv, dvdq0, 3, 3, 3);
+      mju_scl(jac0, jac0, t, 9);
+      mju_addTo(jac0, dqdq, 9);
+    }
+
+    // Jacobian wrt quat1: dqdv * dvdq * t
+    if (jac1) {
+      mju_mulMatMat(jac1, dqdv, dvdq1, 3, 3, 3);
+      mju_scl(jac1, jac1, t, 9);
+    }
+  }
+}
+
 }  // namespace mjpc

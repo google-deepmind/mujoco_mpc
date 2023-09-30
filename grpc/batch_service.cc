@@ -63,7 +63,7 @@ grpc::Status BatchService::Init(grpc::ServerContext* context,
                                 const batch::InitRequest* request,
                                 batch::InitResponse* response) {
   // check configuration length
-  if (request->configuration_length() < mjpc::kMinBatchHistory) {
+  if (request->configuration_length() < mjpc::kMinDirectHistory) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
   }
 
@@ -317,7 +317,7 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     int configuration_length = static_cast<int>(input.configuration_length());
 
     // check for valid length
-    if (configuration_length < mjpc::kMinBatchHistory ||
+    if (configuration_length < mjpc::kMinDirectHistory ||
         configuration_length > optimizer_.GetMaxHistory()) {
       return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
     }

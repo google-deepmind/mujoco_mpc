@@ -68,20 +68,16 @@ class BatchService final : public batch::Batch::Service {
                       const batch::StatusRequest* request,
                       batch::StatusResponse* response) override;
 
-  grpc::Status Timing(grpc::ServerContext* context,
-                      const batch::TimingRequest* request,
-                      batch::TimingResponse* response) override;
-
   grpc::Status SensorInfo(grpc::ServerContext* context,
                           const batch::SensorInfoRequest* request,
                           batch::SensorInfoResponse* response) override;
 
  private:
   bool Initialized() const {
-    return batch_.model && batch_.ConfigurationLength() >= 3;
+    return optimizer_.model && optimizer_.ConfigurationLength() >= 3;
   }
 
-  // batch
+  // direct optimizer
   mjpc::Direct optimizer_;
   mjpc::UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 };

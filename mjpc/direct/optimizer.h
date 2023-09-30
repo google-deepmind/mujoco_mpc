@@ -123,6 +123,9 @@ class Direct {
   // get number of sensors
   int NumberSensors() const { return nsensor_; }
 
+  // sensor dimension
+  int DimensionSensor() const { return nsensordata_; };
+
   // measurement sensor start index
   int SensorStartIndex() const { return sensor_start_index_; }
 

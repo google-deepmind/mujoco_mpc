@@ -84,7 +84,7 @@ class Filter:
     )
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
-    self.stub = filter_pb2_grpc.FilterStub(self.channel)
+    self.stub = filter_pb2_grpc.StateEstimationStub(self.channel)
 
     # initialize
     self.init(
@@ -242,7 +242,7 @@ class Filter:
       while True:
         line = self.server_process.stdout.readline()
         if line:
-          sys.stdout.write(line.decode("utf-8"))
+            sys.stdout.write(line.decode("utf-8"))
         if future.done():
-          break
+            break
     return future.result()

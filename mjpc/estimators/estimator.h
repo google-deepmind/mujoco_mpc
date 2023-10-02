@@ -41,6 +41,7 @@ class Estimator {
   // reset memory
   virtual void Reset(const mjData* data = nullptr) = 0;
 
+  // TODO(etom): time input
   // update
   virtual void Update(const double* ctrl, const double* sensor) = 0;
 
@@ -192,7 +193,16 @@ class GroundTruth : public Estimator {
   }
 
   // update
-  void Update(const double* ctrl, const double* sensor) override{};
+  void Update(const double* ctrl, const double* sensor) override {
+    mju_copy(data_->qpos, state.data(), model->nq);
+    mju_copy(data_->qvel, state.data() + model->nq, model->nv);
+    mju_copy(data_->act, state.data() + model->nq + model->nv, model->na);
+    mju_copy(data_->ctrl, ctrl, model->nu);
+    mj_step(model, data_);
+    mju_copy(state.data(), data_->qpos, model->nq);
+    mju_copy(state.data() + model->nq, data_->qvel, model->nv);
+    mju_copy(state.data() + model->nq + model->nv, data_->act, model->na);
+  };
 
   // get state
   double* State() override { return state.data(); };

@@ -1,0 +1,93 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package filter;
+
+service StateEstimation {
+  // Initialize Filter
+  rpc Init(InitRequest) returns (InitResponse);
+  // Reset Filter
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // Filter measurement update
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  // Filter state
+  rpc State(StateRequest) returns (StateResponse);
+  // Filter covariance
+  rpc Covariance(CovarianceRequest) returns (CovarianceResponse);
+  // Filter noise
+  rpc Noise(NoiseRequest) returns (NoiseResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional MjModel model = 1;
+}
+
+message InitResponse {}
+
+message ResetRequest {}
+
+message ResetResponse {}
+
+message UpdateRequest {
+  repeated double ctrl = 1 [packed = true];
+  repeated double sensor = 2 [packed = true];
+}
+
+message UpdateResponse {}
+
+message State {
+  repeated double state = 1 [packed = true];
+  optional double time = 2;
+}
+
+message StateRequest {
+  State state = 1;
+}
+
+message StateResponse {
+  State state = 1;
+}
+
+message Covariance {
+  repeated double covariance = 1 [packed = true];
+  optional int32 dimension = 2;
+}
+
+message CovarianceRequest {
+  Covariance covariance = 1;
+}
+
+message CovarianceResponse {
+  Covariance covariance = 1;
+}
+
+message Noise {
+  repeated double process = 1 [packed = true];
+  repeated double sensor = 2 [packed = true];
+}
+
+message NoiseRequest {
+  Noise noise = 1;
+}
+
+message NoiseResponse {
+  Noise noise = 1;
+}

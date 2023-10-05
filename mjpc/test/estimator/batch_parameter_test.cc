@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdio>
+#include <vector>
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
@@ -106,7 +110,7 @@ TEST(BatchParameter, ParticleFramePos) {
 
   // optimize
   ThreadPool pool(1);
-  estimator.Optimize(pool);
+  estimator.Optimize();
 
   // test parameter recovery
   for (int i = 0; i < 6; i++) {

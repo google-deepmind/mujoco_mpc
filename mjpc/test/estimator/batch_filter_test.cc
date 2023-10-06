@@ -15,10 +15,12 @@
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
+#include <cstddef>
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "mjpc/estimators/batch.h"
+#include "mjpc/estimators/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"

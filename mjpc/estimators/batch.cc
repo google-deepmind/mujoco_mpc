@@ -409,6 +409,8 @@ void Batch::Initialize(const mjModel* model) {
 
   // estimation horizon
   gui_horizon_ = configuration_length_;
+
+  cost_difference_ = improvement_ = expected_ = reduction_ratio_ = 0.0;
 }
 
 // reset memory
@@ -967,7 +969,7 @@ const double* Batch::GetJacobianForce() {
 // compute and return dense sensor norm Hessian
 const double* Batch::GetNormHessianSensor() {
   // dimensions
-  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
+  int nsensor_max = nsensordata_ * configuration_length_;
 
   // resize
   norm_hessian_sensor_.resize(nsensor_max * nsensor_max);

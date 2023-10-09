@@ -305,7 +305,7 @@ void Batch::Initialize(const mjModel* model) {
 
   // norm
   norm_sensor_.resize(nsensor_ * max_history_);
-  norm_force_.resize(ntotal_max);
+  norm_force_.resize(max_history_ - 1);
 
   // norm gradient
   norm_gradient_sensor_.resize(nsensor_max);
@@ -1928,10 +1928,10 @@ double Batch::CostForce(double* gradient, double* hessian) {
     }
 
     // norm
-    norm_sensor_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
+    norm_force_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
 
     // weighted norm
-    cost += norm_sensor_[t];
+    cost += norm_force_[t];
 
     // stop cost timer
     timer_.cost_force += GetDuration(start_cost);

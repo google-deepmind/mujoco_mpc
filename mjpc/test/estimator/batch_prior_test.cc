@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <cstddef>
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
@@ -202,9 +204,10 @@ TEST(PriorCost, Box) {
   // corrupt configurations
   absl::BitGen gen_;
   double dq[6];
+  ASSERT_EQ(6, nv);
   for (int t = 0; t < T; t++) {
     double* q = estimator.configuration.Get(t);
-    for (int i = 0; i < nq; i++) {
+    for (int i = 0; i < nv; i++) {
       dq[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     mj_integratePos(model, q, dq, model->opt.timestep);

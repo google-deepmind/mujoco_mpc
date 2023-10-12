@@ -1567,12 +1567,12 @@ void UiEvent(mjuiState* state) {
       // find geom and 3D click point, get corresponding body
       mjrRect r = state->rect[3];
       mjtNum selpnt[3];
-      int selgeom, selskin;
+      int selgeom, selflex, selskin;
       int selbody = mjv_select(m, d, &sim->opt,
                                static_cast<mjtNum>(r.width)/r.height,
                                (state->x - r.left)/r.width,
                                (state->y - r.bottom)/r.height,
-                               &sim->scn, selpnt, &selgeom, &selskin);
+                               &sim->scn, selpnt, &selgeom, &selflex, &selskin);
 
       // set lookat point, start tracking is requested
       if (selmode==2 || selmode==3) {
@@ -1600,6 +1600,7 @@ void UiEvent(mjuiState* state) {
           // record selection
           sim->pert.select = selbody;
           sim->pert.skinselect = selskin;
+          sim->pert.flexselect = selflex;
 
           // compute localpos
           mjtNum tmp[3];
@@ -1608,6 +1609,7 @@ void UiEvent(mjuiState* state) {
         } else {
           sim->pert.select = 0;
           sim->pert.skinselect = -1;
+          sim->pert.flexselect = -1;
         }
       }
 

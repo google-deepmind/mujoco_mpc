@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdio>
+#include <vector>
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 

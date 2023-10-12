@@ -143,6 +143,8 @@ void Batch::Initialize(const mjModel* model) {
 
   // estimation horizon
   gui_horizon_ = configuration_length_;
+
+  cost_difference_ = improvement_ = expected_ = reduction_ratio_ = 0.0;
 }
 
 // reset memory

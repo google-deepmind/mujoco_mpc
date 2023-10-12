@@ -14,22 +14,22 @@
 
 #include "grpc/filter_service.h"
 
-#include <absl/log/check.h>
-#include <absl/status/status.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_format.h>
-#include <absl/strings/strip.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/support/status.h>
-#include <mujoco/mujoco.h>
-
 #include <cstring>
+#include <memory>
+#include <sstream>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include <absl/log/check.h>
+#include <absl/status/status.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/status.h>
+#include <mujoco/mujoco.h>
+
 #include "grpc/filter.pb.h"
-#include "mjpc/estimators/include.h"
+#include "mjpc/estimators/estimator.h"
+#include "mjpc/utilities.h"
 
 namespace filter_grpc {
 

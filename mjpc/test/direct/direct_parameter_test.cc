@@ -20,7 +20,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/threadpool.h"
@@ -104,7 +104,7 @@ TEST(DirectParameter, ParticleFramePos) {
     printf("measurements initial = \n");
     mju_printMat(optimizer.sensor_measurement.Data(), T, model->nsensordata);
   }
-    
+
   // optimize
   optimizer.Optimize();
 

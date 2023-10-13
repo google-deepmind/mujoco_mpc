@@ -13,11 +13,12 @@
 // limitations under the License.
 
 #include <cstddef>
+#include <vector>
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"

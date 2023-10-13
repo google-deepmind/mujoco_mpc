@@ -23,8 +23,7 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/direct/model_parameters.h"  // temporary until we make nice API
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/direct/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -174,7 +173,7 @@ class Batch : public Direct, public Estimator {
 
   // reset direct and prior timers
   void ResetTimers();
-  
+
   // cost
   double cost_prior_;
 

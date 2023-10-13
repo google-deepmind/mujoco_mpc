@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/array_safety.h"
+#include "mjpc/direct/trajectory.h"
 #include "mjpc/direct/model_parameters.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
-namespace mju = ::mujoco::util_mjpc;
 
 // constructor
 Direct::Direct(const mjModel* model, int length, int max_history)
@@ -274,7 +275,7 @@ void Direct::Initialize(const mjModel* model) {
 
   // norm
   norm_sensor_.resize(nsensor_ * max_history_);
-  norm_force_.resize(ntotal_max);
+  norm_force_.resize(max_history_ - 1);
 
   // norm gradient
   norm_gradient_sensor_.resize(nsensor_max);
@@ -574,7 +575,7 @@ const double* Direct::GetJacobianForce() {
 // compute and return dense sensor norm Hessian
 const double* Direct::GetNormHessianSensor() {
   // dimensions
-  int nsensor_max = nsensordata_ * (configuration_length_ - 1);
+  int nsensor_max = nsensordata_ * configuration_length_;
 
   // resize
   norm_hessian_sensor_.resize(nsensor_max * nsensor_max);
@@ -1270,10 +1271,10 @@ double Direct::CostForce(double* gradient, double* hessian) {
     }
 
     // norm
-    norm_sensor_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
+    norm_force_[t] = 0.5 * mju_dot(rt, norm_gradient, nv);
 
     // weighted norm
-    cost += norm_sensor_[t];
+    cost += norm_force_[t];
 
     // stop cost timer
     timer_.cost_force += GetDuration(start_cost);
@@ -2054,7 +2055,7 @@ double Direct::Cost(double* gradient, double* hessian) {
       }
     }
 
-    // total cost 
+    // total cost
     cost += cost_parameter_;
 
     // set dense rows in band Hessian

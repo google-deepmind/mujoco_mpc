@@ -26,7 +26,7 @@
 
 #include "grpc/batch.grpc.pb.h"
 #include "grpc/batch.pb.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc::batch_grpc {

@@ -27,8 +27,8 @@ from mujoco_mpc import agent as agent_lib
 # %%
 # model
 model_path = (
-  pathlib.Path(os.path.abspath('')).parent.parent.parent
-  / "mujoco_mpc/mjpc/tasks/cartpole/task.xml"
+    pathlib.Path(os.path.abspath("")).parent.parent.parent
+    / "mujoco_mpc/mjpc/tasks/cartpole/task.xml"
 )
 model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -43,7 +43,7 @@ renderer = mujoco.Renderer(model)
 agent = agent_lib.Agent(task_id="Cartpole", model=model)
 
 # weights
-agent.set_cost_weights({'Velocity': 0.15})
+agent.set_cost_weights({"Velocity": 0.15})
 print("Cost weights:", agent.get_cost_weights())
 
 # parameters
@@ -78,18 +78,19 @@ FPS = 1.0 / model.opt.timestep
 
 # simulate
 for t in range(T - 1):
-  if (t % 100 == 0): print("t = ", t)
+  if t % 100 == 0:
+    print("t = ", t)
 
   # set planner state
   agent.set_state(
-        time=data.time,
-        qpos=data.qpos,
-        qvel=data.qvel,
-        act=data.act,
-        mocap_pos=data.mocap_pos,
-        mocap_quat=data.mocap_quat,
-        userdata=data.userdata,
-    )
+      time=data.time,
+      qpos=data.qpos,
+      qvel=data.qvel,
+      act=data.act,
+      mocap_pos=data.mocap_pos,
+      mocap_quat=data.mocap_quat,
+      userdata=data.userdata,
+  )
 
   # run planner for num_steps
   num_steps = 10
@@ -98,7 +99,7 @@ for t in range(T - 1):
 
   # get costs
   cost_total[t] = agent.get_total_cost()
-  for (i, c) in enumerate(agent.get_cost_term_values().items()):
+  for i, c in enumerate(agent.get_cost_term_values().items()):
     cost_terms[i, t] = c[1]
 
   # set ctrl from agent policy
@@ -160,7 +161,7 @@ plt.ylabel("Control")
 # plot costs
 fig = plt.figure()
 
-for (i, c) in enumerate(agent.get_cost_term_values().items()):
+for i, c in enumerate(agent.get_cost_term_values().items()):
   plt.plot(time[:-1], cost_terms[i, :], label=c[0])
 
 plt.plot(time[:-1], cost_total, label="Total (weighted)", color="black")
@@ -168,4 +169,3 @@ plt.plot(time[:-1], cost_total, label="Total (weighted)", color="black")
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Costs")
-

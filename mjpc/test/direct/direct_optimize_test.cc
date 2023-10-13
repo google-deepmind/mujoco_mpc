@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <cstdio>
 #include <vector>
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
-#include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {

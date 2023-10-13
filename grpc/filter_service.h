@@ -30,7 +30,7 @@
 
 namespace filter_grpc {
 
-class FilterService final : public filter::Filter::Service {
+class FilterService final : public filter::StateEstimation::Service {
  public:
   explicit FilterService() : filters_(mjpc::LoadEstimators()) {}
   ~FilterService();
@@ -46,7 +46,7 @@ class FilterService final : public filter::Filter::Service {
   grpc::Status Update(grpc::ServerContext* context,
                       const filter::UpdateRequest* request,
                       filter::UpdateResponse* response) override;
-                      
+
   grpc::Status State(grpc::ServerContext* context,
                      const filter::StateRequest* request,
                      filter::StateResponse* response) override;

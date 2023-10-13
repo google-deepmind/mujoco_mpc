@@ -26,7 +26,7 @@
 
 #include "grpc/direct.grpc.pb.h"
 #include "grpc/direct.pb.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc::direct_grpc {

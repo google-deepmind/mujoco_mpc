@@ -16,18 +16,18 @@ syntax = "proto3";
 
 package filter;
 
-service Filter {
+service StateEstimation {
   // Initialize Filter
   rpc Init(InitRequest) returns (InitResponse);
   // Reset Filter
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Filter measurement update 
+  // Filter measurement update
   rpc Update(UpdateRequest) returns (UpdateResponse);
-  // Filter state 
+  // Filter state
   rpc State(StateRequest) returns (StateResponse);
-  // Filter covariance 
+  // Filter covariance
   rpc Covariance(CovarianceRequest) returns (CovarianceResponse);
-  // Filter noise 
+  // Filter noise
   rpc Noise(NoiseRequest) returns (NoiseResponse);
 }
 
@@ -49,9 +49,9 @@ message ResetResponse {}
 message UpdateRequest {
   repeated double ctrl = 1 [packed = true];
   repeated double sensor = 2 [packed = true];
-} 
+}
 
-message UpdateResponse {} 
+message UpdateResponse {}
 
 message State {
   repeated double state = 1 [packed = true];

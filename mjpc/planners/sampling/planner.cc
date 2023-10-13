@@ -16,11 +16,11 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"
@@ -262,8 +262,8 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   auto noise_start = std::chrono::steady_clock::now();
 
   // dimensions
-  int num_spline_points = candidate_policy->num_spline_points;
-  int num_parameters = candidate_policy->num_parameters;
+  int num_spline_points = candidate_policy[i].num_spline_points;
+  int num_parameters = candidate_policy[i].num_parameters;
 
   // sampling token
   absl::BitGen gen_;

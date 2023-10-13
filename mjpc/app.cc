@@ -45,7 +45,7 @@ ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
-ABSL_FLAG(bool, estimator_enabled, true,
+ABSL_FLAG(bool, estimator_enabled, false,
           "If true, estimator loop will run on startup");
 
 namespace {
@@ -359,6 +359,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
           // run mj_forward, to update rendering and joint sliders
           mj_forward(m, d);
+          sim.speed_changed = true;
         }
       }
     }  // release sim.mtx

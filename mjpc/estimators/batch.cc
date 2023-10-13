@@ -23,8 +23,7 @@
 
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/direct/optimizer.h"
-#include "mjpc/direct/model_parameters.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
@@ -143,6 +142,8 @@ void Batch::Initialize(const mjModel* model) {
 
   // estimation horizon
   gui_horizon_ = configuration_length_;
+
+  cost_difference_ = improvement_ = expected_ = reduction_ratio_ = 0.0;
 }
 
 // reset memory
@@ -202,7 +203,7 @@ void Batch::Reset(const mjData* data) {
   // cost Hessian
   std::fill(cost_hessian_prior_band_.begin(), cost_hessian_prior_band_.end(),
             0.0);
-  
+
   // weight
   std::fill(weight_prior_.begin(), weight_prior_.end(), 0.0);
   std::fill(weight_prior_band_.begin(), weight_prior_band_.end(), 0.0);
@@ -219,8 +220,9 @@ void Batch::Reset(const mjData* data) {
   std::fill(scratch1_condmat_.begin(), scratch1_condmat_.end(), 0.0);
 
   // timer
-  std::fill(filter_timer_.prior_step.begin(), filter_timer_.prior_step.end(), 0.0);
-  
+  std::fill(filter_timer_.prior_step.begin(), filter_timer_.prior_step.end(),
+            0.0);
+
   InitializeFilter();
 
   // trajectory cache
@@ -334,7 +336,7 @@ void Batch::Update(const double* ctrl, const double* sensor) {
   if (configuration_length_ != configuration_length_cache) {
     ShiftResizeTrajectory(0, configuration_length_);
   }
-  
+
   // optimize measurement corrected state
   Optimize();
 
@@ -871,7 +873,6 @@ double Batch::Cost(double* gradient, double* hessian) {
 
   // prior Jacobian derivatives
   if (gradient || hessian) {
-
     // start timer for prior Jacobian
     auto timer_jacobian_start = std::chrono::steady_clock::now();
 
@@ -924,7 +925,7 @@ double Batch::Cost(double* gradient, double* hessian) {
     // add prior Hessian
     mju_addTo(hessian, cost_hessian_prior_band_.data(),
               nvel_ * nband_ + nparam_ * ntotal_);
- 
+
     // stop Hessian timer
     timer_.cost_hessian += GetDuration(start);
   }

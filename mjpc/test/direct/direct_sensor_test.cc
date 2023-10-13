@@ -16,7 +16,8 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/norm.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"

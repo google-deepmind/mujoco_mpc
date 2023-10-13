@@ -23,6 +23,15 @@ import pathlib
 
 class DirectTest(absltest.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    self._direct = None
+
+  def tearDown(self):
+    if self._direct is not None:
+      self._direct.close()
+    super().tearDown()
+
   def test_data(self):
     # load model
     model_path = (
@@ -33,7 +42,7 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -44,7 +53,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     configuration = np.random.rand(model.nq)
-    data = direct.data(index, configuration=configuration)
+    data = self._direct.data(index, configuration=configuration)
 
     # test that input and output match
     self.assertLess(
@@ -55,7 +64,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     velocity = np.random.rand(model.nv)
-    data = direct.data(index, velocity=velocity)
+    data = self._direct.data(index, velocity=velocity)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-5)
@@ -64,7 +73,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     acceleration = np.random.rand(model.nv)
-    data = direct.data(index, acceleration=acceleration)
+    data = self._direct.data(index, acceleration=acceleration)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-5)
@@ -73,7 +82,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     time = np.random.rand(1)
-    data = direct.data(index, time=time)
+    data = self._direct.data(index, time=time)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-5)
@@ -82,7 +91,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     ctrl = np.random.rand(model.nu)
-    data = direct.data(index, ctrl=ctrl)
+    data = self._direct.data(index, ctrl=ctrl)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
@@ -91,7 +100,9 @@ class DirectTest(absltest.TestCase):
 
     # set
     configuration_previous = np.random.rand(model.nq)
-    data = direct.data(index, configuration_previous=configuration_previous)
+    data = self._direct.data(
+        index, configuration_previous=configuration_previous
+    )
 
     # test that input and output match
     self.assertLess(
@@ -103,7 +114,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     sensor_measurement = np.random.rand(model.nsensordata)
-    data = direct.data(index, sensor_measurement=sensor_measurement)
+    data = self._direct.data(index, sensor_measurement=sensor_measurement)
 
     # test that input and output match
     self.assertLess(
@@ -115,7 +126,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     sensor_prediction = np.random.rand(model.nsensordata)
-    data = direct.data(index, sensor_prediction=sensor_prediction)
+    data = self._direct.data(index, sensor_prediction=sensor_prediction)
 
     # test that input and output match
     self.assertLess(
@@ -127,7 +138,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     sensor_mask = np.array([1, 0, 1, 0, 0], dtype=int)
-    data = direct.data(index, sensor_mask=sensor_mask)
+    data = self._direct.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(sensor_mask - data["sensor_mask"]), 1.0e-5)
@@ -136,7 +147,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     force_measurement = np.random.rand(model.nv)
-    data = direct.data(index, force_measurement=force_measurement)
+    data = self._direct.data(index, force_measurement=force_measurement)
 
     # test that input and output match
     self.assertLess(
@@ -148,7 +159,7 @@ class DirectTest(absltest.TestCase):
 
     # set
     force_prediction = np.random.rand(model.nv)
-    data = direct.data(index, force_prediction=force_prediction)
+    data = self._direct.data(index, force_prediction=force_prediction)
 
     # test that input and output match
     self.assertLess(
@@ -165,76 +176,82 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 15
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # initial configuration length
-    settings = direct.settings()
+    settings = self._direct.settings()
     self.assertTrue(configuration_length == settings["configuration_length"])
 
     # get/set configuration length
     in_configuration_length = 7
-    settings = direct.settings(configuration_length=in_configuration_length)
+    settings = self._direct.settings(
+        configuration_length=in_configuration_length
+    )
     self.assertTrue(in_configuration_length == settings["configuration_length"])
 
     # get/set sensor flag
     in_sensor_flag = False
-    settings = direct.settings(sensor_flag=in_sensor_flag)
+    settings = self._direct.settings(sensor_flag=in_sensor_flag)
     self.assertTrue(in_sensor_flag == settings["sensor_flag"])
 
     # get/set force flag
     in_force_flag = False
-    settings = direct.settings(force_flag=in_force_flag)
+    settings = self._direct.settings(force_flag=in_force_flag)
     self.assertTrue(in_force_flag == settings["force_flag"])
 
     # get/set search iterations
     in_search_iterations = 25
-    settings = direct.settings(max_search_iterations=in_search_iterations)
+    settings = self._direct.settings(max_search_iterations=in_search_iterations)
     self.assertTrue(in_search_iterations == settings["max_search_iterations"])
 
     # get/set smoother iterations
     in_smoother_iterations = 25
-    settings = direct.settings(max_smoother_iterations=in_smoother_iterations)
+    settings = self._direct.settings(
+        max_smoother_iterations=in_smoother_iterations
+    )
     self.assertTrue(
         in_smoother_iterations == settings["max_smoother_iterations"]
     )
 
     # get/set gradient tolerance
     gradient_tolerance = 1.23456
-    settings = direct.settings(gradient_tolerance=gradient_tolerance)
+    settings = self._direct.settings(gradient_tolerance=gradient_tolerance)
     self.assertLess(
         np.abs(gradient_tolerance - settings["gradient_tolerance"]), 1.0e-6
     )
 
     # get/set verbose iteration
     verbose_iteration = True
-    settings = direct.settings(verbose_iteration=verbose_iteration)
+    settings = self._direct.settings(verbose_iteration=verbose_iteration)
     self.assertTrue(verbose_iteration == settings["verbose_iteration"])
 
     # get/set verbose optimize
     verbose_optimize = True
-    settings = direct.settings(verbose_optimize=verbose_optimize)
+    settings = self._direct.settings(verbose_optimize=verbose_optimize)
     self.assertTrue(verbose_optimize == settings["verbose_optimize"])
 
     # get/set verbose cost
     verbose_cost = True
-    settings = direct.settings(verbose_cost=verbose_cost)
+    settings = self._direct.settings(verbose_cost=verbose_cost)
     self.assertTrue(verbose_cost == settings["verbose_cost"])
 
     # get/set search type
     in_search_type = 0
-    settings = direct.settings(search_type=in_search_type)
+    settings = self._direct.settings(search_type=in_search_type)
     self.assertTrue(in_search_type == settings["search_type"])
 
     # get/set step scaling
     in_step_scaling = 2.5
-    settings = direct.settings(step_scaling=in_step_scaling)
+    settings = self._direct.settings(step_scaling=in_step_scaling)
     self.assertLess(np.abs(in_step_scaling - settings["step_scaling"]), 1.0e-4)
 
     # get/set regularization initial
     in_regularization_initial = 3.0e1
-    settings = direct.settings(regularization_initial=in_regularization_initial)
+    settings = self._direct.settings(
+        regularization_initial=in_regularization_initial
+    )
     self.assertLess(
         np.abs(in_regularization_initial - settings["regularization_initial"]),
         1.0e-4,
@@ -242,7 +259,9 @@ class DirectTest(absltest.TestCase):
 
     # get/set regularization scaling
     in_regularization_scaling = 7.1
-    settings = direct.settings(regularization_scaling=in_regularization_scaling)
+    settings = self._direct.settings(
+        regularization_scaling=in_regularization_scaling
+    )
     self.assertLess(
         np.abs(in_regularization_scaling - settings["regularization_scaling"]),
         1.0e-4,
@@ -250,7 +269,7 @@ class DirectTest(absltest.TestCase):
 
     # get/set search direction tolerance
     search_direction_tolerance = 3.3
-    settings = direct.settings(
+    settings = self._direct.settings(
         search_direction_tolerance=search_direction_tolerance
     )
     self.assertLess(
@@ -262,12 +281,12 @@ class DirectTest(absltest.TestCase):
 
     # get/set cost tolerance
     cost_tolerance = 1.0e-3
-    settings = direct.settings(cost_tolerance=cost_tolerance)
+    settings = self._direct.settings(cost_tolerance=cost_tolerance)
     self.assertLess(np.abs(cost_tolerance - settings["cost_tolerance"]), 1.0e-5)
 
     # get/set assemble sensor Jacobian
     assemble_sensor_jacobian = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         assemble_sensor_jacobian=assemble_sensor_jacobian
     )
     self.assertTrue(
@@ -276,14 +295,16 @@ class DirectTest(absltest.TestCase):
 
     # get/set assemble force Jacobian
     assemble_force_jacobian = True
-    settings = direct.settings(assemble_force_jacobian=assemble_force_jacobian)
+    settings = self._direct.settings(
+        assemble_force_jacobian=assemble_force_jacobian
+    )
     self.assertTrue(
         assemble_force_jacobian == settings["assemble_force_jacobian"]
     )
 
     # get/set assemble sensor norm Hessian
     assemble_sensor_norm_hessian = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian
     )
     self.assertTrue(
@@ -292,7 +313,7 @@ class DirectTest(absltest.TestCase):
 
     # get/set assemble force norm Hessian
     assemble_force_norm_hessian = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         assemble_force_norm_hessian=assemble_force_norm_hessian
     )
     self.assertTrue(
@@ -301,7 +322,7 @@ class DirectTest(absltest.TestCase):
 
     # get/set first step position sensors
     first_step_position_sensors = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         first_step_position_sensors=first_step_position_sensors
     )
     self.assertTrue(
@@ -310,7 +331,7 @@ class DirectTest(absltest.TestCase):
 
     # get/set last step position sensors
     last_step_position_sensors = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         last_step_position_sensors=last_step_position_sensors
     )
     self.assertTrue(
@@ -319,7 +340,7 @@ class DirectTest(absltest.TestCase):
 
     # get/set last step velocity sensors
     last_step_velocity_sensors = True
-    settings = direct.settings(
+    settings = self._direct.settings(
         last_step_velocity_sensors=last_step_velocity_sensors
     )
     self.assertTrue(
@@ -336,12 +357,12 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # cost
-    cost = direct.cost(derivatives=True, internals=True)
+    cost = self._direct.cost(derivatives=True, internals=True)
 
     self.assertLess(np.abs(cost["total"] - 0.001), 1.0e-4)
 
@@ -388,18 +409,18 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     ## process
     in_process = np.random.rand(model.nv)
-    noise = direct.noise(process=in_process)
+    noise = self._direct.noise(process=in_process)
     self.assertLess(np.linalg.norm(in_process - noise["process"]), 1.0e-5)
 
     ## sensor
     in_sensor = np.random.rand(model.nsensor)
-    noise = direct.noise(sensor=in_sensor)
+    noise = self._direct.noise(sensor=in_sensor)
     self.assertLess(np.linalg.norm(in_sensor - noise["sensor"]), 1.0e-5)
 
   def test_reset(self):
@@ -412,7 +433,7 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -420,7 +441,7 @@ class DirectTest(absltest.TestCase):
     index = 1
     configuration = np.random.rand(model.nq)
     sensor_measurement = np.random.rand(model.nsensordata)
-    data = direct.data(
+    data = self._direct.data(
         index,
         configuration=configuration,
         sensor_measurement=sensor_measurement,
@@ -431,10 +452,10 @@ class DirectTest(absltest.TestCase):
     self.assertLess(0, np.linalg.norm(data["sensor_measurement"]))
 
     # reset
-    direct.reset()
+    self._direct.reset()
 
     # get data
-    data = direct.data(index)
+    data = self._direct.data(index)
 
     # check that elements are reset to zero
     self.assertLess(np.linalg.norm(data["configuration"]), 1.0e-5)
@@ -450,14 +471,14 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # TODO(taylor): setup
 
     # optimize
-    direct.optimize()
+    self._direct.optimize()
 
   def test_status(self):
     # load model
@@ -469,12 +490,12 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # TODO(taylor): setup
-    status = direct.status()
+    status = self._direct.status()
 
     # search iterations
     self.assertEqual(status["search_iterations"], 0)
@@ -489,7 +510,7 @@ class DirectTest(absltest.TestCase):
     # self.assertTrue(
     #     np.abs(
     #         status["regularization"]
-    #         - direct.settings()["regularization_initial"]
+    #         - self._direct.settings()["regularization_initial"]
     #     ),
     #     1.0e-6,
     # )
@@ -516,12 +537,12 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # get sensor info
-    info = direct.sensor_info()
+    info = self._direct.sensor_info()
 
     # test
     self.assertEqual(info["start_index"], 0)
@@ -538,7 +559,7 @@ class DirectTest(absltest.TestCase):
 
     # initialize
     configuration_length = 3
-    direct = direct_lib.Direct(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -546,14 +567,14 @@ class DirectTest(absltest.TestCase):
     parameters = np.random.normal(size=6, scale=1.0e-1)
 
     # set / get data
-    data = direct.data(0, parameters=parameters)
+    data = self._direct.data(0, parameters=parameters)
 
     # test
     self.assertLess(np.linalg.norm(data["parameters"] - parameters), 1.0e-5)
 
     # noise
     noise = np.random.normal(size=6, scale=1.0)
-    data = direct.noise(parameter=noise)
+    data = self._direct.noise(parameter=noise)
 
     # test
     self.assertLess(np.linalg.norm(data["parameter"] - noise), 1.0e-5)

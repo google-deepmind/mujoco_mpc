@@ -22,7 +22,7 @@
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/direct/model_parameters.h"  // temporary until we make nice API
+#include "mjpc/direct/model_parameters.h"
 #include "mjpc/direct/trajectory.h"
 #include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
@@ -68,7 +68,7 @@ class Direct {
   Direct(const mjModel* model, int length = 3, int max_history = 0);
 
   // destructor
-  ~Direct() {
+  virtual ~Direct() {
     if (model) mj_deleteModel(model);
   }
 
@@ -124,7 +124,7 @@ class Direct {
   int NumberSensors() const { return nsensor_; }
 
   // sensor dimension
-  int DimensionSensor() const { return nsensordata_; };
+  int DimensionSensor() const { return nsensordata_; }
 
   // measurement sensor start index
   int SensorStartIndex() const { return sensor_start_index_; }

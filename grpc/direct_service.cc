@@ -16,21 +16,19 @@
 
 #include <cstring>
 #include <memory>
+#include <sstream>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include <absl/log/check.h>
 #include <absl/status/status.h>
-#include <absl/strings/match.h>
-#include <absl/strings/str_format.h>
-#include <absl/strings/strip.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
 #include "grpc/direct.pb.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/norm.h"
 
 namespace mjpc::direct_grpc {

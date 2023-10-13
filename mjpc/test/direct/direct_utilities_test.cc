@@ -18,7 +18,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/direct/optimizer.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/direct/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
@@ -27,7 +27,7 @@
 namespace mjpc {
 namespace {
 
-TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
+TEST(FiniteDifferenceVelocityAcceleration, Particle1D) {
   // load model
   mjModel* model = LoadTestModel("estimator/particle/task1D.xml");
   mjData* data = mj_makeData(model);
@@ -40,7 +40,6 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle2D) {
   // controller
   auto controller = [](double* ctrl, double time) {
     ctrl[0] = mju_sin(10 * time);
-    ctrl[1] = mju_cos(10 * time);
   };
 
   // trajectories

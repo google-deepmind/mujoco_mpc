@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Python interface for interface with Batch."""
+"""Python interface for interface with Direct."""
 
 import atexit
 import os
@@ -30,8 +30,8 @@ import numpy as np
 from numpy import typing as npt
 
 # INTERNAL IMPORT
-from mujoco_mpc.proto import batch_pb2
-from mujoco_mpc.proto import batch_pb2_grpc
+from mujoco_mpc.proto import direct_pb2
+from mujoco_mpc.proto import direct_pb2_grpc
 
 
 def find_free_port() -> int:
@@ -49,8 +49,8 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
-class Batch:
-  """`Batch` class to interface with MuJoCo MPC batch estimator.
+class Direct:
+  """`Direct` class to interface with MuJoCo MPC direct estimator.
 
   Attributes:
     port:
@@ -69,7 +69,7 @@ class Batch:
   ):
     # server
     if server_binary_path is None:
-      binary_name = "batch_server"
+      binary_name = "direct_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
     self._colab_logging = colab_logging
     self.port = find_free_port()
@@ -85,7 +85,7 @@ class Batch:
     )
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
-    self.stub = batch_pb2_grpc.BatchStub(self.channel)
+    self.stub = direct_pb2_grpc.DirectStub(self.channel)
 
     # initialize
     self.init(
@@ -105,7 +105,7 @@ class Batch:
       configuration_length: int,
       send_as: Literal["mjb", "xml"] = "xml",
   ):
-    """Initialize the batch estimator estimation horizon with `configuration_length`.
+    """Initialize the direct estimator estimation horizon with `configuration_length`.
 
     Args:
       model: optional `MjModel` instance, which, if provided, will be used as
@@ -131,14 +131,14 @@ class Batch:
 
     if model is not None:
       if send_as == "mjb":
-        model_message = batch_pb2.MjModel(mjb=model_to_mjb(model))
+        model_message = direct_pb2.MjModel(mjb=model_to_mjb(model))
       else:
-        model_message = batch_pb2.MjModel(xml=model_to_xml(model))
+        model_message = direct_pb2.MjModel(xml=model_to_xml(model))
     else:
       model_message = None
 
     # initialize request
-    init_request = batch_pb2.InitRequest(
+    init_request = direct_pb2.InitRequest(
         model=model_message,
         configuration_length=configuration_length,
     )
@@ -164,7 +164,7 @@ class Batch:
       parameters_previous: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble inputs
-    inputs = batch_pb2.Data(
+    inputs = direct_pb2.Data(
         configuration=configuration,
         velocity=velocity,
         acceleration=acceleration,
@@ -181,7 +181,7 @@ class Batch:
     )
 
     # data request
-    request = batch_pb2.DataRequest(data=inputs, index=index)
+    request = direct_pb2.DataRequest(data=inputs, index=index)
 
     # data response
     data = self._wait(self.stub.Data.future(request)).data
@@ -231,7 +231,7 @@ class Batch:
       last_step_velocity_sensors: Optional[bool] = None,
   ) -> dict[str, int | bool]:
     # assemble settings
-    inputs = batch_pb2.Settings(
+    inputs = direct_pb2.Settings(
         configuration_length=configuration_length,
         sensor_flag=sensor_flag,
         force_flag=force_flag,
@@ -259,7 +259,7 @@ class Batch:
     )
 
     # settings request
-    request = batch_pb2.SettingsRequest(
+    request = direct_pb2.SettingsRequest(
         settings=inputs,
     )
 
@@ -301,14 +301,14 @@ class Batch:
       parameter: Optional[npt.ArrayLike] = [],
   ) -> dict[str, np.ndarray]:
     # assemble input noise
-    inputs = batch_pb2.Noise(
+    inputs = direct_pb2.Noise(
         process=process,
         sensor=sensor,
         parameter=parameter,
     )
 
     # noise request
-    request = batch_pb2.NoiseRequest(noise=inputs)
+    request = direct_pb2.NoiseRequest(noise=inputs)
 
     # noise response
     noise = self._wait(self.stub.Noise.future(request)).noise
@@ -326,7 +326,7 @@ class Batch:
       internals: Optional[bool] = False,
   ) -> dict[str, float | np.ndarray | int | list]:
     # cost request
-    request = batch_pb2.CostRequest(
+    request = direct_pb2.CostRequest(
         derivatives=derivatives, internals=internals
     )
 
@@ -379,7 +379,7 @@ class Batch:
 
   def status(self) -> dict[str, int]:
     # status request
-    request = batch_pb2.StatusRequest()
+    request = direct_pb2.StatusRequest()
 
     # status response
     status = self._wait(self.stub.Status.future(request)).status
@@ -401,21 +401,21 @@ class Batch:
 
   def reset(self):
     # reset request
-    request = batch_pb2.ResetRequest()
+    request = direct_pb2.ResetRequest()
 
     # reset response
     self._wait(self.stub.Reset.future(request))
 
   def optimize(self):
     # optimize request
-    request = batch_pb2.OptimizeRequest()
+    request = direct_pb2.OptimizeRequest()
 
     # optimize response
     self._wait(self.stub.Optimize.future(request))
 
   def sensor_info(self) -> dict[str, int]:
     # info request
-    request = batch_pb2.SensorInfoRequest()
+    request = direct_pb2.SensorInfoRequest()
 
     # info response
     response = self._wait(self.stub.SensorInfo.future(request))
@@ -434,7 +434,7 @@ class Batch:
     # return measurements from sensor data
     index = info["start_index"]
     dim = info["dim_measurements"]
-    return data[index:(index + dim)]
+    return data[index : (index + dim)]
 
   def print_cost(self):
     # get costs
@@ -488,7 +488,7 @@ class Batch:
       while True:
         line = self.server_process.stdout.readline()
         if line:
-            sys.stdout.write(line.decode("utf-8"))
+          sys.stdout.write(line.decode("utf-8"))
         if future.done():
-            break
+          break
     return future.result()

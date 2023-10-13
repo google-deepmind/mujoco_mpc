@@ -17,7 +17,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/direct/optimizer.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
@@ -45,36 +45,35 @@ TEST(ForceCost, Particle) {
   };
   sim.Rollout(controller);
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = true;
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
+  optimizer.settings.sensor_flag = false;
+  optimizer.settings.force_flag = true;
 
   // weights
-  estimator.noise_process[0] = 1.0;
-  estimator.noise_process[1] = 2.0;
+  optimizer.noise_process[0] = 1.0;
+  optimizer.noise_process[1] = 2.0;
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration.Get(t);
+    double* q = optimizer.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += 1.0e-1 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&estimator = estimator, &model = model,
+  auto cost_inverse_dynamics = [&optimizer = optimizer, &model = model,
                                 &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * (estimator.ConfigurationLength() - 2);
+    int nres = nv * (optimizer.ConfigurationLength() - 2);
 
     // velocity
     std::vector<double> v1(nv);
@@ -92,14 +91,14 @@ TEST(ForceCost, Particle) {
     // time scaling
     double time_scale = 1.0;
     double time_scale2 = 1.0;
-    if (estimator.settings.time_scaling_force) {
+    if (optimizer.settings.time_scaling_force) {
       time_scale =
-          estimator.model->opt.timestep * estimator.model->opt.timestep;
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
     // loop over predictions
-    for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
+    for (int k = 0; k < optimizer.ConfigurationLength() - 2; k++) {
       // time index
       int t = k + 1;
 
@@ -108,7 +107,7 @@ TEST(ForceCost, Particle) {
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
-      double* f1 = estimator.force_measurement.Get(t);
+      double* f1 = optimizer.force_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -135,8 +134,8 @@ TEST(ForceCost, Particle) {
       // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight = time_scale2 / estimator.noise_process[i] / nv /
-                        (estimator.ConfigurationLength() - 2);
+        double weight = time_scale2 / optimizer.noise_process[i] / nv /
+                        (optimizer.ConfigurationLength() - 2);
         wr[i] = weight * rk[i];
       }
 
@@ -154,22 +153,22 @@ TEST(ForceCost, Particle) {
   int nvar = nv * T;
 
   // cost
-  double cost_lambda = cost_inverse_dynamics(estimator.configuration.Data());
+  double cost_lambda = cost_inverse_dynamics(optimizer.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
+  fdg.Compute(cost_inverse_dynamics, optimizer.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
+  fdh.Compute(cost_inverse_dynamics, optimizer.configuration.Data(), nvar);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
   std::vector<double> cost_gradient(nvar);
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
-  double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
+  double cost_optimizer =
+      optimizer.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,
@@ -177,7 +176,7 @@ TEST(ForceCost, Particle) {
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = cost_optimizer - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient
@@ -217,26 +216,25 @@ TEST(ForceCost, Box) {
   sim.SetState(data->qpos, qvel);
   sim.Rollout(controller);
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = true;
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
+  optimizer.settings.sensor_flag = false;
+  optimizer.settings.force_flag = true;
 
   // weights
-  estimator.noise_process[0] = 1.0;
-  estimator.noise_process[1] = 2.0;
-  estimator.noise_process[2] = 3.0;
+  optimizer.noise_process[0] = 1.0;
+  optimizer.noise_process[1] = 2.0;
+  optimizer.noise_process[2] = 3.0;
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration.Get(t);
+    double* q = optimizer.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
       dq[i] = 1.0e-2 * absl::Gaussian<double>(gen_, 0.0, 1.0);
@@ -245,16 +243,16 @@ TEST(ForceCost, Box) {
   }
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&estimator = estimator, &model = model,
+  auto cost_inverse_dynamics = [&optimizer = optimizer, &model = model,
                                 &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * (estimator.ConfigurationLength() - 2);
-    int T = estimator.ConfigurationLength();
+    int nres = nv * (optimizer.ConfigurationLength() - 2);
+    int T = optimizer.ConfigurationLength();
 
     // configuration
     std::vector<double> configuration(nq * T);
-    mju_copy(configuration.data(), estimator.configuration.Data(), nq * T);
+    mju_copy(configuration.data(), optimizer.configuration.Data(), nq * T);
     for (int t = 0; t < T; t++) {
       double* q = configuration.data() + t * nq;
       const double* dq = update + t * nv;
@@ -276,14 +274,14 @@ TEST(ForceCost, Box) {
 
     // time scaling
     double time_scale2 = 1.0;
-    if (estimator.settings.time_scaling_force) {
+    if (optimizer.settings.time_scaling_force) {
       time_scale2 =
-          estimator.model->opt.timestep * estimator.model->opt.timestep *
-          estimator.model->opt.timestep * estimator.model->opt.timestep;
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep *
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep;
     }
 
     // loop over predictions
-    for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
+    for (int k = 0; k < optimizer.ConfigurationLength() - 2; k++) {
       // time index
       int t = k + 1;
 
@@ -292,7 +290,7 @@ TEST(ForceCost, Box) {
       const double* q0 = configuration.data() + (t - 1) * nq;
       const double* q1 = configuration.data() + (t + 0) * nq;
       const double* q2 = configuration.data() + (t + 1) * nq;
-      double* f1 = estimator.force_measurement.Get(t);
+      double* f1 = optimizer.force_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -319,8 +317,8 @@ TEST(ForceCost, Box) {
       // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight = time_scale2 / estimator.noise_process[i] / nv /
-                        (estimator.ConfigurationLength() - 2);
+        double weight = time_scale2 / optimizer.noise_process[i] / nv /
+                        (optimizer.ConfigurationLength() - 2);
 
         // weighted residual
         wr[i] = weight * rk[i];
@@ -354,14 +352,14 @@ TEST(ForceCost, Box) {
   FiniteDifferenceHessian fdh(nvar);
   fdh.Compute(cost_inverse_dynamics, update.data(), nvar);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
   std::vector<double> cost_gradient(nvar);
-  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL);
+  double cost_optimizer = optimizer.Cost(cost_gradient.data(), NULL);
 
   // ----- error ----- //
 
   // cost
-  EXPECT_NEAR(cost_estimator - cost_lambda, 0.0, 1.0e-5);
+  EXPECT_NEAR(cost_optimizer - cost_lambda, 0.0, 1.0e-5);
 
   // gradient
   std::vector<double> gradient_error(nvar);
@@ -393,36 +391,35 @@ TEST(ForceCost, ParticleDamped) {
   sim.SetState(q0, NULL);
   sim.Rollout(controller);
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = false;
-  estimator.settings.force_flag = true;
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
+  optimizer.settings.sensor_flag = false;
+  optimizer.settings.force_flag = true;
 
   // weights
-  estimator.noise_process[0] = 1.0;
-  estimator.noise_process[1] = 2.0;
+  optimizer.noise_process[0] = 1.0;
+  optimizer.noise_process[1] = 2.0;
 
   // copy configuration, qfrc_actuator
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration.Get(t);
+    double* q = optimizer.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += 1.0e-5 * absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
   }
 
   // ----- cost ----- //
-  auto cost_inverse_dynamics = [&estimator = estimator, &model = model,
+  auto cost_inverse_dynamics = [&optimizer = optimizer, &model = model,
                                 &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv;
-    int nres = nv * (estimator.ConfigurationLength() - 2);
+    int nres = nv * (optimizer.ConfigurationLength() - 2);
 
     // velocity
     std::vector<double> v1(nv);
@@ -440,14 +437,14 @@ TEST(ForceCost, ParticleDamped) {
     // time scaling
     double time_scale = 1.0;
     double time_scale2 = 1.0;
-    if (estimator.settings.time_scaling_force) {
+    if (optimizer.settings.time_scaling_force) {
       time_scale =
-          estimator.model->opt.timestep * estimator.model->opt.timestep;
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
     // loop over predictions
-    for (int k = 0; k < estimator.ConfigurationLength() - 2; k++) {
+    for (int k = 0; k < optimizer.ConfigurationLength() - 2; k++) {
       // time index
       int t = k + 1;
 
@@ -456,7 +453,7 @@ TEST(ForceCost, ParticleDamped) {
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
-      double* f1 = estimator.force_measurement.Get(t);
+      double* f1 = optimizer.force_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -483,8 +480,8 @@ TEST(ForceCost, ParticleDamped) {
       // loop over nv
       for (int i = 0; i < nv; i++) {
         // weight
-        double weight = time_scale2 / estimator.noise_process[i] / nv /
-                        (estimator.ConfigurationLength() - 2);
+        double weight = time_scale2 / optimizer.noise_process[i] / nv /
+                        (optimizer.ConfigurationLength() - 2);
         wr[i] = weight * rk[i];
       }
 
@@ -502,22 +499,22 @@ TEST(ForceCost, ParticleDamped) {
   int nvar = nv * T;
 
   // cost
-  double cost_lambda = cost_inverse_dynamics(estimator.configuration.Data());
+  double cost_lambda = cost_inverse_dynamics(optimizer.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
+  fdg.Compute(cost_inverse_dynamics, optimizer.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_inverse_dynamics, estimator.configuration.Data(), nvar);
+  fdh.Compute(cost_inverse_dynamics, optimizer.configuration.Data(), nvar);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
   std::vector<double> cost_gradient(nvar);
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
-  double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
+  double cost_optimizer =
+      optimizer.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,
@@ -525,7 +522,7 @@ TEST(ForceCost, ParticleDamped) {
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = cost_optimizer - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient

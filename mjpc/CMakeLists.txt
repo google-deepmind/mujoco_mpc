@@ -107,11 +107,13 @@ add_library(
   estimators/include.h
   estimators/kalman.cc
   estimators/kalman.h
-  estimators/model_parameters.cc
-  estimators/model_parameters.h
-  estimators/trajectory.h
   estimators/unscented.cc
   estimators/unscented.h
+  direct/optimizer.cc
+  direct/optimizer.h
+  direct/trajectory.h
+  direct/model_parameters.cc
+  direct/model_parameters.h
   app.cc
   app.h
   norm.cc

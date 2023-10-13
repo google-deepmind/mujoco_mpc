@@ -18,18 +18,18 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/trajectory.h"
 
 namespace mjpc {
 namespace {
 
-TEST(EstimatorTrajectory, Test) {
+TEST(DirectTrajectory, Test) {
   // dimensions
   int dim = 2;
   int length = 3;
 
   // trajectory
-  EstimatorTrajectory<double> trajectory;
+  DirectTrajectory<double> trajectory;
 
   // initialize
   trajectory.Initialize(dim, length);

@@ -30,7 +30,7 @@
 #include <mujoco/mujoco.h>
 
 #include "grpc/batch.pb.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/direct/optimizer.h"
 #include "mjpc/norm.h"
 
 namespace mjpc::batch_grpc {
@@ -63,7 +63,7 @@ grpc::Status BatchService::Init(grpc::ServerContext* context,
                                 const batch::InitRequest* request,
                                 batch::InitResponse* response) {
   // check configuration length
-  if (request->configuration_length() < mjpc::kMinBatchHistory) {
+  if (request->configuration_length() < mjpc::kMinDirectHistory) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
   }
 
@@ -102,14 +102,14 @@ grpc::Status BatchService::Init(grpc::ServerContext* context,
   }
 
   // move model
-  batch_model_override_ = std::move(tmp_model);
+  model_override_ = std::move(tmp_model);
 
   // initialize batch
   int length = request->configuration_length();
-  batch_.SetMaxHistory(length);
-  batch_.Initialize(batch_model_override_.get());
-  batch_.SetConfigurationLength(length);
-  batch_.Reset();
+  optimizer_.SetMaxHistory(length);
+  optimizer_.Initialize(model_override_.get());
+  optimizer_.SetConfigurationLength(length);
+  optimizer_.Reset();
 
   return grpc::Status::OK;
 }
@@ -123,7 +123,7 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
 
   // valid index
   int index = static_cast<int>(request->index());
-  if (index < 0 || index >= batch_.ConfigurationLength()) {
+  if (index < 0 || index >= optimizer_.ConfigurationLength()) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid index."};
   }
 
@@ -132,27 +132,27 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   batch::Data* output = response->mutable_data();
 
   // set configuration
-  int nq = batch_.model->nq;
+  int nq = optimizer_.model->nq;
   if (input.configuration_size() > 0) {
     CHECK_SIZE("configuration", nq, input.configuration_size());
-    batch_.configuration.Set(input.configuration().data(), index);
+    optimizer_.configuration.Set(input.configuration().data(), index);
   }
 
   // get configuration
-  double* configuration = batch_.configuration.Get(index);
+  double* configuration = optimizer_.configuration.Get(index);
   for (int i = 0; i < nq; i++) {
     output->add_configuration(configuration[i]);
   }
 
   // set velocity
-  int nv = batch_.model->nv;
+  int nv = optimizer_.model->nv;
   if (input.velocity_size() > 0) {
     CHECK_SIZE("velocity", nv, input.velocity_size());
-    batch_.velocity.Set(input.velocity().data(), index);
+    optimizer_.velocity.Set(input.velocity().data(), index);
   }
 
   // get velocity
-  double* velocity = batch_.velocity.Get(index);
+  double* velocity = optimizer_.velocity.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_velocity(velocity[i]);
   }
@@ -160,11 +160,11 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   // set acceleration
   if (input.acceleration_size() > 0) {
     CHECK_SIZE("acceleration", nv, input.acceleration_size());
-    batch_.acceleration.Set(input.acceleration().data(), index);
+    optimizer_.acceleration.Set(input.acceleration().data(), index);
   }
 
   // get acceleration
-  double* acceleration = batch_.acceleration.Get(index);
+  double* acceleration = optimizer_.acceleration.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_acceleration(acceleration[i]);
   }
@@ -172,22 +172,22 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   // set time
   if (input.time_size() > 0) {
     CHECK_SIZE("time", 1, input.time_size());
-    batch_.times.Set(input.time().data(), index);
+    optimizer_.times.Set(input.time().data(), index);
   }
 
   // get time
-  double* time = batch_.times.Get(index);
+  double* time = optimizer_.times.Get(index);
   output->add_time(time[0]);
 
   // set ctrl
-  int nu = batch_.model->nu;
+  int nu = optimizer_.model->nu;
   if (input.ctrl_size() > 0) {
     CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    batch_.ctrl.Set(input.ctrl().data(), index);
+    optimizer_.ctrl.Set(input.ctrl().data(), index);
   }
 
   // get ctrl
-  double* ctrl = batch_.ctrl.Get(index);
+  double* ctrl = optimizer_.ctrl.Get(index);
   for (int i = 0; i < nu; i++) {
     output->add_ctrl(ctrl[i]);
   }
@@ -196,25 +196,25 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   if (input.configuration_previous_size() > 0) {
     CHECK_SIZE("configuration_previous", nq,
                input.configuration_previous_size());
-    batch_.configuration_previous.Set(input.configuration_previous().data(),
-                                      index);
+    optimizer_.configuration_previous.Set(input.configuration_previous().data(),
+                                          index);
   }
 
   // get configuration previous
-  double* prior = batch_.configuration_previous.Get(index);
+  double* qpos_prev = optimizer_.configuration_previous.Get(index);
   for (int i = 0; i < nq; i++) {
-    output->add_configuration_previous(prior[i]);
+    output->add_configuration_previous(qpos_prev[i]);
   }
 
   // set sensor measurement
-  int ns = batch_.DimensionSensor();
+  int ns = optimizer_.DimensionSensor();
   if (input.sensor_measurement_size() > 0) {
     CHECK_SIZE("sensor_measurement", ns, input.sensor_measurement_size());
-    batch_.sensor_measurement.Set(input.sensor_measurement().data(), index);
+    optimizer_.sensor_measurement.Set(input.sensor_measurement().data(), index);
   }
 
   // get sensor measurement
-  double* sensor_measurement = batch_.sensor_measurement.Get(index);
+  double* sensor_measurement = optimizer_.sensor_measurement.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_measurement(sensor_measurement[i]);
   }
@@ -222,24 +222,24 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   // set sensor prediction
   if (input.sensor_prediction_size() > 0) {
     CHECK_SIZE("sensor_prediction", ns, input.sensor_prediction_size());
-    batch_.sensor_prediction.Set(input.sensor_prediction().data(), index);
+    optimizer_.sensor_prediction.Set(input.sensor_prediction().data(), index);
   }
 
   // get sensor prediction
-  double* sensor_prediction = batch_.sensor_prediction.Get(index);
+  double* sensor_prediction = optimizer_.sensor_prediction.Get(index);
   for (int i = 0; i < ns; i++) {
     output->add_sensor_prediction(sensor_prediction[i]);
   }
 
   // set sensor mask
-  int num_sensor = batch_.NumberSensors();
+  int num_sensor = optimizer_.NumberSensors();
   if (input.sensor_mask_size() > 0) {
     CHECK_SIZE("sensor_mask", num_sensor, input.sensor_mask_size());
-    batch_.sensor_mask.Set(input.sensor_mask().data(), index);
+    optimizer_.sensor_mask.Set(input.sensor_mask().data(), index);
   }
 
   // get sensor mask
-  int* sensor_mask = batch_.sensor_mask.Get(index);
+  int* sensor_mask = optimizer_.sensor_mask.Get(index);
   for (int i = 0; i < num_sensor; i++) {
     output->add_sensor_mask(sensor_mask[i]);
   }
@@ -247,11 +247,11 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   // set force measurement
   if (input.force_measurement_size() > 0) {
     CHECK_SIZE("force_measurement", nv, input.force_measurement_size());
-    batch_.force_measurement.Set(input.force_measurement().data(), index);
+    optimizer_.force_measurement.Set(input.force_measurement().data(), index);
   }
 
   // get force measurement
-  double* force_measurement = batch_.force_measurement.Get(index);
+  double* force_measurement = optimizer_.force_measurement.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_measurement(force_measurement[i]);
   }
@@ -259,26 +259,26 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   // set force prediction
   if (input.force_prediction_size() > 0) {
     CHECK_SIZE("force_prediction", nv, input.force_prediction_size());
-    batch_.force_prediction.Set(input.force_prediction().data(), index);
+    optimizer_.force_prediction.Set(input.force_prediction().data(), index);
   }
 
   // get force prediction
-  double* force_prediction = batch_.force_prediction.Get(index);
+  double* force_prediction = optimizer_.force_prediction.Get(index);
   for (int i = 0; i < nv; i++) {
     output->add_force_prediction(force_prediction[i]);
   }
 
   // parameters
-  int np = batch_.NumberParameters();
+  int np = optimizer_.NumberParameters();
   if (np > 0) {
     // set parameters
     if (input.parameters_size() > 0) {
       CHECK_SIZE("parameters", np, input.parameters_size());
-      mju_copy(batch_.parameters.data(), input.parameters().data(), np);
+      mju_copy(optimizer_.parameters.data(), input.parameters().data(), np);
     }
 
     // get parameters
-    double* parameters = batch_.parameters.data();
+    double* parameters = optimizer_.parameters.data();
     for (int i = 0; i < np; i++) {
       output->add_parameters(parameters[i]);
     }
@@ -286,12 +286,12 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
     // set parameters previous
     if (input.parameters_previous_size() > 0) {
       CHECK_SIZE("parameters previous", np, input.parameters_previous_size());
-      mju_copy(batch_.parameters_previous.data(),
+      mju_copy(optimizer_.parameters_previous.data(),
                input.parameters_previous().data(), np);
     }
 
     // get parameters previous
-    double* parameters_previous = batch_.parameters_previous.data();
+    double* parameters_previous = optimizer_.parameters_previous.data();
     for (int i = 0; i < np; i++) {
       output->add_parameters_previous(parameters_previous[i]);
     }
@@ -317,28 +317,25 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     int configuration_length = static_cast<int>(input.configuration_length());
 
     // check for valid length
-    if (configuration_length < mjpc::kMinBatchHistory ||
-        configuration_length > batch_.GetMaxHistory()) {
+    if (configuration_length < mjpc::kMinDirectHistory ||
+        configuration_length > optimizer_.GetMaxHistory()) {
       return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
     }
 
     // set
-    batch_.SetConfigurationLength(configuration_length);
+    optimizer_.SetConfigurationLength(configuration_length);
   }
-  output->set_configuration_length(batch_.ConfigurationLength());
-
-  // prior flag
-  if (input.has_prior_flag()) batch_.settings.prior_flag = input.prior_flag();
-  output->set_prior_flag(batch_.settings.prior_flag);
+  output->set_configuration_length(optimizer_.ConfigurationLength());
 
   // sensor flag
   if (input.has_sensor_flag())
-    batch_.settings.sensor_flag = input.sensor_flag();
-  output->set_sensor_flag(batch_.settings.sensor_flag);
+    optimizer_.settings.sensor_flag = input.sensor_flag();
+  output->set_sensor_flag(optimizer_.settings.sensor_flag);
 
   // force flag
-  if (input.has_force_flag()) batch_.settings.force_flag = input.force_flag();
-  output->set_force_flag(batch_.settings.force_flag);
+  if (input.has_force_flag())
+    optimizer_.settings.force_flag = input.force_flag();
+  output->set_force_flag(optimizer_.settings.force_flag);
 
   // max search iterations
   if (input.has_max_search_iterations()) {
@@ -351,9 +348,9 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     }
 
     // set
-    batch_.settings.max_search_iterations = input.max_search_iterations();
+    optimizer_.settings.max_search_iterations = input.max_search_iterations();
   }
-  output->set_max_search_iterations(batch_.settings.max_search_iterations);
+  output->set_max_search_iterations(optimizer_.settings.max_search_iterations);
 
   // max smoother iterations
   if (input.has_max_smoother_iterations()) {
@@ -366,39 +363,35 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     }
 
     // set
-    batch_.settings.max_smoother_iterations = input.max_smoother_iterations();
+    optimizer_.settings.max_smoother_iterations =
+        input.max_smoother_iterations();
   }
-  output->set_max_smoother_iterations(batch_.settings.max_smoother_iterations);
+  output->set_max_smoother_iterations(
+      optimizer_.settings.max_smoother_iterations);
 
   // gradient tolerance
   if (input.has_gradient_tolerance()) {
-    batch_.settings.gradient_tolerance = input.gradient_tolerance();
+    optimizer_.settings.gradient_tolerance = input.gradient_tolerance();
   }
-  output->set_gradient_tolerance(batch_.settings.gradient_tolerance);
+  output->set_gradient_tolerance(optimizer_.settings.gradient_tolerance);
 
   // verbose iteration
   if (input.has_verbose_iteration()) {
-    batch_.settings.verbose_iteration = input.verbose_iteration();
+    optimizer_.settings.verbose_iteration = input.verbose_iteration();
   }
-  output->set_verbose_iteration(batch_.settings.verbose_iteration);
+  output->set_verbose_iteration(optimizer_.settings.verbose_iteration);
 
   // verbose optimize
   if (input.has_verbose_optimize()) {
-    batch_.settings.verbose_optimize = input.verbose_optimize();
+    optimizer_.settings.verbose_optimize = input.verbose_optimize();
   }
-  output->set_verbose_optimize(batch_.settings.verbose_optimize);
+  output->set_verbose_optimize(optimizer_.settings.verbose_optimize);
 
   // verbose cost
   if (input.has_verbose_cost()) {
-    batch_.settings.verbose_cost = input.verbose_cost();
+    optimizer_.settings.verbose_cost = input.verbose_cost();
   }
-  output->set_verbose_cost(batch_.settings.verbose_cost);
-
-  // verbose prior
-  if (input.has_verbose_prior()) {
-    batch_.settings.verbose_prior = input.verbose_prior();
-  }
-  output->set_verbose_prior(batch_.settings.verbose_prior);
+  output->set_verbose_cost(optimizer_.settings.verbose_cost);
 
   // search type
   if (input.has_search_type()) {
@@ -411,112 +404,111 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
     }
 
     // set
-    batch_.settings.search_type = search_type;
+    optimizer_.settings.search_type = search_type;
   }
-  output->set_search_type(static_cast<int>(batch_.settings.search_type));
+  output->set_search_type(static_cast<int>(optimizer_.settings.search_type));
 
   // step scaling
   if (input.has_step_scaling()) {
-    batch_.settings.step_scaling = input.step_scaling();
+    optimizer_.settings.step_scaling = input.step_scaling();
   }
-  output->set_step_scaling(batch_.settings.step_scaling);
+  output->set_step_scaling(optimizer_.settings.step_scaling);
 
   // regularization initialization
   if (input.has_regularization_initial()) {
-    batch_.settings.regularization_initial = input.regularization_initial();
+    optimizer_.settings.regularization_initial = input.regularization_initial();
   }
-  output->set_regularization_initial(batch_.settings.regularization_initial);
+  output->set_regularization_initial(
+      optimizer_.settings.regularization_initial);
 
   // regularization scaling
   if (input.has_regularization_scaling()) {
-    batch_.settings.regularization_scaling = input.regularization_scaling();
+    optimizer_.settings.regularization_scaling = input.regularization_scaling();
   }
-  output->set_regularization_scaling(batch_.settings.regularization_scaling);
+  output->set_regularization_scaling(
+      optimizer_.settings.regularization_scaling);
 
   // time scaling (force)
   if (input.has_time_scaling_force()) {
-    batch_.settings.time_scaling_force = input.time_scaling_force();
+    optimizer_.settings.time_scaling_force = input.time_scaling_force();
   }
-  output->set_time_scaling_force(batch_.settings.time_scaling_force);
+  output->set_time_scaling_force(optimizer_.settings.time_scaling_force);
 
   // time scaling (sensor)
   if (input.has_time_scaling_sensor()) {
-    batch_.settings.time_scaling_sensor = input.time_scaling_sensor();
+    optimizer_.settings.time_scaling_sensor = input.time_scaling_sensor();
   }
-  output->set_time_scaling_sensor(batch_.settings.time_scaling_sensor);
+  output->set_time_scaling_sensor(optimizer_.settings.time_scaling_sensor);
 
   // search direction tolerance
   if (input.has_search_direction_tolerance()) {
-    batch_.settings.search_direction_tolerance =
+    optimizer_.settings.search_direction_tolerance =
         input.search_direction_tolerance();
   }
   output->set_search_direction_tolerance(
-      batch_.settings.search_direction_tolerance);
+      optimizer_.settings.search_direction_tolerance);
 
   // cost tolerance
   if (input.has_cost_tolerance()) {
-    batch_.settings.cost_tolerance = input.cost_tolerance();
+    optimizer_.settings.cost_tolerance = input.cost_tolerance();
   }
-  output->set_cost_tolerance(batch_.settings.cost_tolerance);
-
-  // assemble prior Jacobian
-  if (input.has_assemble_prior_jacobian()) {
-    batch_.settings.assemble_prior_jacobian = input.assemble_prior_jacobian();
-  }
-  output->set_assemble_prior_jacobian(batch_.settings.assemble_prior_jacobian);
+  output->set_cost_tolerance(optimizer_.settings.cost_tolerance);
 
   // assemble sensor Jacobian
   if (input.has_assemble_sensor_jacobian()) {
-    batch_.settings.assemble_sensor_jacobian = input.assemble_sensor_jacobian();
+    optimizer_.settings.assemble_sensor_jacobian =
+        input.assemble_sensor_jacobian();
   }
   output->set_assemble_sensor_jacobian(
-      batch_.settings.assemble_sensor_jacobian);
+      optimizer_.settings.assemble_sensor_jacobian);
 
   // assemble force Jacobian
   if (input.has_assemble_force_jacobian()) {
-    batch_.settings.assemble_force_jacobian = input.assemble_force_jacobian();
+    optimizer_.settings.assemble_force_jacobian =
+        input.assemble_force_jacobian();
   }
-  output->set_assemble_force_jacobian(batch_.settings.assemble_force_jacobian);
+  output->set_assemble_force_jacobian(
+      optimizer_.settings.assemble_force_jacobian);
 
   // assemble sensor norm hessian
   if (input.has_assemble_sensor_norm_hessian()) {
-    batch_.settings.assemble_sensor_norm_hessian =
+    optimizer_.settings.assemble_sensor_norm_hessian =
         input.assemble_sensor_norm_hessian();
   }
   output->set_assemble_sensor_norm_hessian(
-      batch_.settings.assemble_sensor_norm_hessian);
+      optimizer_.settings.assemble_sensor_norm_hessian);
 
   // assemble force norm hessian
   if (input.has_assemble_force_norm_hessian()) {
-    batch_.settings.assemble_force_norm_hessian =
+    optimizer_.settings.assemble_force_norm_hessian =
         input.assemble_force_norm_hessian();
   }
   output->set_assemble_force_norm_hessian(
-      batch_.settings.assemble_force_norm_hessian);
+      optimizer_.settings.assemble_force_norm_hessian);
 
   // first step position sensors
   if (input.has_first_step_position_sensors()) {
-    batch_.settings.first_step_position_sensors =
+    optimizer_.settings.first_step_position_sensors =
         input.first_step_position_sensors();
   }
   output->set_first_step_position_sensors(
-      batch_.settings.first_step_position_sensors);
+      optimizer_.settings.first_step_position_sensors);
 
   // last step position sensors
   if (input.has_last_step_position_sensors()) {
-    batch_.settings.last_step_position_sensors =
+    optimizer_.settings.last_step_position_sensors =
         input.last_step_position_sensors();
   }
   output->set_last_step_position_sensors(
-      batch_.settings.last_step_position_sensors);
+      optimizer_.settings.last_step_position_sensors);
 
   // last step velocity sensors
   if (input.has_last_step_velocity_sensors()) {
-    batch_.settings.last_step_velocity_sensors =
+    optimizer_.settings.last_step_velocity_sensors =
         input.last_step_velocity_sensors();
   }
   output->set_last_step_velocity_sensors(
-      batch_.settings.last_step_velocity_sensors);
+      optimizer_.settings.last_step_velocity_sensors);
 
   return grpc::Status::OK;
 }
@@ -533,32 +525,32 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
 
   // evaluate cost
   double total_cost =
-      batch_.Cost(derivatives ? batch_.GetCostGradient() : NULL,
-                  derivatives ? batch_.GetCostHessianBand() : NULL);
+      optimizer_.Cost(derivatives ? optimizer_.GetCostGradient() : NULL,
+                      derivatives ? optimizer_.GetCostHessianBand() : NULL);
 
   // cost
   response->set_total(total_cost);
 
-  // prior cost
-  response->set_prior(batch_.GetCostPrior());
-
   // sensor cost
-  response->set_sensor(batch_.GetCostSensor());
+  response->set_sensor(optimizer_.GetCostSensor());
 
   // force cost
-  response->set_force(batch_.GetCostForce());
+  response->set_force(optimizer_.GetCostForce());
+
+  // parameter cost
+  response->set_parameter(optimizer_.GetCostParameter());
 
   // initial cost
-  response->set_initial(batch_.GetCostInitial());
+  response->set_initial(optimizer_.GetCostInitial());
 
   // derivatives
   if (derivatives) {
     // dimension
-    int nvar = batch_.model->nv * batch_.ConfigurationLength();
+    int nvar = optimizer_.model->nv * optimizer_.ConfigurationLength();
 
     // unpack
-    double* gradient = batch_.GetCostGradient();
-    double* hessian = batch_.GetCostHessian();
+    double* gradient = optimizer_.GetCostGradient();
+    double* hessian = optimizer_.GetCostHessian();
 
     // set gradient, Hessian
     for (int i = 0; i < nvar; i++) {
@@ -570,10 +562,10 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   }
 
   // dimensions
-  int nv = batch_.model->nv, ns = batch_.DimensionSensor();
-  int nvar = nv * batch_.ConfigurationLength();
-  int nsensor_ = ns * (batch_.ConfigurationLength() - 1);
-  int nforce = nv * (batch_.ConfigurationLength() - 2);
+  int nv = optimizer_.model->nv, ns = optimizer_.DimensionSensor();
+  int nvar = nv * optimizer_.ConfigurationLength();
+  int nsensor_ = ns * (optimizer_.ConfigurationLength() - 1);
+  int nforce = nv * (optimizer_.ConfigurationLength() - 2);
 
   // set dimensions
   response->set_nvar(nvar);
@@ -582,34 +574,20 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
 
   // internals
   if (request->internals()) {
-    // residual prior
-    const double* residual_prior = batch_.GetResidualPrior();
-    for (int i = 0; i < nvar; i++) {
-      response->add_residual_prior(residual_prior[i]);
-    }
-
     // residual sensor
-    const double* residual_sensor = batch_.GetResidualSensor();
+    const double* residual_sensor = optimizer_.GetResidualSensor();
     for (int i = 0; i < nsensor_; i++) {
       response->add_residual_sensor(residual_sensor[i]);
     }
 
     // residual force
-    const double* residual_force = batch_.GetResidualForce();
+    const double* residual_force = optimizer_.GetResidualForce();
     for (int i = 0; i < nforce; i++) {
       response->add_residual_force(residual_force[i]);
     }
 
-    // Jacobian prior
-    const double* jacobian_prior = batch_.GetJacobianPrior();
-    for (int i = 0; i < nvar; i++) {
-      for (int j = 0; j < nvar; j++) {
-        response->add_jacobian_prior(jacobian_prior[i * nvar + j]);
-      }
-    }
-
     // Jacobian sensor
-    const double* jacobian_sensor = batch_.GetJacobianSensor();
+    const double* jacobian_sensor = optimizer_.GetJacobianSensor();
     for (int i = 0; i < nsensor_; i++) {
       for (int j = 0; j < nvar; j++) {
         response->add_jacobian_sensor(jacobian_sensor[i * nvar + j]);
@@ -617,7 +595,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // Jacobian force
-    const double* jacobian_force = batch_.GetJacobianForce();
+    const double* jacobian_force = optimizer_.GetJacobianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nvar; j++) {
         response->add_jacobian_force(jacobian_force[i * nvar + j]);
@@ -625,28 +603,19 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // norm gradient sensor
-    const double* norm_gradient_sensor = batch_.GetNormGradientSensor();
+    const double* norm_gradient_sensor = optimizer_.GetNormGradientSensor();
     for (int i = 0; i < nsensor_; i++) {
       response->add_norm_gradient_sensor(norm_gradient_sensor[i]);
     }
 
     // norm gradient force
-    const double* norm_gradient_force = batch_.GetNormGradientForce();
+    const double* norm_gradient_force = optimizer_.GetNormGradientForce();
     for (int i = 0; i < nforce; i++) {
       response->add_norm_gradient_force(norm_gradient_force[i]);
     }
 
-    // prior matrix
-    const double* prior_matrix = batch_.PriorWeights();
-    for (int i = 0; i < nvar; i++) {
-      for (int j = 0; j < nvar; j++) {
-        response->add_prior_matrix(
-            batch_.settings.prior_flag ? prior_matrix[i * nvar + j] : 0.0);
-      }
-    }
-
     // norm Hessian sensor
-    const double* norm_hessian_sensor = batch_.GetNormHessianSensor();
+    const double* norm_hessian_sensor = optimizer_.GetNormHessianSensor();
     for (int i = 0; i < nsensor_; i++) {
       for (int j = 0; j < nsensor_; j++) {
         response->add_norm_hessian_sensor(
@@ -655,7 +624,7 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
     }
 
     // norm Hessian force
-    const double* norm_hessian_force = batch_.GetNormHessianForce();
+    const double* norm_hessian_force = optimizer_.GetNormHessianForce();
     for (int i = 0; i < nforce; i++) {
       for (int j = 0; j < nforce; j++) {
         response->add_norm_hessian_force(norm_hessian_force[i * nforce + j]);
@@ -678,97 +647,39 @@ grpc::Status BatchService::Noise(grpc::ServerContext* context,
   batch::Noise* output = response->mutable_noise();
 
   // process
-  int nv = batch_.model->nv;
+  int nv = optimizer_.model->nv;
   if (input.process_size() > 0) {
     CHECK_SIZE("noise process", nv, input.process_size());
-    batch_.noise_process.assign(input.process().begin(), input.process().end());
+    optimizer_.noise_process.assign(input.process().begin(),
+                                    input.process().end());
   }
   for (int i = 0; i < nv; i++) {
-    output->add_process(batch_.noise_process[i]);
+    output->add_process(optimizer_.noise_process[i]);
   }
 
   // sensor
-  int num_sensor = batch_.NumberSensors();
+  int num_sensor = optimizer_.NumberSensors();
   if (input.sensor_size() > 0) {
     CHECK_SIZE("noise sensor", num_sensor, input.sensor_size());
-    batch_.noise_sensor.assign(input.sensor().begin(), input.sensor().end());
+    optimizer_.noise_sensor.assign(input.sensor().begin(),
+                                   input.sensor().end());
   }
   for (int i = 0; i < num_sensor; i++) {
-    output->add_sensor(batch_.noise_sensor[i]);
+    output->add_sensor(optimizer_.noise_sensor[i]);
   }
 
   // parameters
-  int num_parameters = batch_.NumberParameters();
+  int num_parameters = optimizer_.NumberParameters();
   if (num_parameters > 0) {
     if (input.parameter_size() > 0) {
       CHECK_SIZE("noise parameter", num_parameters, input.parameter_size());
-      batch_.noise_parameter.assign(input.parameter().begin(),
-                                    input.parameter().end());
+      optimizer_.noise_parameter.assign(input.parameter().begin(),
+                                        input.parameter().end());
     }
     for (int i = 0; i < num_parameters; i++) {
-      output->add_parameter(batch_.noise_parameter[i]);
+      output->add_parameter(optimizer_.noise_parameter[i]);
     }
   }
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchService::Norms(grpc::ServerContext* context,
-                                 const batch::NormRequest* request,
-                                 batch::NormResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // norm
-  batch::Norm input = request->norm();
-  batch::Norm* output = response->mutable_norm();
-
-  // set sensor type
-  int num_sensor = batch_.NumberSensors();
-  if (input.sensor_type_size() > 0) {
-    CHECK_SIZE("sensor_type", num_sensor, input.sensor_type_size());
-    batch_.norm_type_sensor.clear();
-    batch_.norm_type_sensor.reserve(num_sensor);
-    for (const auto& sensor_type : input.sensor_type()) {
-      batch_.norm_type_sensor.push_back(
-          static_cast<mjpc::NormType>(sensor_type));
-    }
-  }
-
-  // get sensor type
-  for (const auto& sensor_type : batch_.norm_type_sensor) {
-    output->add_sensor_type(sensor_type);
-  }
-
-  // set sensor parameters
-  if (input.sensor_parameters_size() > 0) {
-    CHECK_SIZE("sensor_parameters", mjpc::kMaxNormParameters * num_sensor,
-               input.sensor_parameters_size());
-    batch_.norm_parameters_sensor.assign(input.sensor_parameters().begin(),
-                                         input.sensor_parameters().end());
-  }
-
-  // get sensor parameters
-  for (const auto& sensor_parameters : batch_.norm_parameters_sensor) {
-    output->add_sensor_parameters(sensor_parameters);
-  }
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchService::Shift(grpc::ServerContext* context,
-                                 const batch::ShiftRequest* request,
-                                 batch::ShiftResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // shift
-  batch_.Shift(request->shift());
-
-  // get head index
-  response->set_head(batch_.configuration.Head());
 
   return grpc::Status::OK;
 }
@@ -781,7 +692,7 @@ grpc::Status BatchService::Reset(grpc::ServerContext* context,
   }
 
   // reset
-  batch_.Reset();
+  optimizer_.Reset();
 
   return grpc::Status::OK;
 }
@@ -794,7 +705,7 @@ grpc::Status BatchService::Optimize(grpc::ServerContext* context,
   }
 
   // optimize
-  batch_.Optimize();
+  optimizer_.Optimize();
 
   return grpc::Status::OK;
 }
@@ -810,108 +721,37 @@ grpc::Status BatchService::Status(grpc::ServerContext* context,
   batch::Status* status = response->mutable_status();
 
   // search iterations
-  status->set_search_iterations(batch_.IterationsSearch());
+  status->set_search_iterations(optimizer_.IterationsSearch());
 
   // smoother iterations
-  status->set_smoother_iterations(batch_.IterationsSmoother());
+  status->set_smoother_iterations(optimizer_.IterationsSmoother());
 
   // step size
-  status->set_step_size(batch_.StepSize());
+  status->set_step_size(optimizer_.StepSize());
 
   // regularization
-  status->set_regularization(batch_.Regularization());
+  status->set_regularization(optimizer_.Regularization());
 
   // gradient norm
-  status->set_gradient_norm(batch_.GradientNorm());
+  status->set_gradient_norm(optimizer_.GradientNorm());
 
   // search direction norm
-  status->set_search_direction_norm(batch_.SearchDirectionNorm());
+  status->set_search_direction_norm(optimizer_.SearchDirectionNorm());
 
   // solve status
-  status->set_solve_status(static_cast<int>(batch_.SolveStatus()));
+  status->set_solve_status(static_cast<int>(optimizer_.SolveStatus()));
 
   // cost difference
-  status->set_cost_difference(batch_.CostDifference());
+  status->set_cost_difference(optimizer_.CostDifference());
 
   // improvement
-  status->set_improvement(batch_.Improvement());
+  status->set_improvement(optimizer_.Improvement());
 
   // expected
-  status->set_expected(batch_.Expected());
+  status->set_expected(optimizer_.Expected());
 
   // reduction ratio
-  status->set_reduction_ratio(batch_.ReductionRatio());
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchService::Timing(grpc::ServerContext* context,
-                                  const batch::TimingRequest* request,
-                                  batch::TimingResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // double timer_total = 1;
-  // double timer_inverse_dynamics_derivatives = 2;
-  // double timer_velacc_derivatives = 3;
-  // double timer_jacobian_prior = 4;
-  // double timer_jacobian_sensor = 5;
-  // double timer_jacobian_force = 6;
-  // double timer_jacobian_total = 7;
-  // double timer_cost_prior_derivatives = 8;
-  // double timer_cost_sensor_derivatives = 9;
-  // double timer_cost_force_derivatives = 10;
-  // double timer_cost_total_derivatives = 11;
-  // double timer_cost_gradient = 12;
-  // double timer_cost_hessian = 13;
-  // double timer_cost_derivatives = 14;
-  // double timer_cost = 15;
-  // double timer_cost_prior = 16;
-  // double timer_cost_sensor = 17;
-  // double timer_cost_force = 18;
-  // double timer_cost_config_to_velacc = 19;
-  // double timer_cost_prediction = 20;
-  // double timer_residual_prior = 21;
-  // double timer_residual_sensor = 22;
-  // double timer_residual_force = 23;
-  // double timer_search_direction = 24;
-  // double timer_search = 25;
-  // double timer_configuration_update = 26;
-  // double timer_optimize = 27;
-  // double timer_prior_weight_update = 28;
-  // double timer_prior_set_weight = 29;
-  // double timer_update_trajectory = 30;
-  // double timer_update = 31;
-
-  return grpc::Status::OK;
-}
-
-grpc::Status BatchService::PriorWeights(
-    grpc::ServerContext* context, const batch::PriorWeightsRequest* request,
-    batch::PriorWeightsResponse* response) {
-  if (!Initialized()) {
-    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
-  }
-
-  // dimension
-  int dim = batch_.model->nv * batch_.ConfigurationLength();
-  response->set_dimension(dim);
-
-  // set prior matrix
-  if (request->weights_size() > 0) {
-    CHECK_SIZE("prior weights", dim * dim, request->weights_size());
-    batch_.SetPriorWeights(request->weights().data());
-  }
-
-  // get prior matrix
-  const double* weights = batch_.PriorWeights();
-  for (int i = 0; i < dim; i++) {
-    for (int j = 0; j < dim; j++) {
-      response->add_weights(batch_.settings.prior_flag ? weights[dim * i + j]
-                                                       : 0.0);
-    }
-  }
+  status->set_reduction_ratio(optimizer_.ReductionRatio());
 
   return grpc::Status::OK;
 }
@@ -924,13 +764,13 @@ grpc::Status BatchService::SensorInfo(grpc::ServerContext* context,
   }
 
   // start index
-  response->set_start_index(batch_.SensorStartIndex());
+  response->set_start_index(optimizer_.SensorStartIndex());
 
   // number of sensor measurements
-  response->set_num_measurements(batch_.NumberSensors());
+  response->set_num_measurements(optimizer_.NumberSensors());
 
   // sensor measurement dimension
-  response->set_dim_measurements(batch_.DimensionSensor());
+  response->set_dim_measurements(optimizer_.DimensionSensor());
 
   return grpc::Status::OK;
 }

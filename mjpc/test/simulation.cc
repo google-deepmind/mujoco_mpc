@@ -18,7 +18,7 @@
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/trajectory.h"
 
 namespace mjpc {
 

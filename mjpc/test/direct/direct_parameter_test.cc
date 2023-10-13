@@ -20,7 +20,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/direct/optimizer.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/threadpool.h"
@@ -29,7 +29,7 @@
 namespace mjpc {
 namespace {
 
-TEST(BatchParameter, ParticleFramePos) {
+TEST(DirectParameter, ParticleFramePos) {
   // verbose
   bool verbose = false;
 
@@ -47,7 +47,7 @@ TEST(BatchParameter, ParticleFramePos) {
   int ns = model->nsensordata;
 
   // ----- rollout ----- //
-  int T = 3;
+  int T = 5;
   Simulation sim(model, T);
   double q[1] = {1.0};
   sim.SetState(q, NULL);
@@ -64,73 +64,69 @@ TEST(BatchParameter, ParticleFramePos) {
     }
   }
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
 
   // set data
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
-  mju_copy(estimator.force_measurement.Data(), sim.qfrc_actuator.Data(),
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(optimizer.force_measurement.Data(), sim.qfrc_actuator.Data(),
            nv * T);
-  mju_copy(estimator.parameters.data(), model->site_pos, 6);
-  estimator.parameters[2] += 0.25;  // perturb site0 z coordinate
-  estimator.parameters[5] -= 0.25;  // perturb site1 z coordinate
+  mju_copy(optimizer.parameters.data(), model->site_pos, 6);
+  optimizer.parameters[2] += 0.25;  // perturb site0 z coordinate
+  optimizer.parameters[5] -= 0.25;  // perturb site1 z coordinate
 
   // set process noise
-  std::fill(estimator.noise_process.begin(), estimator.noise_process.end(),
+  std::fill(optimizer.noise_process.begin(), optimizer.noise_process.end(),
             1.0);
 
   // set sensor noise
-  std::fill(estimator.noise_sensor.begin(), estimator.noise_sensor.end(),
+  std::fill(optimizer.noise_sensor.begin(), optimizer.noise_sensor.end(),
             1.0e-5);
 
   // settings
-  estimator.settings.verbose_optimize = true;
-  estimator.settings.verbose_cost = true;
+  optimizer.settings.verbose_optimize = true;
+  optimizer.settings.verbose_cost = true;
 
   // prior
-  std::vector<double> prior_weights((T * model->nv) * (T * model->nv));
-  std::fill(prior_weights.begin(), prior_weights.end(), 0.0);
-  estimator.SetPriorWeights(prior_weights.data(), 0.0);
-  mju_copy(estimator.parameters_previous.data(), model->site_pos, 6);
-  std::fill(estimator.noise_parameter.begin(),
-            estimator.noise_parameter.end(), 1.0);
+  mju_copy(optimizer.parameters_previous.data(), model->site_pos, 6);
+  std::fill(optimizer.noise_parameter.begin(),
+            optimizer.noise_parameter.end(), 1.0);
 
   if (verbose) {
     // initial parameters
     printf("parameters initial = \n");
-    mju_printMat(estimator.parameters.data(), 1, 6);
+    mju_printMat(optimizer.parameters.data(), 1, 6);
 
     printf("parameters previous = \n");
-    mju_printMat(estimator.parameters_previous.data(), 1, 6);
+    mju_printMat(optimizer.parameters_previous.data(), 1, 6);
 
     printf("measurements initial = \n");
-    mju_printMat(estimator.sensor_measurement.Data(), T, model->nsensordata);
+    mju_printMat(optimizer.sensor_measurement.Data(), T, model->nsensordata);
   }
-
+    
   // optimize
-  ThreadPool pool(1);
-  estimator.Optimize();
+  optimizer.Optimize();
 
   // test parameter recovery
   for (int i = 0; i < 6; i++) {
-    EXPECT_NEAR(estimator.parameters[i], model->site_pos[i], 1.0e-5);
+    EXPECT_NEAR(optimizer.parameters[i], model->site_pos[i], 1.0e-5);
   }
 
   if (verbose) {
     // optimized configurations
     printf("qpos optimized =\n");
-    mju_printMat(estimator.configuration.Data(), T, model->nq);
+    mju_printMat(optimizer.configuration.Data(), T, model->nq);
 
     printf("qvel optimized =\n");
-    mju_printMat(estimator.velocity.Data(), T, model->nv);
+    mju_printMat(optimizer.velocity.Data(), T, model->nv);
 
     printf("measurements optimized = \n");
-    mju_printMat(estimator.sensor_prediction.Data(), T, model->nsensordata);
+    mju_printMat(optimizer.sensor_prediction.Data(), T, model->nsensordata);
 
     // optimized parameters
     printf("parameters optimized = \n");
-    mju_printMat(estimator.parameters.data(), 1, 6);
+    mju_printMat(optimizer.parameters.data(), 1, 6);
   }
 
   // delete data + model

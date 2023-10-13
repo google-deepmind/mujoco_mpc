@@ -19,7 +19,7 @@
 
 #include <mujoco/mujoco.h>
 
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/trajectory.h"
 
 namespace mjpc {
 
@@ -46,13 +46,13 @@ class Simulation {
   mjModel* model = nullptr;
 
   // trajectories
-  EstimatorTrajectory<double> qpos;
-  EstimatorTrajectory<double> qvel;
-  EstimatorTrajectory<double> qacc;
-  EstimatorTrajectory<double> ctrl;
-  EstimatorTrajectory<double> time;
-  EstimatorTrajectory<double> sensor;
-  EstimatorTrajectory<double> qfrc_actuator;
+  DirectTrajectory<double> qpos;
+  DirectTrajectory<double> qvel;
+  DirectTrajectory<double> qacc;
+  DirectTrajectory<double> ctrl;
+  DirectTrajectory<double> time;
+  DirectTrajectory<double> sensor;
+  DirectTrajectory<double> qfrc_actuator;
 
  private:
   // data

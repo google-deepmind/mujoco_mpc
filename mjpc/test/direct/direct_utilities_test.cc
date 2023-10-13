@@ -18,8 +18,8 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/direct.h"
+#include "mjpc/direct/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
@@ -70,33 +70,33 @@ TEST(FiniteDifferenceVelocityAcceleration, Particle1D) {
     mj_Euler(model, data);
   }
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
 
   // initialize
-  Batch estimator(model, T);
-  mju_copy(estimator.configuration.Data(), qpos.data(), nq * T);
+  Direct optimizer(model, T);
+  mju_copy(optimizer.configuration.Data(), qpos.data(), nq * T);
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation();
+  optimizer.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * (T - 1));
-  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
+  mju_sub(velocity_error.data(), optimizer.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
   EXPECT_NEAR(mju_norm(velocity_error.data(), nv * (T - 1)), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.velocity.Data(), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(optimizer.velocity.Data(), nv), 0.0, 1.0e-5);
 
   // acceleration error
   std::vector<double> acceleration_error(nv * (T - 2));
-  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
+  mju_sub(acceleration_error.data(), optimizer.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
   // acceleration test
   EXPECT_NEAR(mju_norm(acceleration_error.data(), nv * (T - 2)), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.acceleration.Data(), nv), 0.0, 1.0e-5);
-  EXPECT_NEAR(mju_norm(estimator.acceleration.Data() + nv * (T - 1), nv), 0.0,
+  EXPECT_NEAR(mju_norm(optimizer.acceleration.Data(), nv), 0.0, 1.0e-5);
+  EXPECT_NEAR(mju_norm(optimizer.acceleration.Data() + nv * (T - 1), nv), 0.0,
               1.0e-5);
 
   // delete data + model
@@ -160,18 +160,18 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
   mj_forward(model, data);
   mju_copy(sensordata.data() + T * ns, data->sensordata, ns);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
 
   // initialize
-  Batch estimator(model, T);
-  mju_copy(estimator.configuration.Data(), qpos.data(), nq * (T + 1));
+  Direct optimizer(model, T);
+  mju_copy(optimizer.configuration.Data(), qpos.data(), nq * (T + 1));
 
   // compute velocity, acceleration
-  estimator.ConfigurationEvaluation();
+  optimizer.ConfigurationEvaluation();
 
   // velocity error
   std::vector<double> velocity_error(nv * T);
-  mju_sub(velocity_error.data(), estimator.velocity.Data() + nv,
+  mju_sub(velocity_error.data(), optimizer.velocity.Data() + nv,
           qvel.data() + nv, nv * (T - 1));
 
   // velocity test
@@ -180,7 +180,7 @@ TEST(FiniteDifferenceVelocityAcceleration, Box3D) {
 
   // acceleration error
   std::vector<double> acceleration_error(nv * T);
-  mju_sub(acceleration_error.data(), estimator.acceleration.Data() + nv,
+  mju_sub(acceleration_error.data(), optimizer.acceleration.Data() + nv,
           qacc.data() + nv, nv * (T - 2));
 
   // acceleration test

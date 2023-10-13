@@ -16,7 +16,8 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/batch.h"
+#include "mjpc/norm.h"
+#include "mjpc/direct/direct.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
@@ -46,43 +47,42 @@ TEST(SensorCost, Particle) {
   };
   sim.Rollout(controller);
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = true;
-  estimator.settings.force_flag = false;
-  estimator.settings.first_step_position_sensors = true;
-  estimator.settings.last_step_position_sensors = true;
-  estimator.settings.last_step_velocity_sensors = true;
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
+  optimizer.settings.sensor_flag = true;
+  optimizer.settings.force_flag = false;
+  optimizer.settings.first_step_position_sensors = true;
+  optimizer.settings.last_step_position_sensors = true;
+  optimizer.settings.last_step_velocity_sensors = true;
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
-  mju_copy(estimator.ctrl.Data(), sim.ctrl.Data(), model->nu * T);
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(optimizer.ctrl.Data(), sim.ctrl.Data(), model->nu * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration.Get(t);
+    double* q = optimizer.configuration.Get(t);
     for (int i = 0; i < nq; i++) {
       q[i] += 1.0e-1;
     }
   }
 
   // weights
-  estimator.noise_sensor[0] = 1.1e-1;
-  estimator.noise_sensor[1] = 2.2e-1;
-  estimator.noise_sensor[2] = 3.3e-1;
-  estimator.noise_sensor[3] = 4.4e-1;
+  optimizer.noise_sensor[0] = 1.1e-1;
+  optimizer.noise_sensor[1] = 2.2e-1;
+  optimizer.noise_sensor[2] = 3.3e-1;
+  optimizer.noise_sensor[3] = 4.4e-1;
 
   // TODO(taylor): test difference norms
 
   // ----- cost ----- //
-  auto cost_measurement = [&estimator = estimator, &model = model,
+  auto cost_measurement = [&optimizer = optimizer, &model = model,
                            &data = data](const double* configuration) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.ConfigurationLength();
+    int nres = ns * optimizer.ConfigurationLength();
 
     // velocity
     std::vector<double> v1(nv);
@@ -101,14 +101,14 @@ TEST(SensorCost, Particle) {
     // time scaling
     double time_scale = 1.0;
     double time_scale2 = 1.0;
-    if (estimator.settings.time_scaling_sensor) {
+    if (optimizer.settings.time_scaling_sensor) {
       time_scale =
-          estimator.model->opt.timestep * estimator.model->opt.timestep;
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
     // loop over predictions
-    for (int t = 0; t < estimator.ConfigurationLength(); t++) {
+    for (int t = 0; t < optimizer.ConfigurationLength(); t++) {
       if (t == 0) {
         // first configuration
         mju_copy(data->qpos, configuration, nq);
@@ -117,7 +117,7 @@ TEST(SensorCost, Particle) {
         mju_zero(data->ctrl, model->nu);
 
         // first sensor
-        double* y0 = estimator.sensor_measurement.Get(t);
+        double* y0 = optimizer.sensor_measurement.Get(t);
 
         // residual
         double* rk = residual.data();
@@ -149,18 +149,18 @@ TEST(SensorCost, Particle) {
           double* rki = rk + shift;
 
           // weight
-          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                          estimator.ConfigurationLength();
+          double weight = 1.0 / optimizer.noise_sensor[i] / nsi /
+                          optimizer.ConfigurationLength();
 
           // first time step
-          weight *= estimator.settings.first_step_position_sensors;
+          weight *= optimizer.settings.first_step_position_sensors;
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+              optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
-          NormType normi = estimator.norm_type_sensor[i];
+          NormType normi = optimizer.norm_type_sensor[i];
 
           // add weighted norm
           cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -169,12 +169,12 @@ TEST(SensorCost, Particle) {
           shift += nsi;
         }
         continue;
-      } else if (t == estimator.ConfigurationLength() - 1) {
+      } else if (t == optimizer.ConfigurationLength() - 1) {
         // unpack
         double* rk = residual.data() + t * ns;
         const double* q0 = configuration + (t - 1) * nq;
         const double* q1 = configuration + (t + 0) * nq;
-        double* y1 = estimator.sensor_measurement.Get(t);
+        double* y1 = optimizer.sensor_measurement.Get(t);
 
         // velocity
         mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -219,19 +219,19 @@ TEST(SensorCost, Particle) {
           double* rki = rk + shift;
 
           // weight
-          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                          estimator.ConfigurationLength();
+          double weight = 1.0 / optimizer.noise_sensor[i] / nsi /
+                          optimizer.ConfigurationLength();
 
           // first time step
-          weight *= (estimator.settings.last_step_position_sensors ||
-                     estimator.settings.last_step_velocity_sensors);
+          weight *= (optimizer.settings.last_step_position_sensors ||
+                     optimizer.settings.last_step_velocity_sensors);
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+              optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
-          NormType normi = estimator.norm_type_sensor[i];
+          NormType normi = optimizer.norm_type_sensor[i];
 
           // add weighted norm
           cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -247,7 +247,7 @@ TEST(SensorCost, Particle) {
       const double* q0 = configuration + (t - 1) * nq;
       const double* q1 = configuration + (t + 0) * nq;
       const double* q2 = configuration + (t + 1) * nq;
-      double* y1 = estimator.sensor_measurement.Get(t);
+      double* y1 = optimizer.sensor_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -290,15 +290,15 @@ TEST(SensorCost, Particle) {
         }
 
         // weight
-        double weight = time_weight / estimator.noise_sensor[i] / nsi /
-                        estimator.ConfigurationLength();
+        double weight = time_weight / optimizer.noise_sensor[i] / nsi /
+                        optimizer.ConfigurationLength();
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+            optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
         // norm
-        NormType normi = estimator.norm_type_sensor[i];
+        NormType normi = optimizer.norm_type_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -317,24 +317,24 @@ TEST(SensorCost, Particle) {
   // ----- lambda ----- //
 
   // cost
-  double cost_lambda = cost_measurement(estimator.configuration.Data());
+  double cost_lambda = cost_measurement(optimizer.configuration.Data());
 
   // gradient
   FiniteDifferenceGradient fdg(nvar);
-  fdg.Compute(cost_measurement, estimator.configuration.Data(), nvar);
+  fdg.Compute(cost_measurement, optimizer.configuration.Data(), nvar);
 
   // Hessian
   FiniteDifferenceHessian fdh(nvar);
-  fdh.Compute(cost_measurement, estimator.configuration.Data(), nvar);
+  fdh.Compute(cost_measurement, optimizer.configuration.Data(), nvar);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
   // cost
   std::vector<double> cost_gradient(nvar);
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
 
-  double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
+  double cost_optimizer =
+      optimizer.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,
@@ -343,7 +343,7 @@ TEST(SensorCost, Particle) {
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = cost_optimizer - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient
@@ -385,20 +385,20 @@ TEST(SensorCost, Box) {
   sim.SetState(data->qpos, qvel);
   sim.Rollout(controller);
 
-  // ----- estimator ----- //
-  Batch estimator(model, T);
-  estimator.settings.first_step_position_sensors = true;
-  estimator.settings.last_step_position_sensors = true;
-  estimator.settings.last_step_velocity_sensors = true;
+  // ----- optimizer ----- //
+  Direct optimizer(model, T);
+  optimizer.settings.first_step_position_sensors = true;
+  optimizer.settings.last_step_position_sensors = true;
+  optimizer.settings.last_step_velocity_sensors = true;
 
   // copy configuration, measurement
-  mju_copy(estimator.configuration.Data(), sim.qpos.Data(), nq * T);
-  mju_copy(estimator.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
+  mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
+  mju_copy(optimizer.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
 
   // corrupt configurations
   absl::BitGen gen_;
   for (int t = 0; t < T; t++) {
-    double* q = estimator.configuration.Get(t);
+    double* q = optimizer.configuration.Get(t);
     double dq[6];
     for (int i = 0; i < nv; i++) {
       dq[i] = 1.0e-1;
@@ -407,33 +407,33 @@ TEST(SensorCost, Box) {
   }
 
   // weights
-  estimator.noise_sensor[0] = 1.1e-2;
-  estimator.noise_sensor[1] = 2.2e-2;
-  estimator.noise_sensor[2] = 3.3e-2;
-  estimator.noise_sensor[3] = 1.0e-2;
-  estimator.noise_sensor[4] = 2.0e-2;
-  estimator.noise_sensor[5] = 3.0e-2;
-  estimator.noise_sensor[6] = 4.0e-2;
-  estimator.noise_sensor[7] = 5.0e-2;
-  estimator.noise_sensor[8] = 6.0e-2;
-  estimator.noise_sensor[9] = 7.0e-2;
-  estimator.noise_sensor[10] = 8.0e-2;
-  estimator.noise_sensor[11] = 9.0e-2;
-  estimator.noise_sensor[12] = 10.0e-2;
+  optimizer.noise_sensor[0] = 1.1e-2;
+  optimizer.noise_sensor[1] = 2.2e-2;
+  optimizer.noise_sensor[2] = 3.3e-2;
+  optimizer.noise_sensor[3] = 1.0e-2;
+  optimizer.noise_sensor[4] = 2.0e-2;
+  optimizer.noise_sensor[5] = 3.0e-2;
+  optimizer.noise_sensor[6] = 4.0e-2;
+  optimizer.noise_sensor[7] = 5.0e-2;
+  optimizer.noise_sensor[8] = 6.0e-2;
+  optimizer.noise_sensor[9] = 7.0e-2;
+  optimizer.noise_sensor[10] = 8.0e-2;
+  optimizer.noise_sensor[11] = 9.0e-2;
+  optimizer.noise_sensor[12] = 10.0e-2;
 
   // TODO(taylor): test difference norms
 
   // ----- cost ----- //
-  auto cost_measurement = [&estimator = estimator, &model = model,
+  auto cost_measurement = [&optimizer = optimizer, &model = model,
                            &data = data](const double* update) {
     // dimensions
     int nq = model->nq, nv = model->nv, ns = model->nsensordata;
-    int nres = ns * estimator.ConfigurationLength();
-    int T = estimator.ConfigurationLength();
+    int nres = ns * optimizer.ConfigurationLength();
+    int T = optimizer.ConfigurationLength();
 
     // configuration
     std::vector<double> configuration(nq * T);
-    mju_copy(configuration.data(), estimator.configuration.Data(), nq * T);
+    mju_copy(configuration.data(), optimizer.configuration.Data(), nq * T);
     for (int t = 0; t < T; t++) {
       double* q = configuration.data() + t * nq;
       const double* dq = update + t * nv;
@@ -456,14 +456,14 @@ TEST(SensorCost, Box) {
     // time scale
     double time_scale = 1.0;
     double time_scale2 = 1.0;
-    if (estimator.settings.time_scaling_sensor) {
+    if (optimizer.settings.time_scaling_sensor) {
       time_scale =
-          estimator.model->opt.timestep * estimator.model->opt.timestep;
+          optimizer.model->opt.timestep * optimizer.model->opt.timestep;
       time_scale2 = time_scale * time_scale;
     }
 
     // loop over predictions
-    for (int t = 0; t < estimator.ConfigurationLength(); t++) {
+    for (int t = 0; t < optimizer.ConfigurationLength(); t++) {
       if (t == 0) {
         // first configuration
         mju_copy(data->qpos, configuration.data(), nq);
@@ -472,7 +472,7 @@ TEST(SensorCost, Box) {
         mju_zero(data->ctrl, model->nu);
 
         // first sensor
-        double* y0 = estimator.sensor_measurement.Get(t);
+        double* y0 = optimizer.sensor_measurement.Get(t);
 
         // residual
         double* rk = residual.data();
@@ -504,18 +504,18 @@ TEST(SensorCost, Box) {
           double* rki = rk + shift;
 
           // weight
-          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                          estimator.ConfigurationLength();
+          double weight = 1.0 / optimizer.noise_sensor[i] / nsi /
+                          optimizer.ConfigurationLength();
 
           // first time step
-          weight *= estimator.settings.first_step_position_sensors;
+          weight *= optimizer.settings.first_step_position_sensors;
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+              optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
-          NormType normi = estimator.norm_type_sensor[i];
+          NormType normi = optimizer.norm_type_sensor[i];
 
           // add weighted norm
           cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -524,12 +524,12 @@ TEST(SensorCost, Box) {
           shift += nsi;
         }
         continue;
-      } else if (t == estimator.ConfigurationLength() - 1) {
+      } else if (t == optimizer.ConfigurationLength() - 1) {
         // unpack
         double* rk = residual.data() + t * ns;
         const double* q0 = configuration.data() + (t - 1) * nq;
         const double* q1 = configuration.data() + (t + 0) * nq;
-        double* y1 = estimator.sensor_measurement.Get(t);
+        double* y1 = optimizer.sensor_measurement.Get(t);
 
         // velocity
         mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -574,19 +574,19 @@ TEST(SensorCost, Box) {
           double* rki = rk + shift;
 
           // weight
-          double weight = 1.0 / estimator.noise_sensor[i] / nsi /
-                          estimator.ConfigurationLength();
+          double weight = 1.0 / optimizer.noise_sensor[i] / nsi /
+                          optimizer.ConfigurationLength();
 
           // first time step
-          weight *= (estimator.settings.last_step_position_sensors ||
-                     estimator.settings.last_step_velocity_sensors);
+          weight *= (optimizer.settings.last_step_position_sensors ||
+                     optimizer.settings.last_step_velocity_sensors);
 
           // parameters
           double* pi =
-              estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+              optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
           // norm
-          NormType normi = estimator.norm_type_sensor[i];
+          NormType normi = optimizer.norm_type_sensor[i];
 
           // add weighted norm
           cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -602,7 +602,7 @@ TEST(SensorCost, Box) {
       const double* q0 = configuration.data() + (t - 1) * nq;
       const double* q1 = configuration.data() + (t + 0) * nq;
       const double* q2 = configuration.data() + (t + 1) * nq;
-      double* y1 = estimator.sensor_measurement.Get(t);
+      double* y1 = optimizer.sensor_measurement.Get(t);
 
       // velocity
       mj_differentiatePos(model, v1.data(), model->opt.timestep, q0, q1);
@@ -645,15 +645,15 @@ TEST(SensorCost, Box) {
         }
 
         // weight
-        double weight = time_weight / estimator.noise_sensor[i] / nsi /
-                        estimator.ConfigurationLength();
+        double weight = time_weight / optimizer.noise_sensor[i] / nsi /
+                        optimizer.ConfigurationLength();
 
         // parameters
         double* pi =
-            estimator.norm_parameters_sensor.data() + kMaxNormParameters * i;
+            optimizer.norm_parameters_sensor.data() + kMaxNormParameters * i;
 
         // norm
-        NormType normi = estimator.norm_type_sensor[i];
+        NormType normi = optimizer.norm_type_sensor[i];
 
         // add weighted norm
         cost += weight * Norm(NULL, NULL, rki, pi, nsi, normi);
@@ -686,20 +686,19 @@ TEST(SensorCost, Box) {
   FiniteDifferenceHessian fdh(nvar);
   fdh.Compute(cost_measurement, update.data(), nvar);
 
-  // ----- estimator ----- //
+  // ----- optimizer ----- //
 
   // cost
-  estimator.settings.prior_flag = false;
-  estimator.settings.sensor_flag = true;
-  estimator.settings.force_flag = false;
+  optimizer.settings.sensor_flag = true;
+  optimizer.settings.force_flag = false;
 
   std::vector<double> cost_gradient(nvar);
-  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL);
+  double cost_optimizer = optimizer.Cost(cost_gradient.data(), NULL);
 
   // ----- error ----- //
 
   // cost
-  double cost_error = cost_estimator - cost_lambda;
+  double cost_error = cost_optimizer - cost_lambda;
   EXPECT_NEAR(cost_error, 0.0, 1.0e-5);
 
   // gradient

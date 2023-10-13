@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_ESTIMATORS_TRAJECTORY_H_
-#define MJPC_ESTIMATORS_TRAJECTORY_H_
+#ifndef MJPC_DIRECT_TRAJECTORY_H_
+#define MJPC_DIRECT_TRAJECTORY_H_
 
 #include <algorithm>
 #include <cstring>
@@ -24,15 +24,15 @@
 namespace mjpc {
 
 // maximum length for trajectory length
-inline constexpr int kMaxEstimatorTrajectory = 1024;
+inline constexpr int kMaxDirectTrajectory = 1024;
 
 // trajectory
 template <typename T>
-class EstimatorTrajectory {
+class DirectTrajectory {
  public:
   // constructors
-  EstimatorTrajectory() { Initialize(0, 0); }
-  EstimatorTrajectory(int dim, int length) { Initialize(dim, length); }
+  DirectTrajectory() { Initialize(0, 0); }
+  DirectTrajectory(int dim, int length) { Initialize(dim, length); }
 
   // initialize
   void Initialize(int dim, int length) {
@@ -41,7 +41,7 @@ class EstimatorTrajectory {
     length_ = length;
 
     // allocate memory
-    data_.resize(dim * kMaxEstimatorTrajectory);
+    data_.resize(dim * kMaxDirectTrajectory);
 
     // reset
     Reset();
@@ -159,4 +159,4 @@ class EstimatorTrajectory {
 
 }  // namespace mjpc
 
-#endif  // MJPC_ESTIMATORS_TRAJECTORY_H_
+#endif  // MJPC_DIRECT_TRAJECTORY_H_

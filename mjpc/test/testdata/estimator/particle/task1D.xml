@@ -1,8 +1,4 @@
 <mujoco model="Particle1D">
-  <custom>
-    <numeric name="estimator_configuration_length" data="32" />
-  </custom>
-
   <visual>
     <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
     <map znear=".01"/>

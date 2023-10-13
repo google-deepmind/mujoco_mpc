@@ -14,24 +14,24 @@
 
 syntax = "proto3";
 
-package batch;
+package direct;
 
-service Batch {
-  // Initialize Batch
+service Direct {
+  // Initialize Direct
   rpc Init(InitRequest) returns (InitResponse);
-  // Set Batch data
+  // Set Direct data
   rpc Data(DataRequest) returns (DataResponse);
-  // Batch settings
+  // Direct settings
   rpc Settings(SettingsRequest) returns (SettingsResponse);
-  // Batch costs
+  // Direct costs
   rpc Cost(CostRequest) returns (CostResponse);
-  // Batch noise (process + sensor)
+  // Direct noise (process + sensor)
   rpc Noise(NoiseRequest) returns (NoiseResponse);
-  // Reset Batch
+  // Reset Direct
   rpc Reset(ResetRequest) returns (ResetResponse);
-  // Optimize Batch
+  // Optimize Direct
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
-  // Get Batch status
+  // Get Direct status
   rpc Status(StatusRequest) returns (StatusResponse);
   // Sensor dimension info
   rpc SensorInfo(SensorInfoRequest) returns (SensorInfoResponse);

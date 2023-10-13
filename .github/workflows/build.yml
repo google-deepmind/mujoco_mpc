@@ -66,3 +66,23 @@ jobs:
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .
+    - name: Notify team chat
+      shell: bash
+      env:
+        GCHAT_API: ${{ secrets.GCHAT_API }}
+        JOB_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/\
+          ${{ github.run_id }}"
+      if: ${{ failure() && github.event_name == 'push' && env.GCHAT_API != '' }}
+      run: >
+        curl
+        "$GCHAT_API&threadKey=$GITHUB_SHA&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
+        -X POST
+        -H "Content-Type: application/json"
+        -d "{
+        'text': '<$JOB_URL|*FAILURE*>:
+        job \`${{ matrix.os }}${{ matrix.additional_label }}\`
+        commit \`$(echo $GITHUB_SHA | head -c6)\`\n
+        \`\`\`Author: ${{ github.event.head_commit.author.name }}
+        <${{ github.event.head_commit.author.email }}>
+        \n\n${{ github.event.head_commit.message }}\`\`\`
+        '}"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/batch_service.h"
+#include "grpc/direct_service.h"
 
 #include <cstring>
 #include <memory>
@@ -27,13 +27,12 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/batch.pb.h"
+#include "grpc/direct.pb.h"
 #include "mjpc/direct/direct.h"
-#include "mjpc/utilities.h"
 
-namespace mjpc::batch_grpc {
+namespace mjpc::direct_grpc {
 
-// TODO(taylor): make CheckSize utility function for agent and batch
+// TODO(taylor): make CheckSize utility function for agent and direct
 namespace {
 absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
   std::ostringstream error_string;
@@ -55,11 +54,11 @@ absl::Status CheckSize(std::string_view name, int model_size, int vector_size) {
     }                                                         \
   }
 
-BatchService::~BatchService() {}
+DirectService::~DirectService() {}
 
-grpc::Status BatchService::Init(grpc::ServerContext* context,
-                                const batch::InitRequest* request,
-                                batch::InitResponse* response) {
+grpc::Status DirectService::Init(grpc::ServerContext* context,
+                                 const direct::InitRequest* request,
+                                 direct::InitResponse* response) {
   // check configuration length
   if (request->configuration_length() < mjpc::kMinDirectHistory) {
     return {grpc::StatusCode::OUT_OF_RANGE, "Invalid configuration length."};
@@ -102,7 +101,7 @@ grpc::Status BatchService::Init(grpc::ServerContext* context,
   // move model
   model_override_ = std::move(tmp_model);
 
-  // initialize batch
+  // initialize direct
   int length = request->configuration_length();
   optimizer_.SetMaxHistory(length);
   optimizer_.Initialize(model_override_.get());
@@ -112,9 +111,9 @@ grpc::Status BatchService::Init(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Data(grpc::ServerContext* context,
-                                const batch::DataRequest* request,
-                                batch::DataResponse* response) {
+grpc::Status DirectService::Data(grpc::ServerContext* context,
+                                 const direct::DataRequest* request,
+                                 direct::DataResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -126,8 +125,8 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   }
 
   // data
-  batch::Data input = request->data();
-  batch::Data* output = response->mutable_data();
+  direct::Data input = request->data();
+  direct::Data* output = response->mutable_data();
 
   // set configuration
   int nq = optimizer_.model->nq;
@@ -298,16 +297,16 @@ grpc::Status BatchService::Data(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Settings(grpc::ServerContext* context,
-                                    const batch::SettingsRequest* request,
-                                    batch::SettingsResponse* response) {
+grpc::Status DirectService::Settings(grpc::ServerContext* context,
+                                     const direct::SettingsRequest* request,
+                                     direct::SettingsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // settings
-  batch::Settings input = request->settings();
-  batch::Settings* output = response->mutable_settings();
+  direct::Settings input = request->settings();
+  direct::Settings* output = response->mutable_settings();
 
   // configuration length
   if (input.has_configuration_length()) {
@@ -511,9 +510,9 @@ grpc::Status BatchService::Settings(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Cost(grpc::ServerContext* context,
-                                const batch::CostRequest* request,
-                                batch::CostResponse* response) {
+grpc::Status DirectService::Cost(grpc::ServerContext* context,
+                                 const direct::CostRequest* request,
+                                 direct::CostResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -633,16 +632,16 @@ grpc::Status BatchService::Cost(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Noise(grpc::ServerContext* context,
-                                 const batch::NoiseRequest* request,
-                                 batch::NoiseResponse* response) {
+grpc::Status DirectService::Noise(grpc::ServerContext* context,
+                                  const direct::NoiseRequest* request,
+                                  direct::NoiseResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // weight
-  batch::Noise input = request->noise();
-  batch::Noise* output = response->mutable_noise();
+  direct::Noise input = request->noise();
+  direct::Noise* output = response->mutable_noise();
 
   // process
   int nv = optimizer_.model->nv;
@@ -682,9 +681,9 @@ grpc::Status BatchService::Noise(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Reset(grpc::ServerContext* context,
-                                 const batch::ResetRequest* request,
-                                 batch::ResetResponse* response) {
+grpc::Status DirectService::Reset(grpc::ServerContext* context,
+                                  const direct::ResetRequest* request,
+                                  direct::ResetResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -695,9 +694,9 @@ grpc::Status BatchService::Reset(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Optimize(grpc::ServerContext* context,
-                                    const batch::OptimizeRequest* request,
-                                    batch::OptimizeResponse* response) {
+grpc::Status DirectService::Optimize(grpc::ServerContext* context,
+                                     const direct::OptimizeRequest* request,
+                                     direct::OptimizeResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -708,15 +707,15 @@ grpc::Status BatchService::Optimize(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::Status(grpc::ServerContext* context,
-                                  const batch::StatusRequest* request,
-                                  batch::StatusResponse* response) {
+grpc::Status DirectService::Status(grpc::ServerContext* context,
+                                   const direct::StatusRequest* request,
+                                   direct::StatusResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
   // status
-  batch::Status* status = response->mutable_status();
+  direct::Status* status = response->mutable_status();
 
   // search iterations
   status->set_search_iterations(optimizer_.IterationsSearch());
@@ -754,9 +753,9 @@ grpc::Status BatchService::Status(grpc::ServerContext* context,
   return grpc::Status::OK;
 }
 
-grpc::Status BatchService::SensorInfo(grpc::ServerContext* context,
-                                      const batch::SensorInfoRequest* request,
-                                      batch::SensorInfoResponse* response) {
+grpc::Status DirectService::SensorInfo(grpc::ServerContext* context,
+                                       const direct::SensorInfoRequest* request,
+                                       direct::SensorInfoResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -775,4 +774,4 @@ grpc::Status BatchService::SensorInfo(grpc::ServerContext* context,
 
 #undef CHECK_SIZE
 
-}  // namespace mjpc::batch_grpc
+}  // namespace mjpc::direct_grpc

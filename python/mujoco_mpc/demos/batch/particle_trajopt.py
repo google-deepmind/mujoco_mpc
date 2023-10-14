@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import mediapy as media
 
 # set current directory to mjpc/python/mujoco_mpc
-from mujoco_mpc import batch as batch_lib
+from mujoco_mpc import direct as direct_lib
 # %%
 # 2D Particle Model
 xml = """
@@ -112,13 +112,13 @@ plt.legend()
 plt.xlabel("X")
 plt.ylabel("Y")
 # %%
-# estimator model
-model_estimator = mujoco.MjModel.from_xml_string(xml)
+# optimizer model
+model_optimizer = mujoco.MjModel.from_xml_string(xml)
 
-# batch estimator
+# direct optimizer
 configuration_length = T + 2
-estimator = batch_lib.Batch(
-    model=model_estimator,
+optimizer = direct_lib.Direct(
+    model=model_optimizer,
     configuration_length=configuration_length,
 )
 # %%
@@ -160,7 +160,7 @@ for t in range(configuration_length):
     mt = np.array([0, 0])
 
   # set data
-  data_ = estimator.data(
+  data_ = optimizer.data(
       t,
       configuration=qt,
       ctrl=ct,
@@ -171,10 +171,10 @@ for t in range(configuration_length):
   )
 # %%
 # set std
-estimator.noise(process=np.array([1000.0, 1000.0]), sensor=np.array([1.0, 1.0]))
+optimizer.noise(process=np.array([1000.0, 1000.0]), sensor=np.array([1.0, 1.0]))
 
 # set settings
-estimator.settings(
+optimizer.settings(
     sensor_flag=True,
     force_flag=True,
     max_smoother_iterations=1000,
@@ -189,22 +189,22 @@ estimator.settings(
 )
 
 # optimize
-estimator.optimize()
+optimizer.optimize()
 
 # costs
-estimator.print_cost()
+optimizer.print_cost()
 
 # status
-estimator.print_status()
+optimizer.print_status()
 # %%
 # get estimated trajectories
-q_est = np.zeros((model_estimator.nq, configuration_length))
-v_est = np.zeros((model_estimator.nv, configuration_length))
-s_est = np.zeros((model_estimator.nsensordata, configuration_length))
-f_est = np.zeros((model_estimator.nv, configuration_length))
+q_est = np.zeros((model_optimizer.nq, configuration_length))
+v_est = np.zeros((model_optimizer.nv, configuration_length))
+s_est = np.zeros((model_optimizer.nsensordata, configuration_length))
+f_est = np.zeros((model_optimizer.nv, configuration_length))
 t_est = np.zeros(configuration_length)
 for t in range(configuration_length):
-  data_ = estimator.data(t)
+  data_ = optimizer.data(t)
   q_est[:, t] = data_["configuration"]
   v_est[:, t] = data_["velocity"]
   s_est[:, t] = data_["sensor_prediction"]
@@ -243,8 +243,8 @@ frames_opt = []
 
 # simulate
 for t in range(configuration_length - 1):
-  # get solution from estimator
-  data_ = estimator.data(t)
+  # get solution from optimizer
+  data_ = optimizer.data(t)
 
   # set configuration
   data.qpos = q_est[:, t]

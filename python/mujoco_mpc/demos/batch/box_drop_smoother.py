@@ -17,7 +17,7 @@ import mediapy as media
 import mujoco
 import numpy as np
 
-from mujoco_mpc import batch as batch_lib
+from mujoco_mpc import direct as direct_lib
 
 # %matplotlib inline
 
@@ -215,9 +215,9 @@ plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Position")
 
-# initialize estimator
+# initialize optimizer
 configuration_length = T
-estimator = batch_lib.Batch(
+optimizer = direct_lib.Direct(
     model=model,
     configuration_length=configuration_length,
 )
@@ -245,17 +245,17 @@ for t in range(configuration_length):
   ft = qfrc[:, t]
 
   # set data
-  data_ = estimator.data(
+  data_ = optimizer.data(
       t, configuration=qt, sensor_measurement=st, force_measurement=ft
   )
 
 # set weight
-estimator.noise(
+optimizer.noise(
     sensor=np.full(model.nsensor, 1.0e-1), process=np.full(model.nv, 1.0e-6)
 )
 
 # set settings
-estimator.settings(
+optimizer.settings(
     sensor_flag=True,
     force_flag=True,
     max_smoother_iterations=1000,
@@ -268,13 +268,13 @@ estimator.settings(
 )
 
 # optimize
-estimator.optimize()
+optimizer.optimize()
 
 # costs
-estimator.print_cost()
+optimizer.print_cost()
 
 # status
-estimator.print_status()
+optimizer.print_status()
 
 # get optimized trajectories
 qopt = np.zeros((model.nq, configuration_length))
@@ -283,7 +283,7 @@ aopt = np.zeros((model.nv, configuration_length))
 sopt = np.zeros((model.nsensordata, configuration_length))
 
 for t in range(configuration_length):
-  data_ = estimator.data(t)
+  data_ = optimizer.data(t)
   qopt[:, t] = data_["configuration"]
   sopt[:, t] = data_["sensor_prediction"]
   if t == 0:

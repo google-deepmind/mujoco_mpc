@@ -54,12 +54,18 @@ jobs:
       run: >
         choco install nasm
         choco upgrade llvm
+    - name: For the deepmind branch, use MuJoCo HEAD rather than a fixed commit
+      if: ${{ github.ref_name == 'deepmind' }}
+      run:
+        echo "cmake_extra_args=-DMUJOCO_MPC_MUJOCO_GIT_TAG:STRING=main" > "$GITHUB_ENV"
     - name: Configure MuJoCo MPC
+      shell: bash
       run: >
         mkdir build &&
         cd build &&
         cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
         ${{ matrix.cmake_args }}
+        $cmake_extra_args
     - name: Build MuJoCo MPC
       working-directory: build
       run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test norm_test rollout_test threadpool_test trajectory_test utilities_test direct_force_test direct_optimize_test direct_parameter_test direct_sensor_test direct_trajectory_test direct_utilities_test batch_filter_test batch_prior_test kalman_test unscented_test ${{ matrix.additional_targets }}

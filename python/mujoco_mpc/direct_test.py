@@ -15,21 +15,21 @@
 
 from absl.testing import absltest
 import mujoco
-from mujoco_mpc import batch as batch_lib
+from mujoco_mpc import direct as direct_lib
 import numpy as np
 
 import pathlib
 
 
-class BatchTest(absltest.TestCase):
+class DirectTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self._batch = None
+    self._direct = None
 
   def tearDown(self):
-    if self._batch is not None:
-      self._batch.close()
+    if self._direct is not None:
+      self._direct.close()
     super().tearDown()
 
   def test_data(self):
@@ -42,7 +42,7 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -53,7 +53,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     configuration = np.random.rand(model.nq)
-    data = self._batch.data(index, configuration=configuration)
+    data = self._direct.data(index, configuration=configuration)
 
     # test that input and output match
     self.assertLess(
@@ -64,7 +64,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     velocity = np.random.rand(model.nv)
-    data = self._batch.data(index, velocity=velocity)
+    data = self._direct.data(index, velocity=velocity)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(velocity - data["velocity"]), 1.0e-5)
@@ -73,7 +73,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     acceleration = np.random.rand(model.nv)
-    data = self._batch.data(index, acceleration=acceleration)
+    data = self._direct.data(index, acceleration=acceleration)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(acceleration - data["acceleration"]), 1.0e-5)
@@ -82,7 +82,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     time = np.random.rand(1)
-    data = self._batch.data(index, time=time)
+    data = self._direct.data(index, time=time)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-5)
@@ -91,7 +91,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     ctrl = np.random.rand(model.nu)
-    data = self._batch.data(index, ctrl=ctrl)
+    data = self._direct.data(index, ctrl=ctrl)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
@@ -100,7 +100,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     configuration_previous = np.random.rand(model.nq)
-    data = self._batch.data(
+    data = self._direct.data(
         index, configuration_previous=configuration_previous
     )
 
@@ -114,7 +114,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     sensor_measurement = np.random.rand(model.nsensordata)
-    data = self._batch.data(index, sensor_measurement=sensor_measurement)
+    data = self._direct.data(index, sensor_measurement=sensor_measurement)
 
     # test that input and output match
     self.assertLess(
@@ -126,7 +126,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     sensor_prediction = np.random.rand(model.nsensordata)
-    data = self._batch.data(index, sensor_prediction=sensor_prediction)
+    data = self._direct.data(index, sensor_prediction=sensor_prediction)
 
     # test that input and output match
     self.assertLess(
@@ -138,7 +138,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     sensor_mask = np.array([1, 0, 1, 0, 0], dtype=int)
-    data = self._batch.data(index, sensor_mask=sensor_mask)
+    data = self._direct.data(index, sensor_mask=sensor_mask)
 
     # test that input and output match
     self.assertLess(np.linalg.norm(sensor_mask - data["sensor_mask"]), 1.0e-5)
@@ -147,7 +147,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     force_measurement = np.random.rand(model.nv)
-    data = self._batch.data(index, force_measurement=force_measurement)
+    data = self._direct.data(index, force_measurement=force_measurement)
 
     # test that input and output match
     self.assertLess(
@@ -159,7 +159,7 @@ class BatchTest(absltest.TestCase):
 
     # set
     force_prediction = np.random.rand(model.nv)
-    data = self._batch.data(index, force_prediction=force_prediction)
+    data = self._direct.data(index, force_prediction=force_prediction)
 
     # test that input and output match
     self.assertLess(
@@ -176,39 +176,39 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 15
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # initial configuration length
-    settings = self._batch.settings()
+    settings = self._direct.settings()
     self.assertTrue(configuration_length == settings["configuration_length"])
 
     # get/set configuration length
     in_configuration_length = 7
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         configuration_length=in_configuration_length
     )
     self.assertTrue(in_configuration_length == settings["configuration_length"])
 
     # get/set sensor flag
     in_sensor_flag = False
-    settings = self._batch.settings(sensor_flag=in_sensor_flag)
+    settings = self._direct.settings(sensor_flag=in_sensor_flag)
     self.assertTrue(in_sensor_flag == settings["sensor_flag"])
 
     # get/set force flag
     in_force_flag = False
-    settings = self._batch.settings(force_flag=in_force_flag)
+    settings = self._direct.settings(force_flag=in_force_flag)
     self.assertTrue(in_force_flag == settings["force_flag"])
 
     # get/set search iterations
     in_search_iterations = 25
-    settings = self._batch.settings(max_search_iterations=in_search_iterations)
+    settings = self._direct.settings(max_search_iterations=in_search_iterations)
     self.assertTrue(in_search_iterations == settings["max_search_iterations"])
 
     # get/set smoother iterations
     in_smoother_iterations = 25
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         max_smoother_iterations=in_smoother_iterations
     )
     self.assertTrue(
@@ -217,39 +217,39 @@ class BatchTest(absltest.TestCase):
 
     # get/set gradient tolerance
     gradient_tolerance = 1.23456
-    settings = self._batch.settings(gradient_tolerance=gradient_tolerance)
+    settings = self._direct.settings(gradient_tolerance=gradient_tolerance)
     self.assertLess(
         np.abs(gradient_tolerance - settings["gradient_tolerance"]), 1.0e-6
     )
 
     # get/set verbose iteration
     verbose_iteration = True
-    settings = self._batch.settings(verbose_iteration=verbose_iteration)
+    settings = self._direct.settings(verbose_iteration=verbose_iteration)
     self.assertTrue(verbose_iteration == settings["verbose_iteration"])
 
     # get/set verbose optimize
     verbose_optimize = True
-    settings = self._batch.settings(verbose_optimize=verbose_optimize)
+    settings = self._direct.settings(verbose_optimize=verbose_optimize)
     self.assertTrue(verbose_optimize == settings["verbose_optimize"])
 
     # get/set verbose cost
     verbose_cost = True
-    settings = self._batch.settings(verbose_cost=verbose_cost)
+    settings = self._direct.settings(verbose_cost=verbose_cost)
     self.assertTrue(verbose_cost == settings["verbose_cost"])
 
     # get/set search type
     in_search_type = 0
-    settings = self._batch.settings(search_type=in_search_type)
+    settings = self._direct.settings(search_type=in_search_type)
     self.assertTrue(in_search_type == settings["search_type"])
 
     # get/set step scaling
     in_step_scaling = 2.5
-    settings = self._batch.settings(step_scaling=in_step_scaling)
+    settings = self._direct.settings(step_scaling=in_step_scaling)
     self.assertLess(np.abs(in_step_scaling - settings["step_scaling"]), 1.0e-4)
 
     # get/set regularization initial
     in_regularization_initial = 3.0e1
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         regularization_initial=in_regularization_initial
     )
     self.assertLess(
@@ -259,7 +259,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set regularization scaling
     in_regularization_scaling = 7.1
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         regularization_scaling=in_regularization_scaling
     )
     self.assertLess(
@@ -269,7 +269,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set search direction tolerance
     search_direction_tolerance = 3.3
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         search_direction_tolerance=search_direction_tolerance
     )
     self.assertLess(
@@ -281,12 +281,12 @@ class BatchTest(absltest.TestCase):
 
     # get/set cost tolerance
     cost_tolerance = 1.0e-3
-    settings = self._batch.settings(cost_tolerance=cost_tolerance)
+    settings = self._direct.settings(cost_tolerance=cost_tolerance)
     self.assertLess(np.abs(cost_tolerance - settings["cost_tolerance"]), 1.0e-5)
 
     # get/set assemble sensor Jacobian
     assemble_sensor_jacobian = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         assemble_sensor_jacobian=assemble_sensor_jacobian
     )
     self.assertTrue(
@@ -295,7 +295,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set assemble force Jacobian
     assemble_force_jacobian = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         assemble_force_jacobian=assemble_force_jacobian
     )
     self.assertTrue(
@@ -304,7 +304,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set assemble sensor norm Hessian
     assemble_sensor_norm_hessian = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         assemble_sensor_norm_hessian=assemble_sensor_norm_hessian
     )
     self.assertTrue(
@@ -313,7 +313,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set assemble force norm Hessian
     assemble_force_norm_hessian = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         assemble_force_norm_hessian=assemble_force_norm_hessian
     )
     self.assertTrue(
@@ -322,7 +322,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set first step position sensors
     first_step_position_sensors = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         first_step_position_sensors=first_step_position_sensors
     )
     self.assertTrue(
@@ -331,7 +331,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set last step position sensors
     last_step_position_sensors = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         last_step_position_sensors=last_step_position_sensors
     )
     self.assertTrue(
@@ -340,7 +340,7 @@ class BatchTest(absltest.TestCase):
 
     # get/set last step velocity sensors
     last_step_velocity_sensors = True
-    settings = self._batch.settings(
+    settings = self._direct.settings(
         last_step_velocity_sensors=last_step_velocity_sensors
     )
     self.assertTrue(
@@ -357,12 +357,12 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # cost
-    cost = self._batch.cost(derivatives=True, internals=True)
+    cost = self._direct.cost(derivatives=True, internals=True)
 
     self.assertLess(np.abs(cost["total"] - 0.001), 1.0e-4)
 
@@ -409,18 +409,18 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     ## process
     in_process = np.random.rand(model.nv)
-    noise = self._batch.noise(process=in_process)
+    noise = self._direct.noise(process=in_process)
     self.assertLess(np.linalg.norm(in_process - noise["process"]), 1.0e-5)
 
     ## sensor
     in_sensor = np.random.rand(model.nsensor)
-    noise = self._batch.noise(sensor=in_sensor)
+    noise = self._direct.noise(sensor=in_sensor)
     self.assertLess(np.linalg.norm(in_sensor - noise["sensor"]), 1.0e-5)
 
   def test_reset(self):
@@ -433,7 +433,7 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -441,7 +441,7 @@ class BatchTest(absltest.TestCase):
     index = 1
     configuration = np.random.rand(model.nq)
     sensor_measurement = np.random.rand(model.nsensordata)
-    data = self._batch.data(
+    data = self._direct.data(
         index,
         configuration=configuration,
         sensor_measurement=sensor_measurement,
@@ -452,10 +452,10 @@ class BatchTest(absltest.TestCase):
     self.assertLess(0, np.linalg.norm(data["sensor_measurement"]))
 
     # reset
-    self._batch.reset()
+    self._direct.reset()
 
     # get data
-    data = self._batch.data(index)
+    data = self._direct.data(index)
 
     # check that elements are reset to zero
     self.assertLess(np.linalg.norm(data["configuration"]), 1.0e-5)
@@ -471,14 +471,14 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # TODO(taylor): setup
 
     # optimize
-    self._batch.optimize()
+    self._direct.optimize()
 
   def test_status(self):
     # load model
@@ -490,12 +490,12 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # TODO(taylor): setup
-    status = self._batch.status()
+    status = self._direct.status()
 
     # search iterations
     self.assertEqual(status["search_iterations"], 0)
@@ -510,7 +510,7 @@ class BatchTest(absltest.TestCase):
     # self.assertTrue(
     #     np.abs(
     #         status["regularization"]
-    #         - self._batch.settings()["regularization_initial"]
+    #         - self._direct.settings()["regularization_initial"]
     #     ),
     #     1.0e-6,
     # )
@@ -537,12 +537,12 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 5
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
     # get sensor info
-    info = self._batch.sensor_info()
+    info = self._direct.sensor_info()
 
     # test
     self.assertEqual(info["start_index"], 0)
@@ -559,7 +559,7 @@ class BatchTest(absltest.TestCase):
 
     # initialize
     configuration_length = 3
-    self._batch = batch_lib.Batch(
+    self._direct = direct_lib.Direct(
         model=model, configuration_length=configuration_length
     )
 
@@ -567,14 +567,14 @@ class BatchTest(absltest.TestCase):
     parameters = np.random.normal(size=6, scale=1.0e-1)
 
     # set / get data
-    data = self._batch.data(0, parameters=parameters)
+    data = self._direct.data(0, parameters=parameters)
 
     # test
     self.assertLess(np.linalg.norm(data["parameters"] - parameters), 1.0e-5)
 
     # noise
     noise = np.random.normal(size=6, scale=1.0)
-    data = self._batch.noise(parameter=noise)
+    data = self._direct.noise(parameter=noise)
 
     # test
     self.assertLess(np.linalg.norm(data["parameter"] - noise), 1.0e-5)

@@ -62,17 +62,6 @@ TEST(BatchFilter, Particle1D) {
   mju_copy(q0, q1, model->nq);
   mj_integratePos(model, q0, sim.qvel.Get(0), -1.0 * model->opt.timestep);
 
-  // // initialize covariance
-  // mju_eye(batch.covariance.data(), 2 * model->nv);
-  // mju_scl(batch.covariance.data(), batch.covariance.data(), 1.0e-4,
-  //         (2 * model->nv) * (2 * model->nv));
-
-  // // initial process noise
-  // mju_fill(batch.noise_process.data(), 1.0e-4, 2 * model->nv);
-
-  // // initialize sensor noise
-  // mju_fill(batch.noise_sensor.data(), 1.0e-4, model->nsensordata);
-
   // filter trajectories
   DirectTrajectory<double> batch_qpos(model->nq, T);
   DirectTrajectory<double> batch_qvel(model->nv, T);

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Python interface for interface with Direct."""
+"""Python interface for direct trajectory optimization."""
 
 import atexit
 import os
@@ -80,9 +80,7 @@ class Direct:
     os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
-    credentials = grpc.local_channel_credentials(
-        grpc.LocalConnectionType.LOCAL_TCP
-    )
+    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = direct_pb2_grpc.DirectStub(self.channel)
@@ -341,37 +339,41 @@ class Direct:
         "parameters": cost.parameter,
         "initial": cost.initial,
         "gradient": np.array(cost.gradient) if derivatives else [],
-        "hessian": np.array(cost.hessian).reshape(cost.nvar, cost.nvar)
-        if derivatives
-        else [],
+        "hessian": (
+            np.array(cost.hessian).reshape(cost.nvar, cost.nvar)
+            if derivatives
+            else []
+        ),
         "residual_sensor": np.array(cost.residual_sensor) if internals else [],
         "residual_force": np.array(cost.residual_force) if internals else [],
-        "jacobian_sensor": np.array(cost.jacobian_sensor).reshape(
-            cost.nsensor, cost.nvar
-        )
-        if internals
-        else [],
-        "jacobian_force": np.array(cost.jacobian_force).reshape(
-            cost.nforce, cost.nvar
-        )
-        if internals
-        else [],
-        "norm_gradient_sensor": np.array(cost.norm_gradient_sensor)
-        if internals
-        else [],
-        "norm_gradient_force": np.array(cost.norm_gradient_force)
-        if internals
-        else [],
-        "norm_hessian_sensor": np.array(cost.norm_hessian_sensor).reshape(
-            cost.nsensor, cost.nsensor
-        )
-        if internals
-        else [],
-        "norm_hessian_force": np.array(cost.norm_hessian_force).reshape(
-            cost.nforce, cost.nforce
-        )
-        if internals
-        else [],
+        "jacobian_sensor": (
+            np.array(cost.jacobian_sensor).reshape(cost.nsensor, cost.nvar)
+            if internals
+            else []
+        ),
+        "jacobian_force": (
+            np.array(cost.jacobian_force).reshape(cost.nforce, cost.nvar)
+            if internals
+            else []
+        ),
+        "norm_gradient_sensor": (
+            np.array(cost.norm_gradient_sensor) if internals else []
+        ),
+        "norm_gradient_force": (
+            np.array(cost.norm_gradient_force) if internals else []
+        ),
+        "norm_hessian_sensor": (
+            np.array(cost.norm_hessian_sensor).reshape(
+                cost.nsensor, cost.nsensor
+            )
+            if internals
+            else []
+        ),
+        "norm_hessian_force": (
+            np.array(cost.norm_hessian_force).reshape(cost.nforce, cost.nforce)
+            if internals
+            else []
+        ),
         "nvar": cost.nvar,
         "nsensor": cost.nsensor,
         "nforce": cost.nforce,
@@ -488,7 +490,7 @@ class Direct:
       while True:
         line = self.server_process.stdout.readline()
         if line:
-          sys.stdout.write(line.decode("utf-8"))
+            sys.stdout.write(line.decode("utf-8"))
         if future.done():
-          break
+            break
     return future.result()

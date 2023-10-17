@@ -47,6 +47,13 @@ ABSL_FLAG(float, sim_percent_realtime, 100,
           "The realtime percentage at which the simulation will be launched.");
 ABSL_FLAG(bool, estimator_enabled, false,
           "If true, estimator loop will run on startup");
+ABSL_FLAG(bool, show_left_ui, true,
+          "If true, the left UI (ui0) will be visible on startup");
+ABSL_FLAG(bool, show_plot, true,
+          "If true, the plots will be visible on startup");
+ABSL_FLAG(bool, show_info, true,
+          "If true, the infotext panel will be visible on startup");
+
 
 namespace {
 namespace mj = ::mujoco;
@@ -222,6 +229,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
         sim.agent->Initialize(mnew);
+        sim.agent->plot_enabled = absl::GetFlag(FLAGS_show_plot);
         sim.agent->Allocate();
         sim.agent->Reset();
         sim.agent->PlotInitialize();
@@ -451,6 +459,9 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
 
   sim->delete_old_m_d = true;
   sim->loadrequest = 2;
+
+  sim->ui0_enable = absl::GetFlag(FLAGS_show_left_ui);
+  sim->info = absl::GetFlag(FLAGS_show_info);
 }
 
 MjpcApp::~MjpcApp() {

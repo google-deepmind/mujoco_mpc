@@ -54,15 +54,41 @@ jobs:
       run: >
         choco install nasm
         choco upgrade llvm
+    - name: For the deepmind branch, use MuJoCo HEAD rather than a fixed commit
+      if: ${{ github.ref_name == 'deepmind' }}
+      run:
+        echo "cmake_extra_args=-DMUJOCO_MPC_MUJOCO_GIT_TAG:STRING=main" > "$GITHUB_ENV"
     - name: Configure MuJoCo MPC
+      shell: bash
       run: >
         mkdir build &&
         cd build &&
         cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
         ${{ matrix.cmake_args }}
+        $cmake_extra_args
     - name: Build MuJoCo MPC
       working-directory: build
       run: cmake --build . --config=Release ${{ matrix.cmake_build_args }} --target mjpc agent_test cost_derivatives_test norm_test rollout_test threadpool_test trajectory_test utilities_test direct_force_test direct_optimize_test direct_parameter_test direct_sensor_test direct_trajectory_test direct_utilities_test batch_filter_test batch_prior_test kalman_test unscented_test ${{ matrix.additional_targets }}
     - name: Test MuJoCo MPC
       working-directory: build
       run: ctest -C Release --output-on-failure .
+    - name: Notify team chat
+      shell: bash
+      env:
+        GCHAT_API: ${{ secrets.GCHAT_API }}
+        JOB_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/\
+          ${{ github.run_id }}"
+      if: ${{ failure() && github.event_name == 'push' && env.GCHAT_API != '' }}
+      run: >
+        curl
+        "$GCHAT_API&threadKey=$GITHUB_SHA&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
+        -X POST
+        -H "Content-Type: application/json"
+        -d "{
+        'text': '<$JOB_URL|*FAILURE*>:
+        job \`${{ matrix.os }}${{ matrix.additional_label }}\`
+        commit \`$(echo $GITHUB_SHA | head -c6)\`\n
+        \`\`\`Author: ${{ github.event.head_commit.author.name }}
+        <${{ github.event.head_commit.author.email }}>
+        \n\n${{ github.event.head_commit.message }}\`\`\`
+        '}"

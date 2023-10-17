@@ -79,9 +79,7 @@ class Filter:
     os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
-    credentials = grpc.local_channel_credentials(
-        grpc.LocalConnectionType.LOCAL_TCP
-    )
+    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
     grpc.channel_ready_future(self.channel).result(timeout=10)
     self.stub = filter_pb2_grpc.StateEstimationStub(self.channel)

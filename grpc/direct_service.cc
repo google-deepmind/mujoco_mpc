@@ -29,7 +29,6 @@
 
 #include "grpc/direct.pb.h"
 #include "mjpc/direct/direct.h"
-#include "mjpc/norm.h"
 
 namespace mjpc::direct_grpc {
 

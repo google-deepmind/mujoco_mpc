@@ -37,7 +37,7 @@ class Unscented : public Estimator {
   }
 
   // destructor
-  ~Unscented() {
+  ~Unscented() override {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
   }

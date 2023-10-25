@@ -104,7 +104,7 @@ class GroundTruth : public Estimator {
   }
 
   // destructor
-  ~GroundTruth() {
+  ~GroundTruth() override {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
   }
@@ -116,6 +116,7 @@ class GroundTruth : public Estimator {
     this->model = mj_copyModel(nullptr, model);
 
     // data
+    if (data_) mj_deleteData(data_);
     data_ = mj_makeData(model);
 
     // timestep

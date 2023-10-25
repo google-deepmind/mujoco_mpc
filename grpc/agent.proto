@@ -167,3 +167,9 @@ message SetModeRequest {
 }
 
 message SetModeResponse {}
+
+message TaskState {
+  State state = 1;
+  map<string, TaskParameterValue> task_parameters = 2;
+  map<string, double> cost_weights = 3;
+}

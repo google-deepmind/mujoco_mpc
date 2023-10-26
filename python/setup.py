@@ -270,15 +270,19 @@ setuptools.setup(
         "Topic :: Scientific/Engineering",
     ],
     packages=setuptools.find_packages(),
-    python_requires=">=3.7",
-    install_requires=[
+    python_requires=">=3.8",
+    setup_requires=[
         "grpcio-tools",
         "grpcio",
+    ],
+    install_requires=[
+        "grpcio",
+        "mujoco >= 2.3.3",
+        "protobuf",
     ],
     extras_require={
         "test": [
             "absl-py",
-            "mujoco >= 2.3.3",
         ],
     },
     ext_modules=[CMakeExtension("agent_server")],

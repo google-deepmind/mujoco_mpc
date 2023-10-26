@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/filter_service.h"
+#include "mjpc/grpc/filter_service.h"
 
 #include <cstring>
 #include <memory>
@@ -27,7 +27,7 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/filter.pb.h"
+#include "mjpc/grpc/filter.pb.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/utilities.h"
 

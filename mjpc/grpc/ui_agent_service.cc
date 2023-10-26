@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/ui_agent_service.h"
+#include "mjpc/grpc/ui_agent_service.h"
 
 #include <memory>
 #include <string_view>
@@ -26,8 +26,8 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent.pb.h"
-#include "grpc/grpc_agent_util.h"
+#include "mjpc/grpc/agent.pb.h"
+#include "mjpc/grpc/grpc_agent_util.h"
 #include "mjpc/agent.h"
 #include "mjpc/utilities.h"
 

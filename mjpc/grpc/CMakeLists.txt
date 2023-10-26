@@ -93,6 +93,20 @@ add_custom_command(
   "${agent_service_proto}"
 )
 
+add_library(agent_service_proto_lib STATIC
+  "${agent_service_proto_srcs}"
+  "${agent_service_proto_hdrs}"
+  "${agent_service_grpc_srcs}"
+  "${agent_service_grpc_hdrs}"
+)
+
+target_link_libraries(
+  agent_service_proto_lib
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+)
+
 add_custom_command(
   OUTPUT
   "${direct_service_proto_srcs}"
@@ -128,18 +142,14 @@ add_custom_command(
 )
 
 # Include generated *.pb.h files
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../..)
 
 add_library(mjpc_agent_service STATIC)
 target_sources(
   mjpc_agent_service
   PUBLIC
-  ${agent_service_grpc_hdrs}
-  ${agent_service_proto_hdrs}
   agent_service.h
   PRIVATE
-  ${agent_service_grpc_srcs}
-  ${agent_service_proto_srcs}
   agent_service.cc
   grpc_agent_util.h
   grpc_agent_util.cc
@@ -147,19 +157,24 @@ target_sources(
 
 target_link_libraries(
   mjpc_agent_service
+  PUBLIC
+  agent_service_proto_lib
+  PRIVATE
   absl::check
   absl::log
   absl::random_random
   absl::status
   absl::strings
-  ${_REFLECTION}
-  ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF}
   mujoco::mujoco
   libmjpc
 )
 
-target_include_directories(mjpc_agent_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(mjpc_agent_service
+  PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR}/../..
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../..
+)
 message(AGENT_SERVICE_COMPILE_OPTIONS=${AGENT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(mjpc_agent_service PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(mjpc_agent_service PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
@@ -185,7 +200,7 @@ target_link_libraries(
   libmjpc
 )
 
-target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 message(AGENT_SERVICE_COMPILE_OPTIONS=${AGENT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
@@ -194,12 +209,8 @@ add_library(mjpc_ui_agent_service STATIC)
 target_sources(
   mjpc_ui_agent_service
   PUBLIC
-  ${agent_service_grpc_hdrs}
-  ${agent_service_proto_hdrs}
   ui_agent_service.h
   PRIVATE
-  ${agent_service_grpc_srcs}
-  ${agent_service_proto_srcs}
   ui_agent_service.cc
   grpc_agent_util.h
   grpc_agent_util.cc
@@ -207,9 +218,9 @@ target_sources(
 
 target_link_libraries(
   mjpc_ui_agent_service
-  ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF}
-  ${_REFLECTION}
+  PUBLIC
+  agent_service_proto_lib
+  PRIVATE
   absl::check
   absl::log
   absl::status
@@ -221,7 +232,12 @@ target_link_libraries(
   Threads::Threads
 )
 
-target_include_directories(mjpc_ui_agent_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(mjpc_ui_agent_service
+  PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR}/../..
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../..
+)
 target_compile_options(mjpc_ui_agent_service PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(mjpc_ui_agent_service PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
 
@@ -247,7 +263,7 @@ target_link_libraries(
   mujoco::platform_ui_adapter
 )
 
-target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
 
@@ -277,7 +293,7 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
-target_include_directories(direct_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(direct_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 message(DIRECT_SERVICE_COMPILE_OPTIONS=${DIRECT_SERVICE_COMPILE_OPTIONS})
 target_compile_options(direct_server PUBLIC ${DIRECT_SERVICE_COMPILE_OPTIONS})
 target_link_options(direct_server PRIVATE ${DIRECT_SERVICE_LINK_OPTIONS})
@@ -308,7 +324,7 @@ target_link_libraries(
   mujoco::mujoco
   libmjpc
 )
-target_include_directories(filter_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(filter_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 message(FILTER_SERVICE_COMPILE_OPTIONS=${FILTER_SERVICE_COMPILE_OPTIONS})
 target_compile_options(filter_server PUBLIC ${FILTER_SERVICE_COMPILE_OPTIONS})
 target_link_options(filter_server PRIVATE ${FILTER_SERVICE_LINK_OPTIONS})

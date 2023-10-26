@@ -139,7 +139,7 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(libmjpc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(
   mjpc
@@ -170,4 +170,8 @@ add_subdirectory(tasks)
 if(BUILD_TESTING AND MJPC_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
+endif()
+
+if(MJPC_BUILD_GRPC_SERVICE)
+  add_subdirectory(grpc)
 endif()

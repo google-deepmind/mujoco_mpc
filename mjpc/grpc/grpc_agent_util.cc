@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/grpc_agent_util.h"
+#include "mjpc/grpc/grpc_agent_util.h"
 
 #include <memory>
 #include <sstream>
@@ -31,7 +31,7 @@
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent.pb.h"
+#include "mjpc/grpc/agent.pb.h"
 #include "mjpc/agent.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"

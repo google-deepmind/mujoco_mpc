@@ -196,6 +196,4 @@ set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
-if(MJPC_BUILD_GRPC_SERVICE)
-  add_subdirectory(grpc)
-endif()
+

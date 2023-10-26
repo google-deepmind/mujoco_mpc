@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_GRPC_AGENT_UTIL_H_
-#define GRPC_GRPC_AGENT_UTIL_H_
+#ifndef MJPC_MJPC_GRPC_GRPC_AGENT_UTIL_H_
+#define MJPC_MJPC_GRPC_GRPC_AGENT_UTIL_H_
 
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent.pb.h"
+#include "mjpc/grpc/agent.pb.h"
 #include "mjpc/agent.h"
 
 namespace grpc_agent_util {
@@ -56,4 +56,4 @@ mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb);
 grpc::Status InitAgent(mjpc::Agent* agent, const agent::InitRequest* request);
 }  // namespace grpc_agent_util
 
-#endif  // GRPC_GRPC_AGENT_UTIL_H_
+#endif  // MJPC_MJPC_GRPC_GRPC_AGENT_UTIL_H_

@@ -20,12 +20,15 @@
 #include <cstdio>
 #include <cstring>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <absl/container/flat_hash_map.h>
+#include <absl/log/check.h>
 #include <absl/strings/match.h>
 #include <absl/strings/str_join.h>
 #include <absl/strings/str_split.h>
@@ -34,8 +37,8 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mjvisualize.h>
 #include <mujoco/mujoco.h>
-
 #include "mjpc/array_safety.h"
+#include "mjpc/agent_state.pb.h"
 #include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/task.h"
@@ -45,6 +48,7 @@
 
 namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
+
 namespace {
 // ----- agent constants ----- //
 inline constexpr double kMinTimeStep = 1.0e-4;
@@ -196,6 +200,67 @@ int Agent::GetTaskIdByName(std::string_view name) const {
     }
   }
   return -1;
+}
+
+// Returns a state proto string which includes sim state, task parameters, and
+// cost weights.
+agent_state::State Agent::GetAgentState(mjModel* model, mjData* data) {
+  agent_state::State task_state;
+
+  auto* state = task_state.mutable_sim_state();
+  state->set_time(data->time);
+  for (int i = 0; i < model->nq; i++) {
+    state->add_qpos(data->qpos[i]);
+  }
+  for (int i = 0; i < model->nv; i++) {
+    state->add_qvel(data->qvel[i]);
+  }
+  for (int i = 0; i < model->na; i++) {
+    state->add_act(data->act[i]);
+  }
+  for (int i = 0; i < model->nmocap * 3; i++) {
+    state->add_mocap_pos(data->mocap_pos[i]);
+  }
+  for (int i = 0; i < model->nmocap * 4; i++) {
+    state->add_mocap_quat(data->mocap_quat[i]);
+  }
+  for (int i = 0; i < model->nuserdata; i++) {
+    state->add_userdata(data->userdata[i]);
+  }
+
+  auto* cost_weights = task_state.mutable_cost_weights();
+  const mjModel* agent_model = GetModel();
+  const mjpc::Task* task = ActiveTask();
+  std::vector<double> residuals(task->num_residual, 0);  // scratch space
+  double terms[mjpc::kMaxCostTerms];
+  task->Residual(model, data, residuals.data());
+  task->UnweightedCostTerms(terms, residuals.data());
+  for (int i = 0; i < task->num_term; i++) {
+    CHECK_EQ(agent_model->sensor_type[i], mjSENS_USER);
+    std::string_view sensor_name(agent_model->names +
+                                 agent_model->name_sensoradr[i]);
+    cost_weights->insert({sensor_name.data(), task->weight[i]});
+  }
+
+  auto* task_parameters = task_state.mutable_task_parameters();
+  int shift = 0;
+  for (int i = 0; i < agent_model->nnumeric; i++) {
+    std::string_view numeric_name(agent_model->names +
+                                  agent_model->name_numericadr[i]);
+    if (absl::StartsWith(numeric_name, "residual_select_")) {
+      std::string_view name =
+          absl::StripPrefix(numeric_name, "residual_select_");
+      (*task_parameters)[name].set_selection(mjpc::ResidualSelection(
+          agent_model, name, ActiveTask()->parameters[shift]));
+      shift++;
+    } else if (absl::StartsWith(numeric_name, "residual_")) {
+      std::string_view name = absl::StripPrefix(numeric_name, "residual_");
+      (*task_parameters)[name].set_numeric(ActiveTask()->parameters[shift]);
+      shift++;
+    }
+  }
+
+  return task_state;
 }
 
 Agent::LoadModelResult Agent::LoadModel() const {
@@ -513,13 +578,14 @@ void Agent::GUI(mjUI& ui) {
       {mjITEM_SECTION, "Task", 1, nullptr, "AP"},
       {mjITEM_CHECKINT, "Reset", 2, &ActiveTask()->reset, " #459"},
       {mjITEM_CHECKINT, "Visualize", 2, &ActiveTask()->visualize, ""},
+      {mjITEM_BUTTON, "Copy State", 2, nullptr, ""},
       {mjITEM_SELECT, "Model", 1, &gui_task_id, ""},
       {mjITEM_SLIDERNUM, "Risk", 1, &ActiveTask()->risk, "-1 1"},
       {mjITEM_SEPARATOR, "Weights", 1},
       {mjITEM_END}};
 
   // task names
-  mju::strcpy_arr(defTask[3].other, task_names_);
+  mju::strcpy_arr(defTask[4].other, task_names_);
   mjui_add(&ui, defTask);
 
   // norm weights
@@ -675,14 +741,16 @@ void Agent::GUI(mjUI& ui) {
 }
 
 // task-based GUI event
-void Agent::TaskEvent(mjuiItem* it, mjData* data,
-                      std::atomic<int>& uiloadrequest, int& run) {
+std::optional<agent_state::State> Agent::TaskEvent(
+    mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest, int& run) {
   switch (it->itemid) {
     case 0:  // task reset
       ActiveTask()->Reset(model_);
       ActiveTask()->reset = 0;
       break;
-    case 2:  // task switch
+    case 2:  // copy state
+      return GetAgentState(model_, data);
+    case 3:  // task switch
       // the GUI changed the value of gui_task_id, but it's unsafe to switch
       // tasks now.
       // turn off agent and traces
@@ -696,6 +764,7 @@ void Agent::TaskEvent(mjuiItem* it, mjData* data,
       uiloadrequest.fetch_add(1);
       break;
   }
+  return std::nullopt;
 }
 
 // agent-based GUI event

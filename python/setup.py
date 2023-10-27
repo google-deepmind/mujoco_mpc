@@ -59,7 +59,9 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
     agent_proto_filename = "agent.proto"
-    agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
+    agent_proto_source_path = Path(
+        "..", "mjpc", "grpc", agent_proto_filename
+    ).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     proto_module_relative_path = Path("mujoco_mpc", "proto", agent_proto_filename)

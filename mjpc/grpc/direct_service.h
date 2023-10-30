@@ -14,8 +14,8 @@
 
 // An implementation of the `Direct` gRPC service.
 
-#ifndef GRPC_DIRECT_SERVICE_H_
-#define GRPC_DIRECT_SERVICE_H_
+#ifndef MJPC_MJPC_GRPC_DIRECT_SERVICE_H_
+#define MJPC_MJPC_GRPC_DIRECT_SERVICE_H_
 
 #include <memory>
 #include <vector>
@@ -24,8 +24,8 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/direct.grpc.pb.h"
-#include "grpc/direct.pb.h"
+#include "mjpc/grpc/direct.grpc.pb.h"
+#include "mjpc/grpc/direct.pb.h"
 #include "mjpc/direct/direct.h"
 #include "mjpc/utilities.h"
 
@@ -84,4 +84,4 @@ class DirectService final : public direct::Direct::Service {
 
 }  // namespace mjpc::direct_grpc
 
-#endif  // GRPC_DIRECT_SERVICE_H_
+#endif  // MJPC_MJPC_GRPC_DIRECT_SERVICE_H_

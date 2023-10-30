@@ -36,7 +36,7 @@ class Kalman : public Estimator {
   }
 
   // destructor
-  ~Kalman() {
+  ~Kalman() override {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
   }

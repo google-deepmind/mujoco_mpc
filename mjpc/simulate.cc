@@ -21,6 +21,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <ratio>
 #include <string>
 
@@ -31,9 +32,10 @@
 #include <mujoco/mujoco.h>
 #include <platform_ui_adapter.h>
 #include "mjpc/array_safety.h"
-
 #include "mjpc/agent.h"
+#include "mjpc/agent_state.pb.h"
 #include "mjpc/utilities.h"
+#include <google/protobuf/text_format.h>
 
 // When launched via an App Bundle on macOS, the working directory is the path
 // to the App Bundle's resource directory. This causes files to be saved into
@@ -673,51 +675,18 @@ void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
 // make rendering section of UI
 void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
   mjuiDef defRendering[] = {
-    {
-      mjITEM_SECTION,
-      "Rendering",
-      oldstate,
-      nullptr,
-      "AR"
-    },
-    {
-      mjITEM_SELECT,
-      "Camera",
-      2,
-      &(sim->camera),
-      "Free\nTracking"
-    },
-    {
-      mjITEM_SELECT,
-      "Label",
-      2,
-      &(sim->opt.label),
-      "None\nBody\nJoint\nGeom\nSite\nCamera\nLight\nTendon\n"
-      "Actuator\nConstraint\nSkin\nSelection\nSel Pnt\nContact\nForce\nIsland"
-    },
-    {
-      mjITEM_SELECT,
-      "Frame",
-      2,
-      &(sim->opt.frame),
-      "None\nBody\nGeom\nSite\nCamera\nLight\nContact\nWorld"
-    },
-    {
-      mjITEM_BUTTON,
-      "Copy camera",
-      2,
-      nullptr,
-      ""
-    },
-    {
-      mjITEM_SEPARATOR,
-      "Model Elements",
-      1
-    },
-    {
-      mjITEM_END
-    }
-  };
+      {mjITEM_SECTION, "Rendering", oldstate, nullptr, "AR"},
+      {mjITEM_SELECT, "Camera", 2, &(sim->camera), "Free\nTracking"},
+      {mjITEM_SELECT, "Label", 2, &(sim->opt.label),
+       "None\nBody\nJoint\nGeom\nSite\nCamera\nLight\nTendon\n"
+       "Actuator\nConstraint\nSkin\nSelection\nSel "
+       "Pnt\nContact\nForce\nIsland"},
+      {mjITEM_SELECT, "Frame", 2, &(sim->opt.frame),
+       "None\nBody\nGeom\nSite\nCamera\nLight\nContact\nWorld"},
+      {mjITEM_BUTTON, "Copy camera", 2, nullptr, ""},
+      {mjITEM_BUTTON, "Copy state", 2, nullptr, ""},
+      {mjITEM_SEPARATOR, "Model Elements", 1},
+      {mjITEM_END}};
   mjuiDef defOpenGL[] = {
     {mjITEM_SEPARATOR, "OpenGL Effects", 1},
     {mjITEM_END}
@@ -1007,7 +976,7 @@ mjtNum Timer() {
 
 // clear all times
 void ClearTimeres(mjData* d) {
-  for (int i=0; i<mjNTIMER; i++) {
+  for (int i = 0; i < mjNTIMER; i++) {
     d->timer[i].duration = 0;
     d->timer[i].number = 0;
   }
@@ -1200,28 +1169,18 @@ void UiEvent(mjuiState* state) {
 
     // option section
     else if (it && it->sectionid==SECT_OPTION) {
-      switch (it->itemid) {
-      case 0:             // Spacing
+      if (it->pdata == &sim->spacing) {
         sim->ui0.spacing = mjui_themeSpacing(sim->spacing);
         sim->ui1.spacing = mjui_themeSpacing(sim->spacing);
-        break;
-
-      case 1:             // Color
+      } else if (it->pdata == &sim->color) {
         sim->ui0.color = mjui_themeColor(sim->color);
         sim->ui1.color = mjui_themeColor(sim->color);
-        break;
-
-      case 2:             // Font
-        mjr_changeFont(50*(sim->font+1), &sim->platform_ui->mjr_context());
-        break;
-
-      case 9:             // Full screen
+      } else if (it->pdata == &sim->font) {
+        mjr_changeFont(50 * (sim->font + 1), &sim->platform_ui->mjr_context());
+      } else if (it->pdata == &sim->fullscreen) {
         sim->platform_ui->ToggleFullscreen();
-        break;
-
-      case 10:            // Vertical sync
+      } else if (it->pdata == &sim->vsync) {
         sim->platform_ui->SetVSync(sim->vsync);
-        break;
       }
 
       // modify UI
@@ -1306,7 +1265,13 @@ void UiEvent(mjuiState* state) {
 
     // task section
     else if (it && it->sectionid == SECT_TASK) {
-      sim->agent->TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
+      std::optional<agent_state::State> state =
+          sim->agent->TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
+      if (state.has_value()) {
+      std::string clipboard;
+      google::protobuf::TextFormat::PrintToString(state.value(), &clipboard);
+      sim->platform_ui->SetClipboardString(clipboard.c_str());
+      }
     }
 
     // agent section

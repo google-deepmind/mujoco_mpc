@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Startup code for `Direct` server.
+// Startup code for `Filter` server.
 
 #include <cstdint>
 #include <memory>
@@ -22,12 +22,12 @@
 #include <absl/flags/parse.h>
 #include <absl/log/log.h>
 #include <absl/strings/str_cat.h>
+
 // DEEPMIND INTERNAL IMPORT
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-
-#include "grpc/direct_service.h"
+#include "mjpc/grpc/filter_service.h"
 
 ABSL_FLAG(int32_t, mjpc_port, 10000, "port to listen on");
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, server_credentials);
 
-  mjpc::direct_grpc::DirectService service;
+  filter_grpc::FilterService service;
   builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
   builder.RegisterService(&service);
 

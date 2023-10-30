@@ -24,6 +24,37 @@ target_link_libraries(
 )
 target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+set(_PROTOBUF_LIBPROTOBUF libprotobuf)
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
+
+get_filename_component(agent_state_proto "./agent_state.proto" ABSOLUTE)
+get_filename_component(agent_state_proto_path "${agent_state_proto}" PATH)
+set(agent_state_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/agent_state.pb.cc")
+set(agent_state_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/agent_state.pb.h")
+
+add_custom_command(
+  OUTPUT
+  "${agent_state_proto_srcs}"
+  "${agent_state_proto_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS
+  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  -I "${agent_state_proto_path}"
+  "${agent_state_proto}"
+  DEPENDS
+  "${agent_state_proto}"
+)
+
+add_library(agent_state_proto_lib STATIC
+  "${agent_state_proto_srcs}"
+  "${agent_state_proto_hdrs}"
+)
+
+target_link_libraries(
+  agent_state_proto_lib
+  ${_PROTOBUF_LIBPROTOBUF}
+)
+
 add_library(
   libmjpc STATIC
   states/state.cc
@@ -130,16 +161,23 @@ target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
   absl::any_invocable
+  absl::check
   absl::flat_hash_map
   absl::random_random
+  agent_state_proto_lib
   glfw
   lodepng
   mujoco::mujoco
   mujoco::platform_ui_adapter
+  ${_PROTOBUF_LIBPROTOBUF}
   threadpool
   Threads::Threads
 )
-target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(libmjpc
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${CMAKE_CURRENT_BINARY_DIR}/..
+)
 
 add_executable(
   mjpc
@@ -151,8 +189,10 @@ target_link_libraries(
   absl::flags_parse
   absl::random_random
   absl::strings
+  agent_state_proto_lib
   libmjpc
   mujoco::mujoco
+  ${_PROTOBUF_LIBPROTOBUF}
   threadpool
   Threads::Threads
 )
@@ -170,4 +210,8 @@ add_subdirectory(tasks)
 if(BUILD_TESTING AND MJPC_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
+endif()
+
+if(MJPC_BUILD_GRPC_SERVICE)
+  add_subdirectory(grpc)
 endif()

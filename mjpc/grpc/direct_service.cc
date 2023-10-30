@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/direct_service.h"
+#include "mjpc/grpc/direct_service.h"
 
 #include <cstring>
 #include <memory>
@@ -27,7 +27,7 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/direct.pb.h"
+#include "mjpc/grpc/direct.pb.h"
 #include "mjpc/direct/direct.h"
 
 namespace mjpc::direct_grpc {

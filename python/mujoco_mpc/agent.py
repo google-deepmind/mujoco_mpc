@@ -18,6 +18,7 @@
 import atexit
 import contextlib
 import pathlib
+import re
 import socket
 import subprocess
 import tempfile
@@ -49,6 +50,21 @@ def find_free_port() -> int:
     return s.getsockname()[1]
 
 
+def parse_port(server_addr: str) -> int:
+  """Parse a port from a string.
+
+  Args:
+    server_addr: server address
+
+  Returns:
+    int: the port
+  """
+  match = re.search(r":(\d+)", server_addr)
+  if match is None:
+    raise ValueError(f"Port not specified in server address: '{server_addr}'")
+  return int(match.group(1))
+
+
 class Agent(contextlib.AbstractContextManager):
   """`Agent` class to interface with MuJoCo MPC agents.
 
@@ -59,6 +75,7 @@ class Agent(contextlib.AbstractContextManager):
     channel:
     stub:
     server_process:
+    server_addr:
   """
 
   def __init__(
@@ -69,39 +86,51 @@ class Agent(contextlib.AbstractContextManager):
       extra_flags: Sequence[str] = (),
       real_time_speed: float = 1.0,
       subprocess_kwargs: Optional[Mapping[str, Any]] = None,
+      connect_to: Optional[str] = None,
+      run_init: bool = True,
   ):
     self.task_id = task_id
     self.model = model
+    self.port = (
+        find_free_port() if connect_to is None else parse_port(connect_to)
+    )
 
     if server_binary_path is None:
       binary_name = "agent_server"
       server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
-    self.port = find_free_port()
-    self.server_process = subprocess.Popen(
-        [str(server_binary_path), f"--mjpc_port={self.port}"]
-        + list(extra_flags),
-        **(subprocess_kwargs or {}),
-    )
-    atexit.register(self.server_process.kill)
 
+    self.server_process = None
+    if connect_to is None:
+      self.server_process = subprocess.Popen(
+          [str(server_binary_path), f"--mjpc_port={self.port}"]
+          + list(extra_flags),
+          **(subprocess_kwargs or {}),
+      )
+      atexit.register(self.server_process.kill)
+
+    self.server_addr = connect_to or f"localhost:{self.port}"
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
-    self.channel = grpc.secure_channel(f"localhost:{self.port}", credentials)
+    self.channel = grpc.secure_channel(self.server_addr, credentials)
     grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
-    self.init(
-        task_id,
-        model,
-        send_as="mjb",
-        real_time_speed=real_time_speed,
-    )
+
+    if run_init:
+      self.init(
+          task_id,
+          model,
+          send_as="mjb",
+          real_time_speed=real_time_speed,
+      )
 
   def __exit__(self, exc_type, exc_value, traceback):
     self.close()
 
   def close(self):
     self.channel.close()
-    self.server_process.kill()
-    self.server_process.wait()
+
+    if self.server_process is not None:
+      self.server_process.kill()
+      self.server_process.wait()
 
   def init(
       self,
@@ -233,7 +262,8 @@ class Agent(contextlib.AbstractContextManager):
         agent_pb2.GetCostValuesAndWeightsRequest()
     )
     return {
-        name: value_weight.value for name, value_weight in terms.values_weights.items()
+        name: value_weight.value
+        for name, value_weight in terms.values_weights.items()
     }
 
   def planner_step(self):
@@ -307,7 +337,8 @@ class Agent(contextlib.AbstractContextManager):
         agent_pb2.GetCostValuesAndWeightsRequest()
     )
     return {
-        name: value_weight.weight for name, value_weight in terms.values_weights.items()
+        name: value_weight.weight
+        for name, value_weight in terms.values_weights.items()
     }
 
   def get_mode(self) -> str:

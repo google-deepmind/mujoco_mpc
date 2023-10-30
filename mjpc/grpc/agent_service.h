@@ -12,27 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_UI_AGENT_SERVICE_H_
-#define GRPC_UI_AGENT_SERVICE_H_
+// An implementation of the `Agent` gRPC service.
+
+#ifndef MJPC_MJPC_GRPC_AGENT_SERVICE_H_
+#define MJPC_MJPC_GRPC_AGENT_SERVICE_H_
+
+#include <memory>
+#include <vector>
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent.grpc.pb.h"
-#include "grpc/agent.pb.h"
-#include "mjpc/simulate.h"  // mjpc fork
-#include "mjpc/utilities.h"
+#include <mjpc/grpc/agent.grpc.pb.h>
+#include <mjpc/grpc/agent.pb.h>
+#include <mjpc/agent.h>
+#include <mjpc/task.h>
+#include <mjpc/threadpool.h>
+#include <mjpc/utilities.h>
 
 namespace mjpc::agent_grpc {
 
-// An AgentService implementation that connects to a running instance of the
-// MJPC UI.
-class UiAgentService final : public agent::Agent::Service {
+class AgentService final : public agent::Agent::Service {
  public:
-  explicit UiAgentService(mujoco::Simulate* sim)
-      : sim_(sim), rollout_data_(nullptr, mj_deleteData) {}
-
+  explicit AgentService(std::vector<std::shared_ptr<mjpc::Task>> tasks,
+                        int num_workers = -1)
+      : thread_pool_(num_workers == -1 ? mjpc::NumAvailableHardwareThreads()
+                                       : num_workers),
+        tasks_(std::move(tasks)),
+        rollout_data_(nullptr, mj_deleteData) {}
+  ~AgentService();
   grpc::Status Init(grpc::ServerContext* context,
                     const agent::InitRequest* request,
                     agent::InitResponse* response) override;
@@ -76,9 +85,10 @@ class UiAgentService final : public agent::Agent::Service {
       const agent::GetTaskParametersRequest* request,
       agent::GetTaskParametersResponse* response) override;
 
-  grpc::Status SetCostWeights(grpc::ServerContext* context,
-                              const agent::SetCostWeightsRequest* request,
-                              agent::SetCostWeightsResponse* response) override;
+  grpc::Status SetCostWeights(
+      grpc::ServerContext* context,
+      const agent::SetCostWeightsRequest* request,
+      agent::SetCostWeightsResponse* response) override;
 
   grpc::Status SetMode(
       grpc::ServerContext* context,
@@ -91,15 +101,12 @@ class UiAgentService final : public agent::Agent::Service {
       agent::GetModeResponse* response) override;
 
  private:
-  using StatusStepJob =
-      absl::AnyInvocable<grpc::Status(mjpc::Agent*, const mjModel*, mjData*)>;
-  // runs a task before the next physics step, on the physics thread, and waits
-  // for it to run, up to the deadline of the incoming RPC.
-  grpc::Status RunBeforeStep(const grpc::ServerContext* context,
-                             StatusStepJob job);
+  bool Initialized() const { return data_ != nullptr; }
 
-  // Simulate instance owned by the containing binary
-  mujoco::Simulate* sim_;
+  mjpc::ThreadPool thread_pool_;
+  mjpc::Agent agent_;
+  std::vector<std::shared_ptr<mjpc::Task>> tasks_;
+  mjData* data_ = nullptr;
 
   // an mjData instance used for rollouts for action averaging
   mjpc::UniqueMjData rollout_data_;
@@ -108,4 +115,4 @@ class UiAgentService final : public agent::Agent::Service {
 
 }  // namespace mjpc::agent_grpc
 
-#endif  // GRPC_UI_AGENT_SERVICE_H_
+#endif  // MJPC_MJPC_GRPC_AGENT_SERVICE_H_

@@ -46,7 +46,7 @@ class Batch : public Direct, public Estimator {
         int max_history = kMaxFilterHistory);
 
   // destructor
-  ~Batch() = default;
+  ~Batch() override = default;
 
   // total cost
   double Cost(double* gradient, double* hessian) override;

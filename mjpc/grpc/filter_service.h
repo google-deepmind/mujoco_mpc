@@ -14,18 +14,18 @@
 
 // An implementation of the `Filter` gRPC service.
 
-#ifndef GRPC_FILTER_SERVICE_H_
-#define GRPC_FILTER_SERVICE_H_
+#ifndef MJPC_MJPC_GRPC_FILTER_SERVICE_H_
+#define MJPC_MJPC_GRPC_FILTER_SERVICE_H_
+
+#include <memory>
+#include <vector>
 
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include <memory>
-#include <vector>
-
-#include "grpc/filter.grpc.pb.h"
-#include "grpc/filter.pb.h"
+#include "mjpc/grpc/filter.grpc.pb.h"
+#include "mjpc/grpc/filter.pb.h"
 #include "mjpc/estimators/include.h"
 
 namespace filter_grpc {
@@ -72,4 +72,4 @@ class FilterService final : public filter::StateEstimation::Service {
 
 }  // namespace filter_grpc
 
-#endif  // GRPC_FILTER_SERVICE_H_
+#endif  // MJPC_MJPC_GRPC_FILTER_SERVICE_H_

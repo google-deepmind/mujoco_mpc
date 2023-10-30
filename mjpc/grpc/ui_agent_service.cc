@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "grpc/ui_agent_service.h"
+#include "mjpc/grpc/ui_agent_service.h"
 
 #include <memory>
 #include <string_view>
@@ -26,8 +26,8 @@
 #include <mujoco/mjui.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent.pb.h"
-#include "grpc/grpc_agent_util.h"
+#include "mjpc/grpc/agent.pb.h"
+#include "mjpc/grpc/grpc_agent_util.h"
 #include "mjpc/agent.h"
 #include "mjpc/utilities.h"
 
@@ -71,7 +71,7 @@ grpc::Status UiAgentService::Init(grpc::ServerContext* context,
   // fake a UI event where the task changes
   // TODO(nimrod): get rid of this hack
   mjuiItem it = {0};
-  it.itemid = 2;
+  it.itemid = 3;
   sim_->agent->TaskEvent(&it, sim_->d, sim_->uiloadrequest, sim_->run);
 
   // set real time speed

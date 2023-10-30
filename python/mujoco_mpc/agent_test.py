@@ -335,6 +335,25 @@ class AgentTest(parameterized.TestCase):
     with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
       self.assertRaises(grpc.RpcError, lambda: agent.set_mode("Run"))
 
+  def test_set_task_parameters_from_another_agent(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      agent.set_task_parameters({"Goal": 13})
+      self.assertEqual(agent.get_task_parameters()["Goal"], 13)
+
+      with agent_lib.Agent(
+          task_id="Cartpole",
+          run_init=False,
+          connect_to=f"localhost:{agent.port}",
+      ) as serverless_agent:
+        serverless_agent.set_task_parameters({"Goal": 14})
+
+      self.assertEqual(agent.get_task_parameters()["Goal"], 14)
+
 
 if __name__ == "__main__":
   absltest.main()

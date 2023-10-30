@@ -27,10 +27,10 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
-#include "grpc/agent_service.h"
-#include "grpc/agent.grpc.pb.h"
-#include "grpc/agent.pb.h"
-#include "grpc/agent.proto.h"
+#include "mjpc/grpc/agent_service.h"
+#include "mjpc/grpc/agent.grpc.pb.h"
+#include "mjpc/grpc/agent.pb.h"
+#include "mjpc/grpc/agent.pb.h"
 #include "mjpc/tasks/tasks.h"
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"

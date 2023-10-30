@@ -45,7 +45,9 @@ jobs:
         ninja-build
     - name: Prepare macOS
       if: ${{ runner.os == 'macOS' }}
-      run: brew install ninja
+      run: > 
+        brew install ninja
+        brew install zlib
     - name: Prepare Windows
       if: ${{ runner.os == 'Windows' }}
       # Install llvm 16 manually, remove after

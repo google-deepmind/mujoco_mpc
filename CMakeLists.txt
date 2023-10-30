@@ -42,7 +42,7 @@ include(MujocoMacOS)
 
 option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
 option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
-option(MJPC_BUILD_GRPC_SERVICE "Build MJPC gRPC service." OFF)
+option(MJPC_BUILD_GRPC_SERVICE "Build MJPC gRPC service." ON)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
 
 include(FindOrFetch)

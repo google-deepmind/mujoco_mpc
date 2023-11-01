@@ -257,6 +257,7 @@ target_link_libraries(
   absl::log
   absl::status
   absl::strings
+  agent_state_proto_lib
   glfw
   libmjpc
   mujoco::mujoco
@@ -266,6 +267,10 @@ target_link_libraries(
 target_include_directories(ui_agent_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_options(ui_agent_server PUBLIC ${AGENT_SERVICE_COMPILE_OPTIONS})
 target_link_options(ui_agent_server PRIVATE ${AGENT_SERVICE_LINK_OPTIONS})
+if(APPLE)
+  target_sources(ui_agent_server PRIVATE ../macos_gui.mm)
+  target_link_libraries(ui_agent_server "-framework Cocoa")
+endif()
 
 add_executable(
   direct_server

@@ -29,7 +29,7 @@ namespace mjpc {
 inline constexpr double kRiskNeutralTolerance = 1.0e-6;
 
 // maximum cost terms
-inline constexpr int kMaxCostTerms = 64;
+inline constexpr int kMaxCostTerms = 128;
 
 class Task;
 

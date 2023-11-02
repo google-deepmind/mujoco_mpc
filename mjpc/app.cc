@@ -230,6 +230,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       if (dnew) {
         sim.agent->Initialize(mnew);
         sim.agent->plot_enabled = absl::GetFlag(FLAGS_show_plot);
+        sim.agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
         sim.agent->Allocate();
         sim.agent->Reset();
         sim.agent->PlotInitialize();

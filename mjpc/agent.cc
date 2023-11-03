@@ -250,12 +250,12 @@ agent_state::State Agent::GetAgentState(mjModel* model, mjData* data) {
     if (absl::StartsWith(numeric_name, "residual_select_")) {
       std::string_view name =
           absl::StripPrefix(numeric_name, "residual_select_");
-      (*task_parameters)[name].set_selection(mjpc::ResidualSelection(
+      (*task_parameters)[std::string(name)].set_selection(mjpc::ResidualSelection(
           agent_model, name, ActiveTask()->parameters[shift]));
       shift++;
     } else if (absl::StartsWith(numeric_name, "residual_")) {
       std::string_view name = absl::StripPrefix(numeric_name, "residual_");
-      (*task_parameters)[name].set_numeric(ActiveTask()->parameters[shift]);
+      (*task_parameters)[std::string(name)].set_numeric(ActiveTask()->parameters[shift]);
       shift++;
     }
   }

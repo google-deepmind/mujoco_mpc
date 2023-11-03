@@ -24,8 +24,10 @@ target_link_libraries(
 )
 target_include_directories(threadpool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-set(_PROTOBUF_LIBPROTOBUF libprotobuf)
-set(_PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
+find_package(Protobuf REQUIRED)
+
+set(_PROTOBUF_LIBPROTOBUF protobuf)
+set(_PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
 
 get_filename_component(agent_state_proto "./agent_state.proto" ABSOLUTE)
 get_filename_component(agent_state_proto_path "${agent_state_proto}" PATH)
@@ -39,6 +41,7 @@ add_custom_command(
   COMMAND ${_PROTOBUF_PROTOC}
   ARGS
   --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+  --experimental_allow_proto3_optional
   -I "${agent_state_proto_path}"
   "${agent_state_proto}"
   DEPENDS

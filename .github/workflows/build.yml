@@ -42,10 +42,12 @@ jobs:
         libxcursor-dev
         libxrandr-dev
         libxi-dev
+        libprotobuf-dev
+        protobuf-compiler
         ninja-build
     - name: Prepare macOS
       if: ${{ runner.os == 'macOS' }}
-      run: brew install ninja
+      run: brew install ninja protobuf
     - name: Prepare Windows
       if: ${{ runner.os == 'Windows' }}
       # Install llvm 16 manually, remove after

@@ -37,14 +37,18 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
       run: >
         sudo apt-get update && sudo apt-get install
+        curl
         libgl1-mesa-dev
         libxinerama-dev
         libxcursor-dev
         libxrandr-dev
         libxi-dev
         libprotobuf-dev
-        protobuf-compiler
         ninja-build
+        unzip &&
+        PB_REL="https://github.com/protocolbuffers/protobuf/releases" &&
+        curl -LO $PB_REL/download/v3.15.8/protoc-3.15.8-linux-x86_64.zip &&
+        unzip protoc-3.15.8-linux-x86_64.zip bin/protoc -d /usr/local
     - name: Prepare macOS
       if: ${{ runner.os == 'macOS' }}
       run: brew install ninja protobuf

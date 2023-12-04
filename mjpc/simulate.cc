@@ -21,7 +21,6 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <ratio>
 #include <string>
 
@@ -33,9 +32,7 @@
 #include <platform_ui_adapter.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/agent.h"
-#include "mjpc/agent_state.pb.h"
 #include "mjpc/utilities.h"
-#include <google/protobuf/text_format.h>
 
 // When launched via an App Bundle on macOS, the working directory is the path
 // to the App Bundle's resource directory. This causes files to be saved into
@@ -1265,13 +1262,7 @@ void UiEvent(mjuiState* state) {
 
     // task section
     else if (it && it->sectionid == SECT_TASK) {
-      std::optional<agent_state::State> state =
-          sim->agent->TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
-      if (state.has_value()) {
-      std::string clipboard;
-      google::protobuf::TextFormat::PrintToString(state.value(), &clipboard);
-      sim->platform_ui->SetClipboardString(clipboard.c_str());
-      }
+      sim->agent->TaskEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
     // agent section

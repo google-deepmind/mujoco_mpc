@@ -25,7 +25,6 @@
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/agent_state.pb.h"
 #include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/states/state.h"
@@ -91,9 +90,8 @@ class Agent {
   void GUI(mjUI& ui);
 
   // task-based GUI event
-  std::optional<agent_state::State> TaskEvent(mjuiItem* it, mjData* data,
-                                              std::atomic<int>& uiloadrequest,
-                                              int& run);
+  void TaskEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,
+                 int& run);
 
   // agent-based GUI event
   void AgentEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,
@@ -122,7 +120,6 @@ class Agent {
   std::string GetTaskNames() const { return task_names_; }
   int GetTaskIdByName(std::string_view name) const;
   std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
-  agent_state::State GetAgentState(mjModel* model, mjData* data);
 
   // load the latest task model, based on GUI settings
   struct LoadModelResult {

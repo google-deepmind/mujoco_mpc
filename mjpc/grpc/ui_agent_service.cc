@@ -71,7 +71,7 @@ grpc::Status UiAgentService::Init(grpc::ServerContext* context,
   // fake a UI event where the task changes
   // TODO(nimrod): get rid of this hack
   mjuiItem it = {0};
-  it.itemid = 3;
+  it.itemid = 2;
   sim_->agent->TaskEvent(&it, sim_->d, sim_->uiloadrequest, sim_->run);
 
   // set real time speed

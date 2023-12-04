@@ -236,7 +236,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         sim.agent->PlotInitialize();
 
         // set home keyframe
-        int home_id = mj_name2id(sim.mnew, mjOBJ_KEY, "home");
+        int home_id = mj_name2id(mnew, mjOBJ_KEY, "home");
         if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
 
         sim.Load(mnew, dnew, sim.filename, true);

@@ -30,7 +30,7 @@
 #include "mjpc/grpc/agent_service.h"
 #include "mjpc/grpc/agent.grpc.pb.h"
 #include "mjpc/grpc/agent.pb.h"
-#include "mjpc/grpc/agent.pb.h"
+#include "mjpc/grpc/agent.proto.h"
 #include "mjpc/tasks/tasks.h"
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"

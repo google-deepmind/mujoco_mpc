@@ -46,6 +46,8 @@ service Agent {
   rpc SetMode(SetModeRequest) returns (SetModeResponse);
   // Get mode.
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
+  // Get all modes.
+  rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
 }
 
 message MjModel {
@@ -167,3 +169,9 @@ message SetModeRequest {
 }
 
 message SetModeResponse {}
+
+message GetAllModesRequest {}
+
+message GetAllModesResponse {
+  repeated string mode_names = 1;
+}

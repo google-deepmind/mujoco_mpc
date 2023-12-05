@@ -23,7 +23,6 @@
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/grpc/agent.pb.h"
-#include "mjpc/grpc/agent.proto.h"
 #include "mjpc/grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
 

@@ -1,8 +1,8 @@
 <mujoco model="Allegro Hand Cube Rotation">
   <include file="../common.xml"/>
-  <include file="cartpole.xml" />
+  <include file="right_hand.xml" />
 
-  <size memory="4K"/>
+  <size memory="1M"/>
 
   <custom>
     <!-- agent -->
@@ -15,14 +15,6 @@
     <numeric name="sampling_exploration" data="0.5" />
     <numeric name="gradient_spline_points" data="10" />
     <numeric name="residual_Goal" data="0.0 -1.5 1.5" />
-
-    <!-- estimator -->
-    <numeric name="estimator" data="0" />
-    <numeric name="estimator_sensor_start" data="4" />
-    <numeric name="estimator_number_sensor" data="2" />
-    <numeric name="estimator_timestep" data="0.005" />
-    <numeric name="batch_configuration_length" data="3" />
-    <numeric name="batch_scale_prior" data="1.0e-3" />
   </custom>
 
   <sensor>
@@ -31,10 +23,6 @@
     <user name="Centered" dim="1" user="6 10.0 0 100.0 0.1"/>
     <user name="Velocity" dim="1" user="0 0.1 0.0 1.0"/>
     <user name="Control" dim="1" user="0 0.1 0.0 1.0"/>
-
-    <!-- estimator -->
-    <jointpos name="slider_pos" joint="slider"/>
-    <jointpos name="hinge_pos" joint="hinge_1"/>
 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="tip"/>

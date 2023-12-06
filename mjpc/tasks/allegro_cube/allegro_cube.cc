@@ -13,25 +13,16 @@ std::string AllegroCube::XmlPath() const {
 }
 std::string AllegroCube::Name() const { return "AllegroCube"; }
 
-// ------- Residuals for cartpole task ------
-//     Vertical: Pole angle cosine should be -1
-//     Centered: Cart should be at goal position
-//     Velocity: Pole angular velocity should be small
+// ------- Residuals for cube manipulation task ------
 //     Control:  Control should be small
 // ------------------------------------------
 void AllegroCube::ResidualFn::Residual(const mjModel* model, const mjData* data,
                         double* residual) const {
-  // ---------- Vertical ----------
-  residual[0] = std::cos(data->qpos[1]) - 1;
-
-  // ---------- Centered ----------
-  residual[1] = data->qpos[0] - parameters_[0];
-
-  // ---------- Velocity ----------
-  residual[2] = data->qvel[1];
+  int counter = 0;
 
   // ---------- Control ----------
-  residual[3] = data->ctrl[0];
+  mju_copy(residual + counter, data->actuator_force, model->nu);
+  counter += model->nu;
 }
 
 }  // namespace mjpc

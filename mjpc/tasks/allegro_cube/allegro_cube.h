@@ -15,13 +15,6 @@ class AllegroCube : public Task {
   class ResidualFn : public BaseResidualFn {
    public:
     explicit ResidualFn(const AllegroCube* task) : BaseResidualFn(task) {}
-    // ------- Residuals for cartpole task ------
-    //   Number of residuals: 4
-    //     Residual (0): distance from vertical
-    //     Residual (1): distance from goal
-    //     Residual (2): angular velocity
-    //     Residual (3): control
-    // ------------------------------------------
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
   };

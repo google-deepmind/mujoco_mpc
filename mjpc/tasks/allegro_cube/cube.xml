@@ -1,0 +1,29 @@
+<mujoco>
+  <asset>
+    <texture name="cube" type="cube"
+             fileup="assets/fileup.png" fileback="assets/fileback.png"
+             filedown="assets/filedown.png" filefront="assets/filefront.png"
+             fileleft="assets/fileleft.png" fileright="assets/fileright.png"/>
+    <material name="cube" texture="cube"/>
+    <texture name="graycube" type="cube" fileup="assets/grayup.png"
+             fileback="assets/grayback.png" filedown="assets/graydown.png"
+             filefront="assets/grayfront.png" fileleft="assets/grayleft.png"
+             fileright="assets/grayright.png"/>
+    <material name="graycube" texture="graycube"/>
+  </asset>
+  <worldbody>
+    <light pos="0 0 1"/>
+    <body name="cube" pos="0.325 0.0 0.075" quat="0.707 0.707 0 0">
+      <freejoint/>
+      <geom name="cube" type="box" size=".022 .022 .022" mass=".126" material="cube"/>
+    </body>
+  </worldbody>
+
+   <sensor>
+        <framepos name="trace0" objtype="body" objname="cube"/>
+        <framepos name="cube_position" objtype="body" objname="cube"/>
+        <framequat name="cube_orientation" objtype="body" objname="cube"/>
+        <framelinvel name="cube_linear_velocity" objtype="body" objname="cube"/>
+        <frameangvel name="cube_angular_velocity" objtype="body" objname="cube"/>
+    </sensor>
+</mujoco>

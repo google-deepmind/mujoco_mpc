@@ -40,6 +40,21 @@
 
   <sensor>
     <!-- Residuals -->
+    <!-- The numbers in the 'user' field have the following meaning:
+      norm type:
+        0 : 0.5 * x' * x
+        1 : (x*x')^q + p^(2*q))^(1/2/q) - p
+        2 : sqrt(x*x' + p^2) - p
+        3 : p^2 * (cosh(x/p) - 1)
+        5 : abs(x)^p
+        6 : sqrt(x^2 + p^2) - p
+        7 : (abs(x)^q + p^q)^(1/q) - p
+        8 : p*log(1 + exp(x/p))
+      default weight: Default weight on this residual.
+      weight lower bound: Lower bound on this weight for the GUI.
+      weight upper bound: Upper bound on this weight for the GUI.
+      norm parameters: parameters (e.g., p, q) for norms
+    -->
     <user name="Cube Position" dim="3" user="1 20 0 100 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 3 0 10" />
     <user name="Cube Velocity" dim="3" user="0 10 0 20" />

@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <string>
+#include <vector>
 
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -15,15 +16,44 @@ std::string AllegroCube::XmlPath() const {
 std::string AllegroCube::Name() const { return "AllegroCube"; }
 
 // ------- Residuals for cube manipulation task ------
-//     Control:  Control should be small
+//     Cube position: (3)
+//     Cube orientation: (3)
+//     Cube linear velocity: (3)
+//     Control:  u
 // ------------------------------------------
 void AllegroCube::ResidualFn::Residual(const mjModel* model, const mjData* data,
                         double* residual) const {
   int counter = 0;
 
+  // ---------- Cube position ----------
+  // TODO(vincekurtz): specify goal position in a better way
+  double* cube_position = SensorByName(model, data, "cube_position");
+  std::vector<double> goal_cube_position = {0.325, 0.0, 0.025};
+
+  mju_sub3(residual + counter, cube_position, goal_cube_position.data());
+  counter += 3;
+
+  // ---------- Cube orientation ----------
+  double* cube_orientation = SensorByName(model, data, "cube_orientation");
+  double* goal_cube_orientation = SensorByName(model, data, "cube_goal_orientation");
+  mju_normalize4(goal_cube_orientation);
+
+  mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
+  counter += 3;
+
+  // ---------- Cube linear velocity ----------
+  double* cube_linear_velocity =
+      SensorByName(model, data, "cube_linear_velocity");
+
+  mju_copy(residual + counter, cube_linear_velocity, 3);
+  counter += 3;
+
   // ---------- Control ----------
   mju_copy(residual + counter, data->actuator_force, model->nu);
   counter += model->nu;
+
+  // Sanity check
+  CheckSensorDim(model, counter);
 }
 
 void AllegroCube::TransitionLocked(mjModel* model, mjData* data) {

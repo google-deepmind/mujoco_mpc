@@ -43,7 +43,7 @@
     <!-- The numbers in the 'user' field have the following meaning:
       norm type:
         0 : 0.5 * x' * x
-        1 : (x*x')^q + p^(2*q))^(1/2/q) - p
+        1 : ((x*x')^q + p^(2*q))^(1/2/q) - p
         2 : sqrt(x*x' + p^2) - p
         3 : p^2 * (cosh(x/p) - 1)
         5 : abs(x)^p

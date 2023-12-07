@@ -26,14 +26,14 @@
   <default>
     <geom friction=".6"/>
   </default>
-
+Pf
   <!-- Create the scene, including floor and the interactive target cube. -->
   <worldbody>
     <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
         directional="true" castshadow="true"/>
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
     <body name="goal" pos="0.325 0.17 0.0475">
-      <joint type="ball" damping="0.01"/>
+      <joint type="ball" damping="0.001"/>
       <geom type="box" size=".022 .022 .022" mass=".126" material="cube" contype="0" conaffinity="0"/>
     </body>
   </worldbody>

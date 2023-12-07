@@ -25,7 +25,7 @@
 
 namespace mjpc {
 
-inline constexpr int kMaxTrajectory = 128;
+inline constexpr int kMaxTrajectory = 512;
 
 // virtual planner
 class Planner {

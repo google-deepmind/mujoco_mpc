@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
-# import mediapy as media
+import mediapy as media
 import mujoco
 import numpy as np
 import os
@@ -31,12 +31,14 @@ model_path = (
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
 
+# Create the renderer
+renderer = mujoco.Renderer(model)
 
 # Create the planning agent
 agent = agent_lib.Agent(task_id="AllegroCube", model=model)
 
 # rollout horizon
-T = 1500
+T = 500
 
 # trajectories
 qpos = np.zeros((model.nq, T))
@@ -81,19 +83,17 @@ for t in range(T - 1):
             userdata=data.userdata,
             )
 
-    # run planner for num_steps
-    num_steps = 1
-    for _ in range(num_steps):
-        agent.planner_step()
+    # Run planner
+    agent.planner_step()
+    
+    # set ctrl from agent policy
+    data.ctrl = agent.get_action()
+    ctrl[:, t] = data.ctrl
 
     # get costs
     cost_total[t] = agent.get_total_cost()
     for i, c in enumerate(agent.get_cost_term_values().items()):
         cost_terms[i, t] = c[1]
-
-    # set ctrl from agent policy
-    data.ctrl = agent.get_action()
-    ctrl[:, t] = data.ctrl
 
     # step
     mujoco.mj_step(model, data)
@@ -105,16 +105,16 @@ for t in range(T - 1):
     real_time[t+1] = ttime.time() - start_time
 
     # render and save frames
-    # renderer.update_scene(data)
-    # pixels = renderer.render()
-    # frames.append(pixels)
+    renderer.update_scene(data)
+    pixels = renderer.render()
+    frames.append(pixels)
 
 # reset
 agent.reset()
 
 # display video
 SLOWDOWN = 0.5
-#media.show_video(frames, fps=SLOWDOWN * FPS)
+media.write_video("/tmp/allegro_cube.mp4", frames, fps=SLOWDOWN * FPS)
 
 # plot position
 fig = plt.figure()

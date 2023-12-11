@@ -48,7 +48,7 @@ print("Parameters:", agent.get_task_parameters())
 
 # %%
 # rollout horizon
-T = 200
+T = 1500
 
 # trajectories
 qpos = np.zeros((model.nq, T))
@@ -89,7 +89,7 @@ for t in range(T - 1):
   )
 
   # run planner for num_steps
-  num_steps = 10
+  num_steps = 1
   for _ in range(num_steps):
     agent.planner_step()
 
@@ -165,3 +165,5 @@ plt.plot(time[:-1], cost_total, label="Total (weighted)", color="black")
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Costs")
+
+plt.show()

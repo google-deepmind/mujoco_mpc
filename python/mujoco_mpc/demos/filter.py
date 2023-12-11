@@ -168,7 +168,8 @@ for t in range(T):
     frames.append(pixels)
 
 # display video
-media.show_video(frames, fps=FPS)
+media.write_video("/tmp/mjpc_filter.mp4", frames, fps=FPS)
+
 # %%
 # filter
 
@@ -214,3 +215,5 @@ plt.legend()
 plt.title("Filter")
 plt.xlabel("Time (s)")
 plt.ylabel("Velocity (m / s)")
+
+plt.show()

@@ -31,6 +31,16 @@ model_path = (
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
 
+# Set an initial position with non-trivial contact
+q0 = np.array([1.,  0.,  0.,  0.,  0.26926841,
+                      -0.00202754,  0.02846826,  0.70730151,  0.68283427,  0.12776131,
+                      -0.13091594, -0.17055464,  0.46287199,  0.75434123,  0.67566514,
+                      0.01532882,  0.06954104,  1.00649882,  0.51173668,  0.07650671,
+                      1.07602678,  0.67203893,  0.4372858,  0.94586334,  0.50472875,
+                      0.21540332,  0.63196814])
+data.qpos[:] = q0
+mujoco.mj_step(model, data)
+
 # Create the renderer
 renderer = mujoco.Renderer(model)
 
@@ -51,7 +61,8 @@ cost_total = np.zeros(T - 1)
 cost_terms = np.zeros((len(agent.get_cost_term_values()), T - 1))
 
 # rollout
-mujoco.mj_resetData(model, data)
+#mujoco.mj_resetData(model, data)
+print(data.qpos)
 
 # cache initial state
 qpos[:, 0] = data.qpos
@@ -96,7 +107,10 @@ for t in range(T - 1):
         cost_terms[i, t] = c[1]
 
     # step
-    mujoco.mj_step(model, data)
+    #mujoco.mj_step(model, data)
+
+    if t == 400:
+        print("qpos = ", repr(data.qpos))
 
     # cache
     qpos[:, t + 1] = data.qpos

@@ -87,11 +87,14 @@ def get_iteration_time(num_rollouts, timeit_iterations=1000, display=False):
         return u
     total_time = timeit.timeit(test_fn, number=timeit_iterations)
 
+    # Close the agent to free up memory
+    agent.close()
+
     return total_time / timeit_iterations
 
 if __name__=="__main__":
     # Get iteration times for different numbers of rollouts
-    num_rollouts = [5*i for i in range(1,12)]
+    num_rollouts = [5*i for i in range(1,26)]
     iteration_times = []
 
     for num_rollout in num_rollouts:

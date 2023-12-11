@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
-import mediapy as media
 import mujoco
 import numpy as np
 import os
 import pathlib
-import time as ttime
+import timeit
 
 from mujoco_mpc import agent as agent_lib
 
@@ -31,150 +30,50 @@ model_path = (
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
 
+# Set number of rollouts for predictive sampling
+num_samples = 100
+model.numeric("sampling_trajectories").data[0] = num_samples
+
 # Set an initial position with non-trivial contact
 q0 = np.array([1.,  0.,  0.,  0.,  0.26926841,
-                      -0.00202754,  0.02846826,  0.70730151,  0.68283427,  0.12776131,
-                      -0.13091594, -0.17055464,  0.46287199,  0.75434123,  0.67566514,
-                      0.01532882,  0.06954104,  1.00649882,  0.51173668,  0.07650671,
-                      1.07602678,  0.67203893,  0.4372858,  0.94586334,  0.50472875,
-                      0.21540332,  0.63196814])
+               -0.00202754,  0.02846826,  0.70730151,  0.68283427,  0.12776131,
+               -0.13091594, -0.17055464,  0.46287199,  0.75434123,  0.67566514,
+               0.01532882,  0.06954104,  1.00649882,  0.51173668,  0.07650671,
+               1.07602678,  0.67203893,  0.4372858,  0.94586334,  0.50472875,
+               0.21540332,  0.63196814])
 data.qpos[:] = q0
 mujoco.mj_step(model, data)
 
-# Create the renderer
-renderer = mujoco.Renderer(model)
-
 # Create the planning agent
 agent = agent_lib.Agent(task_id="AllegroCube", model=model)
-
-# rollout horizon
-T = 500
-
-# trajectories
-qpos = np.zeros((model.nq, T))
-qvel = np.zeros((model.nv, T))
-ctrl = np.zeros((model.nu, T - 1))
-time = np.zeros(T)
-
-# costs
-cost_total = np.zeros(T - 1)
-cost_terms = np.zeros((len(agent.get_cost_term_values()), T - 1))
-
-# rollout
-#mujoco.mj_resetData(model, data)
-print(data.qpos)
-
-# cache initial state
-qpos[:, 0] = data.qpos
-qvel[:, 0] = data.qvel
-time[0] = data.time
-
-# frames
-frames = []
-FPS = 1.0 / model.opt.timestep
-
-# Realtime clock
-start_time = ttime.time()
-real_time = np.zeros(T)
-
-# simulate
-for t in range(T - 1):
-
-    if t % 100 == 0:
-        print("t = ", t)
-
-    # set planner state
-    agent.set_state(
-            time=data.time,
-            qpos=data.qpos,
-            qvel=data.qvel,
-            act=data.act,
-            mocap_pos=data.mocap_pos,
-            mocap_quat=data.mocap_quat,
-            userdata=data.userdata,
-            )
-
-    # Run planner
-    agent.planner_step()
     
-    # set ctrl from agent policy
-    data.ctrl = agent.get_action()
-    ctrl[:, t] = data.ctrl
+# set the planner state
+agent.set_state(
+        time=data.time,
+        qpos=data.qpos,
+        qvel=data.qvel,
+        act=data.act,
+        mocap_pos=data.mocap_pos,
+        mocap_quat=data.mocap_quat,
+        userdata=data.userdata,
+        )
 
-    # get costs
-    cost_total[t] = agent.get_total_cost()
-    for i, c in enumerate(agent.get_cost_term_values().items()):
-        cost_terms[i, t] = c[1]
-
-    # step
-    #mujoco.mj_step(model, data)
-
-    if t == 400:
-        print("qpos = ", repr(data.qpos))
-
-    # cache
-    qpos[:, t + 1] = data.qpos
-    qvel[:, t + 1] = data.qvel
-    time[t + 1] = data.time
-    real_time[t+1] = ttime.time() - start_time
-
-    # render and save frames
-    renderer.update_scene(data)
-    pixels = renderer.render()
-    frames.append(pixels)
-
-# reset
-agent.reset()
-
-# display video
-SLOWDOWN = 0.5
-media.write_video("/tmp/allegro_cube.mp4", frames, fps=SLOWDOWN * FPS)
-
-# plot position
-fig = plt.figure()
-
-plt.plot(time, qpos[0, :], label="q0", color="blue")
-plt.plot(time, qpos[1, :], label="q1", color="orange")
-
-plt.legend()
-plt.xlabel("Time (s)")
-plt.ylabel("Configuration")
-
-# plot velocity
-fig = plt.figure()
-
-plt.plot(time, qvel[0, :], label="v0", color="blue")
-plt.plot(time, qvel[1, :], label="v1", color="orange")
-
-plt.legend()
-plt.xlabel("Time (s)")
-plt.ylabel("Velocity")
-
-# plot control
-fig = plt.figure()
-
-plt.plot(time[:-1], ctrl[0, :], color="blue")
-
-plt.xlabel("Time (s)")
-plt.ylabel("Control")
-
-# plot costs
-fig = plt.figure()
-
-for i, c in enumerate(agent.get_cost_term_values().items()):
-    plt.plot(time[:-1], cost_terms[i, :], label=c[0])
-
-plt.plot(time[:-1], cost_total, label="Total (weighted)", color="black")
-
-plt.legend()
-plt.xlabel("Time (s)")
-plt.ylabel("Costs")
-
-# plot sim time vs real time
-fig = plt.figure()
-
-plt.plot(time, real_time)
-plt.xlabel("Simulated Time (s)")
-plt.ylabel("Real time (s)")
-
+# Visualize this initial position
+print("Previewing initial position")
+renderer = mujoco.Renderer(model)
+renderer.update_scene(data)
+pixels = renderer.render()
+plt.imshow(pixels)
 plt.show()
+
+# Profile the planner
+print("Running profiler")
+def test_fn():
+    """Little test function for timeit."""
+    agent.planner_step()
+    u = agent.get_action()
+    return u
+
+N = 1000
+total_time = timeit.timeit(test_fn, number=N)
+print(f"Average planning time: {total_time / N} seconds")

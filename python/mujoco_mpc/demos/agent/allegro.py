@@ -22,32 +22,19 @@ import time as ttime
 
 from mujoco_mpc import agent as agent_lib
 
+# Set up model
 # Assumes this is run from mujoco_mpc/python/mujoco_mpc
 model_path = (
         pathlib.Path(os.path.abspath("")).parent.parent.parent
-        / "mujoco_mpc/mjpc/tasks/cartpole/task.xml"
+        / "mujoco_mpc/mjpc/tasks/allegro_cube/task.xml"
         )
 model = mujoco.MjModel.from_xml_path(str(model_path))
-
-# data
 data = mujoco.MjData(model)
 
-# renderer
-# renderer = mujoco.Renderer(model)
 
-# %%
-# agent
-agent = agent_lib.Agent(task_id="Cartpole", model=model)
+# Create the planning agent
+agent = agent_lib.Agent(task_id="AllegroCube", model=model)
 
-# weights
-agent.set_cost_weights({"Velocity": 0.15})
-print("Cost weights:", agent.get_cost_weights())
-
-# parameters
-agent.set_task_parameter("Goal", -1.0)
-print("Parameters:", agent.get_task_parameters())
-
-# %%
 # rollout horizon
 T = 1500
 

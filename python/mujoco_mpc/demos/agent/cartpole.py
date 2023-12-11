@@ -13,22 +13,18 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
-import mediapy as media
+# import mediapy as media
 import mujoco
 import numpy as np
 import os
 import pathlib
 
-# set current directory: mujoco_mpc/python/mujoco_mpc
 from mujoco_mpc import agent as agent_lib
 
-# %matplotlib inline
-
-# %%
-# model
+# Assumes this is run from mujoco_mpc/python/mujoco_mpc
 model_path = (
         pathlib.Path(os.path.abspath("")).parent.parent.parent
-        / "mujoco_mpc/${path}.xml"
+        / "mujoco_mpc/mjpc/tasks/cartpole/task.xml"
     )
 model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -36,7 +32,7 @@ model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
 
 # renderer
-renderer = mujoco.Renderer(model)
+# renderer = mujoco.Renderer(model)
 
 # %%
 # agent
@@ -52,7 +48,7 @@ print("Parameters:", agent.get_task_parameters())
 
 # %%
 # rollout horizon
-T = 1500
+T = 200
 
 # trajectories
 qpos = np.zeros((model.nq, T))
@@ -115,16 +111,16 @@ for t in range(T - 1):
   time[t + 1] = data.time
 
   # render and save frames
-  renderer.update_scene(data)
-  pixels = renderer.render()
-  frames.append(pixels)
+  # renderer.update_scene(data)
+  # pixels = renderer.render()
+  # frames.append(pixels)
 
 # reset
 agent.reset()
 
 # display video
 SLOWDOWN = 0.5
-media.show_video(frames, fps=SLOWDOWN * FPS)
+#media.show_video(frames, fps=SLOWDOWN * FPS)
 
 # %%
 # plot position

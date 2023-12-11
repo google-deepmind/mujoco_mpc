@@ -114,7 +114,8 @@ python setup_filter.py install
 
 Run what you like, e.g.,
 ```
-python python/mujoco_mpc/agent_test.py
+cd mujoco_mpc/  # now in mujoco_mpc/python/mujoco_mpc
+python demos/agent/cartpole.py
 ```
 
 ## Installing via Pip

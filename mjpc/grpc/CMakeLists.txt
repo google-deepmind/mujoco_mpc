@@ -257,7 +257,6 @@ target_link_libraries(
   absl::log
   absl::status
   absl::strings
-  agent_state_proto_lib
   glfw
   libmjpc
   mujoco::mujoco

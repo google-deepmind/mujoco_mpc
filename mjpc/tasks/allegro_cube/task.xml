@@ -27,7 +27,7 @@
   <default>
     <geom friction=".6"/>
   </default>
-Pf
+
   <!-- Create the scene, including floor and the interactive target cube. -->
   <worldbody>
     <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"

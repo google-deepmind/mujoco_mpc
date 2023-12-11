@@ -259,4 +259,12 @@
     <position name="tha2" joint="thj2" class="thumb_medial"/>
     <position name="tha3" joint="thj3" class="thumb_distal"/>
   </actuator>
+
+  <!-- Traces for visualizing rollouts --> 
+  <sensor>
+    <framepos name="trace1" objtype="body" objname="rf_tip"/>
+    <framepos name="trace2" objtype="body" objname="ff_tip"/>
+    <framepos name="trace3" objtype="body" objname="mf_tip"/>
+    <framepos name="trace4" objtype="body" objname="th_tip"/>
+  </sensor>
 </mujoco>

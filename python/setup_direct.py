@@ -60,7 +60,7 @@ class GenerateProtoGrpcCommand(setuptools.Command):
 
     direct_proto_filename = "direct.proto"
     direct_proto_source_path = Path(
-        "..", "grpc", direct_proto_filename
+        "..", "mjpc", "grpc", direct_proto_filename
     ).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()

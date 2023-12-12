@@ -348,6 +348,9 @@ class Agent(contextlib.AbstractContextManager):
     request = agent_pb2.SetModeRequest(mode=mode)
     self.stub.SetMode(request)
 
+  def get_all_modes(self) -> Sequence[str]:
+    return self.stub.GetAllModes(agent_pb2.GetAllModesRequest()).mode_names
+
   def set_parameters(self, parameters: mjpc_parameters.MjpcParameters):
     # TODO(nimrod): Add a single RPC that does this
     if parameters.mode is not None:

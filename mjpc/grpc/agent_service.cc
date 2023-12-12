@@ -22,7 +22,6 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
-
 #include "mjpc/grpc/agent.pb.h"
 #include "mjpc/grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
@@ -31,8 +30,12 @@ namespace mjpc::agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetAllModesRequest;
+using ::agent::GetAllModesResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
+using ::agent::GetModeRequest;
+using ::agent::GetModeResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::GetTaskParametersRequest;
@@ -47,8 +50,6 @@ using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetModeRequest;
 using ::agent::SetModeResponse;
-using ::agent::GetModeRequest;
-using ::agent::GetModeResponse;
 using ::agent::SetStateRequest;
 using ::agent::SetStateResponse;
 using ::agent::SetTaskParametersRequest;
@@ -272,4 +273,12 @@ grpc::Status AgentService::GetMode(grpc::ServerContext* context,
   return grpc_agent_util::GetMode(request, &agent_, response);
 }
 
+grpc::Status AgentService::GetAllModes(grpc::ServerContext* context,
+                                       const GetAllModesRequest* request,
+                                       GetAllModesResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetAllModes(request, &agent_, response);
+}
 }  // namespace mjpc::agent_grpc

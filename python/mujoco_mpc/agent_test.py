@@ -325,6 +325,18 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
+  def test_get_all_modes(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      self.assertEqual(
+          tuple(agent.get_all_modes()),
+          ("Quadruped", "Biped", "Walk", "Scramble", "Flip"),
+      )
+
   @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (

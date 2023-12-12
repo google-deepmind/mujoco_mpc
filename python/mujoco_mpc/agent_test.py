@@ -22,6 +22,7 @@ from mujoco_mpc import agent as agent_lib
 import numpy as np
 
 import pathlib
+from mujoco_mpc.proto import agent_pb2
 
 
 def get_observation(model, data):
@@ -338,7 +339,7 @@ class AgentTest(parameterized.TestCase):
       )
 
   @absltest.skip("asset import issue")
-  def test_set_mode_error(self):
+  def test_set_mode_error(self):#
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
         / "mjpc/tasks/quadruped/task_flat.xml"
@@ -365,6 +366,23 @@ class AgentTest(parameterized.TestCase):
         serverless_agent.set_task_parameters({"Goal": 14})
 
       self.assertEqual(agent.get_task_parameters()["Goal"], 14)
+
+  def test_set_mocap(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/particle/task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="ParticleFixed", model=model) as agent:
+      pose = agent_pb2.Pose(pos=[13, 14, 15], quat=[1, 1, 1, 1])
+      agent.set_mocap({"goal": pose})
+      final_state = agent.get_state()
+      self.assertEqual(final_state.mocap_pos, pose.pos)
+      self.assertEqual(
+          final_state.mocap_quat,
+          [0.5, 0.5, 0.5, 0.5],
+          "quaternions should be normalized",
+      )
 
 
 if __name__ == "__main__":

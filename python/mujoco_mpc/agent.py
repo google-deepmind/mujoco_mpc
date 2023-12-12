@@ -359,3 +359,7 @@ class Agent(contextlib.AbstractContextManager):
       self.set_task_parameters(parameters.task_parameters)
     if parameters.cost_weights:
       self.set_cost_weights(parameters.cost_weights)
+
+  def set_mocap(self, mocap_map: Mapping[str, agent_pb2.Pose]):
+    request = agent_pb2.SetAnythingRequest(mocap=mocap_map)
+    self.stub.SetAnything(request)

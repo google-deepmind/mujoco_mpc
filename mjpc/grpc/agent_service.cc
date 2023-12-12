@@ -46,6 +46,8 @@ using ::agent::PlannerStepRequest;
 using ::agent::PlannerStepResponse;
 using ::agent::ResetRequest;
 using ::agent::ResetResponse;
+using ::agent::SetAnythingRequest;
+using ::agent::SetAnythingResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetModeRequest;
@@ -280,5 +282,15 @@ grpc::Status AgentService::GetAllModes(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::GetAllModes(request, &agent_, response);
+}
+
+grpc::Status AgentService::SetAnything(
+    grpc::ServerContext* context, const SetAnythingRequest* request,
+    SetAnythingResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::SetAnything(request, &agent_, agent_.GetModel(),
+                                      data_, response);
 }
 }  // namespace mjpc::agent_grpc

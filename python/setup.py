@@ -300,6 +300,8 @@ setuptools.setup(
             "mjpc/agent_server",
             "mjpc/ui_agent_server",
             "mjpc/tasks/**/*.xml",
+            "mjpc/tasks/**/assets/*",
         ],
     },
+    include_package_data=True
 )

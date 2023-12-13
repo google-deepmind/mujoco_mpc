@@ -150,7 +150,9 @@ class CopyTaskAssetsCommand(setuptools.Command):
 
   def run(self):
     mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
-    source_paths = tuple(mjpc_tasks_path.rglob("*.xml"))
+    # Include all xml, png, and stl assets in the `mjpc/tasks` folder.
+    source_paths = tuple(mjpc_tasks_path.rglob(
+        "*.xml")) + tuple(mjpc_tasks_path.rglob("*.png")) + tuple(mjpc_tasks_path.rglob("*.stl"))
     relative_source_paths = tuple(p.relative_to(mjpc_tasks_path) for p in source_paths)
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
@@ -300,8 +302,6 @@ setuptools.setup(
             "mjpc/agent_server",
             "mjpc/ui_agent_server",
             "mjpc/tasks/**/*.xml",
-            "mjpc/tasks/**/assets/*",
         ],
     },
-    include_package_data=True
 )

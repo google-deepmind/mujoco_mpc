@@ -46,8 +46,8 @@ class Trajectory {
   // allocate memory
   void Allocate(int T);
 
-  // reset memory to zeros
-  void Reset(int T);
+  // reset memory to zeros (and perhaps a non-zero action)
+  void Reset(int T, const double* initial_repeated_action = nullptr);
 
   // simulate model forward in time with continuous-time indexed policy
   void Rollout(

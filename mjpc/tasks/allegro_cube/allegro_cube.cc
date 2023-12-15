@@ -28,7 +28,7 @@ void AllegroCube::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // ---------- Cube position ----------
   // TODO(vincekurtz): specify goal position in a better way
   double* cube_position = SensorByName(model, data, "cube_position");
-  std::vector<double> goal_cube_position = {0.325, 0.0, 0.025};
+  std::vector<double> goal_cube_position = {0.3, 0.0, 0.025};
 
   mju_sub3(residual + counter, cube_position, goal_cube_position.data());
   counter += 3;

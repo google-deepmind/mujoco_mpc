@@ -62,7 +62,7 @@
     <user name="Cube Position" dim="3" user="1 50 0 100 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 10 0 20" />
-    <user name="Actuation" dim="16" user="0 3 0.0 10" />
+    <user name="Actuation" dim="16" user="0 5 0.0 10" />
 
     <!-- Measurements we want to use -->
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>

@@ -125,11 +125,7 @@
   </asset>
 
   <worldbody>
-<<<<<<< HEAD
     <body name="palm" pos="0.25 0 0" quat="0 1 0 0.7" childclass="allegro_right">
-=======
-    <body name="palm" pos="0.25 0 0" quat="0 1 0 1" childclass="allegro_right">
->>>>>>> 6fbfea0e2fd4ba35c63b039c61a32bbcf48f6f46
       <!-- <inertial mass="0.4154" pos="0 0 0.0475" diaginertia="1e-4 1e-4 1e-4"/> -->
       <geom class="palm_visual" mesh="base_link"/>
       <geom class="palm_collision"/>

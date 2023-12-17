@@ -4,7 +4,7 @@
   <size memory="1M"/>
 
   <!-- not sure if we should do this -->
-  <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
+  <option integrator="implicitfast" iterations="10" ls_iterations="10"/>
 
   <custom>
     <!-- agent -->
@@ -12,11 +12,11 @@
     <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="6" />
-    <numeric name="sampling_exploration" data="0.15" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.1" />
     <numeric name="sampling_trajectories" data="100"/>
     <numeric name="robust_xfrc" data="0.004" />
-    <numeric name="gradient_spline_points" data="6" />
+    <numeric name="gradient_spline_points" data="3" />
   </custom>
 
   <!-- Set the camera viewpoint -->
@@ -28,7 +28,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".2"/>
+    <geom friction=".1"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->
@@ -61,7 +61,7 @@
     -->
     <user name="Cube Position" dim="3" user="1 50 0 100 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 5 0 10" />
-    <user name="Cube Velocity" dim="3" user="0 20 0 20" />
+    <user name="Cube Velocity" dim="3" user="0 10 0 20" />
     <user name="Actuation" dim="16" user="0 5 0.0 10" />
 
     <!-- Measurements we want to use -->

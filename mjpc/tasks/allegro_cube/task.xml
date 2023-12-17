@@ -12,11 +12,11 @@
     <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="6" />
+    <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.2" />
     <numeric name="sampling_trajectories" data="100"/>
     <numeric name="robust_xfrc" data="0.004" />
-    <numeric name="gradient_spline_points" data="6" />
+    <numeric name="gradient_spline_points" data="3" />
   </custom>
 
   <!-- Set the camera viewpoint -->
@@ -61,7 +61,7 @@
     -->
     <user name="Cube Position" dim="3" user="1 50 0 100 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 5 0 10" />
-    <user name="Cube Velocity" dim="3" user="0 10 0 20" />
+    <user name="Cube Velocity" dim="3" user="0 20 0 20" />
     <user name="Actuation" dim="16" user="0 5 0.0 10" />
 
     <!-- Measurements we want to use -->

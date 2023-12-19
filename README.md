@@ -79,6 +79,40 @@ If you encounter build issues, please see the
 [Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml).
 Note, we are using `clang-14`.
 
+# Python API
+
+We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibilty and may be difficult to debug without more in-depth knowedge about mujoco and MJPC.
+
+- [agent.py](python/mujoco_mpc/agent.py) for available methods for planning.
+
+- [filter.py](python/mujoco_mpc/filter.py) for available methods for state estimation.
+
+- [direct.py](python/mujoco_mpc/direct.py) for available methods for direct optimization.
+
+## Installing via Pip
+The MJPC Python module can be installed with:
+```sh
+pip install "${MUJOCO_MPC_ROOT}/python"
+```
+
+Alternatively:
+```sh
+python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
+```
+
+Test that installation was successful:
+```sh
+python "${MUJOCO_MPC_ROOT}/python/mujoco_mpc/${API_TEST}.py"
+```
+
+where API(_TEST) can be: agent(_test), filter(_test), or direct(_test).
+
+
+## Example Usage
+See [cartpole.py](python/mujoco_mpc/demos/agent/cartpole.py) for example usage for planning.
+
+See [cartpole_trajopt.py](python/mujoco_mpc/demos/direct/cartpole_trajopt.py) for usage for direct optimization.
+
 ## Predictive Control
 
 See the [Predictive Control](docs/OVERVIEW.md) documentation for more

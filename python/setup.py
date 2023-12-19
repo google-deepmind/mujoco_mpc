@@ -59,7 +59,9 @@ class GenerateProtoGrpcCommand(setuptools.Command):
     from grpc_tools import protoc  # pylint: disable=import-outside-toplevel
 
     agent_proto_filename = "agent.proto"
-    agent_proto_source_path = Path("..", "grpc", agent_proto_filename).resolve()
+    agent_proto_source_path = Path(
+        "..", "mjpc", "grpc", agent_proto_filename
+    ).resolve()
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()
     proto_module_relative_path = Path("mujoco_mpc", "proto", agent_proto_filename)
@@ -270,15 +272,19 @@ setuptools.setup(
         "Topic :: Scientific/Engineering",
     ],
     packages=setuptools.find_packages(),
-    python_requires=">=3.7",
-    install_requires=[
+    python_requires=">=3.8",
+    setup_requires=[
         "grpcio-tools",
         "grpcio",
+    ],
+    install_requires=[
+        "grpcio",
+        "mujoco >= 2.3.3",
+        "protobuf",
     ],
     extras_require={
         "test": [
             "absl-py",
-            "mujoco >= 2.3.3",
         ],
     },
     ext_modules=[CMakeExtension("agent_server")],

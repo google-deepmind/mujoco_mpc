@@ -281,6 +281,17 @@ double* KeyQVelByName(const mjModel* m, const mjData* d,
   }
 }
 
+// get keyframe `qvel` data using string
+double* KeyActByName(const mjModel* m, const mjData* d,
+                     const std::string& name) {
+  int id = mj_name2id(m, mjOBJ_KEY, name.c_str());
+  if (id == -1) {
+    return nullptr;
+  } else {
+    return m->key_act + m->na * id;
+  }
+}
+
 // return a power transformed sequence
 void PowerSequence(double* t, double t_step, double t1, double t2, double p,
                    double N) {

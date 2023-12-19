@@ -1,0 +1,177 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package agent;
+
+service Agent {
+  // Initialize MJPC Agent.
+  rpc Init(InitRequest) returns (InitResponse);
+  // Get the simulation state.
+  rpc GetState(GetStateRequest) returns (GetStateResponse);
+  // Set state of the MJPC Agent.
+  rpc SetState(SetStateRequest) returns (SetStateResponse);
+  // Get the current action from the Agent.
+  rpc GetAction(GetActionRequest) returns (GetActionResponse);
+  // Compute one plan step.
+  rpc PlannerStep(PlannerStepRequest) returns (PlannerStepResponse);
+  // Step physics once, using actions from the planner.
+  rpc Step(StepRequest) returns (StepResponse);
+  // Reset the Agent.
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // Set a task parameters.
+  rpc SetTaskParameters(SetTaskParametersRequest)
+      returns (SetTaskParametersResponse);
+  // Get a task parameters.
+  rpc GetTaskParameters(GetTaskParametersRequest)
+      returns (GetTaskParametersResponse);
+  // Set cost weights.
+  rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
+  // Get cost term values.
+  rpc GetCostValuesAndWeights(GetCostValuesAndWeightsRequest)
+      returns (GetCostValuesAndWeightsResponse);
+  // Set mode.
+  rpc SetMode(SetModeRequest) returns (SetModeResponse);
+  // Get mode.
+  rpc GetMode(GetModeRequest) returns (GetModeResponse);
+  // Get all modes.
+  rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional string task_id = 1;
+  optional MjModel model = 2;
+  // only used on when there is asynchronous planning
+  optional float real_time_speed = 3;
+}
+message InitResponse {}
+
+message State {
+  optional double time = 1;
+  repeated double qpos = 2 [packed = true];
+  repeated double qvel = 3 [packed = true];
+  repeated double act = 4 [packed = true];
+  repeated double mocap_pos = 5 [packed = true];
+  repeated double mocap_quat = 6 [packed = true];
+  repeated double userdata = 7 [packed = true];
+}
+
+message GetStateRequest {}
+message GetStateResponse {
+  State state = 1;
+}
+
+message SetStateRequest {
+  State state = 1;
+}
+message SetStateResponse {}
+
+message GetActionRequest {
+  // The time at which the plan should be evaluated, in seconds. If not set, the
+  // current time (from the last call to SetState) will be used.
+  // Note: for feedback controllers like iLQG, it's probably wrong to request
+  // the action in a future time, and instead the state should be set before
+  // calling GetAction.
+  optional float time = 1;
+
+  // If not zero, physics will be rolled out for the given duration (in seconds)
+  // and actions will be averaged over that period.
+  // During the rollout, the task's Transition will not be called.
+  optional float averaging_duration = 2;
+
+  // For planners that use feedback terms (iLQG), if true, return the nominal
+  // action for the given time rather than applying feedback terms on the
+  // current state. For the sampling planner this has no effect.
+  optional bool nominal_action = 3;
+}
+
+message GetActionResponse {
+  repeated float action = 1 [packed = true];
+}
+
+message GetCostValuesAndWeightsRequest {}
+
+message ValueAndWeight {
+  double value = 1;
+  double weight = 2;
+}
+
+message GetCostValuesAndWeightsResponse {
+  map<string, ValueAndWeight> values_weights = 1;
+}
+
+message PlannerStepRequest {}
+message PlannerStepResponse {}
+
+message StepRequest {
+  // if true, the policy from before the last call to PlanIteration will be
+  // used. This is useful for simulating planning delay.
+  bool use_previous_policy = 1;
+}
+message StepResponse {}
+
+message ResetRequest {}
+message ResetResponse {}
+
+message TaskParameterValue {
+  oneof value {
+    // used for normal numeric task parameters
+    double numeric = 1;
+    // used for values that come from drop down selections
+    string selection = 2;
+  }
+}
+
+message SetTaskParametersRequest {
+  // map from parameter name to desired value
+  map<string, TaskParameterValue> parameters = 1;
+}
+message SetTaskParametersResponse {}
+
+message GetTaskParametersRequest {}
+
+message GetTaskParametersResponse {
+  map<string, TaskParameterValue> parameters = 1;
+}
+
+message SetCostWeightsRequest {
+  bool reset_to_defaults = 1;
+  // cost weights by name
+  map<string, double> cost_weights = 2;
+}
+message SetCostWeightsResponse {}
+
+message GetModeRequest {}
+
+message GetModeResponse {
+  string mode = 1;
+}
+
+message SetModeRequest {
+  string mode = 1;
+}
+
+message SetModeResponse {}
+
+message GetAllModesRequest {}
+
+message GetAllModesResponse {
+  repeated string mode_names = 1;
+}

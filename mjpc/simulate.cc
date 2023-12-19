@@ -31,7 +31,6 @@
 #include <mujoco/mujoco.h>
 #include <platform_ui_adapter.h>
 #include "mjpc/array_safety.h"
-
 #include "mjpc/agent.h"
 #include "mjpc/utilities.h"
 
@@ -69,6 +68,7 @@ enum {
   SECT_WATCH,
   SECT_TASK,
   SECT_AGENT,
+  SECT_ESTIMATOR,
   SECT_PHYSICS,
   SECT_RENDERING,
   SECT_GROUP,
@@ -511,7 +511,6 @@ void UpdateInfoText(mj::Simulate* sim,
                     double interval) {
   mjModel* m = sim->m;
   mjData* d = sim->d;
-  char tmp[20];
 
   // compute solver error
   int island = 0;  // first island only
@@ -540,6 +539,7 @@ void UpdateInfoText(mj::Simulate* sim,
   // add Energy if enabled
   {
     if (mjENABLED(mjENBL_ENERGY)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%.3f", d->energy[0]+d->energy[1]);
       mju::strcat_arr(content, tmp);
       mju::strcat_arr(title, "\nEnergy");
@@ -547,6 +547,7 @@ void UpdateInfoText(mj::Simulate* sim,
 
     // add FwdInv if enabled
     if (mjENABLED(mjENBL_FWDINV)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%.1f %.1f",
                        mju_log10(mju_max(mjMINVAL, d->solver_fwdinv[0])),
                        mju_log10(mju_max(mjMINVAL, d->solver_fwdinv[1])));
@@ -556,6 +557,7 @@ void UpdateInfoText(mj::Simulate* sim,
 
     // add islands if enabled
     if (mjENABLED(mjENBL_ISLAND)) {
+      char tmp[20];
       mju::sprintf_arr(tmp, "\n%d", d->nisland);
       mju::strcat_arr(content, tmp);
       mju::strcat_arr(title, "\nIslands");
@@ -670,51 +672,18 @@ void MakePhysicsSection(mj::Simulate* sim, int oldstate) {
 // make rendering section of UI
 void MakeRenderingSection(mj::Simulate* sim, int oldstate) {
   mjuiDef defRendering[] = {
-    {
-      mjITEM_SECTION,
-      "Rendering",
-      oldstate,
-      nullptr,
-      "AR"
-    },
-    {
-      mjITEM_SELECT,
-      "Camera",
-      2,
-      &(sim->camera),
-      "Free\nTracking"
-    },
-    {
-      mjITEM_SELECT,
-      "Label",
-      2,
-      &(sim->opt.label),
-      "None\nBody\nJoint\nGeom\nSite\nCamera\nLight\nTendon\n"
-      "Actuator\nConstraint\nSkin\nSelection\nSel Pnt\nContact\nForce\nIsland"
-    },
-    {
-      mjITEM_SELECT,
-      "Frame",
-      2,
-      &(sim->opt.frame),
-      "None\nBody\nGeom\nSite\nCamera\nLight\nContact\nWorld"
-    },
-    {
-      mjITEM_BUTTON,
-      "Copy camera",
-      2,
-      nullptr,
-      ""
-    },
-    {
-      mjITEM_SEPARATOR,
-      "Model Elements",
-      1
-    },
-    {
-      mjITEM_END
-    }
-  };
+      {mjITEM_SECTION, "Rendering", oldstate, nullptr, "AR"},
+      {mjITEM_SELECT, "Camera", 2, &(sim->camera), "Free\nTracking"},
+      {mjITEM_SELECT, "Label", 2, &(sim->opt.label),
+       "None\nBody\nJoint\nGeom\nSite\nCamera\nLight\nTendon\n"
+       "Actuator\nConstraint\nSkin\nSelection\nSel "
+       "Pnt\nContact\nForce\nIsland"},
+      {mjITEM_SELECT, "Frame", 2, &(sim->opt.frame),
+       "None\nBody\nGeom\nSite\nCamera\nLight\nContact\nWorld"},
+      {mjITEM_BUTTON, "Copy camera", 2, nullptr, ""},
+      {mjITEM_BUTTON, "Copy state", 2, nullptr, ""},
+      {mjITEM_SEPARATOR, "Model Elements", 1},
+      {mjITEM_END}};
   mjuiDef defOpenGL[] = {
     {mjITEM_SEPARATOR, "OpenGL Effects", 1},
     {mjITEM_END}
@@ -1004,7 +973,7 @@ mjtNum Timer() {
 
 // clear all times
 void ClearTimeres(mjData* d) {
-  for (int i=0; i<mjNTIMER; i++) {
+  for (int i = 0; i < mjNTIMER; i++) {
     d->timer[i].duration = 0;
     d->timer[i].number = 0;
   }
@@ -1197,28 +1166,18 @@ void UiEvent(mjuiState* state) {
 
     // option section
     else if (it && it->sectionid==SECT_OPTION) {
-      switch (it->itemid) {
-      case 0:             // Spacing
+      if (it->pdata == &sim->spacing) {
         sim->ui0.spacing = mjui_themeSpacing(sim->spacing);
         sim->ui1.spacing = mjui_themeSpacing(sim->spacing);
-        break;
-
-      case 1:             // Color
+      } else if (it->pdata == &sim->color) {
         sim->ui0.color = mjui_themeColor(sim->color);
         sim->ui1.color = mjui_themeColor(sim->color);
-        break;
-
-      case 2:             // Font
-        mjr_changeFont(50*(sim->font+1), &sim->platform_ui->mjr_context());
-        break;
-
-      case 9:             // Full screen
+      } else if (it->pdata == &sim->font) {
+        mjr_changeFont(50 * (sim->font + 1), &sim->platform_ui->mjr_context());
+      } else if (it->pdata == &sim->fullscreen) {
         sim->platform_ui->ToggleFullscreen();
-        break;
-
-      case 10:            // Vertical sync
+      } else if (it->pdata == &sim->vsync) {
         sim->platform_ui->SetVSync(sim->vsync);
-        break;
       }
 
       // modify UI
@@ -1247,6 +1206,12 @@ void UiEvent(mjuiState* state) {
                                                  "home");
           if (key_qvel) {
             mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
+          }
+          // set initial act via keyframe
+          double* act = mjpc::KeyActByName(sim->mnew, sim->dnew,
+                                           "home");
+          if (act) {
+            mju_copy(sim->dnew->act, act, sim->mnew->na);
           }
 
           sim->agent->PlotReset();
@@ -1303,6 +1268,11 @@ void UiEvent(mjuiState* state) {
     // agent section
     else if (it && it->sectionid == SECT_AGENT) {
       sim->agent->AgentEvent(it, sim->d, sim->uiloadrequest, sim->run);
+    }
+
+    // estimator section
+    else if (it && it->sectionid == SECT_ESTIMATOR) {
+      sim->agent->EstimatorEvent(it, sim->d, sim->uiloadrequest, sim->run);
     }
 
     // physics section
@@ -1553,12 +1523,12 @@ void UiEvent(mjuiState* state) {
       // find geom and 3D click point, get corresponding body
       mjrRect r = state->rect[3];
       mjtNum selpnt[3];
-      int selgeom, selskin;
+      int selgeom, selflex, selskin;
       int selbody = mjv_select(m, d, &sim->opt,
                                static_cast<mjtNum>(r.width)/r.height,
                                (state->x - r.left)/r.width,
                                (state->y - r.bottom)/r.height,
-                               &sim->scn, selpnt, &selgeom, &selskin);
+                               &sim->scn, selpnt, &selgeom, &selflex, &selskin);
 
       // set lookat point, start tracking is requested
       if (selmode==2 || selmode==3) {
@@ -1586,6 +1556,7 @@ void UiEvent(mjuiState* state) {
           // record selection
           sim->pert.select = selbody;
           sim->pert.skinselect = selskin;
+          sim->pert.flexselect = selflex;
 
           // compute localpos
           mjtNum tmp[3];
@@ -1594,6 +1565,7 @@ void UiEvent(mjuiState* state) {
         } else {
           sim->pert.select = 0;
           sim->pert.skinselect = -1;
+          sim->pert.flexselect = -1;
         }
       }
 

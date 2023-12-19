@@ -21,7 +21,7 @@
 #include "mjpc/tasks/manipulation/common.h"
 
 namespace mjpc::manipulation {
-class Bring : public ThreadSafeTask {
+class Bring : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;

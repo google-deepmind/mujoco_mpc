@@ -20,7 +20,7 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Particle : public ThreadSafeTask {
+class Particle : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;

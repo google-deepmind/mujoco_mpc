@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstddef>
+#include <vector>
+
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
@@ -135,14 +138,13 @@ TEST(PriorCost, Particle) {
   fdh.Compute(cost_prior, estimator.configuration.Data(), nvar);
 
   // ----- estimator ----- //
-  ThreadPool pool(1);
 
   // evaluate cost
   std::vector<double> cost_gradient(nvar);
   std::vector<double> cost_hessian(nvar * nvar);
   std::vector<double> cost_hessian_band(nvar * (3 * nv));
   double cost_estimator =
-      estimator.Cost(cost_gradient.data(), cost_hessian_band.data(), pool);
+      estimator.Cost(cost_gradient.data(), cost_hessian_band.data());
 
   // band to dense Hessian
   mju_band2Dense(cost_hessian.data(), cost_hessian_band.data(), nvar, 3 * nv, 0,
@@ -202,9 +204,10 @@ TEST(PriorCost, Box) {
   // corrupt configurations
   absl::BitGen gen_;
   double dq[6];
+  ASSERT_EQ(6, nv);
   for (int t = 0; t < T; t++) {
     double* q = estimator.configuration.Get(t);
-    for (int i = 0; i < nq; i++) {
+    for (int i = 0; i < nv; i++) {
       dq[i] = absl::Gaussian<double>(gen_, 0.0, 1.0);
     }
     mj_integratePos(model, q, dq, model->opt.timestep);
@@ -289,11 +292,10 @@ TEST(PriorCost, Box) {
   fdh.Compute(cost_prior, update.data(), nvar);
 
   // ----- estimator ----- //
-  ThreadPool pool(1);
 
   // evaluate cost
   std::vector<double> cost_gradient(nvar);
-  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL, pool);
+  double cost_estimator = estimator.Cost(cost_gradient.data(), NULL);
 
   // ----- error ----- //
 

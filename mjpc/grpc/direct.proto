@@ -1,0 +1,193 @@
+// Copyright 2023 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package direct;
+
+service Direct {
+  // Initialize Direct
+  rpc Init(InitRequest) returns (InitResponse);
+  // Set Direct data
+  rpc Data(DataRequest) returns (DataResponse);
+  // Direct settings
+  rpc Settings(SettingsRequest) returns (SettingsResponse);
+  // Direct costs
+  rpc Cost(CostRequest) returns (CostResponse);
+  // Direct noise (process + sensor)
+  rpc Noise(NoiseRequest) returns (NoiseResponse);
+  // Reset Direct
+  rpc Reset(ResetRequest) returns (ResetResponse);
+  // Optimize Direct
+  rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
+  // Get Direct status
+  rpc Status(StatusRequest) returns (StatusResponse);
+  // Sensor dimension info
+  rpc SensorInfo(SensorInfoRequest) returns (SensorInfoResponse);
+}
+
+message MjModel {
+  optional bytes mjb = 1;
+  optional string xml = 2;
+}
+
+message InitRequest {
+  optional MjModel model = 1;
+  optional int32 configuration_length = 2;
+  optional int32 buffer_length = 3;
+}
+
+message InitResponse {}
+
+message Data {
+  repeated double configuration = 1 [packed = true];
+  repeated double velocity = 2 [packed = true];
+  repeated double acceleration = 3 [packed = true];
+  repeated double time = 4 [packed = true];
+  repeated double ctrl = 5 [packed = true];
+  repeated double configuration_previous = 6 [packed = true];
+  repeated double sensor_measurement = 7 [packed = true];
+  repeated double sensor_prediction = 8 [packed = true];
+  repeated int32 sensor_mask = 9 [packed = true];
+  repeated double force_measurement = 10 [packed = true];
+  repeated double force_prediction = 11 [packed = true];
+  repeated double parameters = 12 [packed = true];
+  repeated double parameters_previous = 13 [packed = true];
+}
+
+message DataRequest {
+  int32 index = 1;
+  Data data = 2;
+}
+
+message DataResponse {
+  Data data = 1;
+}
+
+message Settings {
+  optional int32 configuration_length = 1;
+  optional bool sensor_flag = 2;
+  optional bool force_flag = 3;
+  optional int32 max_search_iterations = 4;
+  optional int32 max_smoother_iterations = 5;
+  optional double gradient_tolerance = 6;
+  optional bool verbose_iteration = 7;
+  optional bool verbose_optimize = 8;
+  optional bool verbose_cost = 9;
+  optional int32 search_type = 10;
+  optional double step_scaling = 11;
+  optional double regularization_initial = 12;
+  optional double regularization_scaling = 13;
+  optional bool time_scaling_force = 14;
+  optional bool time_scaling_sensor = 15;
+  optional double search_direction_tolerance = 16;
+  optional double cost_tolerance = 17;
+  optional bool assemble_sensor_jacobian = 18;
+  optional bool assemble_force_jacobian = 19;
+  optional bool assemble_sensor_norm_hessian = 20;
+  optional bool assemble_force_norm_hessian = 21;
+  optional bool first_step_position_sensors = 22;
+  optional bool last_step_position_sensors = 23;
+  optional bool last_step_velocity_sensors = 24;
+}
+
+message SettingsRequest {
+  optional Settings settings = 1;
+}
+
+message SettingsResponse {
+  Settings settings = 1;
+}
+
+// TODO(etom): we want a breakdown of the cost into the different sensors and
+// forces
+
+message CostRequest {
+  optional bool derivatives = 1;
+  optional bool internals = 2;
+}
+
+message CostResponse {
+  double total = 1;
+  double sensor = 2;
+  double force = 3;
+  double parameter = 4;
+  double initial = 5;
+  repeated double gradient = 6 [packed = true];
+  repeated double hessian = 7 [packed = true];
+  repeated double residual_sensor = 8 [packed = true];
+  repeated double residual_force = 9 [packed = true];
+  repeated double jacobian_sensor = 10 [packed = true];
+  repeated double jacobian_force = 11 [packed = true];
+  repeated double norm_gradient_sensor = 12 [packed = true];
+  repeated double norm_gradient_force = 13 [packed = true];
+  repeated double norm_hessian_sensor = 14 [packed = true];
+  repeated double norm_hessian_force = 15 [packed = true];
+  int32 nvar = 16;
+  int32 nsensor = 17;
+  int32 nforce = 18;
+}
+
+// TODO(etom): all the protos below use a dict of arrays, but they should use an
+// array of dicts.
+
+message Noise {
+  repeated double process = 1 [packed = true];
+  repeated double sensor = 2 [packed = true];
+  repeated double parameter = 3 [packed = true];
+}
+
+message NoiseRequest {
+  optional Noise noise = 1;
+}
+
+message NoiseResponse {
+  Noise noise = 1;
+}
+
+message ResetRequest {}
+
+message ResetResponse {}
+
+message OptimizeRequest {}
+
+message OptimizeResponse {}
+
+message Status {
+  int32 search_iterations = 1;
+  int32 smoother_iterations = 2;
+  double step_size = 3;
+  double regularization = 4;
+  double gradient_norm = 5;
+  double search_direction_norm = 6;
+  int32 solve_status = 7;
+  double cost_difference = 8;
+  double improvement = 9;
+  double expected = 10;
+  double reduction_ratio = 11;
+}
+
+message StatusRequest {}
+
+message StatusResponse {
+  Status status = 1;
+}
+
+message SensorInfoRequest {}
+
+message SensorInfoResponse {
+  int32 start_index = 1;
+  int32 num_measurements = 2;
+  int32 dim_measurements = 3;
+}

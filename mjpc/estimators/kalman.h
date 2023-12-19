@@ -21,7 +21,6 @@
 #include <mujoco/mujoco.h>
 
 #include "mjpc/estimators/estimator.h"
-#include "mjpc/estimators/gui.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -37,7 +36,7 @@ class Kalman : public Estimator {
   }
 
   // destructor
-  ~Kalman() {
+  ~Kalman() override {
     if (data_) mj_deleteData(data_);
     if (model) mj_deleteModel(model);
   }
@@ -113,10 +112,10 @@ class Kalman : public Estimator {
   double TimerPrediction() const { return timer_prediction_; }
 
   // estimator-specific GUI elements
-  void GUI(mjUI& ui, EstimatorGUIData& data) override;
+  void GUI(mjUI& ui) override;
 
   // set GUI data
-  void SetGUIData(EstimatorGUIData& data) override;
+  void SetGUIData() override;
 
   // estimator-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
@@ -179,6 +178,20 @@ class Kalman : public Estimator {
   std::vector<double> tmp1_;
   std::vector<double> tmp2_;
   std::vector<double> tmp3_;
+
+  // -- GUI data -- //
+
+  // time step
+  double gui_timestep_;
+
+  // integrator
+  int gui_integrator_;
+
+  // process noise
+  std::vector<double> gui_process_noise_;
+
+  // sensor noise
+  std::vector<double> gui_sensor_noise_;
 };
 
 }  // namespace mjpc

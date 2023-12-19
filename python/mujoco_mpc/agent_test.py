@@ -325,6 +325,18 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
+  def test_get_all_modes(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      self.assertEqual(
+          tuple(agent.get_all_modes()),
+          ("Quadruped", "Biped", "Walk", "Scramble", "Flip"),
+      )
+
   @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (
@@ -334,6 +346,25 @@ class AgentTest(parameterized.TestCase):
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
       self.assertRaises(grpc.RpcError, lambda: agent.set_mode("Run"))
+
+  def test_set_task_parameters_from_another_agent(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/cartpole/task.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
+      agent.set_task_parameters({"Goal": 13})
+      self.assertEqual(agent.get_task_parameters()["Goal"], 13)
+
+      with agent_lib.Agent(
+          task_id="Cartpole",
+          run_init=False,
+          connect_to=f"localhost:{agent.port}",
+      ) as serverless_agent:
+        serverless_agent.set_task_parameters({"Goal": 14})
+
+      self.assertEqual(agent.get_task_parameters()["Goal"], 14)
 
 
 if __name__ == "__main__":

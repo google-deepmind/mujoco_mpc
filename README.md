@@ -81,7 +81,7 @@ Note, we are using `clang-14`.
 
 # Python API
 
-We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibilty and may be difficult to debug without more in-depth knowedge about Mujoco and MJPC.
+We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibilty and may be difficult to debug without more in-depth knowedge about MuJoCo and MJPC.
 
 - [agent.py](python/mujoco_mpc/agent.py) for available methods for planning.
 

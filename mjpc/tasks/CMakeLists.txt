@@ -32,6 +32,9 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/robotiq_2f85
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/skydio_x2/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/assets
   COMMAND ${Python_EXECUTABLE}
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/merge_panda_robotiq.py
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/panda_robotiq.xml

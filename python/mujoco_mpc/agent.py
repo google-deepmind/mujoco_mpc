@@ -360,6 +360,11 @@ class Agent(contextlib.AbstractContextManager):
     if parameters.cost_weights:
       self.set_cost_weights(parameters.cost_weights)
 
-  def set_mocap(self, mocap_map: Mapping[str, agent_pb2.Pose]):
-    request = agent_pb2.SetAnythingRequest(mocap=mocap_map)
+  def set_mocap(self, mocap_map: Mapping[str, mjpc_parameters.Pose]):
+    request = agent_pb2.SetAnythingRequest()
+    for key, value in mocap_map.items():
+      if value.pos is not None:
+        request.mocap[key].pos.extend(value.pos)
+      if value.quat is not None:
+        request.mocap[key].quat.extend(value.quat)
     self.stub.SetAnything(request)

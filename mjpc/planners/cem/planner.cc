@@ -231,17 +231,32 @@ void CEMPlanner::ActionFromPolicy(double* action, const double* state,
 void CEMPlanner::UpdateNominalPolicy(int horizon) {
   // dimensions
   int num_spline_points = candidate_policy[winner].num_spline_points;
+  int num_parameters = candidate_policy[winner].num_parameters;
 
   // set time
   double nominal_time = time;
   double time_shift = mju_max(
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
+  // temp variables to help with averaging
+  std::vector<double> temp_avg(num_parameters);
+  std::vector<double> temp_elite_actions(num_parameters);
+
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
-    candidate_policy[winner].Action(DataAt(parameters_scratch, t * model->nu),
-                               nullptr, nominal_time);
+
+    // get the actions of the top n_elites policies and average them
+    // TODO: also update a variance parameter too
+    for (int i = 0; i < n_elites; i++) {
+      index = trajectory_order[i];  // the (i+1)^th best trajectory
+      candidate_policy[index].Action(DataAt(temp_elite_actions, 0), nullptr, nominal_time);
+      temp_avg += temp_elite_actions;
+    }
+    temp_avg /= num_spline_points;  // averaging the parameters
+
+    // assigning the averaged parameters to parameters_scratch
+    std::copy(temp_avg.begin(), temp_avg.end(), parameters_scratch.begin() + t * model->nu);
     nominal_time += time_shift;
   }
 
@@ -276,6 +291,7 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
 
   // sample noise
   for (int k = 0; k < num_parameters; k++) {
+    // TODO: add noise corresponding to the stdev parameter
     noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
   }
 

@@ -22,6 +22,8 @@
 
 namespace mjpc {
 
+CEMPolicy::~CEMPolicy() {}
+
 // allocate memory
 void CEMPolicy::Allocate(const mjModel* model, const Task& task,
                               int horizon) {

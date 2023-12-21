@@ -21,6 +21,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/cem/policy.h"
 #include "mjpc/states/state.h"
@@ -29,12 +30,12 @@
 namespace mjpc {
 
 // sampling planner limits
-inline constexpr int MinSamplingSplinePoints = 1;
-inline constexpr int MaxSamplingSplinePoints = 36;
-inline constexpr int MinSamplingSplinePower = 1;
-inline constexpr int MaxSamplingSplinePower = 5;
-inline constexpr double MinNoiseStdDev = 0.0;
-inline constexpr double MaxNoiseStdDev = 1.0;
+// inline constexpr int MinSamplingSplinePoints = 1;
+// inline constexpr int MaxSamplingSplinePoints = 36;
+// inline constexpr int MinSamplingSplinePower = 1;
+// inline constexpr int MaxSamplingSplinePower = 5;
+// inline constexpr double MinNoiseStdDev = 0.0;
+// inline constexpr double MaxNoiseStdDev = 1.0;
 
 class CEMPlanner : public RankedPlanner {
  public:
@@ -102,7 +103,7 @@ class CEMPlanner : public RankedPlanner {
   void ActionFromCandidatePolicy(double* action, int candidate,
                                  const double* state, double time) override;
 
-  // void CopyCandidateToPolicy(int candidate) override;
+  void CopyCandidateToPolicy(int candidate) override;
 
   // ----- members ----- //
   mjModel* model;

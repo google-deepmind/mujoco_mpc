@@ -136,12 +136,13 @@ class CEMPlanner : public RankedPlanner {
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;
+  std::vector<double> stdev;
 
   // gradient
   std::vector<double> noise_gradient;
 
-  // cem-specific variables
-  int n_elites;  // number of elite samples
+  // number of elite samples
+  int n_elites;
 
   // improvement
   double improvement;

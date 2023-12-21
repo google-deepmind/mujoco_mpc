@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
@@ -48,7 +49,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
+  noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -85,6 +86,8 @@ void CEMPlanner::Allocate() {
 
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  stdev.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  fill(stdev.begin(), stdev.end(), noise_exploration);  // TODO: if this gets called before Initialize, then move this to above
 
   // trajectory and parameters
   winner = -1;
@@ -239,21 +242,31 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
   // temp variables to help with averaging
-  std::vector<double> temp_avg(num_parameters);
-  std::vector<double> temp_elite_actions(num_parameters);
+  std::vector<double> temp_avg(model->nu);  // holds avg for spline point t
+  // std::vector<double> temp_elite_actions(model->nu);
+  std::array<std::array<double, model->nu>, n_elites> temp_elite_actions;
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
 
     // get the actions of the top n_elites policies and average them
-    // TODO: also update a variance parameter too
+    // also update a variance parameter too
     for (int i = 0; i < n_elites; i++) {
       index = trajectory_order[i];  // the (i+1)^th best trajectory
-      candidate_policy[index].Action(DataAt(temp_elite_actions, 0), nullptr, nominal_time);
-      temp_avg += temp_elite_actions;
+      candidate_policy[index].Action(DataAt(temp_elite_actions[i], 0), nullptr, nominal_time);
+      for (int k = 0; k < model->nu; k++) {
+        temp_avg[k] += temp_elite_actions[i][k] / num_spline_points;
+      }
     }
-    temp_avg /= num_spline_points;  // averaging the parameters
+
+    // computing the sample variance of the control parameters
+    for (int k = 0; k < model->nu; k++) {
+      for (int i = 0; i < n_elites; i++) {
+        stdev[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
+      }
+      stdev[t * model->nu + k] = std::sqrt(stdev[t * model->nu + k]);  // take the root
+    }
 
     // assigning the averaged parameters to parameters_scratch
     std::copy(temp_avg.begin(), temp_avg.end(), parameters_scratch.begin() + t * model->nu);
@@ -291,8 +304,7 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
 
   // sample noise
   for (int k = 0; k < num_parameters; k++) {
-    // TODO: add noise corresponding to the stdev parameter
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
+    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, stdev[k]);
   }
 
   // add noise

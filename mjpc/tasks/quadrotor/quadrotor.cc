@@ -27,12 +27,11 @@ std::string Quadrotor::XmlPath() const {
 std::string Quadrotor::Name() const { return "Quadrotor"; }
 
 // --------------- Residuals for quadrotor task ---------------
-//   Number of residuals: 5
+//   Number of residuals: 4
 //     Residual (0): position - goal position
-//     Residual (1): orientation - goal orientation
-//     Residual (2): linear velocity - goal linear velocity
-//     Residual (3): angular velocity - goal angular velocity
-//     Residual (4): control
+//     Residual (1): linear velocity - goal linear velocity
+//     Residual (2): angular velocity - goal angular velocity
+//     Residual (3): control - hover control
 //   Number of parameters: 6
 // ------------------------------------------------------------
 void Quadrotor::ResidualFn::Residual(const mjModel* model, const mjData* data,
@@ -42,25 +41,19 @@ void Quadrotor::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_sub(residuals, position, data->mocap_pos, 3);
 
   // ---------- Residual (1) ----------
-  double quadrotor_mat[9];
-  double* orientation = SensorByName(model, data, "orientation");
-  mju_quat2Mat(quadrotor_mat, orientation);
-
-  double goal_mat[9];
-  mju_quat2Mat(goal_mat, data->mocap_quat);
-
-  mju_sub(residuals + 3, quadrotor_mat, goal_mat, 9);
+  double* linear_velocity = SensorByName(model, data, "linear_velocity");
+  mju_copy(residuals + 3, linear_velocity, 3);
 
   // ---------- Residual (2) ----------
-  double* linear_velocity = SensorByName(model, data, "linear_velocity");
-  mju_sub(residuals + 12, linear_velocity, parameters_.data(), 3);
+  double* angular_velocity = SensorByName(model, data, "angular_velocity");
+  mju_copy(residuals + 6, angular_velocity, 3);
 
   // ---------- Residual (3) ----------
-  double* angular_velocity = SensorByName(model, data, "angular_velocity");
-  mju_sub(residuals + 15, angular_velocity, parameters_.data() + 3, 3);
-
-  // ---------- Residual (4) ----------
-  mju_copy(residuals + 18, data->ctrl, model->nu);
+  double thrust = (model->body_mass[0] + model->body_mass[1]) *
+                  mju_norm3(model->opt.gravity) / model->nu;
+  for (int i = 0; i < model->nu; i++) {
+    residuals[9 + i] = data->ctrl[i] - thrust;
+  }
 }
 
 // ----- Transition for quadrotor task -----
@@ -72,26 +65,15 @@ void Quadrotor::TransitionLocked(mjModel* model, mjData* data) {
     // goal position
     const double* goal_position = data->mocap_pos;
 
-    // goal orientation
-    const double* goal_orientation = data->mocap_quat;
-
     // system's position
     double* position = SensorByName(model, data, "position");
-
-    // system's orientation
-    double* orientation = SensorByName(model, data, "orientation");
 
     // position error
     double position_error[3];
     mju_sub3(position_error, position, goal_position);
     double position_error_norm = mju_norm3(position_error);
 
-    // orientation error
-    double geodesic_distance =
-        1.0 - mju_abs(mju_dot(goal_orientation, orientation, 4));
-
-    double tolerance = 5.0e-1;
-    if (position_error_norm <= tolerance && geodesic_distance <= tolerance) {
+    if (position_error_norm <= 5.0e-1) {
       // update task state
       current_mode_ += 1;
       if (current_mode_ == model->nkey) {

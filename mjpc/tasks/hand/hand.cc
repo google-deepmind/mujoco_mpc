@@ -71,6 +71,14 @@ void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_copy(residual + counter, data->actuator_force, model->nu);
   counter += model->nu;
 
+  // ---------- Residual (4) ----------
+  mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 26);
+  counter += 26;
+
+  // ---------- Residual (5) ----------
+  mju_copy(residual + counter, data->qvel + 6, 26);
+  counter += 26;
+
   // sensor dim sanity check
   CheckSensorDim(model, counter);
 }

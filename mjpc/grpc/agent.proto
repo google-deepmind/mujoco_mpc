@@ -48,7 +48,7 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Get all modes.
   rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
-  // Get best trajectory (states, actions).
+  // Get best trajectory (states, actions, times).
   rpc GetBestTrajectory(GetBestTrajectoryRequest) returns (GetBestTrajectoryResponse);
 }
 

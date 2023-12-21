@@ -29,11 +29,13 @@ std::string Hand::XmlPath() const {
 std::string Hand::Name() const { return "Hand"; }
 
 // ---------- Residuals for in-hand manipulation task ---------
-//   Number of residuals: 4
+//   Number of residuals: 6
 //     Residual (0): cube_position - palm_position
 //     Residual (1): cube_orientation - cube_goal_orientation
 //     Residual (2): cube linear velocity
 //     Residual (3): control
+//     Residual (4): hand configuration - nominal hand configuration
+//     Residual (5): hand joint velocity
 // ------------------------------------------------------------
 void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
                     double* residual) const {

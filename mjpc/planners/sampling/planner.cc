@@ -91,9 +91,6 @@ void SamplingPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
-
-  // noise gradient
-  noise_gradient.resize(num_max_parameter);
 }
 
 // reset memory to zeros
@@ -124,9 +121,6 @@ void SamplingPlanner::Reset(int horizon) {
   for (const auto& d : data_) {
     mju_zero(d->ctrl, model->nu);
   }
-
-  // noise gradient
-  std::fill(noise_gradient.begin(), noise_gradient.end(), 0.0);
 
   // improvement
   improvement = 0.0;

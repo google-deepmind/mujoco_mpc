@@ -137,9 +137,6 @@ class SamplingPlanner : public RankedPlanner {
                              // exploration)
   std::vector<double> noise;
 
-  // gradient
-  std::vector<double> noise_gradient;
-
   // best trajectory
   int winner;
 

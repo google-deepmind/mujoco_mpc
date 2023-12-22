@@ -142,6 +142,9 @@ class CEMPlanner : public RankedPlanner {
   // gradient
   std::vector<double> noise_gradient;
 
+  // best trajectory
+  int winner;
+
   // number of elite samples
   int n_elites;
 

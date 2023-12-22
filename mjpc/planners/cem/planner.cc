@@ -234,7 +234,6 @@ void CEMPlanner::ActionFromPolicy(double* action, const double* state,
 void CEMPlanner::UpdateNominalPolicy(int horizon) {
   // dimensions
   int num_spline_points = candidate_policy[winner].num_spline_points;
-  int num_parameters = candidate_policy[winner].num_parameters;
 
   // set time
   double nominal_time = time;
@@ -244,7 +243,9 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
   // temp variables to help with averaging
   std::vector<double> temp_avg(model->nu);  // holds avg for spline point t
   // std::vector<double> temp_elite_actions(model->nu);
-  std::array<std::array<double, model->nu>, n_elites> temp_elite_actions;
+  // std::array<std::array<double, nu>, n_elites> temp_elite_actions;
+  std::vector<std::vector<double>> temp_elite_actions;
+  temp_elite_actions.resize(n_elites, std::vector<double>(model->nu, 0.0));
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
@@ -253,7 +254,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
     for (int i = 0; i < n_elites; i++) {
-      index = trajectory_order[i];  // the (i+1)^th best trajectory
+      int index = trajectory_order[i];  // the (i+1)^th best trajectory
       candidate_policy[index].Action(DataAt(temp_elite_actions[i], 0), nullptr, nominal_time);
       for (int k = 0; k < model->nu; k++) {
         temp_avg[k] += temp_elite_actions[i][k] / num_spline_points;

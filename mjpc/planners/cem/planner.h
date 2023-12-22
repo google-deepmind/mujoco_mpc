@@ -23,7 +23,6 @@
 
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/planners/planner.h"
-#include "mjpc/planners/cem/policy.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 
@@ -116,9 +115,9 @@ class CEMPlanner : public RankedPlanner {
   std::vector<double> userdata;
 
   // policy
-  CEMPolicy policy;  // (Guarded by mtx_)
-  CEMPolicy candidate_policy[kMaxTrajectory];
-  CEMPolicy previous_policy;
+  SamplingPolicy policy;  // (Guarded by mtx_)
+  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy previous_policy;
 
   // scratch
   std::vector<double> parameters_scratch;

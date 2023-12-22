@@ -79,8 +79,6 @@ add_library(
   planners/model_derivatives.h
   planners/cem/planner.h
   planners/cem/planner.cc
-  planners/cem/policy.h
-  planners/cem/policy.cc
   planners/robust/robust_planner.cc
   planners/robust/robust_planner.h
   planners/sampling/planner.cc

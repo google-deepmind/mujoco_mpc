@@ -92,11 +92,6 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 ## Installing via Pip
 The MJPC Python module can be installed with:
 ```sh
-pip install "${MUJOCO_MPC_ROOT}/python"
-```
-
-Alternatively:
-```sh
 python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
 ```
 

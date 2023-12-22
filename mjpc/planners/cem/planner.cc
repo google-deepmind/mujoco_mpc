@@ -55,7 +55,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set number of elite samples
-  n_elites = GetNumberOrDefault(5, model, "n_elites");  // half rounded down
+  n_elites = GetNumberOrDefault(num_trajectory_ / 2, model, "n_elites");  // half rounded down
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",

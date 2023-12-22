@@ -55,7 +55,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set number of elite samples
-  n_elites = GetNumberOrDefault(num_trajectory_ / 2, model, "n_elites");  // half rounded down
+  n_elites = GetNumberOrDefault(5, model, "n_elites");  // half rounded down
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -96,6 +96,12 @@ void CEMPlanner::Allocate() {
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
+  }
+
+  // need to initialize an arbitrary order of the trajectories
+  trajectory_order.reserve(num_trajectory_);
+  for (int i = 0; i < num_trajectory_; i++) {
+    trajectory_order.push_back(i);
   }
 
   // noise gradient
@@ -254,7 +260,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
     for (int i = 0; i < n_elites; i++) {
-      int index = trajectory_order[i];  // the (i+1)^th best trajectory
+      int index = trajectory_order[i];  // the (i+1)^th best trajectory [TODO] this segfaults!
       candidate_policy[index].Action(DataAt(temp_elite_actions[i], 0), nullptr, nominal_time);
       for (int k = 0; k < model->nu; k++) {
         temp_avg[k] += temp_elite_actions[i][k] / num_spline_points;

@@ -145,6 +145,7 @@ class Agent {
   bool IsPlanningModel(const mjModel* model) const {
     return model == model_;
   }
+  int PlanSteps() const { return steps_; }
   int GetActionDim() const { return model_->nu; }
   mjModel* GetModel() { return model_; }
   const mjModel* GetModel() const { return model_; }

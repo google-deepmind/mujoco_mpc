@@ -48,6 +48,8 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Get all modes.
   rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
+  // Get best trajectory (states, actions, times).
+  rpc GetBestTrajectory(GetBestTrajectoryRequest) returns (GetBestTrajectoryResponse);
 }
 
 message MjModel {
@@ -174,4 +176,13 @@ message GetAllModesRequest {}
 
 message GetAllModesResponse {
   repeated string mode_names = 1;
+}
+
+message GetBestTrajectoryRequest {}
+
+message GetBestTrajectoryResponse {
+  repeated double states = 1 [packed = true];
+  repeated double actions = 2 [packed = true];
+  repeated double times = 3 [packed = true];
+  int32 steps = 4;
 }

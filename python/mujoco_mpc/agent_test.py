@@ -366,6 +366,31 @@ class AgentTest(parameterized.TestCase):
 
       self.assertEqual(agent.get_task_parameters()["Goal"], 14)
 
+  def test_best_trajectory(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/particle/task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+
+    agent = agent_lib.Agent(task_id="Particle", model=model)
+    agent.set_state(
+        time=data.time,
+        qpos=data.qpos,
+        qvel=data.qvel,
+        act=data.act,
+        mocap_pos=data.mocap_pos,
+        mocap_quat=data.mocap_quat,
+        userdata=data.userdata,
+    )
+    agent.planner_step()
+    best_traj = agent.best_trajectory()
+
+    self.assertEqual(best_traj["states"].shape, (51, 4))
+    self.assertEqual(best_traj["actions"].shape, (50, 2))
+    self.assertEqual(best_traj["times"].shape, (51, ))
+
 
 if __name__ == "__main__":
   absltest.main()

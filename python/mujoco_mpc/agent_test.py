@@ -325,6 +325,18 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
+  def test_get_all_modes(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      self.assertEqual(
+          tuple(agent.get_all_modes()),
+          ("Quadruped", "Biped", "Walk", "Scramble", "Flip"),
+      )
+
   @absltest.skip("asset import issue")
   def test_set_mode_error(self):
     model_path = (
@@ -353,6 +365,31 @@ class AgentTest(parameterized.TestCase):
         serverless_agent.set_task_parameters({"Goal": 14})
 
       self.assertEqual(agent.get_task_parameters()["Goal"], 14)
+
+  def test_best_trajectory(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/particle/task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+
+    agent = agent_lib.Agent(task_id="Particle", model=model)
+    agent.set_state(
+        time=data.time,
+        qpos=data.qpos,
+        qvel=data.qvel,
+        act=data.act,
+        mocap_pos=data.mocap_pos,
+        mocap_quat=data.mocap_quat,
+        userdata=data.userdata,
+    )
+    agent.planner_step()
+    best_traj = agent.best_trajectory()
+
+    self.assertEqual(best_traj["states"].shape, (51, 4))
+    self.assertEqual(best_traj["actions"].shape, (50, 2))
+    self.assertEqual(best_traj["times"].shape, (51, ))
 
 
 if __name__ == "__main__":

@@ -109,7 +109,9 @@ class Agent(contextlib.AbstractContextManager):
       atexit.register(self.server_process.kill)
 
     self.server_addr = connect_to or f"localhost:{self.port}"
-    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    credentials = grpc.local_channel_credentials(
+        grpc.LocalConnectionType.LOCAL_TCP
+    )
     self.channel = grpc.secure_channel(self.server_addr, credentials)
     grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
@@ -348,6 +350,9 @@ class Agent(contextlib.AbstractContextManager):
     request = agent_pb2.SetModeRequest(mode=mode)
     self.stub.SetMode(request)
 
+  def get_all_modes(self) -> Sequence[str]:
+    return self.stub.GetAllModes(agent_pb2.GetAllModesRequest()).mode_names
+
   def set_parameters(self, parameters: mjpc_parameters.MjpcParameters):
     # TODO(nimrod): Add a single RPC that does this
     if parameters.mode is not None:
@@ -356,3 +361,17 @@ class Agent(contextlib.AbstractContextManager):
       self.set_task_parameters(parameters.task_parameters)
     if parameters.cost_weights:
       self.set_cost_weights(parameters.cost_weights)
+
+  def best_trajectory(self):
+    request = agent_pb2.GetBestTrajectoryRequest()
+    response = self.stub.GetBestTrajectory(request)
+    return {
+        "states": np.array(response.states).reshape(
+            response.steps,
+            self.model.nq + self.model.nv + self.model.na,
+        ),
+        "actions": np.array(response.actions).reshape(
+            response.steps - 1, self.model.nu
+        ),
+        "times": np.array(response.times),
+    }

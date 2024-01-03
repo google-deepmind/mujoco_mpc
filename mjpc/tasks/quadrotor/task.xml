@@ -1,59 +1,94 @@
 <mujoco model="Quadrotor Racing">
   <include file="../common.xml"/>
-  <include file="quadrotor.xml" />
+  <include file="quadrotor.xml"/>
+  <include file="gates.xml"/>
 
   <size memory="100K"/>
 
   <statistic extent="2" center="0.0 0.0 0.0"/>
 
   <custom>
-    <text name="task_transition" data="Loop|Stage1|Stage2|Stage3|Stage4|Stage5|Stage6|Stage7|Stage8|Stage9|Stage10|Stage11|Stage12" />
-    <numeric name="agent_planner" data="0" />
-    <numeric name="agent_horizon" data="0.5" />
-    <numeric name="agent_timestep" data="0.01" />
-    <numeric name="sampling_sample_width" data="0.01" />
-    <numeric name="sampling_control_width" data="0.015" />
-    <numeric name="sampling_spline_points" data="5" />
-    <numeric name="sampling_exploration" data="0.3" />
-    <numeric name="sampling_processed_noise" data="1" />
-    <numeric name="sampling_processed_noise_neighbors" data="3" />
-    <numeric name="sampling_processed_noise_passes" data="3" />
-    <numeric name="sampling_representation" data="2" />
-    <numeric name="sampling_trajectories" data="32" />
-    <numeric name="gradient_spline_points" data="5" />
-    <numeric name="residual_Lin. Vel. X" data="0 -1.0 1.0" />
-    <numeric name="residual_Lin. Vel. Y" data="0 -1.0 1.0" />
-    <numeric name="residual_Lin. Vel. Z" data="0 -1.0 1.0" />
-    <numeric name="residual_Ang. Vel. X" data="0 -1.0 1.0" />
-    <numeric name="residual_Ang. Vel. Y" data="0 -1.0 1.0" />
-    <numeric name="residual_Ang. Vel. Z" data="0 -1.0 1.0" />
+    <text name="task_transition" data="Loop|Stage1|Stage2|Stage3|Stage4|Stage5|Stage6|Stage7|Stage8|Stage9|Stage10|Stage11|Stage12"/>
+    <numeric name="agent_planner" data="0"/>
+    <numeric name="agent_horizon" data="0.5"/>
+    <numeric name="agent_timestep" data="0.01"/>
+    <numeric name="sampling_sample_width" data="0.01"/>
+    <numeric name="sampling_control_width" data="0.015"/>
+    <numeric name="sampling_spline_points" data="5"/>
+    <numeric name="sampling_exploration" data="0.3"/>
+    <numeric name="sampling_processed_noise" data="1"/>
+    <numeric name="sampling_processed_noise_neighbors" data="3"/>
+    <numeric name="sampling_processed_noise_passes" data="3"/>
+    <numeric name="sampling_representation" data="2"/>
+    <numeric name="sampling_trajectories" data="32"/>
+    <numeric name="gradient_spline_points" data="5"/>
   </custom>
 
+  <worldbody>
+    <geom name="floor" type="plane" conaffinity="1" size="100 100 .2" material="blue_grid"/>
+    <body name="goal" mocap="true" pos="1.2 0.0 0.75">
+      <geom type="sphere" size="0.1" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+    <body name="wp1" mocap="false" pos="1.2 0.0 0.75">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp2" mocap="false" pos="2.3 0.6 1.5">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp3" mocap="false" pos="2.7 0.95 1.5">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp4" mocap="false" pos="4.6 0.4 0.75">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp5" mocap="false" pos="5.0 -1.8 0.75">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp6" mocap="false" pos="3.4 -2.5 0.75">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp7" mocap="false" pos="2.5 -2.25 1.45">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp8" mocap="false" pos="2.5 -2.25 2.25">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp9" mocap="false" pos="1.5 -1.75 1.85">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp10" mocap="false" pos="1.05 -1.75 1.3">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+    <body name="wp11" mocap="false" pos="0.1 -1.4 0.75">
+      <geom type="sphere" size="0.08" contype="0" conaffinity="0" rgba=".86 .86 .86 .5"/>
+    </body>
+  </worldbody>
+
   <sensor>
-    <user name="Position" dim="3" user="0 3.0 0 25.0"/>
-    <user name="Orientation" dim="9" user="0 0.5 0 5.0"/>
-    <user name="Lin. Vel." dim="3" user="0 0.3 0.0 5.0"/>
-    <user name="Ang. Vel." dim="3" user="0 0.3 0.0 5.0"/>
-    <user name="Control" dim="4" user="0 1.0e-2 0.0 1.0"/>
-    <framepos name="trace0" objtype="body" objname="quadrotor"/>
-    <framepos name="position" objtype="body" objname="quadrotor"/>
-    <framequat name="orientation" objtype="body" objname="quadrotor"/>
-    <framelinvel name="linear_velocity" objtype="body" objname="quadrotor"/>
-    <frameangvel name="angular_velocity" objtype="body" objname="quadrotor"/>
+    <user name="Position" dim="3" user="0 25.0 0 50.0"/>
+    <user name="Lin. Vel." dim="3" user="0 1.25 0.0 5.0"/>
+    <user name="Ang. Vel." dim="3" user="0 1.25 0.0 5.0"/>
+    <user name="Control" dim="4" user="0 1.0e-3 0.0 1.0"/>
+    <user name="Orientation" dim="2" user="0 0.0 0.0 50.0"/>
+    <framepos name="trace0" objtype="body" objname="x2"/>
+    <framepos name="position" objtype="body" objname="x2"/>
+    <framequat name="orientation" objtype="body" objname="x2"/>
+    <framelinvel name="linear_velocity" objtype="body" objname="x2"/>
+    <frameangvel name="angular_velocity" objtype="body" objname="x2"/>
   </sensor>
 
   <keyframe>
-    <key name="home" mpos="0.0 0.0 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="1.2 0.0 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="2.3 0.6 1.5" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="2.7 0.95 1.5" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="4.6 0.4 0.75" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="5.0 -1.6 0.75" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="3.4 -2.5 0.35" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="2.5 -2.25 1.45" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="2.5 -2.25 2.25" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="1.5 -1.75 1.85" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="1.05 -1.75 1.3" mquat="0.0 0.70710678 0.0 0.70710678" />
-    <key mpos="0.1 -1.4 0.5" mquat="0.0 0.70710678 0.0 0.70710678" />
+    <key name="home" mpos="1.2 0.0 0.75"/>
+    <key mpos="2.3 0.6 1.5"/>
+    <key mpos="2.7 0.95 1.5"/>
+    <key mpos="4.6 0.4 0.75"/>
+    <key mpos="5.0 -1.8 0.75"/>
+    <key mpos="3.4 -2.5 0.75"/>
+    <key mpos="2.5 -2.25 1.45"/>
+    <key mpos="2.5 -2.25 2.25"/>
+    <key mpos="1.5 -1.75 1.85"/>
+    <key mpos="1.05 -1.75 1.3"/>
+    <key mpos="0.1 -1.4 0.75"/>
+    <key mpos="0.0 0.0 0.75"/>
   </keyframe>
 </mujoco>

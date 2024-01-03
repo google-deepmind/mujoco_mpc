@@ -47,6 +47,10 @@ grpc::Status SetMode(const agent::SetModeRequest* request, mjpc::Agent* agent);
 grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
                      agent::GetModeResponse* response);
 
+grpc::Status GetAllModes(const agent::GetAllModesRequest* request,
+                         mjpc::Agent* agent,
+                         agent::GetAllModesResponse* response);
+
 mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
                              int error_size);
 mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb);

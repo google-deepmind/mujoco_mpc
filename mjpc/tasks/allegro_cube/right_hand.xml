@@ -7,7 +7,7 @@
   <default>
     <default class="allegro_right">
       <joint axis="0 1 0" damping=".1"/>
-      <position kp="0.25"/>
+      <position kp="0.5"/>
       <geom density="800"/>
 
       <default class="visual">

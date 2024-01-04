@@ -50,12 +50,13 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
 
   // sampling noise
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
+  stdev_min = GetNumberOrDefault(0.1, model, "stdev_min");  // only controls initial variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set number of elite samples
-  n_elites = GetNumberOrDefault(num_trajectory_ / 2, model, "n_elites");  // half rounded down
+  n_elites = GetNumberOrDefault(num_trajectory_ / 10, model, "n_elites");  // best 10%
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -86,8 +87,8 @@ void CEMPlanner::Allocate() {
 
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
-  stdev.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
-  fill(stdev.begin(), stdev.end(), noise_exploration);  // TODO: if this gets called before Initialize, then move this to above
+  variance.resize(model->nu * kMaxTrajectoryHorizon);  // (nu * horizon)
+  fill(variance.begin(), variance.end(), std::pow(noise_exploration, 2));  // TODO: if this gets called before Initialize, then move this to above
 
   // trajectory and parameters
   winner = -1;
@@ -247,32 +248,36 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
   // temp variables to help with averaging
-  std::vector<double> temp_avg(model->nu);  // holds avg for spline point t
-  // std::vector<double> temp_elite_actions(model->nu);
-  // std::array<std::array<double, nu>, n_elites> temp_elite_actions;
+  std::vector<double> temp_avg(model->nu);  // holds avg control action over elites for each spline point t
   std::vector<std::vector<double>> temp_elite_actions;
-  temp_elite_actions.resize(n_elites, std::vector<double>(model->nu, 0.0));
+  temp_elite_actions.resize(n_elites, std::vector<double>(model->nu, 0.0)); // shape=(n_elites, nu)
+
+  variance.assign(model->nu * num_spline_points, 0.0);  // reset variance to 0
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
+    temp_avg.assign(model->nu, 0.0);  // reset temp_avg to 0
 
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
     for (int i = 0; i < n_elites; i++) {
-      int index = trajectory_order[i];  // the (i+1)^th best trajectory [TODO] this segfaults!
-      candidate_policy[index].Action(DataAt(temp_elite_actions[i], 0), nullptr, nominal_time);
+      candidate_policy[trajectory_order[i]].Action(  // the (i+1)^th best trajectory
+        DataAt(temp_elite_actions[i], 0),  // copies the action from the cand policy into the i^th control vector
+        nullptr,
+        nominal_time
+      );
       for (int k = 0; k < model->nu; k++) {
-        temp_avg[k] += temp_elite_actions[i][k] / num_spline_points;
+        temp_avg[k] += temp_elite_actions[i][k] / n_elites;
       }
     }
 
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
       for (int i = 0; i < n_elites; i++) {
-        stdev[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
+        variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
+        // variance[k * num_spline_points + t] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);  // [DEBUG] which way are params indexed?
       }
-      stdev[t * model->nu + k] = std::sqrt(stdev[t * model->nu + k]);  // take the root
     }
 
     // assigning the averaged parameters to parameters_scratch
@@ -310,8 +315,12 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
   int shift = i * (model->nu * kMaxTrajectoryHorizon);
 
   // sample noise
+  // variance[k] is the standard deviation for the k^th control parameter over the elite samples
+  // we draw a bunch of control actions from this distribution (which i indexes) - the noise is
+  // stored in `noise`.
   for (int k = 0; k < num_parameters; k++) {
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, stdev[k]);
+    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, std::max(std::sqrt(variance[k]), stdev_min));
+    // noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, 0.1);  // [DEBUG]
   }
 
   // add noise

@@ -40,6 +40,8 @@ namespace grpc_agent_util {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
+using ::agent::GetAllModesRequest;
+using ::agent::GetAllModesResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
@@ -370,6 +372,15 @@ grpc::Status SetMode(const SetModeRequest* request, mjpc::Agent* agent) {
 grpc::Status GetMode(const GetModeRequest* request, mjpc::Agent* agent,
                      GetModeResponse* response) {
   response->set_mode(agent->GetModeName());
+  return grpc::Status::OK;
+}
+
+grpc::Status GetAllModes(const GetAllModesRequest* request, mjpc::Agent* agent,
+                         GetAllModesResponse* response) {
+  std::vector<std::string> mode_names = agent->GetAllModeNames();
+  for (const auto& mode_name : mode_names) {
+    response->add_mode_names(mode_name);
+  }
   return grpc::Status::OK;
 }
 

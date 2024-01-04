@@ -333,4 +333,31 @@ TEST_F(AgentServiceTest, SetCostWeights_RejectsInvalidName) {
       << "Error message should contain the list of cost term names.";
 }
 
+TEST_F(AgentServiceTest, GetMode_Works) {
+  RunAndCheckInit("Cartpole", nullptr);
+
+  grpc::ClientContext context;
+
+  agent::GetModeRequest request;
+  agent::GetModeResponse response;
+  grpc::Status status = stub->GetMode(&context, request, &response);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(response.mode(), "default_mode");
+}
+
+TEST_F(AgentServiceTest, GetAllModes_Works) {
+  RunAndCheckInit("Cartpole", nullptr);
+
+  grpc::ClientContext context;
+
+  agent::GetAllModesRequest request;
+  agent::GetAllModesResponse response;
+  grpc::Status status = stub->GetAllModes(&context, request, &response);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(response.mode_names().size(), 1);
+  EXPECT_EQ(response.mode_names()[0], "default_mode");
+}
+
 }  // namespace mjpc::agent_grpc

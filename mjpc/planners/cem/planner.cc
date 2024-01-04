@@ -23,7 +23,7 @@
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
-#include "mjpc/planners/cem/policy.h"
+#include "mjpc/planners/policy.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"

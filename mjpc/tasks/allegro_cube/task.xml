@@ -33,7 +33,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".1"/>
+    <geom friction=".3"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->
@@ -42,7 +42,7 @@
         directional="true" castshadow="true"/>
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
     <body name="goal" pos="0.325 0.17 0.0475">
-      <joint axis="0 0 1" damping="0.001"/>
+      <joint type="ball" damping="0.001"/>
       <geom type="box" size=".03 .03 .03" mass=".122" material="cube" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
@@ -68,7 +68,7 @@
     <user name="Cube Orientation" dim="3" user="0 7.5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 10 0 20" />
     <user name="Actuation" dim="16" user="0 1 0.0 10" />
-    <user name="Grasp" dim="16" user="0 0.5 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.1 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 1.0e-3 0.0 0.1" />
 
     <!-- Measurements we want to use -->
@@ -79,6 +79,6 @@
   <include file="right_hand.xml"/>
 
   <keyframe>
-    <key qpos='0 0.2 0.025 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715'/>
+    <key qpos='0 0 0 1 0.2 0.025 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715'/>
   </keyframe>
 </mujoco>

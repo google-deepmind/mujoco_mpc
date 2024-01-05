@@ -275,8 +275,9 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
       for (int i = 0; i < n_elites; i++) {
+        // [DEBUG] which way are params indexed?
         variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
-        // variance[k * num_spline_points + t] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);  // [DEBUG] which way are params indexed?
+        // variance[k * num_spline_points + t] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
       }
     }
 

@@ -18,7 +18,7 @@
     <numeric name="sampling_representation" data="2" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
-    <numeric name="stdev_min" data="0.1" />
+    <numeric name="stdev_min" data="0.2" />
 
     <!-- cem -->
     <numeric name="n_elites" data="10" />
@@ -65,10 +65,10 @@
       norm parameters: parameters (e.g., p, q) for norms
     -->
     <user name="Cube Position" dim="3" user="1 50 0 100 0.02 2"/>
-    <user name="Cube Orientation" dim="3" user="0 10 0 10" />
+    <user name="Cube Orientation" dim="3" user="0 7.5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 10 0 20" />
-    <user name="Actuation" dim="16" user="0 5 0.0 10" />
-    <user name="Grasp" dim="16" user="0 1 0.0 10" />
+    <user name="Actuation" dim="16" user="0 1 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.5 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 1.0e-3 0.0 0.1" />
 
     <!-- Measurements we want to use -->

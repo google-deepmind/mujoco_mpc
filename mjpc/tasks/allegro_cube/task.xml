@@ -3,7 +3,6 @@
 
   <size memory="1M"/>
 
-  <!-- not sure if we should do this -->
   <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
 
   <custom>
@@ -64,7 +63,7 @@
       weight upper bound: Upper bound on this weight for the GUI.
       norm parameters: parameters (e.g., p, q) for norms
     -->
-    <user name="Cube Position" dim="3" user="1 50 0 100 0.02 2"/>
+    <user name="Cube Position" dim="3" user="1 75 0 100 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 7.5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 10 0 20" />
     <user name="Actuation" dim="16" user="0 1 0.0 10" />

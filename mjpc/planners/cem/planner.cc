@@ -51,6 +51,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   // sampling noise
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
   stdev_min = GetNumberOrDefault(0.1, model, "stdev_min");  // only controls initial variance
+  first_iter = true;
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -262,7 +263,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
     for (int i = 0; i < n_elites; i++) {
-      candidate_policy[trajectory_order[i]].Action(  // the (i+1)^th best trajectory
+      candidate_policy[trajectory_order[i]].Action(  // trajectory_order[i] is the (i+1)^th best trajectory
         DataAt(temp_elite_actions[i], 0),  // copies the action from the cand policy into the i^th control vector
         nullptr,
         nominal_time
@@ -281,10 +282,24 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
       }
     }
 
+    // [DEBUG] print the standard deviations
+    // ********************************************************************************************************
+    // for (int k = 0; k < model->nu; k++) {
+    //   std::cout << "stdev[" << t << "][" << k << "] = " << std::sqrt(variance[t * model->nu + k]) << std::endl;
+    // }
+    // ********************************************************************************************************
+
     // assigning the averaged parameters to parameters_scratch
     std::copy(temp_avg.begin(), temp_avg.end(), parameters_scratch.begin() + t * model->nu);
     nominal_time += time_shift;
   }
+
+  // if first iter, set variance to the initial variance
+  if (first_iter) {
+    variance.assign(model->nu * num_spline_points, std::pow(noise_exploration, 2));
+    first_iter = false;
+  }
+  first_iter = false;
 
   // update
   {
@@ -446,6 +461,8 @@ void CEMPlanner::GUI(mjUI& ui) {
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_SLIDERINT, "Number Elite", 2, &n_elites, "2 100"},
+      {mjITEM_SLIDERNUM, "Min Stdev", 2, &stdev_min, "0.01 0.25"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

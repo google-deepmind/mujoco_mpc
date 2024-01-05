@@ -138,6 +138,7 @@ class CEMPlanner : public RankedPlanner {
   std::vector<double> noise;
   std::vector<double> variance;
   double stdev_min;  // the minimum allowable stdev for CEM
+  bool first_iter;  // a flag indicating whether it's the first iteration or not
 
   // gradient
   std::vector<double> noise_gradient;

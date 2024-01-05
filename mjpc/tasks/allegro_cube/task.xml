@@ -43,7 +43,7 @@
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
     <body name="goal" pos="0.325 0.17 0.0475">
       <joint type="ball" damping="0.001"/>
-      <geom type="box" size=".03 .03 .03" mass=".122" material="cube" contype="0" conaffinity="0"/>
+      <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
 

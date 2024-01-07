@@ -914,72 +914,68 @@ class DirectOptimizer:
   def _cost_derivatives(
       self,
       qpos: npt.ArrayLike,
-      skip_cost: bool = False,
-      skip_jacobian: bool = False,
   ):
     # evaluate cost to compute intermediate values
-    if not skip_cost:
-      self.cost(qpos)
+    self.cost(qpos)
 
-    if not skip_jacobian:
-      # finite-difference Jacobians
-      (
-          self._dvdq0,
-          self._dvdq1,
-          self._dadq0,
-          self._dadq1,
-          self._dadq2,
-      ) = diff_qpos_to_qvel_qacc(
-          self.model,
-          qpos,
-          self.horizon,
-      )
+    # finite-difference Jacobians
+    (
+        self._dvdq0,
+        self._dvdq1,
+        self._dadq0,
+        self._dadq1,
+        self._dadq2,
+    ) = diff_qpos_to_qvel_qacc(
+        self.model,
+        qpos,
+        self.horizon,
+    )
 
-      # inverse dynamics Jacobians
-      (
-          self._dfdq,
-          self._dfdv,
-          self._dfda,
-          self._dsdq,
-          self._dsdv,
-          self._dsda,
-      ) = diff_inverse_dynamics(
-          self.model,
-          self.data,
-          qpos,
-          self.qvel,
-          self.qacc,
-          self.ctrl,
-          self.horizon,
-      )
+    # inverse dynamics Jacobians
+    (
+        self._dfdq,
+        self._dfdv,
+        self._dfda,
+        self._dsdq,
+        self._dsdv,
+        self._dsda,
+    ) = diff_inverse_dynamics(
+        self.model,
+        self.data,
+        qpos,
+        self.qvel,
+        self.qacc,
+        self.ctrl,
+        self.horizon,
+    )
 
-      # force derivatives
-      self._dfdq012 = diff_force(
-          self.model,
-          self._dfdq,
-          self._dfdv,
-          self._dfda,
-          self._dvdq0,
-          self._dvdq1,
-          self._dadq0,
-          self._dadq1,
-          self._dadq2,
-          self.horizon,
-      )
+    # force derivatives
+    self._dfdq012 = diff_force(
+        self.model,
+        self._dfdq,
+        self._dfdv,
+        self._dfda,
+        self._dvdq0,
+        self._dvdq1,
+        self._dadq0,
+        self._dadq1,
+        self._dadq2,
+        self.horizon,
+    )
 
-      # sensor derivatives
-      self._dsdq012 = diff_sensor(
-          self.model,
-          self._dsdq,
-          self._dsdv,
-          self._dsda,
-          self._dvdq0,
-          self._dvdq1,
-          self._dadq0,
-          self._dadq1,
-          self._dadq2,
-          self.horizon,
-      )
+    # sensor derivatives
+    self._dsdq012 = diff_sensor(
+        self.model,
+        self._dsdq,
+        self._dsdv,
+        self._dsda,
+        self._dvdq0,
+        self._dvdq1,
+        self._dadq0,
+        self._dadq1,
+        self._dadq2,
+        self.horizon,
+    )
 
     # force cost derivatives
     force_gradient, force_hessian = diff_cost_force(
@@ -1100,9 +1096,7 @@ class DirectOptimizer:
       self._iterations_step = i
 
       # compute search direction
-      self._cost_derivatives(
-          self.qpos, skip_cost=True
-      )  # TODO() skip qpos processing
+      self._cost_derivatives(self.qpos)
 
       # check gradient tolerance
       self._gradient_norm = np.linalg.norm(self._gradient) / self._ntotal

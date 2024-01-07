@@ -784,7 +784,7 @@ class DirectOptimizer:
     # model + data
     self.model = model
     # TODO(taylor): set discrete inverse dynamics!!
-    # self.model.opt.enableflags |= self.model.mjtEnableBit.mjENBL_INVDISCRETE
+    self.model.opt.enableflags |= mujoco.mjtEnableBit.mjENBL_INVDISCRETE
     self.data = mujoco.MjData(model)
 
     # horizon

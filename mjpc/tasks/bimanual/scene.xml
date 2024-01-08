@@ -1,0 +1,107 @@
+<mujoco model="iiwa14 bimanual scene">
+  <compiler angle="radian" meshdir="assets" autolimits="true"/>
+  <option integrator="implicitfast"/>
+  <size memory="1M"/>
+
+  <default>
+    <default class="iiwa">
+      <material specular="0.5" shininess="0.25"/>
+      <joint axis="0 0 1"/>
+      <general gaintype="fixed" biastype="affine" gainprm="2000" biasprm="0 -2000 -200"/>
+      <default class="joint1">
+        <joint range="-2.96706 2.96706"/>
+        <general ctrlrange="-2.96706 2.96706"/>
+        <default class="joint2">
+          <joint range="-2.0944 2.0944"/>
+          <general ctrlrange="-2.0944 2.0944"/>
+        </default>
+      </default>
+      <default class="joint1_free">
+        <joint range="-2.96706 2.96706"/>
+      </default>
+      <default class="joint3">
+        <joint range="-3.05433 3.05433"/>
+        <general ctrlrange="-3.05433 3.05433"/>
+      </default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" material="gray"/>
+      </default>
+      <default class="collision">
+        <geom group="3"/>
+      </default>
+      <site size="0.001" rgba="1 0 0 1" group="4"/>
+    </default>
+  </default>
+
+  <asset>
+    <material class="iiwa" name="gray" rgba="0.4 0.4 0.4 1"/>
+    <material class="iiwa" name="light_gray" rgba="0.6 0.6 0.6 1"/>
+    <material class="iiwa" name="black" rgba="0 0 0 1"/>
+    <material class="iiwa" name="orange" rgba="1 0.423529 0.0392157 1"/>
+
+    <mesh file="link_0.obj"/>
+    <mesh file="link_1.obj"/>
+    <mesh file="link_2_orange.obj"/>
+    <mesh file="link_2_grey.obj"/>
+    <mesh file="link_3.obj"/>
+    <mesh file="band.obj"/>
+    <mesh file="kuka.obj"/>
+    <mesh file="link_4_orange.obj"/>
+    <mesh file="link_4_grey.obj"/>
+    <mesh file="link_5.obj"/>
+    <mesh file="link_6_orange.obj"/>
+    <mesh file="link_6_grey.obj"/>
+    <mesh file="link_7.obj"/>
+  </asset>
+
+  <include file="iiwa14_left.xml"/>
+  <include file="iiwa14_right.xml"/>
+
+  <statistic center="0.2 0 0.2" extent="1.0"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <body name="block">
+      <freejoint/>
+      <geom name="block" rgba="1 0 1 1" type="box" mass="1" size="0.1 0.1 0.1" pos="0 0 0.1"/>
+      <site name="block0" pos="0.1 0.1 0.2" group="5"/>
+      <site name="block1" pos="-.1 0.1 0.2" group="5"/>
+      <site name="block2" pos="0.1 -.1 0.2" group="5"/>
+      <site name="block3" pos="-.1 -.1 0.2" group="5"/>
+      <site name="block4" pos="0.1 0.1 0.0" group="5"/>
+      <site name="block5" pos="-.1 0.1 0.0" group="5"/>
+      <site name="block6" pos="0.1 -.1 0.0" group="5"/>
+      <site name="block7" pos="-.1 -.1 0.0" group="5"/>
+    </body>
+
+    <body name="goal" mocap="true">
+      <geom name="goal" contype="0" conaffinity="0" rgba="0 1 0 0.5" type="box" size="0.1 0.1 0.1" pos="0 0.0 0.1"/>
+      <site name="goal0" pos="0.1 0.1 0.2" group="5"/>
+      <site name="goal1" pos="-.1 0.1 0.2" group="5"/>
+      <site name="goal2" pos="0.1 -.1 0.2" group="5"/>
+      <site name="goal3" pos="-.1 -.1 0.2" group="5"/>
+      <site name="goal4" pos="0.1 0.1 0.0" group="5"/>
+      <site name="goal5" pos="-.1 0.1 0.0" group="5"/>
+      <site name="goal6" pos="0.1 -.1 0.0" group="5"/>
+      <site name="goal7" pos="-.1 -.1 0.0" group="5"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="home" qpos="0 1.21452 0 -2.094 0 -1.75896 0 0 1.21452 0 -2.094 0 -1.75896 0 0 0 0 1 0 0 0"/>
+  </keyframe>
+</mujoco>

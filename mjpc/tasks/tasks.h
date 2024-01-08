@@ -17,10 +17,10 @@
 #ifndef MJPC_TASKS_TASKS_H_
 #define MJPC_TASKS_TASKS_H_
 
-#include "mjpc/task.h"
-
 #include <memory>
 #include <vector>
+
+#include "mjpc/task.h"
 
 namespace mjpc {
 std::vector<std::shared_ptr<Task>> GetTasks();

@@ -34,7 +34,7 @@ std::string Cartpole::Name() const { return "Cartpole"; }
 //     Control:  Control should be small
 // ------------------------------------------
 void Cartpole::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                        double* residual) const {
+                                    double* residual) const {
   // ---------- Vertical ----------
   residual[0] = std::cos(data->qpos[1]) - 1;
 

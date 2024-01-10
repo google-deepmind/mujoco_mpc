@@ -49,7 +49,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
+  stdev_init = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
   stdev_min = GetNumberOrDefault(0.1, model, "stdev_min");  // only controls initial variance
   first_iter = true;
 
@@ -89,7 +89,7 @@ void CEMPlanner::Allocate() {
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
   variance.resize(model->nu * kMaxTrajectoryHorizon);  // (nu * horizon)
-  fill(variance.begin(), variance.end(), std::pow(noise_exploration, 2));  // TODO: if this gets called before Initialize, then move this to above
+  fill(variance.begin(), variance.end(), std::pow(stdev_init, 2));  // TODO: if this gets called before Initialize, then move this to above
 
   // trajectory and parameters
   winner = -1;
@@ -276,9 +276,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
       for (int i = 0; i < n_elites; i++) {
-        // [DEBUG] which way are params indexed?
         variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
-        // variance[k * num_spline_points + t] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
       }
     }
 
@@ -296,7 +294,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
 
   // if first iter, set variance to the initial variance
   if (first_iter) {
-    variance.assign(model->nu * num_spline_points, std::pow(noise_exploration, 2));
+    variance.assign(model->nu * num_spline_points, std::pow(stdev_init, 2));
     first_iter = false;
   }
   first_iter = false;
@@ -460,7 +458,7 @@ void CEMPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
-      {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_SLIDERNUM, "Noise Std", 2, &stdev_init, "0 1"},
       {mjITEM_SLIDERINT, "Number Elite", 2, &n_elites, "2 100"},
       {mjITEM_SLIDERNUM, "Min Stdev", 2, &stdev_min, "0.01 0.5"},
       {mjITEM_END}};

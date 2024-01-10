@@ -133,7 +133,7 @@ class CEMPlanner : public RankedPlanner {
   double timestep_power;
 
   // ----- noise ----- //
-  double noise_exploration;  // standard deviation for sampling normal: N(0,
+  double stdev_init;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;
   std::vector<double> variance;

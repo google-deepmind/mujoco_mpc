@@ -462,7 +462,7 @@ void CEMPlanner::GUI(mjUI& ui) {
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
       {mjITEM_SLIDERINT, "Number Elite", 2, &n_elites, "2 100"},
-      {mjITEM_SLIDERNUM, "Min Stdev", 2, &stdev_min, "0.01 0.25"},
+      {mjITEM_SLIDERNUM, "Min Stdev", 2, &stdev_min, "0.01 0.5"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

@@ -112,11 +112,6 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 ## Installing via Pip
 The MJPC Python module can be installed with:
 ```sh
-pip install "${MUJOCO_MPC_ROOT}/python"
-```
-
-Alternatively:
-```sh
 python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
 ```
 
@@ -125,7 +120,7 @@ Test that installation was successful:
 python "${MUJOCO_MPC_ROOT}/python/mujoco_mpc/${API_TEST}.py"
 ```
 
-where API(_TEST) can be: agent(_test), filter(_test), or direct(_test).
+where API(_TEST) can be: agent(_test), filter(_test), or direct(_test). Additionally, the [Python version of MuJoCo](https://pypi.org/project/mujoco/#history) must match the MJPC version (this information can be found in the terminal while the application is running).
 
 
 ## Example Usage

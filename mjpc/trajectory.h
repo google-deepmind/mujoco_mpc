@@ -79,7 +79,7 @@ class Trajectory {
   std::vector<double> states;    // (horizon   x nq + nv + na)
   std::vector<double> actions;   // (horizon-1 x num_action)
   std::vector<double> times;     // horizon
-  std::vector<double> residual;  // (horizon x num_residual)
+  std::vector<double> residual;  // (horizon   x num_residual)
   std::vector<double> costs;     // horizon
   std::vector<double> trace;     // (horizon   x 3)
   double total_return;           // (1)

@@ -131,7 +131,9 @@ class AgentTest(parameterized.TestCase):
           mocap_quat=data.mocap_quat,
           userdata=data.userdata,
       )
-      agent.get_action(averaging_duration=control_timestep, nominal_action=nominal)
+      agent.get_action(
+          averaging_duration=control_timestep, nominal_action=nominal
+      )
       state_after = agent.get_state()
       self.assertEqual(data.time, state_after.time)
       np.testing.assert_allclose(data.qpos, state_after.qpos)
@@ -216,7 +218,9 @@ class AgentTest(parameterized.TestCase):
         data.qvel = state.qvel
         data.act = state.act
         data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-        data.mocap_quat = np.array(state.mocap_quat).reshape(data.mocap_quat.shape)
+        data.mocap_quat = np.array(state.mocap_quat).reshape(
+            data.mocap_quat.shape
+        )
         data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
         observations.append(get_observation(model, data))
 
@@ -366,6 +370,31 @@ class AgentTest(parameterized.TestCase):
         serverless_agent.set_task_parameters({"Goal": 14})
 
       self.assertEqual(agent.get_task_parameters()["Goal"], 14)
+
+  def test_best_trajectory(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/particle/task_timevarying.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+    data = mujoco.MjData(model)
+
+    agent = agent_lib.Agent(task_id="Particle", model=model)
+    agent.set_state(
+        time=data.time,
+        qpos=data.qpos,
+        qvel=data.qvel,
+        act=data.act,
+        mocap_pos=data.mocap_pos,
+        mocap_quat=data.mocap_quat,
+        userdata=data.userdata,
+    )
+    agent.planner_step()
+    best_traj = agent.best_trajectory()
+
+    self.assertEqual(best_traj["states"].shape, (51, 4))
+    self.assertEqual(best_traj["actions"].shape, (50, 2))
+    self.assertEqual(best_traj["times"].shape, (51,))
 
   def test_set_mocap(self):
     model_path = (

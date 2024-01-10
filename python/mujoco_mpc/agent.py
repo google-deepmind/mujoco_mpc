@@ -360,6 +360,23 @@ class Agent(contextlib.AbstractContextManager):
     if parameters.cost_weights:
       self.set_cost_weights(parameters.cost_weights)
 
+  def best_trajectory(self):
+    request = agent_pb2.GetBestTrajectoryRequest()
+    response = self.stub.GetBestTrajectory(request)
+    if self.model is None:
+      raise ValueError("model is None")
+    else:
+      return {
+          "states": np.array(response.states).reshape(
+              response.steps,
+              self.model.nq + self.model.nv + self.model.na,
+          ),
+          "actions": np.array(response.actions).reshape(
+              response.steps - 1, self.model.nu
+          ),
+          "times": np.array(response.times),
+      }
+
   def set_mocap(self, mocap_map: Mapping[str, mjpc_parameters.Pose]):
     request = agent_pb2.SetAnythingRequest()
     for key, value in mocap_map.items():

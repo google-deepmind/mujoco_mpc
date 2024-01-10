@@ -8,10 +8,10 @@
     <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="6" />
+    <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
-    <numeric name="gradient_spline_points" data="6" />
   </custom>
 
   <statistic extent="0.4" center="0.3 0.1 0"/>
@@ -37,13 +37,19 @@
 
   <sensor>
     <user name="In Hand" dim="3" user="1 20 0 100 0.02 2"/>
-    <user name="Orientation" dim="3" user="0 3 0 10" />
+    <user name="Orientation" dim="3" user="0 5 0 10" />
     <user name="Cube Vel." dim="3" user="0 10 0 20" />
     <user name="Actuator" dim="20" user="0 0.1 0.0 1.0" />
+    <user name="Grasp" dim="26" user="0 2.5 0.0 10.0" />
+    <user name="Joint Vel." dim="26" user="0 1.0e-4 0.0 1.0e-1" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>
 
   <include file="cube.xml"/>
   <include file="right_hand.xml"/>
+
+  <keyframe>
+    <key name="grasp" qpos="1 0 0 0 0.33326 -0.00362331 0.0375343 0.707635 0.70405 0.0500937 -0.0325089 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255"/>
+  </keyframe>
 </mujoco>

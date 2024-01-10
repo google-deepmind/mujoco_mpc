@@ -37,6 +37,10 @@ void Unscented::Initialize(const mjModel* model) {
   if (this->data_) mj_deleteData(this->data_);
   data_ = mj_makeData(model);
 
+  // settings
+  settings.alpha = GetNumberOrDefault(1.0, model, "unscented_alpha");
+  settings.beta = GetNumberOrDefault(2.0, model, "unscented_beta");
+
   // timestep
   this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
                                                  model, "estimator_timestep");

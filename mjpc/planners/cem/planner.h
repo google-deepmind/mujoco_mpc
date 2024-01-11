@@ -149,6 +149,10 @@ class CEMPlanner : public RankedPlanner {
   // number of elite samples
   int n_elites;
 
+  // temp variables to help with averaging
+  std::vector<double> temp_avg;  // holds avg control action over elites for each spline point t
+  std::vector<std::vector<double>> temp_elite_actions;  // holds the top n_elite sampled actions
+
   // improvement
   double improvement;
 

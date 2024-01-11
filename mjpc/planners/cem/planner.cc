@@ -58,6 +58,8 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
 
   // set number of elite samples
   n_elites = GetNumberOrDefault(num_trajectory_ / 10, model, "n_elites");  // best 10%
+  temp_avg.resize(model->nu);
+  temp_elite_actions.resize(kMaxTrajectory, std::vector<double>(model->nu, 0.0)); // shape=(kMaxTrajectory, nu)
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -91,7 +93,7 @@ void CEMPlanner::Allocate() {
   variance.resize(model->nu * kMaxTrajectoryHorizon);  // (nu * horizon)
   fill(variance.begin(), variance.end(), std::pow(stdev_init, 2));  // TODO: if this gets called before Initialize, then move this to above
 
-  // trajectory and parameters
+  // trajectories and parameters
   winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
@@ -206,6 +208,7 @@ void CEMPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   CopyCandidateToPolicy(0);
 
   // improvement: compare nominal to winner
+  // TODO: change this for the setting of CEM
   double best_return = trajectory[0].total_return;
   improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
 
@@ -248,10 +251,8 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
   double time_shift = mju_max(
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
-  // temp variables to help with averaging
-  std::vector<double> temp_avg(model->nu);  // holds avg control action over elites for each spline point t
-  std::vector<std::vector<double>> temp_elite_actions;
-  temp_elite_actions.resize(n_elites, std::vector<double>(model->nu, 0.0)); // shape=(n_elites, nu)
+  // n_elites might change in the GUI - keep it constant for duration of this function
+  int n_elites_fixed = n_elites;
 
   variance.assign(model->nu * num_spline_points, 0.0);  // reset variance to 0
 
@@ -262,30 +263,23 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
 
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
-    for (int i = 0; i < n_elites; i++) {
+    for (int i = 0; i < n_elites_fixed; i++) {
       candidate_policy[trajectory_order[i]].Action(  // trajectory_order[i] is the (i+1)^th best trajectory
         DataAt(temp_elite_actions[i], 0),  // copies the action from the cand policy into the i^th control vector
         nullptr,
         nominal_time
       );
       for (int k = 0; k < model->nu; k++) {
-        temp_avg[k] += temp_elite_actions[i][k] / n_elites;
+        temp_avg[k] += temp_elite_actions[i][k] / n_elites_fixed;
       }
     }
 
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
-      for (int i = 0; i < n_elites; i++) {
-        variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites - 1);
+      for (int i = 0; i < n_elites_fixed; i++) {
+        variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites_fixed - 1);
       }
     }
-
-    // [DEBUG] print the standard deviations
-    // ********************************************************************************************************
-    // for (int k = 0; k < model->nu; k++) {
-    //   std::cout << "stdev[" << t << "][" << k << "] = " << std::sqrt(variance[t * model->nu + k]) << std::endl;
-    // }
-    // ********************************************************************************************************
 
     // assigning the averaged parameters to parameters_scratch
     std::copy(temp_avg.begin(), temp_avg.end(), parameters_scratch.begin() + t * model->nu);
@@ -297,12 +291,12 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     variance.assign(model->nu * num_spline_points, std::pow(stdev_init, 2));
     first_iter = false;
   }
-  first_iter = false;
 
   // update
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
-    // parameters
+    // copy parameters to policy
+    // parameters_scratch holds the average policy over the top n_elite ones
     policy.CopyParametersFrom(parameters_scratch, times_scratch);
 
     // time power transformation
@@ -334,7 +328,6 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
   // stored in `noise`.
   for (int k = 0; k < num_parameters; k++) {
     noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, std::max(std::sqrt(variance[k]), stdev_min));
-    // noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, 0.1);  // [DEBUG]
   }
 
   // add noise
@@ -401,6 +394,7 @@ const Trajectory* CEMPlanner::BestTrajectory() {
 }
 
 // visualize planner-specific traces
+// TODO: confirm that the purple trace being plotted is the average over the top n_elite samples
 void CEMPlanner::Traces(mjvScene* scn) {
   // sample color
   float color[4];

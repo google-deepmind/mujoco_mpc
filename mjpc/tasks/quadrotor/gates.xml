@@ -1,0 +1,115 @@
+<mujoco model="Quadrotor Gates">
+  <worldbody>
+    <!-- gate 1 -->
+    <body name="gate1_left" pos="1.0 0.75 0.75" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate1_right" pos="1.0 -0.75 0.75" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate1_top" pos="1.0 0.0 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate1_bottom" pos="1.0 0.0 0.0" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 2 -->
+    <body name="gate2_left" pos="1.968 1.281 1.5" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate2_right" pos="3.036 0.213 1.5" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate2_top" pos="2.5 0.75 2.25" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate2_bottom" pos="2.5 0.75 0.75" quat="0.92388 0.0 0.0 0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 3 -->
+    <body name="gate3_left" pos="5.036 1.036 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate3_right" pos="3.963 -0.036 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate3_top" pos="4.5 0.5 1.5" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate3_bottom" pos="4.5 0.5 0.0" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 4 -->
+    <body name="gate4_left" pos="5.75 -1.5 0.75" quat="0.7071 0 0 0.7071">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate4_right" pos="4.25 -1.5 0.75" quat="0.7071 0 0 0.7071">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate4_top" pos="5.0 -1.5 1.5" quat="0.7071 0 0 0.7071">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate4_bottom" pos="5.0 -1.5 0.0" quat="0.7071 0 0 0.7071">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 5 -->
+    <body name="gate5_left" pos="3.5 -3.25 0.75" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate5_right" pos="3.5 -1.75 0.75" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate5_top" pos="3.5 -2.5 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate5_bottom" pos="3.5 -2.5 0.0" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 6 -->
+    <body name="gate6_left" pos="2.5 -1.5 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="-0.75 0.0 0.0 0.75 0.0 0.0"/>
+    </body>
+    <body name="gate6_right" pos="2.5 -3.0 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="-0.75 0.0 0.0 0.75 0.0 0.0"/>
+    </body>
+    <body name="gate6_top" pos="3.25 -2.25 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate6_bottom" pos="1.75 -2.25 1.5" quat="1 0 0 0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 7 -->
+    <body name="gate7_left" pos="1.25 -2.5 1.5" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate7_right" pos="1.25 -1.0 1.5" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate7_top" pos="0.713 -1.75 2.036" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate7_bottom" pos="1.786 -1.75 .963" quat="0.9238 0.0 -0.382683 0.0">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+
+    <!-- gate 8 -->
+    <body name="gate8_left" pos="0.736 -.963 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate8_right" pos="-0.336 -2.036 0.75" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 0 -0.75 0.0 0 0.75"/>
+    </body>
+    <body name="gate8_top" pos="0.2 -1.5 1.5" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+    <body name="gate8_bottom" pos="0.2 -1.5 0.0" quat="0.92388 0.0 0.0 -0.382683">
+      <geom type="capsule"  size="0.025 0.1 0.05" rgba="0.902 0.494 0.133 1" fromto="0.0 -0.75 0.0 0.0 0.75 0.0"/>
+    </body>
+  </worldbody>
+</mujoco>

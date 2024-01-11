@@ -16,11 +16,11 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"
@@ -91,9 +91,6 @@ void SamplingPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
-
-  // noise gradient
-  noise_gradient.resize(num_max_parameter);
 }
 
 // reset memory to zeros
@@ -124,9 +121,6 @@ void SamplingPlanner::Reset(int horizon) {
   for (const auto& d : data_) {
     mju_zero(d->ctrl, model->nu);
   }
-
-  // noise gradient
-  std::fill(noise_gradient.begin(), noise_gradient.end(), 0.0);
 
   // improvement
   improvement = 0.0;
@@ -262,8 +256,8 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   auto noise_start = std::chrono::steady_clock::now();
 
   // dimensions
-  int num_spline_points = candidate_policy->num_spline_points;
-  int num_parameters = candidate_policy->num_parameters;
+  int num_spline_points = candidate_policy[i].num_spline_points;
+  int num_parameters = candidate_policy[i].num_parameters;
 
   // sampling token
   absl::BitGen gen_;

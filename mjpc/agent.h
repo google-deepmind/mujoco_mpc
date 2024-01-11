@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #ifndef MJPC_AGENT_H_
 #define MJPC_AGENT_H_
 
@@ -18,14 +19,13 @@
 #include <deque>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <absl/functional/any_invocable.h>
 #include <mujoco/mujoco.h>
-
+#include "mjpc/estimators/include.h"
 #include "mjpc/planners/include.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
@@ -48,7 +48,7 @@ class Agent {
 
   // constructor
   Agent()
-      : planners_(mjpc::LoadPlanners()) {}
+      : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
   explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
 
   // destructor
@@ -97,6 +97,10 @@ class Agent {
   void AgentEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,
                   int& run);
 
+  // estimator-based GUI event
+  void EstimatorEvent(mjuiItem* it, mjData* data,
+                      std::atomic<int>& uiloadrequest, int& run);
+
   // initialize plots
   void PlotInitialize();
 
@@ -130,6 +134,8 @@ class Agent {
   void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
 
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
+  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
+  int ActiveEstimatorIndex() const { return estimator_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).
@@ -139,6 +145,7 @@ class Agent {
   bool IsPlanningModel(const mjModel* model) const {
     return model == model_;
   }
+  int PlanSteps() const { return steps_; }
   int GetActionDim() const { return model_->nu; }
   mjModel* GetModel() { return model_; }
   const mjModel* GetModel() const { return model_; }
@@ -160,6 +167,7 @@ class Agent {
 
   // threads
   int planner_threads() const { return planner_threads_;}
+  int estimator_threads() const { return estimator_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
   int plan_enabled;
@@ -171,6 +179,12 @@ class Agent {
 
   // state
   mjpc::State state;
+
+  // estimator
+  std::vector<double> sensor;
+  std::vector<double> ctrl;
+  bool reset_estimator = true;
+  bool estimator_enabled = false;
 
  private:
   // model
@@ -200,6 +214,10 @@ class Agent {
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;
   int planner_;
 
+  // estimators
+  std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
+  int estimator_;
+
   // task queue for RunBeforeStep
   std::mutex step_jobs_mutex_;
   std::deque<StepJob> step_jobs_;
@@ -218,12 +236,16 @@ class Agent {
   // names
   char task_names_[1024];
   char planner_names_[1024];
+  char estimator_names_[1024];
 
   // plots
   AgentPlots plots_;
 
   // max threads for planning
   int planner_threads_;
+
+  // max threads for estimation
+  int estimator_threads_;
 };
 
 }  // namespace mjpc

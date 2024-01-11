@@ -30,7 +30,7 @@ This code adheres to the [Google style](https://google.github.io/styleguide/).
 Before submitting your PR, you can test your change locally by invoking ctest:
 
 ```
-cd build
+cd build/mjpc/test
 ctest --output-on-failure .
 ```
 

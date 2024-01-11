@@ -16,9 +16,11 @@
 
 #include <cstring>
 #include <mutex>
+#include <memory>
 
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
+#include "mjpc/norm.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -32,8 +34,119 @@ void MissingParameterError(const mjModel* m, int sensorid) {
 }
 }  // namespace
 
-// called at: construction, load, and GUI reset
+// initial residual parameters from model
+void Task::SetFeatureParameters(const mjModel* model) {
+  // set counter
+  int num_parameters = 0;
+
+  // search custom numeric in model for "residual"
+  for (int i = 0; i < model->nnumeric; i++) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_")) {
+      num_parameters += 1;
+    }
+  }
+
+  // allocate memory
+  parameters.resize(num_parameters);
+
+  // set values
+  int shift = 0;
+  for (int i = 0; i < model->nnumeric; i++) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_select_")) {
+      parameters[shift++] = DefaultResidualSelection(model, i);
+    } else if (absl::StartsWith(model->names + model->name_numericadr[i],
+                                "residual_")) {
+      parameters[shift++] = model->numeric_data[model->numeric_adr[i]];
+    }
+  }
+}
+
+BaseResidualFn::BaseResidualFn(const Task* task) : task_(task) {
+  Update();
+}
+
+// compute weighted cost terms
+void BaseResidualFn::CostTerms(double* terms, const double* residual,
+                               bool weighted) const {
+  int f_shift = 0;
+  int p_shift = 0;
+  for (int k = 0; k < num_term_; k++) {
+    // running cost
+    terms[k] =
+        (weighted ? weight_[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
+                                           DataAt(norm_parameter_, p_shift),
+                                           dim_norm_residual_[k], norm_[k]);
+
+    // shift residual
+    f_shift += dim_norm_residual_[k];
+
+    // shift parameters
+    p_shift += num_norm_parameter_[k];
+  }
+}
+
+// compute weighted cost from terms
+double BaseResidualFn::CostValue(const double* residual) const {
+  // cost terms
+  double terms[kMaxCostTerms];
+
+  // evaluate
+  this->CostTerms(terms, residual, /*weighted=*/true);
+
+  // summation of cost terms
+  double cost = 0.0;
+  for (int i = 0; i < num_term_; i++) {
+    cost += terms[i];
+  }
+
+  // exponential risk transformation
+  if (mju_abs(risk_) < kRiskNeutralTolerance) {
+    return cost;
+  } else {
+    return (mju_exp(risk_ * cost) - 1.0) / risk_;
+  }
+}
+
+void BaseResidualFn::Update() {
+  num_residual_ = task_->num_residual;
+  num_term_ = task_->num_term;
+  num_trace_ = task_->num_trace;
+  dim_norm_residual_ = task_->dim_norm_residual;
+  num_norm_parameter_ = task_->num_norm_parameter;
+  norm_ = task_->norm;
+  weight_ = task_->weight;
+  norm_parameter_ = task_->norm_parameter;
+  risk_ = task_->risk;
+  parameters_ = task_->parameters;
+}
+
+std::unique_ptr<ResidualFn> Task::Residual() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return ResidualLocked();
+}
+
+void Task::Residual(const mjModel* model, const mjData* data,
+                              double* residual) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  InternalResidual()->Residual(model, data, residual);
+}
+
+void Task::UpdateResidual() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  InternalResidual()->Update();
+}
+
+void Task::Transition(mjModel* model, mjData* data) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  TransitionLocked(model, data);
+  InternalResidual()->Update();
+}
+
 void Task::Reset(const mjModel* model) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   // ----- defaults ----- //
 
   // mode
@@ -126,137 +239,23 @@ void Task::Reset(const mjModel* model) {
 
   // set residual parameters
   this->SetFeatureParameters(model);
-}
 
-// initial residual parameters from model
-void Task::SetFeatureParameters(const mjModel* model) {
-  // set counter
-  int num_parameters = 0;
-
-  // search custom numeric in model for "residual"
-  for (int i = 0; i < model->nnumeric; i++) {
-    if (absl::StartsWith(model->names + model->name_numericadr[i],
-                         "residual_")) {
-      num_parameters += 1;
-    }
-  }
-
-  // allocate memory
-  parameters.resize(num_parameters);
-
-  // set values
-  int shift = 0;
-  for (int i = 0; i < model->nnumeric; i++) {
-    if (absl::StartsWith(model->names + model->name_numericadr[i],
-                         "residual_select_")) {
-      parameters[shift++] = DefaultResidualSelection(model, i);
-    } else if (absl::StartsWith(model->names + model->name_numericadr[i],
-                                "residual_")) {
-      parameters[shift++] = model->numeric_data[model->numeric_adr[i]];
-    }
-  }
-}
-
-BaseResidualFn::BaseResidualFn(const Task* task) : task_(task) {
-  Update();
-}
-
-// compute weighted cost terms
-void BaseResidualFn::CostTerms(double* terms, const double* residual,
-                               bool weighted) const {
-  int f_shift = 0;
-  int p_shift = 0;
-  for (int k = 0; k < num_term_; k++) {
-    // running cost
-    terms[k] =
-        (weighted ? weight_[k] : 1) * Norm(nullptr, nullptr, residual + f_shift,
-                                           DataAt(norm_parameter_, p_shift),
-                                           dim_norm_residual_[k], norm_[k]);
-
-    // shift residual
-    f_shift += dim_norm_residual_[k];
-
-    // shift parameters
-    p_shift += num_norm_parameter_[k];
-  }
-}
-
-// compute weighted cost from terms
-double BaseResidualFn::CostValue(const double* residual) const {
-  // cost terms
-  double terms[kMaxCostTerms];
-
-  // evaluate
-  this->CostTerms(terms, residual, /*weighted=*/true);
-
-  // summation of cost terms
-  double cost = 0.0;
-  for (int i = 0; i < num_term_; i++) {
-    cost += terms[i];
-  }
-
-  // exponential risk transformation
-  if (mju_abs(risk_) < kRiskNeutralTolerance) {
-    return cost;
-  } else {
-    return (mju_exp(risk_ * cost) - 1.0) / risk_;
-  }
-}
-
-void BaseResidualFn::Update() {
-  num_residual_ = task_->num_residual;
-  num_term_ = task_->num_term;
-  num_trace_ = task_->num_trace;
-  dim_norm_residual_ = task_->dim_norm_residual;
-  num_norm_parameter_ = task_->num_norm_parameter;
-  norm_ = task_->norm;
-  weight_ = task_->weight;
-  norm_parameter_ = task_->norm_parameter;
-  risk_ = task_->risk;
-  parameters_ = task_->parameters;
-}
-
-std::unique_ptr<ResidualFn> ThreadSafeTask::Residual() const {
-  std::lock_guard<std::mutex> lock(mutex_);
-  return ResidualLocked();
-}
-
-void ThreadSafeTask::Residual(const mjModel* model, const mjData* data,
-                              double* residual) const {
-  std::lock_guard<std::mutex> lock(mutex_);
-  InternalResidual()->Residual(model, data, residual);
-}
-
-void ThreadSafeTask::UpdateResidual() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  InternalResidual()->Update();
-}
-
-void ThreadSafeTask::Transition(mjModel* model, mjData* data) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  TransitionLocked(model, data);
-  InternalResidual()->Update();
-}
-
-void ThreadSafeTask::Reset(const mjModel* model) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  Task::Reset(model);
   ResetLocked(model);
   InternalResidual()->Update();
 }
 
-void ThreadSafeTask::CostTerms(double* terms, const double* residual) const {
+void Task::CostTerms(double* terms, const double* residual) const {
   std::lock_guard<std::mutex> lock(mutex_);
   return InternalResidual()->CostTerms(terms, residual, /*weighted=*/true);
 }
 
-void ThreadSafeTask::UnweightedCostTerms(double* terms,
+void Task::UnweightedCostTerms(double* terms,
                                          const double* residual) const {
   std::lock_guard<std::mutex> lock(mutex_);
   return InternalResidual()->CostTerms(terms, residual, /*weighted=*/false);
 }
 
-double ThreadSafeTask::CostValue(const double* residual) const {
+double Task::CostValue(const double* residual) const {
   std::lock_guard<std::mutex> lock(mutex_);
   return InternalResidual()->CostValue(residual);
 }

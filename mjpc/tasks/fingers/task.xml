@@ -1,0 +1,117 @@
+<mujoco model="Free-Floating Fingers">
+  <include file="../common.xml"/>
+
+  <option timestep="0.001" cone="elliptic" noslip_iterations="5" integrator="implicit"/>
+  <size memory="1M"/>
+
+  <custom>
+    <numeric name="agent_planner" data="2"/>
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_integrator" data="2" />
+    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_trajectories" data="60"/>
+    <numeric name="sampling_spline_points" data="5" />
+    <numeric name="sampling_exploration" data="0.04" />
+    <numeric name="robust_xfrc" data="0.015" />
+    <numeric name="gradient_spline_points" data="6" />
+  </custom>
+
+  <keyframe>
+    <key name="home" qpos="
+    0 0 0.3
+    1 0 0 0
+    0 0 0.12
+    1 0 1 0
+    0 0.1 0.3
+    0 -0.1 0.3
+    "
+    act="
+    0 0.1 0.3
+    0 -0.1 0.3
+    "
+    />
+  </keyframe>
+
+  <statistic extent="0.7" center="0 0 0"/>
+
+  <visual>
+    <quality shadowsize="8192"/>
+    <global azimuth="90" elevation="-30"/>
+  </visual>
+
+  <default>
+    <default class="red_rgb_object/">
+      <default class="red_rgb_object/visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 0 0 1" mass="0.001"/>
+      </default>
+      <default class="red_rgb_object/collision">
+        <geom contype="1" conaffinity="1" condim="6" friction="0.2 0.005 0.0001" mass="0.2" solref="0.004 1"/>
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <site name="world" group="5"/>
+    <light pos="0   -1 1.5" dir=".5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
+    <light pos="1.2 -1 1.5" dir="-.5 .8 -1" diffuse="0.5 0.5 0.5" specular="0.3 0.3 0.3" castshadow="true" cutoff="30"/>
+    <geom name="floor" pos="0 0 0" size="0 0 0.05" type="plane" material="blue_grid"/>
+    <body name="object">
+      <freejoint name="red_rgb_object/"/>
+      <geom name="object" class="red_rgb_object/collision" rgba="1 0 0 1" type="box" size="0.05 0.01 0.1" pos="0 0 0"/>
+      <site name="0" pos="0.12 0 0" group="5"/>
+      <site name="1" pos="0 .08 0" group="5"/>
+      <site name="2" pos="0 0 0.08" group="5"/>
+    </body>
+    <body name="target" gravcomp="1">
+      <freejoint/>
+      <geom name="target" rgba=".5 .5 .7 1" type="box" size="0.039 0.008 0.09" contype="0" conaffinity="0"/>
+      <site name="0t" pos="0.12 0 0" group="5"/>
+      <site name="1t" pos="0 0.08 0" group="5"/>
+      <site name="2t" pos="0 0 0.08" group="5"/>
+    </body>
+    <body name="finger_a" gravcomp="1">
+      <joint type="slide" name="A_x" axis="1 0 0"/>
+      <joint type="slide" name="A_y" axis="0 1 0"/>
+      <joint type="slide" name="A_z" axis="0 0 1"/>
+      <geom name="finger_a" rgba="0 1 0 1" type="sphere" size="0.02" condim="6"/>
+      <site name="finger_a"/>
+    </body>
+    <body name="finger_b" gravcomp="1">
+      <joint type="slide" name="B_x" axis="1 0 0"/>
+      <joint type="slide" name="B_y" axis="0 1 0"/>
+      <joint type="slide" name="B_z" axis="0 0 1"/>
+      <geom name="finger_b" rgba="0 0 1 1" type="sphere" size="0.02" condim="6"/>
+      <site name="finger_b"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <exclude body1="object" body2="target"/>
+  </contact>
+
+  <actuator>
+    <intvelocity name="A_x" site="finger_a" refsite="world" actrange="-1 1" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="1 0 0 0 0 0"/>
+    <intvelocity name="A_y" site="finger_a" refsite="world" actrange="-1 1" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="0 1 0 0 0 0"/>
+    <intvelocity name="A_z" site="finger_a" refsite="world" actrange="0 1.4" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="0 0 1 0 0 0"/>
+    <intvelocity name="B_x" site="finger_b" refsite="world" actrange="-1 1" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="1 0 0 0 0 0"/>
+    <intvelocity name="B_y" site="finger_b" refsite="world" actrange="-1 1" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="0 1 0 0 0 0"/>
+    <intvelocity name="B_z" site="finger_b" refsite="world" actrange="0 1.4" ctrlrange="-.99 .99" ctrllimited="true" kp="1000" gear="0 0 1 0 0 0"/>
+  </actuator>
+  <sensor>
+    <user name="Reach" dim="6" user="2 0.35 0 1 0.02"/>
+    <user name="Bring" dim="3" user="6 1 0 5 0.05"/>
+    <user name="Control" dim="6" user="6 .05 0 1 0.01"/>
+    <framepos name="finger_a" objtype="body" objname="finger_a"/>
+    <framepos name="finger_b" objtype="body" objname="finger_b"/>
+    <framepos name="object" objtype="body" objname="object"/>
+    <framepos name="0" objtype="site" objname="0"/>
+    <framepos name="1" objtype="site" objname="1"/>
+    <framepos name="2" objtype="site" objname="2"/>
+    <framepos name="0t" objtype="site" objname="0t"/>
+    <framepos name="1t" objtype="site" objname="1t"/>
+    <framepos name="2t" objtype="site" objname="2t"/>
+  </sensor>
+</mujoco>
+
+

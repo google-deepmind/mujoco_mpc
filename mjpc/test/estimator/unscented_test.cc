@@ -20,7 +20,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
@@ -62,9 +62,9 @@ TEST(Unscented, Particle1D) {
   mju_fill(unscented.noise_sensor.data(), 1.0e-5, model->nsensordata);
 
   // filter trajectories
-  EstimatorTrajectory<double> unscented_qpos(model->nq, T);
-  EstimatorTrajectory<double> unscented_qvel(model->nv, T);
-  EstimatorTrajectory<double> unscented_timer_update(1, T);
+  DirectTrajectory<double> unscented_qpos(model->nq, T);
+  DirectTrajectory<double> unscented_qvel(model->nv, T);
+  DirectTrajectory<double> unscented_timer_update(1, T);
 
   // noisy sensor
   std::vector<double> noisy_sensor(model->nsensordata);
@@ -143,9 +143,9 @@ TEST(Unscented, Box3Drot) {
   mju_fill(unscented.noise_sensor.data(), 1.0e-5, model->nsensordata);
 
   // filter trajectories
-  EstimatorTrajectory<double> unscented_qpos(model->nq, T);
-  EstimatorTrajectory<double> unscented_qvel(model->nv, T);
-  EstimatorTrajectory<double> unscented_timer_update(1, T);
+  DirectTrajectory<double> unscented_qpos(model->nq, T);
+  DirectTrajectory<double> unscented_qvel(model->nv, T);
+  DirectTrajectory<double> unscented_timer_update(1, T);
 
   // noisy sensor
   std::vector<double> noisy_sensor(model->nsensordata);

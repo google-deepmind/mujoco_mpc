@@ -40,6 +40,8 @@ add_library(
   tasks/acrobot/acrobot.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
+  tasks/fingers/fingers.cc
+  tasks/fingers/fingers.h
   tasks/hand/hand.cc
   tasks/hand/hand.h
   tasks/humanoid/stand/stand.cc
@@ -101,17 +103,17 @@ add_library(
   estimators/batch.cc
   estimators/batch.h
   estimators/estimator.h
-  estimators/gui.cc
-  estimators/gui.h
   estimators/include.cc
   estimators/include.h
   estimators/kalman.cc
   estimators/kalman.h
-  estimators/model_parameters.cc
-  estimators/model_parameters.h
-  estimators/trajectory.h
   estimators/unscented.cc
   estimators/unscented.h
+  direct/direct.cc
+  direct/direct.h
+  direct/trajectory.h
+  direct/model_parameters.cc
+  direct/model_parameters.h
   app.cc
   app.h
   norm.cc
@@ -137,7 +139,11 @@ target_link_libraries(
   threadpool
   Threads::Threads
 )
-target_include_directories(libmjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(libmjpc
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${CMAKE_CURRENT_BINARY_DIR}/..
+)
 
 add_executable(
   mjpc
@@ -168,4 +174,8 @@ add_subdirectory(tasks)
 if(BUILD_TESTING AND MJPC_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
+endif()
+
+if(MJPC_BUILD_GRPC_SERVICE)
+  add_subdirectory(grpc)
 endif()

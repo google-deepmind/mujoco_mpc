@@ -15,24 +15,41 @@
 #ifndef MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 #define MJPC_TASKS_CARTPOLE_RESIDUAL_H_
 
+#include <memory>
+#include <string>
 #include "mjpc/task.h"
 #include <mujoco/mujoco.h>
 
 class CartpoleTestTask : public mjpc::Task {
+ public:
+  CartpoleTestTask() : residual_(this) {}
   std::string Name() const override {return ""; }
   std::string XmlPath() const override { return ""; }
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override {
-    // goal position
-    mju_copy(residual, data->qpos, model->nq);
-    residual[1] -= 3.141592;
 
-    // goal velocity
-    mju_copy(residual + 2, data->qvel, model->nv);
+ private:
+  class ResidualFn : public mjpc::BaseResidualFn {
+   public:
+    explicit ResidualFn(const CartpoleTestTask* task)
+        : mjpc::BaseResidualFn(task) {}
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override {
+      // goal position
+      mju_copy(residual, data->qpos, model->nq);
+      residual[1] -= 3.141592;
 
-    // action
-    mju_copy(residual + 4, data->ctrl, model->nu);
+      // goal velocity
+      mju_copy(residual + 2, data->qvel, model->nv);
+
+      // action
+      mju_copy(residual + 4, data->ctrl, model->nu);
+    }
+  };
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(residual_);
   }
+  ResidualFn* InternalResidual() override { return &residual_; }
+
+  ResidualFn residual_;
 };
 
 #endif  // MJPC_TASKS_CARTPOLE_RESIDUAL_H_

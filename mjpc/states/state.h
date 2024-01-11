@@ -46,6 +46,9 @@ class State {
 
   // set state from data
   void Set(const mjModel* model, const mjData* data);
+  void Set(const mjModel* model, const double* qpos, const double* qvel,
+           const double* act, const double* mocap_pos, const double* mocap_quat,
+           const double* userdata, double time);
 
   // set qpos
   void SetPosition(const mjModel* model, const double* qpos);

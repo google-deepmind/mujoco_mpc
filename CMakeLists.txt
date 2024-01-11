@@ -55,6 +55,11 @@ set(MUJOCO_BUILD_SIMULATE ON)
 set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
+set(MUJOCO_MPC_MUJOCO_GIT_TAG
+    893c4042302e5a5738dbc462466e746f2bbc1ea5
+    CACHE STRING "Git revision for MuJoCo."
+)
+
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF
@@ -65,7 +70,7 @@ findorfetch(
   GIT_REPO
   https://github.com/google-deepmind/mujoco.git
   GIT_TAG
-  main
+  ${MUJOCO_MPC_MUJOCO_GIT_TAG}
   TARGETS
   mujoco::mujoco
   mujoco::platform_ui_adapter
@@ -191,6 +196,4 @@ set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
-if(MJPC_BUILD_GRPC_SERVICE)
-  add_subdirectory(grpc)
-endif()
+

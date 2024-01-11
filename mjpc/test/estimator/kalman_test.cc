@@ -20,7 +20,7 @@
 #include <mujoco/mujoco.h>
 
 #include "gtest/gtest.h"
-#include "mjpc/estimators/trajectory.h"
+#include "mjpc/direct/trajectory.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/simulation.h"
 #include "mjpc/utilities.h"
@@ -62,10 +62,10 @@ TEST(Estimator, Kalman) {
   mju_fill(kalman.noise_sensor.data(), 1.0e-5, model->nsensordata);
 
   // Kalman trajectories
-  EstimatorTrajectory<double> kalman_qpos(model->nq, T);
-  EstimatorTrajectory<double> kalman_qvel(model->nv, T);
-  EstimatorTrajectory<double> kalman_timer_measurement(1, T);
-  EstimatorTrajectory<double> kalman_timer_prediction(1, T);
+  DirectTrajectory<double> kalman_qpos(model->nq, T);
+  DirectTrajectory<double> kalman_qvel(model->nv, T);
+  DirectTrajectory<double> kalman_timer_measurement(1, T);
+  DirectTrajectory<double> kalman_timer_prediction(1, T);
 
   // noisy sensor
   std::vector<double> noisy_sensor(model->nsensordata);

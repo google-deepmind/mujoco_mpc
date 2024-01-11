@@ -21,7 +21,7 @@
 namespace mjpc {
 namespace humanoid {
 
-class Tracking : public ThreadSafeTask {
+class Tracking : public Task {
  public:
   class ResidualFn : public mjpc::BaseResidualFn {
    public:

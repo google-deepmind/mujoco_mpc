@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
-#define MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_SAMPLING_PLANNER_H_
+#define MJPC_PLANNERS_SAMPLING_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
@@ -137,9 +137,6 @@ class SamplingPlanner : public RankedPlanner {
                              // exploration)
   std::vector<double> noise;
 
-  // gradient
-  std::vector<double> noise_gradient;
-
   // best trajectory
   int winner;
 
@@ -160,4 +157,4 @@ class SamplingPlanner : public RankedPlanner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_SAMPLING_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_SAMPLING_PLANNER_H_

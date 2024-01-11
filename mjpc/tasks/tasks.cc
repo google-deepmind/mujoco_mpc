@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "mjpc/tasks/acrobot/acrobot.h"
+#include "mjpc/tasks/allegro/allegro.h"
 #include "mjpc/tasks/cartpole/cartpole.h"
 #include "mjpc/tasks/fingers/fingers.h"
 #include "mjpc/tasks/hand/hand.h"
@@ -38,6 +39,7 @@ namespace mjpc {
 std::vector<std::shared_ptr<Task>> GetTasks() {
   return {
     std::make_shared<Acrobot>(),
+    std::make_shared<Allegro>(),
     std::make_shared<Cartpole>(),
     std::make_shared<Fingers>(),
     std::make_shared<Hand>(),

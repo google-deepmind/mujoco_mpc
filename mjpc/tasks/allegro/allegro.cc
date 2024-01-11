@@ -10,10 +10,10 @@
 #include "mjpc/utilities.h"
 
 namespace mjpc {
-std::string AllegroCube::XmlPath() const {
+std::string Allegro::XmlPath() const {
   return GetModelPath("allegro/task.xml");
 }
-std::string AllegroCube::Name() const { return "AllegroCube"; }
+std::string Allegro::Name() const { return "Allegro"; }
 
 // ------- Residuals for cube manipulation task ------
 //     Cube position: (3)
@@ -21,7 +21,7 @@ std::string AllegroCube::Name() const { return "AllegroCube"; }
 //     Cube linear velocity: (3)
 //     Control:  u
 // ------------------------------------------
-void AllegroCube::ResidualFn::Residual(const mjModel* model, const mjData* data,
+void Allegro::ResidualFn::Residual(const mjModel* model, const mjData* data,
                         double* residual) const {
   int counter = 0;
 
@@ -64,7 +64,7 @@ void AllegroCube::ResidualFn::Residual(const mjModel* model, const mjData* data,
   CheckSensorDim(model, counter);
 }
 
-void AllegroCube::TransitionLocked(mjModel* model, mjData* data) {
+void Allegro::TransitionLocked(mjModel* model, mjData* data) {
   // Check for contact between the cube and the floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");

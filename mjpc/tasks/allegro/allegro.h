@@ -1,5 +1,5 @@
-#ifndef MJPC_TASKS_ALLEGROCUBE_ALLEGROCUBE_H_
-#define MJPC_TASKS_ALLEGROCUBE_ALLEGROCUBE_H_
+#ifndef MJPC_TASKS_ALLEGRO_ALLEGRO_H_
+#define MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 
 #include <string>
 
@@ -7,18 +7,18 @@
 #include "mjpc/task.h"
 
 namespace mjpc {
-class AllegroCube : public Task {
+class Allegro : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
 
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const AllegroCube* task) : BaseResidualFn(task) {}
+    explicit ResidualFn(const Allegro* task) : BaseResidualFn(task) {}
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
   };
-  AllegroCube() : residual_(this) {}
+  Allegro() : residual_(this) {}
 
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel* model, mjData* data) override;
@@ -34,4 +34,4 @@ class AllegroCube : public Task {
 };
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_ALLEGROCUBE_ALLEGROCUBE_H_
+#endif  // MJPC_TASKS_ALLEGRO_ALLEGRO_H_

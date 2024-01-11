@@ -235,7 +235,7 @@ def rollout(
 
 # predictive sampling planner class
 class Planner:
-  # initialize policy
+  # initialize planner
   def __init__(
       self,
       model: mujoco.MjModel,

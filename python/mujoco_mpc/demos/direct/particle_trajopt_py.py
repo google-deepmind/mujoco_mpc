@@ -76,7 +76,7 @@ data = mujoco.MjData(model)
 
 # %%
 # initialization
-T = 100
+T = 400
 q0 = np.array([-0.25, -0.25])
 qM = np.array([-0.25, 0.25])
 qN = np.array([0.25, -0.25])
@@ -117,40 +117,43 @@ optimizer = DirectOptimizer(model, T)
 optimizer.max_iterations = 10
 optimizer.max_search_iterations = 10
 
+# force weight
+fw = 5.0e2
+
 # set data
 for t in range(T):
   # set initial state
   if t == 0 or t == 1:
     optimizer.qpos[:, t] = q0
     optimizer.sensor_target[: model.nq, t] = q0
-    optimizer.weights_force[:, t] = 1.0
+    optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 1.0
 
   # set goal
   elif t >= T - 2:
     optimizer.qpos[:, t] = qT
     optimizer.sensor_target[: model.nq, t] = qT
-    optimizer.weights_force[:, t] = 1.0
+    optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 1.0
 
   # set waypoint
-  elif t == 25:
+  elif t == 100:
     optimizer.qpos[:, t] = qM
     optimizer.sensor_target[: model.nq, t] = qM
-    optimizer.weights_force[:, t] = 1.0
+    optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 1.0
 
   # set waypoint
-  elif t == 75:
+  elif t == 300:
     optimizer.qpos[:, t] = qN
     optimizer.sensor_target[: model.nq, t] = qN
-    optimizer.weights_force[:, t] = 1.0
+    optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 1.0
 
   # initialize qpos
   else:
     optimizer.qpos[:, t] = qinterp[:, t]
-    optimizer.weights_force[:, t] = 1.0
+    optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 0.0
 
 # optimize
@@ -178,6 +181,21 @@ plt.plot(qT[0], qT[1], color="magenta", marker="o")
 plt.legend()
 plt.xlabel("X")
 plt.ylabel("Y")
+
+# %%
+# recover ctrl
+mujoco.mj_forward(model, data)
+ctrl = np.vstack([data.actuator_moment @ optimizer.force[:, t] for t in range(T)])
+
+# plot ctrl
+fig = plt.figure()
+times = [t * model.opt.timestep for t in range(T)]
+
+plt.step(times, ctrl[:, 0], label="action 0", color="orange")
+plt.step(times, ctrl[:, 1], label="action 1", color="magenta")
+plt.legend()
+plt.xlabel("Time (s)")
+plt.ylabel("ctrl")
 
 # %%
 # trajectories

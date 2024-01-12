@@ -33,7 +33,9 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube position: (3)
 //     Cube orientation: (3)
 //     Cube linear velocity: (3)
-//     Control:  u
+//     Control: (16), there are 16 servos
+//     Nominal pose: (16)
+//     Joint velocity: (16)
 // ------------------------------------------
 void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                    double *residual) const {
@@ -67,11 +69,11 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_copy(residual + counter, data->actuator_force, model->nu);
   counter += model->nu;
 
-  // ---------- Residual () ----------
+  // ---------- Nominal Pose ----------
   mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
   counter += 16;
 
-  // ---------- Residual () ----------
+  // ---------- Joint Velocity ----------
   mju_copy(residual + counter, data->qvel + 6, 16);
   counter += 16;
 

@@ -21,8 +21,8 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 
@@ -65,8 +65,8 @@ class CEMPlanner : public RankedPlanner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
-  void ActionFromPolicy(double* action, const double* state,
-                        double time, bool use_previous = false) override;
+  void ActionFromPolicy(double* action, const double* state, double time,
+                        bool use_previous = false) override;
 
   // resample nominal policy
   void UpdateNominalPolicy(int horizon);
@@ -134,7 +134,7 @@ class CEMPlanner : public RankedPlanner {
 
   // ----- noise ----- //
   double stdev_init;  // standard deviation for sampling normal: N(0,
-                             // exploration)
+                      // exploration)
   std::vector<double> noise;
   std::vector<double> variance;
   double stdev_min;  // the minimum allowable stdev for CEM
@@ -150,8 +150,10 @@ class CEMPlanner : public RankedPlanner {
   int n_elites;
 
   // temp variables to help with averaging
-  std::vector<double> temp_avg;  // holds avg control action over elites for each spline point t
-  std::vector<std::vector<double>> temp_elite_actions;  // holds the top n_elite sampled actions
+  std::vector<double>
+      temp_avg;  // holds avg control action over elites for each spline point t
+  std::vector<std::vector<double>>
+      temp_elite_actions;  // holds the top n_elite sampled actions
 
   // improvement
   double improvement;

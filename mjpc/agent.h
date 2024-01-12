@@ -65,7 +65,7 @@ class Agent {
   void Allocate();
 
   // reset data, settings, planners, states
-  void Reset();
+  void Reset(const double* initial_repeated_action = nullptr);
 
   // single planner iteration
   void PlanIteration(ThreadPool* pool);

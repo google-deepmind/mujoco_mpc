@@ -57,8 +57,8 @@ void iLQGPolicy::Allocate(const mjModel* model, const Task& task, int horizon) {
 }
 
 // reset memory to zeros
-void iLQGPolicy::Reset(int horizon) {
-  trajectory.Reset(horizon);
+void iLQGPolicy::Reset(int horizon, const double* initial_repeated_action) {
+  trajectory.Reset(horizon, initial_repeated_action);
   std::fill(
       feedback_gain.begin(),
       feedback_gain.begin() + horizon * model->nu * (2 * model->nv + model->na),

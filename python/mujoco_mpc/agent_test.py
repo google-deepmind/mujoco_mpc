@@ -343,7 +343,7 @@ class AgentTest(parameterized.TestCase):
       )
 
   @absltest.skip("asset import issue")
-  def test_set_mode_error(self):#
+  def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
         / "mjpc/tasks/quadruped/task_flat.xml"

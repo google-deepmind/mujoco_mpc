@@ -1,14 +1,14 @@
 <mujoco>
   <asset>
     <texture name="cube" type="cube"
-             fileup="assets/fileup.png" fileback="assets/fileback.png"
-             filedown="assets/filedown.png" filefront="assets/filefront.png"
-             fileleft="assets/fileleft.png" fileright="assets/fileright.png"/>
+             fileup="../assets/cube/fileup.png" fileback="../assets/cube/fileback.png"
+             filedown="../assets/cube/filedown.png" filefront="../assets/cube/filefront.png"
+             fileleft="../assets/cube/fileleft.png" fileright="../assets/cube/fileright.png"/>
     <material name="cube" texture="cube"/>
-    <texture name="graycube" type="cube" fileup="assets/grayup.png"
-             fileback="assets/grayback.png" filedown="assets/graydown.png"
-             filefront="assets/grayfront.png" fileleft="assets/grayleft.png"
-             fileright="assets/grayright.png"/>
+    <texture name="graycube" type="cube" fileup="../assets/cube/grayup.png"
+             fileback="../assets/cube/grayback.png" filedown="../assets/cube/graydown.png"
+             filefront="../assets/cube/grayfront.png" fileleft="../assets/cube/grayleft.png"
+             fileright="../assets/cube/grayright.png"/>
     <material name="graycube" texture="graycube"/>
   </asset>
   <worldbody>

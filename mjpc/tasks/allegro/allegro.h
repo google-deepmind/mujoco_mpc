@@ -15,10 +15,10 @@
 #ifndef MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 #define MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 
-#include <mujoco/mujoco.h>
-
+#include <memory>
 #include <string>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
 namespace mjpc {

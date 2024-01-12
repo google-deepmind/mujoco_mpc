@@ -232,12 +232,16 @@ void PhysicsLoop(mj::Simulate& sim) {
         sim.agent->plot_enabled = absl::GetFlag(FLAGS_show_plot);
         sim.agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
         sim.agent->Allocate();
-        sim.agent->Reset();
-        sim.agent->PlotInitialize();
 
         // set home keyframe
         int home_id = mj_name2id(mnew, mjOBJ_KEY, "home");
-        if (home_id >= 0) mj_resetDataKeyframe(mnew, dnew, home_id);
+        if (home_id >= 0) {
+          mj_resetDataKeyframe(mnew, dnew, home_id);
+          sim.agent->Reset(dnew->ctrl);
+        } else {
+          sim.agent->Reset();
+        }
+        sim.agent->PlotInitialize();
 
         sim.Load(mnew, dnew, sim.filename, true);
         m = mnew;
@@ -305,7 +309,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           double slowdown = 100 / sim.percentRealTime[sim.real_time_index];
 
           // misalignment condition: distance from target sim time is bigger
-          // than syncmisalign
+          // than maximum misalignment `syncMisalign`
           bool misaligned = mju_abs(Seconds(elapsedCPU).count() / slowdown -
                                     elapsedSim) > syncMisalign;
 

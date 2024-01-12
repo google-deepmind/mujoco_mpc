@@ -159,10 +159,10 @@ void Agent::Allocate() {
 }
 
 // reset data, settings, planners, state
-void Agent::Reset() {
+void Agent::Reset(const double* initial_repeated_action) {
   // planner
   for (const auto& planner : planners_) {
-    planner->Reset(kMaxTrajectoryHorizon);
+    planner->Reset(kMaxTrajectoryHorizon, initial_repeated_action);
   }
 
   // state

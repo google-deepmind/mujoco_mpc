@@ -15,8 +15,11 @@
 #include "mjpc/planners/sampling/policy.h"
 
 #include <algorithm>
+#include <vector>
 
 #include <mujoco/mujoco.h>
+#include "mjpc/planners/policy.h"
+#include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -47,10 +50,17 @@ void SamplingPolicy::Allocate(const mjModel* model, const Task& task,
 }
 
 // reset memory to zeros
-void SamplingPolicy::Reset(int horizon) {
+void SamplingPolicy::Reset(int horizon, const double* initial_repeated_action) {
   // parameters
-  std::fill(parameters.begin(), parameters.begin() + model->nu * horizon, 0.0);
-
+  if (initial_repeated_action != nullptr) {
+    for (int i = 0; i < num_spline_points; ++i) {
+      mju_copy(parameters.data() + i * model->nu, initial_repeated_action,
+               model->nu);
+    }
+  } else {
+    std::fill(parameters.begin(),
+              parameters.begin() + model->nu * num_spline_points, 0.0);
+  }
   // policy parameter times
   std::fill(times.begin(), times.begin() + horizon, 0.0);
 }

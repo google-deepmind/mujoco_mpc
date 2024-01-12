@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/robust/robust_planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
-#include "mjpc/task.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/testdata/particle_residual.h"
 #include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 namespace {
@@ -49,6 +51,9 @@ TEST(RobustPlannerTest, RandomSearch) {
 
   // create data
   mjData* data = mj_makeData(model);
+  // the "home" keyframe initializes the state too far from the target
+  int home_id = mj_name2id(model, mjOBJ_KEY, "ctrl_test");
+  mj_resetDataKeyframe(model, data, home_id);
 
   // ----- state ----- //
   state.Initialize(model);
@@ -60,7 +65,15 @@ TEST(RobustPlannerTest, RandomSearch) {
   RobustPlanner planner(std::make_unique<SamplingPlanner>());
   planner.Initialize(model, task);
   planner.Allocate();
-  planner.Reset(kMaxTrajectoryHorizon);
+  // If there's no keyframe, data->ctrl will be zeros, so this is always safe.
+  planner.Reset(kMaxTrajectoryHorizon, data->ctrl);
+
+  double res[2];
+  // look at some arbitrary, hard-coded time:
+  planner.ActionFromPolicy(res, state.state().data(), 2);
+  // expected values copied from the keyframe in the xml:
+  EXPECT_NEAR(res[0], 0.1, 1.0e-4);
+  EXPECT_NEAR(res[1], 0.2, 1.0e-4);
 
   // ----- settings ----- //
   int iterations = 1000;

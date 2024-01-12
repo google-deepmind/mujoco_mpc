@@ -39,7 +39,8 @@ class SamplingPolicy : public Policy {
   void Allocate(const mjModel* model, const Task& task, int horizon) override;
 
   // reset memory to zeros
-  void Reset(int horizon) override;
+  void Reset(int horizon,
+             const double* initial_repeated_action = nullptr) override;
 
   // set action from policy
   void Action(double* action, const double* state, double time) const override;

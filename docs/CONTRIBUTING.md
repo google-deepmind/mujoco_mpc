@@ -27,7 +27,7 @@ This code adheres to the [Google style](https://google.github.io/styleguide/).
 
 - Include the standard copyright and license at the top of each file.
 - The VSCode extension 'Clang-Format' can be used to format the C/C++ code to Google style.
-- The package [cpplint](https://github.com/cpplint/cpplint) should be used to check for additional C/C++ style issues. Note: includes should follow the ordering found throught MuJoCo MPC for consistency.
+- The package [cpplint](https://github.com/cpplint/cpplint) should be used to check for additional C/C++ style issues. Note: includes should follow the ordering found throughout MuJoCo MPC for consistency.
 - The package [Pyink](https://github.com/google/pyink) can be used to format Python code. Please use: `--pyink-indentation 2 --line-length 80`.
 
 ## New Tasks

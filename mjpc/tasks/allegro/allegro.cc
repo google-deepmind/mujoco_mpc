@@ -42,8 +42,8 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   int counter = 0;
 
   // ---------- Cube position ----------
-  double* cube_position = SensorByName(model, data, "cube_position");
-  double* cube_goal_position = SensorByName(model, data, "cube_goal_position");
+  double *cube_position = SensorByName(model, data, "cube_position");
+  double *cube_goal_position = SensorByName(model, data, "cube_goal_position");
 
   mju_sub3(residual + counter, cube_position, cube_goal_position);
   counter += 3;

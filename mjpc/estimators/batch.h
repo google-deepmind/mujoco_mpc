@@ -234,7 +234,6 @@ class Batch : public Direct, public Estimator {
   DirectTrajectory<double> acceleration_cache_;            // nv x T
   DirectTrajectory<double> act_cache_;                     // na x T
   DirectTrajectory<double> times_cache_;                   //  1 x T
-  DirectTrajectory<double> ctrl_cache_;                    // nu x T
   DirectTrajectory<double> sensor_measurement_cache_;      // ns x T
   DirectTrajectory<double> sensor_prediction_cache_;       // ns x T
   DirectTrajectory<int> sensor_mask_cache_;                // num_sensor x T

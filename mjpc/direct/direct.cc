@@ -148,9 +148,6 @@ void Direct::Initialize(const mjModel* model) {
   act.Initialize(na, configuration_length_);
   times.Initialize(1, configuration_length_);
 
-  // ctrl
-  ctrl.Initialize(model->nu, configuration_length_);
-
   // prior
   configuration_previous.Initialize(nq, configuration_length_);
 
@@ -348,7 +345,6 @@ void Direct::Reset(const mjData* data) {
   acceleration.Reset();
   act.Reset();
   times.Reset();
-  ctrl.Reset();
 
   // prior
   configuration_previous.Reset();
@@ -636,8 +632,6 @@ void Direct::SetConfigurationLength(int length) {
   acceleration.SetLength(configuration_length_);
   act.SetLength(configuration_length_);
   times.SetLength(configuration_length_);
-
-  ctrl.SetLength(configuration_length_);
 
   configuration_previous.SetLength(configuration_length_);
 
@@ -1489,8 +1483,7 @@ void Direct::InverseDynamicsPrediction() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model->nq, nv = model->nv, na = model->na, nu = model->nu,
-      ns = nsensordata_;
+  int nq = model->nq, nv = model->nv, na = model->na, ns = nsensordata_;
 
   // set parameters
   if (nparam_ > 0) {
@@ -1502,7 +1495,7 @@ void Direct::InverseDynamicsPrediction() {
   int count_before = pool_.GetCount();
 
   // first time step
-  pool_.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv]() {
     // time index
     int t = 0;
 
@@ -1518,7 +1511,6 @@ void Direct::InverseDynamicsPrediction() {
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->qacc, nv);
-    mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // position sensors
@@ -1551,12 +1543,11 @@ void Direct::InverseDynamicsPrediction() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool_.Schedule([&batch = *this, nq, nv, na, ns, nu, t]() {
+    pool_.Schedule([&batch = *this, nq, nv, na, ns, t]() {
       // terms
       double* qt = batch.configuration.Get(t);
       double* vt = batch.velocity.Get(t);
       double* at = batch.acceleration.Get(t);
-      double* ct = batch.ctrl.Get(t);
 
       // data
       mjData* d = batch.data_[t].get();
@@ -1565,7 +1556,6 @@ void Direct::InverseDynamicsPrediction() {
       mju_copy(d->qpos, qt, nq);
       mju_copy(d->qvel, vt, nv);
       mju_copy(d->qacc, at, nv);
-      mju_copy(d->ctrl, ct, nu);
 
       // inverse dynamics
       mj_inverse(batch.model, d);
@@ -1585,7 +1575,7 @@ void Direct::InverseDynamicsPrediction() {
   }
 
   // last time step
-  pool_.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv]() {
     // time index
     int t = batch.ConfigurationLength() - 1;
 
@@ -1602,7 +1592,6 @@ void Direct::InverseDynamicsPrediction() {
     mju_copy(d->qpos, qT, nq);
     mju_copy(d->qvel, vT, nv);
     mju_zero(d->qacc, nv);
-    mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // position sensors
@@ -1653,7 +1642,7 @@ void Direct::InverseDynamicsDerivatives() {
   auto start = std::chrono::steady_clock::now();
 
   // dimension
-  int nq = model->nq, nv = model->nv, nu = model->nu;
+  int nq = model->nq, nv = model->nv;
 
   // set parameters
   if (nparam_ > 0) {
@@ -1665,7 +1654,7 @@ void Direct::InverseDynamicsDerivatives() {
   int count_before = pool_.GetCount();
 
   // first time step
-  pool_.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv]() {
     // time index
     int t = 0;
 
@@ -1680,7 +1669,6 @@ void Direct::InverseDynamicsDerivatives() {
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->qacc, nv);
-    mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // finite-difference derivatives
@@ -1725,12 +1713,11 @@ void Direct::InverseDynamicsDerivatives() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool_.Schedule([&batch = *this, nq, nv, nu, t]() {
+    pool_.Schedule([&batch = *this, nq, nv, t]() {
       // unpack
       double* q = batch.configuration.Get(t);
       double* v = batch.velocity.Get(t);
       double* a = batch.acceleration.Get(t);
-      double* c = batch.ctrl.Get(t);
 
       double* dsdq = batch.block_sensor_configuration_.Get(t);
       double* dsdv = batch.block_sensor_velocity_.Get(t);
@@ -1743,11 +1730,10 @@ void Direct::InverseDynamicsDerivatives() {
       double* dadf = batch.block_force_acceleration_.Get(t);
       mjData* data = batch.data_[t].get();  // TODO(taylor): WorkerID
 
-      // set (state, acceleration) + ctrl
+      // set state, acceleration
       mju_copy(data->qpos, q, nq);
       mju_copy(data->qvel, v, nv);
       mju_copy(data->qacc, a, nv);
-      mju_copy(data->ctrl, c, nu);
 
       // finite-difference derivatives
       mjd_inverseFD(batch.model, data, batch.finite_difference.tolerance,
@@ -1767,7 +1753,7 @@ void Direct::InverseDynamicsDerivatives() {
   }
 
   // last time step
-  pool_.Schedule([&batch = *this, nq, nv, nu]() {
+  pool_.Schedule([&batch = *this, nq, nv]() {
     // time index
     int t = batch.ConfigurationLength() - 1;
 
@@ -1784,7 +1770,6 @@ void Direct::InverseDynamicsDerivatives() {
     mju_copy(d->qpos, qT, nq);
     mju_copy(d->qvel, vT, nv);
     mju_zero(d->qacc, nv);
-    mju_zero(d->ctrl, nu);
     d->time = batch.times.Get(t)[0];
 
     // finite-difference derivatives
@@ -2061,7 +2046,7 @@ double Direct::Cost(double* gradient, double* hessian) {
     // set dense rows in band Hessian
     if (hessian) {
       mju_copy(hessian + nvel_ * nband_, dense_parameter_.data(),
-             nparam_ * ntotal_);
+               nparam_ * ntotal_);
     }
   }
 

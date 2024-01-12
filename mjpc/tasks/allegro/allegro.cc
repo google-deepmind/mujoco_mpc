@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include "mjpc/tasks/allegro/allegro.h"
-#include <iostream>
+
+#include <mujoco/mujoco.h>
 
 #include <cmath>
 #include <string>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
@@ -35,28 +35,29 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube linear velocity: (3)
 //     Control:  u
 // ------------------------------------------
-void Allegro::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                        double* residual) const {
+void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
+                                   double *residual) const {
   int counter = 0;
 
   // ---------- Cube position ----------
   // TODO(vincekurtz): specify goal position in a better way
-  double* cube_position = SensorByName(model, data, "cube_position");
+  double *cube_position = SensorByName(model, data, "cube_position");
   std::vector<double> goal_cube_position = {0.3, 0.0, 0.025};
 
   mju_sub3(residual + counter, cube_position, goal_cube_position.data());
   counter += 3;
 
   // ---------- Cube orientation ----------
-  double* cube_orientation = SensorByName(model, data, "cube_orientation");
-  double* goal_cube_orientation = SensorByName(model, data, "cube_goal_orientation");
+  double *cube_orientation = SensorByName(model, data, "cube_orientation");
+  double *goal_cube_orientation =
+      SensorByName(model, data, "cube_goal_orientation");
   mju_normalize4(goal_cube_orientation);
 
   mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
   counter += 3;
 
   // ---------- Cube linear velocity ----------
-  double* cube_linear_velocity =
+  double *cube_linear_velocity =
       SensorByName(model, data, "cube_linear_velocity");
 
   mju_copy(residual + counter, cube_linear_velocity, 3);
@@ -78,14 +79,14 @@ void Allegro::ResidualFn::Residual(const mjModel* model, const mjData* data,
   CheckSensorDim(model, counter);
 }
 
-void Allegro::TransitionLocked(mjModel* model, mjData* data) {
+void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   // Check for contact between the cube and the floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
-  
+
   bool on_floor = false;
-  for (int i=0; i < data->ncon; i++) {
-    mjContact* g = data->contact + i;
+  for (int i = 0; i < data->ncon; i++) {
+    mjContact *g = data->contact + i;
     if ((g->geom1 == cube && g->geom2 == floor) ||
         (g->geom2 == cube && g->geom1 == floor)) {
       on_floor = true;
@@ -94,7 +95,7 @@ void Allegro::TransitionLocked(mjModel* model, mjData* data) {
   }
 
   // If the cube is on the floor and not moving, reset it
-  double* cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
+  double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
   if (on_floor && mju_norm3(cube_lin_vel) < 0.001) {
     int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
     if (cube_body != -1) {
@@ -109,7 +110,6 @@ void Allegro::TransitionLocked(mjModel* model, mjData* data) {
     mj_forward(model, data);
     mutex_.lock();
   }
-
 }
 
-}  // namespace mjpc
+} // namespace mjpc

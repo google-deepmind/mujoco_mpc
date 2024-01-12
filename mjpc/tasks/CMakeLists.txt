@@ -36,7 +36,7 @@ add_custom_target(
           ${menagerie_SOURCE_DIR}/skydio_x2/assets
           ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/kuka_iiwa_14/assets
+          ${menagerie_SOURCE_DIR}/trossen_vx300s/assets
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/assets
   COMMAND ${Python_EXECUTABLE}
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/merge_panda_robotiq.py

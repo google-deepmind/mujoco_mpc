@@ -16,23 +16,23 @@
 
   <sensor>
     <!-- cost -->
-    <user name="Effort" dim="14" user="0 0 0 1"/>
+    <!-- <user name="Effort" dim="14" user="0 0 0 1"/> -->
     <user name="Box Pos." dim="3" user="0 10.0 0 25"/>
     <user name="Left Reach" dim="3" user="0 5.0e-2 0 1"/>
     <user name="Right Reach" dim="3" user="0 5.0e-2 0 1"/>
-    <user name="Joint Vel." dim="14" user="0 0.0 0 1"/>
+    <!-- <user name="Joint Vel." dim="16" user="0 0.0 0 1"/> -->
     <user name="Orientation" dim="24" user="0 10.0 0 25"/>
-    <user name="Nominal" dim="14" user="0 2.5e-3 0 1.0e-1"/>
+    <user name="Nominal" dim="16" user="0 1.0 0 10.0"/>
 
     <!-- trace -->
-    <framepos name="trace0" objtype="site" objname="attachment_site_left"/>
-    <framepos name="trace1" objtype="site" objname="attachment_site_right"/>
+    <framepos name="trace0" objtype="site" objname="pinch"/>
+    <framepos name="trace1" objtype="site" objname="pinch_right"/>
 
     <!-- residual -->
     <framepos name="block_pos" objtype="body" objname="block"/>
     <framepos name="goal_pos" objtype="body" objname="goal"/>
-    <framepos name="ee_left" objtype="site" objname="attachment_site_left"/>
-    <framepos name="ee_right" objtype="site" objname="attachment_site_right"/>
+    <framepos name="ee_left" objtype="site" objname="pinch"/>
+    <framepos name="ee_right" objtype="site" objname="pinch_right"/>
     <framepos name="block0" objtype="site" objname="block0"/>
     <framepos name="block1" objtype="site" objname="block1"/>
     <framepos name="block2" objtype="site" objname="block2"/>

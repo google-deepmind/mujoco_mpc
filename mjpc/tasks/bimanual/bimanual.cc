@@ -41,9 +41,9 @@ void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // counter
   int counter = 0;
 
-  // ----- Effort ----- //
-  mju_copy(residual + counter, data->actuator_force, model->nu);
-  counter += model->nu;
+  // // ----- Effort ----- //
+  // mju_copy(residual + counter, data->actuator_force, model->nu);
+  // counter += model->nu;
 
   // ----- Block position ----- //
   double* block_pos = SensorByName(model, data, "block_pos");
@@ -62,8 +62,8 @@ void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 3;
 
   // ----- Joint velocity ----- //
-  mju_copy(residual + counter, data->qvel, 14);
-  counter += 14;
+  // mju_copy(residual + counter, data->qvel, 16);
+  // counter += 16;
 
   // ----- Orientation ----- //
   double* block0 = SensorByName(model, data, "block0");
@@ -102,8 +102,8 @@ void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 3;
 
   // ----- Nominal pose ----- //
-  mju_sub(residual + counter, data->qpos, model->key_qpos, 14);
-  counter += 14;
+  mju_sub(residual + counter, data->qpos, model->key_qpos, 16);
+  counter += 16;
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);

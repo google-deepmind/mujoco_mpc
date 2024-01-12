@@ -15,11 +15,14 @@
 #ifndef MJPC_MJPC_GRPC_GRPC_AGENT_UTIL_H_
 #define MJPC_MJPC_GRPC_GRPC_AGENT_UTIL_H_
 
+#include <string_view>
 #include <grpcpp/support/status.h>
 #include <mujoco/mujoco.h>
 
 #include "mjpc/grpc/agent.pb.h"
 #include "mjpc/agent.h"
+#include "mjpc/states/state.h"
+#include "mjpc/utilities.h"
 
 namespace grpc_agent_util {
 grpc::Status GetState(const mjModel* model, const mjData* data,
@@ -50,6 +53,9 @@ grpc::Status GetMode(const agent::GetModeRequest* request, mjpc::Agent* agent,
 grpc::Status GetAllModes(const agent::GetAllModesRequest* request,
                          mjpc::Agent* agent,
                          agent::GetAllModesResponse* response);
+grpc::Status SetAnything(const agent::SetAnythingRequest* request,
+                         mjpc::Agent* agent, const mjModel* model, mjData* data,
+                         agent::SetAnythingResponse* response);
 
 mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
                              int error_size);

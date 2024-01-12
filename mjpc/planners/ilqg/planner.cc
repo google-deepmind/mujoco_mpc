@@ -16,15 +16,20 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdio>
 #include <iostream>
-#include <mutex>
+#include <shared_mutex>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/backward_pass.h"
 #include "mjpc/planners/ilqg/policy.h"
 #include "mjpc/planners/ilqg/settings.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -97,7 +102,7 @@ void iLQGPlanner::Allocate() {
 }
 
 // reset memory to zeros
-void iLQGPlanner::Reset(int horizon) {
+void iLQGPlanner::Reset(int horizon, const double* initial_repeated_action) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
@@ -115,15 +120,15 @@ void iLQGPlanner::Reset(int horizon) {
   backward_pass.Reset(dim_state_derivative, dim_action, horizon);
 
   // policy
-  policy.Reset(horizon);
-  previous_policy.Reset(horizon);
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
   for (int i = 0; i < kMaxTrajectory; i++) {
-    candidate_policy[i].Reset(horizon);
+    candidate_policy[i].Reset(horizon, initial_repeated_action);
   }
 
   // candidate trajectories
   for (int i = 0; i < kMaxTrajectory; i++) {
-    trajectory[i].Reset(horizon);
+    trajectory[i].Reset(horizon, initial_repeated_action);
   }
 
   // values

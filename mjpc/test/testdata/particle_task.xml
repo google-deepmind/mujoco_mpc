@@ -33,6 +33,7 @@
   </sensor>
 
   <keyframe>
-    <key name="home" qpos="1.0 2.0" qvel="-1.0 -2.0" />
+    <key name="home" qpos="1.0 2.0" qvel="-1.0 -2.0"/>
+    <key name="ctrl_test" ctrl="0.1 0.2"/>
   </keyframe>
 </mujoco>

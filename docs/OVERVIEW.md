@@ -217,7 +217,7 @@ As an example, consider these snippets specifying the Swimmer task:
 </sensor>
 ```
 ```c++
-void Swimmer::ResidualFn::Residual(const mjModel* model, 
+void Swimmer::ResidualFn::Residual(const mjModel* model,
                                    const mjData* data,
                                    double* residual) const {
   // initialize counter

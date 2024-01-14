@@ -303,36 +303,38 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, &model = this->randomized_models[2], &task = this->task,
-                   &state = this->state, &time = this->time,
-                   &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]()
-                  {
-      // copy nominal policy
-      {
-        const std::shared_lock<std::shared_mutex> lock(s.mtx_);
-        s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
-        s.candidate_policy[i].representation = s.policy.representation;
-      }
+    for (int j=0; j < num_randomized_models; j++) {
+      pool.Schedule([&s = *this, &model = this->randomized_models[j], &task = this->task,
+                    &state = this->state, &time = this->time,
+                    &mocap = this->mocap, &userdata = this->userdata, horizon,
+                    i]()
+                    {
+        // copy nominal policy
+        {
+          const std::shared_lock<std::shared_mutex> lock(s.mtx_);
+          s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
+          s.candidate_policy[i].representation = s.policy.representation;
+        }
 
-      // sample noise policy
-      if (i != 0) s.AddNoiseToPolicy(i);
+        // sample noise policy
+        if (i != 0) s.AddNoiseToPolicy(i);
 
-      // ----- rollout sample policy ----- //
+        // ----- rollout sample policy ----- //
 
-      // policy
-      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                 double* action, const double* state,
-                                 double time) {
-        candidate_policy[i].Action(action, state, time);
-      };
+        // policy
+        auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
+                                  double* action, const double* state,
+                                  double time) {
+          candidate_policy[i].Action(action, state, time);
+        };
 
-      // policy rollout
-      s.trajectory[i].Rollout(
-          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon); });
+        // policy rollout
+        s.trajectory[i].Rollout(
+            sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
+            state.data(), time, mocap.data(), userdata.data(), horizon); });
+    }
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_trajectory*num_randomized_models);
   pool.ResetCount();
 }
 

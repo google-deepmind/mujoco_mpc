@@ -103,6 +103,13 @@ class DRSamplingPlanner : public RankedPlanner {
   mjModel* model;
   const Task* task;
 
+  // copies of model with randomized parameters
+  const int num_randomized_models = 3;  // TODO(vincekurtz): make this a setting
+  std::vector<mjModel*> randomized_models;
+
+  // container for average trajectory costs over randomized models
+  std::vector<double> average_trajectory_costs;
+
   // state
   std::vector<double> state;
   double time;

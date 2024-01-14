@@ -57,6 +57,14 @@ void DRSamplingPlanner::Initialize(mjModel* model, const Task& task) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
   }
+  
+  // extra models for domain randomization
+  randomized_models.resize(num_randomized_models);
+  for (int i = 0; i < num_randomized_models; i++) {
+    randomized_models[i] = mj_copyModel(nullptr, model);
+    // TODO(vincekurtz): apply a randomization function from
+    // this->task to randomized_models[i]
+  }
 
   winner = 0;
 }
@@ -295,10 +303,11 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+    pool.Schedule([&s = *this, &model = this->randomized_models[2], &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]() {
+                   i]()
+                  {
       // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -321,8 +330,7 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
       // policy rollout
       s.trajectory[i].Rollout(
           sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon);
-    });
+          state.data(), time, mocap.data(), userdata.data(), horizon); });
   }
   pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();

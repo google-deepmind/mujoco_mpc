@@ -1,0 +1,155 @@
+// Copyright 2022 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef MJPC_PLANNERS_DR_SAMPLING_PLANNER_H_
+#define MJPC_PLANNERS_DR_SAMPLING_PLANNER_H_
+
+#include <mujoco/mujoco.h>
+
+#include <atomic>
+#include <shared_mutex>
+#include <vector>
+
+#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/trajectory.h"
+
+namespace mjpc {
+
+/**
+ * Predictive sampling planner with domain randomization.
+ */
+class DRSamplingPlanner : public RankedPlanner {
+ public:
+  // constructor
+  DRSamplingPlanner() = default;
+
+  // destructor
+  ~DRSamplingPlanner() override = default;
+
+  // ----- methods ----- //
+
+  // initialize data and settings
+  void Initialize(mjModel* model, const Task& task) override;
+
+  // allocate memory
+  void Allocate() override;
+
+  // reset memory to zeros
+  void Reset(int horizon) override;
+
+  // set state
+  void SetState(const State& state) override;
+
+  // optimize nominal policy using random sampling
+  void OptimizePolicy(int horizon, ThreadPool& pool) override;
+
+  // compute trajectory using nominal policy
+  void NominalTrajectory(int horizon, ThreadPool& pool) override;
+
+  // set action from policy
+  void ActionFromPolicy(double* action, const double* state,
+                        double time, bool use_previous = false) override;
+
+  // resample nominal policy
+  void UpdateNominalPolicy(int horizon);
+
+  // add noise to nominal policy
+  void AddNoiseToPolicy(int i);
+
+  // compute candidate trajectories
+  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+
+  // return trajectory with best total return
+  const Trajectory* BestTrajectory() override;
+
+  // visualize planner-specific traces
+  void Traces(mjvScene* scn) override;
+
+  // planner-specific GUI elements
+  void GUI(mjUI& ui) override;
+
+  // planner-specific plots
+  void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
+             int timer_shift, int planning, int* shift) override;
+
+  // optimizes policies, but rather than picking the best, generate up to
+  // ncandidates. returns number of candidates created.
+  int OptimizePolicyCandidates(int ncandidates, int horizon,
+                               ThreadPool& pool) override;
+  // returns the total return for the nth candidate (or another score to
+  // minimize)
+  double CandidateScore(int candidate) const override;
+
+  // set action from candidate policy
+  void ActionFromCandidatePolicy(double* action, int candidate,
+                                 const double* state, double time) override;
+
+  void CopyCandidateToPolicy(int candidate) override;
+
+  // ----- members ----- //
+  mjModel* model;
+  const Task* task;
+
+  // state
+  std::vector<double> state;
+  double time;
+  std::vector<double> mocap;
+  std::vector<double> userdata;
+
+  // policy
+  SamplingPolicy policy;  // (Guarded by mtx_)
+  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy previous_policy;
+
+  // scratch
+  std::vector<double> parameters_scratch;
+  std::vector<double> times_scratch;
+
+  // trajectories
+  Trajectory trajectory[kMaxTrajectory];
+
+  // order of indices of rolled out trajectories, ordered by total return
+  std::vector<int> trajectory_order;
+
+  // rollout parameters
+  double timestep_power;
+
+  // ----- noise ----- //
+  double noise_exploration;  // standard deviation for sampling normal: N(0,
+                             // exploration)
+  std::vector<double> noise;
+
+  // best trajectory
+  int winner;
+
+  // improvement
+  double improvement;
+
+  // flags
+  int processed_noise_status;
+
+  // timing
+  std::atomic<double> noise_compute_time;
+  double rollouts_compute_time;
+  double policy_update_compute_time;
+
+  int num_trajectory_;
+  mutable std::shared_mutex mtx_;
+};
+
+}  // namespace mjpc
+
+#endif  // MJPC_PLANNERS_DR_SAMPLING_PLANNER_H_

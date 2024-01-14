@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "mjpc/planners/cem/planner.h"
+#include "mjpc/planners/dr_sampling/planner.h"
 #include "mjpc/planners/gradient/planner.h"
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/ilqs/planner.h"
@@ -27,6 +28,7 @@
 
 namespace mjpc {
 const char kPlannerNames[] =
+    "Domain Rand. Sampling\n"
     "CEM\n"
     "Sampling\n"
     "Gradient\n"
@@ -39,6 +41,7 @@ std::vector<std::unique_ptr<mjpc::Planner>> LoadPlanners() {
   // planners
   std::vector<std::unique_ptr<mjpc::Planner>> planners;
 
+  planners.emplace_back(new mjpc::DRSamplingPlanner);
   planners.emplace_back(new mjpc::CEMPlanner);
   planners.emplace_back(new mjpc::SamplingPlanner);
   planners.emplace_back(new mjpc::GradientPlanner);

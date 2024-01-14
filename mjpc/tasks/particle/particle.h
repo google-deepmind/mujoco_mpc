@@ -15,6 +15,7 @@
 #ifndef MJPC_TASKS_PARTICLE_PARTICLE_H_
 #define MJPC_TASKS_PARTICLE_PARTICLE_H_
 
+#include <memory>
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -27,17 +28,47 @@ class Particle : public Task {
   class ResidualFn : public mjpc::BaseResidualFn {
    public:
     explicit ResidualFn(const Particle* task) : mjpc::BaseResidualFn(task) {}
-// -------- Residuals for particle task -------
-//   Number of residuals: 3
-//     Residual (0): position - goal_position
-//     Residual (1): velocity
-//     Residual (2): control
-// --------------------------------------------
+    // -------- Residuals for particle task -------
+    //   Number of residuals: 3
+    //     Residual (0): position - goal_position
+    //     Residual (1): velocity
+    //     Residual (2): control
+    // --------------------------------------------
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
   };
   Particle() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
+
+ protected:
+  std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
+    return std::make_unique<ResidualFn>(this);
+  }
+  ResidualFn* InternalResidual() override { return &residual_; }
+
+ private:
+  ResidualFn residual_;
+};
+
+// The same task, but the goal mocap body doesn't move.
+class ParticleFixed : public Task {
+ public:
+  std::string Name() const override;
+  std::string XmlPath() const override;
+  class ResidualFn : public mjpc::BaseResidualFn {
+   public:
+    explicit ResidualFn(const ParticleFixed* task)
+        : mjpc::BaseResidualFn(task) {}
+    // -------- Residuals for particle task -------
+    //   Number of residuals: 3
+    //     Residual (0): position - goal_position
+    //     Residual (1): velocity
+    //     Residual (2): control
+    // --------------------------------------------
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
+  };
+  ParticleFixed() : residual_(this) {}
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

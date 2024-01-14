@@ -25,6 +25,7 @@
 #include "mjpc/grpc/agent.pb.h"
 #include "mjpc/grpc/grpc_agent_util.h"
 #include "mjpc/task.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc::agent_grpc {
 
@@ -32,6 +33,8 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetAllModesRequest;
 using ::agent::GetAllModesResponse;
+using ::agent::GetBestTrajectoryRequest;
+using ::agent::GetBestTrajectoryResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
@@ -46,6 +49,8 @@ using ::agent::PlannerStepRequest;
 using ::agent::PlannerStepResponse;
 using ::agent::ResetRequest;
 using ::agent::ResetResponse;
+using ::agent::SetAnythingRequest;
+using ::agent::SetAnythingResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetModeRequest;
@@ -280,5 +285,55 @@ grpc::Status AgentService::GetAllModes(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
   return grpc_agent_util::GetAllModes(request, &agent_, response);
+}
+
+grpc::Status AgentService::GetBestTrajectory(
+    grpc::ServerContext* context, const GetBestTrajectoryRequest* request,
+    GetBestTrajectoryResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+
+  // get best trajectory
+  const Trajectory* trajectory = agent_.ActivePlanner().BestTrajectory();
+
+  // dimensions
+  int num_state = trajectory->dim_state;
+  int num_action = trajectory->dim_action;
+
+  // plan steps
+  int steps = agent_.PlanSteps();
+  response->set_steps(steps);
+
+  // loop over plan steps
+  for (int t = 0; t < steps; t++) {
+    // states
+    for (int i = 0; i < num_state; i++) {
+      response->add_states(trajectory->states[t * num_state + i]);
+    }
+
+    // times
+    response->add_times(trajectory->times[t]);
+
+    // actions
+    if (t >= steps - 1) continue;
+    for (int i = 0; i < num_action; i++) {
+      response->add_actions(trajectory->actions[t * num_action + i]);
+    }
+  }
+
+  // TODO(taylor): improve return status
+  return grpc::Status::OK;
+}
+
+
+grpc::Status AgentService::SetAnything(
+    grpc::ServerContext* context, const SetAnythingRequest* request,
+    SetAnythingResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::SetAnything(request, &agent_, agent_.GetModel(),
+                                      data_, response);
 }
 }  // namespace mjpc::agent_grpc

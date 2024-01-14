@@ -46,8 +46,8 @@ class Trajectory {
   // allocate memory
   void Allocate(int T);
 
-  // reset memory to zeros
-  void Reset(int T);
+  // reset memory to zeros (and perhaps a non-zero action)
+  void Reset(int T, const double* initial_repeated_action = nullptr);
 
   // simulate model forward in time with continuous-time indexed policy
   void Rollout(
@@ -79,7 +79,7 @@ class Trajectory {
   std::vector<double> states;    // (horizon   x nq + nv + na)
   std::vector<double> actions;   // (horizon-1 x num_action)
   std::vector<double> times;     // horizon
-  std::vector<double> residual;  // (horizon x num_residual)
+  std::vector<double> residual;  // (horizon   x num_residual)
   std::vector<double> costs;     // horizon
   std::vector<double> trace;     // (horizon   x 3)
   double total_return;           // (1)

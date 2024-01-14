@@ -48,6 +48,13 @@ service Agent {
   rpc GetMode(GetModeRequest) returns (GetModeResponse);
   // Get all modes.
   rpc GetAllModes(GetAllModesRequest) returns (GetAllModesResponse);
+
+  // Get best trajectory (states, actions, times).
+  rpc GetBestTrajectory(GetBestTrajectoryRequest)
+      returns (GetBestTrajectoryResponse);
+
+  // A single method that can set many of the inputs.
+  rpc SetAnything(SetAnythingRequest) returns (SetAnythingResponse);
 }
 
 message MjModel {
@@ -175,3 +182,33 @@ message GetAllModesRequest {}
 message GetAllModesResponse {
   repeated string mode_names = 1;
 }
+
+message GetBestTrajectoryRequest {}
+
+message GetBestTrajectoryResponse {
+  repeated double states = 1 [packed = true];
+  repeated double actions = 2 [packed = true];
+  repeated double times = 3 [packed = true];
+  int32 steps = 4;
+}
+
+message Pose {
+  repeated double pos = 1 [packed = true];
+  repeated double quat = 2 [packed = true];
+}
+
+message SetAnythingRequest {
+  State state = 1;
+
+  // map from parameter name to desired value
+  map<string, TaskParameterValue> parameters = 2;
+  // cost weights by name
+  map<string, double> cost_weights = 3;
+  string mode = 4;
+
+  // set the positions of mocap bodies by name. If `state` is set too, mocap
+  // positions will be set after the state is set.
+  map<string, Pose> mocap = 5;
+}
+
+message SetAnythingResponse {}

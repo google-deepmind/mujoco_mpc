@@ -24,7 +24,7 @@
     <framepos name="head_position" objtype="body" objname="head"/>
     <framequat name="head_orientation" objtype="body" objname="head"/>
     <framezaxis name="torso_zaxis" objtype="body" objname="torso"/>
-    <framelinvel name="torso_subtreelinvel" objtype="body" objname="torso" />
+    <subtreelinvel name="torso_subtreelinvel" body="torso"/>
     <subtreecom name="torso_subtreecom" body="torso"/>
     <framexaxis name="torso_forward" objtype="body" objname="torso" />
     <framepos name="sp0" objtype="site" objname="sp0"/>

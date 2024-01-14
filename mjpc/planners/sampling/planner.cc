@@ -16,14 +16,16 @@
 
 #include <algorithm>
 #include <chrono>
-#include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
+#include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -91,13 +93,11 @@ void SamplingPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
-
-  // noise gradient
-  noise_gradient.resize(num_max_parameter);
 }
 
 // reset memory to zeros
-void SamplingPlanner::Reset(int horizon) {
+void SamplingPlanner::Reset(int horizon,
+                            const double* initial_repeated_action) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
@@ -105,8 +105,8 @@ void SamplingPlanner::Reset(int horizon) {
   time = 0.0;
 
   // policy parameters
-  policy.Reset(horizon);
-  previous_policy.Reset(horizon);
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
@@ -118,15 +118,16 @@ void SamplingPlanner::Reset(int horizon) {
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
-    candidate_policy[i].Reset(horizon);
+    candidate_policy[i].Reset(horizon, initial_repeated_action);
   }
 
   for (const auto& d : data_) {
-    mju_zero(d->ctrl, model->nu);
+    if (initial_repeated_action) {
+      mju_copy(d->ctrl, initial_repeated_action, model->nu);
+    } else {
+      mju_zero(d->ctrl, model->nu);
+    }
   }
-
-  // noise gradient
-  std::fill(noise_gradient.begin(), noise_gradient.end(), 0.0);
 
   // improvement
   improvement = 0.0;

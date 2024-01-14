@@ -42,10 +42,30 @@ For a quick video overview of MJPC, click below.
 
 [![Video](http://img.youtube.com/vi/Bdx7DuAMB6o/hqdefault.jpg)](https://dpmd.ai/mjpc)
 
-For a longer talk at the MIT Robotics Seminar describing our results, click
+For a longer talk at the MIT Robotics Seminar in December 2022 describing our results, click
 below.
 
-[![Talk](http://img.youtube.com/vi/2xVN-qY78P4/hqdefault.jpg)](https://www.youtube.com/watch?v=2xVN-qY78P4)
+[![2022Talk](http://img.youtube.com/vi/2xVN-qY78P4/hqdefault.jpg)](https://www.youtube.com/watch?v=2xVN-qY78P4)
+
+A more recent, December 2023 talk at the IEEE Technical Committee on Model-Based Optimization
+is available here:
+
+[![2023Talk](https://img.youtube.com/vi/J-JO-lgaKtw/hqdefault.jpg)](https://www.youtube.com/watch?v=J-JO-lgaKtw&t=0s)
+
+### Example tasks
+
+Quadruped task:
+
+[![Quadruped](http://img.youtube.com/vi/esLuwaWz4oE/hqdefault.jpg)](https://www.youtube.com/watch?v=esLuwaWz4oE)
+
+Rubik's cube 10-move unscramble:
+
+[![Unscramble](http://img.youtube.com/vi/ZRRvVWV-Muk/hqdefault.jpg)](https://www.youtube.com/watch?v=ZRRvVWV-Muk)
+
+Humanoid motion-capture tracking:
+
+[![Tracking](http://img.youtube.com/vi/tEBVK-MO1Sw/hqdefault.jpg)](https://www.youtube.com/watch?v=tEBVK-MO1Sw)
+
 
 ## Graphical User Interface
 
@@ -81,7 +101,7 @@ Note, we are using `clang-14`.
 
 # Python API
 
-We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibilty and may be difficult to debug without more in-depth knowedge about MuJoCo and MJPC.
+We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibility and may be difficult to debug without more in-depth knowledge about mujoco and MJPC.
 
 - [agent.py](python/mujoco_mpc/agent.py) for available methods for planning.
 
@@ -91,11 +111,6 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 
 ## Installing via Pip
 The MJPC Python module can be installed with:
-```sh
-pip install "${MUJOCO_MPC_ROOT}/python"
-```
-
-Alternatively:
 ```sh
 python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
 ```

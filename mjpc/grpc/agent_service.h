@@ -104,6 +104,15 @@ class AgentService final : public agent::Agent::Service {
                            const agent::GetAllModesRequest* request,
                            agent::GetAllModesResponse* response) override;
 
+  grpc::Status GetBestTrajectory(
+      grpc::ServerContext* context,
+      const agent::GetBestTrajectoryRequest* request,
+      agent::GetBestTrajectoryResponse* response) override;
+
+  grpc::Status SetAnything(grpc::ServerContext* context,
+                           const agent::SetAnythingRequest* request,
+                           agent::SetAnythingResponse* response) override;
+
  private:
   bool Initialized() const { return data_ != nullptr; }
 

@@ -25,12 +25,21 @@ we can review your implementation.
 
 This code adheres to the [Google style](https://google.github.io/styleguide/).
 
+- Include the standard copyright and license at the top of each file.
+- The VSCode extension 'Clang-Format' can be used to format the C/C++ code to Google style.
+- The package [cpplint](https://github.com/cpplint/cpplint) should be used to check for additional C/C++ style issues. Note: includes should follow the ordering found throughout MuJoCo MPC for consistency.
+- The package [Pyink](https://github.com/google/pyink) can be used to format Python code. Please use: `--pyink-indentation 2 --line-length 80`.
+
+## New Tasks
+
+When submitting a PR for a new task using models from [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie), do not include assets directly. Instead, modify the task [CMakeLists](mjpc/tasks/CMakeLists.txt) to copy these assets to the build binary.
+
 ## Unit Tests
 
 Before submitting your PR, you can test your change locally by invoking ctest:
 
 ```
-cd build
+cd build/mjpc/test
 ctest --output-on-failure .
 ```
 

@@ -149,6 +149,18 @@ It is also possible to create GUI elements for  parameters that are passed to th
 - `lower_bound`: Real specifying lower bound of GUI slider.
 - `upper_bound`: Real specifying upper bound of GUI slider.
 
+Prefixes `residual_list_` and `residual_select_` are (both) specified in order to generate a selection of buttons (0) or drop-down list (1):
+```c++
+<custom>
+    <numeric
+        name="residual_list_[name]"
+        data="[Item (0)]|[Item (1)]|[Item (3)]"
+        name="residual_select_[name]"
+        data="0" or "1"
+    />
+</custom>
+```
+
 ### Residual Specification
 
 As mentioned above, the cost is a sum of terms, each computed as a (scalar) norm of a (vector) residual. Each term is defined as a [user sensor](https://mujoco.readthedocs.io/en/latest/XMLreference.html#sensor-user). The sensor values constitute the residual vector (implemented by the residual function, see below). The norm for each term is defined by the [`user` attribute](https://mujoco.readthedocs.io/en/latest/modeling.html#cuser) of the respective user sensor, according to the following format:
@@ -180,17 +192,14 @@ The user sensors defining the residuals should be declared first. Therefore, all
 Computing the residual vectors is specified via a C++ function with the following interface:
 
 ```c++
-void residual(
-    double* residual,
-    const double* parameters,
-    const mjModel* model,
-    const mjData* data)
+void Residual(const mjModel* model,
+              const mjData* data,
+              double* residual) const
 ```
 
-- `residual`: The function's output. Each element in the double array should be set by this function, corresponding to the ordering and sizes provided by the user sensors in the task XML. See example below.
-- `parameters`: Array of doubles, this input is comprised of elements specified using `residual_`
-- `model`: the task's `mjModel`.
+- `model`: the task's `mjModel`. Marked `const`, because this function should not change `mjModel` values.
 - `data`: the task's `mjData`. Marked `const`, because this function should not change mjData values.
+- `residual`: The function's output. Each element in the double array should be set by this function, corresponding to the ordering and sizes provided by the user sensors in the task XML. See example below.
 
 *NOTE*: User sensors corresponding to cost terms should be specified before any other sensors.
 
@@ -208,12 +217,24 @@ As an example, consider these snippets specifying the Swimmer task:
 </sensor>
 ```
 ```c++
-void Swimmer::Residual(double* residual, const double* parameters,
-                        const mjModel* model, const mjData* data) {
+void Swimmer::ResidualFn::Residual(const mjModel* model,
+                                   const mjData* data,
+                                   double* residual) const {
+  // initialize counter
+  int counter = 0;
+
+  // "Control"
   mju_copy(residual, data->ctrl, model->nu);
+  counter += model->nu; // increment counter
+
+  // "Distance"
   double* target = mjpc::SensorByName(model, data, "target");
   double* nose = mjpc::SensorByName(model, data, "nose");
-  mju_sub(residual + model->nu, nose, target, 2);
+  mju_sub(residual + counter, nose, target, 2);
+  counter += 2;
+
+  // test residual counter (recommended, optional)
+  CheckSensorDim(model, counter);
 }
 ```
 
@@ -224,7 +245,7 @@ The swimmer's cost has two terms:
 
 The repository includes additional example tasks:
 
-- Humanoid [Stand](../mjpc/tasks/humanoid/stand/task.xml) | [Walk](../mjpc/tasks/humanoid/walk/task.xml)
+- Humanoid [Stand](../mjpc/tasks/humanoid/stand/task.xml) | [Walk](../mjpc/tasks/humanoid/walk/task.xml) | [Tracking](../mjpc/tasks/humanoid/tracking/task.xml)
 - [Swimmer](../mjpc/tasks/swimmer/task.xml)
 - [Walker](../mjpc/tasks/walker/task.xml)
 - [Cart-Pole](../mjpc/tasks/cartpole/task.xml)
@@ -240,16 +261,11 @@ The repository includes additional example tasks:
 The `task` [class](../mjpc/task.h) supports *transitions* for subgoal-reaching tasks.  The transition function is called at every step, and is meant to allow the task specification to adapt to the agent's behavior (e.g., moving the target whenever the agent reaches it).  This function should test whether a transition condition is fulfilled, and at that event it should mutate the task specification.  It has the following interface:
 
 ```c++
-int Swimmer::Transition(
-  const mjModel* model,
-  mjData* data,
-  Task* task)
+void TransitionLocked(mjModel* model, mjData* data)
 ```
 
-- `state`: an integer marking the current task mode.  This is useful when the sub-goals are enumerable (e.g., when cycling between keyframes).  If the user uses this feature, the function should return a new state upon transition.
-- `model`: the task's `mjModel`.  It is marked `const` because changes to it here will only affect the GUI and will not affect the planner's copies.
+- `model`: the task's `mjModel`. A transition could mutate fields of `mjModel`.
 - `data`: the task's `mjData`.  A transition should mutate fields of `mjData`, see below.
-- `task`: task object.
 
 Because we only sync the `mjData` [state](https://mujoco.readthedocs.io/en/latest/computation.html?highlight=state#the-state) between the GUI and the agent's planner, tasks that need transitions should use `mocap` [fields](https://mujoco.readthedocs.io/en/latest/modeling.html#cmocap) or `userdata` to specify goals.  For code examples, see the `Transition` functions in these example tasks: [Swimmer](../mjpc/tasks/swimmer/swimmer.cc) (relocating the target), [Quadruped](../mjpc/tasks/quadruped/quadruped.cc) (iterating along a fixed set of targets) and [Hand](../mjpc/tasks/hand/hand.cc) (recovering when the cube is dropped).
 

@@ -15,7 +15,6 @@
 #ifndef MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
 #define MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
 
-#include <cstdlib>
 #include <memory>
 #include <shared_mutex>
 #include <vector>
@@ -29,6 +28,8 @@
 #include "mjpc/planners/model_derivatives.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
@@ -52,7 +53,8 @@ class GradientPlanner : public Planner {
   void Allocate() override;
 
   // reset memory to zeros
-  void Reset(int horizon) override;
+  void Reset(int horizon,
+             const double* initial_repeated_action = nullptr) override;
 
   // set state
   void SetState(const State& state) override;

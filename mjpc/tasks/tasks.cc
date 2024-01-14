@@ -48,6 +48,7 @@ std::vector<std::shared_ptr<Task>> GetTasks() {
     // DEEPMIND INTERNAL TASKS
     std::make_shared<Panda>(),
     std::make_shared<Particle>(),
+    std::make_shared<ParticleFixed>(),
     std::make_shared<Quadrotor>(),
     std::make_shared<QuadrupedFlat>(),
     std::make_shared<QuadrupedHill>(),

@@ -56,12 +56,12 @@ void iLQSPlanner::Allocate() {
 }
 
 // reset memory to zeros
-void iLQSPlanner::Reset(int horizon) {
+void iLQSPlanner::Reset(int horizon, const double* initial_repeated_action) {
   // Sampling
-  sampling.Reset(horizon);
+  sampling.Reset(horizon, initial_repeated_action);
 
   // iLQG
-  ilqg.Reset(horizon);
+  ilqg.Reset(horizon, initial_repeated_action);
 
   // active_policy
   active_policy = kSampling;

@@ -59,8 +59,8 @@ void DRSamplingPlanner::Initialize(mjModel* model, const Task& task) {
   }
   
   // add extra models for domain randomization
-  randomized_models.resize(num_randomized_models);
-  for (int i = 0; i < num_randomized_models; i++) {
+  randomized_models.resize(kNumRandomizedModels);
+  for (int i = 0; i < kNumRandomizedModels; i++) {
     randomized_models[i] = mj_copyModel(nullptr, model);
   }
   task.DomainRandomize(randomized_models);
@@ -92,7 +92,7 @@ void DRSamplingPlanner::Allocate() {
 
   // trajectory and parameters
   winner = -1;
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxTrajectory * kNumRandomizedModels; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
@@ -120,7 +120,7 @@ void DRSamplingPlanner::Reset(int horizon) {
   std::fill(noise.begin(), noise.end(), 0.0);
 
   // trajectory samples
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxTrajectory * kNumRandomizedModels; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
@@ -301,7 +301,7 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
 
   // compute num_trajectory random control tapes, storing each one in
   // this->candidate_policy[i]. Additional copies of each tape are stored in
-  // this->candidate_policy[i + j*num_trajectory] for j=1,...,num_randomized_models
+  // this->candidate_policy[i + j*num_trajectory] for j=1,...,kNumRandomizedModels
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&s = *this, i, num_trajectory]() {
@@ -316,7 +316,7 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
       if (i != 0) s.AddNoiseToPolicy(i);
 
       // make copies of the candidate policy for each randomized model
-      for (int j = 1; j < s.num_randomized_models; j++) {
+      for (int j = 1; j < kNumRandomizedModels; j++) {
         int k = i + j * num_trajectory;
         s.candidate_policy[k].CopyFrom(
             s.candidate_policy[i], s.candidate_policy[i].num_spline_points);
@@ -328,13 +328,11 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
   pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
   
-  // TODO(vincekurtz): update checks on size of this->trajectory and this->candidate_policy
-
   // Toll out the control tapes across the randomized models. Tape i for model j
   // is stored in this->trajectory[i + j*num_trajectory]. 
   count_before = pool.GetCount();
   for (int i=0; i < num_trajectory; i++) {
-    for (int j=0; j < num_randomized_models; j++) {
+    for (int j=0; j < kNumRandomizedModels; j++) {
       pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                     &state = this->state, &time = this->time,
                     &mocap = this->mocap, &userdata = this->userdata, horizon,
@@ -355,7 +353,7 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
       });
     }
   }
-  pool.WaitCount(count_before + num_trajectory*num_randomized_models);
+  pool.WaitCount(count_before + num_trajectory*kNumRandomizedModels);
   pool.ResetCount();
 
   // compute average trajectory costs across the randomized models, storing
@@ -363,10 +361,10 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
   // Thus the first num_trajectory elements of this->trajectory are scored by
   // average performance across the randomized models.
   for (int i=0; i<num_trajectory; ++i) {
-    for (int j=1; j<num_randomized_models; ++j) {
+    for (int j=1; j<kNumRandomizedModels; ++j) {
       trajectory[i].total_return += trajectory[i + j*num_trajectory].total_return;
     }
-    trajectory[i].total_return /= num_randomized_models;
+    trajectory[i].total_return /= kNumRandomizedModels;
   }
 }
 

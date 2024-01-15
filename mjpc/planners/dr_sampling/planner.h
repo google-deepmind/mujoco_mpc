@@ -28,6 +28,10 @@
 
 namespace mjpc {
 
+// Number of models for domain randomization.  
+// TODO(vincekurtz): make this a GUI parameter?
+const int kNumRandomizedModels = 3;
+
 /**
  * Predictive sampling planner with domain randomization.
  */
@@ -104,7 +108,6 @@ class DRSamplingPlanner : public RankedPlanner {
   const Task* task;
 
   // copies of model with randomized parameters
-  const int num_randomized_models = 3;  // TODO(vincekurtz): make this a setting
   std::vector<mjModel*> randomized_models;
 
   // state
@@ -115,7 +118,7 @@ class DRSamplingPlanner : public RankedPlanner {
 
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
-  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy candidate_policy[kMaxTrajectory*kNumRandomizedModels];
   SamplingPolicy previous_policy;
 
   // scratch
@@ -123,7 +126,7 @@ class DRSamplingPlanner : public RankedPlanner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectory[kMaxTrajectory];
+  Trajectory trajectory[kMaxTrajectory*kNumRandomizedModels];
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;

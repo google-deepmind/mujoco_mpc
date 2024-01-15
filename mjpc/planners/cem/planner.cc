@@ -59,9 +59,9 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
-  // set number of elite samples
+  // set number of elite samples (best 10%, min 2)
   n_elites =
-      GetNumberOrDefault(num_trajectory_ / 10, model, "n_elites");  // best 10%
+      GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elites");
   temp_avg.resize(model->nu);
   temp_elite_actions.resize(
       kMaxTrajectory,

@@ -64,12 +64,12 @@ void Direct::Initialize(const mjModel* model) {
   }
 
   // timestep
-  this->model->opt.timestep = GetNumberOrDefault(this->model->opt.timestep,
-                                                 model, "estimator_timestep");
+  this->model->opt.timestep =
+      GetNumberOrDefault(this->model->opt.timestep, model, "direct_timestep");
 
   // length of configuration trajectory
   configuration_length_ =
-      GetNumberOrDefault(3, model, "batch_configuration_length");
+      GetNumberOrDefault(3, model, "direct_configuration_length");
 
   // check configuration length
   if (configuration_length_ > max_history_) {

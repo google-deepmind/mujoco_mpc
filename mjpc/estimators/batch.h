@@ -32,7 +32,7 @@
 namespace mjpc {
 
 // max filter history
-inline constexpr int kMaxFilterHistory = 32;
+inline constexpr int kMaxFilterHistory = 128;
 
 // ----- batch estimator ----- //
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"
@@ -77,6 +77,11 @@ class Batch : public Direct, public Estimator {
 
   // get data
   mjData* Data() override { return data_[0].get(); };
+
+  // get qfrc
+  double* Qfrc() override {
+    return force_prediction.Get(configuration_length_ - 2);
+  };
 
   // get process noise
   double* ProcessNoise() override { return noise_process.data(); };

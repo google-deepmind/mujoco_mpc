@@ -56,6 +56,7 @@ message UpdateResponse {}
 message State {
   repeated double state = 1 [packed = true];
   optional double time = 2;
+  repeated double qfrc = 3 [packed = true];
 }
 
 message StateRequest {

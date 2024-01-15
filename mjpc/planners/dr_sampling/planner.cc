@@ -328,7 +328,7 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
   pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
   
-  // Toll out the control tapes across the randomized models. Tape i for model j
+  // Roll out the control tapes across the randomized models. Tape i for model j
   // is stored in this->trajectory[i + j*num_trajectory]. 
   count_before = pool.GetCount();
   for (int i=0; i < num_trajectory; i++) {

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
@@ -95,7 +96,30 @@ void AllegroCube::TransitionLocked(mjModel* model, mjData* data) {
     mj_forward(model, data);
     mutex_.lock();
   }
+}
 
+// Change the friction coefficient of all the objects in the scene
+void AllegroCube::RandomizeModel(const mjModel* original_model, 
+                                 std::vector<mjModel*>& randomized_models) 
+                                 const {
+  absl::BitGen gen_;
+
+  // Standard deviation of the friction coefficient change
+  const double std_dev = 0.1;
+
+  // Each model has all friction coefficients boosted or shrunk, so some models
+  // are more slippery and others are more grippy.
+  for (int i=0; i < randomized_models.size(); i++) {
+    mjModel* model = randomized_models[i];
+
+    const double friction_change = absl::Gaussian<double>(gen_, 0.0, std_dev);
+    for (int j=0; j < model->ngeom; j++) {
+      model->geom_friction[j] += friction_change;
+      model->geom_friction[j] = std::max(model->geom_friction[j], 0.0);
+    }
+
+    std::cout << "Friction coefficients in model " << i << " boosted by " << friction_change << std::endl;
+  }
 }
 
 }  // namespace mjpc

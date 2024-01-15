@@ -58,13 +58,14 @@ void DRSamplingPlanner::Initialize(mjModel* model, const Task& task) {
                 kMaxTrajectory);
   }
   
-  // extra models for domain randomization
+  // add extra models for domain randomization
   randomized_models.resize(num_randomized_models);
   for (int i = 0; i < num_randomized_models; i++) {
     randomized_models[i] = mj_copyModel(nullptr, model);
-    // TODO(vincekurtz): apply a randomization function from
-    // this->task to randomized_models[i]
   }
+
+  // apply domain randomization to these models, as specified by the task
+  task.RandomizeModel(model, randomized_models);
 
   winner = 0;
 }

@@ -300,16 +300,12 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
 
   policy.num_parameters = model->nu * policy.num_spline_points;
 
-  // allocate space for average trajectory costs
-  // N.B. we need to do this allocation here because num_trajectory might change
-  // based on GUI input.
-  average_trajectory_costs.resize(num_trajectory, 0.0);
-
   // compute num_trajectory random control tapes, storing each one in
-  // this->candidate_policy[i].
+  // this->candidate_policy[i]. Additional copies of each tape are stored in
+  // this->candidate_policy[i + j*num_trajectory] for j=1,...,num_randomized_models
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, i]() {
+    pool.Schedule([&s = *this, i, num_trajectory]() {
       // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -319,35 +315,60 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
 
       // add random noise to the policy
       if (i != 0) s.AddNoiseToPolicy(i);
+
+      // make copies of the candidate policy for each randomized model
+      for (int j = 1; j < s.num_randomized_models; j++) {
+        int k = i + j * num_trajectory;
+        s.candidate_policy[k].CopyFrom(
+            s.candidate_policy[i], s.candidate_policy[i].num_spline_points);
+        s.candidate_policy[k].representation =
+            s.candidate_policy[i].representation;
+      }
     });
   }
   pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
+  
+  // TODO(vincekurtz): update checks on size of this->trajectory and this->candidate_policy
 
-  // roll out the control tapes, storing the resulting trajectories in
-  // this->trajectory[i].
+  // Toll out the control tapes across the randomized models. Tape i for model j
+  // is stored in this->trajectory[i + j*num_trajectory]. 
   count_before = pool.GetCount();
   for (int i=0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
-                  &state = this->state, &time = this->time,
-                  &mocap = this->mocap, &userdata = this->userdata, horizon,
-                  i]()
-                  {
-      // policy function
-      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                double* action, const double* state,
-                                double time) {
-        candidate_policy[i].Action(action, state, time);
-      };
+    for (int j=0; j < num_randomized_models; j++) {
+      pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                    &state = this->state, &time = this->time,
+                    &mocap = this->mocap, &userdata = this->userdata, horizon,
+                    i, j, num_trajectory]()
+                    {
+        // policy helper function
+        int k = i + j * num_trajectory;
+        auto sample_policy = [&candidate_policy = s.candidate_policy, &k](
+                                  double* action, const double* state,
+                                  double time) {
+          candidate_policy[k].Action(action, state, time);
+        };
 
-      // policy rollout
-      s.trajectory[i].Rollout(
-          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon); 
-    });
+        // policy rollout
+        s.trajectory[k].Rollout(
+            sample_policy, task, model, s.data_[ThreadPool::WorkerId()].get(),
+            state.data(), time, mocap.data(), userdata.data(), horizon); 
+      });
+    }
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_trajectory*num_randomized_models);
   pool.ResetCount();
+
+  // compute average trajectory costs across the randomized models, storing
+  // them in this->trajectory[i].total_return (the first time rollout i is used).
+  // Thus the first num_trajectory elements of this->trajectory are scored by
+  // average performance across the randomized models.
+  for (int i=0; i<num_trajectory; ++i) {
+    for (int j=1; j<num_randomized_models; ++j) {
+      trajectory[i].total_return += trajectory[i + j*num_trajectory].total_return;
+    }
+    trajectory[i].total_return /= num_randomized_models;
+  }
 }
 
 // return trajectory with best total return

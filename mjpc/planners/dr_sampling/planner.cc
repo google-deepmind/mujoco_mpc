@@ -300,41 +300,53 @@ void DRSamplingPlanner::Rollouts(int num_trajectory, int horizon,
 
   policy.num_parameters = model->nu * policy.num_spline_points;
 
-  // random search
+  // allocate space for average trajectory costs
+  // N.B. we need to do this allocation here because num_trajectory might change
+  // based on GUI input.
+  average_trajectory_costs.resize(num_trajectory, 0.0);
+
+  // compute num_trajectory random control tapes, storing each one in
+  // this->candidate_policy[i].
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
-    for (int j=0; j < num_randomized_models; j++) {
-      pool.Schedule([&s = *this, &model = this->randomized_models[j], &task = this->task,
-                    &state = this->state, &time = this->time,
-                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                    i]()
-                    {
-        // copy nominal policy
-        {
-          const std::shared_lock<std::shared_mutex> lock(s.mtx_);
-          s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
-          s.candidate_policy[i].representation = s.policy.representation;
-        }
+    pool.Schedule([&s = *this, i]() {
+      // copy nominal policy
+      {
+        const std::shared_lock<std::shared_mutex> lock(s.mtx_);
+        s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
+        s.candidate_policy[i].representation = s.policy.representation;
+      }
 
-        // sample noise policy
-        if (i != 0) s.AddNoiseToPolicy(i);
-
-        // ----- rollout sample policy ----- //
-
-        // policy
-        auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                  double* action, const double* state,
-                                  double time) {
-          candidate_policy[i].Action(action, state, time);
-        };
-
-        // policy rollout
-        s.trajectory[i].Rollout(
-            sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-            state.data(), time, mocap.data(), userdata.data(), horizon); });
-    }
+      // add random noise to the policy
+      if (i != 0) s.AddNoiseToPolicy(i);
+    });
   }
-  pool.WaitCount(count_before + num_trajectory*num_randomized_models);
+  pool.WaitCount(count_before + num_trajectory);
+  pool.ResetCount();
+
+  // roll out the control tapes, storing the resulting trajectories in
+  // this->trajectory[i].
+  count_before = pool.GetCount();
+  for (int i=0; i < num_trajectory; i++) {
+    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                  &state = this->state, &time = this->time,
+                  &mocap = this->mocap, &userdata = this->userdata, horizon,
+                  i]()
+                  {
+      // policy function
+      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
+                                double* action, const double* state,
+                                double time) {
+        candidate_policy[i].Action(action, state, time);
+      };
+
+      // policy rollout
+      s.trajectory[i].Rollout(
+          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
+          state.data(), time, mocap.data(), userdata.data(), horizon); 
+    });
+  }
+  pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
 }
 

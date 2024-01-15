@@ -28,14 +28,6 @@
 
 namespace mjpc {
 
-// sampling planner limits
-// inline constexpr int MinSamplingSplinePoints = 1;
-// inline constexpr int MaxSamplingSplinePoints = 36;
-// inline constexpr int MinSamplingSplinePower = 1;
-// inline constexpr int MaxSamplingSplinePower = 5;
-// inline constexpr double MinNoiseStdDev = 0.0;
-// inline constexpr double MaxNoiseStdDev = 1.0;
-
 class CEMPlanner : public RankedPlanner {
  public:
   // constructor

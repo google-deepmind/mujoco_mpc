@@ -103,11 +103,10 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
     const {
   absl::BitGen gen_;
 
-  // Standard deviation of the friction coefficient change
-  const double friction_std_dev = 0.2;
-
-  // Standard deviation of the actuator gain change
-  const double act_gain_std_dev = 0.2;
+  // Standard deviations of the things we're randomizing
+  const double friction_std_dev = 0.1;  // friction coefficient
+  const double act_gain_std_dev = 0.1;  // actuator gain
+  const double cube_size_std_dev = 0.03;  // cube size (edge length)
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
@@ -134,6 +133,21 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
     }
 
     std::cout << "Actuator gains in model " << i << " boosted by " << act_gain_change << std::endl;
+  }
+
+  // The cube has a different size
+  int cube_geom_id = mj_name2id(randomized_models[0], mjOBJ_GEOM, "cube") + 4;
+  // N.B. verified the geom id by printing the cube size and modifying in XML,
+  // not sure why we need the + 4.
+  for (int i=0; i < randomized_models.size(); ++i) {
+    mjModel* model = randomized_models[i];
+
+    const double cube_size_change = absl::Gaussian<double>(gen_, 0.0, cube_size_std_dev);
+    model->geom_size[cube_geom_id] += cube_size_change;
+    model->geom_size[cube_geom_id + 1] += cube_size_change;
+    model->geom_size[cube_geom_id + 2] += cube_size_change;
+
+    std::cout << "Cube size in model " << i << " boosted by " << cube_size_change << std::endl;
   }
 }
 

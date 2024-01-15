@@ -45,7 +45,7 @@ class CEMPlanner : public RankedPlanner {
   void Allocate() override;
 
   // reset memory to zeros
-  void Reset(int horizon) override;
+  void Reset(int horizon, const double* initial_repeated_action = nullptr) override;
 
   // set state
   void SetState(const State& state) override;

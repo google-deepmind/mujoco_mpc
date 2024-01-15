@@ -121,7 +121,8 @@ void CEMPlanner::Allocate() {
 }
 
 // reset memory to zeros
-void CEMPlanner::Reset(int horizon) {
+void CEMPlanner::Reset(int horizon,
+                       const double* initial_repeated_action) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
@@ -129,8 +130,8 @@ void CEMPlanner::Reset(int horizon) {
   time = 0.0;
 
   // policy parameters
-  policy.Reset(horizon);
-  previous_policy.Reset(horizon);
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);

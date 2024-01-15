@@ -18,11 +18,11 @@
     <!-- cost -->
     <!-- <user name="Effort" dim="14" user="0 0 0 1"/> -->
     <user name="Box Pos." dim="3" user="0 10.0 0 25"/>
-    <user name="Left Reach" dim="3" user="0 5.0e-2 0 1"/>
-    <user name="Right Reach" dim="3" user="0 5.0e-2 0 1"/>
+    <user name="Left Reach" dim="3" user="0 1.0 0 2"/>
+    <user name="Right Reach" dim="3" user="0 1.0 0 2"/>
     <!-- <user name="Joint Vel." dim="16" user="0 0.0 0 1"/> -->
-    <user name="Orientation" dim="24" user="0 10.0 0 25"/>
-    <user name="Nominal" dim="16" user="0 1.0 0 10.0"/>
+    <user name="Orientation" dim="24" user="0 3.0 0 10"/>
+    <user name="Nominal" dim="16" user="0 0.05 0 1.0"/>
 
     <!-- trace -->
     <framepos name="trace0" objtype="site" objname="pinch"/>

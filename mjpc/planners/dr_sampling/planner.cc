@@ -63,9 +63,7 @@ void DRSamplingPlanner::Initialize(mjModel* model, const Task& task) {
   for (int i = 0; i < num_randomized_models; i++) {
     randomized_models[i] = mj_copyModel(nullptr, model);
   }
-
-  // apply domain randomization to these models, as specified by the task
-  task.RandomizeModel(model, randomized_models);
+  task.DomainRandomize(randomized_models);
 
   winner = 0;
 }

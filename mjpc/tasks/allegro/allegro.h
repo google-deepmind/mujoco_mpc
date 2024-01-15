@@ -24,8 +24,7 @@ class AllegroCube : public Task {
   void TransitionLocked(mjModel* model, mjData* data) override;
 
   // Do domain randomization
-  void RandomizeModel(const mjModel* original_model, 
-                      std::vector<mjModel*>& randomized_models) const override;
+  void DomainRandomize(std::vector<mjModel*>& randomized_models) const override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

@@ -99,9 +99,8 @@ void AllegroCube::TransitionLocked(mjModel* model, mjData* data) {
 }
 
 // Change the friction coefficient of all the objects in the scene
-void AllegroCube::RandomizeModel(const mjModel* original_model, 
-                                 std::vector<mjModel*>& randomized_models) 
-                                 const {
+void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models) 
+    const {
   absl::BitGen gen_;
 
   // Standard deviation of the friction coefficient change

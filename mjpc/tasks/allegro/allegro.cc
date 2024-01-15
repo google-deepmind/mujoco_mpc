@@ -107,7 +107,7 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
   const double friction_std_dev = 0.2;
 
   // Standard deviation of the actuator gain change
-  const double act_gain_std_dev = 5.0;
+  const double act_gain_std_dev = 0.2;
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
@@ -130,6 +130,7 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
     const double act_gain_change = absl::Gaussian<double>(gen_, 0.0, act_gain_std_dev);
     for (int j=0; j < model->nu; j++) {
       model->actuator_gainprm[2*j] += act_gain_change;
+      model->actuator_gainprm[2*j] = std::max(model->actuator_gainprm[2*j], 0.01);
     }
 
     std::cout << "Actuator gains in model " << i << " boosted by " << act_gain_change << std::endl;

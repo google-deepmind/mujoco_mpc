@@ -104,7 +104,7 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
   absl::BitGen gen_;
 
   // Standard deviation of the friction coefficient change
-  const double std_dev = 0.1;
+  const double std_dev = 0.2;
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.

@@ -52,15 +52,23 @@ void DRSamplingPlanner::Initialize(mjModel* model, const Task& task) {
 
   // set number of trajectories to rollout for each model
   num_rollouts_ = GetNumberOrDefault(10, model, "sampling_trajectories");
-
+  
   if (num_rollouts_ > kMaxRollouts) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxRollouts);
   }
+
+  // set number of randomized models
+  num_randomized_models_ = GetNumberOrDefault(3, model, "num_randomized_models");
+
+  if (num_randomized_models_ > kMaxRandomizedModels) {
+    mju_error_i("Too many randomized models, %d is the maximum allowed.",
+                kMaxRandomizedModels);
+  }
   
   // add extra models for domain randomization
-  randomized_models.resize(kNumRandomizedModels);
-  for (int i = 0; i < kNumRandomizedModels; i++) {
+  randomized_models.resize(kMaxRandomizedModels);
+  for (int i = 0; i < kMaxRandomizedModels; i++) {
     randomized_models[i] = mj_copyModel(nullptr, model);
   }
   task.DomainRandomize(randomized_models);
@@ -92,7 +100,7 @@ void DRSamplingPlanner::Allocate() {
 
   // trajectory and parameters
   winner = -1;
-  for (int i = 0; i < kMaxRollouts * kNumRandomizedModels; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
@@ -120,7 +128,7 @@ void DRSamplingPlanner::Reset(int horizon) {
   std::fill(noise.begin(), noise.end(), 0.0);
 
   // trajectory samples
-  for (int i = 0; i < kMaxRollouts * kNumRandomizedModels; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
@@ -146,8 +154,9 @@ int DRSamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
                                               ThreadPool& pool) {
   // if num_rollouts_ has changed, use it in this new iteration.
   // num_rollouts_ might change while this function runs. Keep it constant
-  // for the duration of this function.
+  // for the duration of this function. Same thing for num_randomized_models_.
   int num_rollouts = num_rollouts_;
+  int num_randomized_models = num_randomized_models_;
   ncandidates = std::min(ncandidates, num_rollouts);
   ResizeMjData(model, pool.NumThreads());
 
@@ -156,7 +165,7 @@ int DRSamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // simulate noisy policies
-  this->Rollouts(num_rollouts, horizon, pool);
+  this->Rollouts(num_rollouts, num_randomized_models, horizon, pool);
 
   // sort candidate policies and trajectories by score
   trajectory_order.clear();
@@ -292,8 +301,8 @@ void DRSamplingPlanner::AddNoiseToPolicy(int i) {
 }
 
 // compute candidate trajectories
-void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
-                               ThreadPool& pool) {
+void DRSamplingPlanner::Rollouts(int num_rollouts, int num_randomized_models, 
+                                 int horizon, ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
 
@@ -301,10 +310,10 @@ void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
 
   // compute num_rollouts random control tapes, storing each one in
   // this->candidate_policy[i]. Additional copies of each tape are stored in
-  // this->candidate_policy[i + j*num_rollouts] for j=1,...,kNumRandomizedModels
+  // this->candidate_policy[i + j*num_rollouts] for j=1,...,num_randomized_models
   int count_before = pool.GetCount();
   for (int i = 0; i < num_rollouts; i++) {
-    pool.Schedule([&s = *this, i, num_rollouts]() {
+    pool.Schedule([&s = *this, i, num_rollouts, num_randomized_models]() {
       // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -316,7 +325,7 @@ void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
       if (i != 0) s.AddNoiseToPolicy(i);
 
       // make copies of the candidate policy for each randomized model
-      for (int j = 1; j < kNumRandomizedModels; j++) {
+      for (int j = 1; j < num_randomized_models; j++) {
         int k = i + j * num_rollouts;
         s.candidate_policy[k].CopyFrom(
             s.candidate_policy[i], s.candidate_policy[i].num_spline_points);
@@ -332,7 +341,7 @@ void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
   // is stored in this->trajectory[i + j*num_rollouts]. 
   count_before = pool.GetCount();
   for (int i=0; i < num_rollouts; i++) {
-    for (int j=0; j < kNumRandomizedModels; j++) {
+    for (int j=0; j < num_randomized_models; j++) {
       pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                     &state = this->state, &time = this->time,
                     &mocap = this->mocap, &userdata = this->userdata, horizon,
@@ -353,7 +362,7 @@ void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
       });
     }
   }
-  pool.WaitCount(count_before + num_rollouts*kNumRandomizedModels);
+  pool.WaitCount(count_before + num_rollouts*num_randomized_models);
   pool.ResetCount();
 
   // compute average trajectory costs across the randomized models, storing
@@ -361,10 +370,10 @@ void DRSamplingPlanner::Rollouts(int num_rollouts, int horizon,
   // Thus the first num_rollouts elements of this->trajectory are scored by
   // average performance across the randomized models.
   for (int i=0; i<num_rollouts; ++i) {
-    for (int j=1; j<kNumRandomizedModels; ++j) {
+    for (int j=1; j<num_randomized_models; ++j) {
       trajectory[i].total_return += trajectory[i + j*num_rollouts].total_return;
     }
-    trajectory[i].total_return /= kNumRandomizedModels;
+    trajectory[i].total_return /= num_randomized_models;
   }
 }
 
@@ -425,6 +434,7 @@ void DRSamplingPlanner::Traces(mjvScene* scn) {
 // planner-specific GUI elements
 void DRSamplingPlanner::GUI(mjUI& ui) {
   mjuiDef defSampling[] = {
+      {mjITEM_SLIDERINT, "Models", 2, &num_randomized_models_, "0 1"},
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_rollouts_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
@@ -434,15 +444,18 @@ void DRSamplingPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
       {mjITEM_END}};
 
+  // set number of randomized models slider limits
+  mju::sprintf_arr(defSampling[0].other, "%i %i", 1, kMaxRandomizedModels);
+  
   // set number of trajectory slider limits
-  mju::sprintf_arr(defSampling[0].other, "%i %i", 1, kMaxRollouts);
+  mju::sprintf_arr(defSampling[1].other, "%i %i", 1, kMaxRollouts);
 
   // set spline point limits
-  mju::sprintf_arr(defSampling[2].other, "%i %i", MinSamplingSplinePoints,
+  mju::sprintf_arr(defSampling[3].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
   // set noise standard deviation limits
-  mju::sprintf_arr(defSampling[3].other, "%f %f", MinNoiseStdDev,
+  mju::sprintf_arr(defSampling[4].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 
   // add sampling planner

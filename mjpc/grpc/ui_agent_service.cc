@@ -49,6 +49,8 @@ using ::agent::PlannerStepRequest;
 using ::agent::PlannerStepResponse;
 using ::agent::ResetRequest;
 using ::agent::ResetResponse;
+using ::agent::SetAnythingRequest;
+using ::agent::SetAnythingResponse;
 using ::agent::SetCostWeightsRequest;
 using ::agent::SetCostWeightsResponse;
 using ::agent::SetModeRequest;
@@ -204,6 +206,16 @@ grpc::Status UiAgentService::GetMode(grpc::ServerContext* context,
                                    mjData* data) {
         return grpc_agent_util::GetMode(request, agent, response);
       });
+}
+
+grpc::Status UiAgentService::SetAnything(grpc::ServerContext* context,
+                                         const SetAnythingRequest* request,
+                                         SetAnythingResponse* response) {
+  return RunBeforeStep(context, [request, response](mjpc::Agent* agent,
+                                                    const mjModel* model,
+                                                    mjData* data) {
+    return grpc_agent_util::SetAnything(request, agent, model, data, response);
+  });
 }
 
 namespace {

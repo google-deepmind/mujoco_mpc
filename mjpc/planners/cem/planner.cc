@@ -259,8 +259,7 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
   double time_shift = mju_max(
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
-  // n_elites might change in the GUI - keep it constant for duration of this
-  // function
+  // n_elites might change in the GUI - keep constant for in this function
   int n_elites_fixed = n_elites;
 
   variance.assign(model->nu * num_spline_points, 0.0);  // reset variance to 0
@@ -273,12 +272,8 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     // get the actions of the top n_elites policies and average them
     // also update a variance parameter too
     for (int i = 0; i < n_elites_fixed; i++) {
-      candidate_policy[trajectory_order[i]]
-          .Action(  // trajectory_order[i] is the (i+1)^th best trajectory
-              DataAt(temp_elite_actions[i],
-                     0),  // copies the action from the cand policy into the
-                          // i^th control vector
-              nullptr, nominal_time);
+      candidate_policy[trajectory_order[i]].Action(
+          DataAt(temp_elite_actions[i], 0), nullptr, nominal_time);
       for (int k = 0; k < model->nu; k++) {
         temp_avg[k] += temp_elite_actions[i][k] / n_elites_fixed;
       }

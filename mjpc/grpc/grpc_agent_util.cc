@@ -340,7 +340,7 @@ grpc::Status GetTaskParameters(const GetTaskParametersRequest* request,
 }
 
 grpc::Status SetCostWeights(
-    const ::google::protobuf::Map<std::string, double>& cost_weights,
+    const ::proto2::Map<std::string, double>& cost_weights,
     mjpc::Agent* agent) {
   for (const auto& [name, weight] : cost_weights) {
     if (agent->SetWeightByName(name, weight) == -1) {
@@ -408,7 +408,7 @@ grpc::Status GetAllModes(const GetAllModesRequest* request, mjpc::Agent* agent,
 }
 
 namespace {
-grpc::Status SetMocap(const ::google::protobuf::Map<std::string, Pose>& mocap,
+grpc::Status SetMocap(const ::proto2::Map<std::string, Pose>& mocap,
                       mjpc::Agent* agent, const mjModel* model, mjData* data) {
   // Check all names and poses before applying changes.
   for (const auto& [name, pose] : mocap) {

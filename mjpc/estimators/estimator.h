@@ -60,6 +60,9 @@ class Estimator {
   // get data
   virtual mjData* Data() = 0;
 
+  // get qfrc
+  virtual double* Qfrc() = 0;
+
   // process noise
   virtual double* ProcessNoise() = 0;
 
@@ -219,6 +222,9 @@ class GroundTruth : public Estimator {
 
   // get data
   mjData* Data() override { return data_; };
+
+  // get qfrc
+  double* Qfrc() override { return data_->qfrc_actuator; }
 
   // get process noise
   double* ProcessNoise() override { return noise_process.data(); };

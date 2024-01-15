@@ -40,8 +40,12 @@ xml = """
   </asset>
 
   <custom>
+    <!-- filters: ground truth (0), EKF (1), UKF (2), batch (3) -->
     <numeric name="estimator" data="1" />
-    <numeric name="estimator_configuration_length" data="12" />
+    <!-- 3 <= batch_size <= 128 -->
+    <numeric name="batch_configuration_length" data="12" />
+    <numeric name="unscented_alpha" data="1.0e-3"/>
+    <numeric name="unscented_beta" data="2.0"/>
   </custom>
 
   <asset>

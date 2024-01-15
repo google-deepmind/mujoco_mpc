@@ -49,6 +49,16 @@ void Batch::Initialize(const mjModel* model) {
   // base method
   Direct::Initialize(model);
 
+  // set batch size
+  int batch_size = std::min(
+      std::max(GetNumberOrDefault(3, model, "batch_configuration_length"),
+               kMinDirectHistory),
+      kMaxFilterHistory);
+
+  if (batch_size != configuration_length_) {
+    SetConfigurationLength(batch_size);
+  }
+
   // allocation dimension
   int nq = model->nq, nv = model->nv, na = model->na;
   int nvel_max = nv * max_history_;

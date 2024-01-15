@@ -58,7 +58,6 @@ TEST(SensorCost, Particle) {
   // copy configuration, measurement
   mju_copy(optimizer.configuration.Data(), sim.qpos.Data(), nq * T);
   mju_copy(optimizer.sensor_measurement.Data(), sim.sensor.Data(), ns * T);
-  mju_copy(optimizer.ctrl.Data(), sim.ctrl.Data(), model->nu * T);
 
   // corrupt configurations
   absl::BitGen gen_;

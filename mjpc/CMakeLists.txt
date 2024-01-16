@@ -38,8 +38,8 @@ add_library(
   tasks/tasks.h
   tasks/acrobot/acrobot.cc
   tasks/acrobot/acrobot.h
-  tasks/allegro_cube/allegro_cube.cc
-  tasks/allegro_cube/allegro_cube.h
+  tasks/allegro/allegro.cc
+  tasks/allegro/allegro.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
   tasks/fingers/fingers.cc

@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "mjpc/tasks/acrobot/acrobot.h"
-#include "mjpc/tasks/allegro_cube/allegro_cube.h"
+#include "mjpc/tasks/allegro/allegro.h"
 #include "mjpc/tasks/cartpole/cartpole.h"
 #include "mjpc/tasks/fingers/fingers.h"
 #include "mjpc/tasks/hand/hand.h"

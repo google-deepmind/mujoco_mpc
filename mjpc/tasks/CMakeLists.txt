@@ -18,6 +18,9 @@
 add_custom_target(
   copy_menagerie_resources ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/wonik_allegro/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/allegro/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory

@@ -1,4 +1,4 @@
-#include "mjpc/tasks/allegro_cube/allegro_cube.h"
+#include "mjpc/tasks/allegro/allegro.h"
 #include <iostream>
 
 #include <cmath>
@@ -11,7 +11,7 @@
 
 namespace mjpc {
 std::string AllegroCube::XmlPath() const {
-  return GetModelPath("allegro_cube/task.xml");
+  return GetModelPath("allegro/task.xml");
 }
 std::string AllegroCube::Name() const { return "AllegroCube"; }
 

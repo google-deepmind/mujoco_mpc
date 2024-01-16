@@ -291,9 +291,10 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
     // approximations of the expectations, we can rewrite this update as
     //     mu <- mu + \sum_i{w_i * dU},
     // where \sum_i{w_i} = 1, so
-    //     mu <= \sum_i{w_i * (mu + dU)}, where mu + dU = U.
+    //     mu <- \sum_i{w_i * (mu + dU)}, where mu + dU = U.
 
-    // github.com/google-deepmind/mujoco/blob/3b440921df4f8bf4fdeb631a01327e9938b5af00/src/engine/engine_util_blas.h#L163
+    // mju_addScl(dst, src1, src2, scl, n) does the following:
+    // dst = src1 + scl * src2, and n is the length of the data
     mju_addScl(parameters_scratch.data(), parameters_scratch.data(),
                candidate_policy[i].parameters.data(), weight_vec[i] / denom,
                policy.num_parameters);

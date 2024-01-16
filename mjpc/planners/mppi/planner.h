@@ -126,6 +126,9 @@ class MPPIPlanner : public RankedPlanner {
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
 
+  // order of indices of rolled out trajectories, ordered by total return
+  std::vector<int> trajectory_order;
+
   // rollout parameters
   double timestep_power;
 
@@ -144,6 +147,9 @@ class MPPIPlanner : public RankedPlanner {
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;
+
+  // best trajectory
+  int winner;
 
   // mppi
   double lambda;                // the temp of the energy-based model

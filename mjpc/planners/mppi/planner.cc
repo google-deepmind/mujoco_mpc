@@ -62,15 +62,15 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
   }
 
   // set the temperature of the cost energy distribution
-  lambda = GetNumberOrDefault(1.0, model, "lambda");
+  lambda = GetNumberOrDefault(0.1, model, "lambda");
 
   // setting the initial nominal control actions
   // TODO(ahl): expose mu_init to task.xml
   std::fill(mu_init.begin(), mu_init.end(), 0.0);  // use 0 as a default
 
   // TODO(ahl): fill parameters_scratch with mu_init
-  std::fill(parameters_scratch.begin(), parameters_scratch.end(),
-            0.0);
+  std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
+  winner = 0;
 }
 
 // allocate memory
@@ -96,11 +96,18 @@ void MPPIPlanner::Allocate() {
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
 
   // trajectory and parameters
+  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
+  }
+
+  // need to initialize an arbitrary order of the trajectories
+  trajectory_order.reserve(num_trajectory_);
+  for (int i = 0; i < num_trajectory_; i++) {
+    trajectory_order.push_back(i);
   }
 
   // initial nominal control actions
@@ -139,6 +146,9 @@ void MPPIPlanner::Reset(int horizon) {
   // improvement
   improvement = 0.0;
 
+  // winner
+  winner = 0;
+
   // setting the initial nominal control actions
   std::fill(mu_init.begin(), mu_init.end(), 0.0);  // use 0 as a default
 }
@@ -165,6 +175,22 @@ int MPPIPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
   // simulate noisy policies
   this->Rollouts(num_trajectory, horizon, pool);
 
+  // sort candidate policies and trajectories by score
+  trajectory_order.clear();
+  trajectory_order.reserve(num_trajectory);
+  for (int i = 0; i < num_trajectory; i++) {
+    trajectory_order.push_back(i);
+  }
+
+  // sort so that the first ncandidates elements are the best candidates, and
+  // the rest are in an unspecified order
+  std::partial_sort(
+      trajectory_order.begin(), trajectory_order.begin() + ncandidates,
+      trajectory_order.end(), [trajectory = trajectory](int a, int b) {
+        return trajectory[a].total_return < trajectory[b].total_return;
+      });
+  winner = trajectory_order[0];
+
   // stop timer
   rollouts_compute_time = GetDuration(rollouts_start);
 
@@ -173,21 +199,18 @@ int MPPIPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
 
 // optimize nominal policy using random sampling
 void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // resample nominal policy to current time
-  OptimizePolicyCandidates(1, horizon, pool);  // executes noisy rollouts
-  this->UpdateNominalPolicy(horizon);
-
   // ----- update policy ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
-
-  CopyCandidateToPolicy(0);
+  // resample nominal policy to current time
+  OptimizePolicyCandidates(1, horizon, pool);  // executes noisy rollouts
+  this->UpdateNominalPolicy(horizon);
 
   // improvement: compare nominal to winner
   // TODO(ahl): replace the functionality of the winner here
   // double best_return = trajectory[0].total_return;
   // improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
-  improvement = 0.0;
+  // improvement = 0.0;
 
   // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);
@@ -196,12 +219,13 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 // compute trajectory using nominal policy
 void MPPIPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   // set policy
-  auto nominal_policy = [&cp = candidate_policy[0]](
-                            double* action, const double* state, double time) {
+  auto nominal_policy = [&cp = policy](double* action, const double* state,
+                                       double time) {
     cp.Action(action, state, time);
   };
 
   // rollout nominal policy
+  // TODO(ahl): make a new variable for the nominal trajectory
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
                         state.data(), time, mocap.data(), userdata.data(),
                         horizon);
@@ -238,22 +262,23 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
   // compute MPPI update terms
   double weight = 0.0;  // storage for intermediate weights
   double denom = 0.0;
-  std::vector<double> numer(policy.num_parameters, 0.0);
+  std::vector<double> weight_vec(num_trajectory, 0.0);
 
   for (int i = 0; i < num_trajectory; i++) {
-    // update denominator
-    weight = std::exp(-trajectory[i].total_return / lambda);
+    // update rollout weight
+    // TODO(ahl): add a bit of detail justifying the math here
+    weight = std::exp(
+        -(trajectory[i].total_return - trajectory[winner].total_return) /
+        lambda);
     denom += weight;
-
-    // update numerator
-    for (int k = 0; k < policy.num_parameters; k++) {
-      numer[k] += weight * noise[i * policy.num_parameters + k];
-    }
+    weight_vec[i] = weight;
   }
-
-  // update policy
-  for (int k = 0; k < policy.num_parameters; k++) {
-    parameters_scratch[k] += numer[k] / denom;
+  std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
+  for (int i = 0; i < num_trajectory; i++) {
+    // github.com/google-deepmind/mujoco/blob/3b440921df4f8bf4fdeb631a01327e9938b5af00/src/engine/engine_util_blas.h#L163
+    mju_addScl(parameters_scratch.data(), parameters_scratch.data(),
+               candidate_policy[i].parameters.data(), weight_vec[i] / denom,
+               policy.num_parameters);
   }
 
   // update
@@ -261,8 +286,10 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     // parameters
     policy.CopyParametersFrom(parameters_scratch, times_scratch);
+    previous_policy = policy;
 
     // time power transformation
+    // [NOTE] no-op when timestep_power == 1.0
     PowerSequence(policy.times.data(), time_shift, policy.times[0],
                   policy.times[num_spline_points - 1], timestep_power,
                   num_spline_points);
@@ -325,7 +352,7 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
       }
 
       // sample noise policy
-      if (i != 0) s.AddNoiseToPolicy(i);
+      s.AddNoiseToPolicy(i);
 
       // ----- rollout sample policy ----- //
 
@@ -349,8 +376,7 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
 // return trajectory with best total return
 const Trajectory* MPPIPlanner::BestTrajectory() {
   // TODO(ahl): replace the functionality of the winner here
-  // return winner >= 0 ? &trajectory[winner] : nullptr;
-  return &trajectory[0];  // dummy code, doesn't seem important for this planner
+  return winner >= 0 ? &trajectory[winner] : nullptr;
 }
 
 // visualize planner-specific traces
@@ -487,22 +513,6 @@ void MPPIPlanner::ActionFromCandidatePolicy(double* action, int candidate,
 }
 
 void MPPIPlanner::CopyCandidateToPolicy(int candidate) {
-  {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
-    previous_policy = policy;
-
-    // the policy's action at time t is the previous policy's action at time t+1
-    // the last action is repeated
-    for (int t = 0; t < policy.num_spline_points - 1; t++) {
-      mju_copy(policy.parameters.data() + t * model->nu,
-               previous_policy.parameters.data() + (t + 1) * model->nu,
-               model->nu);
-    }
-    mju_copy(
-        policy.parameters.data() + (policy.num_spline_points - 1) * model->nu,
-        previous_policy.parameters.data() +
-            (policy.num_spline_points - 1) * model->nu,
-        model->nu);
-  }
+  return;  // no-op, included only for API compliance
 }
 }  // namespace mjpc

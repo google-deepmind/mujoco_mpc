@@ -77,8 +77,8 @@ add_library(
   planners/cost_derivatives.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
-  planners/cem/planner.cc
-  planners/cem/planner.h
+  planners/cross_entropy/planner.cc
+  planners/cross_entropy/planner.h
   planners/mppi/planner.cc
   planners/mppi/planner.h
   planners/robust/robust_planner.cc

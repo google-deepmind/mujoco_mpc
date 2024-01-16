@@ -12,37 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_CEM_OPTIMIZER_H_
-#define MJPC_PLANNERS_CEM_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
+#define MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
 #include <atomic>
+#include <memory>
 #include <shared_mutex>
 #include <vector>
 
-#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
 
-// sampling planner limits
-// inline constexpr int MinSamplingSplinePoints = 1;
-// inline constexpr int MaxSamplingSplinePoints = 36;
-// inline constexpr int MinSamplingSplinePower = 1;
-// inline constexpr int MaxSamplingSplinePower = 5;
-// inline constexpr double MinNoiseStdDev = 0.0;
-// inline constexpr double MaxNoiseStdDev = 1.0;
-
-class CEMPlanner : public RankedPlanner {
+class CrossEntropyPlanner : public RankedPlanner {
  public:
   // constructor
-  CEMPlanner() = default;
+  CrossEntropyPlanner() = default;
 
   // destructor
-  ~CEMPlanner() override = default;
+  ~CrossEntropyPlanner() override = default;
 
   // ----- methods ----- //
 
@@ -53,7 +46,8 @@ class CEMPlanner : public RankedPlanner {
   void Allocate() override;
 
   // reset memory to zeros
-  void Reset(int horizon) override;
+  void Reset(int horizon,
+             const double* initial_repeated_action = nullptr) override;
 
   // set state
   void SetState(const State& state) override;
@@ -65,8 +59,8 @@ class CEMPlanner : public RankedPlanner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
-  void ActionFromPolicy(double* action, const double* state,
-                        double time, bool use_previous = false) override;
+  void ActionFromPolicy(double* action, const double* state, double time,
+                        bool use_previous = false) override;
 
   // resample nominal policy
   void UpdateNominalPolicy(int horizon);
@@ -133,25 +127,23 @@ class CEMPlanner : public RankedPlanner {
   double timestep_power;
 
   // ----- noise ----- //
-  double stdev_init;  // standard deviation for sampling normal: N(0,
-                             // exploration)
+  double std_initial;  // standard deviation for sampling normal: N(0,
+                       // std) // TODO(taylor): make GUI safe
+  double std_min;  // the minimum allowable std // TODO(taylor): make GUI safe
   std::vector<double> noise;
   std::vector<double> variance;
-  double stdev_min;  // the minimum allowable stdev for CEM
-  bool first_iter;  // a flag indicating whether it's the first iteration or not
-
-  // gradient
-  std::vector<double> noise_gradient;
 
   // best trajectory
   int winner;
 
   // number of elite samples
-  int n_elites;
+  int n_elite;  // TODO(taylor): make GUI safe
 
   // temp variables to help with averaging
-  std::vector<double> temp_avg;  // holds avg control action over elites for each spline point t
-  std::vector<std::vector<double>> temp_elite_actions;  // holds the top n_elite sampled actions
+  std::vector<double> action_avg;  // holds avg control action over elites for
+                                   // each spline point t
+  std::vector<std::vector<double>>
+      action_elite;  // holds the top n_elite sampled actions
 
   // improvement
   double improvement;
@@ -170,4 +162,4 @@ class CEMPlanner : public RankedPlanner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_CEM_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_

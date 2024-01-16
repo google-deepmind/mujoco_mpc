@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/planners/cem/planner.h"
+#include "mjpc/planners/cross_entropy/planner.h"
+
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 
 #include <algorithm>
 #include <chrono>
@@ -20,8 +23,6 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/policy.h"
 #include "mjpc/states/state.h"
@@ -33,7 +34,7 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 // initialize data and settings
-void CEMPlanner::Initialize(mjModel* model, const Task& task) {
+void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   // delete mjData instances since model might have changed.
   data_.clear();
   // allocate one mjData for nominal.
@@ -49,17 +50,16 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  stdev_init = GetNumberOrDefault(0.1, model, "sampling_exploration");  // only controls initial variance
-  stdev_min = GetNumberOrDefault(0.1, model, "stdev_min");  // only controls initial variance
-  first_iter = true;
+  std_initial = GetNumberOrDefault(0.1, model,
+                                   "sampling_exploration");  // initial variance
+  std_min = GetNumberOrDefault(0.1, model, "std_min");       // minimum variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
-  // set number of elite samples
-  n_elites = GetNumberOrDefault(num_trajectory_ / 10, model, "n_elites");  // best 10%
-  temp_avg.resize(model->nu);
-  temp_elite_actions.resize(kMaxTrajectory, std::vector<double>(model->nu, 0.0)); // shape=(kMaxTrajectory, nu)
+  // set number of elite samples max(best 10%, 2)
+  n_elite =
+      GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elite");
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -70,7 +70,7 @@ void CEMPlanner::Initialize(mjModel* model, const Task& task) {
 }
 
 // allocate memory
-void CEMPlanner::Allocate() {
+void CrossEntropyPlanner::Allocate() {
   // initial state
   int num_state = model->nq + model->nv + model->na;
 
@@ -90,8 +90,21 @@ void CEMPlanner::Allocate() {
 
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+
+  // temp memory for computing new sample distribution
+  action_avg.resize(model->nu);
+  action_elite.resize(
+      kMaxTrajectory,
+      std::vector<double>(model->nu, 0.0));  // shape=(kMaxTrajectory, nu)
+
+  // variance
   variance.resize(model->nu * kMaxTrajectoryHorizon);  // (nu * horizon)
-  fill(variance.begin(), variance.end(), std::pow(stdev_init, 2));  // TODO: if this gets called before Initialize, then move this to above
+
+  // need to initialize an arbitrary order of the trajectories
+  trajectory_order.resize(kMaxTrajectory);
+  for (int i = 0; i < kMaxTrajectory; i++) {
+    trajectory_order[i] = i;
+  }
 
   // trajectories and parameters
   winner = -1;
@@ -101,19 +114,11 @@ void CEMPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
-
-  // need to initialize an arbitrary order of the trajectories
-  trajectory_order.reserve(num_trajectory_);
-  for (int i = 0; i < num_trajectory_; i++) {
-    trajectory_order.push_back(i);
-  }
-
-  // noise gradient
-  noise_gradient.resize(num_max_parameter);
 }
 
 // reset memory to zeros
-void CEMPlanner::Reset(int horizon) {
+void CrossEntropyPlanner::Reset(int horizon,
+                                const double* initial_repeated_action) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
@@ -121,8 +126,8 @@ void CEMPlanner::Reset(int horizon) {
   time = 0.0;
 
   // policy parameters
-  policy.Reset(horizon);
-  previous_policy.Reset(horizon);
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
@@ -130,6 +135,9 @@ void CEMPlanner::Reset(int horizon) {
 
   // noise
   std::fill(noise.begin(), noise.end(), 0.0);
+
+  // variance
+  fill(variance.begin(), variance.end(), std_initial * std_initial);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -141,9 +149,6 @@ void CEMPlanner::Reset(int horizon) {
     mju_zero(d->ctrl, model->nu);
   }
 
-  // noise gradient
-  std::fill(noise_gradient.begin(), noise_gradient.end(), 0.0);
-
   // improvement
   improvement = 0.0;
 
@@ -152,13 +157,13 @@ void CEMPlanner::Reset(int horizon) {
 }
 
 // set state
-void CEMPlanner::SetState(const State& state) {
+void CrossEntropyPlanner::SetState(const State& state) {
   state.CopyTo(this->state.data(), this->mocap.data(), this->userdata.data(),
                &this->time);
 }
 
-int CEMPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
-                                              ThreadPool& pool) {
+int CrossEntropyPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
+                                                  ThreadPool& pool) {
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
@@ -174,19 +179,19 @@ int CEMPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
   this->Rollouts(num_trajectory, horizon, pool);
 
   // sort candidate policies and trajectories by score
-  trajectory_order.clear();
-  trajectory_order.reserve(num_trajectory);
   for (int i = 0; i < num_trajectory; i++) {
-    trajectory_order.push_back(i);
+    trajectory_order[i] = i;
   }
 
   // sort so that the first ncandidates elements are the best candidates, and
   // the rest are in an unspecified order
   std::partial_sort(
       trajectory_order.begin(), trajectory_order.begin() + ncandidates,
-      trajectory_order.end(), [trajectory = trajectory](int a, int b) {
+      trajectory_order.begin() + num_trajectory,
+      [&trajectory = trajectory](int a, int b) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
+  winner = trajectory_order[0];
 
   // stop timer
   rollouts_compute_time = GetDuration(rollouts_start);
@@ -195,29 +200,34 @@ int CEMPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
 }
 
 // optimize nominal policy using random sampling
-void CEMPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // resample nominal policy to current time
   this->UpdateNominalPolicy(horizon);
 
-  OptimizePolicyCandidates(n_elites, horizon, pool);
+  // clamp n_elite to valid
+  n_elite = std::min(n_elite, num_trajectory_);
+
+  OptimizePolicyCandidates(n_elite, horizon, pool);
 
   // ----- update policy ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
 
-  CopyCandidateToPolicy(0);
-
-  // improvement: compare nominal to winner
-  // TODO: change this for the setting of CEM
-  double best_return = trajectory[0].total_return;
-  improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
+  // improvement: compare nominal to elite average
+  double nominal_return = trajectory[0].total_return;
+  double elite_avg_return = 0.0;
+  for (int i = 0; i < n_elite; i++) {
+    elite_avg_return += trajectory[trajectory_order[i]].total_return;
+  }
+  elite_avg_return /= n_elite;
+  improvement = mju_max(nominal_return - elite_avg_return, 0.0);
 
   // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);
 }
 
 // compute trajectory using nominal policy
-void CEMPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
+void CrossEntropyPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   // set policy
   auto nominal_policy = [&cp = candidate_policy[0]](
                             double* action, const double* state, double time) {
@@ -226,13 +236,13 @@ void CEMPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
 
   // rollout nominal policy
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), userdata.data(),
-                        horizon);
+                       state.data(), time, mocap.data(), userdata.data(),
+                       horizon);
 }
 
 // set action from policy
-void CEMPlanner::ActionFromPolicy(double* action, const double* state,
-                                       double time, bool use_previous) {
+void CrossEntropyPlanner::ActionFromPolicy(double* action, const double* state,
+                                           double time, bool use_previous) {
   const std::shared_lock<std::shared_mutex> lock(mtx_);
   if (use_previous) {
     previous_policy.Action(action, state, time);
@@ -242,7 +252,7 @@ void CEMPlanner::ActionFromPolicy(double* action, const double* state,
 }
 
 // update policy via resampling
-void CEMPlanner::UpdateNominalPolicy(int horizon) {
+void CrossEntropyPlanner::UpdateNominalPolicy(int horizon) {
   // dimensions
   int num_spline_points = candidate_policy[winner].num_spline_points;
 
@@ -251,45 +261,42 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
   double time_shift = mju_max(
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
-  // n_elites might change in the GUI - keep it constant for duration of this function
-  int n_elites_fixed = n_elites;
+  // n_elite might change in the GUI - keep constant for in this function
+  int n_elite_fixed = std::min(n_elite, num_trajectory_);
 
-  variance.assign(model->nu * num_spline_points, 0.0);  // reset variance to 0
+  // reset variance to 0
+  std::fill(variance.begin(), variance.end(), 0.0);
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
     times_scratch[t] = nominal_time;
-    temp_avg.assign(model->nu, 0.0);  // reset temp_avg to 0
+    fill(action_avg.begin(), action_avg.end(),
+         0.0);  // reset action_avg to zero
 
-    // get the actions of the top n_elites policies and average them
-    // also update a variance parameter too
-    for (int i = 0; i < n_elites_fixed; i++) {
-      candidate_policy[trajectory_order[i]].Action(  // trajectory_order[i] is the (i+1)^th best trajectory
-        DataAt(temp_elite_actions[i], 0),  // copies the action from the cand policy into the i^th control vector
-        nullptr,
-        nominal_time
-      );
+    // loop over elites
+    for (int i = 0; i < n_elite_fixed; i++) {
+      // sample action
+      candidate_policy[trajectory_order[i]].Action(DataAt(action_elite[i], 0),
+                                                   nullptr, nominal_time);
+
+      // compute average
       for (int k = 0; k < model->nu; k++) {
-        temp_avg[k] += temp_elite_actions[i][k] / n_elites_fixed;
+        action_avg[k] += action_elite[i][k] / n_elite_fixed;
       }
     }
 
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
-      for (int i = 0; i < n_elites_fixed; i++) {
-        variance[t * model->nu + k] += std::pow(temp_elite_actions[i][k] - temp_avg[k], 2) / (n_elites_fixed - 1);
+      for (int i = 0; i < n_elite_fixed; i++) {
+        double diff = action_elite[i][k] - action_avg[k];
+        variance[t * model->nu + k] += diff * diff / (n_elite_fixed - 1);
       }
     }
 
     // assigning the averaged parameters to parameters_scratch
-    std::copy(temp_avg.begin(), temp_avg.end(), parameters_scratch.begin() + t * model->nu);
+    std::copy(action_avg.begin(), action_avg.end(),
+              parameters_scratch.begin() + t * model->nu);
     nominal_time += time_shift;
-  }
-
-  // if first iter, set variance to the initial variance
-  if (first_iter) {
-    variance.assign(model->nu * num_spline_points, std::pow(stdev_init, 2));
-    first_iter = false;
   }
 
   // update
@@ -297,18 +304,18 @@ void CEMPlanner::UpdateNominalPolicy(int horizon) {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     // copy parameters to policy
     // parameters_scratch holds the average policy over the top n_elite ones
+    previous_policy = policy;
     policy.CopyParametersFrom(parameters_scratch, times_scratch);
 
     // time power transformation
-    PowerSequence(policy.times.data(), time_shift,
-                  policy.times[0],
-                  policy.times[num_spline_points - 1],
-                  timestep_power, num_spline_points);
+    PowerSequence(policy.times.data(), time_shift, policy.times[0],
+                  policy.times[num_spline_points - 1], timestep_power,
+                  num_spline_points);
   }
 }
 
 // add random noise to nominal policy
-void CEMPlanner::AddNoiseToPolicy(int i) {
+void CrossEntropyPlanner::AddNoiseToPolicy(int i) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
 
@@ -323,11 +330,12 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
   int shift = i * (model->nu * kMaxTrajectoryHorizon);
 
   // sample noise
-  // variance[k] is the standard deviation for the k^th control parameter over the elite samples
-  // we draw a bunch of control actions from this distribution (which i indexes) - the noise is
-  // stored in `noise`.
+  // variance[k] is the standard deviation for the k^th control parameter over
+  // the elite samples we draw a bunch of control actions from this distribution
+  // (which i indexes) - the noise is stored in `noise`.
   for (int k = 0; k < num_parameters; k++) {
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, std::max(std::sqrt(variance[k]), stdev_min));
+    noise[k + shift] = absl::Gaussian<double>(
+        gen_, 0.0, std::max(std::sqrt(variance[k]), std_min));
   }
 
   // add noise
@@ -345,8 +353,8 @@ void CEMPlanner::AddNoiseToPolicy(int i) {
 }
 
 // compute candidate trajectories
-void CEMPlanner::Rollouts(int num_trajectory, int horizon,
-                               ThreadPool& pool) {
+void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
+                                   ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
 
@@ -388,14 +396,13 @@ void CEMPlanner::Rollouts(int num_trajectory, int horizon,
   pool.ResetCount();
 }
 
-// return trajectory with best total return
-const Trajectory* CEMPlanner::BestTrajectory() {
-  return winner >= 0 ? &trajectory[winner] : nullptr;
+// returns the nominal trajectory (this is the purple trace)
+const Trajectory* CrossEntropyPlanner::BestTrajectory() {
+  return winner >= 0 ? &trajectory[0] : nullptr;
 }
 
 // visualize planner-specific traces
-// TODO: confirm that the purple trace being plotted is the average over the top n_elite samples
-void CEMPlanner::Traces(mjvScene* scn) {
+void CrossEntropyPlanner::Traces(mjvScene* scn) {
   // sample color
   float color[4];
   color[0] = 1.0;
@@ -444,38 +451,38 @@ void CEMPlanner::Traces(mjvScene* scn) {
 }
 
 // planner-specific GUI elements
-void CEMPlanner::GUI(mjUI& ui) {
-  mjuiDef defSampling[] = {
+void CrossEntropyPlanner::GUI(mjUI& ui) {
+  mjuiDef defCrossEntropy[] = {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
-      {mjITEM_SLIDERNUM, "Noise Std", 2, &stdev_init, "0 1"},
-      {mjITEM_SLIDERINT, "Number Elite", 2, &n_elites, "2 100"},
-      {mjITEM_SLIDERNUM, "Min Stdev", 2, &stdev_min, "0.01 0.5"},
+      {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial, "0 1"},
+      {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min, "0.01 0.5"},
+      {mjITEM_SLIDERINT, "Elite", 2, &n_elite, "2 128"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits
-  mju::sprintf_arr(defSampling[0].other, "%i %i", 1, kMaxTrajectory);
+  mju::sprintf_arr(defCrossEntropy[0].other, "%i %i", 1, kMaxTrajectory);
 
   // set spline point limits
-  mju::sprintf_arr(defSampling[2].other, "%i %i", MinSamplingSplinePoints,
+  mju::sprintf_arr(defCrossEntropy[2].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
   // set noise standard deviation limits
-  mju::sprintf_arr(defSampling[3].other, "%f %f", MinNoiseStdDev,
+  mju::sprintf_arr(defCrossEntropy[3].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 
-  // add sampling planner
-  mjui_add(&ui, defSampling);
+  // add cross entropy planner
+  mjui_add(&ui, defCrossEntropy);
 }
 
 // planner-specific plots
-void CEMPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
-                            int planner_shift, int timer_shift, int planning,
-                            int* shift) {
+void CrossEntropyPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
+                                int planner_shift, int timer_shift,
+                                int planning, int* shift) {
   // ----- planner ----- //
   double planner_bounds[2] = {-6.0, 6.0};
 
@@ -522,25 +529,19 @@ void CEMPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   shift[1] += 3;
 }
 
-double CEMPlanner::CandidateScore(int candidate) const {
+double CrossEntropyPlanner::CandidateScore(int candidate) const {
   return trajectory[trajectory_order[candidate]].total_return;
 }
 
 // set action from candidate policy
-void CEMPlanner::ActionFromCandidatePolicy(double* action, int candidate,
-                                                const double* state,
-                                                double time) {
+void CrossEntropyPlanner::ActionFromCandidatePolicy(double* action,
+                                                    int candidate,
+                                                    const double* state,
+                                                    double time) {
   candidate_policy[trajectory_order[candidate]].Action(action, state, time);
 }
 
-void CEMPlanner::CopyCandidateToPolicy(int candidate) {
-  // set winner
-  winner = trajectory_order[candidate];
-
-  {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
-    previous_policy = policy;
-    policy = candidate_policy[winner];
-  }
+void CrossEntropyPlanner::CopyCandidateToPolicy(int candidate) {
+  return;  // unused, included for API compliance
 }
 }  // namespace mjpc

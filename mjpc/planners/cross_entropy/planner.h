@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_CEM_PLANNER_H_
-#define MJPC_PLANNERS_CEM_PLANNER_H_
+#ifndef MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
+#define MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
@@ -28,13 +28,13 @@
 
 namespace mjpc {
 
-class CEMPlanner : public RankedPlanner {
+class CrossEntropyPlanner : public RankedPlanner {
  public:
   // constructor
-  CEMPlanner() = default;
+  CrossEntropyPlanner() = default;
 
   // destructor
-  ~CEMPlanner() override = default;
+  ~CrossEntropyPlanner() override = default;
 
   // ----- methods ----- //
 
@@ -45,7 +45,8 @@ class CEMPlanner : public RankedPlanner {
   void Allocate() override;
 
   // reset memory to zeros
-  void Reset(int horizon, const double* initial_repeated_action = nullptr) override;
+  void Reset(int horizon,
+             const double* initial_repeated_action = nullptr) override;
 
   // set state
   void SetState(const State& state) override;
@@ -125,27 +126,23 @@ class CEMPlanner : public RankedPlanner {
   double timestep_power;
 
   // ----- noise ----- //
-  double stdev_init;  // standard deviation for sampling normal: N(0,
-                      // exploration)
+  double std_initial;  // standard deviation for sampling normal: N(0,
+                       // std) // TODO(taylor): make GUI safe
+  double std_min;  // the minimum allowable std // TODO(taylor): make GUI safe
   std::vector<double> noise;
   std::vector<double> variance;
-  double stdev_min;  // the minimum allowable stdev for CEM
-  bool first_iter;  // a flag indicating whether it's the first iteration or not
-
-  // gradient
-  std::vector<double> noise_gradient;
 
   // best trajectory
   int winner;
 
   // number of elite samples
-  int n_elites;
+  int n_elite;  // TODO(taylor): make GUI safe
 
   // temp variables to help with averaging
-  std::vector<double>
-      temp_avg;  // holds avg control action over elites for each spline point t
+  std::vector<double> action_avg;  // holds avg control action over elites for
+                                   // each spline point t
   std::vector<std::vector<double>>
-      temp_elite_actions;  // holds the top n_elite sampled actions
+      action_elite;  // holds the top n_elite sampled actions
 
   // improvement
   double improvement;
@@ -164,4 +161,4 @@ class CEMPlanner : public RankedPlanner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_CEM_PLANNER_H_
+#endif  // MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_

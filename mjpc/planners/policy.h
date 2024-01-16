@@ -38,7 +38,8 @@ class Policy {
                         int horizon) = 0;
 
   // reset memory to zeros
-  virtual void Reset(int horizon) = 0;
+  virtual void Reset(int horizon,
+                     const double* initial_repeated_action = nullptr) = 0;
 
   // set action from policy
   // for policies that have a feedback term, passing nullptr for state  turns

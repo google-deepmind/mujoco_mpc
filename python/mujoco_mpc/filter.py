@@ -186,6 +186,7 @@ class Filter:
     return {
         "state": np.array(response.state.state),
         "time": response.state.time,
+        "qfrc": np.array(response.state.qfrc),
     }
 
   def covariance(

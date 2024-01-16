@@ -53,11 +53,19 @@ void GradientPolicy::Allocate(const mjModel* model, const Task& task,
 }
 
 // reset memory to zeros
-void GradientPolicy::Reset(int horizon) {
+void GradientPolicy::Reset(int horizon, const double* initial_repeated_action) {
   std::fill(k.begin(), k.begin() + horizon * model->nu, 0.0);
 
   // parameters
-  std::fill(parameters.begin(), parameters.begin() + model->nu * horizon, 0.0);
+  if (initial_repeated_action != nullptr) {
+    for (int i = 0; i < horizon; ++i) {
+      mju_copy(parameters.data() + i * model->nu, initial_repeated_action,
+               model->nu);
+    }
+  } else {
+    std::fill(parameters.begin(),
+              parameters.begin() + model->nu * horizon, 0.0);
+  }
   std::fill(parameter_update.begin(),
             parameter_update.begin() + model->nu * horizon, 0.0);
 

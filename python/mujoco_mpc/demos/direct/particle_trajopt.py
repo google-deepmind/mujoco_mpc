@@ -163,7 +163,6 @@ for t in range(configuration_length):
   data_ = optimizer.data(
       t,
       configuration=qt,
-      ctrl=ct,
       sensor_measurement=st,
       sensor_mask=mt,
       force_measurement=ft,

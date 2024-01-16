@@ -167,7 +167,6 @@ for t in range(configuration_length):
   optimizer.data(
       t,
       configuration=qinit[:, t],
-      ctrl=ctrl[:, t],
       sensor_measurement=noisy_sensor[:, t],
       force_measurement=qfrc[:, t],
       time=np.array([time[t]]),

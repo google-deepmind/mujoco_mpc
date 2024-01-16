@@ -17,7 +17,6 @@
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -33,11 +32,10 @@ std::string Particle::Name() const { return "Particle"; }
 //     Residual (1): velocity
 //     Residual (2): control
 // --------------------------------------------
-void Particle::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                                   double* residual) const {
+namespace {
+void ResidualImpl(const mjModel* model, const mjData* data,
+                  const double goal[2], double* residual) {
   // ----- residual (0) ----- //
-  // some Lissajous curve
-  double goal[2] {0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time/mjPI)};
   double* position = SensorByName(model, data, "position");
   mju_sub(residual, position, goal, model->nq);
 
@@ -48,6 +46,14 @@ void Particle::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // ----- residual (2) ----- //
   mju_copy(residual + 4, data->ctrl, model->nu);
 }
+}  // namespace
+
+void Particle::ResidualFn::Residual(const mjModel* model, const mjData* data,
+                                    double* residual) const {
+  // some Lissajous curve
+  double goal[2]{0.25 * mju_sin(data->time), 0.25 * mju_cos(data->time / mjPI)};
+  ResidualImpl(model, data, goal, residual);
+}
 
 void Particle::TransitionLocked(mjModel* model, mjData* data) {
   // some Lissajous curve
@@ -57,4 +63,17 @@ void Particle::TransitionLocked(mjModel* model, mjData* data) {
   data->mocap_pos[0] = goal[0];
   data->mocap_pos[1] = goal[1];
 }
+
+std::string ParticleFixed::XmlPath() const {
+  return GetModelPath("particle/task_timevarying.xml");
+}
+std::string ParticleFixed::Name() const { return "ParticleFixed"; }
+
+void ParticleFixed::ResidualFn::Residual(const mjModel* model,
+                                         const mjData* data,
+                                         double* residual) const {
+  double goal[2]{data->mocap_pos[0], data->mocap_pos[1]};
+  ResidualImpl(model, data, goal, residual);
+}
+
 }  // namespace mjpc

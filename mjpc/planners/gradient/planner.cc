@@ -16,15 +16,20 @@
 
 #include <algorithm>
 #include <chrono>
-#include <mutex>
+#include <shared_mutex>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/cost_derivatives.h"
 #include "mjpc/planners/gradient/gradient.h"
 #include "mjpc/planners/gradient/policy.h"
 #include "mjpc/planners/gradient/settings.h"
+#include "mjpc/planners/gradient/spline_mapping.h"
 #include "mjpc/planners/model_derivatives.h"
+#include "mjpc/planners/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -103,7 +108,8 @@ void GradientPlanner::Allocate() {
 }
 
 // reset memory to zeros
-void GradientPlanner::Reset(int horizon) {
+void GradientPlanner::Reset(int horizon,
+                            const double* initial_repeated_action) {
   // state
   std::fill(state.begin(), state.end(), 0.0);
   std::fill(mocap.begin(), mocap.end(), 0.0);
@@ -122,10 +128,10 @@ void GradientPlanner::Reset(int horizon) {
 
   // policy
   for (int i = 0; i < kMaxTrajectory; i++) {
-    candidate_policy[i].Reset(horizon);
+    candidate_policy[i].Reset(horizon, initial_repeated_action);
   }
-  policy.Reset(horizon);
-  previous_policy.Reset(horizon);
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);

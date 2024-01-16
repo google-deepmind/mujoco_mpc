@@ -489,7 +489,7 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
   mju::sprintf_arr(defCrossEntropy[3].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 
-  // add sampling planner
+  // add cross entropy planner
   mjui_add(&ui, defCrossEntropy);
 }
 

@@ -152,7 +152,10 @@ class MPPIPlanner : public RankedPlanner {
   int winner;
 
   // mppi
-  double lambda;                // the temp of the energy-based model
+  double lambda;                   // the temp of the energy-based model
+  std::vector<double> weight_vec;  // MPPI weights
+  double denom;                    // sum of weight_vec
+  double temp_weight;              // temp variable for storing weights
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;

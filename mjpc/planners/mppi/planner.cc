@@ -63,6 +63,9 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
 
   // set the temperature of the cost energy distribution
   lambda = GetNumberOrDefault(0.1, model, "lambda");
+  std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
+  denom = 0.0;
+  temp_weight = 0.0;
 
   // setting the initial nominal control actions
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
@@ -91,6 +94,9 @@ void MPPIPlanner::Allocate() {
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
 
+  // allocating weights for MPPI update
+  weight_vec.resize(kMaxTrajectory);
+
   // trajectory and parameters
   winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -105,7 +111,6 @@ void MPPIPlanner::Allocate() {
   for (int i = 0; i < num_trajectory_; i++) {
     trajectory_order.push_back(i);
   }
-
 }
 
 // reset memory to zeros
@@ -193,17 +198,24 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // ----- update policy ----- //
   // start timer
   auto policy_update_start = std::chrono::steady_clock::now();
+
   // resample nominal policy to current time
   OptimizePolicyCandidates(1, horizon, pool);  // executes noisy rollouts
   this->UpdateNominalPolicy(horizon);
 
   // improvement: compare nominal to winner
-  // TODO(ahl): replace the functionality of the winner here
-  // double best_return = trajectory[0].total_return;
-  // improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
-  // improvement = 0.0;
+  if (denom == 0.0) {
+    improvement = 0.0;
+  } else {
+    double nominal_return = trajectory[0].total_return;
+    double weighted_return = 0.0;
+    for (int i = 0; i < num_trajectory_; i++) {
+      weighted_return += weight_vec[i] * trajectory[i].total_return;
+    }
+    weighted_return /= denom;
+    improvement = mju_max(nominal_return - weighted_return, 0.0);
+  }
 
-  // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);
 }
 
@@ -250,29 +262,38 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
     nominal_time += time_shift;
   }
 
-  // compute MPPI update terms
-  double weight = 0.0;  // storage for intermediate weights
-  double denom = 0.0;
-  std::vector<double> weight_vec(num_trajectory, 0.0);
+  // MPPI
+  temp_weight = 0.0;  // storage for intermediate weights
+  denom = 0.0;
+  std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
 
+  // (1) computing MPPI weights
   for (int i = 0; i < num_trajectory; i++) {
-    // update rollout weight
-    // TODO(ahl): add a bit of detail justifying the math here
-    weight = std::exp(
-        -(trajectory[i].total_return - trajectory[winner].total_return) /
-        lambda);
-    denom += weight;
-    weight_vec[i] = weight;
+    double diff = trajectory[i].total_return - trajectory[winner].total_return;
+    temp_weight = std::exp(-diff / lambda);
+    denom += temp_weight;
+    weight_vec[i] = temp_weight;
   }
+
+  // (2) updating the distribution parameters
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
   for (int i = 0; i < num_trajectory; i++) {
+    // The usual MPPI update looks like
+    //     mu <- mu + E[S(U) * dU] / E[S(U)],
+    // where U is the sequence of open loop inputs, S is the cost, and dU is the
+    // random deviation applied to the noise. If we take Monte Carlo
+    // approximations of the expectations, we can rewrite this update as
+    //     mu <- mu + \sum_i{w_i * dU},
+    // where \sum_i{w_i} = 1, so
+    //     mu <= \sum_i{w_i * (mu + dU)}, where mu + dU = U.
+
     // github.com/google-deepmind/mujoco/blob/3b440921df4f8bf4fdeb631a01327e9938b5af00/src/engine/engine_util_blas.h#L163
     mju_addScl(parameters_scratch.data(), parameters_scratch.data(),
                candidate_policy[i].parameters.data(), weight_vec[i] / denom,
                policy.num_parameters);
   }
 
-  // update
+  // apply update in a thread-safe manner
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
     // parameters
@@ -343,7 +364,7 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
       }
 
       // sample noise policy
-      s.AddNoiseToPolicy(i);
+      if (i != 0) s.AddNoiseToPolicy(i);  // i=0 is the nominal rollout
 
       // ----- rollout sample policy ----- //
 

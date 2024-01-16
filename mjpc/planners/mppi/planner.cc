@@ -65,10 +65,6 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
   lambda = GetNumberOrDefault(0.1, model, "lambda");
 
   // setting the initial nominal control actions
-  // TODO(ahl): expose mu_init to task.xml
-  std::fill(mu_init.begin(), mu_init.end(), 0.0);  // use 0 as a default
-
-  // TODO(ahl): fill parameters_scratch with mu_init
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
   winner = 0;
 }
@@ -110,8 +106,6 @@ void MPPIPlanner::Allocate() {
     trajectory_order.push_back(i);
   }
 
-  // initial nominal control actions
-  mu_init.resize(model->nu * kMaxTrajectoryHorizon);
 }
 
 // reset memory to zeros
@@ -148,9 +142,6 @@ void MPPIPlanner::Reset(int horizon) {
 
   // winner
   winner = 0;
-
-  // setting the initial nominal control actions
-  std::fill(mu_init.begin(), mu_init.end(), 0.0);  // use 0 as a default
 }
 
 // set state

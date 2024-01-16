@@ -153,8 +153,6 @@ class MPPIPlanner : public RankedPlanner {
 
   // mppi
   double lambda;                // the temp of the energy-based model
-  std::vector<double> mu_init;  // length kMaxTrajectoryHorizon * nu vector of
-                                // initial nominal inputs
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;

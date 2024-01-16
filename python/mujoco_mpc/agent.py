@@ -109,9 +109,7 @@ class Agent(contextlib.AbstractContextManager):
       atexit.register(self.server_process.kill)
 
     self.server_addr = connect_to or f"localhost:{self.port}"
-    credentials = grpc.local_channel_credentials(
-        grpc.LocalConnectionType.LOCAL_TCP
-    )
+    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
     self.channel = grpc.secure_channel(self.server_addr, credentials)
     grpc.channel_ready_future(self.channel).result(timeout=30)
     self.stub = agent_pb2_grpc.AgentStub(self.channel)
@@ -365,13 +363,25 @@ class Agent(contextlib.AbstractContextManager):
   def best_trajectory(self):
     request = agent_pb2.GetBestTrajectoryRequest()
     response = self.stub.GetBestTrajectory(request)
-    return {
-        "states": np.array(response.states).reshape(
-            response.steps,
-            self.model.nq + self.model.nv + self.model.na,
-        ),
-        "actions": np.array(response.actions).reshape(
-            response.steps - 1, self.model.nu
-        ),
-        "times": np.array(response.times),
-    }
+    if self.model is None:
+      raise ValueError("model is None")
+    else:
+      return {
+          "states": np.array(response.states).reshape(
+              response.steps,
+              self.model.nq + self.model.nv + self.model.na,
+          ),
+          "actions": np.array(response.actions).reshape(
+              response.steps - 1, self.model.nu
+          ),
+          "times": np.array(response.times),
+      }
+
+  def set_mocap(self, mocap_map: Mapping[str, mjpc_parameters.Pose]):
+    request = agent_pb2.SetAnythingRequest()
+    for key, value in mocap_map.items():
+      if value.pos is not None:
+        request.mocap[key].pos.extend(value.pos)
+      if value.quat is not None:
+        request.mocap[key].quat.extend(value.quat)
+    self.stub.SetAnything(request)

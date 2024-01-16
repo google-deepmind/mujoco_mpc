@@ -80,6 +80,9 @@ class Kalman : public Estimator {
   // get data
   mjData* Data() override { return data_; };
 
+  // get qfrc
+  double* Qfrc() override { return data_->qfrc_actuator; };
+
   // get process noise
   double* ProcessNoise() override { return noise_process.data(); };
 

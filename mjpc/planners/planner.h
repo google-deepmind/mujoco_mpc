@@ -40,7 +40,8 @@ class Planner {
   virtual void Allocate() = 0;
 
   // reset memory to zeros
-  virtual void Reset(int horizon) = 0;
+  virtual void Reset(int horizon,
+                     const double* initial_repeated_action = nullptr) = 0;
 
   // set state
   virtual void SetState(const State& state) = 0;

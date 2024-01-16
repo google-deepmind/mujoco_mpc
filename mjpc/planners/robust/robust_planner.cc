@@ -13,9 +13,16 @@
 // limitations under the License.
 
 #include "mjpc/planners/robust/robust_planner.h"
+#include <algorithm>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
 
@@ -63,8 +70,8 @@ void RobustPlanner::Allocate() {
   ResizeTrajectories(ncandidates_ * nrepetitions_);
 }
 
-void RobustPlanner::Reset(int horizon) {
-  delegate_->Reset(horizon);
+void RobustPlanner::Reset(int horizon, const double* initial_repeated_action) {
+  delegate_->Reset(horizon, initial_repeated_action);
   // state
   std::fill(state_.begin(), state_.end(), 0.0);
   std::fill(mocap_.begin(), mocap_.end(), 0.0);

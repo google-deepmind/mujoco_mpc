@@ -174,6 +174,12 @@ grpc::Status FilterService::State(grpc::ServerContext* context,
   // get time
   output->set_time(active_filter->Time());
 
+  // get qfrc
+  double* qfrc = active_filter->Qfrc();
+  for (int i = 0; i < model->nv; i++) {
+    output->add_qfrc(qfrc[i]);
+  }
+
   return grpc::Status::OK;
 }
 

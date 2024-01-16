@@ -17,6 +17,7 @@
 
 #include <vector>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/planners/policy.h"
 #include "mjpc/task.h"
 #include "mjpc/trajectory.h"
@@ -36,7 +37,8 @@ class iLQGPolicy : public Policy {
   void Allocate(const mjModel* model, const Task& task, int horizon) override;
 
   // reset memory to zeros
-  void Reset(int horizon) override;
+  void Reset(int horizon,
+             const double* initial_repeated_action = nullptr) override;
 
   // set action from policy
   // if state == nullptr, return the nominal action without a feedback term

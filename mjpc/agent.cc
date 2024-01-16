@@ -105,7 +105,7 @@ void Agent::Initialize(const mjModel* model) {
   state.Initialize(model);
 
   // initialize estimator
-  if (reset_estimator) {
+  if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
       estimator->Initialize(model_);
       estimator->Reset();
@@ -159,17 +159,17 @@ void Agent::Allocate() {
 }
 
 // reset data, settings, planners, state
-void Agent::Reset() {
+void Agent::Reset(const double* initial_repeated_action) {
   // planner
   for (const auto& planner : planners_) {
-    planner->Reset(kMaxTrajectoryHorizon);
+    planner->Reset(kMaxTrajectoryHorizon, initial_repeated_action);
   }
 
   // state
   state.Reset();
 
   // estimator
-  if (reset_estimator) {
+  if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
       estimator->Reset();
     }

@@ -62,12 +62,18 @@ void Trajectory::Allocate(int T) {
 }
 
 // reset memory to zeros
-void Trajectory::Reset(int T) {
+void Trajectory::Reset(int T, const double* initial_repeated_action) {
   // states
   std::fill(states.begin(), states.begin() + dim_state * T, 0.0);
 
-  // actions
-  std::fill(actions.begin(), actions.begin() + dim_action * T, 0.0);
+  if (initial_repeated_action != nullptr) {
+    for (int i = 0; i < T; ++i) {
+      mju_copy(actions.data() + i * dim_action, initial_repeated_action,
+               dim_action);
+    }
+  } else {
+    std::fill(actions.begin(), actions.begin() + dim_action * T, 0.0);
+  }
 
   // times
   std::fill(times.begin(), times.begin() + T, 0.0);

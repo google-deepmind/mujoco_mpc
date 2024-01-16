@@ -126,18 +126,17 @@ class CrossEntropyPlanner : public RankedPlanner {
   double timestep_power;
 
   // ----- noise ----- //
-  double stdev_init;  // standard deviation for sampling normal: N(0,
-                      // exploration) // TODO(taylor): make GUI safe
+  double std_initial;  // standard deviation for sampling normal: N(0,
+                       // std) // TODO(taylor): make GUI safe
+  double std_min;  // the minimum allowable std // TODO(taylor): make GUI safe
   std::vector<double> noise;
   std::vector<double> variance;
-  double
-      stdev_min;  // the minimum allowable stdev // TODO(taylor): make GUI safe
 
   // best trajectory
   int winner;
 
   // number of elite samples
-  int n_elites;  // TODO(taylor): make GUI safe
+  int n_elite;  // TODO(taylor): make GUI safe
 
   // temp variables to help with averaging
   std::vector<double> action_avg;  // holds avg control action over elites for

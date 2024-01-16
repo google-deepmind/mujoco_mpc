@@ -50,16 +50,16 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  stdev_init = GetNumberOrDefault(0.1, model,
-                                  "sampling_exploration");  // initial variance
-  stdev_min = GetNumberOrDefault(0.1, model, "stdev_min");  // minimum variance
+  std_initial = GetNumberOrDefault(0.1, model,
+                                   "sampling_exploration");  // initial variance
+  std_min = GetNumberOrDefault(0.1, model, "std_min");       // minimum variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set number of elite samples max(best 10%, 2)
-  n_elites =
-      GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elites");
+  n_elite =
+      GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elite");
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -137,7 +137,7 @@ void CrossEntropyPlanner::Reset(int horizon,
   std::fill(noise.begin(), noise.end(), 0.0);
 
   // variance
-  fill(variance.begin(), variance.end(), stdev_init * stdev_init);
+  fill(variance.begin(), variance.end(), std_initial * std_initial);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -203,10 +203,10 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // resample nominal policy to current time
   this->UpdateNominalPolicy(horizon);
 
-  // clamp n_elites to valid
-  n_elites = std::min(n_elites, num_trajectory_);
+  // clamp n_elite to valid
+  n_elite = std::min(n_elite, num_trajectory_);
 
-  OptimizePolicyCandidates(n_elites, horizon, pool);
+  OptimizePolicyCandidates(n_elite, horizon, pool);
 
   // ----- update policy ----- //
   // start timer
@@ -216,10 +216,10 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // improvement: compare nominal to elite average
   double best_return = 0.0;
-  for (int i = 0; i < n_elites; i++) {
+  for (int i = 0; i < n_elite; i++) {
     best_return += trajectory[trajectory_order[i]].total_return;
   }
-  best_return /= n_elites;
+  best_return /= n_elite;
   improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
 
   // stop timer
@@ -261,8 +261,8 @@ void CrossEntropyPlanner::UpdateNominalPolicy(int horizon) {
   double time_shift = mju_max(
       (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
 
-  // n_elites might change in the GUI - keep constant for in this function
-  int n_elites_fixed = std::min(n_elites, num_trajectory_);
+  // n_elite might change in the GUI - keep constant for in this function
+  int n_elite_fixed = std::min(n_elite, num_trajectory_);
 
   // reset variance to 0
   std::fill(variance.begin(), variance.end(), 0.0);
@@ -274,22 +274,22 @@ void CrossEntropyPlanner::UpdateNominalPolicy(int horizon) {
          0.0);  // reset action_avg to zero
 
     // loop over elites
-    for (int i = 0; i < n_elites_fixed; i++) {
+    for (int i = 0; i < n_elite_fixed; i++) {
       // sample action
       candidate_policy[trajectory_order[i]].Action(DataAt(action_elite[i], 0),
                                                    nullptr, nominal_time);
 
       // compute average
       for (int k = 0; k < model->nu; k++) {
-        action_avg[k] += action_elite[i][k] / n_elites_fixed;
+        action_avg[k] += action_elite[i][k] / n_elite_fixed;
       }
     }
 
     // computing the sample variance of the control parameters
     for (int k = 0; k < model->nu; k++) {
-      for (int i = 0; i < n_elites_fixed; i++) {
+      for (int i = 0; i < n_elite_fixed; i++) {
         double diff = action_elite[i][k] - action_avg[k];
-        variance[t * model->nu + k] += diff * diff / (n_elites_fixed - 1);
+        variance[t * model->nu + k] += diff * diff / (n_elite_fixed - 1);
       }
     }
 
@@ -334,7 +334,7 @@ void CrossEntropyPlanner::AddNoiseToPolicy(int i) {
   // (which i indexes) - the noise is stored in `noise`.
   for (int k = 0; k < num_parameters; k++) {
     noise[k + shift] = absl::Gaussian<double>(
-        gen_, 0.0, std::max(std::sqrt(variance[k]), stdev_min));
+        gen_, 0.0, std::max(std::sqrt(variance[k]), std_min));
   }
 
   // add noise
@@ -460,9 +460,9 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
-      {mjITEM_SLIDERNUM, "Noise Std", 2, &stdev_init, "0 1"},
-      {mjITEM_SLIDERINT, "Elite", 2, &n_elites, "2 128"},
-      {mjITEM_SLIDERNUM, "Min Std", 2, &stdev_min, "0.01 0.5"},
+      {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial, "0 1"},
+      {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min, "0.01 0.5"},
+      {mjITEM_SLIDERINT, "Elite", 2, &n_elite, "2 128"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

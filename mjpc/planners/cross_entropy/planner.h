@@ -119,9 +119,6 @@ class CrossEntropyPlanner : public RankedPlanner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
-  Trajectory nominal_traj;  // the nominal traj
-
-  mjData* nominal_data;  // dummy data for nominal traj
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;

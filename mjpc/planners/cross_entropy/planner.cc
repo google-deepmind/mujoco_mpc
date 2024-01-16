@@ -61,9 +61,6 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   n_elite =
       GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elite");
 
-  // initializing the data for the nominal policy
-  nominal_data = mj_makeData(model);
-
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
@@ -117,9 +114,6 @@ void CrossEntropyPlanner::Allocate() {
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
-  nominal_traj.Initialize(num_state, model->nu, task->num_residual,
-                          task->num_trace, kMaxTrajectoryHorizon);
-  nominal_traj.Allocate(kMaxTrajectoryHorizon);
 }
 
 // reset memory to zeros
@@ -220,7 +214,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto policy_update_start = std::chrono::steady_clock::now();
 
   // improvement: compare nominal to elite average
-  double nominal_return = nominal_traj.total_return;
+  double nominal_return = trajectory[0].total_return;
   double elite_avg_return = 0.0;
   for (int i = 0; i < n_elite; i++) {
     elite_avg_return += trajectory[trajectory_order[i]].total_return;
@@ -241,7 +235,7 @@ void CrossEntropyPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   };
 
   // rollout nominal policy
-  nominal_traj.Rollout(nominal_policy, task, model, data_[0].get(),
+  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
                        state.data(), time, mocap.data(), userdata.data(),
                        horizon);
 }
@@ -400,19 +394,11 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
   }
   pool.WaitCount(count_before + num_trajectory);
   pool.ResetCount();
-
-  // also roll out the nominal policy for plotting
-  auto nominal_policy = [&policy = this->policy](
-                            double* action, const double* state, double time) {
-    policy.Action(action, state, time);
-  };
-  nominal_traj.Rollout(nominal_policy, task, model, nominal_data, state.data(),
-                       time, mocap.data(), userdata.data(), horizon);
 }
 
 // returns the nominal trajectory (this is the purple trace)
 const Trajectory* CrossEntropyPlanner::BestTrajectory() {
-  return winner >= 0 ? &nominal_traj : nullptr;
+  return winner >= 0 ? &trajectory[0] : nullptr;
 }
 
 // visualize planner-specific traces

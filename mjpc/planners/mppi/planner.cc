@@ -274,6 +274,7 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
 
   // (1) computing MPPI weights
   for (int i = 0; i < num_trajectory; i++) {
+    // subtract a baseline for variance reduction + numerical stability
     double diff = trajectory[i].total_return - trajectory[winner].total_return;
     temp_weight = std::exp(-diff / lambda);
     denom += temp_weight;

@@ -228,7 +228,6 @@ void MPPIPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   };
 
   // rollout nominal policy
-  // TODO(ahl): make a new variable for the nominal trajectory
   trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
                         state.data(), time, mocap.data(), userdata.data(),
                         horizon);
@@ -385,10 +384,9 @@ void MPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
   pool.ResetCount();
 }
 
-// return trajectory with best total return
+// returns the nominal trajectory (this is the purple trace)
 const Trajectory* MPPIPlanner::BestTrajectory() {
-  // TODO(ahl): replace the functionality of the winner here
-  return winner >= 0 ? &trajectory[winner] : nullptr;
+  return winner >= 0 ? &trajectory[0] : nullptr;
 }
 
 // visualize planner-specific traces

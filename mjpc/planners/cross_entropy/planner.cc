@@ -215,12 +215,13 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   CopyCandidateToPolicy(0);
 
   // improvement: compare nominal to elite average
-  double best_return = 0.0;
+  double nominal_return = trajectory[0].total_return;
+  double elite_avg_return = 0.0;
   for (int i = 0; i < n_elite; i++) {
-    best_return += trajectory[trajectory_order[i]].total_return;
+    elite_avg_return += trajectory[trajectory_order[i]].total_return;
   }
-  best_return /= n_elite;
-  improvement = mju_max(best_return - trajectory[winner].total_return, 0.0);
+  elite_avg_return /= n_elite;
+  improvement = mju_max(nominal_return - elite_avg_return, 0.0);
 
   // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);

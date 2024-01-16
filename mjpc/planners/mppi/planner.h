@@ -158,6 +158,12 @@ class MPPIPlanner : public RankedPlanner {
   double denom;                    // sum of weight_vec
   double temp_weight;              // temp variable for storing weights
 
+  bool langevin;  // whether to use langevin update
+  enum LangevinRepresentation : bool {
+    kLangevinOff,
+    kLangevinOn,
+  };
+
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };

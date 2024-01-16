@@ -63,9 +63,15 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
 
   // set the temperature of the cost energy distribution
   lambda = GetNumberOrDefault(0.1, model, "lambda");
+
+  // initialize weights
   std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
   denom = 0.0;
   temp_weight = 0.0;
+
+  // by default, don't use Langevin sampling
+  langevin = GetNumberOrDefault(LangevinRepresentation::kLangevinOff, model,
+                                "langevin");
 
   // setting the initial nominal control actions
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
@@ -292,6 +298,16 @@ void MPPIPlanner::UpdateNominalPolicy(int horizon) {
                policy.num_parameters);
   }
 
+  // (3) check whether to apply the Langevin update
+  // TODO(ahl): do more scheduling for the step size
+  if (langevin) {
+    absl::BitGen gen_;
+    for (int k = 0; k < policy.num_parameters; k++) {
+      double eps = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
+      parameters_scratch[k] += sqrt(2.0) * eps;
+    }
+  }
+
   // apply update in a thread-safe manner
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
@@ -437,29 +453,27 @@ void MPPIPlanner::Traces(mjvScene* scn) {
 
 // planner-specific GUI elements
 void MPPIPlanner::GUI(mjUI& ui) {
-  mjuiDef defSampling[] = {
+  mjuiDef defMPPI[] = {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_SELECT, "Langevin", 2, &langevin, "Off\nOn"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits
-  mju::sprintf_arr(defSampling[0].other, "%i %i", 1, kMaxTrajectory);
+  mju::sprintf_arr(defMPPI[0].other, "%i %i", 1, kMaxTrajectory);
 
   // set spline point limits
-  mju::sprintf_arr(defSampling[2].other, "%i %i", MinSamplingSplinePoints,
+  mju::sprintf_arr(defMPPI[2].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
   // set noise standard deviation limits
-  mju::sprintf_arr(defSampling[3].other, "%f %f", MinNoiseStdDev,
-                   MaxNoiseStdDev);
+  mju::sprintf_arr(defMPPI[3].other, "%f %f", MinNoiseStdDev, MaxNoiseStdDev);
 
   // add sampling planner
-  mjui_add(&ui, defSampling);
+  mjui_add(&ui, defMPPI);
 }
 
 // planner-specific plots

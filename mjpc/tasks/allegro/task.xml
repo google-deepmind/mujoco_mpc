@@ -23,7 +23,7 @@
     <numeric name="n_elites" data="10" />
 
     <!-- mppi -->
-    <numeric name="mu_init" data="0.2" />
+    <numeric name="langevin" data="0" />
   </custom>
 
   <!-- Set the camera viewpoint -->

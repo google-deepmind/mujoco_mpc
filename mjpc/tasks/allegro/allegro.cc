@@ -106,7 +106,7 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
   // Standard deviations of the things we're randomizing
   const double friction_std_dev = 0.1;  // friction coefficient
   const double act_gain_std_dev = 0.1;  // actuator gain
-  const double cube_size_std_dev = 0.03;  // cube size (edge length)
+  const double cube_size_std_dev = 0.003;  // cube size (edge length)
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
@@ -143,9 +143,10 @@ void AllegroCube::DomainRandomize(std::vector<mjModel*>& randomized_models)
     mjModel* model = randomized_models[i];
 
     const double cube_size_change = absl::Gaussian<double>(gen_, 0.0, cube_size_std_dev);
-    model->geom_size[cube_geom_id] += cube_size_change;
-    model->geom_size[cube_geom_id + 1] += cube_size_change;
-    model->geom_size[cube_geom_id + 2] += cube_size_change;
+    const double original_size = 0.03;
+    model->geom_size[cube_geom_id] = std::max(0.0, original_size+cube_size_change);
+    model->geom_size[cube_geom_id + 1] += std::max(0.0, original_size+cube_size_change);
+    model->geom_size[cube_geom_id + 2] += std::max(0.0, original_size+cube_size_change);
 
     std::cout << "Cube size in model " << i << " boosted by " << cube_size_change << std::endl;
   }

@@ -28,14 +28,6 @@
 
 namespace mjpc {
 
-// sampling planner limits
-// inline constexpr int MinSamplingSplinePoints = 1;
-// inline constexpr int MaxSamplingSplinePoints = 36;
-// inline constexpr int MinSamplingSplinePower = 1;
-// inline constexpr int MaxSamplingSplinePower = 5;
-// inline constexpr double MinNoiseStdDev = 0.0;
-// inline constexpr double MaxNoiseStdDev = 1.0;
-
 class DRMPPIPlanner : public RankedPlanner {
  public:
   // constructor
@@ -76,7 +68,7 @@ class DRMPPIPlanner : public RankedPlanner {
   void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+  void Rollouts(int num_rollouts, int num_randomized_models, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -108,6 +100,9 @@ class DRMPPIPlanner : public RankedPlanner {
   // ----- members ----- //
   mjModel* model;
   const Task* task;
+  
+  // copies of model with randomized parameters
+  std::vector<mjModel*> randomized_models;
 
   // state
   std::vector<double> state;
@@ -117,7 +112,7 @@ class DRMPPIPlanner : public RankedPlanner {
 
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
-  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy candidate_policy[kMaxRollouts*kMaxTrajectory];
   SamplingPolicy previous_policy;
 
   // scratch
@@ -125,7 +120,7 @@ class DRMPPIPlanner : public RankedPlanner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectory[kMaxTrajectory];
+  Trajectory trajectory[kMaxRollouts*kMaxTrajectory];
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
@@ -164,7 +159,8 @@ class DRMPPIPlanner : public RankedPlanner {
     kLangevinOn,
   };
 
-  int num_trajectory_;
+  int num_rollouts_;
+  int num_randomized_models_;
   mutable std::shared_mutex mtx_;
 };
 

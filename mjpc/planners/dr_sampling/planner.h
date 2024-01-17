@@ -28,10 +28,6 @@
 
 namespace mjpc {
 
-// Number of models for domain randomization.  
-const int kMaxRandomizedModels = 10;
-const int kMaxRollouts = 128;
-
 /**
  * Predictive sampling planner with domain randomization.
  */

@@ -35,6 +35,8 @@ inline constexpr int MinSamplingSplinePower = 1;
 inline constexpr int MaxSamplingSplinePower = 5;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
+inline constexpr int kMaxRandomizedModels = 10;   // [HACK] for domain randomization
+inline constexpr int kMaxRollouts = 128;
 
 class SamplingPlanner : public RankedPlanner {
  public:

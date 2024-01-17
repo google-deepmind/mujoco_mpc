@@ -53,14 +53,22 @@ void DRMPPIPlanner::Initialize(mjModel* model, const Task& task) {
       0.1, model,
       "sampling_exploration");  // uniform stdev on exploration noise
 
-  // set number of trajectories to rollout
-  num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  // set number of trajectories to rollout for each model
+  num_rollouts_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
-  if (num_trajectory_ > kMaxTrajectory) {
-    mju_error_i("Too many trajectories, %d is the maximum allowed.",
-                kMaxTrajectory);
+  if (num_rollouts_ > kMaxRollouts) {
+    mju_error_i("Too many rollouts, %d is the maximum allowed.",
+                kMaxRollouts);
   }
 
+  // set number of randomized models
+  num_randomized_models_ = GetNumberOrDefault(3, model, "num_randomized_models");
+
+  if (num_randomized_models_ > kMaxRandomizedModels) {
+    mju_error_i("Too many randomized models, %d is the maximum allowed.",
+                kMaxRandomizedModels);
+  }
+  
   // set the temperature of the cost energy distribution
   lambda = GetNumberOrDefault(0.1, model, "lambda");
 
@@ -76,6 +84,14 @@ void DRMPPIPlanner::Initialize(mjModel* model, const Task& task) {
   // setting the initial nominal control actions
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
   winner = 0;
+  
+  // add extra models for domain randomization
+  randomized_models.resize(kMaxRandomizedModels);
+  for (int i = 0; i < kMaxRandomizedModels; i++) {
+    randomized_models[i] = mj_copyModel(nullptr, model);
+  }
+  task.DomainRandomize(randomized_models);
+
 }
 
 // allocate memory
@@ -98,14 +114,14 @@ void DRMPPIPlanner::Allocate() {
   times_scratch.resize(kMaxTrajectoryHorizon);
 
   // noise
-  noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  noise.resize(kMaxRollouts * (model->nu * kMaxTrajectoryHorizon));
 
   // allocating weights for MPPI update
-  weight_vec.resize(kMaxTrajectory);
+  weight_vec.resize(kMaxRollouts);
 
   // trajectory and parameters
   winner = -1;
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
@@ -113,8 +129,8 @@ void DRMPPIPlanner::Allocate() {
   }
 
   // need to initialize an arbitrary order of the trajectories
-  trajectory_order.reserve(num_trajectory_);
-  for (int i = 0; i < num_trajectory_; i++) {
+  trajectory_order.reserve(num_rollouts_);
+  for (int i = 0; i < num_rollouts_; i++) {
     trajectory_order.push_back(i);
   }
 }
@@ -139,7 +155,7 @@ void DRMPPIPlanner::Reset(int horizon, const double* initial_repeated_action) {
   std::fill(noise.begin(), noise.end(), 0.0);
 
   // trajectory samples
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
@@ -163,11 +179,12 @@ void DRMPPIPlanner::SetState(const State& state) {
 
 int DRMPPIPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
                                           ThreadPool& pool) {
-  // if num_trajectory_ has changed, use it in this new iteration.
-  // num_trajectory_ might change while this function runs. Keep it constant
-  // for the duration of this function.
-  int num_trajectory = num_trajectory_;
-  ncandidates = std::min(ncandidates, num_trajectory);  // unused
+  // if num_rollouts_ has changed, use it in this new iteration.
+  // num_rollouts_ might change while this function runs. Keep it constant
+  // for the duration of this function. Same thing for num_randomized_models_.
+  int num_rollouts = num_rollouts_;
+  int num_randomized_models = num_randomized_models_;
+  ncandidates = std::min(ncandidates, num_rollouts);  // unused
   ResizeMjData(model, pool.NumThreads());
 
   // ----- rollout noisy policies ----- //
@@ -175,12 +192,12 @@ int DRMPPIPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // simulate noisy policies
-  this->Rollouts(num_trajectory, horizon, pool);
+  this->Rollouts(num_rollouts, num_randomized_models, horizon, pool);
 
   // sort candidate policies and trajectories by score
   trajectory_order.clear();
-  trajectory_order.reserve(num_trajectory);
-  for (int i = 0; i < num_trajectory; i++) {
+  trajectory_order.reserve(num_rollouts);
+  for (int i = 0; i < num_rollouts; i++) {
     trajectory_order.push_back(i);
   }
 
@@ -215,7 +232,7 @@ void DRMPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   } else {
     double nominal_return = trajectory[0].total_return;
     double weighted_return = 0.0;
-    for (int i = 0; i < num_trajectory_; i++) {
+    for (int i = 0; i < num_rollouts_; i++) {
       weighted_return += weight_vec[i] * trajectory[i].total_return;
     }
     weighted_return /= denom;
@@ -253,7 +270,7 @@ void DRMPPIPlanner::ActionFromPolicy(double* action, const double* state,
 // update policy via resampling
 void DRMPPIPlanner::UpdateNominalPolicy(int horizon) {
   // dimensions
-  int num_trajectory = num_trajectory_;  // in case this gets updated in GUI
+  int num_rollouts = num_rollouts_;  // in case this gets updated in GUI
   int num_spline_points = candidate_policy[0].num_spline_points;
 
   // set time
@@ -273,7 +290,7 @@ void DRMPPIPlanner::UpdateNominalPolicy(int horizon) {
   std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
 
   // (1) computing MPPI weights
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < num_rollouts; i++) {
     // subtract a baseline for variance reduction + numerical stability
     double diff = trajectory[i].total_return - trajectory[winner].total_return;
     temp_weight = std::exp(-diff / lambda);
@@ -283,7 +300,7 @@ void DRMPPIPlanner::UpdateNominalPolicy(int horizon) {
 
   // (2) updating the distribution parameters
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < num_rollouts; i++) {
     // The usual MPPI update looks like
     //     mu <- mu + E[S(U) * dU] / E[S(U)],
     // where U is the sequence of open loop inputs, S is the cost, and dU is the
@@ -360,19 +377,19 @@ void DRMPPIPlanner::AddNoiseToPolicy(int i) {
 }
 
 // compute candidate trajectories
-void DRMPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) {
+void DRMPPIPlanner::Rollouts(int num_rollouts, int num_randomized_models, 
+                                 int horizon, ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
 
   policy.num_parameters = model->nu * policy.num_spline_points;
 
-  // random search
+  // compute num_rollouts random control tapes, storing each one in
+  // this->candidate_policy[i]. Additional copies of each tape are stored in
+  // this->candidate_policy[i + j*num_rollouts] for j=1,...,num_randomized_models
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
-                   &state = this->state, &time = this->time,
-                   &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]() {
+  for (int i = 0; i < num_rollouts; i++) {
+    pool.Schedule([&s = *this, i, num_rollouts, num_randomized_models]() {
       // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -380,26 +397,60 @@ void DRMPPIPlanner::Rollouts(int num_trajectory, int horizon, ThreadPool& pool) 
         s.candidate_policy[i].representation = s.policy.representation;
       }
 
-      // sample noise policy
-      if (i != 0) s.AddNoiseToPolicy(i);  // i=0 is the nominal rollout
+      // add random noise to the policy
+      if (i != 0) s.AddNoiseToPolicy(i);
 
-      // ----- rollout sample policy ----- //
-
-      // policy
-      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                 double* action, const double* state,
-                                 double time) {
-        candidate_policy[i].Action(action, state, time);
-      };
-
-      // policy rollout
-      s.trajectory[i].Rollout(
-          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon);
+      // make copies of the candidate policy for each randomized model
+      for (int j = 1; j < num_randomized_models; j++) {
+        int k = i + j * num_rollouts;
+        s.candidate_policy[k].CopyFrom(
+            s.candidate_policy[i], s.candidate_policy[i].num_spline_points);
+        s.candidate_policy[k].representation =
+            s.candidate_policy[i].representation;
+      }
     });
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_rollouts);
   pool.ResetCount();
+  
+  // Roll out the control tapes across the randomized models. Tape i for model j
+  // is stored in this->trajectory[i + j*num_rollouts]. 
+  count_before = pool.GetCount();
+  for (int i=0; i < num_rollouts; i++) {
+    for (int j=0; j < num_randomized_models; j++) {
+      pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                    &state = this->state, &time = this->time,
+                    &mocap = this->mocap, &userdata = this->userdata, horizon,
+                    i, j, num_rollouts]()
+                    {
+        // policy helper function
+        int k = i + j * num_rollouts;
+        auto sample_policy = [&candidate_policy = s.candidate_policy, &k](
+                                  double* action, const double* state,
+                                  double time) {
+          candidate_policy[k].Action(action, state, time);
+        };
+
+        // policy rollout
+        s.trajectory[k].Rollout(
+            sample_policy, task, model, s.data_[ThreadPool::WorkerId()].get(),
+            state.data(), time, mocap.data(), userdata.data(), horizon); 
+      });
+    }
+  }
+  pool.WaitCount(count_before + num_rollouts*num_randomized_models);
+  pool.ResetCount();
+
+  // compute average trajectory costs across the randomized models, storing
+  // them in this->trajectory[i].total_return (the first time rollout i is used).
+  // Thus the first num_rollouts elements of this->trajectory are scored by
+  // average performance across the randomized models.
+  for (int i=0; i<num_rollouts; ++i) {
+    for (int j=1; j<num_randomized_models; ++j) {
+      trajectory[i].total_return += trajectory[i + j*num_rollouts].total_return;
+    }
+    trajectory[i].total_return /= num_randomized_models;
+  }
 }
 
 // returns the nominal trajectory (this is the purple trace)
@@ -427,7 +478,7 @@ void DRMPPIPlanner::Traces(mjvScene* scn) {
   auto best = this->BestTrajectory();
 
   // sample traces
-  for (int k = 0; k < num_trajectory_; k++) {
+  for (int k = 0; k < num_rollouts_; k++) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom + task->num_trace > scn->maxgeom) break;
@@ -456,7 +507,8 @@ void DRMPPIPlanner::Traces(mjvScene* scn) {
 // planner-specific GUI elements
 void DRMPPIPlanner::GUI(mjUI& ui) {
   mjuiDef defMPPI[] = {
-      {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
+      {mjITEM_SLIDERINT, "Models", 2, &num_randomized_models_, "0 1"},
+      {mjITEM_SLIDERINT, "Rollouts", 2, &num_rollouts_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
@@ -465,14 +517,16 @@ void DRMPPIPlanner::GUI(mjUI& ui) {
       {mjITEM_END}};
 
   // set number of trajectory slider limits
-  mju::sprintf_arr(defMPPI[0].other, "%i %i", 1, kMaxTrajectory);
+  mju::sprintf_arr(defMPPI[0].other, "%i %i", 1, kMaxRandomizedModels);
+
+  mju::sprintf_arr(defMPPI[1].other, "%i %i", 1, kMaxTrajectory);
 
   // set spline point limits
-  mju::sprintf_arr(defMPPI[2].other, "%i %i", MinSamplingSplinePoints,
+  mju::sprintf_arr(defMPPI[3].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
   // set noise standard deviation limits
-  mju::sprintf_arr(defMPPI[3].other, "%f %f", MinNoiseStdDev, MaxNoiseStdDev);
+  mju::sprintf_arr(defMPPI[4].other, "%f %f", MinNoiseStdDev, MaxNoiseStdDev);
 
   // add sampling planner
   mjui_add(&ui, defMPPI);

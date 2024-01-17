@@ -16,9 +16,9 @@ real-time predictive control with [MuJoCo](https://mujoco.org/), developed by
 Google DeepMind.
 
 MJPC allows the user to easily author and solve complex robotics tasks, and
-currently supports three shooting-based planners: derivative-based iLQG and
-Gradient Descent, and a simple yet very competitive derivative-free method
-called Predictive Sampling.
+currently supports multiple shooting-based planners. Derivative-based methods include iLQG and
+Gradient Descent, while derivative-free methods include a simple yet very competitive planner
+called Predictive Sampling and the Cross Entropy Method (with diagonal covariance).
 
 - [Overview](#overview)
 - [Graphical User Interface](#graphical-user-interface)

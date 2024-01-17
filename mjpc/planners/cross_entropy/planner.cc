@@ -227,12 +227,28 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // reset parameters scratch to zero
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
 
-  // reset elite average trajectory
-  elite_avg.Reset(kMaxTrajectoryHorizon);
-  mju_copy(elite_avg.times.data(), trajectory[0].times.data(), horizon);
+  // set elite average trajectory times
+  for (int tt = 0; tt <= horizon; tt++) {
+    elite_avg.times[tt] = time + tt * model->opt.timestep;
+  }
 
-  // loop over elites to compute average
-  for (int i = 0; i < n_elite; i++) {
+  // best elite
+  int idx = trajectory_order[0];
+
+  // add parameters
+  mju_copy(parameters_scratch.data(), candidate_policy[idx].parameters.data(),
+           num_parameters);
+
+  // add elite trajectory
+  mju_copy(elite_avg.actions.data(), trajectory[idx].actions.data(),
+           model->nu * (horizon - 1));
+  mju_copy(elite_avg.residual.data(), trajectory[idx].residual.data(),
+           elite_avg.dim_residual * horizon);
+  mju_copy(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
+  elite_avg.total_return = trajectory[idx].total_return;
+
+  // loop over remaining elites to compute average
+  for (int i = 1; i < n_elite; i++) {
     // ordered trajectory index
     int idx = trajectory_order[i];
 
@@ -300,9 +316,8 @@ void CrossEntropyPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   };
 
   // rollout nominal policy
-  trajectory[0].Rollout(nominal_policy, task, model, data_[0].get(),
-                        state.data(), time, mocap.data(), userdata.data(),
-                        horizon);
+  elite_avg.Rollout(nominal_policy, task, model, data_[0].get(), state.data(),
+                    time, mocap.data(), userdata.data(), horizon);
 }
 
 // set action from policy
@@ -431,9 +446,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
 }
 
 // returns the nominal trajectory (this is the purple trace)
-const Trajectory* CrossEntropyPlanner::BestTrajectory() {
-  return &trajectory[trajectory_order[0]];
-}
+const Trajectory* CrossEntropyPlanner::BestTrajectory() { return &elite_avg; }
 
 // visualize planner-specific traces
 void CrossEntropyPlanner::Traces(mjvScene* scn) {
@@ -455,10 +468,8 @@ void CrossEntropyPlanner::Traces(mjvScene* scn) {
   auto best = this->BestTrajectory();
 
   // sample traces
-  for (int k = 0; k < num_trajectory_; k++) {
-    // skip winner
-    if (k == winner) continue;
-
+  int n_elite = n_elite_;
+  for (int k = 0; k < n_elite; k++) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom + task->num_trace > scn->maxgeom) break;
@@ -467,15 +478,17 @@ void CrossEntropyPlanner::Traces(mjvScene* scn) {
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
                      color);
 
+        // elite index
+        int idx = trajectory_order[k];
         // make geometry
         mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectory[k].trace[3 * task->num_trace * i + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
+            trajectory[idx].trace[3 * task->num_trace * i + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
         // increment number of geometries
         scn->ngeom += 1;

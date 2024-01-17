@@ -53,7 +53,7 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   // sampling noise
   std_initial = GetNumberOrDefault(0.1, model,
                                    "sampling_exploration");  // initial variance
-  std_min = GetNumberOrDefault(0.1, model, "std_min");       // minimum variance
+  std_min = GetNumberOrDefault(1.0e-2, model, "std_min");    // minimum variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -202,6 +202,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
 
+  winner = trajectory_order[0];
+
   // stop timer
   rollouts_compute_time = GetDuration(rollouts_start);
 
@@ -211,7 +213,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // dimensions
   int num_spline_points = candidate_policy[0].num_spline_points;
-  int num_parameters = num_spline_points * model->nu;
+  int num_parameters = candidate_policy[0].num_parameters;
 
   // n_elite_ might change in the GUI - keep constant for in this function
   int n_elite = n_elite_;
@@ -221,32 +223,48 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // reset elite average trajectory
   elite_avg.Reset(kMaxTrajectoryHorizon);
+  mju_copy(elite_avg.times.data(), trajectory[0].times.data(), horizon);
 
   // loop over elites to compute average
   for (int i = 0; i < n_elite; i++) {
+    // ordered trajectory index
+    int idx = trajectory_order[i];
+
+    // add parameters
     mju_addTo(parameters_scratch.data(),
-              candidate_policy[trajectory_order[i]].parameters.data(),
-              num_parameters);
-    mju_addTo(elite_avg.actions.data(), trajectory[trajectory_order[i]].actions.data(), model->nu * (horizon - 1));
-    mju_addTo(elite_avg.residual.data(), trajectory[trajectory_order[i]].residual.data(), elite_avg.dim_residual * horizon);
-    mju_addTo(elite_avg.costs.data(), trajectory[trajectory_order[i]].costs.data(), horizon);
-    elite_avg.total_return += trajectory[trajectory_order[i]].total_return;
+              candidate_policy[idx].parameters.data(), num_parameters);
+
+    // add elite trajectory
+    mju_addTo(elite_avg.actions.data(), trajectory[idx].actions.data(),
+              model->nu * (horizon - 1));
+    mju_addTo(elite_avg.residual.data(), trajectory[idx].residual.data(),
+              elite_avg.dim_residual * horizon);
+    mju_addTo(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
+    elite_avg.total_return += trajectory[idx].total_return;
   }
+
+  // normalize
   mju_scl(parameters_scratch.data(), parameters_scratch.data(), 1.0 / n_elite,
           num_parameters);
-  mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite, model->nu * (horizon - 1));
-  mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite, elite_avg.dim_residual * horizon);
-  mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite, horizon);
+  mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite,
+          model->nu * (horizon - 1));
+  mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite,
+          elite_avg.dim_residual * horizon);
+  mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite,
+          horizon);
   elite_avg.total_return /= n_elite;
 
   // loop over elites to compute variance
   std::fill(variance.begin(), variance.end(), 0.0);  // reset variance to zero
   for (int t = 0; t < num_spline_points; t++) {
     for (int j = 0; j < model->nu; j++) {
+      // average
+      double p_avg = parameters_scratch[t * model->nu + j];
       for (int i = 0; i < n_elite; i++) {
-        double diff = candidate_policy[trajectory_order[i]]
-                          .parameters[t * model->nu + j] -
-                      parameters_scratch[t * model->nu + j];
+        // candidate parameter
+        double pi =
+            candidate_policy[trajectory_order[i]].parameters[t * model->nu + j];
+        double diff = pi - p_avg;
         variance[t * model->nu + j] += diff * diff / (n_elite - 1);
       }
     }
@@ -259,13 +277,9 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   }
 
   // improvement: compare nominal to elite average
-  double nominal_return = trajectory[0].total_return;
-  double elite_avg_return = 0.0;
-  for (int i = 0; i < n_elite; i++) {
-    elite_avg_return += trajectory[trajectory_order[i]].total_return;
-  }
-  elite_avg_return /= n_elite;
-  improvement = mju_max(nominal_return - elite_avg_return, 0.0);
+  improvement = mju_max(
+      elite_avg.total_return - trajectory[trajectory_order[0]].total_return,
+      0.0);
 
   // stop timer
   policy_update_compute_time = GetDuration(policy_update_start);
@@ -372,8 +386,6 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
   // reset noise compute time
   noise_compute_time = 0.0;
 
-  policy.num_parameters = model->nu * policy.num_spline_points;
-
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
@@ -381,15 +393,17 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
                    i]() {
-      // copy nominal policy
-      {
+      // copy nominal policy and sample noise
+      if (i != 0) {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
-        s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
-        s.candidate_policy[i].representation = s.policy.representation;
+        s.candidate_policy[i].CopyFrom(s.candidate_policy[0],
+                                       s.candidate_policy[0].num_spline_points);
+        s.candidate_policy[i].representation =
+            s.candidate_policy[0].representation;
+        
+        // sample noise
+        s.AddNoiseToPolicy(i);
       }
-
-      // sample noise policy
-      if (i != 0) s.AddNoiseToPolicy(i);
 
       // ----- rollout sample policy ----- //
 
@@ -411,7 +425,9 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
 }
 
 // return trajectory with best total return
-const Trajectory* CrossEntropyPlanner::BestTrajectory() { return &elite_avg; }
+const Trajectory* CrossEntropyPlanner::BestTrajectory() {
+  return &trajectory[trajectory_order[0]];
+}
 
 // visualize planner-specific traces
 void CrossEntropyPlanner::Traces(mjvScene* scn) {
@@ -505,7 +521,7 @@ void CrossEntropyPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                        0 + planner_shift, 0, 1, -100);
 
   // legend
-  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improvement");
+  mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Avg - Best");
 
   fig_planner->range[1][0] = planner_bounds[0];
   fig_planner->range[1][1] = planner_bounds[1];

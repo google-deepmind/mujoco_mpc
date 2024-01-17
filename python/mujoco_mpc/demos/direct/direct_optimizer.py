@@ -773,7 +773,8 @@ class DirectOptimizer:
   def __init__(self, model: mujoco.MjModel, horizon: int):
     # model + data
     self.model = model
-    # TODO(taylor): set discrete inverse dynamics!!
+
+    # set discrete inverse dynamics
     self.model.opt.enableflags |= mujoco.mjtEnableBit.mjENBL_INVDISCRETE
     self.data = mujoco.MjData(model)
 

@@ -97,6 +97,7 @@ class CrossEntropyPlanner : public Planner {
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
   SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy resampled_policy;
   SamplingPolicy previous_policy;
 
   // scratch

@@ -81,6 +81,8 @@ add_library(
   planners/cross_entropy/planner.h
   planners/mppi/planner.cc
   planners/mppi/planner.h
+  planners/dr_sampling/planner.cc
+  planners/dr_sampling/planner.h
   planners/robust/robust_planner.cc
   planners/robust/robust_planner.h
   planners/sampling/planner.cc

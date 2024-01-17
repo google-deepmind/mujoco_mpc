@@ -23,6 +23,9 @@ class AllegroCube : public Task {
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel* model, mjData* data) override;
 
+  // Do domain randomization
+  void DomainRandomize(std::vector<mjModel*>& randomized_models) const override;
+
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
     return std::make_unique<ResidualFn>(this);

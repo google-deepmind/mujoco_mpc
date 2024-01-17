@@ -121,6 +121,9 @@ class Task {
   virtual void ModifyScene(const mjModel* model, const mjData* data,
                            mjvScene* scene) const {}
 
+  // Set different model parameters for domain randomization.
+  virtual void DomainRandomize(std::vector<mjModel*>& randomized_models) const {}
+
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
 

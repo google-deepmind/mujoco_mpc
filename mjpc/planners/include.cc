@@ -23,6 +23,7 @@
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/ilqs/planner.h"
 #include "mjpc/planners/mppi/planner.h"
+#include "mjpc/planners/dr_mppi/planner.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/robust/robust_planner.h"
 #include "mjpc/planners/sampling/planner.h"
@@ -36,7 +37,8 @@ const char kPlannerNames[] =
     "Robust Sampling\n"
     "Cross Entropy\n"
     "MPPI\n"
-    "Domain Rand. Sampling";
+    "D.R. Sampling\n"
+    "D.R. MPPI";
 
 // load all available planners
 std::vector<std::unique_ptr<mjpc::Planner>> LoadPlanners() {
@@ -52,6 +54,7 @@ std::vector<std::unique_ptr<mjpc::Planner>> LoadPlanners() {
   planners.emplace_back(new mjpc::CrossEntropyPlanner);
   planners.emplace_back(new mjpc::MPPIPlanner);
   planners.emplace_back(new mjpc::DRSamplingPlanner);
+  planners.emplace_back(new mjpc::DRMPPIPlanner);
   return planners;
 }
 

@@ -1,0 +1,35 @@
+<mujoco model="OP3 Get Up">
+  <include file="../common.xml"/>
+  <include file="op3.xml" />
+  <size memory="400K"/>
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.35" />
+    <numeric name="agent_timestep" data="0.015" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.05" />
+    <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Height Goal" data="0.41 0.0 0.75" />
+  </custom>
+
+  <sensor>
+    <user name="Height" dim="1" user="6 100.0 0.0 100.0 0.1" />
+    <user name="Balance" dim="1" user="6 50.0 0.0 100.0 0.1" />
+    <user name="CoM Vel." dim="2" user="0 10.0 0.0 100.0" />
+    <user name="Effort" dim="18" user="0 0.25 0.0 1.0" />
+    <user name="Upright" dim="7" user="2 5.0 0.0 25.0 0.01" />
+    <framepos name="head_position" objtype="site" objname="head"/>
+    <framepos name="left_foot_position" objtype="site" objname="left_foot"/>
+    <framepos name="right_foot_position" objtype="site" objname="right_foot"/>
+    <subtreelinvel name="body_subtreelinvel" body="body_link"/>
+    <subtreecom name="body_subtreecom" body="body_link"/>
+    <framezaxis name="torso_up" objtype="site" objname="torso"/>
+    <framezaxis name="foot_right_up" objtype="site" objname="right_foot"/>
+    <framezaxis name="foot_left_up" objtype="site" objname="left_foot"/>
+  </sensor>
+
+  <keyframe>
+    <key name='home' qpos='-0.00363268 -6.3448e-07 0.279109 0.999919 -1.83814e-07 -0.0127568 -1.22947e-06 0.062832 0.879648 -0.62832 0 -0.879648 0.62832 1.93442e-05 -6.23496e-05 0.00737254 0.00867974 -0.00944019 -4.85943e-06 -1.80695e-05 6.15245e-05 -0.00737236 -0.00867879 0.00944132 4.91532e-06'/>
+  </keyframe>
+</mujoco>

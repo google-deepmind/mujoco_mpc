@@ -18,14 +18,17 @@
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="3" />
-    <numeric name="stdev_min" data="0.1" />
-    <numeric name="num_randomized_models" data="5" />
 
     <!-- cem -->
     <numeric name="n_elites" data="10" />
+    <numeric name="stdev_min" data="0.1" />
 
     <!-- mppi -->
     <numeric name="langevin" data="0" />
+    <numeric name="lambda" data="0.1" />
+
+    <!-- domain randomization -->
+    <numeric name="num_randomized_models" data="5" />
   </custom>
 
   <!-- Set the camera viewpoint -->

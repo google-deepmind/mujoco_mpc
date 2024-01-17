@@ -201,6 +201,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       [&trajectory = trajectory](int a, int b) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
+  winner = trajectory_order[0];
 
   winner = trajectory_order[0];
 
@@ -400,7 +401,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
                                        s.candidate_policy[0].num_spline_points);
         s.candidate_policy[i].representation =
             s.candidate_policy[0].representation;
-        
+
         // sample noise
         s.AddNoiseToPolicy(i);
       }
@@ -424,7 +425,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
   pool.ResetCount();
 }
 
-// return trajectory with best total return
+// returns the nominal trajectory (this is the purple trace)
 const Trajectory* CrossEntropyPlanner::BestTrajectory() {
   return &trajectory[trajectory_order[0]];
 }
@@ -503,7 +504,7 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
   mju::sprintf_arr(defCrossEntropy[3].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 
-  // add sampling planner
+  // add cross entropy planner
   mjui_add(&ui, defCrossEntropy);
 }
 

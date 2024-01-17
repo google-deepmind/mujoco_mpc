@@ -32,7 +32,7 @@
 namespace mjpc {
 
 // max filter history
-inline constexpr int kMaxFilterHistory = 128;
+inline constexpr int kMaxFilterHistory = 64;
 
 // ----- batch estimator ----- //
 // based on: "Physically-Consistent Sensor Fusion in Contact-Rich Behaviors"

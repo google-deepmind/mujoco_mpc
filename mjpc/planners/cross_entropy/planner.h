@@ -18,6 +18,7 @@
 #include <mujoco/mujoco.h>
 
 #include <atomic>
+#include <memory>
 #include <shared_mutex>
 #include <vector>
 

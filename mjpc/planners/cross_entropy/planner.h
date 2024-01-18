@@ -121,9 +121,6 @@ class CrossEntropyPlanner : public Planner {
   std::vector<double> noise;
   std::vector<double> variance;
 
-  // best trajectory
-  int winner;
-
   // number of elite samples
   int n_elite_;  // TODO(taylor): make GUI safe
 

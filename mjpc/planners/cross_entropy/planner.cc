@@ -66,8 +66,6 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
   }
-
-  winner = 0;
 }
 
 // allocate memory
@@ -103,7 +101,6 @@ void CrossEntropyPlanner::Allocate() {
   }
 
   // trajectories and parameters
-  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
@@ -154,9 +151,6 @@ void CrossEntropyPlanner::Reset(int horizon,
 
   // improvement
   improvement = 0.0;
-
-  // winner
-  winner = 0;
 }
 
 // set state
@@ -209,9 +203,6 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       [&trajectory = trajectory](int a, int b) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
-
-  // best rollout
-  winner = trajectory_order[0];
 
   // stop timer
   rollouts_compute_time = GetDuration(rollouts_start);

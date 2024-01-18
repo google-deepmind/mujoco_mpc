@@ -36,15 +36,18 @@ void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // start counter
   int counter = 0;
 
+  printf("current_mode = %i\n", current_mode_);
+
   // ----- Height ----- //
-  double* head_position = SensorByName(model, data, "head_position");
+//   double* head_position = SensorByName(model, data, "head_position");
   double* left_foot_position = SensorByName(model, data, "left_foot_position");
   double* right_foot_position =
       SensorByName(model, data, "right_foot_position");
-
-  double head_feet_error =
-      head_position[2] - 0.5 * (left_foot_position[2] + right_foot_position[2]);
-  residual[counter++] = head_feet_error - parameters_[0];
+  double* left_hand_position = SensorByName(model, data, "left_hand_position");
+  double* right_hand_position = SensorByName(model, data, "right_hand_position");
+  double hand_feet_error =
+      0.5 * (left_foot_position[2] + right_foot_position[2]) - 0.5 * (left_hand_position[2] - right_hand_position[2]);
+  residual[counter++] = hand_feet_error - parameters_[0];
 
   // ----- Balance: CoM-feet xy error ----- //
 
@@ -57,8 +60,8 @@ void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
 
   // average feet xy position
   double fxy_avg[2] = {0.0};
-  mju_addTo(fxy_avg, left_foot_position, 2);
-  mju_addTo(fxy_avg, right_foot_position, 2);
+  mju_addTo(fxy_avg, left_hand_position, 2);
+  mju_addTo(fxy_avg, right_hand_position, 2);
   mju_scl(fxy_avg, fxy_avg, 0.5, 2);
 
   mju_subFrom(fxy_avg, capture_point, 2);
@@ -76,24 +79,54 @@ void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // ----- Upright ----- //
   double standing = 1.0;
   double* torso_up = SensorByName(model, data, "torso_up");
+  double* hand_right_up = SensorByName(model, data, "hand_right_up");
+  double* hand_left_up = SensorByName(model, data, "hand_left_up");
   double* foot_right_up = SensorByName(model, data, "foot_right_up");
   double* foot_left_up = SensorByName(model, data, "foot_left_up");
   double z_ref[3] = {0.0, 0.0, 1.0};
 
-  // right foot
-  mju_sub3(&residual[counter], foot_right_up, z_ref);
+  // right hand
+  mju_sub3(&residual[counter], hand_right_up, z_ref);
   mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
   counter += 3;
 
-  mju_sub3(&residual[counter], foot_left_up, z_ref);
+  // left hand
+  mju_add3(&residual[counter], hand_left_up, z_ref);
+  mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
+  counter += 3;
+
+  // right foot
+  mju_add3(&residual[counter], foot_right_up, z_ref);
+  mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
+  counter += 3;
+
+  // left foot
+  mju_add3(&residual[counter], foot_left_up, z_ref);
   mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
   counter += 3;
 
   // torso
-  residual[counter++] = torso_up[2] - 1.0;
+  residual[counter++] = 1.0 * (torso_up[2] + 1.0);
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);
+}
+
+void OP3::TransitionLocked(mjModel* model, mjData* d) {
+  // check for mode change
+  if (residual_.current_mode_ != mode) {
+    // update mode for residual
+    residual_.current_mode_ = mode;
+
+    // set height goal based on mode (stand, handstand)
+    if (mode == 0) {
+      parameters[0] = 0.25;
+    } else if (mode == 1) {
+      parameters[1] = 0.75;
+    }
+  }
+
+  
 }
 
 }  // namespace mjpc

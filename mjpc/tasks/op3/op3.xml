@@ -122,6 +122,7 @@
             <joint name="l_el" axis="1 0 0"/>
             <geom mesh="la3" class="visual"/>
             <geom mesh="la3c" class="collision"/>
+            <site name="left_hand" rgba="1 0 0 1" pos="-0.02 0.14 0" group="5"/>
           </body>
         </body>
       </body>
@@ -143,6 +144,7 @@
             <joint name="r_el" axis="1 0 0"/>
             <geom mesh="ra3" class="visual"/>
             <geom mesh="ra3c" class="collision"/>
+            <site name="right_hand" rgba="1 0 0 1" pos="-0.02 -0.14 0" group="5"/>
           </body>
         </body>
       </body>

@@ -66,7 +66,7 @@ class CrossEntropyPlanner : public Planner {
   void ResamplePolicy(int horizon);
 
   // add noise to nominal policy
-  void AddNoiseToPolicy(int i);
+  void AddNoiseToPolicy(int i, double std_min);
 
   // compute candidate trajectories
   void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
@@ -115,9 +115,9 @@ class CrossEntropyPlanner : public Planner {
   double timestep_power;
 
   // ----- noise ----- //
-  double std_initial;  // standard deviation for sampling normal: N(0,
-                       // std) // TODO(taylor): make GUI safe
-  double std_min;  // the minimum allowable std // TODO(taylor): make GUI safe
+  double std_initial_;  // standard deviation for sampling normal: N(0,
+                        // std)
+  double std_min_;      // the minimum allowable std
   std::vector<double> noise;
   std::vector<double> variance;
 
@@ -125,7 +125,7 @@ class CrossEntropyPlanner : public Planner {
   int winner;
 
   // number of elite samples
-  int n_elite_;  // TODO(taylor): make GUI safe
+  int n_elite_;
 
   // improvement
   double improvement;

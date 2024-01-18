@@ -105,7 +105,7 @@ void Agent::Initialize(const mjModel* model) {
   state.Initialize(model);
 
   // initialize estimator
-  if (reset_estimator) {
+  if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
       estimator->Initialize(model_);
       estimator->Reset();
@@ -169,7 +169,7 @@ void Agent::Reset(const double* initial_repeated_action) {
   state.Reset();
 
   // estimator
-  if (reset_estimator) {
+  if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
       estimator->Reset();
     }

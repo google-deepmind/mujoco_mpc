@@ -17,10 +17,10 @@
     <numeric name="sampling_representation" data="2" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
-    <numeric name="stdev_min" data="0.2" />
 
     <!-- cem -->
-    <numeric name="n_elites" data="10" />
+    <numeric name="n_elite" data="10" />
+    <numeric name="std_min" data="0.2" />
   </custom>
 
   <!-- Set the camera viewpoint -->

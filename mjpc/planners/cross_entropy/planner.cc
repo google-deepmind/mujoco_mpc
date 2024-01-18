@@ -53,7 +53,7 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   // sampling noise
   std_initial = GetNumberOrDefault(0.1, model,
                                    "sampling_exploration");  // initial variance
-  std_min = GetNumberOrDefault(1.0e-2, model, "std_min");    // minimum variance
+  std_min = GetNumberOrDefault(0.1, model, "std_min");    // minimum variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");

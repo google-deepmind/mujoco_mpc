@@ -21,6 +21,9 @@ add_custom_target(
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/shadow_hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
           ${CMAKE_CURRENT_BINARY_DIR}/panda/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory

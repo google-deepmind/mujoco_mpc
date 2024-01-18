@@ -28,7 +28,7 @@ class CubeSolve : public Task {
   class ResidualFn : public BaseResidualFn {
    public:
     explicit ResidualFn(const CubeSolve* task) : BaseResidualFn(task) {}
-
+    ResidualFn(const ResidualFn&) = default;
     // ---------- Residuals for cube solving manipulation task ----
     //   Number of residuals:
     // ------------------------------------------------------------
@@ -50,7 +50,6 @@ class CubeSolve : public Task {
     transition_model_ =
         mj_loadXML(path.c_str(), nullptr, load_error, kErrorLength);
     transition_data_ = mj_makeData(transition_model_);
-    printf("Cube solving task loaded.\n");
   }
 
   // ----- Transition for cube solving manipulation task -----
@@ -74,6 +73,7 @@ class CubeSolve : public Task {
   ResidualFn* InternalResidual() override { return &residual_; }
 
  private:
+  friend class ResidualFn;
   ResidualFn residual_;
   mjModel* transition_model_;
   mjData* transition_data_;

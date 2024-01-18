@@ -35,6 +35,9 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // initialize counter
   int counter = 0;
 
+  printf("goal!!:\n");
+  mju_printMat(goal_, 1, 6);
+
   // ---------- Residual (0) ----------
   // goal position
   double* goal_position = SensorByName(model, data, "palm_position");
@@ -69,32 +72,32 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += model->nu;
 
   // ---------- Residual (3) ----------
-  if (current_mode_ == kModeSolve) {
-    residual[counter + 0] = data->qpos[11] - goal_[0];  // red
-    residual[counter + 1] = data->qpos[12] - goal_[1];  // orange
-    residual[counter + 2] = data->qpos[13] - goal_[2];  // blue
-    residual[counter + 3] = data->qpos[14] - goal_[3];  // green
-    residual[counter + 4] = data->qpos[15] - goal_[4];  // white
-    residual[counter + 5] = data->qpos[16] - goal_[5];  // yellow
-  } else if (current_mode_ == kModeManual) {
-    residual[counter + 0] = data->qpos[11] - parameters_[0];  // red
-    residual[counter + 1] = data->qpos[12] - parameters_[1];  // orange
-    residual[counter + 2] = data->qpos[13] - parameters_[2];  // blue
-    residual[counter + 3] = data->qpos[14] - parameters_[3];  // green
-    residual[counter + 4] = data->qpos[15] - parameters_[4];  // white
-    residual[counter + 5] = data->qpos[16] - parameters_[5];  // yellow
-  } else {
-    mju_zero(residual + counter, 6);
-  }
+  // if (current_mode_ == kModeSolve) {
+  //   residual[counter + 0] = data->qpos[11] - goal_[0];  // red
+  //   residual[counter + 1] = data->qpos[12] - goal_[1];  // orange
+  //   residual[counter + 2] = data->qpos[13] - goal_[2];  // blue
+  //   residual[counter + 3] = data->qpos[14] - goal_[3];  // green
+  //   residual[counter + 4] = data->qpos[15] - goal_[4];  // white
+  //   residual[counter + 5] = data->qpos[16] - goal_[5];  // yellow
+  // } else if (current_mode_ == kModeManual) {
+  residual[counter + 0] = data->qpos[11] - parameters_[0];  // red
+  residual[counter + 1] = data->qpos[12] - parameters_[1];  // orange
+  residual[counter + 2] = data->qpos[13] - parameters_[2];  // blue
+  residual[counter + 3] = data->qpos[14] - parameters_[3];  // green
+  residual[counter + 4] = data->qpos[15] - parameters_[4];  // white
+  residual[counter + 5] = data->qpos[16] - parameters_[5];  // yellow
+  // } else {
+  //   mju_zero(residual + counter, 6);
+  // }
   counter += 6;
 
   // ---------- Residual (4) ----------
-  // mju_sub(residual + counter, data->qpos + 93, model->key_qpos + 93, 28);
-  // counter += 28;
+  mju_sub(residual + counter, data->qpos + 93, model->key_qpos + 93, 28);
+  counter += 28;
 
-  // // ---------- Residual (5) ----------
-  // mju_copy(residual + counter, data->qvel + 93, 28);
-  // counter += 28;
+  // ---------- Residual (5) ----------
+  mju_copy(residual + counter, data->qvel + 93, 28);
+  counter += 28;
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);
@@ -107,7 +110,8 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
   if (transition_model_) {
     if (mode == kModeWait) {  // wait
-      mju_copy(residual_.goal_, data->qpos + 11, 6);
+      // mju_copy(residual_.goal_, data->qpos + 11, 6);
+      printf("wait\n");
     } else if (mode == kModeScramble) {  // scramble
       printf("scramble!\n");
 

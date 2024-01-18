@@ -53,8 +53,8 @@
     <user name="Green" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="White" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="Yellow" dim="1" user="0 10.0 0.0 25.0"/>
-    <!-- <user name="Grasp" dim="28" user="0 2.5 0.0 10.0" />
-    <user name="Joint Vel." dim="28" user="0 1.0e-4 0.0 1.0e-1" /> -->
+    <user name="Grasp" dim="28" user="0 2.5 0.0 10.0" />
+    <user name="Joint Vel." dim="28" user="0 1.0e-4 0.0 1.0e-1" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>

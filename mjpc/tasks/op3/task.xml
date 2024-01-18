@@ -21,6 +21,7 @@
     <user name="CoM Vel." dim="2" user="0 10.0 0.0 100.0" />
     <user name="Ctrl Diff" dim="18" user="0 0.25 0.0 1.0" />
     <user name="Upright" dim="13" user="2 5.0 0.0 25.0 0.01" />
+    <user name="Joint Vel" dim="18" user="0 1.0e-5 0 1.0e-3" />
     <framepos name="head_position" objtype="site" objname="head"/>
     <framepos name="left_foot_position" objtype="site" objname="left_foot"/>
     <framepos name="right_foot_position" objtype="site" objname="right_foot"/>

@@ -38,6 +38,7 @@ class OP3 : public Task {
     //     Residual(2): center of mass xy velocity
     //     Residual(3): ctrl - ctrl_nominal
     //     Residual(4): upright
+    //     Residual(5): joint velocity
     // -------------------------------------------
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;

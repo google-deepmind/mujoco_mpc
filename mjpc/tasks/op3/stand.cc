@@ -30,6 +30,7 @@ std::string OP3::Name() const { return "OP3"; }
 //     Residual(2): center of mass xy velocity
 //     Residual(3): ctrl - ctrl_nominal
 //     Residual(4): upright
+//     Residual(5): joint velocity
 // -------------------------------------------
 void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                double* residual) const {
@@ -142,6 +143,10 @@ void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
     // torso
     residual[counter++] = 1.0 * (torso_up[2] + 1.0);
   }
+
+  // ----- Joint velocity ----- //
+  mju_copy(residual + counter, data->qvel + 6, model->nv - 6);
+  counter += model->nv - 6;
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);

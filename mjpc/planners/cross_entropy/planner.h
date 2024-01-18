@@ -29,7 +29,7 @@
 
 namespace mjpc {
 
-class CrossEntropyPlanner : public RankedPlanner {
+class CrossEntropyPlanner : public Planner {
  public:
   // constructor
   CrossEntropyPlanner() = default;
@@ -63,7 +63,7 @@ class CrossEntropyPlanner : public RankedPlanner {
                         bool use_previous = false) override;
 
   // resample nominal policy
-  void UpdateNominalPolicy(int horizon);
+  void ResamplePolicy(int horizon);
 
   // add noise to nominal policy
   void AddNoiseToPolicy(int i);
@@ -84,20 +84,6 @@ class CrossEntropyPlanner : public RankedPlanner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
-  // optimizes policies, but rather than picking the best, generate up to
-  // ncandidates. returns number of candidates created.
-  int OptimizePolicyCandidates(int ncandidates, int horizon,
-                               ThreadPool& pool) override;
-  // returns the total return for the nth candidate (or another score to
-  // minimize)
-  double CandidateScore(int candidate) const override;
-
-  // set action from candidate policy
-  void ActionFromCandidatePolicy(double* action, int candidate,
-                                 const double* state, double time) override;
-
-  void CopyCandidateToPolicy(int candidate) override;
-
   // ----- members ----- //
   mjModel* model;
   const Task* task;
@@ -111,6 +97,7 @@ class CrossEntropyPlanner : public RankedPlanner {
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
   SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy resampled_policy;
   SamplingPolicy previous_policy;
 
   // scratch
@@ -119,6 +106,7 @@ class CrossEntropyPlanner : public RankedPlanner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
+  Trajectory elite_avg;
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
@@ -137,13 +125,7 @@ class CrossEntropyPlanner : public RankedPlanner {
   int winner;
 
   // number of elite samples
-  int n_elite;  // TODO(taylor): make GUI safe
-
-  // temp variables to help with averaging
-  std::vector<double> action_avg;  // holds avg control action over elites for
-                                   // each spline point t
-  std::vector<std::vector<double>>
-      action_elite;  // holds the top n_elite sampled actions
+  int n_elite_;  // TODO(taylor): make GUI safe
 
   // improvement
   double improvement;

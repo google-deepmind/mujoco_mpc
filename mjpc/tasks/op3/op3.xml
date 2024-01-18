@@ -243,8 +243,6 @@
   </contact>
 
   <actuator>
-    <!-- <position name="head_pan_act" joint="head_pan"/>
-    <position name="head_tilt_act" joint="head_tilt"/> -->
     <position name="l_sho_pitch_act" joint="l_sho_pitch"/>
     <position name="l_sho_roll_act" joint="l_sho_roll"/>
     <position name="l_el_act" joint="l_el"/>

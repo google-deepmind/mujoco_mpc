@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_TASKS_OP3_TASK_H_
-#define MJPC_TASKS_OP3_TASK_H_
+#ifndef MJPC_TASKS_OP3_STAND_H_
+#define MJPC_TASKS_OP3_STAND_H_
 
 #include <memory>
 #include <string>
+
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
@@ -55,4 +56,4 @@ class OP3 : public Task {
 
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_OP3_TASK_H_
+#endif  // MJPC_TASKS_OP3_STAND_H_

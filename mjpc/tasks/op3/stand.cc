@@ -69,7 +69,7 @@ void OP3::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_copy(&residual[counter], com_velocity, 2);
   counter += 2;
 
-  // ----- Effort ----- //
+  // ----- Ctrl difference ----- //
   mju_sub(residual + counter, data->ctrl, model->key_qpos + 7, model->nu);
   counter += model->nu;
 

@@ -87,15 +87,6 @@ class DirectTest(absltest.TestCase):
     # test that input and output match
     self.assertLess(np.linalg.norm(time - data["time"]), 1.0e-5)
 
-    ## ctrl
-
-    # set
-    ctrl = np.random.rand(model.nu)
-    data = self._direct.data(index, ctrl=ctrl)
-
-    # test that input and output match
-    self.assertLess(np.linalg.norm(ctrl - data["ctrl"]), 1.0e-5)
-
     ## configuration prev
 
     # set

@@ -51,9 +51,10 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   timestep_power = 1.0;
 
   // sampling noise
-  std_initial = GetNumberOrDefault(0.1, model,
-                                   "sampling_exploration");  // initial variance
-  std_min = GetNumberOrDefault(0.1, model, "std_min");    // minimum variance
+  std_initial_ =
+      GetNumberOrDefault(0.1, model,
+                         "sampling_exploration");        // initial variance
+  std_min_ = GetNumberOrDefault(0.1, model, "std_min");  // minimum variance
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -136,7 +137,8 @@ void CrossEntropyPlanner::Reset(int horizon,
   std::fill(noise.begin(), noise.end(), 0.0);
 
   // variance
-  fill(variance.begin(), variance.end(), std_initial * std_initial);
+  double var = std_initial_ * std_initial_;
+  fill(variance.begin(), variance.end(), var);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -161,6 +163,11 @@ void CrossEntropyPlanner::SetState(const State& state) {
 
 // optimize nominal policy using random sampling
 void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+  // check horizon
+  if (horizon != elite_avg.horizon) {
+    NominalTrajectory(horizon, pool);
+  }
+
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
@@ -218,6 +225,9 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // reset parameters scratch to zero
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
 
+  // reset elite average
+  elite_avg.Reset(horizon);
+
   // set elite average trajectory times
   for (int tt = 0; tt <= horizon; tt++) {
     elite_avg.times[tt] = time + tt * model->opt.timestep;
@@ -230,9 +240,10 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   mju_copy(parameters_scratch.data(), candidate_policy[idx].parameters.data(),
            num_parameters);
 
-  // add elite trajectory
+  // copy first elite trajectory
   mju_copy(elite_avg.actions.data(), trajectory[idx].actions.data(),
            model->nu * (horizon - 1));
+  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(), 3 * horizon);
   mju_copy(elite_avg.residual.data(), trajectory[idx].residual.data(),
            elite_avg.dim_residual * horizon);
   mju_copy(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -250,6 +261,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // add elite trajectory
     mju_addTo(elite_avg.actions.data(), trajectory[idx].actions.data(),
               model->nu * (horizon - 1));
+    mju_addTo(elite_avg.trace.data(), trajectory[idx].trace.data(),
+              3 * horizon);
     mju_addTo(elite_avg.residual.data(), trajectory[idx].residual.data(),
               elite_avg.dim_residual * horizon);
     mju_addTo(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -261,6 +274,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
           num_parameters);
   mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite,
           model->nu * (horizon - 1));
+  mju_scl(elite_avg.trace.data(), elite_avg.trace.data(), 1.0 / n_elite,
+          3 * horizon);
   mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite,
           elite_avg.dim_residual * horizon);
   mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite,
@@ -355,7 +370,7 @@ void CrossEntropyPlanner::ResamplePolicy(int horizon) {
 }
 
 // add random noise to nominal policy
-void CrossEntropyPlanner::AddNoiseToPolicy(int i) {
+void CrossEntropyPlanner::AddNoiseToPolicy(int i, double std_min) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
 
@@ -398,13 +413,16 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
   // reset noise compute time
   noise_compute_time = 0.0;
 
+  // lock std_min
+  double std_min = std_min_;
+
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]() {
+                   std_min, i]() {
       // copy nominal policy and sample noise
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -414,7 +432,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
             s.resampled_policy.representation;
 
         // sample noise
-        s.AddNoiseToPolicy(i);
+        s.AddNoiseToPolicy(i, std_min);
       }
 
       // ----- rollout sample policy ----- //
@@ -497,8 +515,8 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
-      {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial, "0 1"},
-      {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min, "0.01 0.5"},
+      {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial_, "0 1"},
+      {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min_, "0.01 0.5"},
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},
       {mjITEM_END}};
 

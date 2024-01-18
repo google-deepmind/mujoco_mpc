@@ -45,10 +45,19 @@ class OP3 : public Task {
    private:
     friend class OP3;
     int current_mode_;
+
+    // modes
+    enum OP3Mode {
+      kModeStand = 0,
+      kModeHandstand,
+    };
   };
 
   OP3() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
+
+  // default height goals
+  constexpr static double kModeHeight[2] = {0.38, 0.57};
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

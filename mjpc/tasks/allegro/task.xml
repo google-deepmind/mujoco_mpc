@@ -61,7 +61,7 @@
   </sensor>
  
   <include file="cube.xml"/>
-  <include file="right_hand.xml"/>
+  <include file="right_hand_modified.xml"/>
 
   <keyframe>
     <key name="home" qpos="1 0 0 0 0.2 0.025 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715"/>

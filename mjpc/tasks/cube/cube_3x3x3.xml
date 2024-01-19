@@ -2,11 +2,6 @@
   <compiler autolimits="true" angle="radian" texturedir="../../../_deps/mujoco-src/model/cube/assets"/>
   <option timestep="0.01" integrator="implicitfast"/>
   <size memory="600K"/>
-  <visual>
-    <global azimuth="180" elevation="-20"/>
-    <headlight ambient="0.3 0.3 0.3" diffuse="0.6 0.6 0.6" specular="0 0 0"/>
-  </visual>
-  <statistic meansize="0.0087" extent="0.1"/>
   <default>
     <geom mass="0.00253704"/>
     <motor ctrlrange="-0.05 0.05"/>

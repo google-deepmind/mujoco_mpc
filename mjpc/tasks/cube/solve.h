@@ -27,7 +27,10 @@ class CubeSolve : public Task {
   std::string XmlPath() const override;
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const CubeSolve* task) : BaseResidualFn(task) {}
+    explicit ResidualFn(const CubeSolve* task, int current_mode = 0)
+        : BaseResidualFn(task), current_mode_(current_mode) {
+          mju_zero(goal_, 6);
+        }
     ResidualFn(const ResidualFn&) = default;
     // ---------- Residuals for cube solving manipulation task ----
     //   Number of residuals:
@@ -77,7 +80,7 @@ class CubeSolve : public Task {
   ResidualFn residual_;
   mjModel* transition_model_;
   mjData* transition_data_;
-  int num_scramble_ = 1;
+  int num_scramble_ = 2;
   std::vector<int> face_;
   std::vector<int> direction_;
   std::vector<double> goal_cache_;

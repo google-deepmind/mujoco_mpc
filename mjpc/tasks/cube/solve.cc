@@ -35,8 +35,11 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // initialize counter
   int counter = 0;
 
-  printf("goal!!:\n");
-  mju_printMat(goal_, 1, 6);
+  // printf("residual goal:\n");
+  // mju_printMat(goal_, 1, 6);
+  // int mode = current_mode_;
+
+  // printf("mode: %i\n", current_mode_);
 
   // ---------- Residual (0) ----------
   // goal position
@@ -73,12 +76,12 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 
   // ---------- Residual (3) ----------
   // if (current_mode_ == kModeSolve) {
-  //   residual[counter + 0] = data->qpos[11] - goal_[0];  // red
-  //   residual[counter + 1] = data->qpos[12] - goal_[1];  // orange
-  //   residual[counter + 2] = data->qpos[13] - goal_[2];  // blue
-  //   residual[counter + 3] = data->qpos[14] - goal_[3];  // green
-  //   residual[counter + 4] = data->qpos[15] - goal_[4];  // white
-  //   residual[counter + 5] = data->qpos[16] - goal_[5];  // yellow
+  // residual[counter + 0] = data->qpos[11] - goal_[0];  // red
+  // residual[counter + 1] = data->qpos[12] - goal_[1];  // orange
+  // residual[counter + 2] = data->qpos[13] - goal_[2];  // blue
+  // residual[counter + 3] = data->qpos[14] - goal_[3];  // green
+  // residual[counter + 4] = data->qpos[15] - goal_[4];  // white
+  // residual[counter + 5] = data->qpos[16] - goal_[5];  // yellow
   // } else if (current_mode_ == kModeManual) {
   residual[counter + 0] = data->qpos[11] - parameters_[0];  // red
   residual[counter + 1] = data->qpos[12] - parameters_[1];  // orange
@@ -87,7 +90,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   residual[counter + 4] = data->qpos[15] - parameters_[4];  // white
   residual[counter + 5] = data->qpos[16] - parameters_[5];  // yellow
   // } else {
-  //   mju_zero(residual + counter, 6);
+    // mju_zero(residual + counter, 6);
   // }
   counter += 6;
 
@@ -163,11 +166,11 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
     if (mode == kModeSolve) {  // solve
       printf("solve mode!\n");
       // set goal
-      mju_copy(residual_.goal_, goal_cache_.data() + 6 * goal_index_, 6);
+      mju_copy(parameters.data(), goal_cache_.data() + 6 * goal_index_, 6);
 
       // check error
       double error[6];
-      mju_sub(error, data->qpos + 11, residual_.goal_, 6);
+      mju_sub(error, data->qpos + 11, parameters.data(), 6);
 
       if (mju_norm(error, 6) < 0.1) {
         if (goal_index_ == 0) {
@@ -180,6 +183,11 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
       }
     }
   }
+
+  // printf("transition goal: \n");
+  // mju_printMat(residual_.goal_, 1, 6);
+
+  // printf("mode = %i\n", mode);
 
   // set mode
   residual_.current_mode_ = mode;

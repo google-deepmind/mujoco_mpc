@@ -18,7 +18,9 @@
     <numeric name="residual_Green" data="0 -3.14 3.14"/>
     <numeric name="residual_White" data="0 -3.14 3.14"/>
     <numeric name="residual_Yellow" data="0 -3.14 3.14"/>
-    <text name="task_transition" data="Wait|Manual|Scramble|Solve"/> 
+    <text name="task_transition" data="Wait|Manual|Scramble|Solve"/>
+    <numeric name="residual_select_Scramble" data="0"/>
+    <text name="residual_list_Scramble" data="1|2|3|4|5|6|7|8|9|10"/>
   </custom>
 
   <statistic extent="0.4" center="0.3 0.1 0"/>

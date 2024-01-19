@@ -34,7 +34,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                      double* residual) const {
   // initialize counter
   int counter = 0;
-
+  
   // lock current mode
   int mode = current_mode_;
 
@@ -105,19 +105,36 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
     if (mode == kModeWait) {
       // wait
     } else if (mode == kModeScramble) {  // scramble
+      double scramble_param = parameters[6];
+      int num_scramble = ReinterpretAsInt(scramble_param) + 1;
+
       // reset
       mju_copy(data->qpos, model->qpos0, model->nq);
       mj_resetData(transition_model_, transition_data_);
 
       // resize
-      face_.resize(num_scramble_);
-      direction_.resize(num_scramble_);
-      goal_cache_.resize(6 * num_scramble_);
+      face_.resize(num_scramble);
+      direction_.resize(num_scramble);
+      goal_cache_.resize(6 * num_scramble);
 
       // set transition model
-      for (int i = 0; i < num_scramble_; i++) {
+      for (int i = 0; i < num_scramble; i++) {
         // copy goal face orientations
         mju_copy(goal_cache_.data() + i * 6, transition_data_->qpos, 6);
+
+        // zero out noise
+        for (int j = 0; j < 6; j++) {
+          double val = goal_cache_[i * 6 + j];
+          if (mju_abs(val) < 1.0e-4) {
+            goal_cache_[i * 6 + j] = 0.0;
+          }
+          if (val < 0.5 * mjPI * 1.1 && val > 0.5 * mjPI * 0.9) {
+            goal_cache_[i * 6 + j] = 0.5 * mjPI;
+          }
+          if (val < -0.5 * mjPI * 1.1 && val > -0.5 * mjPI * 0.9) {
+            goal_cache_[i * 6 + j] = 0.5 * mjPI;
+          }
+        }
 
         // random face + direction
         std::random_device rd;  // Only used once to initialise (seed) engine
@@ -144,7 +161,7 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
       }
 
       // set face goal index
-      goal_index_ = num_scramble_ - 1;
+      goal_index_ = num_scramble - 1;
 
       // set to wait
       mode = 0;
@@ -158,7 +175,7 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
       double error[6];
       mju_sub(error, data->qpos + 11, parameters.data(), 6);
 
-      if (mju_norm(error, 6) < 0.1) {
+      if (mju_norm(error, 6) < 0.085) {
         if (goal_index_ == 0) {
           // return to wait
           printf("solved!");
@@ -168,6 +185,15 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
         }
       }
     }
+  }
+
+  // check for drop
+  if (data->qpos[6] < kResetHeight) {
+    // reset cube position + orientation
+    mju_copy(data->qpos, model->key_qpos, 7);
+
+    // reset cube velocity
+    mju_zero(data->qvel, 6);
   }
 
   // check for mode change

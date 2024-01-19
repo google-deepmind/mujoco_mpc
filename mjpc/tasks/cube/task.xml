@@ -4,14 +4,13 @@
   <size memory="1M"/>
 
   <custom>
-    <text name="task_transition" data="Wait|Manual|Scramble|Solve"/>
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="5" />
+    <numeric name="sampling_spline_points" data="6" />
     <numeric name="sampling_exploration" data="0.1" />
-    <numeric name="sampling_trajectories" data="10" />
+    <numeric name="sampling_trajectories" data="20" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="residual_Red" data="0 -3.14 3.14"/>
     <numeric name="residual_Orange" data="0 -3.14 3.14"/>
@@ -19,6 +18,7 @@
     <numeric name="residual_Green" data="0 -3.14 3.14"/>
     <numeric name="residual_White" data="0 -3.14 3.14"/>
     <numeric name="residual_Yellow" data="0 -3.14 3.14"/>
+    <text name="task_transition" data="Wait|Manual|Scramble|Solve"/> 
   </custom>
 
   <statistic extent="0.4" center="0.3 0.1 0"/>
@@ -43,18 +43,18 @@
   </worldbody>
 
   <sensor>
-    <user name="In Hand" dim="3" user="1 20 0 100 0.02 2"/>
+    <user name="In Hand" dim="3" user="1 50 0 100 0.02 2"/>
     <user name="Orientation" dim="3" user="0 0 0 10" />
     <user name="Cube Vel." dim="3" user="0 2.5 0 20" />
-    <user name="Actuator" dim="20" user="0 0.01 0.0 1.0" />
+    <user name="Actuator" dim="20" user="0 0.0 0.0 1.0" />
     <user name="Red" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="Orange" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="Blue" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="Green" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="White" dim="1" user="0 10.0 0.0 25.0"/>
     <user name="Yellow" dim="1" user="0 10.0 0.0 25.0"/>
-    <user name="Grasp" dim="28" user="0 2.5 0.0 10.0" />
-    <user name="Joint Vel." dim="28" user="0 1.0e-4 0.0 1.0e-1" />
+    <user name="Grasp" dim="24" user="0 2.5 0.0 10.0" />
+    <user name="Joint Vel." dim="24" user="0 0.0 0.0 1.0e-1" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>
@@ -63,6 +63,7 @@
   <include file="right_hand.xml"/>
 
   <keyframe>
-    <key name='grasp' qpos='0.325 0 0.075 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 .707635 0.70405 0.0500937 -0.0325089 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255'/>
+    <key qpos='1 0 0 0 0.325 0 0.075 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255'/>  
   </keyframe>
 </mujoco>
+

@@ -35,11 +35,8 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // initialize counter
   int counter = 0;
 
-  // printf("residual goal:\n");
-  // mju_printMat(goal_, 1, 6);
-  // int mode = current_mode_;
-
-  // printf("mode: %i\n", current_mode_);
+  // lock current mode
+  int mode = current_mode_;
 
   // ---------- Residual (0) ----------
   // goal position
@@ -75,32 +72,25 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += model->nu;
 
   // ---------- Residual (3) ----------
-  // if (current_mode_ == kModeSolve) {
-  // residual[counter + 0] = data->qpos[11] - goal_[0];  // red
-  // residual[counter + 1] = data->qpos[12] - goal_[1];  // orange
-  // residual[counter + 2] = data->qpos[13] - goal_[2];  // blue
-  // residual[counter + 3] = data->qpos[14] - goal_[3];  // green
-  // residual[counter + 4] = data->qpos[15] - goal_[4];  // white
-  // residual[counter + 5] = data->qpos[16] - goal_[5];  // yellow
-  // } else if (current_mode_ == kModeManual) {
-  residual[counter + 0] = data->qpos[11] - parameters_[0];  // red
-  residual[counter + 1] = data->qpos[12] - parameters_[1];  // orange
-  residual[counter + 2] = data->qpos[13] - parameters_[2];  // blue
-  residual[counter + 3] = data->qpos[14] - parameters_[3];  // green
-  residual[counter + 4] = data->qpos[15] - parameters_[4];  // white
-  residual[counter + 5] = data->qpos[16] - parameters_[5];  // yellow
-  // } else {
-    // mju_zero(residual + counter, 6);
-  // }
+  if (mode == kModeManual || mode == kModeSolve) {
+    residual[counter + 0] = data->qpos[11] - parameters_[0];  // red
+    residual[counter + 1] = data->qpos[12] - parameters_[1];  // orange
+    residual[counter + 2] = data->qpos[13] - parameters_[2];  // blue
+    residual[counter + 3] = data->qpos[14] - parameters_[3];  // green
+    residual[counter + 4] = data->qpos[15] - parameters_[4];  // white
+    residual[counter + 5] = data->qpos[16] - parameters_[5];  // yellow
+  } else {
+    mju_zero(residual + counter, 6);
+  }
   counter += 6;
 
   // ---------- Residual (4) ----------
-  mju_sub(residual + counter, data->qpos + 93, model->key_qpos + 93, 28);
-  counter += 28;
+  mju_sub(residual + counter, data->qpos + 97, model->key_qpos + 97, 24);
+  counter += 24;
 
   // ---------- Residual (5) ----------
-  mju_copy(residual + counter, data->qvel + 93, 28);
-  counter += 28;
+  mju_copy(residual + counter, data->qvel + 97, 24);
+  counter += 24;
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);
@@ -112,12 +102,9 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 // ---------------------------------------------------------
 void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
   if (transition_model_) {
-    if (mode == kModeWait) {  // wait
-      // mju_copy(residual_.goal_, data->qpos + 11, 6);
-      printf("wait\n");
+    if (mode == kModeWait) {
+      // wait
     } else if (mode == kModeScramble) {  // scramble
-      printf("scramble!\n");
-
       // reset
       mju_copy(data->qpos, model->qpos0, model->nq);
       mj_resetData(transition_model_, transition_data_);
@@ -149,8 +136,8 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
         }
 
         // set
-        for (int t = 0; t < 1500; t++) {
-          transition_data_->ctrl[face_[i]] = direction_[i] * 1.57 * t / 1500;
+        for (int t = 0; t < 2000; t++) {
+          transition_data_->ctrl[face_[i]] = direction_[i] * 1.57 * t / 2000;
           mj_step(transition_model_, transition_data_);
           mju_copy(data->qpos + 11, transition_data_->qpos, 86);
         }
@@ -164,7 +151,6 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
     }
 
     if (mode == kModeSolve) {  // solve
-      printf("solve mode!\n");
       // set goal
       mju_copy(parameters.data(), goal_cache_.data() + 6 * goal_index_, 6);
 
@@ -184,13 +170,11 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
     }
   }
 
-  // printf("transition goal: \n");
-  // mju_printMat(residual_.goal_, 1, 6);
-
-  // printf("mode = %i\n", mode);
-
-  // set mode
-  residual_.current_mode_ = mode;
+  // check for mode change
+  if (residual_.current_mode_ != mode) {
+    // update mode for residual
+    residual_.current_mode_ = mode;
+  }
 }
 
 }  // namespace mjpc

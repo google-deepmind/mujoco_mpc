@@ -150,7 +150,12 @@ class CopyTaskAssetsCommand(setuptools.Command):
 
   def run(self):
     mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
-    source_paths = tuple(mjpc_tasks_path.rglob("*.xml"))
+    source_paths = (
+      tuple(mjpc_tasks_path.rglob("*.xml"))
+      + tuple(mjpc_tasks_path.rglob("*.png"))
+      + tuple(mjpc_tasks_path.rglob("*.stl"))
+      + tuple(mjpc_tasks_path.rglob("*.obj"))
+    )
     relative_source_paths = tuple(p.relative_to(mjpc_tasks_path) for p in source_paths)
     assert self.build_lib is not None
     build_lib_path = Path(self.build_lib).resolve()

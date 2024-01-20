@@ -1,6 +1,7 @@
 <mujoco model="OP3 Get Up">
   <include file="../common.xml"/>
-  <include file="op3.xml" />
+  <!-- modified from https://github.com/google-deepmind/mujoco_menagerie/tree/main/robotis_op3 -->
+  <include file="op3_modified.xml" />
   <size memory="400K"/>
 
   <custom>

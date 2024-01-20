@@ -1,6 +1,7 @@
 <mujoco model="Particle Control">
   <include file="../common.xml"/>
-  <include file="particle.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/point_mass.xml -->
+  <include file="particle_modified.xml" />
 
   <size memory="10K"/>
 

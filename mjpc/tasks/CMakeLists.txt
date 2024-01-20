@@ -39,6 +39,27 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/humanoid/humanoid_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/humanoid/humanoid.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/humanoid/humanoid.xml.patch
+  # particle
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${dm_control_SOURCE_DIR}/dm_control/suite/point_mass.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/particle/particle.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/particle/particle_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/particle/particle.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/particle/particle.xml.patch
+  # swimmer
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${dm_control_SOURCE_DIR}/dm_control/suite/swimmer.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/swimmer/swimmer.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/swimmer/swimmer_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/swimmer/swimmer.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/swimmer/swimmer.xml.patch
+  # walker
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${dm_control_SOURCE_DIR}/dm_control/suite/walker.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/walker/walker.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/walker/walker_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/walker/walker.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/walker/walker.xml.patch
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
           ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml

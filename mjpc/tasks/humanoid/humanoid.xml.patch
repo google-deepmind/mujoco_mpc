@@ -1,5 +1,6 @@
---- humanoid.xml	2024-01-20 14:42:53
-+++ modified.xml	2024-01-13 20:29:11
+diff --git a/humanoid_modified.xml b/humanoid_modified.xml
+--- a/humanoid_modified.xml
++++ b/humanoid_modified.xml
 @@ -1,202 +1,231 @@
 -<mujoco model="humanoid">
 -  <include file="./common/skybox.xml"/>

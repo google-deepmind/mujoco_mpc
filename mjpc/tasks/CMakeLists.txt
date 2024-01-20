@@ -16,7 +16,16 @@
 # built binary.
 
 add_custom_target(
-  copy_menagerie_resources ALL
+  copy_model_resources ALL
+  ## dm_control models
+  # acrobot
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${dm_control_SOURCE_DIR}/dm_control/suite/acrobot.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/acrobot/acrobot.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/acrobot/acrobot_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/acrobot/acrobot.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/acrobot/acrobot.xml.patch
+  
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
           ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml
@@ -68,7 +77,7 @@ add_custom_target(
   COMMAND ${Python_EXECUTABLE}
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/merge_panda_robotiq.py
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/panda_robotiq.xml
-  COMMENT "Copying menagerie assets into binary directory")
+  COMMENT "Copying Menagerie and dm_control assets into binary directory")
 
 add_custom_target(copy_resources ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -76,6 +85,6 @@ add_custom_target(copy_resources ALL
         ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Copying tasks into binary directory")
 
-add_dependencies(copy_menagerie_resources copy_resources)
+add_dependencies(copy_model_resources copy_resources)
 
-add_dependencies(mjpc copy_menagerie_resources)
+add_dependencies(mjpc copy_model_resources)

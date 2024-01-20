@@ -65,6 +65,11 @@ set(MUJOCO_MPC_MENAGERIE_GIT_TAG
     CACHE STRING "Git revision for MuJoCo Menagerie."
 )
 
+set(MUJOCO_MPC_DM_CONTROL_GIT_TAG
+    774f46182140106e22725914aad3c6299ed91edd
+    CACHE STRING "Git revision for dm_control."
+)
+
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF
@@ -175,6 +180,17 @@ FetchContent_Declare(
 FetchContent_GetProperties(menagerie)
 if(NOT menagerie_POPULATED)
   FetchContent_Populate(menagerie)
+endif()
+
+FetchContent_Declare(
+  dm_control
+  GIT_REPOSITORY https://github.com/google-deepmind/dm_control.git
+  GIT_TAG ${MUJOCO_MPC_DM_CONTROL_GIT_TAG}
+)
+
+FetchContent_GetProperties(dm_control)
+if(NOT dm_control_POPULATED)
+  FetchContent_Populate(dm_control)
 endif()
 
 if(NOT TARGET lodepng)

@@ -60,6 +60,8 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/walker/walker_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/walker/walker.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/walker/walker.xml.patch
+
+  ## Menagerie models
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
           ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml

@@ -376,38 +376,7 @@ void PhysicsLoop(mj::Simulate& sim) {
         }
       }
     }  // release sim.mtx
-
-    // double* head_position = mjpc::SensorByName(m, d, "head_position");
-    // double* left_foot_position =
-    //     mjpc::SensorByName(m, d, "left_foot_position");
-    // double* right_foot_position =
-    //     mjpc::SensorByName(m, d, "right_foot_position");
-    // double* left_hand_position =
-    //     mjpc::SensorByName(m, d, "left_hand_position");
-    // double* right_hand_position =
-    //     mjpc::SensorByName(m, d, "right_hand_position");
-
-    // double* hand_right_up =
-    //     mjpc::SensorByName(m, d, "hand_right_up");
-
-    // double* hand_left_up =
-    //     mjpc::SensorByName(m, d, "hand_left_up");
-
-    // printf("head: %f\n", head_position[2]);
-    // printf("left foot: %f\n", left_foot_position[2]);
-    // printf("right foot: %f\n", right_foot_position[2]);
-    // printf("left hand: %f\n", left_hand_position[2]);
-    // printf("right hand: %f\n", right_hand_position[2]);
-
-    // printf("hand left up:\n");
-    // mju_printMat(hand_left_up, 1, 3);
-
-    // printf("hand right up:\n");
-    // mju_printMat(hand_right_up, 1, 3);
-
-    // double* torso_up = mjpc::SensorByName(m, d, "torso_up");
-    // mju_printMat(torso_up, 1, 3);
-
+    
     // state
     if (sim.uiloadrequest.load() == 0) {
       // set ground truth state if no active estimator

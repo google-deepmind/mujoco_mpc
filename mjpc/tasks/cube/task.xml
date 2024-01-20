@@ -63,6 +63,7 @@
 
   <!-- modified from: mujoco/model/cube/cube_3x3x3.xml -->
   <include file="cube_3x3x3_modified.xml"/>
+  <!-- from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand -->
   <include file="right_hand.xml"/>
 
   <keyframe>

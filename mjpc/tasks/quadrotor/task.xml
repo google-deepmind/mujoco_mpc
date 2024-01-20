@@ -1,6 +1,7 @@
 <mujoco model="Quadrotor Racing">
   <include file="../common.xml"/>
-  <include file="quadrotor.xml"/>
+  <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/skydio_x2 -->
+  <include file="quadrotor_modified.xml"/>
   <include file="gates.xml"/>
 
   <size memory="100K"/>

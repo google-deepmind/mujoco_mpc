@@ -60,6 +60,11 @@ set(MUJOCO_MPC_MUJOCO_GIT_TAG
     CACHE STRING "Git revision for MuJoCo."
 )
 
+set(MUJOCO_MPC_MENAGERIE_GIT_TAG
+    2b12d95d0f61abe91d4aad36cfdcd2ab31e8fce3
+    CACHE STRING "Git revision for MuJoCo Menagerie."
+)
+
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF
@@ -164,7 +169,7 @@ unset(BUILD_SHARED_LIBS_OLD)
 FetchContent_Declare(
   menagerie
   GIT_REPOSITORY https://github.com/google-deepmind/mujoco_menagerie.git
-  GIT_TAG main
+  GIT_TAG ${MUJOCO_MPC_MENAGERIE_GIT_TAG}
 )
 
 FetchContent_GetProperties(menagerie)

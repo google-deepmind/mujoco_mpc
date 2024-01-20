@@ -23,9 +23,15 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/franka_emika_panda/panda.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/panda/panda.xml
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/franka_emika_panda/assets
           ${CMAKE_CURRENT_BINARY_DIR}/panda/assets
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/panda/panda_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/panda/panda.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/panda/panda.xml.patch
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/unitree_a1/assets
           ${CMAKE_CURRENT_BINARY_DIR}/quadruped/assets

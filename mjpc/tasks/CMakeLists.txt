@@ -17,6 +17,9 @@
 
 add_custom_target(
   copy_menagerie_resources ALL
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/hand/assets

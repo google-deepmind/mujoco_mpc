@@ -1,5 +1,6 @@
---- panda.xml	2024-01-20 13:55:23
-+++ modified.xml	2024-01-13 20:29:11
+diff --git a/panda_modified.xml b/panda_modified.xml
+--- a/panda_modified.xml
++++ b/panda_modified.xml
 @@ -1,13 +1,12 @@
  <mujoco model="panda">
    <compiler angle="radian" meshdir="assets" autolimits="true"/>

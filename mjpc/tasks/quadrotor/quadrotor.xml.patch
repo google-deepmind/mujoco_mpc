@@ -1,5 +1,6 @@
---- quadrotor.xml	2024-01-20 13:48:24
-+++ modified.xml	2024-01-20 13:48:07
+diff --git a/quadrotor_modified.xml b/quadrotor_modified.xml
+--- a/quadrotor_modified.xml
++++ b/quadrotor_modified.xml
 @@ -25,13 +25,12 @@
      <texture type="2d" file="X2_lowpoly_texture_SpinningProps_1024.png"/>
      <material name="phong3SG" texture="X2_lowpoly_texture_SpinningProps_1024"/>

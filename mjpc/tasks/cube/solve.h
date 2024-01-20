@@ -49,6 +49,10 @@ class CubeSolve : public Task {
     transition_model_ =
         mj_loadXML(path.c_str(), nullptr, load_error, kErrorLength);
     transition_data_ = mj_makeData(transition_model_);
+
+    // goal cache
+    goal_cache_.resize(6 * 10);
+    std::fill(goal_cache_.begin(), goal_cache_.end(), 0.0);
   }
   ~CubeSolve() {
     if (transition_data_) mj_deleteData(transition_data_);

@@ -61,7 +61,8 @@
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>
 
-  <include file="cube_3x3x3.xml"/>
+  <!-- modified from: mujoco/model/cube/cube_3x3x3.xml -->
+  <include file="cube_3x3x3_modified.xml"/>
   <include file="right_hand.xml"/>
 
   <keyframe>

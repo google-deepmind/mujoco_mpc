@@ -1,0 +1,13 @@
+<mujoco>
+  <worldbody>
+    <body>
+    <geom name="p1" mass="0.01" type="box" size=".01 .01 .05" rgba="0 1 0 1"/>
+    <geom name="p2" mass="0.01" type="box" pos="0.05 0 .05" size=".06 .01 .01" rgba="1 0 0 1"/>
+    <geom name="p3" mass="0.01" type="box" pos="0 0.05 -0.05" size=".01 .06 .01" rgba="0 0 1 1"/>
+    <site name="s1" pos="0.015 0 0" rgba="1 1 1 1"/>
+    <site name="s2" pos="-0.015 0 0" rgba="1 1 1 1"/>
+    <site name="s3" pos="0 0.015 0" rgba="1 1 1 1"/>
+    <site name="s4" pos="0 -0.015 0" rgba="1 1 1 1"/>
+    </body>
+  </worldbody>
+</mujoco>

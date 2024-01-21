@@ -93,7 +93,10 @@
   
     <body name="block">
       <freejoint/>
-      <geom name="block" rgba="1 0 1 1" type="box" mass="0.01" size="0.03 0.03 0.03" pos="0 0 0.03"/>
+      <geom name="block" rgba="1 0 1 1" type="box" mass="0.01" size="0.03 0.03 0.03" pos="0.05 0 0.03"/>
+      <!-- <geom name="blockp1" mass="0.01" type="box" size=".01 .01 .05" rgba="1 0 1 1"/>
+      <geom name="blockp2" mass="0.01" type="box" pos="0.05 0 .05" size=".06 .01 .01" rgba="1 0 1 1"/>
+      <geom name="blockp3" mass="0.01" type="box" pos="0 0.05 -0.05" size=".01 .06 .01" rgba="1 0 1 1"/> -->
       <site name="block0" pos="0.03 0.03 0.06" group="5"/>
       <site name="block1" pos="-.03 0.03 0.06" group="5"/>
       <site name="block2" pos="0.03 -.03 0.06" group="5"/>
@@ -105,7 +108,10 @@
     </body>
 
     <body name="goal" mocap="true">
-      <geom name="goal" contype="0" conaffinity="0" rgba="0 1 0 0.5" type="box" size="0.03 0.03 0.03" pos="0 0.0 0.03"/>
+      <geom name="goal" contype="0" conaffinity="0" rgba="0 1 0 0.5" type="box" size="0.03 0.03 0.03" pos="0.05 0.0 0.03"/>
+      <!-- <geom name="goalp1" type="box" size=".01 .01 .05" contype="0" conaffinity="0" rgba="0 1 0 0.5"/>
+      <geom name="goalp2" type="box" pos="0.05 0 .05" size=".06 .01 .01" contype="0" conaffinity="0" rgba="0 1 0 0.5"/>
+      <geom name="goalp3" type="box" pos="0 0.05 -0.05" size=".01 .06 .01" contype="0" conaffinity="0" rgba="0 1 0 0.5"/> -->
       <site name="goal0" pos="0.03 0.03 0.06" group="5"/>
       <site name="goal1" pos="-.03 0.03 0.06" group="5"/>
       <site name="goal2" pos="0.03 -.03 0.06" group="5"/>
@@ -118,6 +124,6 @@
   </worldbody>
 
   <keyframe>
-    <key name="home" qpos='0 0.29383 0.9322 0 -0.821245 0 0.057 -0.057 0 0.29383 0.9322 0 -0.821245 0 0.057 -0.057 0 0 0 1 0 0 0'/>
+    <key name="home" qpos='0 0.29383 0.9322 0 -0.821245 0 0.057 -0.057 0 0.29383 0.9322 0 -0.821245 0 0.057 -0.057 0 0 0 1 0 0 0' /> 
   </keyframe>
 </mujoco>

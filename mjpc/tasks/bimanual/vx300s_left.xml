@@ -74,6 +74,7 @@
                       pos="0.0378 -0.0125 -0.02" quat="1 1 0 0"/>
                     <geom class="finger_collision" type="box" name="left_finger_pad_8" size="0.015 0.0105 0.001"
                       pos="0.0128 -0.0125 -0.02" quat="1 1 0 0"/>
+                    <site name="left_gripper_left" rgba="1 0 0 1" pos="0.035 -0.0175 0"/>
                   </body>
                   <body name="right_finger_link" pos="0.0687 0 0">
                     <inertial pos="0.017344 0.0060692 0" quat="0.44937 -0.44937 0.545955 -0.545955" mass="0.034796"
@@ -98,6 +99,7 @@
                       pos="0.0378 0.0125 -0.02" quat="1 1 0 0"/>
                     <geom class="finger_collision" type="box" name="right_finger_pad_8" size="0.015 0.0105 0.001"
                       pos="0.0128 0.0125 -0.02" quat="1 1 0 0"/>
+                    <site name="left_gripper_right" rgba="1 0 0 1" pos="0.035 0.0175 0"/>
                   </body>
                 </body>
               </body>

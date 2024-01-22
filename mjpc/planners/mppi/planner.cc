@@ -57,7 +57,7 @@ void MPPIPlanner::Initialize(mjModel* model, const Task& task) {
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set the temperature of the cost energy distribution
-  lambda = GetNumberOrDefault(0.1, model, "lambda");
+  lambda_ = GetNumberOrDefault(0.01, model, "lambda");
 
   // initialize weights
   std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
@@ -228,6 +228,7 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   temp_weight = 0.0;  // storage for intermediate weights
   denom = 0.0;
   std::fill(weight_vec.begin(), weight_vec.end(), 0.0);
+  double lambda = lambda_;  // fixed in this function
 
   // (1) computing MPPI weights
   for (int i = 0; i < num_trajectory; i++) {
@@ -478,6 +479,7 @@ void MPPIPlanner::GUI(mjUI& ui) {
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration_, "0 1"},
+      {mjITEM_SLIDERNUM, "Temperature", 2, &lambda_, "0.01 1.0"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

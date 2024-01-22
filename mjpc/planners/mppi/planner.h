@@ -116,7 +116,7 @@ class MPPIPlanner : public Planner {
 
   // ----- noise ----- //
   double noise_exploration_;  // standard deviation for sampling normal: N(0,
-                        // std)
+                              // std)
   std::vector<double> noise;
 
   // improvement

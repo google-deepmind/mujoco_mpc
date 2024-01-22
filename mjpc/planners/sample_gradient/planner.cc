@@ -94,6 +94,8 @@ void SampleGradientPlanner::Allocate() {
   }
 
   // trajectories and parameters
+  trajectory.resize(kMaxTrajectory);
+  candidate_policy.resize(kMaxTrajectory);
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);

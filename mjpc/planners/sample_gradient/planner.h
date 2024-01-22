@@ -96,7 +96,7 @@ class SampleGradientPlanner : public Planner {
 
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
-  SamplingPolicy candidate_policy[kMaxTrajectory];
+  std::vector<SamplingPolicy> candidate_policy;
   SamplingPolicy resampled_policy;
   SamplingPolicy previous_policy;
 
@@ -105,7 +105,7 @@ class SampleGradientPlanner : public Planner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectory[kMaxTrajectory];
+  std::vector<Trajectory> trajectory;
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;

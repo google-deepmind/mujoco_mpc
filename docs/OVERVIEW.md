@@ -289,6 +289,9 @@ This library includes multiple planners that use different techniques to perform
 - **Cross Entropy Method**
   - all properties of Predictive Sampling
   - refits a nominal policy to mean of elite samples instead of using the best
+- **Model Predictive Path Integral Control**
+  - all properties of Predictive Sampling
+  - refits a nominal policy to a weighted average of perturbed policies centered around the previous nominal policy
 - **Gradient Descent**
   - requires gradients
   - spline representation for controls

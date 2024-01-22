@@ -18,7 +18,7 @@ Google DeepMind.
 MJPC allows the user to easily author and solve complex robotics tasks, and
 currently supports multiple shooting-based planners. Derivative-based methods include iLQG and
 Gradient Descent, while derivative-free methods include a simple yet very competitive planner
-called Predictive Sampling and the Cross Entropy Method (with diagonal covariance).
+called Predictive Sampling, the Cross Entropy Method (with diagonal covariance), and Model Predictive Path Integral control (with fixed, diagonal covariance).
 
 - [Overview](#overview)
 - [Graphical User Interface](#graphical-user-interface)

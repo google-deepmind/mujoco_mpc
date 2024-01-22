@@ -259,7 +259,7 @@ void MPPIPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     // add to nominal trajectory
     mju_addToScl(nominal_trajectory.actions.data(),
                  trajectory[i].actions.data(), weight_vec[i] / denom,
-                 policy.num_parameters);
+                 model->nu * (horizon - 1));
     mju_addToScl(nominal_trajectory.trace.data(), trajectory[i].trace.data(),
                  weight_vec[i] / denom, 3 * horizon);
     mju_addToScl(nominal_trajectory.residual.data(),

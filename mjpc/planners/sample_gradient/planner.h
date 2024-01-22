@@ -65,7 +65,7 @@ class SampleGradientPlanner : public Planner {
   // resample nominal policy
   void ResamplePolicy(int horizon);
 
-  // add noise to nominal policy
+  // add perturbation to nominal policy
   void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
@@ -113,10 +113,9 @@ class SampleGradientPlanner : public Planner {
   // rollout parameters
   double timestep_power;
 
-  // ----- noise ----- //
-  double std_initial_;  // standard deviation for sampling normal: N(0,
-                        // std)
-  std::vector<double> noise;
+  // ----- perturbation ----- //
+  std::vector<double> perturbation;
+  double scale;
 
   // improvement
   double improvement;

@@ -50,10 +50,9 @@ void SampleGradientPlanner::Initialize(mjModel* model, const Task& task) {
   // rollout parameters
   timestep_power = 1.0;
 
-  // sampling noise
-  std_initial_ =
-      GetNumberOrDefault(0.1, model,
-                         "sampling_exploration");        // initial variance
+  // sampling perturbation
+  scale = GetNumberOrDefault(0.1, model,
+                             "sampling_exploration");
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -84,8 +83,8 @@ void SampleGradientPlanner::Allocate() {
   parameters_scratch.resize(num_max_parameter);
   times_scratch.resize(kMaxTrajectoryHorizon);
 
-  // noise
-  noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  // perturbation
+  perturbation.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
 
   // need to initialize an arbitrary order of the trajectories
   trajectory_order.resize(kMaxTrajectory);
@@ -122,8 +121,8 @@ void SampleGradientPlanner::Reset(int horizon,
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
   std::fill(times_scratch.begin(), times_scratch.end(), 0.0);
 
-  // noise
-  std::fill(noise.begin(), noise.end(), 0.0);
+  // perturbation
+  std::fill(perturbation.begin(), perturbation.end(), 0.0);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -276,7 +275,7 @@ void SampleGradientPlanner::ResamplePolicy(int horizon) {
                 num_spline_points);
 }
 
-// add random noise to nominal policy
+// add random perturbation to nominal policy
 void SampleGradientPlanner::AddNoiseToPolicy(int i) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
@@ -291,13 +290,13 @@ void SampleGradientPlanner::AddNoiseToPolicy(int i) {
   // shift index
   int shift = i * (model->nu * kMaxTrajectoryHorizon);
 
-  // sample noise
+  // sample perturbation
   for (int k = 0; k < num_parameters; k++) {
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, std_initial_);
+    perturbation[k + shift] = absl::Gaussian<double>(gen_, 0.0, scale);
   }
 
-  // add noise
-  mju_addTo(candidate_policy[i].parameters.data(), DataAt(noise, shift),
+  // add perturbation
+  mju_addTo(candidate_policy[i].parameters.data(), DataAt(perturbation, shift),
             num_parameters);
 
   // clamp parameters
@@ -313,7 +312,7 @@ void SampleGradientPlanner::AddNoiseToPolicy(int i) {
 // compute candidate trajectories
 void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
                                      ThreadPool& pool) {
-  // reset noise compute time
+  // reset perturbation compute time
   noise_compute_time = 0.0;
 
   // random search
@@ -323,7 +322,7 @@ void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
                    i]() {
-      // copy nominal policy and sample noise
+      // copy nominal policy and sample perturbation
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
         s.candidate_policy[i].CopyFrom(s.resampled_policy,
@@ -331,7 +330,7 @@ void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
         s.candidate_policy[i].representation =
             s.resampled_policy.representation;
 
-        // sample noise
+        // sample perturbation
         if (i != 0) s.AddNoiseToPolicy(i);
       }
 
@@ -417,7 +416,7 @@ void SampleGradientPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
-      {mjITEM_SLIDERNUM, "Noise Std", 2, &std_initial_, "0 1"},
+      {mjITEM_SLIDERNUM, "Scale", 2, &scale, "0 1"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits
@@ -427,7 +426,7 @@ void SampleGradientPlanner::GUI(mjUI& ui) {
   mju::sprintf_arr(defSampleGradient[2].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
-  // set noise standard deviation limits
+  // set perturbation standard deviation limits
   mju::sprintf_arr(defSampleGradient[3].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 

@@ -126,7 +126,6 @@ class SampleGradientPlanner : public Planner {
   double timestep_power;
 
   // ----- perturbation ----- //
-  std::vector<double> perturbation;
   double scale;
 
   // improvement
@@ -169,6 +168,9 @@ class SampleGradientPlanner : public Planner {
 
   // division tolerance
   double div_tolerance = 1.0e-8;
+
+  // nominal index
+  int idx_nominal = 0; // set later to: 2 * num_parameter
 };
 
 }  // namespace mjpc

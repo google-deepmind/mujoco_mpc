@@ -83,24 +83,44 @@ void SampleGradientPlanner::Allocate() {
   parameters_scratch.resize(num_max_parameter);
   times_scratch.resize(kMaxTrajectoryHorizon);
 
+  // max trajectories
+  int max_num_trajectory = kMaxTrajectory + 2 * num_max_parameter + 1;
+
   // perturbation
-  perturbation.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  // TODO(taylor): remove kMaxTrajectory, only needs to be nu * maxT
+  perturbation.resize(kMaxTrajectory * num_max_parameter);
 
   // need to initialize an arbitrary order of the trajectories
-  trajectory_order.resize(kMaxTrajectory);
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  trajectory_order.resize(max_num_trajectory);
+  for (int i = 0; i < max_num_trajectory; i++) {
     trajectory_order[i] = i;
   }
 
   // trajectories and parameters
-  trajectory.resize(kMaxTrajectory);
-  candidate_policy.resize(kMaxTrajectory);
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  trajectory.resize(max_num_trajectory);
+  candidate_policy.resize(max_num_trajectory);
+  for (int i = 0; i < max_num_trajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
+
+  // gradient and Hessian
+  gradient.resize(num_max_parameter);
+  hessian.resize(num_max_parameter);
+
+  // Cauchy point
+  cauchy.resize(num_max_parameter);
+
+  // Newton point
+  newton.resize(num_max_parameter);
+
+  // slope between Cauchy and Newton points
+  slope.resize(num_max_parameter);
+
+  // parameter status
+  parameter_status.resize(num_max_parameter);
 }
 
 // reset memory to zeros
@@ -125,7 +145,11 @@ void SampleGradientPlanner::Reset(int horizon,
   std::fill(perturbation.begin(), perturbation.end(), 0.0);
 
   // trajectory samples
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  // max trajectories
+  int max_num_trajectory =
+      kMaxTrajectory + 2 * (model->nu * kMaxTrajectoryHorizon) + 1;
+
+  for (int i = 0; i < max_num_trajectory; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
@@ -139,6 +163,18 @@ void SampleGradientPlanner::Reset(int horizon,
 
   // winner
   winner = 0;
+
+  // gradient and Hessian
+  std::fill(gradient.begin(), gradient.end(), 0.0);
+  std::fill(hessian.begin(), hessian.end(), 0.0);
+
+  // Cauchy and Newton
+  std::fill(cauchy.begin(), cauchy.end(), 0.0);
+  std::fill(newton.begin(), newton.end(), 0.0);
+  std::fill(slope.begin(), slope.end(), 0.0);
+
+  // parameter status
+  std::fill(parameter_status.begin(), parameter_status.end(), 0.0);
 }
 
 // set state
@@ -171,19 +207,23 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto rollouts_start = std::chrono::steady_clock::now();
 
-  // simulate noisy policies
-  this->Rollouts(num_trajectory, horizon, pool);
+  // simulate policies
+  int num_parameters = policy.num_parameters;
+  int max_num_trajectory = 2 * num_parameters + 1 + num_trajectory;
+
+  this->PerturbationRollouts(num_parameters, horizon, pool);
+  this->GradientRollouts(num_parameters, num_trajectory, horizon, pool);
 
   // sort candidate policies and trajectories by score
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < max_num_trajectory; i++) {
     trajectory_order[i] = i;
   }
 
   // sort so that the first ncandidates elements are the best candidates, and
   // the rest are in an unspecified order
   std::partial_sort(
-      trajectory_order.begin(), trajectory_order.begin() + num_trajectory,
-      trajectory_order.begin() + num_trajectory,
+      trajectory_order.begin(), trajectory_order.begin() + max_num_trajectory,
+      trajectory_order.begin() + max_num_trajectory,
       [&trajectory = trajectory](int a, int b) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
@@ -276,52 +316,114 @@ void SampleGradientPlanner::ResamplePolicy(int horizon) {
 }
 
 // add random perturbation to nominal policy
-void SampleGradientPlanner::AddNoiseToPolicy(int i) {
-  // start timer
-  auto noise_start = std::chrono::steady_clock::now();
+// void SampleGradientPlanner::AddNoiseToPolicy(int i) {
+//   // start timer
+//   auto noise_start = std::chrono::steady_clock::now();
 
-  // dimensions
-  int num_spline_points = candidate_policy[i].num_spline_points;
-  int num_parameters = candidate_policy[i].num_parameters;
+//   // dimensions
+//   int num_spline_points = candidate_policy[i].num_spline_points;
+//   int num_parameters = candidate_policy[i].num_parameters;
 
-  // sampling token
-  absl::BitGen gen_;
+//   // sampling token
+//   absl::BitGen gen_;
 
-  // shift index
-  int shift = i * (model->nu * kMaxTrajectoryHorizon);
+//   // shift index
+//   int shift = i * (model->nu * kMaxTrajectoryHorizon);
 
-  // sample perturbation
-  for (int k = 0; k < num_parameters; k++) {
-    perturbation[k + shift] = absl::Gaussian<double>(gen_, 0.0, scale);
-  }
+//   // sample perturbation
+//   for (int k = 0; k < num_parameters; k++) {
+//     perturbation[k + shift] = absl::Gaussian<double>(gen_, 0.0, scale);
+//   }
 
-  // add perturbation
-  mju_addTo(candidate_policy[i].parameters.data(), DataAt(perturbation, shift),
-            num_parameters);
+//   // add perturbation
+//   mju_addTo(candidate_policy[i].parameters.data(), DataAt(perturbation, shift),
+//             num_parameters);
 
-  // clamp parameters
-  for (int t = 0; t < num_spline_points; t++) {
-    Clamp(DataAt(candidate_policy[i].parameters, t * model->nu),
-          model->actuator_ctrlrange, model->nu);
-  }
+//   // clamp parameters
+//   for (int t = 0; t < num_spline_points; t++) {
+//     Clamp(DataAt(candidate_policy[i].parameters, t * model->nu),
+//           model->actuator_ctrlrange, model->nu);
+//   }
 
-  // end timer
-  IncrementAtomic(noise_compute_time, GetDuration(noise_start));
-}
+//   // end timer
+//   IncrementAtomic(noise_compute_time, GetDuration(noise_start));
+// }
 
 // compute candidate trajectories
-void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
-                                     ThreadPool& pool) {
+// void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
+//                                      ThreadPool& pool) {
+//   // reset perturbation compute time
+//   noise_compute_time = 0.0;
+
+//   // random search
+//   int count_before = pool.GetCount();
+//   for (int i = 0; i < num_trajectory; i++) {
+//     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+//                    &state = this->state, &time = this->time,
+//                    &mocap = this->mocap, &userdata = this->userdata, horizon,
+//                    i]() {
+//       // copy nominal policy and sample perturbation
+//       {
+//         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
+//         s.candidate_policy[i].CopyFrom(s.resampled_policy,
+//                                        s.resampled_policy.num_spline_points);
+//         s.candidate_policy[i].representation =
+//             s.resampled_policy.representation;
+
+//         // sample perturbation
+//         if (i != 0) s.AddNoiseToPolicy(i);
+//       }
+
+//       // ----- rollout sample policy ----- //
+
+//       // policy
+//       auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
+//                                  double* action, const double* state,
+//                                  double time) {
+//         candidate_policy[i].Action(action, state, time);
+//       };
+
+//       // policy rollout
+//       s.trajectory[i].Rollout(
+//           sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
+//           state.data(), time, mocap.data(), userdata.data(), horizon);
+//     });
+//   }
+//   pool.WaitCount(count_before + num_trajectory);
+//   pool.ResetCount();
+// }
+
+// compute candidate trajectories
+void SampleGradientPlanner::PerturbationRollouts(int num_parameters,
+                                                 int horizon,
+                                                 ThreadPool& pool) {
   // reset perturbation compute time
   noise_compute_time = 0.0;
 
-  // random search
+  // compute constraint boundary status for each parameter
+  double* param = resampled_policy.parameters.data();
+  double* limits = resampled_policy.model->actuator_ctrlrange;
+  for (int i = 0; i < num_parameters; i++) {
+    // ctrl index
+    int idx_ctrl = i % resampled_policy.model->nu;
+
+    if (param[i] - scale < limits[idx_ctrl]) {
+      parameter_status[i] = kParameterLower;
+    } else if (param[i] + scale > limits[idx_ctrl + 1]) {
+      parameter_status[i] = kParameterUpper;
+    } else { // nominal case L < pi < U
+      parameter_status[i] = kParameterNominal;
+    }
+  }
+
+  // perturbation search
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < 2 * num_parameters + 1; i++) {
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   i]() {
+                   &status = parameter_status, scale = this->scale,
+                   num_parameters, i]() {
       // copy nominal policy and sample perturbation
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -329,9 +431,32 @@ void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
                                        s.resampled_policy.num_spline_points);
         s.candidate_policy[i].representation =
             s.resampled_policy.representation;
+      }
 
-        // sample perturbation
-        if (i != 0) s.AddNoiseToPolicy(i);
+      // parameter index
+      int idx_param = i % num_parameters;
+
+      // ----- perturb policy ----- //
+      if (i < 2 * num_parameters) {
+        if (status[idx_param] == kParameterLower) {
+          if (i < num_parameters) {
+            s.candidate_policy[i].parameters[idx_param] += scale;
+          } else {
+            s.candidate_policy[i].parameters[idx_param] += 2 * scale;
+          }
+        } else if (status[idx_param] == kParameterUpper) {
+          if (i < num_parameters) {
+            s.candidate_policy[i].parameters[idx_param] -= scale;
+          } else {
+            s.candidate_policy[i].parameters[idx_param] -= 2 * scale;
+          }
+        } else {  // == kParameterNominal
+          if (i < num_parameters) {
+            s.candidate_policy[i].parameters[idx_param] += scale;
+          } else {
+            s.candidate_policy[i].parameters[idx_param] -= scale;
+          }
+        }
       }
 
       // ----- rollout sample policy ----- //
@@ -345,6 +470,120 @@ void SampleGradientPlanner::Rollouts(int num_trajectory, int horizon,
 
       // policy rollout
       s.trajectory[i].Rollout(
+          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
+          state.data(), time, mocap.data(), userdata.data(), horizon);
+    });
+  }
+  pool.WaitCount(count_before + 2 * num_parameters + 1);
+  pool.ResetCount();
+}
+
+// compute candidate trajectories
+void SampleGradientPlanner::GradientRollouts(int num_parameters,
+                                             int num_trajectory, int horizon,
+                                             ThreadPool& pool) {
+  // reset perturbation compute time
+  noise_compute_time = 0.0;
+
+  // -- compute gradient and diagonal Hessian -- //
+  double scale2 = scale * scale;
+  double rc = trajectory[2 * num_parameters].total_return; // nominal return
+
+  for (int i = 0; i < num_parameters; i++) {
+    double rp = trajectory[i].total_return;
+    double rn = trajectory[i + num_parameters].total_return;
+    if (parameter_status[i] == kParameterLower) {
+      // forward difference
+      gradient[i] = (-3 * rc + 4 * rp - rn) / (2 * scale);
+      hessian[i] = (rc - 2 * rp + rn) / scale2;
+    } else if (parameter_status[i] == kParameterUpper) {
+      // backward difference
+      gradient[i] = (3 * rc - 4 * rp + rn) / (2 * scale); 
+      hessian[i] = (rn - 2 * rp + rc) / scale2;
+    } else { // == kParameterNominal
+      // centered difference
+      gradient[i] = (rp - rn) / (2 * scale);
+      hessian[i] = (rp - 2 * rc + rn) / scale2;
+    }
+  }
+
+  // -- compute Cauchy and diagonal Newton points -- //
+  // limits
+  double* limits = resampled_policy.model->actuator_ctrlrange;
+
+  // Cauchy scaling
+  double gg = mju_dot(gradient.data(), gradient.data(), num_parameters);
+  double gHg = 0.0;
+  for (int i = 0; i < num_parameters; i++) {
+    gHg += gradient[i] * hessian[i] * gradient[i];
+  }
+  double cauchy_scale = gg / std::max(gHg, div_tolerance);
+
+  // initialize Cauchy
+  mju_copy(cauchy.data(), resampled_policy.parameters.data(), num_parameters);
+
+  // initialize Newton 
+  mju_copy(newton.data(), resampled_policy.parameters.data(), num_parameters);
+
+  // compute points
+  for (int i = 0; i < num_parameters; i++) {
+    // -- limits -- //
+    // ctrl index
+    int idx_ctrl = i % resampled_policy.model->nu;
+
+    // lower, upper
+    double lower = limits[idx_ctrl];
+    double upper = limits[idx_ctrl + 1];
+
+    // Cauchy
+    cauchy[i] -= cauchy_scale * gradient[i];
+    cauchy[i] = std::max(lower, std::min(cauchy[i], upper));  // clamp
+
+    // Newton
+    newton[i] -= gradient[i] / std::max(hessian[i], div_tolerance);
+    newton[i] = std::max(lower, std::min(newton[i], upper));  // clamp
+  }
+
+  // slope between Cauchy and Newton points
+  mju_sub(slope.data(), newton.data(), cauchy.data(), num_parameters);
+  mju_scl(slope.data(), slope.data(), 1.0 / (num_trajectory - 1), num_parameters);
+
+  // search between Cauchy and Newton points
+  int count_before = pool.GetCount();
+  for (int i = 0; i < num_trajectory; i++) {
+    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                   &state = this->state, &time = this->time,
+                   &mocap = this->mocap, &userdata = this->userdata, horizon,
+                   num_parameters, &cauchy = this->cauchy, &slope = this->slope,
+                   i]() {
+      // shift index
+      int idx = 2 * num_parameters + i;
+
+      // copy nominal policy and sample perturbation
+      {
+        const std::shared_lock<std::shared_mutex> lock(s.mtx_);
+        s.candidate_policy[idx].CopyFrom(s.resampled_policy,
+                                         s.resampled_policy.num_spline_points);
+        s.candidate_policy[idx].representation =
+            s.resampled_policy.representation;
+
+        // candidate = cauchy + i * slope
+        double* params = s.candidate_policy[idx].parameters.data();
+        mju_copy(params, cauchy.data(), num_parameters);
+        mju_addToScl(params, slope.data(), i, num_parameters);
+      }
+
+      // ----- rollout sample policy ----- //
+
+      // policy
+      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &idx](
+                                 double* action, const double* state,
+                                 double time) {
+        candidate_policy[idx].Action(action, state, time);
+      };
+
+      // policy rollout
+      s.trajectory[idx].Rollout(
           sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
           state.data(), time, mocap.data(), userdata.data(), horizon);
     });
@@ -420,7 +659,7 @@ void SampleGradientPlanner::GUI(mjUI& ui) {
       {mjITEM_END}};
 
   // set number of trajectory slider limits
-  mju::sprintf_arr(defSampleGradient[0].other, "%i %i", 1, kMaxTrajectory);
+  mju::sprintf_arr(defSampleGradient[0].other, "%i %i", 2, kMaxTrajectory);
 
   // set spline point limits
   mju::sprintf_arr(defSampleGradient[2].other, "%i %i", MinSamplingSplinePoints,

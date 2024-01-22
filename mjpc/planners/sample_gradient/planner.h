@@ -66,10 +66,17 @@ class SampleGradientPlanner : public Planner {
   void ResamplePolicy(int horizon);
 
   // add perturbation to nominal policy
-  void AddNoiseToPolicy(int i);
+  // void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+  // void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+
+  // compute candidate trajectories for perturbations
+  void PerturbationRollouts(int num_parameters, int horizon, ThreadPool& pool);
+
+  // compute candidate trajectories for gradients between Newton and Cauchy
+  // points
+  void GradientRollouts(int num_parameters, int num_trajectory, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -83,6 +90,11 @@ class SampleGradientPlanner : public Planner {
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
+
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  };
 
   // ----- members ----- //
   mjModel* model;
@@ -133,6 +145,30 @@ class SampleGradientPlanner : public Planner {
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
+
+  // approximate gradient and (diagonal) Hessian
+  std::vector<double> gradient;
+  std::vector<double> hessian;
+
+  // Cauchy point
+  std::vector<double> cauchy;
+
+  // Newton point
+  std::vector<double> newton;
+
+  // slope between Cauchy and Newton points
+  std::vector<double> slope;
+
+  // ----- parameter status ----- //
+  enum ParameterStatus: int {
+    kParameterNominal = 0,
+    kParameterLower,
+    kParameterUpper,
+  };
+  std::vector<int> parameter_status;
+
+  // division tolerance
+  double div_tolerance = 1.0e-8;
 };
 
 }  // namespace mjpc

@@ -14,18 +14,19 @@
 
 #include "mjpc/tasks/hand/hand.h"
 
-#include <string>
-
 #include <absl/log/check.h>
 #include <absl/log/log.h>
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
+
+#include <string>
+#include <vector>
+
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
-std::string Hand::XmlPath() const {
-  return GetModelPath("hand/task.xml");
-}
+std::string Hand::XmlPath() const { return GetModelPath("hand/task.xml"); }
 std::string Hand::Name() const { return "Hand"; }
 
 // ---------- Residuals for in-hand manipulation task ---------
@@ -38,7 +39,7 @@ std::string Hand::Name() const { return "Hand"; }
 //     Residual (5): hand joint velocity
 // ------------------------------------------------------------
 void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                    double* residual) const {
+                                double* residual) const {
   int counter = 0;
   // ---------- Residual (0) ----------
   // goal position
@@ -95,7 +96,7 @@ void Hand::TransitionLocked(mjModel* model, mjData* data) {
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
   // look for contacts between the cube and the floor
   bool on_floor = false;
-  for (int i=0; i < data->ncon; i++) {
+  for (int i = 0; i < data->ncon; i++) {
     mjContact* g = data->contact + i;
     if ((g->geom1 == cube && g->geom2 == floor) ||
         (g->geom2 == cube && g->geom1 == floor)) {
@@ -114,10 +115,46 @@ void Hand::TransitionLocked(mjModel* model, mjData* data) {
       mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
       mju_zero(data->qvel + jnt_veladr, 6);
     }
-    mutex_.unlock();  // step calls sensor that calls Residual.
+    mutex_.unlock();          // step calls sensor that calls Residual.
     mj_forward(model, data);  // mj_step1 would suffice, we just need contact
     mutex_.lock();
   }
+}
+
+void Hand::ModifyState(const mjModel* model, State* state) {
+  // sampling token
+  absl::BitGen gen_;
+
+  // std from GUI
+  double std_rot = parameters[0];  // concentration parameter ("inverse var")
+  double std_pos = parameters[1];  // uniform stdev for position noise
+
+  // current state
+  const std::vector<double>& s = state->state();
+
+  // add quaternion noise
+  std::vector<double> dv = {0.0, 0.0, 0.0};  // rotational velocity noise
+  dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  std::vector<double> quat_cube = {s[7], s[8], s[9], s[10]};  // quat cube state
+  mju_quatIntegrate(quat_cube.data(), dv.data(), 1.0);        // update the quat
+  mju_normalize4(quat_cube.data());  // normalize the quat for numerics
+
+  // add position noise
+  std::vector<double> dp = {0.0, 0.0, 0.0};  // translational velocity noise
+  dp[0] = absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[1] = absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[2] = absl::Gaussian<double>(gen_, 0.0, std_pos);
+  std::vector<double> pos_cube = {s[4], s[5], s[6]};  // position cube state
+  mju_addTo3(pos_cube.data(), dp.data());             // update the pos
+
+  // set state
+  std::vector<double> qpos(model->nq);
+  mju_copy(qpos.data(), s.data(), model->nq);
+  mju_copy(qpos.data() + 7, quat_cube.data(), 4);
+  mju_copy(qpos.data() + 4, pos_cube.data(), 3);
+  state->SetPosition(model, qpos.data());
 }
 
 }  // namespace mjpc

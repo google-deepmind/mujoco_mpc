@@ -46,6 +46,7 @@ class Hand : public Task {
 //   reset cube into hand.
 // -----------------------------------------------
   void TransitionLocked(mjModel* model, mjData* data) override;
+  void ModifyState(const mjModel* model, State* state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

@@ -103,8 +103,8 @@ class Task {
   // lock
   void Transition(mjModel* model, mjData* data);
 
-  // add noisy to state
-  virtual void NoisyState(const mjModel* model, State* state){};
+  // modify state
+  virtual void ModifyState(const mjModel* model, State* state){};
 
   // get information from model
   // calls ResetLocked and InternalResidual()->Update() while holding a lock

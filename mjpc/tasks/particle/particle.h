@@ -40,7 +40,7 @@ class Particle : public Task {
   };
   Particle() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
-  void NoisyState(const mjModel* model, State* state) override;
+  void ModifyState(const mjModel* model, State* state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

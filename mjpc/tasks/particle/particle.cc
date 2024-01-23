@@ -66,7 +66,7 @@ void Particle::TransitionLocked(mjModel* model, mjData* data) {
   data->mocap_pos[1] = goal[1];
 }
 
-void Particle::NoisyState(const mjModel* model, State* state) {
+void Particle::ModifyState(const mjModel* model, State* state) {
   // sampling token
   absl::BitGen gen_;
 
@@ -80,14 +80,12 @@ void Particle::NoisyState(const mjModel* model, State* state) {
   const std::vector<double>& s = state->state();
 
   // qpos
-  double qpos[2];
-  mju_copy(qpos, s.data(), model->nq);
+  double qpos[2] {s[0], s[1]};
   qpos[0] += absl::Gaussian<double>(gen_, 0.0, std_px);
   qpos[1] += absl::Gaussian<double>(gen_, 0.0, std_py);
 
   // qvel
-  double qvel[2];
-  mju_copy(qvel, s.data() + model->nq, model->nv);
+  double qvel[2] {s[2], s[3]};
   qvel[0] += absl::Gaussian<double>(gen_, 0.0, std_vx);
   qvel[1] += absl::Gaussian<double>(gen_, 0.0, std_vy);
 

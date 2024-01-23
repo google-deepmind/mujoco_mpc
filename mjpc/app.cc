@@ -384,8 +384,8 @@ void PhysicsLoop(mj::Simulate& sim) {
         // get state from simulation
         sim.agent->state.Set(m, d);
 
-        // inject noisy into state
-        sim.agent->ActiveTask()->NoisyState(m, &sim.agent->state);
+        // modify state
+        sim.agent->ActiveTask()->ModifyState(m, &sim.agent->state);
       }
     }
   }

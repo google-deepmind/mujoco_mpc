@@ -15,9 +15,11 @@
 #include "mjpc/tasks/particle/particle.h"
 
 #include <absl/random/random.h>
-#include <string>
-
 #include <mujoco/mujoco.h>
+
+#include <string>
+#include <vector>
+
 #include "mjpc/states/state.h"
 #include "mjpc/utilities.h"
 
@@ -80,12 +82,12 @@ void Particle::ModifyState(const mjModel* model, State* state) {
   const std::vector<double>& s = state->state();
 
   // qpos
-  double qpos[2] {s[0], s[1]};
+  double qpos[2]{s[0], s[1]};
   qpos[0] += absl::Gaussian<double>(gen_, 0.0, std_px);
   qpos[1] += absl::Gaussian<double>(gen_, 0.0, std_py);
 
   // qvel
-  double qvel[2] {s[2], s[3]};
+  double qvel[2]{s[2], s[3]};
   qvel[0] += absl::Gaussian<double>(gen_, 0.0, std_vx);
   qvel[1] += absl::Gaussian<double>(gen_, 0.0, std_vy);
 

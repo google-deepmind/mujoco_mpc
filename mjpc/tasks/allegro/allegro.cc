@@ -14,6 +14,7 @@
 
 #include "mjpc/tasks/allegro/allegro.h"
 
+#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include <cmath>
@@ -111,6 +112,61 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     mj_forward(model, data);
     mutex_.lock();
   }
+
+  // update mocap position
+  std::vector<double> pos_cube = pos_cube_;
+  std::vector<double> quat_cube = quat_cube_;
+  data->mocap_pos[0] = pos_cube[0];
+  data->mocap_pos[1] = pos_cube[1];
+  data->mocap_pos[2] = pos_cube[2];
+  data->mocap_quat[0] = quat_cube[0];
+  data->mocap_quat[1] = quat_cube[1];
+  data->mocap_quat[2] = quat_cube[2];
+  data->mocap_quat[3] = quat_cube[3];
+}
+
+void Allegro::ModifyState(const mjModel *model, State *state) {
+  // sampling token
+  absl::BitGen gen_;
+
+  // std from GUI
+  double std_rot = parameters[0];    // concentration parameter ("inverse var")
+  double std_pos = parameters[1];    // uniform stdev for position noise
+  double bias_posx = parameters[2];  // bias for position noise
+  double bias_posy = parameters[3];  // bias for position noise
+  double bias_posz = parameters[4];  // bias for position noise
+
+  // current state
+  const std::vector<double> &s = state->state();
+
+  // add quaternion noise
+  std::vector<double> dv = {0.0, 0.0, 0.0};  // rotational velocity noise
+  dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  std::vector<double> quat_cube = {s[7], s[8], s[9], s[10]};  // quat cube state
+  mju_quatIntegrate(quat_cube.data(), dv.data(), 1.0);        // update the quat
+  mju_normalize4(quat_cube.data());  // normalize the quat for numerics
+
+  // add position noise
+  std::vector<double> dp = {bias_posx, bias_posy,
+                            bias_posz};  // translational velocity noise
+  dp[0] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[1] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[2] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+  std::vector<double> pos_cube = {s[4], s[5], s[6]};  // position cube state
+  mju_addTo3(pos_cube.data(), dp.data());             // update the pos
+
+  // set state
+  std::vector<double> qpos(model->nq);
+  mju_copy(qpos.data(), s.data(), model->nq);
+  mju_copy(qpos.data() + 7, quat_cube.data(), 4);
+  mju_copy(qpos.data() + 4, pos_cube.data(), 3);
+  state->SetPosition(model, qpos.data());
+
+  // update cube mocap state
+  mju_copy(pos_cube_.data(), pos_cube.data(), 3);
+  mju_copy(quat_cube_.data(), quat_cube.data(), 4);
 }
 
 }  // namespace mjpc

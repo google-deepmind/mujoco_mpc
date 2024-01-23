@@ -21,6 +21,13 @@
     <!-- cem -->
     <numeric name="n_elite" data="10" />
     <numeric name="std_min" data="0.2" />
+
+    <!-- state noise -->
+    <numeric name="residual_Cube Rot Noise" data="0.005 0.0 0.5"/>
+    <numeric name="residual_Cube Pos Noise" data="0.0025 0.0 0.01"/>
+    <numeric name="residual_Cube Pos X Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Y Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
   </custom>
 
   <!-- Set the camera viewpoint -->
@@ -61,6 +68,7 @@
   </sensor>
  
   <include file="cube.xml"/>
+  <include file="cube_noisy.xml"/>
   <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/wonik_allegro -->
   <include file="right_hand_modified.xml"/>
 

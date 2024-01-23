@@ -37,6 +37,7 @@ class Allegro : public Task {
 
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel *model, mjData *data) override;
+  void ModifyState(const mjModel* model, State* state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
@@ -46,6 +47,8 @@ class Allegro : public Task {
 
  private:
   ResidualFn residual_;
+  std::vector<double> pos_cube_ = std::vector<double>(3);
+  std::vector<double> quat_cube_ = std::vector<double>(4);
 };
 }  // namespace mjpc
 

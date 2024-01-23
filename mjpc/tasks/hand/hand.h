@@ -15,8 +15,12 @@
 #ifndef MJPC_TASKS_HAND_HAND_H_
 #define MJPC_TASKS_HAND_HAND_H_
 
-#include <string>
 #include <mujoco/mujoco.h>
+
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -28,23 +32,23 @@ class Hand : public Task {
    public:
     explicit ResidualFn(const Hand* task) : BaseResidualFn(task) {}
 
-  // ---------- Residuals for in-hand manipulation task ---------
-  //   Number of residuals: 5
-  //     Residual (0): cube_position - palm_position
-  //     Residual (1): cube_orientation - cube_goal_orientation
-  //     Residual (2): cube linear velocity
-  //     Residual (3): cube angular velocity
-  //     Residual (4): control
-  // ------------------------------------------------------------
-  void Residual(const mjModel* model, const mjData* data,
-                double* residual) const override;
+    // ---------- Residuals for in-hand manipulation task ---------
+    //   Number of residuals: 5
+    //     Residual (0): cube_position - palm_position
+    //     Residual (1): cube_orientation - cube_goal_orientation
+    //     Residual (2): cube linear velocity
+    //     Residual (3): cube angular velocity
+    //     Residual (4): control
+    // ------------------------------------------------------------
+    void Residual(const mjModel* model, const mjData* data,
+                  double* residual) const override;
   };
   Hand() : residual_(this) {}
 
-// ----- Transition for in-hand manipulation task -----
-//   If cube is within tolerance or floor ->
-//   reset cube into hand.
-// -----------------------------------------------
+  // ----- Transition for in-hand manipulation task -----
+  //   If cube is within tolerance or floor ->
+  //   reset cube into hand.
+  // -----------------------------------------------
   void TransitionLocked(mjModel* model, mjData* data) override;
   void ModifyState(const mjModel* model, State* state) override;
 
@@ -56,7 +60,8 @@ class Hand : public Task {
 
  private:
   ResidualFn residual_;
-
+  std::vector<double> pos_cube_ = std::vector<double>(3);
+  std::vector<double> quat_cube_ = std::vector<double>(4);
 };
 }  // namespace mjpc
 

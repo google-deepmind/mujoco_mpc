@@ -14,8 +14,11 @@
     <numeric name="robust_xfrc" data="0.004" />
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.005"/>
-    <numeric name="residual_Cube Pos Noise" data="0.005"/>
+    <numeric name="residual_Cube Rot Noise" data="0.005 0.0 0.5"/>
+    <numeric name="residual_Cube Pos Noise" data="0.0025 0.0 0.01"/>
+    <numeric name="residual_Cube Pos X Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Y Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
   </custom>
 
   <statistic extent="0.4" center="0.3 0.1 0"/>
@@ -51,6 +54,7 @@
   </sensor>
 
   <include file="cube.xml"/>
+  <include file="cube_noisy.xml"/>
   <include file="right_hand.xml"/>
 
   <keyframe>

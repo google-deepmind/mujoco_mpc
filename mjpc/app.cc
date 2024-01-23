@@ -381,7 +381,11 @@ void PhysicsLoop(mj::Simulate& sim) {
     if (sim.uiloadrequest.load() == 0) {
       // set ground truth state if no active estimator
       if (!sim.agent->ActiveEstimatorIndex() || !sim.agent->estimator_enabled) {
+        // get state from simulation
         sim.agent->state.Set(m, d);
+
+        // inject noisy into state
+        sim.agent->ActiveTask()->NoisyState(m, &sim.agent->state);
       }
     }
   }

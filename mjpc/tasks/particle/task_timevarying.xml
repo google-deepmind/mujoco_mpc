@@ -14,6 +14,10 @@
     <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.01" />
     <numeric name="gradient_spline_points" data="5" />
+    <numeric name="residual_Pos X Noise" data="0"/>
+    <numeric name="residual_Pos Y Noise" data="0"/>
+    <numeric name="residual_Vel X Noise" data="0"/>
+    <numeric name="residual_Vel Y Noise" data="0"/>
 
     <!-- estimator -->
     <numeric name="estimator" data="0" />

@@ -14,9 +14,11 @@
 
 #include "mjpc/tasks/particle/particle.h"
 
+#include <absl/random/random.h>
 #include <string>
 
 #include <mujoco/mujoco.h>
+#include "mjpc/states/state.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -62,6 +64,36 @@ void Particle::TransitionLocked(mjModel* model, mjData* data) {
   // update mocap position
   data->mocap_pos[0] = goal[0];
   data->mocap_pos[1] = goal[1];
+}
+
+void Particle::NoisyState(const mjModel* model, State* state) {
+  // sampling token
+  absl::BitGen gen_;
+
+  // std from GUI
+  double std_px = parameters[0];
+  double std_py = parameters[1];
+  double std_vx = parameters[2];
+  double std_vy = parameters[3];
+
+  // current state
+  const std::vector<double>& s = state->state();
+
+  // qpos
+  double qpos[2];
+  mju_copy(qpos, s.data(), model->nq);
+  qpos[0] += absl::Gaussian<double>(gen_, 0.0, std_px);
+  qpos[1] += absl::Gaussian<double>(gen_, 0.0, std_py);
+
+  // qvel
+  double qvel[2];
+  mju_copy(qvel, s.data() + model->nq, model->nv);
+  qvel[0] += absl::Gaussian<double>(gen_, 0.0, std_vx);
+  qvel[1] += absl::Gaussian<double>(gen_, 0.0, std_vy);
+
+  // set state
+  state->SetPosition(model, qpos);
+  state->SetVelocity(model, qvel);
 }
 
 std::string ParticleFixed::XmlPath() const {

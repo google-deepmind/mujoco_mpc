@@ -19,10 +19,20 @@ from typing import Tuple
 
 
 # %%
-# differentiate mj_differentiatePos wrt qpos1, qpos2
 def diff_differentiatePos(
     model: mujoco.MjModel, dt: float, qpos1: npt.ArrayLike, qpos2: npt.ArrayLike
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Differentiate mj_differentiatePos wrt qpos1, qpos2.
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      dt (float): timestep
+      qpos1 (npt.ArrayLike): previous configuration
+      qpos2 (npt.ArrayLike): next configuration
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: Jacobian wrt to qpos1, qpos2
+  """
   # initialize Jacobians
   jac1 = np.zeros((model.nv, model.nv))
   jac2 = np.zeros((model.nv, model.nv))
@@ -63,19 +73,31 @@ def diff_differentiatePos(
       case mujoco.mjtJoint.mjJNT_SLIDE:
         jac1[vadr, vadr] = -1.0 / dt
         jac2[vadr, vadr] = 1.0 / dt
+      case _:
+        raise NotImplementedException("Invalid joint")
 
   return jac1, jac2
 
 
 # %%
-# velocity and acceleration from configuration
-# v1 = (q1 - q0) / h
-# a1 = (v2 - v1) / h = (q2 - 2q1 + q0) / h^2
 def qpos_to_qvel_qacc(
     model: mujoco.MjModel,
     qpos: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Velocity and acceleration from configuration.
+
+  v1 = (q1 - q0) / h
+  a1 = (v2 - v1) / h = (q2 - 2q1 + q0) / h^2
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      qpos (npt.ArrayLike): trajectory of configurations
+      horizon (int): number of timesteps
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: velocity and accelerations trajectories
+  """
   qvel = np.zeros((model.nv, horizon))
   qacc = np.zeros((model.nv, horizon))
 
@@ -101,7 +123,6 @@ def qpos_to_qvel_qacc(
 
 
 # %%
-# velocity and acceleration from configurations (derivatives wrt configurations)
 def diff_qpos_to_qvel_qacc(
     model: mujoco.MjModel,
     qpos: npt.ArrayLike,
@@ -109,6 +130,16 @@ def diff_qpos_to_qvel_qacc(
 ) -> Tuple[
     npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike
 ]:
+  """Velocity and acceleration from configurations (derivatives wrt configurations.
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      qpos (npt.ArrayLike): trajectory of configurations
+      horizon (int): number of timesteps
+
+  Returns:
+      Tuple[ npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike ]: velocity and acceleration derivatives wrt to configurations
+  """
   dvdq0 = [np.zeros((model.nv, model.nv)) for t in range(horizon)]
   dvdq1 = [np.zeros((model.nv, model.nv)) for t in range(horizon)]
   dadq0 = [np.zeros((model.nv, model.nv)) for t in range(horizon)]
@@ -141,8 +172,6 @@ def diff_qpos_to_qvel_qacc(
 
 
 # %%
-# inverse dynamics
-# (f, s) <- id(q, v, a) = id(q1, v(q0, q1), a(q0, q1, q2))
 def inverse_dynamics(
     model: mujoco.MjModel,
     data: mujoco.MjData,
@@ -151,6 +180,21 @@ def inverse_dynamics(
     qacc: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Inverse dynamics.
+
+  (s, f) <- id(q, v, a) = id(q1, v(q0, q1), a(q0, q1, q2))
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      data (mujoco.MjData): MuJoCo data
+      qpos (npt.ArrayLike): trajectory of configurations
+      qvel (npt.ArrayLike): trajectory of velocities
+      qacc (npt.ArrayLike): trajectory of accelerations
+      horizon (int): number of timesteps
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: sensor and force trajectories
+  """
   sensor = np.zeros((model.nsensordata, horizon))
   force = np.zeros((model.nv, horizon))
 
@@ -222,8 +266,6 @@ def inverse_dynamics(
 
 
 # %%
-# inverse dynamics (derivatives wrt qpos, qvel, qacc)
-# dfdq, dfdv, dfda, dsdq, dsdv, dsda
 def diff_inverse_dynamics(
     model: mujoco.MjModel,
     data: mujoco.MjData,
@@ -241,6 +283,23 @@ def diff_inverse_dynamics(
     npt.ArrayLike,
     npt.ArrayLike,
 ]:
+  """Inverse dynamics (derivatives wrt qpos, qvel, qacc).
+
+  dfdq, dfdv, dfda, dsdq, dsdv, dsda
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      data (mujoco.MjData): MuJoCo data
+      qpos (npt.ArrayLike): trajectory of configurations
+      qvel (npt.ArrayLike): trajectory of velocities
+      qacc (npt.ArrayLike): trajectory of accelerations
+      horizon (int): number of timesteps
+      eps (float, optional): finite-difference perturbation. Defaults to 1.0e-8.
+      flg_actuation (bool, optional): Flag to include qfrc_actuator in inverse dynamics. Defaults to True.
+
+  Returns:
+      Tuple[ npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, ]: sensor and force derivatives wrt to configurations, velocities, and accelerations
+  """
   # Jacobians
   dfdq = [np.zeros((model.nv, model.nv)) for _ in range(horizon)]
   dfdv = [np.zeros((model.nv, model.nv)) for _ in range(horizon)]
@@ -358,8 +417,6 @@ def diff_inverse_dynamics(
 
 
 # %%
-# sensor derivative wrt configurations
-# ds / dq012
 def diff_sensor(
     model: mujoco.MjModel,
     dsdq: npt.ArrayLike,
@@ -372,10 +429,28 @@ def diff_sensor(
     dadq2: npt.ArrayLike,
     horizon: int,
 ) -> npt.ArrayLike:
+  """Sensor derivative wrt configurations.
+
+  ds / dq012
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      dsdq (npt.ArrayLike): trajectory of sensor derivatives wrt configurations
+      dsdv (npt.ArrayLike): trajectory of sensor derivatives wrt velocities
+      dsda (npt.ArrayLike): trajectory of sensor derivatives wrt accelerations
+      dvdq0 (npt.ArrayLike): trajectory of velocity derivatives wrt previous configuration
+      dvdq1 (npt.ArrayLike): trajectory of velocity derivatives wrt current configuration
+      dadq0 (npt.ArrayLike): trajectory of acceleration derivatives wrt previous configuration
+      dadq1 (npt.ArrayLike): trajectory of acceleration derivatives wrt current configuration
+      dadq2 (npt.ArrayLike): trajectory of acceleration derivatives wrt next configuration
+      horizon (int): number of timesteps
+
+  Returns:
+      npt.ArrayLike: trajectory of sensor derivatives wrt previous, current, and next configurations
+  """
   dsdq012 = [
       np.zeros((model.nsensordata, 3 * model.nv)) for _ in range(horizon)
   ]
-
   # loop over horizon
   for t in range(0, horizon):
     # first step
@@ -399,8 +474,6 @@ def diff_sensor(
 
 
 # %%
-# force derivative wrt configurations
-# df / dq012
 def diff_force(
     model: mujoco.MjModel,
     dfdq: npt.ArrayLike,
@@ -413,6 +486,25 @@ def diff_force(
     dadq2: npt.ArrayLike,
     horizon: int,
 ) -> npt.ArrayLike:
+  """Force derivative wrt configurations.
+
+  df / dq012
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      dfdq (npt.ArrayLike): trajectory of force derivatives wrt configurations
+      dfdv (npt.ArrayLike): trajectory of force derivatives wrt velocities
+      dfda (npt.ArrayLike): trajectory of force derivatives wrt accelerations
+      dvdq0 (npt.ArrayLike): trajectory of velocity derivatives wrt previous configuration
+      dvdq1 (npt.ArrayLike): trajectory of velocity derivatives wrt current configuration
+      dadq0 (npt.ArrayLike): trajectory of acceleration derivatives wrt previous configuration
+      dadq1 (npt.ArrayLike): trajectory of acceleration derivatives wrt current configuration
+      dadq2 (npt.ArrayLike): trajectory of acceleration derivatives wrt next configuration
+      horizon (int): number of timesteps
+
+  Returns:
+      npt.ArrayLike: trajectory of force derivatives wrt to previous, current, and next configurations
+  """
   dfdq012 = [np.zeros((model.nv, 3 * model.nv)) for _ in range(horizon)]
 
   # loop over horizon
@@ -434,8 +526,6 @@ def diff_force(
 
 
 # %%
-# force cost
-# cf = sum(w_t * n_t(f_t(qt-1,qt,qt+1) - target_t)) for t = 1,...,T-1)
 def cost_force(
     model: mujoco.MjModel,
     force: npt.ArrayLike,
@@ -443,6 +533,20 @@ def cost_force(
     weights: npt.ArrayLike,
     horizon: int,
 ) -> float:
+  """Force cost
+
+  cf = sum(w_t * n_t(f_t(qt-1,qt,qt+1) - target_t)) for t = 1,...,T-1)
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      force (npt.ArrayLike): trajectory of forces
+      target (npt.ArrayLike): trajectory of target forces
+      weights (npt.ArrayLike): trajectory of weights
+      horizon (int): number of timesteps
+
+  Returns:
+      float: total force cost across timesteps
+  """
   # initialize cost
   cost = 0.0
 
@@ -462,8 +566,6 @@ def cost_force(
 
 
 # %%
-# force cost (derivatives wrt configurations)
-# d cf / d q0,...,qT
 def diff_cost_force(
     model: mujoco.MjModel,
     force: npt.ArrayLike,
@@ -472,6 +574,21 @@ def diff_cost_force(
     dfdq012: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Force cost (derivatives wrt configurations).
+
+  d cf / d q0,...,qT
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      force (npt.ArrayLike): trajectory of forces
+      target (npt.ArrayLike): trajectory of force targets
+      weights (npt.ArrayLike): trajectory of weights
+      dfdq012 (npt.ArrayLike): trajectory of force derivatives wrt previous, current, and next configurations
+      horizon (int): number of timesteps
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: gradient and Hessian of force cost wrt to configurations
+  """
   # dimensions
   ntotal = model.nv * horizon
   nband = 3 * model.nv
@@ -510,8 +627,6 @@ def diff_cost_force(
 
 
 # %%
-# sensor cost
-# cs = sum(w_t * n_t(s_t(qt-1,qt,qt+1) - target_t)) for t = 0,...,T)
 def cost_sensor(
     model: mujoco.MjModel,
     sensor: npt.ArrayLike,
@@ -519,6 +634,20 @@ def cost_sensor(
     weights: npt.ArrayLike,
     horizon: int,
 ) -> float:
+  """Sensor cost.
+
+  cs = sum(w_t * n_t(s_t(qt-1,qt,qt+1) - target_t)) for t = 0,...,T)
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      sensor (npt.ArrayLike): trajectory of sensors
+      target (npt.ArrayLike): trajectory of sensor targets
+      weights (npt.ArrayLike): trajectory of weights
+      horizon (int): number of timesteps
+
+  Returns:
+      float: total sensor cost across timesteps
+  """
   # initialize cost
   cost = 0.0
 
@@ -559,8 +688,6 @@ def cost_sensor(
 
 
 # %%
-# sensor cost (derivatives wrt configurations)
-# d cs / d q0,...,qT
 def diff_cost_sensor(
     model: mujoco.MjModel,
     sensor: npt.ArrayLike,
@@ -569,6 +696,21 @@ def diff_cost_sensor(
     dsdq012: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Sensor cost (derivatives wrt configurations).
+
+  d cs / d q0,...,qT
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      sensor (npt.ArrayLike): trajectory of sensors
+      target (npt.ArrayLike): trajectory of sensor targets
+      weights (npt.ArrayLike): trajectory of weights
+      dsdq012 (npt.ArrayLike): trajectory of sensor derivatives wrt previous, current, and next configurations
+      horizon (int): number of timesteps
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: gradient and Hessian of total sensor cost wrt configuration
+  """
   # dimensions
   ntotal = model.nv * horizon
   nband = 3 * model.nv
@@ -666,8 +808,6 @@ def diff_cost_sensor(
 
 
 # %%
-# update configuration
-# q <- q + step * dq
 def configuration_update(
     model: mujoco.MjModel,
     qpos: npt.ArrayLike,
@@ -675,6 +815,20 @@ def configuration_update(
     step: float,
     horizon: int,
 ) -> npt.ArrayLike:
+  """Update configuration.
+
+  q <- q + step * dq
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      qpos (npt.ArrayLike): trajectory of configurations
+      update (npt.ArrayLike): search direction
+      step (float): size of update to configurations
+      horizon (int): number of timesteps
+
+  Returns:
+      npt.ArrayLike: updated configuration trajectory
+  """
   qpos_new = np.zeros((model.nq, horizon))
 
   # loop over configurations
@@ -688,7 +842,6 @@ def configuration_update(
 
 
 # %%
-# set symmetric block matrix in band matrix
 def add_block_in_band(
     band: npt.ArrayLike,
     block: npt.ArrayLike,
@@ -698,6 +851,20 @@ def add_block_in_band(
     nblock: int,
     shift: int,
 ) -> npt.ArrayLike:
+  """Set symmetric block matrix in band matrix.
+
+  Args:
+      band (npt.ArrayLike): band matrix
+      block (npt.ArrayLike): block matrix to be added to band matrix
+      scale (float): scaling for block matrix
+      ntotal (int): number of band matrix rows
+      nband (int): dimension of block
+      nblock (int): number of blocks in band
+      shift (int): number of rows to shift before adding block
+
+  Returns:
+      npt.ArrayLike: _description_
+  """
   band_update = np.copy(band)
   # loop over block rows
   for i in range(nblock):
@@ -771,6 +938,12 @@ class DirectOptimizer:
   """
 
   def __init__(self, model: mujoco.MjModel, horizon: int):
+    """Construct direct optimizer.
+
+    Args:
+        model (mujoco.MjModel): MuJoCo model
+        horizon (int): number of timesteps
+    """
     # model + data
     self.model = model
 
@@ -864,6 +1037,14 @@ class DirectOptimizer:
     self.regularization_scale = np.sqrt(10.0)
 
   def cost(self, qpos: npt.ArrayLike) -> float:
+    """Return total cost (force + sensor)
+
+    Args:
+        qpos (npt.ArrayLike): trajectory of configurations
+
+    Returns:
+        float: total cost (sensor + force)
+    """
     # compute finite-difference velocity and acceleration
     self.qvel, self.qacc = qpos_to_qvel_qacc(self.model, qpos, self.horizon)
 
@@ -904,6 +1085,11 @@ class DirectOptimizer:
       self,
       qpos: npt.ArrayLike,
   ):
+    """Compute total cost derivatives.
+
+    Args:
+        qpos (npt.ArrayLike): trajectory of configurations
+    """
     # evaluate cost to compute intermediate values
     self.cost(qpos)
 
@@ -989,6 +1175,11 @@ class DirectOptimizer:
     self._hessian = force_hessian + sensor_hessian
 
   def _eval_search_direction(self) -> bool:
+    """Compute search direction.
+
+    Returns:
+        bool: Flag indicating search direction computation success.
+    """
     # factorize cost Hessian
     self._hessian_factor = np.array(self._hessian.ravel())
     min_diag = mujoco.mju_cholFactorBand(
@@ -1026,6 +1217,11 @@ class DirectOptimizer:
     return True
 
   def _update_regularization(self) -> bool:
+    """Update regularization.
+
+    Returns:
+        bool: Flag indicating success of regularization update
+    """
     # compute expected = g' d + 0.5 d' H d
     expected = np.dot(self._gradient, self._search_direction)
     tmp = np.zeros(self._ntotal)
@@ -1066,6 +1262,7 @@ class DirectOptimizer:
     return True
 
   def optimize(self):
+    """Optimize configuration trajectories."""
     # reset status
     self._gradient_norm = 0.0
     self._iterations_step = 0
@@ -1148,6 +1345,7 @@ class DirectOptimizer:
 
   # print optimizer status
   def status(self):
+    """Print status information."""
     print("Direct Optimizer Status")
     print(" cost")
     print(" total          :", self.cost_total)

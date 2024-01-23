@@ -526,13 +526,14 @@ void UpdateInfoText(mj::Simulate* sim,
   solerr = mju_log10(mju_max(mjMINVAL, solerr));
 
   // prepare info text
-  mju::strcpy_arr(title, "Objective\nDoFs\nControls\nTime\nMemory");
+  mju::strcpy_arr(title, "Objective\nDoFs\nControls\nParameters\nTime\nMemory");
   const mjpc::Trajectory* best_trajectory =
       sim->agent->ActivePlanner().BestTrajectory();
   if (best_trajectory) {
-    mju::sprintf_arr(content, "%.3f\n%d\n%d\n%-9.3f\n%.2g of %s",
-                     best_trajectory->total_return, m->nv, m->nu, d->time,
-                     d->maxuse_arena / (double)(d->narena),
+    int nparam = sim->agent->ActivePlanner().NumParameters();
+    mju::sprintf_arr(content, "%.3f\n%d\n%d\n%d\n%-9.3f\n%.2g of %s",
+                     best_trajectory->total_return, m->nv, m->nu, nparam,
+                     d->time, d->maxuse_arena / (double)(d->narena),
                      mju_writeNumBytes(d->narena));
   }
 

@@ -401,13 +401,26 @@ void SampleGradientPlanner::GradientRollouts(int num_parameters,
   // reset perturbation compute time
   noise_compute_time = 0.0;
 
+  // cost/reward mean + std
+  double rm = 0.0;
+  for (int i = 0; i < 2 * num_parameters + 1; i++) {
+    rm += trajectory[i].total_return;
+  }
+  double rstd = 0.0;
+  for (int i = 0; i < 2 * num_parameters + 1; i++) {
+    double d = trajectory[i].total_return - rm;
+    rstd += d * d;
+  }
+  rstd /= (2 * num_parameters);
+  rstd = mju_sqrt(std::max(rstd, div_tolerance));
+
   // -- compute gradient and diagonal Hessian -- //
   double scale2 = scale * scale;
-  double rc = trajectory[2 * num_parameters].total_return; // nominal return
+  double rc = (trajectory[2 * num_parameters].total_return - rm) / rstd; // nominal return
 
   for (int i = 0; i < num_parameters; i++) {
-    double rp = trajectory[i].total_return;
-    double rn = trajectory[i + num_parameters].total_return;
+    double rp = (trajectory[i].total_return - rm) / rstd;
+    double rn = (trajectory[i + num_parameters].total_return - rm) / rstd;
     if (parameter_status[i] == kParameterLower) {
       // forward difference
       gradient[i] = (-3 * rc + 4 * rp - rn) / (2 * scale);
@@ -422,24 +435,6 @@ void SampleGradientPlanner::GradientRollouts(int num_parameters,
       hessian[i] = (rp - 2 * rc + rn) / scale2;
     }
   }
-
-  // scale costs/rewards?
-  // double rm = 0.0;
-  // for (int i = 0; i < 2 * num_parameters + 1; i++) {
-  //   rm += trajectory[i].total_return;
-  // }
-  // double rstd = 0.0;
-  // for (int i = 0; i < 2 * num_parameters + 1; i++) {
-  //   double d = trajectory[i].total_return - rm;
-  //   rstd += d * d;
-  // }
-  // rstd /= (2 * num_parameters);
-  // rstd = mju_sqrt(rstd);
-
-  // mju_scl(gradient.data(), gradient.data(), std::max(1.0 / rstd, div_tolerance),
-  //         num_parameters);
-  // mju_scl(hessian.data(), hessian.data(), std::max(1.0 / rstd, div_tolerance),
-  //         num_parameters);
 
   // -- compute Cauchy and diagonal Newton points -- //
   // limits

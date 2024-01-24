@@ -22,9 +22,9 @@ import numpy as np
 # https://arxiv.org/abs/2212.00541
 
 
-# policy class for predictive sampling
 class Policy:
-  # initialize policy
+  """Policy class for predictive sampling."""
+
   def __init__(
       self,
       naction: int,
@@ -33,6 +33,15 @@ class Policy:
       interp: str = "zero",
       limits: np.array = None,
   ):
+    """Initialize policy class.
+
+    Args:
+        naction (int): number of actions
+        horizon (float): planning horizon (seconds)
+        splinestep (float): interval length between spline points
+        interp (str, optional): type of action interpolation. Defaults to "zero".
+        limits (np.array, optional): lower and upper bounds on actions. Defaults to None.
+    """
     self._naction = naction
     self._splinestep = splinestep
     self._horizon = horizon
@@ -44,8 +53,16 @@ class Policy:
     self._interp = interp
     self._limits = limits
 
-  # find interval containing value
   def _find_interval(self, sequence: np.array, value: float) -> [int, int]:
+    """Find neighboring indices in sequence containing value.
+
+    Args:
+        sequence (np.array): array of values
+        value (float): value to find in interval
+
+    Returns:
+        [int, int]: lower and upper indices in sequence containing value
+    """
     # bisection search to get interval
     upper = bisect.bisect_right(sequence, value)
     lower = upper - 1
@@ -60,8 +77,17 @@ class Policy:
       return (L - 1, L - 1)
     return (max(lower, 0), min(upper, L - 1))
 
-  # compute slope at value
   def _slope(self, input: np.array, output: np.array, value: float) -> np.array:
+    """Compute interpolated slope vector at value.
+
+    Args:
+        input (np.array): scalar sequence of inputs
+        output (np.array): vector sequence of outputs
+        value (float): input where to compute slope
+
+    Returns:
+        np.array: interpolated slope vector
+    """
     # bounds
     bounds = self._find_interval(input, value)
 
@@ -97,8 +123,15 @@ class Policy:
         input[bounds[0]] - input[bounds[0] - 1]
     )
 
-  # get action from policy
   def action(self, time: float) -> np.array:
+    """Return action from policy at time.
+
+    Args:
+        time (float): time value to evaluate plan for action
+
+    Returns:
+        np.array: interpolated action at time
+    """
     # find interval containing time
     bounds = self._find_interval(self._times, time)
 
@@ -141,8 +174,12 @@ class Policy:
     else:  # self._interp == "zero"
       return self.clamp(self._parameters[:, bounds[0]])
 
-  # resample policy plan from current time
   def resample(self, time: float):
+    """Resample plan starting from time.
+
+    Args:
+        time (float): time value to start updated plan
+    """
     # new times and parameters
     times = np.array(
         [i * self._splinestep + time for i in range(self._nspline)], dtype=float
@@ -153,16 +190,27 @@ class Policy:
     self._times = times
     self._parameters = parameters
 
-  # add zero-mean Gaussian noise to policy parameters
   def add_noise(self, scale: float):
+    """Add zero-mean Gaussian noise to plan.
+
+    Args:
+        scale (float): standard deviation of zero-mean Gaussian noise
+    """
     # clamp within limits
     self._parameters = self.clamp(
         self._parameters
         + np.random.normal(scale=scale, size=(self._naction, self._nspline))
     )
 
-  # return a copy of the policy with noisy parameters
   def noisy_copy(self, scale: float) -> Policy:
+    """Return a copy of plan with added noise.
+
+    Args:
+        scale (float): standard deviation of zero-mean Gaussian noise
+
+    Returns:
+        Policy: copy of object with noisy plan
+    """
     # create new policy object
     policy = Policy(self._naction, self._horizon, self._splinestep)
 
@@ -174,8 +222,15 @@ class Policy:
 
     return policy
 
-  # clamp action with limits
   def clamp(self, action: np.array) -> np.array:
+    """Return input clamped between limits.
+
+    Args:
+        action (np.array): input vector
+
+    Returns:
+        np.array: clamped input vector
+    """
     # clamp within limits
     if self._limits is not None:
       return np.minimum(
@@ -184,7 +239,6 @@ class Policy:
     return action
 
 
-# rollout
 def rollout(
     qpos: np.array,
     qvel: np.array,
@@ -198,6 +252,24 @@ def rollout(
     policy: Policy,
     horizon: float,
 ) -> float:
+  """Return total return by rollout out plan with forward dynamics.
+
+  Args:
+      qpos (np.array): initial configuration
+      qvel (np.array): initial velocity
+      act (np.array): initial activation
+      time (float): current time
+      mocap_pos (np.array): motion-capture body positions
+      mocap_quat (np.array): motion-capture body orientations
+      model (mujoco.MjModel): MuJoCo model
+      data (mujoco.MjData): MuJoCo data
+      reward (function): function returning per-timestep reward value
+      policy (Policy): plan for computing action at given time
+      horizon (float): planning duration (seconds)
+
+  Returns:
+      float: total return (normalized by number of planning steps)
+  """
   # number of steps
   steps = int(horizon / model.opt.timestep)
 
@@ -233,9 +305,9 @@ def rollout(
   return total_reward / (steps + 1)
 
 
-# predictive sampling planner class
 class Planner:
-  # initialize planner
+  """Predictive sampling planner class."""
+
   def __init__(
       self,
       model: mujoco.MjModel,
@@ -249,6 +321,20 @@ class Planner:
       interp: str = "zero",
       limits: bool = True,
   ):
+    """Initialize planner.
+
+    Args:
+        model (mujoco.MjModel): MuJoCo model
+        reward (function): function returning per-timestep reward value
+        horizon (float): planning duration (seconds)
+        splinestep (float): interval length between spline points
+        planstep (float): interval length between forward dynamics steps
+        nsample (int): number of noisy plans to evaluate
+        noise_scale (float): standard deviation of zero-mean Gaussian
+        nimprove (int): number of iterations to improve plan for fixed initial state
+        interp (str, optional): type of action interpolation. Defaults to "zero".
+        limits (bool, optional): lower and upper bounds on action. Defaults to True.
+    """
     self._model = model.__copy__()
     self._model.opt.timestep = planstep
     self._data = mujoco.MjData(self._model)
@@ -265,11 +351,17 @@ class Planner:
     self._noise_scale = noise_scale
     self._nimprove = nimprove
 
-  # action from policy
   def action_from_policy(self, time: float) -> np.array:
+    """Return action at time from policy.
+
+    Args:
+        time (float): time to evaluate plan for action
+
+    Returns:
+        np.array: action interpolation at time
+    """
     return self.policy.action(time)
 
-  # improve policy
   def improve_policy(
       self,
       qpos: np.array,
@@ -279,6 +371,16 @@ class Planner:
       mocap_pos: np.array,
       mocap_quat: np.array,
   ):
+    """Iteratively improve plan via searching noisy plans.
+
+    Args:
+        qpos (np.array): initial configuration
+        qvel (np.array): initial velocity
+        act (np.array): initial activation
+        time (float): current time
+        mocap_pos (np.array): motion-capture body position
+        mocap_quat (np.array): motion-capture body orientation
+    """
     # resample
     self.policy.resample(time)
 

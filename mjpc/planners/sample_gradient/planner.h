@@ -65,12 +65,6 @@ class SampleGradientPlanner : public Planner {
   // resample nominal policy
   void ResamplePolicy(int horizon);
 
-  // add perturbation to nominal policy
-  // void AddNoiseToPolicy(int i);
-
-  // compute candidate trajectories
-  // void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
-
   // compute candidate trajectories for perturbations
   void PerturbationRollouts(int num_parameters, int horizon, ThreadPool& pool);
 
@@ -125,7 +119,7 @@ class SampleGradientPlanner : public Planner {
   // rollout parameters
   double timestep_power;
 
-  // ----- perturbation ----- //
+  // perturbation scale
   double scale;
 
   // improvement

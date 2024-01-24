@@ -119,9 +119,8 @@ double* KeyQVelByName(const mjModel* m, const mjData* d,
 double* KeyActByName(const mjModel* m, const mjData* d,
                      const std::string& name);
 
-// return a power transformed sequence
-void PowerSequence(double* t, double t_step, double t1, double t2, double p,
-                   double N);
+// fills t with N numbers, starting from t0 and incrementing by t_step
+void LinearRange(double* t, double t_step, double t0, int N);
 
 // find interval in monotonic sequence containing value
 void FindInterval(int* bounds, const std::vector<double>& sequence,

@@ -40,6 +40,8 @@ add_library(
   tasks/acrobot/acrobot.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
+  tasks/cube/solve.cc
+  tasks/cube/solve.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
   tasks/hand/hand.cc
@@ -54,6 +56,8 @@ add_library(
   tasks/manipulation/common.h
   tasks/manipulation/manipulation.cc
   tasks/manipulation/manipulation.h
+  tasks/op3/stand.cc
+  tasks/op3/stand.h
   tasks/panda/panda.cc
   tasks/panda/panda.h
   tasks/particle/particle.cc
@@ -75,6 +79,8 @@ add_library(
   planners/cost_derivatives.h
   planners/model_derivatives.cc
   planners/model_derivatives.h
+  planners/cross_entropy/planner.cc
+  planners/cross_entropy/planner.h
   planners/robust/robust_planner.cc
   planners/robust/robust_planner.h
   planners/sampling/planner.cc

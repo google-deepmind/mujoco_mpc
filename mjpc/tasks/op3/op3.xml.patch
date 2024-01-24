@@ -1,0 +1,69 @@
+diff --git a/op3_modified.xml b/op3_modified.xml
+--- a/op3_modified.xml
++++ b/op3_modified.xml
+@@ -72,6 +72,7 @@
+   </default>
+ 
+   <worldbody>
++    <geom name="floor" size="0 0 0.05" type="plane" material="blue_grid"/>
+     <light name="spotlight" mode="targetbodycom" target="body_link" pos="0 -1 2"/>
+     <body name="body_link" pos="0 0 0.3">
+       <inertial pos="-0.01501 0.00013 0.06582" quat="0.704708 0.704003 0.0667707 -0.0575246" mass="1.34928"
+@@ -87,13 +88,14 @@
+       <body name="head_pan_link" pos="-0.001 0 0.1365">
+         <inertial pos="0.00233 0 0.00823" quat="0.663575 0.663575 0.244272 -0.244272" mass="0.01176"
+           diaginertia="4.23401e-06 3.60599e-06 1.65e-06"/>
+-        <joint name="head_pan" axis="0 0 1"/>
++        <!-- <joint name="head_pan" axis="0 0 1"/> -->
+         <geom mesh="h1" class="visual"/>
+         <geom mesh="h1c" class="collision"/>
++        <site name="head" rgba="1 0 0 1" group="5"/>
+         <body name="head_tilt_link" pos="0.01 0.019 0.0285">
+           <inertial pos="0.0023 -0.01863 0.0277" quat="0.997312 0.00973825 0.0726131 -0.00102702" mass="0.13631"
+             diaginertia="0.000107452 8.72266e-05 4.39413e-05"/>
+-          <joint name="head_tilt" axis="0 -1 0"/>
++          <!-- <joint name="head_tilt" axis="0 -1 0"/> -->
+           <geom mesh="h2" class="visual"/>
+           <geom mesh="h2c" class="collision"/>
+           <geom mesh="h21c" class="collision"/>
+@@ -120,6 +122,7 @@
+             <joint name="l_el" axis="1 0 0"/>
+             <geom mesh="la3" class="visual"/>
+             <geom mesh="la3c" class="collision"/>
++            <site name="left_hand" rgba="1 0 0 1" pos="-0.02 0.14 0" group="5"/>
+           </body>
+         </body>
+       </body>
+@@ -141,6 +144,7 @@
+             <joint name="r_el" axis="1 0 0"/>
+             <geom mesh="ra3" class="visual"/>
+             <geom mesh="ra3c" class="collision"/>
++            <site name="right_hand" rgba="1 0 0 1" pos="-0.02 -0.14 0" group="5"/>
+           </body>
+         </body>
+       </body>
+@@ -181,6 +185,7 @@
+                   <!-- <geom mesh="ll6c" class="collision" /> -->
+                   <geom class="foot" pos="0.024 0.013 -0.0265" size="0.0635 0.028 0.004"/>
+                   <geom class="foot" pos="0.024 0.0125 -0.0265" size="0.057 0.039 0.004"/>
++                  <site name="left_foot" rgba="1 0 0 1" pos="0.025 0 -0.025" group="5"/>
+                 </body>
+               </body>
+             </body>
+@@ -224,6 +229,7 @@
+                   <!-- <geom mesh="rl6c" class="collision" /> -->
+                   <geom class="foot" pos="0.024 -0.013 -0.0265" size="0.0635 0.028 0.004"/>
+                   <geom class="foot" pos="0.024 -0.0125 -0.0265" size="0.057 0.039 0.004"/>
++                  <site name="right_foot" rgba="1 0 0 1" pos="0.025 0 -0.025" group="5"/>
+                 </body>
+               </body>
+             </body>
+@@ -239,8 +245,6 @@
+   </contact>
+ 
+   <actuator>
+-    <position name="head_pan_act" joint="head_pan"/>
+-    <position name="head_tilt_act" joint="head_tilt"/>
+     <position name="l_sho_pitch_act" joint="l_sho_pitch"/>
+     <position name="l_sho_roll_act" joint="l_sho_roll"/>
+     <position name="l_el_act" joint="l_el"/>

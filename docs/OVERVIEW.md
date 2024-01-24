@@ -132,7 +132,7 @@ Values in brackets should be replaced by the designer.
 
 `Agent` settings can be specified by prepending `agent_` for corresponding class members.
 
-`Planner` settings can similarly be specified by prepending the corresponding optimizer name, (e.g., `sampling_`, `gradient_`, `ilqg_`).
+`Planner` settings can similarly be specified by prepending the corresponding optimizer name, (e.g., `sampling_`, `cross_entropy_`, `gradient_`, `ilqg_`).
 
 It is also possible to create GUI elements for  parameters that are passed to the residual function.  These are specified by the prefix `residual_`, when the suffix will be the display name of the slider:
 
@@ -280,12 +280,15 @@ Additionally, custom labeled buttons can be added to the GUI by specifying a str
 
 The purpose of `Planner` is to find improved policies using numerical optimization.
 
-This library includes three planners that use different techniques to perform this search:
+This library includes multiple planners that use different techniques to perform this search:
 
 - **Predictive Sampling**
   - random search
   - derivative free
   - spline representation for controls
+- **Cross Entropy Method**
+  - all properties of Predictive Sampling
+  - refits a nominal policy to mean of elite samples instead of using the best
 - **Gradient Descent**
   - requires gradients
   - spline representation for controls

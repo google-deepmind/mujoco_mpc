@@ -176,19 +176,6 @@ grpc::Status DirectService::Data(grpc::ServerContext* context,
   double* time = optimizer_.times.Get(index);
   output->add_time(time[0]);
 
-  // set ctrl
-  int nu = optimizer_.model->nu;
-  if (input.ctrl_size() > 0) {
-    CHECK_SIZE("ctrl", nu, input.ctrl_size());
-    optimizer_.ctrl.Set(input.ctrl().data(), index);
-  }
-
-  // get ctrl
-  double* ctrl = optimizer_.ctrl.Get(index);
-  for (int i = 0; i < nu; i++) {
-    output->add_ctrl(ctrl[i]);
-  }
-
   // set previous configuration
   if (input.configuration_previous_size() > 0) {
     CHECK_SIZE("configuration_previous", nq,

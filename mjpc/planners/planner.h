@@ -71,6 +71,9 @@ class Planner {
                      int planner_shift, int timer_shift, int planning,
                      int* shift) = 0;
 
+  // return number of parameters optimized by planner
+  virtual int NumParameters() = 0;
+
   std::vector<UniqueMjData> data_;
   void ResizeMjData(const mjModel* model, int num_threads);
 };

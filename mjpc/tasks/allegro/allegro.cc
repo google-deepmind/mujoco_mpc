@@ -85,7 +85,6 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   // Check for contact between the cube and the floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
-
   bool on_floor = false;
   for (int i = 0; i < data->ncon; i++) {
     mjContact *g = data->contact + i;
@@ -101,16 +100,121 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   if (on_floor && mju_norm3(cube_lin_vel) < 0.001) {
     int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
     if (cube_body != -1) {
+      // reset cube
       int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
       int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
       mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
       mju_zero(data->qvel + jnt_veladr, 6);
+
+      // reset palm
+      int palm_qposadr = 11;  // goal quat then cube pose come first
+      int palm_veladr = 9;
+      mju_copy(data->qpos + palm_qposadr, model->qpos0 + palm_qposadr, 16);
+      mju_zero(data->qvel + palm_veladr, 16);
     }
 
     // Step the simulation forward
     mutex_.unlock();
     mj_forward(model, data);
     mutex_.lock();
+  }
+
+  // If the orientation of the cube is close to the goal, change the goal
+  double *cube_orientation = SensorByName(model, data, "cube_orientation");
+  double *goal_cube_orientation =
+      SensorByName(model, data, "cube_goal_orientation");
+  std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
+  std::vector<double> q_gco_conj = {0.0, 0.0, 0.0, 0.0};
+  mju_negQuat(q_gco_conj.data(), goal_cube_orientation);
+  mju_mulQuat(q_diff.data(), cube_orientation, q_gco_conj.data());
+  mju_normalize4(q_diff.data());
+  if (q_diff[0] < 0.0) {
+    q_diff[0] *= -1.0;
+    q_diff[1] *= -1.0;
+    q_diff[2] *= -1.0;
+    q_diff[3] *= -1.0;
+  }
+
+  // if within 15 degrees of goal orientation, change goal
+  double angle = 2.0 * std::acos(q_diff[0]);
+  if (angle <= 0.261799) {
+    // sampling token
+    absl::BitGen gen_;
+
+    // [option] sample new goal quaternion uniformly
+    // https://stackoverflow.com/a/44031492
+    // double a = absl::Uniform<double>(gen_, 0.0, 1.0);
+    // double b = absl::Uniform<double>(gen_, 0.0, 1.0);
+    // double c = absl::Uniform<double>(gen_, 0.0, 1.0);
+    // double s1 = std::sqrt(1.0 - a);
+    // double s2 = std::sqrt(a);
+    // double sb = std::sin(2.0 * mjPI * b);
+    // double cb = std::cos(2.0 * mjPI * b);
+    // double sc = std::sin(2.0 * mjPI * c);
+    // double cc = std::cos(2.0 * mjPI * c);
+    // std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+
+    // [option] uniformly randomly sample one of 24 possible cube orientations
+    std::vector<double> q0 = {0.0, 1.0, 0.0, 0.7};  // wrist tilt
+    std::vector<double> q1 = {0.0, 0.0, 0.0, 0.0};  // first rotation
+    std::vector<double> q2 = {0.0, 0.0, 0.0, 0.0};  // second rotation
+    std::vector<double> q_goal = {0.0, 0.0, 0.0, 0.0};  // goal rotation
+
+    // ensure that the newly sampled rotation differs from the old one
+    int rand1 = 0;
+    int rand2 = 0;
+    while (rand1 == rand1_ && rand2 == rand2_) {
+      rand1 = absl::Uniform<int>(gen_, 0, 6);
+      rand2 = absl::Uniform<int>(gen_, 0, 4);
+    }
+    rand1_ = rand1;  // reset the old rotation
+    rand2_ = rand2;
+
+    // choose which face faces +z
+    if (rand1 == 0) {
+      // do nothing
+      q1 = {1.0, 0.0, 0.0, 0.0};
+    } else if (rand1 == 1) {
+      // rotate about x axis by 90 degrees
+      q1 = {0.7071067811865476, 0.7071067811865476, 0.0, 0.0};
+    } else if (rand1 == 2) {
+      // rotate about x axis by 180 degrees
+      q1 = {0.0, 1.0, 0.0, 0.0};
+    } else if (rand1 == 3) {
+      // rotate about x axis by 270 degrees
+      q1 = {-0.7071067811865476, 0.7071067811865476, 0.0, 0.0};
+    } else if (rand1 == 4) {
+      // rotate about y axis by 90 degrees
+      q1 = {0.7071067811865476, 0.0, 0.7071067811865476, 0.0};
+    } else if (rand1 == 5) {
+      // rotate about y axis by 270 degrees
+      q1 = {0.7071067811865476, 0.0, -0.7071067811865476, 0.0};
+    }
+
+    // choose rotation about +z
+    if (rand2 == 0) {
+      // do nothing
+      q2 = {1.0, 0.0, 0.0, 0.0};
+    } else if (rand2 == 1) {
+      // rotate about z axis by 90 degrees
+      q2 = {0.7071067811865476, 0.0, 0.0, 0.7071067811865476};
+    } else if (rand2 == 2) {
+      // rotate about z axis by 180 degrees
+      q2 = {0.0, 0.0, 0.0, 1.0};
+    } else if (rand2 == 3) {
+      // rotate about z axis by 270 degrees
+      q2 = {-0.7071067811865476, 0.0, 0.0, 0.7071067811865476};
+    }
+
+    // combine the two quaternions
+    mju_mulQuat(q_goal.data(), q0.data(), q1.data());
+    mju_mulQuat(q_goal.data(), q_goal.data(), q2.data());
+    mju_normalize4(q_goal.data());  // enforce unit norm
+
+    // set new goal quaternion
+    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
   }
 
   // update mocap position

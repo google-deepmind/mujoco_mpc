@@ -15,10 +15,11 @@
 #ifndef MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 #define MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 
+#include <mujoco/mujoco.h>
+
 #include <memory>
 #include <string>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -37,7 +38,7 @@ class Allegro : public Task {
 
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel *model, mjData *data) override;
-  void ModifyState(const mjModel* model, State* state) override;
+  void ModifyState(const mjModel *model, State *state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
@@ -49,6 +50,8 @@ class Allegro : public Task {
   ResidualFn residual_;
   std::vector<double> pos_cube_ = std::vector<double>(3);
   std::vector<double> quat_cube_ = std::vector<double>(4);
+  int rand1_ = 0;
+  int rand2_ = 0;
 };
 }  // namespace mjpc
 

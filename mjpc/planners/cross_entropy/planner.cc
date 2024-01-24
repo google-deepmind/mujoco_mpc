@@ -367,6 +367,9 @@ void CrossEntropyPlanner::ResamplePolicy(int horizon) {
                 resampled_policy.times[0],
                 resampled_policy.times[num_spline_points - 1], timestep_power,
                 num_spline_points);
+
+  // representation
+  resampled_policy.representation = policy.representation;
 }
 
 // add random noise to nominal policy

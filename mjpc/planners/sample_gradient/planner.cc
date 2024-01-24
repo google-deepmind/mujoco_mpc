@@ -92,15 +92,12 @@ void SampleGradientPlanner::Allocate() {
     trajectory_order[i] = i;
   }
 
-  // trajectories and parameters
-  trajectory.resize(max_num_trajectory);
-  candidate_policy.resize(max_num_trajectory);
-  for (int i = 0; i < max_num_trajectory; i++) {
-    trajectory[i].Initialize(num_state, model->nu, task->num_residual,
-                             task->num_trace, kMaxTrajectoryHorizon);
-    trajectory[i].Allocate(kMaxTrajectoryHorizon);
-    candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
-  }
+  // trajectories and parameters are resized and initialized in OptimizePolicy
+  // need to allocate at least one for NominalTrajectory
+  trajectory.resize(1);
+  trajectory[0].Initialize(state.size(), model->nu, task->num_residual,
+                           task->num_trace, kMaxTrajectoryHorizon);
+  trajectory[0].Allocate(kMaxTrajectoryHorizon);
 
   // gradient and Hessian
   gradient.resize(num_max_parameter);
@@ -138,15 +135,14 @@ void SampleGradientPlanner::Reset(int horizon,
   std::fill(times_scratch.begin(), times_scratch.end(), 0.0);
 
   // trajectory samples
-  // max trajectories
-  int max_num_trajectory =
-      kMaxTrajectory + 2 * (model->nu * kMaxTrajectoryHorizon) + 1;
-
-  for (int i = 0; i < max_num_trajectory; i++) {
+  for (int i = 0; i < trajectory.size(); i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
+  }
+  for (int i = 0; i < candidate_policy.size(); i++) {
     candidate_policy[i].Reset(horizon);
   }
 
+  // ctrl
   for (const auto& d : data_) {
     mju_zero(d->ctrl, model->nu);
   }
@@ -168,6 +164,9 @@ void SampleGradientPlanner::Reset(int horizon,
 
   // parameter status
   std::fill(parameter_status.begin(), parameter_status.end(), 0.0);
+
+  // nominal index
+  idx_nominal = 0;
 }
 
 // set state
@@ -196,17 +195,49 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // resample nominal policy to current time
   this->ResamplePolicy(horizon);
 
-  // ----- rollout noisy policies ----- //
+  // ----- roll out noisy policies ----- //
   // start timer
-  auto rollouts_start = std::chrono::steady_clock::now();
+  auto perturb_rollouts_start = std::chrono::steady_clock::now();
 
   // simulate policies
   int num_parameters = policy.num_parameters;
   idx_nominal = 2 * num_parameters;
   int max_num_trajectory = 2 * num_parameters + 1 + num_trajectory;
 
+  // resize trajectories and policies
+  if (trajectory.size() != max_num_trajectory) {
+    trajectory.resize(max_num_trajectory);
+    for (int i = 0; i < max_num_trajectory; i++) {
+      trajectory[i].Initialize(state.size(), model->nu, task->num_residual,
+                               task->num_trace, kMaxTrajectoryHorizon);
+      trajectory[i].Allocate(kMaxTrajectoryHorizon);
+    }
+  }
+  if (candidate_policy.size() != max_num_trajectory) {
+    candidate_policy.resize(max_num_trajectory);
+    for (int i = 0; i < max_num_trajectory; i++) {
+      candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
+    }
+  }
+
+  // roll out perturbed policies: p +- s * d
   this->PerturbationRollouts(num_parameters, horizon, pool);
+  
+  // stop timer
+  perturb_rollouts_compute_time = GetDuration(perturb_rollouts_start);
+
+  // start timer
+  auto gradient_rollouts_start = std::chrono::steady_clock::now();
+
+  // roll out interpolated policies between Cauchy and Newton points
   this->GradientRollouts(num_parameters, num_trajectory, horizon, pool);
+
+  // stop timer
+  gradient_rollouts_compute_time = GetDuration(gradient_rollouts_start);
+
+  // ----- update policy ----- //
+  // start timer
+  auto policy_update_start = std::chrono::steady_clock::now();
 
   // sort candidate policies and trajectories by score
   for (int i = 0; i < max_num_trajectory; i++) {
@@ -228,13 +259,6 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       trajectory[idx_nominal].total_return) {
     winner = trajectory_order[0];
   }
-
-  // stop timer
-  rollouts_compute_time = GetDuration(rollouts_start);
-
-  // ----- update policy ----- //
-  // start timer
-  auto policy_update_start = std::chrono::steady_clock::now();
 
   // update
   {
@@ -307,6 +331,9 @@ void SampleGradientPlanner::ResamplePolicy(int horizon) {
                 resampled_policy.times[0],
                 resampled_policy.times[num_spline_points - 1], timestep_power,
                 num_spline_points);
+
+  // representation
+  resampled_policy.representation = policy.representation;
 }
 
 // compute candidate trajectories
@@ -545,9 +572,14 @@ void SampleGradientPlanner::Traces(mjvScene* scn) {
   // best
   auto best = this->BestTrajectory();
 
-  // sample traces
+  // check sizes
+  int num_parameter = policy.num_parameters;
   int num_trajectory = num_trajectory_;
-  for (int k = 0; k < num_trajectory; k++) {
+  int num_max_trajectory = num_trajectory + 2 * num_parameter + 1;
+  if (trajectory.size() != num_max_trajectory) return;
+
+  // traces between Newton and Cauchy points
+  for (int k = 2 * num_parameter + 1; k < num_max_trajectory; k++) {
     // plot sample
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom + task->num_trace > scn->maxgeom) break;
@@ -594,10 +626,6 @@ void SampleGradientPlanner::GUI(mjUI& ui) {
   mju::sprintf_arr(defSampleGradient[2].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
-  // set perturbation standard deviation limits
-  // mju::sprintf_arr(defSampleGradient[3].other, "%f %f", MinNoiseStdDev,
-  //                  MaxNoiseStdDev);
-
   // add sample gradient planner
   mjui_add(&ui, defSampleGradient);
 }
@@ -632,24 +660,30 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,
-                 1.0e-3 * rollouts_compute_time * planning, 100,
+                 1.0e-3 * perturb_rollouts_compute_time * planning, 100,
                  1 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[2 + timer_shift][0] + 1,
-                 1.0e-3 * policy_update_compute_time * planning, 100,
+                 1.0e-3 * gradient_rollouts_compute_time * planning, 100,
                  2 + timer_shift, 0, 1, -100);
+
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[3 + timer_shift][0] + 1,
+                 1.0e-3 * policy_update_compute_time * planning, 100,
+                 3 + timer_shift, 0, 1, -100);
 
   // legend
   mju::strcpy_arr(fig_timer->linename[0 + timer_shift], "Noise");
-  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Rollout");
-  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Policy Update");
+  mju::strcpy_arr(fig_timer->linename[1 + timer_shift], "Perturb Rollout");
+  mju::strcpy_arr(fig_timer->linename[2 + timer_shift], "Gradient Rollout");
+  mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Policy Update");
 
   // planner shift
   shift[0] += 1;
 
   // timer shift
-  shift[1] += 3;
+  shift[1] += 4;
 }
 
 }  // namespace mjpc

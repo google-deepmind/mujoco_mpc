@@ -139,7 +139,8 @@ class SampleGradientPlanner : public Planner {
 
   // timing
   std::atomic<double> noise_compute_time;
-  double rollouts_compute_time;
+  double perturb_rollouts_compute_time;
+  double gradient_rollouts_compute_time;
   double policy_update_compute_time;
 
   int num_trajectory_;

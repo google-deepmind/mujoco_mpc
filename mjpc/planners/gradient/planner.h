@@ -88,6 +88,11 @@ class GradientPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  };
+
   // ----- members ----- //
   mjModel* model;
   const Task* task;

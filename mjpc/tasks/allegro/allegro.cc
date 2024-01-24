@@ -111,6 +111,9 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
       int palm_veladr = 9;
       mju_copy(data->qpos + palm_qposadr, model->qpos0 + palm_qposadr, 16);
       mju_zero(data->qvel + palm_veladr, 16);
+
+      // reset counter
+      parameters[5] = 0;
     }
 
     // Step the simulation forward
@@ -138,6 +141,9 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   // if within 15 degrees of goal orientation, change goal
   double angle = 2.0 * std::acos(q_diff[0]);
   if (angle <= 0.261799) {
+    // advance the rotation counter
+    parameters[5] += 1;
+
     // sampling token
     absl::BitGen gen_;
 

@@ -48,89 +48,33 @@ void ModelDerivatives::Compute(const mjModel* m,
                                const double* h, int dim_state,
                                int dim_state_derivative, int dim_action,
                                int dim_sensor, int T, double tol, int mode,
-                               ThreadPool& pool) {
-  int count_before = pool.GetCount();
+                               ThreadPool& pool, int skip) {
+  // reset indices
+  evaluate_.clear();
+  interpolate_.clear();
 
-  // t == 0
-  pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &h,
-                  dim_state, dim_state_derivative, dim_action, dim_sensor, tol,
-                  mode]() {
-    int t = 0;
-    mjData* d = data[ThreadPool::WorkerId()].get();
-    // set state
-    SetState(m, d, x + t * dim_state);
-    d->time = h[t];
-
-    // set action
-    mju_copy(d->ctrl, u + t * dim_action, dim_action);
-
-    // derivatives
-    mjd_transitionFD(
-        m, d, tol, mode,
-        DataAt(A, t * (dim_state_derivative * dim_state_derivative)),
-        DataAt(B, t * (dim_state_derivative * dim_action)),
-        DataAt(C, t * (dim_sensor * dim_state_derivative)),
-        DataAt(D, t * (dim_sensor * dim_action)));
-  });
-
-  // t == T - 2
-  pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &h,
-                  dim_state, dim_state_derivative, dim_action, dim_sensor, tol,
-                  mode, T]() {
-    int t = T - 2;
-    mjData* d = data[ThreadPool::WorkerId()].get();
-    // set state
-    SetState(m, d, x + t * dim_state);
-    d->time = h[t];
-
-    // set action
-    mju_copy(d->ctrl, u + t * dim_action, dim_action);
-
-    // derivatives
-    mjd_transitionFD(
-        m, d, tol, mode,
-        DataAt(A, t * (dim_state_derivative * dim_state_derivative)),
-        DataAt(B, t * (dim_state_derivative * dim_action)),
-        DataAt(C, t * (dim_sensor * dim_state_derivative)),
-        DataAt(D, t * (dim_sensor * dim_action)));
-  });
-
-  // t == T - 1
-  pool.Schedule([&m, &data, &C = C, &x, &u, &h,
-                  dim_state, dim_state_derivative, dim_action, dim_sensor, tol,
-                  mode, T]() {
-    int t = T - 1;
-    mjData* d = data[ThreadPool::WorkerId()].get();
-    
-    // set state
-    SetState(m, d, x + t * dim_state);
-    d->time = h[t];
-
-    // set action
-    mju_copy(d->ctrl, u + t * dim_action, dim_action);
-
-    // Jacobians
-    mjd_transitionFD(m, d, tol, mode, nullptr, nullptr,
-                      DataAt(C, t * (dim_sensor * dim_state_derivative)),
-                      nullptr);
-  });
-
-  // skip values
-  std::vector<int> tt;
-  tt.push_back(0);
-  
-  int skip = 3;
-  for (int t = skip; t < T - skip; t += skip) {
-    tt.push_back(t);
+  // evaluate indices
+  int s = skip + 1;
+  evaluate_.push_back(0);
+  for (int t = s; t < T - s; t += s) {
+    evaluate_.push_back(t);
   }
-  tt.push_back(T - 2);
-  tt.push_back(T - 1);
-  int S = tt.size();
+  evaluate_.push_back(T - 2);
+  evaluate_.push_back(T - 1);
 
-  for (int t = skip; t < T - skip; t += skip) {
+  // interpolate indices
+  for (int t = 0; t < T; t++) {
+    if (std::find(evaluate_.begin(), evaluate_.end(), t) == evaluate_.end()) {
+      interpolate_.push_back(t);
+    }
+  }
+
+  // evaluate derivatives
+  int count_before = pool.GetCount();
+  for (int t : evaluate_) {
     pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &h,
-                    dim_state, dim_state_derivative, dim_action, dim_sensor,
-                    tol, mode, t, T]() {
+                   dim_state, dim_state_derivative, dim_action, dim_sensor, tol,
+                   mode, t, T]() {
       mjData* d = data[ThreadPool::WorkerId()].get();
       // set state
       SetState(m, d, x + t * dim_state);
@@ -143,8 +87,8 @@ void ModelDerivatives::Compute(const mjModel* m,
       if (t == T - 1) {
         // Jacobians
         mjd_transitionFD(m, d, tol, mode, nullptr, nullptr,
-                          DataAt(C, t * (dim_sensor * dim_state_derivative)),
-                          nullptr);
+                         DataAt(C, t * (dim_sensor * dim_state_derivative)),
+                         nullptr);
       } else {
         // derivatives
         mjd_transitionFD(
@@ -156,79 +100,65 @@ void ModelDerivatives::Compute(const mjModel* m,
       }
     });
   }
-  pool.WaitCount(count_before + S);
+  pool.WaitCount(count_before + evaluate_.size());
   pool.ResetCount();
 
-  // -- interpolate skipped values -- //
-
-  // find skipped indices
-  std::vector<int> ss;
-  for (int t = 0; t < T; t++) {
-    if(std::find(tt.begin(), tt.end(), t) == tt.end()) {
-      /* v contains x */
-      ss.push_back(t);
-    } 
-  }
-
-  // convert to double index for FindInterval
-  std::vector<double> ttd;
-  for (int i: tt) {
-    ttd.push_back((double)i);
-  }
-
-  int H = ss.size();
-  for (int i: ss) {
-    pool.Schedule([&A = A, &B = B, &C = C, &D = D, &tt, &ttd,
-                   dim_state_derivative, dim_action, dim_sensor, i]() {
+  // interpolate derivatives
+  count_before = pool.GetCount();
+  for (int t : interpolate_) {
+    pool.Schedule([&A = A, &B = B, &C = C, &D = D, &evaluate_ = this->evaluate_,
+                   dim_state_derivative, dim_action, dim_sensor, t]() {
       // find interval
       int bounds[2];
-      FindInterval(bounds, ttd, (double)i, ttd.size());
+      FindInterval(bounds, evaluate_, t, evaluate_.size());
+      int e0 = evaluate_[bounds[0]];
+      int e1 = evaluate_[bounds[1]];
 
-      // normalized time
-      double q = double(i - tt[bounds[0]]) / double(tt[bounds[1]] - tt[bounds[0]]);
+      // normalized input
+      double tt = double(t - e0) / double(e1 - e0);
       if (bounds[0] == bounds[1]) {
-        q = 0.0;
+        tt = 0.0;
       }
 
       // A
       int nA = dim_state_derivative * dim_state_derivative;
-      double* Ai = DataAt(A, i * nA);
-      double* AL = DataAt(A, tt[bounds[0]] * nA);
-      double* AU = DataAt(A, tt[bounds[1]] * nA);
+      double* Ai = DataAt(A, t * nA);
+      double* AL = DataAt(A, e0 * nA);
+      double* AU = DataAt(A, e1 * nA);
 
-      mju_scl(Ai, AL, 1.0 - q, nA);
-      mju_addToScl(Ai, AU, q, nA);
-            
-      // B 
+      mju_scl(Ai, AL, 1.0 - tt, nA);
+      mju_addToScl(Ai, AU, tt, nA);
+
+      // B
       int nB = dim_state_derivative * dim_action;
-      double* Bi = DataAt(B, i * nB);
-      double* BL = DataAt(B, tt[bounds[0]] * nB);
-      double* BU = DataAt(B, tt[bounds[1]] * nB);
+      double* Bi = DataAt(B, t * nB);
+      double* BL = DataAt(B, e0 * nB);
+      double* BU = DataAt(B, e1 * nB);
 
-      mju_scl(Bi, BL, 1.0 - q, nB);
-      mju_addToScl(Bi, BU, q, nB);
+      mju_scl(Bi, BL, 1.0 - tt, nB);
+      mju_addToScl(Bi, BU, tt, nB);
 
       // C
       int nC = dim_sensor * dim_state_derivative;
-      double* Ci = DataAt(C, i * nC);
-      double* CL = DataAt(C, tt[bounds[0]] * nC);
-      double* CU = DataAt(C, tt[bounds[1]] * nC);
+      double* Ci = DataAt(C, t * nC);
+      double* CL = DataAt(C, e0 * nC);
+      double* CU = DataAt(C, e1 * nC);
 
-      mju_scl(Ci, CL, 1.0 - q, nC);
-      mju_addToScl(Ci, CU, q, nC);
+      mju_scl(Ci, CL, 1.0 - tt, nC);
+      mju_addToScl(Ci, CU, tt, nC);
 
       // D
       int nD = dim_sensor * dim_action;
-      double* Di = DataAt(D, i * nD);
-      double* DL = DataAt(D, tt[bounds[0]] * nD);
-      double* DU = DataAt(D, tt[bounds[1]] * nD);
+      double* Di = DataAt(D, t * nD);
+      double* DL = DataAt(D, e0 * nD);
+      double* DU = DataAt(D, e1 * nD);
 
-      mju_scl(Di, DL, 1.0 - q, nD);
-      mju_addToScl(Di, DU, q, nD);
+      mju_scl(Di, DL, 1.0 - tt, nD);
+      mju_addToScl(Di, DU, tt, nD);
     });
   }
 
-  pool.WaitCount(count_before + H);
+  pool.WaitCount(count_before + interpolate_.size());
   pool.ResetCount();
 }
 

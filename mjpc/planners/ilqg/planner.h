@@ -154,6 +154,7 @@ class iLQGPlanner : public Planner {
  private:
   int num_trajectory_ = 1;
   int num_rollouts_gui_ = 1;
+  int derivative_skip_ = 0;
 };
 
 }  // namespace mjpc

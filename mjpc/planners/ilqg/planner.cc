@@ -389,13 +389,12 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   auto model_derivative_start = std::chrono::steady_clock::now();
 
   // compute model and sensor Jacobians
-  int skip = derivative_skip_;
   model_derivative.Compute(
       model, data_, candidate_policy[0].trajectory.states.data(),
       candidate_policy[0].trajectory.actions.data(),
       candidate_policy[0].trajectory.times.data(), dim_state,
       dim_state_derivative, dim_action, dim_sensor, horizon,
-      settings.fd_tolerance, settings.fd_mode, pool, skip);
+      settings.fd_tolerance, settings.fd_mode, pool, derivative_skip_);
 
   // stop timer
   double model_derivative_time = GetDuration(model_derivative_start);

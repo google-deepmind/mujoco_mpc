@@ -14,20 +14,21 @@
 
 #include "mjpc/trajectory.h"
 
+#include <absl/random/distributions.h>
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
+
 #include <algorithm>
 #include <functional>
 #include <iostream>
 
-#include <absl/random/distributions.h>
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
 namespace mjpc {
 namespace {
 // maximum return value
 inline constexpr double kMaxReturnValue = 1.0e6;
-}
+}  // namespace
 
 // initialize dimensions
 void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
@@ -38,6 +39,17 @@ void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
   this->dim_residual = dim_residual;
   this->dim_trace = 3 * num_trace;
   this->failure = false;
+}
+
+void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
+                            int num_trace, int horizon, double gamma = 1.0) {
+  this->horizon = horizon;
+  this->dim_state = dim_state;
+  this->dim_action = dim_action;
+  this->dim_residual = dim_residual;
+  this->dim_trace = 3 * num_trace;
+  this->failure = false;
+  this->gamma_ = gamma;
 }
 
 // allocate memory
@@ -148,7 +160,7 @@ void Trajectory::NoisyRollout(
       // convert rate and scale to discrete time (Ornstein–Uhlenbeck)
       mjtNum rate = mju_exp(-model->opt.timestep / xfrc_rate);
       mjtNum scale = xfrc_std * mju_sqrt(1 - rate * rate);
-      for (int i = 0; i < 6*model->nbody; i++) {
+      for (int i = 0; i < 6 * model->nbody; i++) {
         data->xfrc_applied[i] = rate * data->xfrc_applied[i] +
                                 absl::Gaussian<mjtNum>(gen, 0, scale);
       }
@@ -211,8 +223,7 @@ void Trajectory::NoisyRollout(
 
 // simulate model forward in time with discrete-time indexed policy
 void Trajectory::RolloutDiscrete(
-    std::function<void(double* action, const double* state, int index)>
-        policy,
+    std::function<void(double* action, const double* state, int index)> policy,
     const Task* task, const mjModel* model, mjData* data, const double* state,
     double time, const double* mocap, const double* userdata, int steps) {
   // reset failure flag
@@ -312,10 +323,13 @@ void Trajectory::RolloutDiscrete(
 void Trajectory::UpdateReturn(const Task* task) {
   // reset
   total_return = 0;
+  double gamma = gamma_;
 
   for (int t = 0; t < horizon; t++) {
     // compute stage cost
-    costs[t] = task->CostValue(DataAt(residual, t * task->num_residual));
+    costs[t] =
+        gamma * task->CostValue(DataAt(residual, t * task->num_residual));
+    gamma *= gamma_;
 
     // update total return
     total_return += costs[t];

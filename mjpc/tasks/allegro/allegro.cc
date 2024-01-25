@@ -46,7 +46,23 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double *cube_position = SensorByName(model, data, "cube_position");
   double *cube_goal_position = SensorByName(model, data, "cube_goal_position");
 
+  // difference between the cube position and goal position
   mju_sub3(residual + counter, cube_position, cube_goal_position);
+
+  // penalty if the cube's x dimension is outside the hand/on edges
+  if (cube_position[0] < -0.1 + 0.25 || cube_position[0] > 0.03 + 0.25) {
+    residual[counter] *= 5.0;
+  }
+
+  // penalty if the cube's y dimension is near edges
+  if (cube_position[1] < -0.04 || cube_position[1] > 0.04) {
+    residual[counter + 1] *= 10.0;
+  }
+
+  // penalty if the cube's z height is below the palm
+  if (cube_position[2] < -0.03) {
+    residual[counter + 2] *= 5.0;
+  }
   counter += 3;
 
   // ---------- Cube orientation ----------
@@ -86,6 +102,7 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
   bool on_floor = false;
+  bool new_goal = false;
   for (int i = 0; i < data->ncon; i++) {
     mjContact *g = data->contact + i;
     if ((g->geom1 == cube && g->geom2 == floor) ||
@@ -113,13 +130,8 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
       mju_zero(data->qvel + palm_veladr, 16);
 
       // reset counter
-      parameters[5] = 0;
+      rotation_counter = 0;
     }
-
-    // Step the simulation forward
-    mutex_.unlock();
-    mj_forward(model, data);
-    mutex_.lock();
   }
 
   // If the orientation of the cube is close to the goal, change the goal
@@ -142,7 +154,7 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   double angle = 2.0 * std::acos(q_diff[0]);
   if (angle <= 0.261799) {
     // advance the rotation counter
-    parameters[5] += 1;
+    rotation_counter += 1;
 
     // sampling token
     absl::BitGen gen_;
@@ -167,8 +179,8 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     std::vector<double> q_goal = {0.0, 0.0, 0.0, 0.0};  // goal rotation
 
     // ensure that the newly sampled rotation differs from the old one
-    int rand1 = 0;
-    int rand2 = 0;
+    int rand1 = rand1_;
+    int rand2 = rand2_;
     while (rand1 == rand1_ && rand2 == rand2_) {
       rand1 = absl::Uniform<int>(gen_, 0, 6);
       rand2 = absl::Uniform<int>(gen_, 0, 4);
@@ -213,14 +225,21 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     }
 
     // combine the two quaternions
-    mju_mulQuat(q_goal.data(), q0.data(), q1.data());
-    mju_mulQuat(q_goal.data(), q_goal.data(), q2.data());
+    mju_mulQuat(q_goal.data(), q0.data(), q2.data());
+    mju_mulQuat(q_goal.data(), q_goal.data(), q1.data());
     mju_normalize4(q_goal.data());  // enforce unit norm
 
     // set new goal quaternion
     int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
     int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
     mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+  }
+
+  if (on_floor || new_goal) {
+    // Step the simulation forward
+    mutex_.unlock();
+    mj_forward(model, data);
+    mutex_.lock();
   }
 
   // update mocap position
@@ -233,6 +252,9 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   data->mocap_quat[1] = quat_cube[1];
   data->mocap_quat[2] = quat_cube[2];
   data->mocap_quat[3] = quat_cube[3];
+
+  // update the rotation counter in the GUI
+  parameters[5] = rotation_counter;
 }
 
 void Allegro::ModifyState(const mjModel *model, State *state) {

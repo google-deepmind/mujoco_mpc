@@ -63,6 +63,9 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   n_elite_ =
       GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elite");
 
+  // set the discount factor
+  gamma_ = GetNumberOrDefault(1.0, model, "gamma");
+
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
@@ -104,14 +107,14 @@ void CrossEntropyPlanner::Allocate() {
   // trajectories and parameters
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
-                             task->num_trace, kMaxTrajectoryHorizon);
+                             task->num_trace, kMaxTrajectoryHorizon, gamma_);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
     candidate_policy[i].Allocate(model, *task, kMaxTrajectoryHorizon);
   }
 
   // elite average trajectory
   elite_avg.Initialize(num_state, model->nu, task->num_residual,
-                       task->num_trace, kMaxTrajectoryHorizon);
+                       task->num_trace, kMaxTrajectoryHorizon, gamma_);
   elite_avg.Allocate(kMaxTrajectoryHorizon);
 }
 

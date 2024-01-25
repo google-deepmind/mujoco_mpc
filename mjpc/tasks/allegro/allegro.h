@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "mjpc/task.h"
 
@@ -52,6 +53,7 @@ class Allegro : public Task {
   std::vector<double> quat_cube_ = std::vector<double>(4);
   int rand1_ = 0;
   int rand2_ = 0;
+  int rotation_counter = 0;
 };
 }  // namespace mjpc
 

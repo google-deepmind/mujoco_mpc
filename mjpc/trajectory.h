@@ -15,10 +15,11 @@
 #ifndef MJPC_TRAJECTORY_H_
 #define MJPC_TRAJECTORY_H_
 
+#include <mujoco/mujoco.h>
+
 #include <functional>
 #include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -42,6 +43,8 @@ class Trajectory {
   // initialize trajectory dimensions
   void Initialize(int dim_state, int dim_action, int dim_residual,
                   int num_trace, int horizon);
+  void Initialize(int dim_state, int dim_action, int dim_residual,
+                  int num_trace, int horizon, double gamma /*=1.0*/);
 
   // allocate memory
   void Allocate(int T);
@@ -76,6 +79,7 @@ class Trajectory {
   int dim_action;                // actions dimension
   int dim_residual;              // residual dimension
   int dim_trace;                 // traces dimension
+  double gamma_;                 // discount factor
   std::vector<double> states;    // (horizon   x nq + nv + na)
   std::vector<double> actions;   // (horizon-1 x num_action)
   std::vector<double> times;     // horizon

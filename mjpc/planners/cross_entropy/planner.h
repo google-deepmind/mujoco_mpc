@@ -137,6 +137,9 @@ class CrossEntropyPlanner : public Planner {
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
+
+  // discount factor
+  double gamma_;
 };
 
 }  // namespace mjpc

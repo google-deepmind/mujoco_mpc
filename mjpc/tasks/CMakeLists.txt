@@ -48,4 +48,4 @@ add_custom_target(copy_resources ALL
 
 add_dependencies(copy_menagerie_resources copy_resources)
 
-add_dependencies(mjpc copy_menagerie_resources)
+add_dependencies(libmjpc copy_menagerie_resources)

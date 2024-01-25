@@ -50,7 +50,7 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_sub3(residual + counter, cube_position, cube_goal_position);
 
   // penalty if the cube's x dimension is outside the hand/on edges
-  if (cube_position[0] < -0.1 + 0.25 || cube_position[0] > 0.03 + 0.25) {
+  if (cube_position[0] < -0.1 + 0.25 || cube_position[0] > 0.0 + 0.25) {
     residual[counter] *= 5.0;
   }
 

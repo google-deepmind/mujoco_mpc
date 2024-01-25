@@ -39,7 +39,7 @@
     <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
 
     <!-- [dirty] counter -->
-    <numeric name="residual_Rotation Count" data="0 0 100"/>
+    <numeric name="residual_Rotation Count" data="0 0 1000"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

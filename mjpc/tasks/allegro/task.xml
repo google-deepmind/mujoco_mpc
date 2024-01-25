@@ -42,10 +42,11 @@
     <numeric name="residual_Cube Pos Y Bias" data="0.0 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
 
-    <!-- [dirty] counter -->
-    <numeric name="residual_Rotation Count" data="0 0 100000"/>
-    <numeric name="residual_Best # Rots" data="0 0 100000"/>
-    <numeric name="residual_Prev # Rots" data="0 0 100000"/>
+    <!-- [dirty] counters -->
+    <numeric name="residual_Curr # Rots" data="0 0 1000000"/>
+    <numeric name="residual_Best # Rots" data="0 0 1000000"/>
+    <numeric name="residual_Prev # Rots" data="0 0 1000000"/>
+    <numeric name="residual_Total # Rots" data="0 0 1000000"/>
     <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
   </custom>
 

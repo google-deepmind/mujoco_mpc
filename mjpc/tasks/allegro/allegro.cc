@@ -280,7 +280,8 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   parameters[5] = rotation_counter;
   parameters[6] = num_best_rots;
   parameters[7] = prev_best_rots;
-  parameters[8] = time_per_rot;
+  parameters[8] = total_rots;
+  parameters[9] = time_per_rot;
 }
 
 void Allegro::ModifyState(const mjModel *model, State *state) {

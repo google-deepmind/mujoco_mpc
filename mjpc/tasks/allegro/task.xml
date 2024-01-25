@@ -1,7 +1,11 @@
 <mujoco model="Allegro Hand Cube Rotation">
   <include file="../common.xml"/>
-
+  <compiler meshdir="./" balanceinertia="true" discardvisual="false"/>
   <size memory="1M"/>
+
+  <asset>
+    <mesh file="connector.obj"/>
+  </asset>
 
   <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
 
@@ -14,15 +18,15 @@
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="0" />
-    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="3" />
-    <numeric name="sampling_exploration" data="0.4" />
+    <numeric name="sampling_spline_points" data="1" />
+    <numeric name="sampling_exploration" data="0.3" />
     <numeric name="sampling_trajectories" data="125" />
-    <numeric name="sampling_representation" data="2" />
+    <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
-    <numeric name="gradient_spline_points" data="3" />
+    <numeric name="gradient_spline_points" data="1" />
 
     <!-- trajectory -->
     <numeric name="gamma" data="0.99" />
@@ -62,6 +66,9 @@
     <body name="goal" pos="0.325 0.17 0.0475">
       <joint type="ball" damping="0.001"/>
       <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
+    </body>
+    <body name="connector" pos="0.13103288674 0 0.0336530231" quat="0 1 0 0.7">
+      <geom type="mesh" mesh="connector"/>
     </body>
   </worldbody>
 

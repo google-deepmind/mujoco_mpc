@@ -54,6 +54,8 @@ class Allegro : public Task {
   int rand1_ = 0;
   int rand2_ = 0;
   int rotation_counter = 0;
+  std::chrono::steady_clock::time_point time_reset =
+      std::chrono::steady_clock::now();  // time of last reset
 };
 }  // namespace mjpc
 

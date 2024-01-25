@@ -17,6 +17,7 @@
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
+#include <chrono>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -55,7 +56,7 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   }
 
   // penalty if the cube's y dimension is near edges
-  if (cube_position[1] < -0.05 || cube_position[1] > 0.03) {
+  if (cube_position[1] < -0.04 || cube_position[1] > 0.03) {
     residual[counter + 1] *= 10.0;
   }
 
@@ -152,7 +153,12 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
 
   // if within 15 degrees of goal orientation, change goal
   double angle = 2.0 * std::acos(q_diff[0]);
-  if (angle <= 0.261799) {
+  auto duration = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - time_reset).count();
+  if (angle <= 0.261799 && duration > 0.05) {
+    // don't allow resetting super fast to avoid double counting
+    time_reset = std::chrono::steady_clock::now();
+
     // advance the rotation counter
     rotation_counter += 1;
 
@@ -173,9 +179,9 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     // std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
 
     // [option] uniformly randomly sample one of 24 possible cube orientations
-    std::vector<double> q0 = {0.0, 1.0, 0.0, 0.7};  // wrist tilt
-    std::vector<double> q1 = {0.0, 0.0, 0.0, 0.0};  // first rotation
-    std::vector<double> q2 = {0.0, 0.0, 0.0, 0.0};  // second rotation
+    std::vector<double> q0 = {0.0, 1.0, 0.0, 0.7};      // wrist tilt
+    std::vector<double> q1 = {0.0, 0.0, 0.0, 0.0};      // first rotation
+    std::vector<double> q2 = {0.0, 0.0, 0.0, 0.0};      // second rotation
     std::vector<double> q_goal = {0.0, 0.0, 0.0, 0.0};  // goal rotation
 
     // ensure that the newly sampled rotation differs from the old one

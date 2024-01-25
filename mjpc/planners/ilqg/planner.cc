@@ -251,7 +251,7 @@ void iLQGPlanner::GUI(mjUI& ui) {
        "Zero\nLinear\nCubic"},
       {mjITEM_SELECT, "Reg. Type", 2, &settings.regularization_type,
        "Control\nFeedback\nValue\nNone"},
-      {mjITEM_SLIDERINT, "Deriv. Skip", 2, &derivative_skip_, "0 64"},
+      {mjITEM_SLIDERINT, "Deriv. Skip", 2, &derivative_skip_, "0 16"},
       {mjITEM_CHECKINT, "Terminal Print", 2, &settings.verbose, ""},
       {mjITEM_END}};
 

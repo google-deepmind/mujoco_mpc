@@ -479,7 +479,7 @@ void GradientPlanner::GUI(mjUI& ui) {
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
-      {mjITEM_SLIDERINT, "Deriv. Skip", 2, &derivative_skip_, "0 64"},
+      {mjITEM_SLIDERINT, "Deriv. Skip", 2, &derivative_skip_, "0 16"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

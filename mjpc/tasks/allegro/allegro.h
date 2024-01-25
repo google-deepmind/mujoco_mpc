@@ -71,6 +71,9 @@ class Allegro : public Task {
       std::chrono::steady_clock::now();  // time of the Allegro task starting
   bool first_rot = true;  // don't count the first rotation in timing
   int total_rots = 0;  // total number of rots across all runs
+
+  // timeout
+  double timeout_ = 30.0;  // if no successes in 30 seconds, reset
 };
 }  // namespace mjpc
 

@@ -115,7 +115,18 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
 
   // If the cube is on the floor and not moving, reset it
   double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
-  if (on_floor && mju_norm3(cube_lin_vel) < 0.001) {
+
+  // If timeout has been reached, reset
+  auto duration = std::chrono::duration<double>(
+                      std::chrono::steady_clock::now() - time_reset)
+                      .count();
+
+  if ((on_floor && mju_norm3(cube_lin_vel) < 0.001) || duration > timeout_) {
+    // reset the timeout if timed out
+    if (duration > timeout_) {
+      time_reset = std::chrono::steady_clock::now();
+    }
+
     int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
     if (cube_body != -1) {
       // reset cube
@@ -157,9 +168,6 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
 
   // if within 15 degrees of goal orientation, change goal
   double angle = 2.0 * std::acos(q_diff[0]);
-  auto duration = std::chrono::duration<double>(
-                      std::chrono::steady_clock::now() - time_reset)
-                      .count();
   if (angle <= 0.261799 && duration > 0.05) {
     // don't allow resetting super fast to avoid double counting
     time_reset = std::chrono::steady_clock::now();

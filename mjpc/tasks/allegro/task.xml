@@ -17,7 +17,7 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_planner" data="5" />
     <numeric name="agent_horizon" data="0.25" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
@@ -44,6 +44,9 @@
 
     <!-- [dirty] counter -->
     <numeric name="residual_Rotation Count" data="0 0 100000"/>
+    <numeric name="residual_Best # Rots" data="0 0 100000"/>
+    <numeric name="residual_Prev # Rots" data="0 0 100000"/>
+    <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

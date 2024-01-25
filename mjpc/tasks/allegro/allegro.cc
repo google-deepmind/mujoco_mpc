@@ -131,6 +131,10 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
       mju_zero(data->qvel + palm_veladr, 16);
 
       // reset counter
+      if (rotation_counter > num_best_rots) {
+        num_best_rots = rotation_counter;
+      }
+      prev_best_rots = rotation_counter;
       rotation_counter = 0;
     }
   }
@@ -154,10 +158,23 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   // if within 15 degrees of goal orientation, change goal
   double angle = 2.0 * std::acos(q_diff[0]);
   auto duration = std::chrono::duration<double>(
-      std::chrono::steady_clock::now() - time_reset).count();
+                      std::chrono::steady_clock::now() - time_reset)
+                      .count();
   if (angle <= 0.261799 && duration > 0.05) {
     // don't allow resetting super fast to avoid double counting
     time_reset = std::chrono::steady_clock::now();
+
+    // for the average time per rotation, don't count first rot
+    if (first_rot) {
+      first_rot = false;
+      time_start = std::chrono::steady_clock::now();
+    } else {
+      total_rots += 1;
+      auto duration = std::chrono::duration<double>(
+                          std::chrono::steady_clock::now() - time_start)
+                          .count();
+      time_per_rot = duration / total_rots;
+    }
 
     // advance the rotation counter
     rotation_counter += 1;
@@ -261,6 +278,9 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
 
   // update the rotation counter in the GUI
   parameters[5] = rotation_counter;
+  parameters[6] = num_best_rots;
+  parameters[7] = prev_best_rots;
+  parameters[8] = time_per_rot;
 }
 
 void Allegro::ModifyState(const mjModel *model, State *state) {
@@ -268,7 +288,8 @@ void Allegro::ModifyState(const mjModel *model, State *state) {
   absl::BitGen gen_;
 
   // std from GUI
-  double std_rot = parameters[0];    // concentration parameter ("inverse var")
+  double std_rot =
+      parameters[0];  // stdev for rotational noise in tangent space
   double std_pos = parameters[1];    // uniform stdev for position noise
   double bias_posx = parameters[2];  // bias for position noise
   double bias_posy = parameters[3];  // bias for position noise

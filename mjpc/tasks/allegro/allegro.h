@@ -73,7 +73,7 @@ class Allegro : public Task {
   int total_rots = 0;  // total number of rots across all runs
 
   // timeout
-  double timeout_ = 30.0;  // if no successes in 30 seconds, reset
+  double timeout_ = 60.0;  // if no successes in 60 seconds, reset
 };
 }  // namespace mjpc
 

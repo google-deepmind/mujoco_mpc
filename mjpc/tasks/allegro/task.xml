@@ -9,17 +9,17 @@
 
   <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
 
-  <!-- changing contact model default stiffness=-2500 damping=-100 -->
+  <!-- changing contact model, default stiffness=-2500 damping=-100 -->
+  <!-- pretty good, stiffness=-3000 damping=-200 -->
   <default>
-    <geom solref="-2500 -100"/>
-    <!-- <geom solref="-250 -50"/> -->
+    <geom solref="-3000 -225"/>
   </default>
 
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="5" />
     <numeric name="agent_horizon" data="0.25" />
-    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_timestep" data="0.005" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="1" />
     <numeric name="sampling_exploration" data="0.4" />

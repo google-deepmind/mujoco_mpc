@@ -51,7 +51,10 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_sub3(residual + counter, cube_position, cube_goal_position);
 
   // penalty if the cube's x dimension is outside the hand/on edges
-  if (cube_position[0] < -0.07 + 0.25 || cube_position[0] > 0.01 + 0.25) {
+  // if (cube_position[0] < -0.07 + 0.25 || cube_position[0] > 0.01 + 0.25) {
+  //   residual[counter] *= 5.0;
+  // }
+  if (cube_position[0] < -0.1 + 0.25 || cube_position[0] > 0.03 + 0.25) {
     residual[counter] *= 5.0;
   }
 
@@ -178,10 +181,10 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
       time_start = std::chrono::steady_clock::now();
     } else {
       total_rots += 1;
-      auto duration = std::chrono::duration<double>(
-                          std::chrono::steady_clock::now() - time_start)
-                          .count();
-      time_per_rot = duration / total_rots;
+      time_per_rot = std::chrono::duration<double>(
+                         std::chrono::steady_clock::now() - time_start)
+                         .count() /
+                     total_rots;
     }
 
     // advance the rotation counter

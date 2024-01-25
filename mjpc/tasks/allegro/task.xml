@@ -22,7 +22,7 @@
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="1" />
-    <numeric name="sampling_exploration" data="0.3" />
+    <numeric name="sampling_exploration" data="0.4" />
     <numeric name="sampling_trajectories" data="125" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
@@ -36,14 +36,14 @@
     <numeric name="std_min" data="0.4" />
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.0 0.0 0.5"/>
+    <numeric name="residual_Cube Rot Noise" data="0.0 0.0 0.4"/>
     <numeric name="residual_Cube Pos Noise" data="0.0 0.0 0.01"/>
     <numeric name="residual_Cube Pos X Bias" data="0.0 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="0.0 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
 
     <!-- [dirty] counter -->
-    <numeric name="residual_Rotation Count" data="0 0 1000"/>
+    <numeric name="residual_Rotation Count" data="0 0 100000"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

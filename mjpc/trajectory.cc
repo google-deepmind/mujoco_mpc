@@ -39,6 +39,7 @@ void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,
   this->dim_residual = dim_residual;
   this->dim_trace = 3 * num_trace;
   this->failure = false;
+  this->gamma_ = 1.0;
 }
 
 void Trajectory::Initialize(int dim_state, int dim_action, int dim_residual,

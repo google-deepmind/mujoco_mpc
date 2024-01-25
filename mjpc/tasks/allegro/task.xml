@@ -29,7 +29,7 @@
     <numeric name="gradient_spline_points" data="1" />
 
     <!-- trajectory -->
-    <numeric name="gamma" data="0.99" />
+    <numeric name="gamma" data="1.0" />
 
     <!-- cem -->
     <numeric name="n_elite" data="5" />

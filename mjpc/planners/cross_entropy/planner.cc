@@ -67,8 +67,6 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
   }
-
-  winner = 0;
 }
 
 // allocate memory
@@ -104,7 +102,6 @@ void CrossEntropyPlanner::Allocate() {
   }
 
   // trajectories and parameters
-  winner = -1;
   for (int i = 0; i < kMaxTrajectory; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon);
@@ -156,9 +153,6 @@ void CrossEntropyPlanner::Reset(int horizon,
 
   // improvement
   improvement = 0.0;
-
-  // winner
-  winner = 0;
 }
 
 // set state
@@ -217,9 +211,6 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
 
-  // best rollout
-  winner = trajectory_order[0];
-
   // stop timer
   rollouts_compute_time = GetDuration(rollouts_start);
 
@@ -252,7 +243,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy first elite trajectory
   mju_copy(elite_avg.actions.data(), trajectory[idx].actions.data(),
            model->nu * (horizon - 1));
-  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(), 3 * horizon);
+  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(),
+           trajectory[idx].dim_trace * horizon);
   mju_copy(elite_avg.residual.data(), trajectory[idx].residual.data(),
            elite_avg.dim_residual * horizon);
   mju_copy(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -271,7 +263,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     mju_addTo(elite_avg.actions.data(), trajectory[idx].actions.data(),
               model->nu * (horizon - 1));
     mju_addTo(elite_avg.trace.data(), trajectory[idx].trace.data(),
-              3 * horizon);
+              trajectory[idx].dim_trace * horizon);
     mju_addTo(elite_avg.residual.data(), trajectory[idx].residual.data(),
               elite_avg.dim_residual * horizon);
     mju_addTo(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -284,7 +276,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite,
           model->nu * (horizon - 1));
   mju_scl(elite_avg.trace.data(), elite_avg.trace.data(), 1.0 / n_elite,
-          3 * horizon);
+          elite_avg.dim_trace * horizon);
   mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite,
           elite_avg.dim_residual * horizon);
   mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite,

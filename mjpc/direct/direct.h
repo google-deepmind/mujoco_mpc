@@ -16,7 +16,6 @@
 #define MJPC_DIRECT_OPTIMIZER_H_
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 

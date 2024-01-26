@@ -167,7 +167,7 @@ void iLQGPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   }
   // set policy trajectory horizon
   policy.trajectory.horizon = horizon;
-  
+
   // resize data for rollouts
   ResizeMjData(model, pool.NumThreads());
 

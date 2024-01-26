@@ -18,8 +18,8 @@
     <numeric name="residual_Green" data="0 -3.14 3.14"/>
     <numeric name="residual_White" data="0 -3.14 3.14"/>
     <numeric name="residual_Yellow" data="0 -3.14 3.14"/>
-    <text name="task_transition" data="Wait|Manual|Scramble|Solve"/>
-    <numeric name="residual_select_Scramble" data="0"/>
+    <text name="task_transition" data="Scramble|Solve|Wait|Manual"/>
+    <numeric name="residual_select_Scramble" data="3"/>
     <text name="residual_list_Scramble" data="1|2|3|4|5|6|7|8|9|10"/>
   </custom>
 
@@ -67,7 +67,7 @@
   <include file="right_hand.xml"/>
 
   <keyframe>
-    <key qpos='1 0 0 0 0.325 0 0.075 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255'/>  
+    <key qpos='1 0 0 0 0.325 0 0.075 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255'/>
   </keyframe>
 </mujoco>
 

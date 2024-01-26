@@ -17,11 +17,10 @@
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
-std::string OP3::XmlPath() const { return GetModelPath("OP3/task.xml"); }
+std::string OP3::XmlPath() const { return GetModelPath("op3/task.xml"); }
 std::string OP3::Name() const { return "OP3"; }
 
 // ------- Residuals for OP3 task ------------

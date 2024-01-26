@@ -107,11 +107,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       nominal_time += time_shift;
     }
 
-    // time power transformation
-    PowerSequence(sampling.policy.times.data(), time_shift,
-                  sampling.policy.times[0],
-                  sampling.policy.times[num_spline_points - 1],
-                  sampling.timestep_power, num_spline_points);
+    LinearRange(sampling.policy.times.data(), time_shift,
+                sampling.policy.times[0], num_spline_points);
 
     // linear system solve
     if (dim_actions != sampling.model->nu * (horizon - 1) ||

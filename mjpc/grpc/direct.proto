@@ -55,15 +55,14 @@ message Data {
   repeated double velocity = 2 [packed = true];
   repeated double acceleration = 3 [packed = true];
   repeated double time = 4 [packed = true];
-  repeated double ctrl = 5 [packed = true];
-  repeated double configuration_previous = 6 [packed = true];
-  repeated double sensor_measurement = 7 [packed = true];
-  repeated double sensor_prediction = 8 [packed = true];
-  repeated int32 sensor_mask = 9 [packed = true];
-  repeated double force_measurement = 10 [packed = true];
-  repeated double force_prediction = 11 [packed = true];
-  repeated double parameters = 12 [packed = true];
-  repeated double parameters_previous = 13 [packed = true];
+  repeated double configuration_previous = 5 [packed = true];
+  repeated double sensor_measurement = 6 [packed = true];
+  repeated double sensor_prediction = 7 [packed = true];
+  repeated int32 sensor_mask = 8 [packed = true];
+  repeated double force_measurement = 9 [packed = true];
+  repeated double force_prediction = 10 [packed = true];
+  repeated double parameters = 11 [packed = true];
+  repeated double parameters_previous = 12 [packed = true];
 }
 
 message DataRequest {

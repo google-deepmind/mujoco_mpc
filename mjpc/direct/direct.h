@@ -16,7 +16,6 @@
 #define MJPC_DIRECT_OPTIMIZER_H_
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -161,7 +160,6 @@ class Direct {
   DirectTrajectory<double> acceleration;            // nv x T
   DirectTrajectory<double> act;                     // na x T
   DirectTrajectory<double> times;                   //  1 x T
-  DirectTrajectory<double> ctrl;                    // nu x T
   DirectTrajectory<double> sensor_measurement;      // ns x T
   DirectTrajectory<double> sensor_prediction;       // ns x T
   DirectTrajectory<int> sensor_mask;                // num_sensor x T

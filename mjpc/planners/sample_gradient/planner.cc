@@ -260,6 +260,15 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     winner = trajectory_order[0];
   }
 
+  // winner type
+  if (winner < idx_nominal) {
+    winner_type_ = kPerturb;
+  } else if (winner > idx_nominal) {
+    winner_type_ = kGradient;
+  } else {
+    winner_type_ = kNominal;
+  }
+
   // update
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
@@ -428,38 +437,25 @@ void SampleGradientPlanner::GradientRollouts(int num_parameters,
   // reset perturbation compute time
   noise_compute_time = 0.0;
 
-  // cost/reward mean + std
-  double rm = 0.0;
-  for (int i = 0; i < 2 * num_parameters + 1; i++) {
-    rm += trajectory[i].total_return;
-  }
-  double rstd = 0.0;
-  for (int i = 0; i < 2 * num_parameters + 1; i++) {
-    double d = trajectory[i].total_return - rm;
-    rstd += d * d;
-  }
-  rstd /= (2 * num_parameters);
-  rstd = mju_sqrt(std::max(rstd, div_tolerance));
-
   // -- compute gradient and diagonal Hessian -- //
   double scale2 = scale * scale;
-  double rc = (trajectory[2 * num_parameters].total_return - rm) / rstd; // nominal return
+  double r0 = trajectory[2 * num_parameters].total_return; // nominal return
 
   for (int i = 0; i < num_parameters; i++) {
-    double rp = (trajectory[i].total_return - rm) / rstd;
-    double rn = (trajectory[i + num_parameters].total_return - rm) / rstd;
+    double r1 = trajectory[i].total_return;
+    double r2 = trajectory[i + num_parameters].total_return;
     if (parameter_status[i] == kParameterLower) {
       // forward difference
-      gradient[i] = (-3 * rc + 4 * rp - rn) / (2 * scale);
-      hessian[i] = (rc - 2 * rp + rn) / scale2;
+      gradient[i] = (-3 * r0 + 4 * r1 - r2) / (2 * scale);
+      hessian[i] = (r0 - 2 * r1 + r2) / scale2;
     } else if (parameter_status[i] == kParameterUpper) {
       // backward difference
-      gradient[i] = (3 * rc - 4 * rp + rn) / (2 * scale); 
-      hessian[i] = (rn - 2 * rp + rc) / scale2;
+      gradient[i] = (3 * r0 - 4 * r1 + r2) / (2 * scale); 
+      hessian[i] = (r2 - 2 * r1 + r0) / scale2;
     } else { // == kParameterNominal
       // centered difference
-      gradient[i] = (rp - rn) / (2 * scale);
-      hessian[i] = (rp - 2 * rc + rn) / scale2;
+      gradient[i] = (r1 - r2) / (2 * scale);
+      hessian[i] = (r1 - 2 * r0 + r2) / scale2;
     }
   }
 
@@ -643,8 +639,16 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                        mju_log10(mju_max(improvement, 1.0e-6)), 100,
                        0 + planner_shift, 0, 1, -100);
 
+  // winner type
+  double winner_type =
+      winner_type_ == kPerturb ? -6.0 : (winner_type_ == kGradient ? 6.0 : 0.0);
+  mjpc::PlotUpdateData(fig_planner, planner_bounds,
+                       fig_planner->linedata[1 + planner_shift][0] + 1,
+                       winner_type, 100, 1 + planner_shift, 0, 1, -100);
+
   // legend
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improvement");
+  mju::strcpy_arr(fig_planner->linename[1 + planner_shift], "Perturb|Nominal|Gradient");
 
   fig_planner->range[1][0] = planner_bounds[0];
   fig_planner->range[1][1] = planner_bounds[1];
@@ -680,7 +684,7 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   mju::strcpy_arr(fig_timer->linename[3 + timer_shift], "Policy Update");
 
   // planner shift
-  shift[0] += 1;
+  shift[0] += 2;
 
   // timer shift
   shift[1] += 4;

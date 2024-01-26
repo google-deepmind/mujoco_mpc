@@ -125,7 +125,7 @@ class SampleGradientPlanner : public Planner {
   // improvement
   double improvement;
 
-  // winner
+  // winner index
   int winner = 0;
 
   // flags
@@ -154,7 +154,7 @@ class SampleGradientPlanner : public Planner {
   std::vector<double> slope;
 
   // ----- parameter status ----- //
-  enum ParameterStatus: int {
+  enum ParameterStatus : int {
     kParameterNominal = 0,
     kParameterLower,
     kParameterUpper,
@@ -166,6 +166,15 @@ class SampleGradientPlanner : public Planner {
 
   // nominal index
   int idx_nominal = 0; // set later to: 2 * num_parameter
+
+  // ----- winner type ----- //
+  enum WinnerType : int {
+    kNominal = 0,
+    kPerturb,
+    kGradient,
+  };
+
+  int winner_type_ = 0;
 };
 
 }  // namespace mjpc

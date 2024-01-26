@@ -344,6 +344,7 @@ class AgentTest(parameterized.TestCase):
       agent.set_mode("Walk")
       self.assertEqual(agent.get_mode(), "Walk")
 
+  @absltest.skip("asset import issue")
   def test_get_all_modes(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

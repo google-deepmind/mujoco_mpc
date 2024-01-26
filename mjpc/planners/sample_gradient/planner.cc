@@ -335,11 +335,9 @@ void SampleGradientPlanner::ResamplePolicy(int horizon) {
   mju_copy(resampled_policy.times.data(), times_scratch.data(),
            num_spline_points);
 
-  // time step power scaling
-  PowerSequence(resampled_policy.times.data(), time_shift,
-                resampled_policy.times[0],
-                resampled_policy.times[num_spline_points - 1], timestep_power,
-                num_spline_points);
+  // time step linear range
+  LinearRange(resampled_policy.times.data(), time_shift,
+              resampled_policy.times[0], num_spline_points);
 
   // representation
   resampled_policy.representation = policy.representation;

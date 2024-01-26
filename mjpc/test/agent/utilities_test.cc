@@ -234,23 +234,18 @@ TEST(UtilitiesTest, Clamp) {
   EXPECT_NEAR(x[2], 0.0, 1.0e-5);
 }
 
-TEST(UtilitiesTest, PowerSequence) {
-  // sequence
-  double sequence[4] = {0.2, 0.3, 0.4, 0.5};
+TEST(UtilitiesTest, LinearRange) {
+  double linear_sequence[4] = {0.2, 0.0, 0.0, 0.0};
   int length = 4;
   double step = 0.1;
 
-  // power
-  double power = 2.0;
-
-  // power sequence
-  PowerSequence(sequence, step, sequence[0], sequence[3], power, length);
+  LinearRange(linear_sequence, step, linear_sequence[0], length);
 
   // test
-  EXPECT_NEAR(sequence[0], 0.2, 1.0e-5);
-  EXPECT_NEAR(sequence[1], 0.27142857, 1.0e-5);
-  EXPECT_NEAR(sequence[2], 0.37142857, 1.0e-5);
-  EXPECT_NEAR(sequence[3], 0.5, 1.0e-5);
+  EXPECT_NEAR(linear_sequence[0], 0.2, 1.0e-5);
+  EXPECT_NEAR(linear_sequence[1], 0.3, 1.0e-5);
+  EXPECT_NEAR(linear_sequence[2], 0.4, 1.0e-5);
+  EXPECT_NEAR(linear_sequence[3], 0.5, 1.0e-5);
 }
 
 TEST(UtilitiesTest, FindInterval) {

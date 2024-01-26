@@ -14,18 +14,19 @@
 
 #include "mjpc/planners/cross_entropy/planner.h"
 
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <mutex>
 #include <shared_mutex>
 
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
-#include "mjpc/planners/policy.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -46,9 +47,6 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
 
   // task
   this->task = &task;
-
-  // rollout parameters
-  timestep_power = 1.0;
 
   // sampling noise
   std_initial_ =
@@ -138,7 +136,7 @@ void CrossEntropyPlanner::Reset(int horizon,
 
   // variance
   double var = std_initial_ * std_initial_;
-  fill(variance.begin(), variance.end(), var);
+  std::fill(variance.begin(), variance.end(), var);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -362,14 +360,8 @@ void CrossEntropyPlanner::ResamplePolicy(int horizon) {
   mju_copy(resampled_policy.times.data(), times_scratch.data(),
            num_spline_points);
 
-  // time step power scaling
-  PowerSequence(resampled_policy.times.data(), time_shift,
-                resampled_policy.times[0],
-                resampled_policy.times[num_spline_points - 1], timestep_power,
-                num_spline_points);
-
-  // representation
-  resampled_policy.representation = policy.representation;
+  LinearRange(resampled_policy.times.data(), time_shift,
+              resampled_policy.times[0], num_spline_points);
 }
 
 // add random noise to nominal policy
@@ -516,8 +508,6 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial_, "0 1"},
       {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min_, "0.01 0.5"},
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},

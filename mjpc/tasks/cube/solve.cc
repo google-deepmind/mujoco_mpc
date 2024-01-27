@@ -116,9 +116,9 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 24;
 
   // ---------- Residual (6) ----------
-  residual[counter++] = std::max(0, goal_index_) *
-                        12;  // each face has ~12 cost to unscramble based on
-                             // current weights, settings, etc.
+  residual[counter++] =
+      goal_index_ * 12;  // each face has ~12 cost to unscramble based on
+                         // current weights, settings, etc.
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);

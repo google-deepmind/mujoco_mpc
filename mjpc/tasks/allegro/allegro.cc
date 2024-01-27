@@ -60,7 +60,7 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   // penalty if the cube's y dimension is near edges
   if (cube_position[1] < -0.04 || cube_position[1] > 0.03) {
-    residual[counter + 1] *= 10.0;
+    residual[counter + 1] *= 5.0;
   }
 
   // penalty if the cube's z height is below the palm

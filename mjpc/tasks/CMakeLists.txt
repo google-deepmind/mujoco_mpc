@@ -44,6 +44,31 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/skydio_x2/assets
           ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/assets
+  ## Cube solve task
+  # copy cube model from MuJoCo
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${mujoco_SOURCE_DIR}/model/cube/cube_3x3x3.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
+  # copy cube assets from MuJoCo
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${mujoco_SOURCE_DIR}/model/cube/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
+  # modified cube model for task
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/cube/cube_3x3x3.xml.patch
+  # modified cube model to transition model for scramble mode
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/cube/transition_model.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/cube/transition_model.xml.patch
+  # copy hand model from Menagerie
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/right_hand.xml
+  # copy hand assets from Menagerie
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/shadow_hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/robotis_op3/op3.xml
           ${CMAKE_CURRENT_BINARY_DIR}/op3/op3.xml
@@ -66,4 +91,4 @@ add_custom_target(copy_resources ALL
 
 add_dependencies(copy_menagerie_resources copy_resources)
 
-add_dependencies(mjpc copy_menagerie_resources)
+add_dependencies(libmjpc copy_menagerie_resources)

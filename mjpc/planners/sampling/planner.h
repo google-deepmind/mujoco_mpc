@@ -31,8 +31,6 @@ namespace mjpc {
 // sampling planner limits
 inline constexpr int MinSamplingSplinePoints = 1;
 inline constexpr int MaxSamplingSplinePoints = 36;
-inline constexpr int MinSamplingSplinePower = 1;
-inline constexpr int MaxSamplingSplinePower = 5;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
 
@@ -91,6 +89,11 @@ class SamplingPlanner : public RankedPlanner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  };
+
   // optimizes policies, but rather than picking the best, generate up to
   // ncandidates. returns number of candidates created.
   int OptimizePolicyCandidates(int ncandidates, int horizon,
@@ -129,9 +132,6 @@ class SamplingPlanner : public RankedPlanner {
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
-
-  // rollout parameters
-  double timestep_power;
 
   // ----- noise ----- //
   double noise_exploration;  // standard deviation for sampling normal: N(0,

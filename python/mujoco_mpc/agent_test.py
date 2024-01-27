@@ -106,6 +106,20 @@ class AgentTest(parameterized.TestCase):
     self.assertFalse((observations == 0).all())
     self.assertFalse((actions == 0).all())
 
+  def test_env_initialized_to_home_keyframe(self):
+    model_path = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "mjpc/tasks/quadruped/task_flat.xml"
+    )
+    model = mujoco.MjModel.from_xml_path(str(model_path))
+
+    with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
+      state = agent.get_state()
+      # Validate that the first three components of the initial qpos are defined
+      # by the home keyframe.
+      home_qpos = np.array([0, 0, 0.26])
+      np.testing.assert_almost_equal(state.qpos[:home_qpos.shape[0]], home_qpos)
+
   @parameterized.parameters({"nominal": False}, {"nominal": True})
   def test_action_averaging_doesnt_change_state(self, nominal):
     # when calling get_action with action averaging, the Agent needs to roll
@@ -344,7 +358,7 @@ class AgentTest(parameterized.TestCase):
       )
 
   @absltest.skip("asset import issue")
-  def test_set_mode_error(self):#
+  def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
         / "mjpc/tasks/quadruped/task_flat.xml"

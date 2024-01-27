@@ -118,6 +118,11 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
   model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
   rollout_data_.reset(mj_makeData(model));
+  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+  if (home_id >= 0) {
+    mj_resetDataKeyframe(model, data_, home_id);
+    mj_resetDataKeyframe(model, rollout_data_.get(), home_id);
+  }
   mjcb_sensor = residual_sensor_callback;
 
   agent_.SetState(data_);

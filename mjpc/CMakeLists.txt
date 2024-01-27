@@ -42,6 +42,8 @@ add_library(
   tasks/allegro/allegro.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
+  tasks/cube/solve.cc
+  tasks/cube/solve.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
   tasks/hand/hand.cc

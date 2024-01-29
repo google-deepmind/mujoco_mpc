@@ -16,14 +16,14 @@
   </default>
 
   <custom>
-    <!-- agent 0 = Sampling, 5 = CEM, 6 = MPPI, 7 = DR Sampling-->
-    <numeric name="agent_planner" data="5" />
+    <!-- agent 0 = Sampling, 5 = CEM, 6 = MPPI, 7 = DR Sampling, 8 = DR MPPI, 9 = DR CEM -->
+    <numeric name="agent_planner" data="9" />
     <numeric name="agent_horizon" data="0.3" />
     <numeric name="agent_timestep" data="0.006" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="1" />
     <numeric name="sampling_exploration" data="0.4" />
-    <numeric name="sampling_trajectories" data="125" />
+    <numeric name="sampling_trajectories" data="25" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="1" />

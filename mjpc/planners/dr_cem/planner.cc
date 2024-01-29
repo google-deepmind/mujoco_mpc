@@ -55,19 +55,28 @@ void DRCEMPlanner::Initialize(mjModel* model, const Task& task) {
   std_min_ = GetNumberOrDefault(0.1, model, "std_min");  // minimum variance
 
   // set number of trajectories to rollout
-  num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  num_rollouts_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  
+  if (num_rollouts_ > kMaxRollouts) {
+    mju_error_i("Too many rollouts, %d is the maximum allowed.",
+                kMaxRollouts);
+  }
+
+  // set number of randomized models
+  num_randomized_models_ = GetNumberOrDefault(4, model, "num_randomized_models");
+
+  if (num_randomized_models_ > kMaxRandomizedModels) {
+    mju_error_i("Too many randomized models, %d is the maximum allowed.",
+                kMaxRandomizedModels);
+  }
 
   // set number of elite samples max(best 10%, 2)
   n_elite_ =
-      GetNumberOrDefault(std::max(num_trajectory_ / 10, 2), model, "n_elite");
+      GetNumberOrDefault(std::max(num_rollouts_ / 10, 2), model, "n_elite");
 
   // set the discount factor
   gamma_ = GetNumberOrDefault(1.0, model, "gamma");
 
-  if (num_trajectory_ > kMaxTrajectory) {
-    mju_error_i("Too many trajectories, %d is the maximum allowed.",
-                kMaxTrajectory);
-  }
 }
 
 // allocate memory
@@ -91,19 +100,19 @@ void DRCEMPlanner::Allocate() {
   times_scratch.resize(kMaxTrajectoryHorizon);
 
   // noise
-  noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
+  noise.resize(kMaxRollouts * (model->nu * kMaxTrajectoryHorizon));
 
   // variance
   variance.resize(model->nu * kMaxTrajectoryHorizon);  // (nu * horizon)
 
   // need to initialize an arbitrary order of the trajectories
-  trajectory_order.resize(kMaxTrajectory);
-  for (int i = 0; i < kMaxTrajectory; i++) {
-    trajectory_order[i] = i;
+  trajectory_order.reserve(num_rollouts_);
+  for (int i = 0; i < num_rollouts_; i++) {
+    trajectory_order.push_back(i);
   }
 
   // trajectories and parameters
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Initialize(num_state, model->nu, task->num_residual,
                              task->num_trace, kMaxTrajectoryHorizon, gamma_);
     trajectory[i].Allocate(kMaxTrajectoryHorizon);
@@ -142,7 +151,7 @@ void DRCEMPlanner::Reset(int horizon,
   std::fill(variance.begin(), variance.end(), var);
 
   // trajectory samples
-  for (int i = 0; i < kMaxTrajectory; i++) {
+  for (int i = 0; i < kMaxRollouts * kMaxRandomizedModels; i++) {
     trajectory[i].Reset(kMaxTrajectoryHorizon);
     candidate_policy[i].Reset(horizon);
   }
@@ -169,14 +178,14 @@ void DRCEMPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     NominalTrajectory(horizon, pool);
   }
 
-  // if num_trajectory_ has changed, use it in this new iteration.
-  // num_trajectory_ might change while this function runs. Keep it constant
-  // for the duration of this function.
-  int num_trajectory = num_trajectory_;
+  // if num_rollouts_ has changed, use it in this new iteration.
+  // num_rollouts_ might change while this function runs. Keep it constant
+  // for the duration of this function. Same thing for num_randomized_models_.
+  int num_rollouts = num_rollouts_;
+  int num_randomized_models = num_randomized_models_;
 
   // n_elite_ might change in the GUI - keep constant for in this function
-  n_elite_ = std::min(n_elite_, num_trajectory);
-  int n_elite = std::min(n_elite_, num_trajectory);
+  int n_elite = std::min(n_elite_, num_rollouts);
 
   // resize number of mjData
   ResizeMjData(model, pool.NumThreads());
@@ -196,18 +205,18 @@ void DRCEMPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // simulate noisy policies
-  this->Rollouts(num_trajectory, horizon, pool);
+  this->Rollouts(num_rollouts, num_randomized_models, horizon, pool);
 
   // sort candidate policies and trajectories by score
-  for (int i = 0; i < num_trajectory; i++) {
+  for (int i = 0; i < num_rollouts; i++) {
     trajectory_order[i] = i;
   }
 
   // sort so that the first ncandidates elements are the best candidates, and
   // the rest are in an unspecified order
   std::partial_sort(
-      trajectory_order.begin(), trajectory_order.begin() + num_trajectory,
-      trajectory_order.begin() + num_trajectory,
+      trajectory_order.begin(), trajectory_order.begin() + num_rollouts,  // TODO: should be n_elite??
+      trajectory_order.begin() + num_rollouts,
       [&trajectory = trajectory](int a, int b) {
         return trajectory[a].total_return < trajectory[b].total_return;
       });
@@ -407,7 +416,7 @@ void DRCEMPlanner::AddNoiseToPolicy(int i, double std_min) {
 }
 
 // compute candidate trajectories
-void DRCEMPlanner::Rollouts(int num_trajectory, int horizon,
+void DRCEMPlanner::Rollouts(int num_rollouts, int num_randomized_models, int horizon,
                                    ThreadPool& pool) {
   // reset noise compute time
   noise_compute_time = 0.0;
@@ -415,42 +424,75 @@ void DRCEMPlanner::Rollouts(int num_trajectory, int horizon,
   // lock std_min
   double std_min = std_min_;
 
-  // random search
+  policy.num_parameters = model->nu * policy.num_spline_points;
+
+  // compute num_rollouts random control tapes, storing each one in
+  // this->candidate_policy[i]. Additional copies of each tape are stored in
+  // this->candidate_policy[i + j*num_rollouts] for j=1,...,num_randomized_models
   int count_before = pool.GetCount();
-  for (int i = 0; i < num_trajectory; i++) {
-    pool.Schedule([&s = *this, &model = this->model, &task = this->task,
-                   &state = this->state, &time = this->time,
-                   &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   std_min, i]() {
-      // copy nominal policy and sample noise
+  for (int i = 0; i < num_rollouts; i++) {
+    pool.Schedule([&s = *this, i, num_rollouts, num_randomized_models, std_min]() {
+      // copy nominal policy
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
-        s.candidate_policy[i].CopyFrom(s.resampled_policy,
-                                       s.resampled_policy.num_spline_points);
-        s.candidate_policy[i].representation =
-            s.resampled_policy.representation;
-
-        // sample noise
-        s.AddNoiseToPolicy(i, std_min);
+        s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
+        s.candidate_policy[i].representation = s.policy.representation;
       }
 
-      // ----- rollout sample policy ----- //
+      // add random noise to the policy
+      if (i != 0) s.AddNoiseToPolicy(i, std_min);
 
-      // policy
-      auto sample_policy_i = [&candidate_policy = s.candidate_policy, &i](
-                                 double* action, const double* state,
-                                 double time) {
-        candidate_policy[i].Action(action, state, time);
-      };
-
-      // policy rollout
-      s.trajectory[i].Rollout(
-          sample_policy_i, task, model, s.data_[ThreadPool::WorkerId()].get(),
-          state.data(), time, mocap.data(), userdata.data(), horizon);
+      // make copies of the candidate policy for each randomized model
+      for (int j = 1; j < num_randomized_models; j++) {
+        int k = i + j * num_rollouts;
+        s.candidate_policy[k].CopyFrom(
+            s.candidate_policy[i], s.candidate_policy[i].num_spline_points);
+        s.candidate_policy[k].representation =
+            s.candidate_policy[i].representation;
+      }
     });
   }
-  pool.WaitCount(count_before + num_trajectory);
+  pool.WaitCount(count_before + num_rollouts);
   pool.ResetCount();
+  
+  // Roll out the control tapes across the randomized models. Tape i for model j
+  // is stored in this->trajectory[i + j*num_rollouts]. 
+  count_before = pool.GetCount();
+  for (int i=0; i < num_rollouts; i++) {
+    for (int j=0; j < num_randomized_models; j++) {
+      pool.Schedule([&s = *this, &model = this->model, &task = this->task,
+                    &state = this->state, &time = this->time,
+                    &mocap = this->mocap, &userdata = this->userdata, horizon,
+                    i, j, num_rollouts]()
+                    {
+        // policy helper function
+        int k = i + j * num_rollouts;
+        auto sample_policy = [&candidate_policy = s.candidate_policy, &k](
+                                  double* action, const double* state,
+                                  double time) {
+          candidate_policy[k].Action(action, state, time);
+        };
+
+        // policy rollout
+        s.trajectory[k].Rollout(
+            sample_policy, task, model, s.data_[ThreadPool::WorkerId()].get(),
+            state.data(), time, mocap.data(), userdata.data(), horizon); 
+      });
+    }
+  }
+  pool.WaitCount(count_before + num_rollouts*num_randomized_models);
+  pool.ResetCount();
+
+  // compute average trajectory costs across the randomized models, storing
+  // them in this->trajectory[i].total_return (the first time rollout i is used).
+  // Thus the first num_rollouts elements of this->trajectory are scored by
+  // average performance across the randomized models.
+  for (int i=0; i<num_rollouts; ++i) {
+    for (int j=1; j<num_randomized_models; ++j) {
+      trajectory[i].total_return += trajectory[i + j*num_rollouts].total_return;
+    }
+    trajectory[i].total_return /= num_randomized_models;
+  }
 }
 
 // returns the nominal trajectory (this is the purple trace)
@@ -508,7 +550,8 @@ void DRCEMPlanner::Traces(mjvScene* scn) {
 // planner-specific GUI elements
 void DRCEMPlanner::GUI(mjUI& ui) {
   mjuiDef defCrossEntropy[] = {
-      {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
+      {mjITEM_SLIDERINT, "Models", 2, &num_randomized_models_, "0 1"},
+      {mjITEM_SLIDERINT, "Rollouts", 2, &num_rollouts_, "0 1"},
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
@@ -517,15 +560,18 @@ void DRCEMPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},
       {mjITEM_END}};
 
+  // set number of models slider limits
+  mju::sprintf_arr(defCrossEntropy[0].other, "%i %i", 1, kMaxRandomizedModels);
+
   // set number of trajectory slider limits
-  mju::sprintf_arr(defCrossEntropy[0].other, "%i %i", 1, kMaxTrajectory);
+  mju::sprintf_arr(defCrossEntropy[1].other, "%i %i", 1, kMaxRollouts);
 
   // set spline point limits
-  mju::sprintf_arr(defCrossEntropy[2].other, "%i %i", MinSamplingSplinePoints,
+  mju::sprintf_arr(defCrossEntropy[3].other, "%i %i", MinSamplingSplinePoints,
                    MaxSamplingSplinePoints);
 
   // set noise standard deviation limits
-  mju::sprintf_arr(defCrossEntropy[3].other, "%f %f", MinNoiseStdDev,
+  mju::sprintf_arr(defCrossEntropy[4].other, "%f %f", MinNoiseStdDev,
                    MaxNoiseStdDev);
 
   // add cross entropy planner

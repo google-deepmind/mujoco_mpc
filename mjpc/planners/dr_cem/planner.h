@@ -21,7 +21,7 @@
 
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/planner.h"
-#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -69,7 +69,7 @@ class DRCEMPlanner : public Planner {
   void AddNoiseToPolicy(int i, double std_min);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+  void Rollouts(int num_rollouts, int num_randomized_models, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -93,6 +93,9 @@ class DRCEMPlanner : public Planner {
   mjModel* model;
   const Task* task;
 
+  // copies of models with randomized parameters
+  std::vector<mjModel*> randomized_models;
+
   // state
   std::vector<double> state;
   double time;
@@ -101,7 +104,7 @@ class DRCEMPlanner : public Planner {
 
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
-  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy candidate_policy[kMaxRollouts * kMaxTrajectory];
   SamplingPolicy resampled_policy;
   SamplingPolicy previous_policy;
 
@@ -110,7 +113,7 @@ class DRCEMPlanner : public Planner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectory[kMaxTrajectory];
+  Trajectory trajectory[kMaxRollouts * kMaxTrajectory];
   Trajectory elite_avg;
 
   // order of indices of rolled out trajectories, ordered by total return
@@ -137,7 +140,8 @@ class DRCEMPlanner : public Planner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
-  int num_trajectory_;
+  int num_rollouts_;
+  int num_randomized_models_;
   mutable std::shared_mutex mtx_;
 
   // discount factor

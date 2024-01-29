@@ -49,6 +49,18 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   // difference between the cube position and goal position
   mju_sub3(residual + counter, cube_position, cube_goal_position);
+
+  // extra penalty to stay inside the palm
+  if (cube_position[0] < -0.1 + 0.25 || cube_position[0] > 0.03 + 0.25) {
+    residual[counter] *= 5.0;
+  }
+  if (cube_position[1] < -0.04 || cube_position[1] > 0.03) {
+    residual[counter + 1] *= 5.0;
+  }
+  if (cube_position[2] < -0.03) {
+    residual[counter + 2] *= 5.0;
+  }
+
   counter += 3;
 
   // ---------- Cube orientation ----------

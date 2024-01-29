@@ -115,6 +115,11 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_copy(residual + counter, data->qvel + 97, 24);
   counter += 24;
 
+  // ---------- Residual (6) ----------
+  residual[counter++] =
+      goal_index_ * 12;  // each face has ~12 cost to unscramble based on
+                         // current weights, settings, etc.
+
   // sensor dim sanity check
   CheckSensorDim(model, counter);
 }
@@ -213,6 +218,11 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
     // reset cube velocity
     mju_zero(data->qvel, 6);
+  }
+
+  // check goal index
+  if (residual_.goal_index_ != goal_index_) {
+    residual_.goal_index_ = goal_index_;
   }
 
   // check for mode change

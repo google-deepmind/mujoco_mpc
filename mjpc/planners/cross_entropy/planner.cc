@@ -241,7 +241,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy first elite trajectory
   mju_copy(elite_avg.actions.data(), trajectory[idx].actions.data(),
            model->nu * (horizon - 1));
-  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(), 3 * horizon);
+  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(),
+           trajectory[idx].dim_trace * horizon);
   mju_copy(elite_avg.residual.data(), trajectory[idx].residual.data(),
            elite_avg.dim_residual * horizon);
   mju_copy(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -260,7 +261,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     mju_addTo(elite_avg.actions.data(), trajectory[idx].actions.data(),
               model->nu * (horizon - 1));
     mju_addTo(elite_avg.trace.data(), trajectory[idx].trace.data(),
-              3 * horizon);
+              trajectory[idx].dim_trace * horizon);
     mju_addTo(elite_avg.residual.data(), trajectory[idx].residual.data(),
               elite_avg.dim_residual * horizon);
     mju_addTo(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -273,7 +274,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite,
           model->nu * (horizon - 1));
   mju_scl(elite_avg.trace.data(), elite_avg.trace.data(), 1.0 / n_elite,
-          3 * horizon);
+          elite_avg.dim_trace * horizon);
   mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite,
           elite_avg.dim_residual * horizon);
   mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite,

@@ -508,12 +508,14 @@ void DRMPPIPlanner::GUI(mjUI& ui) {
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_SLIDERNUM, "lambda", 2, &lambda, "0 1"},
       {mjITEM_SELECT, "Langevin", 2, &langevin, "Off\nOn"},
       {mjITEM_END}};
 
-  // set number of trajectory slider limits
+  // set number of randomized models limits
   mju::sprintf_arr(defMPPI[0].other, "%i %i", 1, kMaxRandomizedModels);
 
+  // set number of trajectory slider limits
   mju::sprintf_arr(defMPPI[1].other, "%i %i", 1, kMaxTrajectory);
 
   // set spline point limits
@@ -522,6 +524,9 @@ void DRMPPIPlanner::GUI(mjUI& ui) {
 
   // set noise standard deviation limits
   mju::sprintf_arr(defMPPI[4].other, "%f %f", MinNoiseStdDev, MaxNoiseStdDev);
+
+  // set lambda limits
+  mju::sprintf_arr(defMPPI[5].other, "%f %f", 0.001, 5.0);
 
   // add sampling planner
   mjui_add(&ui, defMPPI);

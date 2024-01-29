@@ -123,9 +123,6 @@ class GradientPlanner : public Planner {
   Trajectory trajectory[kMaxTrajectory];
   int num_trajectory;
 
-  // rollout parameters
-  double timestep_power;
-
   // model derivatives
   ModelDerivatives model_derivative;
 

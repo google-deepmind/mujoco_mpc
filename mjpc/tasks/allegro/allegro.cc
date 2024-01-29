@@ -328,9 +328,10 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
   absl::BitGen gen_;
 
   // Standard deviations of the things we're randomizing
-  const double friction_std_dev = 0.1;  // friction coefficient
-  const double act_gain_std_dev = 0.1;  // actuator gain
-  const double cube_size_std_dev = 0.003;  // cube size (edge length)
+  const double friction_std_dev = 0.0;  // friction coefficient
+  const double act_gain_std_dev = 0.0;  // actuator gain
+  const double cube_size_std_dev = 0.0;  // cube size (edge length)
+  const double cube_pos_std_dev = 0.01;  // cube position
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
@@ -373,6 +374,22 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
     model->geom_size[cube_geom_id + 2] += std::max(0.0, original_size+cube_size_change);
 
     std::cout << "Cube size in model " << i << " boosted by " << cube_size_change << std::endl;
+  }
+
+  // The cube is in a different position
+  const int cube_body_id = mj_name2id(randomized_models[0], mjOBJ_BODY, "cube");
+  for (int i=0; i < randomized_models.size(); ++i) {
+    mjModel* model = randomized_models[i];
+
+    const double cube_dx = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
+    const double cube_dy = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
+    const double cube_dz = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
+
+    model->body_pos[3*cube_body_id] += cube_dx;
+    model->body_pos[3*cube_body_id + 1] += cube_dy;
+    model->body_pos[3*cube_body_id + 2] += cube_dz;
+
+    std::cout << "Cube position in model " << i << " changed by (" << cube_dx << ", " << cube_dy << ", " << cube_dz << ")" << std::endl;
   }
 }
 

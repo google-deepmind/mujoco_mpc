@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_SAMPLING_PLANNER_H_
-#define MJPC_PLANNERS_SAMPLING_PLANNER_H_
+#ifndef MJPC_PLANNERS_DRMPPI_PLANNER_H_
+#define MJPC_PLANNERS_DRMPPI_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
@@ -22,27 +22,19 @@
 #include <vector>
 
 #include "mjpc/planners/planner.h"
-#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
 
-// sampling planner limits
-inline constexpr int MinSamplingSplinePoints = 1;
-inline constexpr int MaxSamplingSplinePoints = 36;
-inline constexpr double MinNoiseStdDev = 0.0;
-inline constexpr double MaxNoiseStdDev = 1.0;
-inline constexpr int kMaxRandomizedModels = 10;   // [HACK] for domain randomization
-inline constexpr int kMaxRollouts = 128;
-
-class SamplingPlanner : public RankedPlanner {
+class DRMPPIPlanner : public RankedPlanner {
  public:
   // constructor
-  SamplingPlanner() = default;
+  DRMPPIPlanner() = default;
 
   // destructor
-  ~SamplingPlanner() override = default;
+  ~DRMPPIPlanner() override = default;
 
   // ----- methods ----- //
 
@@ -66,8 +58,8 @@ class SamplingPlanner : public RankedPlanner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
-  void ActionFromPolicy(double* action, const double* state,
-                        double time, bool use_previous = false) override;
+  void ActionFromPolicy(double* action, const double* state, double time,
+                        bool use_previous = false) override;
 
   // resample nominal policy
   void UpdateNominalPolicy(int horizon);
@@ -76,7 +68,7 @@ class SamplingPlanner : public RankedPlanner {
   void AddNoiseToPolicy(int i);
 
   // compute candidate trajectories
-  void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
+  void Rollouts(int num_rollouts, int num_randomized_models, int horizon, ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -113,6 +105,9 @@ class SamplingPlanner : public RankedPlanner {
   // ----- members ----- //
   mjModel* model;
   const Task* task;
+  
+  // copies of model with randomized parameters
+  std::vector<mjModel*> randomized_models;
 
   // state
   std::vector<double> state;
@@ -122,7 +117,7 @@ class SamplingPlanner : public RankedPlanner {
 
   // policy
   SamplingPolicy policy;  // (Guarded by mtx_)
-  SamplingPolicy candidate_policy[kMaxTrajectory];
+  SamplingPolicy candidate_policy[kMaxRollouts*kMaxTrajectory];
   SamplingPolicy previous_policy;
 
   // scratch
@@ -130,18 +125,18 @@ class SamplingPlanner : public RankedPlanner {
   std::vector<double> times_scratch;
 
   // trajectories
-  Trajectory trajectory[kMaxTrajectory];
+  Trajectory trajectory[kMaxRollouts*kMaxTrajectory];
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
+
+  // rollout parameters
+  double timestep_power;
 
   // ----- noise ----- //
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;
-
-  // best trajectory
-  int winner;
 
   // improvement
   double improvement;
@@ -154,10 +149,26 @@ class SamplingPlanner : public RankedPlanner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
-  int num_trajectory_;
+  // best trajectory
+  int winner;
+
+  // mppi
+  double lambda;                   // the temp of the energy-based model
+  std::vector<double> weight_vec;  // MPPI weights
+  double denom;                    // sum of weight_vec
+  double temp_weight;              // temp variable for storing weights
+
+  bool langevin;  // whether to use langevin update
+  enum LangevinRepresentation : bool {
+    kLangevinOff,
+    kLangevinOn,
+  };
+
+  int num_rollouts_;
+  int num_randomized_models_;
   mutable std::shared_mutex mtx_;
 };
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_SAMPLING_PLANNER_H_
+#endif  // MJPC_PLANNERS_DRMPPI_PLANNER_H_

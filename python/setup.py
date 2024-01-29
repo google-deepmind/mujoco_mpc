@@ -207,7 +207,7 @@ class BuildCMakeExtension(build_ext.build_ext):
   def _configure_and_build_agent_server(self):
     """Check for CMake."""
     cmake_command = "cmake"
-    build_cfg = "Debug"
+    build_cfg = "Release"
     mujoco_mpc_root = Path(__file__).parent.parent
     mujoco_mpc_build_dir = mujoco_mpc_root / "build"
     cmake_configure_args = [
@@ -305,6 +305,9 @@ setuptools.setup(
             "mjpc/agent_server",
             "mjpc/ui_agent_server",
             "mjpc/tasks/**/*.xml",
+            "mjpc/tasks/**/*.png",
+            "mjpc/tasks/**/*.stl",
+            "mjpc/tasks/**/*.obj",
         ],
     },
 )

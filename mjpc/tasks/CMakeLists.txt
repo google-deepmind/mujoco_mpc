@@ -27,6 +27,9 @@ add_custom_target(
           ${CMAKE_CURRENT_BINARY_DIR}/allegro/right_hand.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/allegro/right_hand.xml.patch
   COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/wonik_allegro/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/allegro/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory

@@ -436,6 +436,10 @@ void SampleGradientPlanner::GradientRollouts(int num_parameters,
   noise_compute_time = 0.0;
 
   // -- compute gradient and diagonal Hessian -- //
+  // https://personal.math.ubc.ca/~jfeng/CHBE553/Example7/Formulae.pdf
+  // r0 = r_i
+  // r1 = r_{i-1} or r_{i+1}
+  // r2 = r_{i-2} or r_{i+2}
   double scale2 = scale * scale;
   double r0 = trajectory[2 * num_parameters].total_return; // nominal return
 

@@ -14,10 +14,10 @@
 
 #include <string>
 
-#include "base/init_google.h"
+#include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
 
-#include "third_party/mujoco_mpc/mjpc/testspeed.h"
+#include "mjpc/testspeed.h"
 #include "mjpc/utilities.h"
 
 ABSL_FLAG(std::string, task, "Cube Solving", "Which model to load on startup.");
@@ -28,7 +28,7 @@ ABSL_FLAG(int, steps_per_planning_iteration, 4,
 ABSL_FLAG(double, total_time, 10, "Total time to simulate (seconds).");
 
 int main(int argc, char** argv) {
-  InitGoogle(argv[0], &argc, &argv, true);
+  absl::ParseCommandLine(argc, argv);
   std::string task_name = absl::GetFlag(FLAGS_task);
   int planner_thread_count = absl::GetFlag(FLAGS_planner_thread);
   int steps_per_planning_iteration =

@@ -15,6 +15,9 @@
 #ifndef MJPC_TASKS_CUBE_SOLVE_H_
 #define MJPC_TASKS_CUBE_SOLVE_H_
 
+#include <algorithm>
+#include <memory>
+#include <vector>
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -29,51 +32,37 @@ class CubeSolve : public Task {
 
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const CubeSolve* task, int current_mode = 0)
-        : BaseResidualFn(task), current_mode_(current_mode) {}
+    explicit ResidualFn(const CubeSolve* task, int current_mode = 0,
+                        int goal_index = 0)
+        : BaseResidualFn(task),
+          current_mode_(current_mode),
+          goal_index_(goal_index) {}
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
 
    private:
     friend class CubeSolve;
     int current_mode_ = 0;
+    int goal_index_ = 0;
   };
 
-  CubeSolve() : residual_(this) {
-    // path to transition model xml
-    std::string path = GetModelPath("cube/transition_model.xml");
+  CubeSolve();
+  ~CubeSolve();
 
-    // load transition model
-    constexpr int kErrorLength = 1024;
-    char load_error[kErrorLength] = "";
-    transition_model_ =
-        mj_loadXML(path.c_str(), nullptr, load_error, kErrorLength);
-    transition_data_ = mj_makeData(transition_model_);
-
-    // goal cache
-    goal_cache_.resize(6 * 10);
-    std::fill(goal_cache_.begin(), goal_cache_.end(), 0.0);
-  }
-  ~CubeSolve() {
-    if (transition_data_) mj_deleteData(transition_data_);
-    if (transition_model_) mj_deleteModel(transition_model_);
-  }
   void TransitionLocked(mjModel* model, mjData* data) override;
 
   // modes
   enum CubeSolveMode {
-    kModeWait = 0,
-    kModeManual,
-    kModeScramble,
+    kModeScramble = 0,
     kModeSolve,
+    kModeWait,
+    kModeManual,
   };
-
-  // ----- constants ----- //
-  constexpr static double kResetHeight = -0.1;  // cube height to reset
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
-    return std::make_unique<ResidualFn>(this, residual_.current_mode_);
+    return std::make_unique<ResidualFn>(this, residual_.current_mode_,
+                                        residual_.goal_index_);
   }
   ResidualFn* InternalResidual() override { return &residual_; }
 

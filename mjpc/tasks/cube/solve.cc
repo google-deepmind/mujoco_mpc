@@ -15,6 +15,7 @@
 #include "mjpc/tasks/cube/solve.h"
 
 #include <algorithm>
+#include <iostream>
 #include <random>
 #include <string>
 
@@ -131,6 +132,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
   if (transition_model_) {
     if (mode == kModeWait) {
+      weight[11] = .01;  // add penalty on joint movement
       // wait
     } else if (mode == kModeScramble) {  // scramble
       double scramble_param = parameters[6];
@@ -190,9 +192,11 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
       // set face goal index
       goal_index_ = num_scramble - 1;
+      std::cout << "rotations required: " << num_scramble << "\n";
 
       // set to solve
       mode = kModeSolve;
+      weight[11] = 0;  // remove penalty on joint movement
     } else if (mode == kModeSolve) {  // solve
       // set goal
       mju_copy(parameters.data(), goal_cache_.data() + 6 * goal_index_, 6);
@@ -204,7 +208,9 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
       if (mju_norm(error, 6) < 0.085) {
         if (goal_index_ == 0) {
           mode = kModeWait;
+          std::cout << "solved!\n";
         } else {
+          std::cout << "rotations remaining: " << goal_index_ << "\n";
           goal_index_--;
         }
       }
@@ -213,11 +219,10 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
   // check for drop
   if (data->qpos[6] < kResetHeight) {
-    // reset cube position + orientation
-    mju_copy(data->qpos, model->key_qpos, 7);
+    if (mode != kModeWait) { std::cout << "cube fell\n"; }
 
-    // reset cube velocity
-    mju_zero(data->qvel, 6);
+    // stop optimization
+    mode = kModeWait;
   }
 
   // check goal index

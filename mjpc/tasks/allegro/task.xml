@@ -91,6 +91,7 @@
     <user name="Actuation" dim="16" user="0 0 0.0 10" />
     <user name="Grasp" dim="16" user="0 0.0 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />
+    <user name="Fingertip Pos" dim="12" user="0 0.0 0.0 100" />
 
     <!-- Measurements we want to use -->
     <framepos name="cube_goal_position" objtype="site" objname="grasp_site"/>

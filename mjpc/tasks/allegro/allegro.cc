@@ -91,6 +91,23 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_copy(residual + counter, data->qvel + 6, 16);
   counter += 16;
 
+  // ---------- Relative position of the fingertips and the cube ----------
+  double *rf_position = SensorByName(model, data, "trace1");
+  mju_sub3(residual + counter, cube_position, rf_position);
+  counter += 3;
+
+  double *ff_position = SensorByName(model, data, "trace2");
+  mju_sub3(residual + counter, cube_position, ff_position);
+  counter += 3;
+
+  double *mf_position = SensorByName(model, data, "trace3");
+  mju_sub3(residual + counter, cube_position, mf_position);
+  counter += 3;
+
+  double *th_position = SensorByName(model, data, "trace4");
+  mju_sub3(residual + counter, cube_position, th_position);
+  counter += 3;
+
   // Sanity check
   CheckSensorDim(model, counter);
 }

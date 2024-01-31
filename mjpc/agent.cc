@@ -78,7 +78,7 @@ void Agent::Initialize(const mjModel* model) {
   for (int i = 0; i < model_->nu; i++) {
     if (!model_->actuator_ctrllimited[i]) {
       num_missing++;
-      printf("Actuator %s (%i) missing limits\n",
+      printf("%s (actuator %i) missing limits\n",
              model_->names + model_->name_actuatoradr[i], i);
     }
   }

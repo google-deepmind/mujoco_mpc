@@ -357,10 +357,10 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
   absl::BitGen gen_;
 
   // Standard deviations of the things we're randomizing
-  const double friction_std_dev = 0.0;  // friction coefficient
-  const double act_gain_std_dev = 0.0;  // actuator gain
-  const double cube_size_std_dev = 0.000;  // cube size (edge length)
-  const double cube_pos_shift = 0.005;  // cube position
+  const double friction_std_dev = 0.05;  // friction coefficient
+  const double act_gain_std_dev = 0.01;  // actuator gain
+  const double cube_size_std_dev = 0.001;  // cube size (edge length)
+  const double cube_pos_std_dev = 0.001;  // cube position
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
@@ -409,28 +409,26 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
   // deterministic amount. The first model is unchanged.
   const int cube_body_id = mj_name2id(randomized_models[0], mjOBJ_BODY, "cube");
 
-  randomized_models[1]->body_pos[3*cube_body_id] += cube_pos_shift;
-  randomized_models[2]->body_pos[3*cube_body_id + 1] += cube_pos_shift;
-  randomized_models[3]->body_pos[3*cube_body_id + 2] += cube_pos_shift;
-  randomized_models[4]->body_pos[3*cube_body_id] -= cube_pos_shift;
-  randomized_models[5]->body_pos[3*cube_body_id + 1] -= cube_pos_shift;
-  randomized_models[6]->body_pos[3*cube_body_id + 2] -= cube_pos_shift;
+  //randomized_models[1]->body_pos[3*cube_body_id] += cube_pos_shift;
+  //randomized_models[2]->body_pos[3*cube_body_id + 1] += cube_pos_shift;
+  //randomized_models[3]->body_pos[3*cube_body_id + 2] += cube_pos_shift;
+  //randomized_models[4]->body_pos[3*cube_body_id] -= cube_pos_shift;
+  //randomized_models[5]->body_pos[3*cube_body_id + 1] -= cube_pos_shift;
+  //randomized_models[6]->body_pos[3*cube_body_id + 2] -= cube_pos_shift;
 
+  for (int i=0; i < randomized_models.size(); ++i) {
+    mjModel* model = randomized_models[i];
 
+    const double cube_dx = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
+    const double cube_dy = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
+    const double cube_dz = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
 
-  //for (int i=0; i < randomized_models.size(); ++i) {
-  //  mjModel* model = randomized_models[i];
+    model->body_pos[3*cube_body_id] += cube_dx;
+    model->body_pos[3*cube_body_id + 1] += cube_dy;
+    model->body_pos[3*cube_body_id + 2] += cube_dz;
 
-  //  const double cube_dx = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
-  //  const double cube_dy = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
-  //  const double cube_dz = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
-
-  //  model->body_pos[3*cube_body_id] += cube_dx;
-  //  model->body_pos[3*cube_body_id + 1] += cube_dy;
-  //  model->body_pos[3*cube_body_id + 2] += cube_dz;
-
-  //  std::cout << "Cube position in model " << i << " changed by (" << cube_dx << ", " << cube_dy << ", " << cube_dz << ")" << std::endl;
-  //}
+    std::cout << "Cube position in model " << i << " changed by (" << cube_dx << ", " << cube_dy << ", " << cube_dz << ")" << std::endl;
+  }
 }
 
 }  // namespace mjpc

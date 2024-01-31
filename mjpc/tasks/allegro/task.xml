@@ -27,13 +27,14 @@
     <numeric name="sampling_representation" data="2" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="1" />
+    <numeric name="task_risk" data="0.5" />
 
     <!-- trajectory -->
     <numeric name="gamma" data="1.0" />
 
     <!-- cem -->
     <numeric name="n_elite" data="3" />
-    <numeric name="std_min" data="0.2" />
+    <numeric name="std_min" data="0.4" />
 
     <!-- mppi -->
     <numeric name="langevin" data="0" />
@@ -43,11 +44,11 @@
     <numeric name="num_randomized_models" data="5" />
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.00 0.0 0.4"/>
-    <numeric name="residual_Cube Pos Noise" data="0.000 0.0 0.01"/>
-    <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
-    <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
-    <numeric name="residual_Cube Pos Z Bias" data="-0.000 -0.02 0.02"/>
+    <numeric name="residual_Cube Rot Noise" data="0.03 0.0 0.4"/>
+    <numeric name="residual_Cube Pos Noise" data="0.001 0.0 0.01"/>
+    <numeric name="residual_Cube Pos X Bias" data="-0.005 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Y Bias" data="-0.005 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Z Bias" data="-0.005 -0.02 0.02"/>
 
     <!-- [dirty] counters -->
     <numeric name="residual_Curr # Rots" data="0 0 1000000"/>

@@ -360,7 +360,7 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
   const double friction_std_dev = 0.05;  // friction coefficient
   const double act_gain_std_dev = 0.01;  // actuator gain
   const double cube_size_std_dev = 0.001;  // cube size (edge length)
-  const double cube_pos_std_dev = 0.001;  // cube position
+  const double cube_pos_std_dev = 0.0;  // cube position
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.

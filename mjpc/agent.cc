@@ -73,6 +73,13 @@ void Agent::Initialize(const mjModel* model) {
   if (model_) mj_deleteModel(model_);
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
+  // check for limits on all actuators
+  for (int i = 0; i < model_->nu; i++) {
+    if (!model_->actuator_ctrllimited[i]) {
+      mju_error("Model is missing ctrl limits on at least one actuator.\n");
+    }
+  }
+
   // planner
   planner_ = GetNumberOrDefault(0, model, "agent_planner");
 

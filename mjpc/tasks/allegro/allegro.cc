@@ -356,15 +356,14 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
     const {
   absl::BitGen gen_;
 
-  // Standard deviations of the things we're randomizing
-  const double friction_std_dev = 0.00;  // friction coefficient
-  const double act_gain_std_dev = 0.00;  // actuator gain
-  const double cube_size_std_dev = 0.000;  // cube size (edge length)
-  const double cube_pos_std_dev = 0.005;  // cube position
+  // Standard deviations are set by slider parameters
+  double friction_std_dev = parameters[10];
+  double act_gain_std_dev = parameters[11];
+  double cube_pos_std_dev = parameters[12];
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
-  for (int i=0; i < randomized_models.size(); i++) {
+  for (int i=1; i < randomized_models.size(); i++) {
     mjModel* model = randomized_models[i];
 
     const double friction_change = absl::Gaussian<double>(gen_, 0.0, friction_std_dev);
@@ -372,12 +371,10 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
       model->geom_friction[j] += friction_change;
       model->geom_friction[j] = std::max(model->geom_friction[j], 0.0);
     }
-
-    std::cout << "Friction coefficients in model " << i << " boosted by " << friction_change << std::endl;
   }
 
   // Each model has different acutator gains
-  for (int i=0; i < randomized_models.size(); i++) {
+  for (int i=1; i < randomized_models.size(); i++) {
     mjModel* model = randomized_models[i];
 
     const double act_gain_change = absl::Gaussian<double>(gen_, 0.0, act_gain_std_dev);
@@ -385,38 +382,12 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
       model->actuator_gainprm[2*j] += act_gain_change;
       model->actuator_gainprm[2*j] = std::max(model->actuator_gainprm[2*j], 0.01);
     }
-
-    std::cout << "Actuator gains in model " << i << " boosted by " << act_gain_change << std::endl;
   }
 
-  // The cube has a different size
-  int cube_geom_id = mj_name2id(randomized_models[0], mjOBJ_GEOM, "cube") + 4;
-  // N.B. verified the geom id by printing the cube size and modifying in XML,
-  // not sure why we need the + 4.
-  for (int i=0; i < randomized_models.size(); ++i) {
-    mjModel* model = randomized_models[i];
-
-    const double cube_size_change = absl::Gaussian<double>(gen_, 0.0, cube_size_std_dev);
-    const double original_size = 0.03;
-    model->geom_size[cube_geom_id] = std::max(0.0, original_size+cube_size_change);
-    model->geom_size[cube_geom_id + 1] += std::max(0.0, original_size+cube_size_change);
-    model->geom_size[cube_geom_id + 2] += std::max(0.0, original_size+cube_size_change);
-
-    std::cout << "Cube size in model " << i << " boosted by " << cube_size_change << std::endl;
-  }
-
-  // The cube is in a different position. Each model has one axis moved by a
-  // deterministic amount. The first model is unchanged.
+  // The cube is in a different position in each model
   const int cube_body_id = mj_name2id(randomized_models[0], mjOBJ_BODY, "cube");
 
-  //randomized_models[1]->body_pos[3*cube_body_id] += cube_pos_shift;
-  //randomized_models[2]->body_pos[3*cube_body_id + 1] += cube_pos_shift;
-  //randomized_models[3]->body_pos[3*cube_body_id + 2] += cube_pos_shift;
-  //randomized_models[4]->body_pos[3*cube_body_id] -= cube_pos_shift;
-  //randomized_models[5]->body_pos[3*cube_body_id + 1] -= cube_pos_shift;
-  //randomized_models[6]->body_pos[3*cube_body_id + 2] -= cube_pos_shift;
-
-  for (int i=0; i < randomized_models.size(); ++i) {
+  for (int i=1; i < randomized_models.size(); ++i) {
     mjModel* model = randomized_models[i];
 
     const double cube_dx = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
@@ -427,7 +398,6 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
     model->body_pos[3*cube_body_id + 1] += cube_dy;
     model->body_pos[3*cube_body_id + 2] += cube_dz;
 
-    std::cout << "Cube position in model " << i << " changed by (" << cube_dx << ", " << cube_dy << ", " << cube_dz << ")" << std::endl;
   }
 }
 

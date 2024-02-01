@@ -77,6 +77,13 @@ void DRCEMPlanner::Initialize(mjModel* model, const Task& task) {
   // set the discount factor
   gamma_ = GetNumberOrDefault(1.0, model, "gamma");
 
+  // add extra models for domain randomization
+  randomized_models.resize(kMaxRandomizedModels);
+  for (int i = 0; i < kMaxRandomizedModels; i++) {
+    randomized_models[i] = mj_copyModel(nullptr, model);
+  }
+  task.DomainRandomize(randomized_models);
+
 }
 
 // allocate memory
@@ -199,6 +206,9 @@ void DRCEMPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // resample nominal policy to current time
   this->ResamplePolicy(horizon);
+
+  // Get new domain randomization parameters 
+  task->DomainRandomize(randomized_models);
 
   // ----- rollout noisy policies ----- //
   // start timer

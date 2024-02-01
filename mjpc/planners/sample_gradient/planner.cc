@@ -475,12 +475,19 @@ const Trajectory* SampleGradientPlanner::BestTrajectory() {
 
 // visualize planner-specific traces
 void SampleGradientPlanner::Traces(mjvScene* scn) {
-  // sample color
-  float color[4];
-  color[0] = 1.0;
-  color[1] = 1.0;
-  color[2] = 1.0;
-  color[3] = 1.0;
+  // noisy sample: white
+  float white[4];
+  white[0] = 1.0;
+  white[1] = 1.0;
+  white[2] = 1.0;
+  white[3] = 1.0;
+
+  // gradient sample: orange
+  float orange[4];
+  orange[0] = 1.0;
+  orange[1] = 0.5;
+  orange[2] = 0.0;
+  orange[3] = 1.0;
 
   // width of a sample trace, in pixels
   double width = GetNumberOrDefault(3, model, "agent_sample_width");
@@ -494,6 +501,8 @@ void SampleGradientPlanner::Traces(mjvScene* scn) {
 
   // check sizes
   int num_trajectory = num_trajectory_;
+  int num_gradient = num_gradient_;
+  int num_noisy = num_trajectory - num_gradient;
 
   // traces between Newton and Cauchy points
   for (int k = 1; k < num_trajectory; k++) {
@@ -501,19 +510,22 @@ void SampleGradientPlanner::Traces(mjvScene* scn) {
     for (int i = 0; i < best->horizon - 1; i++) {
       if (scn->ngeom + task->num_trace > scn->maxgeom) break;
       for (int j = 0; j < task->num_trace; j++) {
+        // index
+        int idx = trajectory_order[k];
+
         // initialize geometry
         mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_LINE, zero3, zero3, zero9,
-                     color);
+                     idx < num_noisy ? white : orange);
 
         // make geometry
         mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectory[k].trace[3 * task->num_trace * i + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
-            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
+            trajectory[idx].trace[3 * task->num_trace * i + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
         // increment number of geometries
         scn->ngeom += 1;

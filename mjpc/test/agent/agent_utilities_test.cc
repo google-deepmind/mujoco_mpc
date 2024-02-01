@@ -234,25 +234,6 @@ TEST(AgentUtilitiesTest, Clamp) {
   EXPECT_NEAR(x[2], 0.0, 1.0e-5);
 }
 
-TEST(AgentUtilitiesTest, PowerSequence) {
-  // sequence
-  double sequence[4] = {0.2, 0.3, 0.4, 0.5};
-  int length = 4;
-  double step = 0.1;
-
-  // power
-  double power = 2.0;
-
-  // power sequence
-  PowerSequence(sequence, step, sequence[0], sequence[3], power, length);
-
-  // test
-  EXPECT_NEAR(sequence[0], 0.2, 1.0e-5);
-  EXPECT_NEAR(sequence[1], 0.27142857, 1.0e-5);
-  EXPECT_NEAR(sequence[2], 0.37142857, 1.0e-5);
-  EXPECT_NEAR(sequence[3], 0.5, 1.0e-5);
-}
-
 TEST(AgentUtilitiesTest, FindInterval) {
   // sequence
   std::vector<double> sequence{-1.0, 0.0, 1.0, 2.0};

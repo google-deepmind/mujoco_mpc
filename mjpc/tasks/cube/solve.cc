@@ -109,11 +109,17 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 6;
 
   // ---------- Residual (4) ----------
+
+  // The unmodified cube model has 20 ball joints: nq=86, nv=66.
+  // The patch adds a free joint: nq=93, nv=72.
+  // The task adds a ball joint: nq=97, nv=75.
+  // The shadow hand has 24 DoFs: nq=121, nv=99.
+  // The following two residuals apply for the last 24 entries of qpos and qvel:
   mju_sub(residual + counter, data->qpos + 97, model->key_qpos + 97, 24);
   counter += 24;
 
   // ---------- Residual (5) ----------
-  mju_copy(residual + counter, data->qvel + 97, 24);
+  mju_copy(residual + counter, data->qvel + 75, 24);
   counter += 24;
 
   // ---------- Residual (6) ----------

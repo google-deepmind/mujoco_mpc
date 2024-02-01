@@ -65,12 +65,16 @@ class SampleGradientPlanner : public Planner {
   // resample nominal policy
   void ResamplePolicy(int horizon);
 
-  // compute candidate trajectories for perturbations
-  void PerturbationRollouts(int num_parameters, int horizon, ThreadPool& pool);
+  // add noise to nominal policy
+  void AddNoiseToPolicy(int i);
 
-  // compute candidate trajectories for gradients between Newton and Cauchy
-  // points
-  void GradientRollouts(int num_parameters, int num_trajectory, int horizon, ThreadPool& pool);
+  // rollout candidate policies
+  void Rollouts(int num_trajectory, int num_gradient, int horizon,
+                ThreadPool& pool);
+
+  // compute candidate trajectories along approximate gradient direction
+  void GradientCandidates(int num_trajectory, int num_gradient, int horizon,
+                          ThreadPool& pool);
 
   // return trajectory with best total return
   const Trajectory* BestTrajectory() override;
@@ -119,8 +123,9 @@ class SampleGradientPlanner : public Planner {
   // rollout parameters
   double timestep_power;
 
-  // perturbation scale
-  double scale;
+  // zero-mean Gaussian noise standard deviation
+  double noise_exploration;
+  std::vector<double> noise;
 
   // improvement
   double improvement;
@@ -133,39 +138,23 @@ class SampleGradientPlanner : public Planner {
 
   // timing
   std::atomic<double> noise_compute_time;
-  double perturb_rollouts_compute_time;
-  double gradient_rollouts_compute_time;
+  double rollouts_compute_time;
+  double gradient_candidates_compute_time;
   double policy_update_compute_time;
 
   int num_trajectory_;
+  int num_gradient_; // number of gradient candidates
   mutable std::shared_mutex mtx_;
 
-  // approximate gradient and (diagonal) Hessian
+  // approximate gradient
   std::vector<double> gradient;
-  std::vector<double> hessian;
-
-  // Cauchy point
-  std::vector<double> cauchy;
-
-  // Newton point
-  std::vector<double> newton;
-
-  // slope between Cauchy and Newton points
-  std::vector<double> slope;
-
-  // ----- parameter status ----- //
-  enum ParameterStatus : int {
-    kParameterNominal = 0,
-    kParameterLower,
-    kParameterUpper,
-  };
-  std::vector<int> parameter_status;
-
-  // division tolerance
-  double div_tolerance = 1.0e-8;
+  std::vector<double> gradient_previous;
+  double gradient_filter_ = 1.0;
+  double gradient_max_step_size = 2.0;
+  double gradient_min_step_size = 1.0e-3;
 
   // nominal index
-  int idx_nominal = 0; // set later to: 2 * num_parameter
+  const int idx_nominal = 0;
 
   // ----- winner type ----- //
   enum WinnerType : int {

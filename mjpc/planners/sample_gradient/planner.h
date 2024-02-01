@@ -63,7 +63,9 @@ class SampleGradientPlanner : public Planner {
                         bool use_previous = false) override;
 
   // resample nominal policy
-  void ResamplePolicy(int horizon);
+  void ResamplePolicy(SamplingPolicy& policy, int horizon,
+                      int num_spline_points,
+                      PolicyRepresentation representation);
 
   // add noise to nominal policy
   void AddNoiseToPolicy(int i);
@@ -143,7 +145,7 @@ class SampleGradientPlanner : public Planner {
   double policy_update_compute_time;
 
   int num_trajectory_;
-  int num_gradient_; // number of gradient candidates
+  int num_gradient_;  // number of gradient candidates
   mutable std::shared_mutex mtx_;
 
   // approximate gradient

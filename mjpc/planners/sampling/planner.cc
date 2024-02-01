@@ -432,9 +432,10 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   // ----- timer ----- //
 
-  PlotUpdateData(
-      fig_timer, timer_bounds, fig_timer->linedata[0 + timer_shift][0] + 1,
-      1.0e-3 * noise_compute_time * planning, 100, 0 + timer_shift, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * noise_compute_time * planning, 100,
+                 0 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,

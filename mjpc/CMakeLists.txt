@@ -177,6 +177,28 @@ if(APPLE)
   target_link_libraries(mjpc "-framework Cocoa")
 endif()
 
+add_executable(
+  testspeed
+  testspeed_app.cc
+  testspeed.h
+  testspeed.cc
+)
+target_link_libraries(
+  testspeed
+  absl::flags
+  absl::flags_parse
+  absl::random_random
+  absl::strings
+  libmjpc
+  mujoco::mujoco
+  threadpool
+  Threads::Threads
+)
+target_include_directories(testspeed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_options(testspeed PUBLIC ${MJPC_COMPILE_OPTIONS})
+target_link_options(testspeed PRIVATE ${MJPC_LINK_OPTIONS})
+target_compile_definitions(testspeed PRIVATE MJSIMULATE_STATIC)
+
 add_subdirectory(tasks)
 
 if(BUILD_TESTING AND MJPC_BUILD_TESTS)

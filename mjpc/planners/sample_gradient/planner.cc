@@ -190,7 +190,7 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // start timer
   auto perturb_rollouts_start = std::chrono::steady_clock::now();
 
-  // roll out perturbed policies: p + s * d
+  // roll out perturbed policies: p + s * N(0, 1)
   this->Rollouts(num_trajectory, num_gradient, horizon, pool);
 
   // stop timer

@@ -431,24 +431,50 @@ void SampleGradientPlanner::GradientCandidates(int num_trajectory,
   // -- compute approximate gradient -- //
   // average return
   int num_noisy = num_trajectory - num_gradient;
-  double avg_return = 0.0;
-  for (int i = 0; i < num_noisy; i++) {
-    avg_return += trajectory[i].total_return;
+
+  // fitness shaping
+  // https://www.jmlr.org/papers/volume15/wierstra14a/wierstra14a.pdf
+  if (return_weight_.size() != num_noisy) {
+    // resize number of weights
+    return_weight_.resize(num_noisy);
+
+    // -- sort noisy samples only (exclude gradient samples) -- //
+    // initial order for partial sort
+    for (int i = 0; i < num_noisy; i++) {
+      trajectory_order[i] = i;
+    }
+
+    // sort lowest to highest total return
+    std::partial_sort(
+        trajectory_order.begin(), trajectory_order.begin() + num_noisy,
+        trajectory_order.begin() + num_noisy,
+        [&trajectory = trajectory](int a, int b) {
+          return trajectory[a].total_return < trajectory[b].total_return;
+        });
+
+    // compute normalization
+    double f0 = std::log(0.5 * num_noisy + 1.0);
+    double den = 0.0;
+    for (int i = 0; i < num_noisy; i++) {
+      den += std::max(0.0, f0 - std::log(trajectory_order[i] + 1));
+    }
+
+    // compute weights
+    for (int i = 0; i < num_noisy; i++) {
+      return_weight_[i] =
+          std::max(0.0, f0 - std::log(trajectory_order[i] + 1)) / den -
+          1.0 / num_noisy;
+    }
   }
-  avg_return /= num_noisy;
 
   // gradient
   std::fill(gradient.begin(), gradient.end(), 0.0);
-  for (int i = 1; i < num_noisy; i++) {
-    double* noisei = noise.data() + i * (model->nu * kMaxTrajectoryHorizon);
-    mju_addToScl(gradient.data(), noisei,
-                 (trajectory[i].total_return - avg_return) / (num_noisy - 1),
+  for (int i = 0; i < num_noisy; i++) {
+    double* noisei = noise.data() +
+                     trajectory_order[i] * (model->nu * kMaxTrajectoryHorizon);
+    mju_addToScl(gradient.data(), noisei, return_weight_[i] / num_noisy,
                  num_parameters);
   }
-
-  // normalize gradient
-  // TODO(taylor): should we normalize?
-  // mju_normalize(gradient.data(), num_parameters);
 
   // compute step sizes along gradient
   std::vector<double> step_size(num_gradient);
@@ -466,8 +492,6 @@ void SampleGradientPlanner::GradientCandidates(int num_trajectory,
     candidate_policy[i].representation = resampled_policy.representation;
 
     // scaling
-    // TODO(taylor): scale by num_parameters?
-    // TODO(taylor): divide by reward std dev?
     double scaling = step_size[i - num_noisy] / noise_exploration;
 
     // gradient step

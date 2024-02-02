@@ -155,6 +155,9 @@ class SampleGradientPlanner : public Planner {
   double gradient_max_step_size = 2.0;
   double gradient_min_step_size = 1.0e-3;
 
+  // return weight
+  std::vector<double> return_weight_;
+
   // nominal index
   const int idx_nominal = 0;
 

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_DIRECT_OPTIMIZER_H_
-#define MJPC_DIRECT_OPTIMIZER_H_
+#ifndef MJPC_DIRECT_DIRECT_H_
+#define MJPC_DIRECT_DIRECT_H_
 
 #include <memory>
 #include <string>
@@ -64,7 +64,7 @@ class Direct {
       : model_parameters_(LoadModelParameters()), pool_(num_threads) {}
 
   // constructor
-  Direct(const mjModel* model, int length = 3, int max_history = 0);
+  explicit Direct(const mjModel* model, int length = 3, int max_history = 0);
 
   // destructor
   virtual ~Direct() {
@@ -509,4 +509,4 @@ std::string StatusString(int code);
 
 }  // namespace mjpc
 
-#endif  // MJPC_DIRECT_OPTIMIZER_H_
+#endif  // MJPC_DIRECT_DIRECT_H_

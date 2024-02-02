@@ -114,8 +114,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     if (dim_actions != sampling.model->nu * (horizon - 1) ||
         dim_parameters != sampling.model->nu * num_spline_points) {
       // dimension
-      int dim_parameters = sampling.model->nu * num_spline_points;
-      int dim_actions = sampling.model->nu * (horizon - 1);
+      dim_parameters = sampling.model->nu * num_spline_points;
+      dim_actions = sampling.model->nu * (horizon - 1);
 
       // compute parameter to action mapping
       mappings[sampling.policy.representation]->Compute(

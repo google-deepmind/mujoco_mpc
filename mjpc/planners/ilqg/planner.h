@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_ILQG_OPTIMIZER_H_
-#define MJPC_PLANNERS_ILQG_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_ILQG_PLANNER_H_
+#define MJPC_PLANNERS_ILQG_PLANNER_H_
 
 #include <shared_mutex>
 #include <vector>
@@ -162,4 +162,4 @@ class iLQGPlanner : public Planner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_ILQG_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_ILQG_PLANNER_H_

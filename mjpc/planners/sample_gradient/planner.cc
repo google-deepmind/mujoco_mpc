@@ -57,10 +57,10 @@ void SampleGradientPlanner::Initialize(mjModel* model, const Task& task) {
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
   // set number of gradient trajectories to rollout
-  num_gradient_ = GetNumberOrDefault(0, model, "gradient_trajectories");
+  num_gradient_ = GetNumberOrDefault(0, model, "sample_gradient_trajectories");
 
   // gradient filter
-  gradient_filter_ = GetNumberOrDefault(1.0, model, "gradient_filter");
+  gradient_filter_ = GetNumberOrDefault(1.0, model, "sample_gradient_filter");
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -219,8 +219,7 @@ void SampleGradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     trajectory_order[i] = i;
   }
 
-  // sort so that the first ncandidates elements are the best candidates, and
-  // the rest are in an unspecified order
+  // sort lowest to highest total return
   std::partial_sort(
       trajectory_order.begin(), trajectory_order.begin() + num_trajectory,
       trajectory_order.begin() + num_trajectory,
@@ -354,12 +353,12 @@ void SampleGradientPlanner::AddNoiseToPolicy(int i) {
 
   // sample noise
   for (int k = 0; k < num_parameters; k++) {
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
+    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, 1.0);
   }
 
   // add noise
-  mju_addTo(candidate_policy[i].parameters.data(), DataAt(noise, shift),
-            num_parameters);
+  mju_addToScl(candidate_policy[i].parameters.data(), DataAt(noise, shift),
+               noise_exploration, num_parameters);
 
   // clamp parameters
   for (int t = 0; t < num_spline_points; t++) {
@@ -449,7 +448,7 @@ void SampleGradientPlanner::GradientCandidates(int num_trajectory,
 
   // normalize gradient
   // TODO(taylor): should we normalize?
-  mju_normalize(gradient.data(), num_parameters);
+  // mju_normalize(gradient.data(), num_parameters);
 
   // compute step sizes along gradient
   std::vector<double> step_size(num_gradient);

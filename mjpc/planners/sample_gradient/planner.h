@@ -152,6 +152,9 @@ class SampleGradientPlanner : public Planner {
   std::vector<double> gradient;
   std::vector<double> gradient_previous;
   double gradient_filter_ = 1.0;
+
+  // gradient step size
+  std::vector<double> step_size_;
   double gradient_max_step_size = 2.0;
   double gradient_min_step_size = 1.0e-3;
 

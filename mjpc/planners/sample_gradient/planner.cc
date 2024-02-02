@@ -476,10 +476,12 @@ void SampleGradientPlanner::GradientCandidates(int num_trajectory,
                  num_parameters);
   }
 
-  // compute step sizes along gradient
-  std::vector<double> step_size(num_gradient);
-  LogScale(step_size.data(), gradient_max_step_size, gradient_min_step_size,
-           num_gradient);
+  // compute step sizes for gradient direction
+  if (step_size_.size() != num_gradient) {
+    step_size_.resize(num_gradient);
+    LogScale(step_size_.data(), gradient_max_step_size, gradient_min_step_size,
+             num_gradient);
+  }
 
   // gradient filter gf * grad + (1 - gf) * grad_prev
   double gradient_filter = gradient_filter_;
@@ -492,7 +494,7 @@ void SampleGradientPlanner::GradientCandidates(int num_trajectory,
     candidate_policy[i].representation = resampled_policy.representation;
 
     // scaling
-    double scaling = step_size[i - num_noisy] / noise_exploration;
+    double scaling = step_size_[i - num_noisy] / noise_exploration;
 
     // gradient step
     mju_addToScl(candidate_policy[i].parameters.data(), gradient.data(),
@@ -620,17 +622,23 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                        mju_log10(mju_max(improvement, 1.0e-6)), 100,
                        0 + planner_shift, 0, 1, -100);
 
-  // winner type
-  double winner_type =
-      winner_type_ == kPerturb ? -6.0 : (winner_type_ == kGradient ? 6.0 : 0.0);
+  // winner plot value
+  double winner_plot_val = -6.0;  // nominal
+  if (winner_type_ == kPerturb) {
+    winner_plot_val = 0.0;
+  } else if (winner_type_ == kGradient) {
+    int num_noisy = num_trajectory_ - num_gradient_;
+    winner_plot_val = 6.0 * (winner - num_noisy) / num_gradient_;
+  }
+
   mjpc::PlotUpdateData(fig_planner, planner_bounds,
                        fig_planner->linedata[1 + planner_shift][0] + 1,
-                       winner_type, 100, 1 + planner_shift, 0, 1, -100);
+                       winner_plot_val, 100, 1 + planner_shift, 0, 1, -100);
 
   // legend
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improvement");
   mju::strcpy_arr(fig_planner->linename[1 + planner_shift],
-                  "Perturb|Nominal|Gradient");
+                  "Nominal|Perturb|Gradient");
 
   fig_planner->range[1][0] = planner_bounds[0];
   fig_planner->range[1][1] = planner_bounds[1];

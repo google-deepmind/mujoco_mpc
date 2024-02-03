@@ -623,9 +623,9 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                        0 + planner_shift, 0, 1, -100);
 
   // winner plot value
-  double winner_plot_val = -6.0;  // nominal
+  double winner_plot_val = 0.0;  // nominal
   if (winner_type_ == kPerturb) {
-    winner_plot_val = 0.0;
+    winner_plot_val = -6.0;
   } else if (winner_type_ == kGradient) {
     int num_noisy = num_trajectory_ - num_gradient_;
     winner_plot_val = 6.0 * (winner - num_noisy) / num_gradient_;
@@ -638,7 +638,7 @@ void SampleGradientPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
   // legend
   mju::strcpy_arr(fig_planner->linename[0 + planner_shift], "Improvement");
   mju::strcpy_arr(fig_planner->linename[1 + planner_shift],
-                  "Nominal|Perturb|Gradient");
+                  "Perturb|Nominal|Gradient");
 
   fig_planner->range[1][0] = planner_bounds[0];
   fig_planner->range[1][1] = planner_bounds[1];

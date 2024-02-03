@@ -13,9 +13,9 @@
   </asset>
   <worldbody>
     <light pos="0 0 1"/>
-    <body name="cube" pos="0.25 0.0 0.075" quat="1 0 0 0">
+    <body name="cube" pos="0.140696023 0.0 0.075" quat="1 0 0 0">
       <freejoint/>
-      <geom name="cube" type="box" size=".03 .03 .03" mass=".122" material="cube"/>
+      <geom name="cube" type="box" size=".035 .035 .035" mass=".2" material="cube"/>
     </body>
   </worldbody>
 

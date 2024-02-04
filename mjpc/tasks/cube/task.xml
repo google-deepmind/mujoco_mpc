@@ -12,8 +12,8 @@
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="6" />
     <numeric name="sampling_exploration" data="0.1" />
-    <numeric name="sampling_trajectories" data="20" />
-    <numeric name="sampling_representation" data="0" />
+    <numeric name="sampling_trajectories" data="60" />
+    <numeric name="sampling_representation" data="1" />
     <!-- manual face goals -->
     <numeric name="residual_Red" data="0 -3.14 3.14"/>
     <numeric name="residual_Orange" data="0 -3.14 3.14"/>

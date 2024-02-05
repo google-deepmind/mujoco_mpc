@@ -299,7 +299,10 @@ TEST_P(TimeSplineReserveTest, CopyConstructor) {
   EXPECT_EQ(spline2.Size(), 4);
 
   // overwrite values in original spline
-  spline.Clear();
+  for (TimeSpline::Node& n : spline) {
+    n.values()[0] = 3.0;
+    n.values()[1] = 4.0;
+  }
 
   // spline2 should be unaffected
   EXPECT_THAT(spline2.Sample(1.5), ElementsAre(2.0, 3.0));
@@ -364,6 +367,83 @@ TEST(TimeSplineTest, Dim0) {
   EXPECT_EQ(spline.Size(), 1);
   std::vector<double> values;
   spline.Sample(1, absl::MakeSpan(values.data(), values.size()));
+}
+
+template <typename T>
+T BeginIterator(TimeSpline& spline) {
+  if constexpr (std::is_same_v<T, TimeSpline::const_iterator>) {
+    return spline.cbegin();
+  } else {
+    return spline.begin();
+  }
+}
+
+template <typename T>
+T EndIterator(TimeSpline& spline) {
+  if constexpr (std::is_same_v<T, TimeSpline::const_iterator>) {
+    return spline.cend();
+  } else {
+    return spline.end();
+  }
+}
+
+template <typename T>
+void TestIterator() {
+  // Tests that the iterator type T complies with random_access_iterator_tag.
+  TimeSpline spline(/*dim=*/2);
+  spline.Reserve(10);
+  spline.AddNode(1.0, {1.0, 2.0});
+  spline.AddNode(2.0, {3.0, 4.0});
+  spline.AddNode(3.0, {5.0, 6.0});
+
+  T it = BeginIterator<T>(spline);
+  EXPECT_EQ(it->values()[0], 1.0);
+  EXPECT_EQ((it + 2)->values()[0], 5.0);
+  EXPECT_EQ((2 + it)->values()[0], 5.0);
+  EXPECT_EQ(EndIterator<T>(spline) - it, 3);
+  EXPECT_EQ((EndIterator<T>(spline) - 1) - it, 2);
+
+  it++;
+  EXPECT_EQ(it->values()[0], 3.0);
+  ++it;
+  EXPECT_EQ(it->values()[0], 5.0);
+  it--;
+  EXPECT_EQ(it->values()[0], 3.0);
+  --it;
+  EXPECT_EQ(it->values()[0], 1.0);
+
+  EXPECT_LT(it, it + 2);
+  EXPECT_LE(it, it + 2);
+  EXPECT_LE(it, it + 0);
+  EXPECT_GT(it + 2, it);
+  EXPECT_GE(it + 2, it);
+  EXPECT_GE(it + 0, it);
+  EXPECT_EQ((it + 2) - 2, it);
+
+  TimeSpline spline2 = spline;
+  EXPECT_NE(BeginIterator<T>(spline), BeginIterator<T>(spline2))
+      << "Iterators from different splines should not be equal";
+
+  // Copy constructor
+  T it_copy = it;
+  EXPECT_EQ(it, it_copy);
+
+  auto node2 = it[2];
+  EXPECT_EQ(node2.values()[0], 5.0);
+
+  // Iterators are swappable
+  it_copy += spline.Size();
+  std::swap(it_copy, it);
+  EXPECT_EQ(it_copy, BeginIterator<T>(spline));
+  EXPECT_EQ(it, EndIterator<T>(spline));
+}
+
+TEST(TimeSplineTest, Iterator) {
+  TestIterator<TimeSpline::iterator>();
+}
+
+TEST(TimeSplineTest, ConstIterator) {
+  TestIterator<TimeSpline::const_iterator>();
 }
 
 INSTANTIATE_TEST_SUITE_P(

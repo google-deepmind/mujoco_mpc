@@ -52,6 +52,22 @@ TimeSpline::ConstNode TimeSpline::NodeAt(int index) const {
   return ConstNode(times_[index], values_.data() + values_index_, dim_);
 }
 
+TimeSpline::iterator TimeSpline::begin() {
+  return TimeSpline::iterator(this, 0);
+}
+
+TimeSpline::iterator TimeSpline::end() {
+  return TimeSpline::iterator(this, times_.size());
+}
+
+TimeSpline::const_iterator TimeSpline::cbegin() const {
+  return TimeSpline::const_iterator(this, 0);
+}
+
+TimeSpline::const_iterator TimeSpline::cend() const {
+  return TimeSpline::const_iterator(this, times_.size());
+}
+
 // Set Interpolation
 void TimeSpline::SetInterpolation(SplineInterpolation interpolation) {
   interpolation_ = interpolation;

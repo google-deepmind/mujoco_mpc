@@ -18,8 +18,11 @@
 #include <array>
 #include <cstddef>
 #include <deque>
+#include <iterator>
+#include <type_traits>
 #include <vector>
 
+#include <absl/log/check.h>
 #include <absl/types/span.h>
 
 namespace mjpc::spline {
@@ -79,6 +82,145 @@ class TimeSpline {
   using Node = NodeT<double>;
   using ConstNode = NodeT<const double>;
 
+  // Iterator type for TimeSpline.
+  // SplineType is TimeSpline or const TimeSpline.
+  // NodeType is Node or ConstNode.
+  template <typename SplineType, typename NodeType>
+  class IteratorT {
+   public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = typename std::remove_cv_t<NodeType>;
+    using difference_type = int;
+    using pointer = NodeType*;
+    using reference = NodeType&;
+
+    IteratorT(SplineType* spline = nullptr, int index = 0)
+        : spline_(spline), index_(index) {
+      if (spline_ != nullptr && index_ != spline->Size()) {
+        node_ = spline->NodeAt(index_);
+      }
+    }
+
+    // Copyable, Movable.
+    IteratorT<SplineType, NodeType>(
+        const IteratorT<SplineType, NodeType>& other) = default;
+    IteratorT<SplineType, NodeType>& operator=(
+        const IteratorT<SplineType, NodeType>& other) = default;
+    IteratorT<SplineType, NodeType>(IteratorT<SplineType, NodeType>&& other) =
+        default;
+    IteratorT<SplineType, NodeType>& operator=(
+        IteratorT<SplineType, NodeType>&& other) = default;
+
+    reference operator*() { return node_; }
+
+    pointer operator->() { return &node_; }
+    pointer operator->() const { return &node_; }
+
+    IteratorT<SplineType, NodeType>& operator++() {
+      ++index_;
+      node_ = index_ == spline_->Size() ? NodeType() : spline_->NodeAt(index_);
+      return *this;
+    }
+
+    IteratorT<SplineType, NodeType> operator++(int) {
+      IteratorT<SplineType, NodeType> tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    IteratorT<SplineType, NodeType>& operator--() {
+      --index_;
+      node_ = spline_->NodeAt(index_);
+      return *this;
+    }
+
+    IteratorT<SplineType, NodeType> operator--(int) {
+      IteratorT<SplineType, NodeType> tmp = *this;
+      --(*this);
+      return tmp;
+    }
+
+    IteratorT<SplineType, NodeType>& operator+=(difference_type n) {
+      if (n != 0) {
+        index_ += n;
+        node_ =
+            index_ == spline_->Size() ? NodeType() : spline_->NodeAt(index_);
+      }
+      return *this;
+    }
+
+    IteratorT<SplineType, NodeType>& operator-=(difference_type n) {
+      return *this += -n;
+    }
+
+    IteratorT<SplineType, NodeType> operator+(difference_type n) const {
+      IteratorT<SplineType, NodeType> tmp(*this);
+      tmp += n;
+      return tmp;
+    }
+
+    IteratorT<SplineType, NodeType> operator-(difference_type n) const {
+      IteratorT<SplineType, NodeType> tmp(*this);
+      tmp -= n;
+      return tmp;
+    }
+
+    friend IteratorT<SplineType, NodeType> operator+(
+        difference_type n, const IteratorT<SplineType, NodeType>& it) {
+      return it + n;
+    }
+
+    friend difference_type operator-(const IteratorT<SplineType, NodeType>& x,
+                                     const IteratorT<SplineType, NodeType>& y) {
+      CHECK_EQ(x.spline_, y.spline_)
+          << "Comparing iterators from different splines";
+      if (x != y) return (x.index_ - y.index_);
+      return 0;
+    }
+
+    NodeType operator[](difference_type n) const { return *(*this + n); }
+
+    friend bool operator==(const IteratorT<SplineType, NodeType>& x,
+                           const IteratorT<SplineType, NodeType>& y) {
+      return x.spline_ == y.spline_ && x.index_ == y.index_;
+    }
+
+    friend bool operator!=(const IteratorT<SplineType, NodeType>& x,
+                           const IteratorT<SplineType, NodeType>& y) {
+      return !(x == y);
+    }
+
+    friend bool operator<(const IteratorT<SplineType, NodeType>& x,
+                          const IteratorT<SplineType, NodeType>& y) {
+      CHECK_EQ(x.spline_, y.spline_)
+          << "Comparing iterators from different splines";
+      return x.index_ < y.index_;
+    }
+
+    friend bool operator>(const IteratorT<SplineType, NodeType>& x,
+                          const IteratorT<SplineType, NodeType>& y) {
+      return y < x;
+    }
+
+    friend bool operator<=(const IteratorT<SplineType, NodeType>& x,
+                           const IteratorT<SplineType, NodeType>& y) {
+      return !(y < x);
+    }
+
+    friend bool operator>=(const IteratorT<SplineType, NodeType>& x,
+                           const IteratorT<SplineType, NodeType>& y) {
+      return !(x < y);
+    }
+
+   private:
+    SplineType* spline_ = nullptr;
+    int index_ = 0;
+    NodeType node_;
+  };
+
+  using iterator = IteratorT<TimeSpline, Node>;
+  using const_iterator = IteratorT<const TimeSpline, ConstNode>;
+
   // Returns the number of nodes in the spline.
   std::size_t Size() const;
 
@@ -87,6 +229,13 @@ class TimeSpline {
   // the spline will invalidate the Node object.
   Node NodeAt(int index);
   ConstNode NodeAt(int index) const;
+
+  // Returns an iterator that iterates over spline nodes in time order.
+  // Callers must not mutate `time`, but can modify values in `values`.
+  iterator begin();
+  iterator end();
+  const_iterator cbegin() const;
+  const_iterator cend() const;
 
   void SetInterpolation(SplineInterpolation interpolation);
   SplineInterpolation Interpolation() const;

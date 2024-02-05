@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "mjpc/spline/spline.h"
+#include <cmath>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,17 +24,20 @@
 
 namespace {
 using mjpc::spline::TimeSpline;
+using mjpc::spline::SplineInterpolation;
 using ::testing::ElementsAre;
 using ::testing::TestWithParam;
 
 struct TimeSplineTestCase {
   std::string test_name;
+  SplineInterpolation interpolation;
   int reserve = 0;
 };
 
+using TimeSplineAllInterpolationsTest = TestWithParam<TimeSplineTestCase>;
 using TimeSplineReserveTest = TestWithParam<TimeSplineTestCase>;
 
-TEST(TimeSplineTest, Empty) {
+TEST(TimeSplineAllInterpolationsTest, Empty) {
   TimeSpline spline(/*dim=*/10);
   EXPECT_EQ(spline.Size(), 0);
   EXPECT_EQ(spline.Dim(), 10);
@@ -44,8 +48,11 @@ TEST(TimeSplineTest, Empty) {
   }
 }
 
-TEST(TimeSplineTest, OneNode) {
+TEST_P(TimeSplineAllInterpolationsTest, OneNode) {
+  const TimeSplineTestCase& test_case = GetParam();
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(test_case.interpolation);
+  EXPECT_EQ(spline.Interpolation(), test_case.interpolation);
 
   spline.AddNode(1.0, {1.0, 2.0});
   EXPECT_EQ(spline.Size(), 1);
@@ -54,8 +61,10 @@ TEST(TimeSplineTest, OneNode) {
   }
 }
 
-TEST(TimeSplineTest, TwoNodes) {
+TEST_P(TimeSplineAllInterpolationsTest, TwoNodes) {
+  const TimeSplineTestCase& test_case = GetParam();
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(test_case.interpolation);
 
   spline.AddNode(1.0, {1.0, 2.0});
   // an alternative method of adding a node: setting values after AddNode
@@ -105,14 +114,54 @@ TEST(TimeSplineTest, AddNodeResetsToZeroByDefault) {
 
 TEST(TimeSplineTest, ZeroOrder) {
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kZeroSpline);
   spline.AddNode(1.0, {1.0, 2.0});
   spline.AddNode(2.0, {3.0, 4.0});
 
   EXPECT_THAT(spline.Sample(1.5), ElementsAre(1.0, 2.0));
 }
 
-TEST(TimeSplineTest, DiscardBefore) {
+TEST(TimeSplineTest, Linear) {
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kLinearSpline);
+  spline.AddNode(1.0, {1.0, 2.0});
+  spline.AddNode(2.0, {3.0, 4.0});
+
+  EXPECT_THAT(spline.Sample(1.5), ElementsAre(2.0, 3.0));
+}
+
+TEST(TimeSplineTest, Cubic) {
+  TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kCubicSpline);
+  spline.AddNode(1.0, {1.0, 2.0});
+  spline.AddNode(2.0, {3.0, 4.0});
+
+  EXPECT_THAT(spline.Sample(1.5), ElementsAre(2.0, 3.0));
+
+  spline.Clear();
+  spline.AddNode(0.0, {1.0, 2.0});
+  spline.AddNode(1.0, {1.0, 2.0});
+  spline.AddNode(2.0, {3.0, 4.0});
+  spline.AddNode(3.0, {3.0, 4.0});
+
+  EXPECT_THAT(spline.Sample(1.5), ElementsAre(2.0, 3.0));
+
+  spline = TimeSpline(/*dim=*/1);
+  spline.SetInterpolation(SplineInterpolation::kCubicSpline);
+  spline.AddNode(-1.0, {1.0});
+  spline.AddNode(0.0, {0.0});
+  spline.AddNode(1.0, {1.0});
+  for (double x = 0.0; x <= 1.0; x += 0.125) {
+    // Known solution for this spline
+    double y = -std::pow(x, 3) + 2 * std::pow(x, 2);
+    EXPECT_THAT(spline.Sample(x), ElementsAre(y));
+  }
+}
+
+TEST_P(TimeSplineAllInterpolationsTest, DiscardBefore) {
+  const TimeSplineTestCase& test_case = GetParam();
+  TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(test_case.interpolation);
 
   spline.AddNode(1.0, {1.0, 2.0});
   spline.AddNode(2.0, {2.0, 3.0});
@@ -131,14 +180,29 @@ TEST(TimeSplineTest, DiscardBefore) {
   // Once the first two values are discarded, early time values should get the
   // {3.0, 4.0} value.
   int discarded = spline.DiscardBefore(3.0);
+  if (test_case.interpolation == SplineInterpolation::kCubicSpline) {
+    // Cubic spline should keep one extra value before the given time passed
+    // to DiscardBefore.
+    EXPECT_EQ(discarded, 1);
+    EXPECT_EQ(spline.Size(), 3);
+    EXPECT_THAT(spline.Sample(1.0), ElementsAre(2.0, 3.0));
+  } else {
     EXPECT_EQ(discarded, 2);
     EXPECT_EQ(spline.Size(), 2);
     EXPECT_THAT(spline.Sample(1.0), ElementsAre(3.0, 4.0));
+  }
 
   // Discarding just after 3.0 should have no effect.
   EXPECT_EQ(spline.DiscardBefore(3.9), 0);
+  if (test_case.interpolation == SplineInterpolation::kCubicSpline) {
+    // Cubic spline should keep one extra value before the given time passed
+    // to DiscardBefore.
+    EXPECT_EQ(spline.Size(), 3);
+    EXPECT_THAT(spline.Sample(1.0), ElementsAre(2.0, 3.0));
+  } else {
     EXPECT_EQ(spline.Size(), 2);
     EXPECT_THAT(spline.Sample(1.0), ElementsAre(3.0, 4.0));
+  }
 }
 
 TEST(TimeSplineTest, DiscardBeforeRingLoop) {
@@ -168,6 +232,7 @@ TEST(TimeSplineTest, DiscardBeforeRingLoop) {
 
 TEST(TimeSplineTest, ReserveAfterAdd) {
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kLinearSpline);
   spline.Reserve(3);
   EXPECT_EQ(spline.Size(), 0);
 
@@ -178,7 +243,7 @@ TEST(TimeSplineTest, ReserveAfterAdd) {
   spline.AddNode(3.0, {4.0, 5.0});
   EXPECT_EQ(spline.Size(), 3);
 
-  EXPECT_THAT(spline.Sample(2.5), ElementsAre(2.0, 3.0));
+  EXPECT_THAT(spline.Sample(2.5), ElementsAre(3.0, 4.0));
 }
 
 TEST_P(TimeSplineReserveTest, MoveConstructor) {
@@ -220,6 +285,7 @@ TEST_P(TimeSplineReserveTest, MoveAssignment) {
 TEST_P(TimeSplineReserveTest, CopyConstructor) {
   const TimeSplineTestCase& test_case = GetParam();
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kLinearSpline);
   spline.Reserve(test_case.reserve);
 
   spline.AddNode(1.0, {1.0, 2.0});
@@ -232,17 +298,18 @@ TEST_P(TimeSplineReserveTest, CopyConstructor) {
   TimeSpline spline2(spline);
   EXPECT_EQ(spline2.Size(), 4);
 
-  // clear original spline
+  // overwrite values in original spline
   spline.Clear();
 
   // spline2 should be unaffected
   EXPECT_THAT(spline2.Sample(1.5), ElementsAre(2.0, 3.0));
-  EXPECT_THAT(spline2.Sample(2.5), ElementsAre(2.0, 3.0));
+  EXPECT_THAT(spline2.Sample(2.5), ElementsAre(2.5, 3.5));
 }
 
 TEST_P(TimeSplineReserveTest, CopyAssignment) {
   const TimeSplineTestCase& test_case = GetParam();
   TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(SplineInterpolation::kLinearSpline);
   spline.Reserve(test_case.reserve);
 
   spline.AddNode(1.0, {1.0, 2.0});
@@ -260,12 +327,12 @@ TEST_P(TimeSplineReserveTest, CopyAssignment) {
   spline2 = spline;
   EXPECT_EQ(spline2.Size(), 4);
 
-  // clear original spline
+  // overwrite values in original spline
   spline.Clear();
 
   // spline2 should be unaffected
   EXPECT_THAT(spline2.Sample(1.5), ElementsAre(2.0, 3.0));
-  EXPECT_THAT(spline2.Sample(2.5), ElementsAre(2.0, 3.0));
+  EXPECT_THAT(spline2.Sample(2.5), ElementsAre(2.5, 3.5));
 }
 
 TEST_P(TimeSplineReserveTest, Clear) {
@@ -287,6 +354,7 @@ TEST_P(TimeSplineReserveTest, Clear) {
 TEST(TimeSplineTest, Dim0) {
   // Degenerate case of a spline with no values.
   TimeSpline spline(/*dim=*/0);
+  spline.SetInterpolation(SplineInterpolation::kZeroSpline);
   spline.Reserve(10);
 
   spline.AddNode(1.0, {});
@@ -299,11 +367,21 @@ TEST(TimeSplineTest, Dim0) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
+    TimeSplineAllInterpolations, TimeSplineAllInterpolationsTest,
+    testing::ValuesIn<TimeSplineTestCase>({
+        {"ZeroSpline", SplineInterpolation::kZeroSpline},
+        {"LinearSpline", SplineInterpolation::kLinearSpline},
+        {"CubicSpline", SplineInterpolation::kCubicSpline},
+    }),
+    [](const testing::TestParamInfo<TimeSplineAllInterpolationsTest::ParamType>&
+           info) { return info.param.test_name; });
+
+INSTANTIATE_TEST_SUITE_P(
     TimeSplineReserve, TimeSplineReserveTest,
     testing::ValuesIn<TimeSplineTestCase>({
-        {"Reserve0", 0},
-        {"Reserve4", 4},
-        {"Reserve7", 7},
+        {"Reserve0", SplineInterpolation::kZeroSpline, 0},
+        {"Reserve4", SplineInterpolation::kZeroSpline, 4},
+        {"Reserve7", SplineInterpolation::kZeroSpline, 7},
     }),
     [](const testing::TestParamInfo<TimeSplineReserveTest::ParamType>&
            info) { return info.param.test_name; });

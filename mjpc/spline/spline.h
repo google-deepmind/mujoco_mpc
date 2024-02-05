@@ -15,6 +15,7 @@
 #ifndef MJPC_MJPC_SPLINE_SPLINE_H_
 #define MJPC_MJPC_SPLINE_SPLINE_H_
 
+#include <array>
 #include <cstddef>
 #include <deque>
 #include <vector>
@@ -23,13 +24,22 @@
 
 namespace mjpc::spline {
 
+enum SplineInterpolation : int {
+  kZeroSpline,
+  kLinearSpline,
+  kCubicSpline,
+};
+
+
 // Represents a spline where values are interpolated based on time.
 // Allows updating the spline by adding new future points, or removing old
 // nodes.
 // This class is not thread safe and requires locking to use.
 class TimeSpline {
  public:
-  explicit TimeSpline(int dim = 0, int initial_capacity = 1);
+  explicit TimeSpline(int dim = 0,
+                      SplineInterpolation interpolation = kZeroSpline,
+                      int initial_capacity = 1);
 
   // Copyable, Movable.
   TimeSpline(const TimeSpline& other) = default;
@@ -72,10 +82,14 @@ class TimeSpline {
   // Returns the number of nodes in the spline.
   std::size_t Size() const;
 
+
   // Returns the node at the given index, sorted by time. Any calls that mutate
   // the spline will invalidate the Node object.
   Node NodeAt(int index);
   ConstNode NodeAt(int index) const;
+
+  void SetInterpolation(SplineInterpolation interpolation);
+  SplineInterpolation Interpolation() const;
 
   // Returns the dimensionality of interpolation values.
   int Dim() const;
@@ -85,8 +99,6 @@ class TimeSpline {
   void Reserve(int num_nodes);
 
   // Interpolates values based on time, writes results to `values`.
-  // NOTE: The current implementation does a "zero-order interpolation". Linear
-  // and cubic interpolations will be added in a follow-up.
   void Sample(double time, absl::Span<double> values) const;
   // Interpolates values based on time, returns a vector of length Dim.
   std::vector<double> Sample(double time) const;
@@ -105,6 +117,11 @@ class TimeSpline {
   Node AddNode(double time, absl::Span<const double> values);
 
  private:
+  std::array<double, 4> CubicCoefficients(double time,
+                                          int lower_node_index) const;
+  double Slope(int node_index, int value_index) const;
+  SplineInterpolation interpolation_;
+
   int dim_;
 
   // The time values for each node. This is kept sorted.

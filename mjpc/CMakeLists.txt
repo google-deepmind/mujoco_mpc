@@ -138,8 +138,11 @@ target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
   absl::any_invocable
+  absl::check
   absl::flat_hash_map
+  absl::log
   absl::random_random
+  absl::span
   glfw
   lodepng
   mujoco::mujoco

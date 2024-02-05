@@ -390,7 +390,6 @@ void SamplingPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
       {mjITEM_END}};
 

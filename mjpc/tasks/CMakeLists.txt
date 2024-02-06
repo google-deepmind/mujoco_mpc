@@ -71,7 +71,7 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/aloha/integrated_cartesian_actuators.xml
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/integrated_cartesian_actuators.xml
-  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha_cartesian.xml
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/bimanual/aloha.patch
 

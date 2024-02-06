@@ -86,7 +86,7 @@ def qpos_to_qvel_qacc(
     qpos: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-  """Velocity and acceleration from mujoco_mpc.demos.configuration.
+  """Compute velocity and acceleration using configurations.
 
   v1 = (q1 - q0) / h
   a1 = (v2 - v1) / h = (q2 - 2q1 + q0) / h^2
@@ -97,7 +97,8 @@ def qpos_to_qvel_qacc(
       horizon (int): number of timesteps
 
   Returns:
-      Tuple[npt.ArrayLike, npt.ArrayLike]: velocity and accelerations trajectories
+      Tuple[npt.ArrayLike, npt.ArrayLike]: velocity and accelerations
+      trajectories
   """
   qvel = np.zeros((model.nv, horizon))
   qacc = np.zeros((model.nv, horizon))

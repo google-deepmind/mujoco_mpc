@@ -86,7 +86,7 @@ def qpos_to_qvel_qacc(
     qpos: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-  """Velocity and acceleration from configuration.
+  """Velocity and acceleration from mujoco_mpc.demos.configuration.
 
   v1 = (q1 - q0) / h
   a1 = (v2 - v1) / h = (q2 - 2q1 + q0) / h^2
@@ -131,7 +131,7 @@ def diff_qpos_to_qvel_qacc(
 ) -> Tuple[
     npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike
 ]:
-  """Velocity and acceleration from configurations (derivatives wrt configurations.
+  """Velocity and acceleration from mujoco_mpc.demos.configurations (derivatives wrt configurations.
 
   Args:
       model (mujoco.MjModel): MuJoCo model

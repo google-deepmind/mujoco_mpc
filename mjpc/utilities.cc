@@ -817,9 +817,9 @@ bool CheckWarnings(mjData* data) {
 // compute vector with log-based scaling between min and max values
 void LogScale(double* values, double max_value, double min_value, int steps) {
   double step =
-      mju_log(max_value) - mju_log(min_value) / mju_max((steps - 1), 1);
+      (std::log(max_value) - std::log(min_value)) / std::max((steps - 1), 1);
   for (int i = 0; i < steps; i++) {
-    values[i] = mju_exp(mju_log(min_value) + i * step);
+    values[i] = std::exp(std::log(min_value) + i * step);
   }
 }
 

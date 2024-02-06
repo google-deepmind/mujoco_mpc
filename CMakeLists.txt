@@ -118,6 +118,9 @@ findorfetch(
 
 set(ABSL_PROPAGATE_CXX_STD ON)
 set(ABSL_BUILD_TESTING OFF)
+# ABSL_ENABLE_INSTALL is needed for
+# https://github.com/protocolbuffers/protobuf/issues/12185#issuecomment-1594685860
+set(ABSL_ENABLE_INSTALL ON)
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF

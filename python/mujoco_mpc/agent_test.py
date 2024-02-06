@@ -109,7 +109,7 @@ class AgentTest(parameterized.TestCase):
   def test_env_initialized_to_home_keyframe(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 

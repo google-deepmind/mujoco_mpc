@@ -4,7 +4,7 @@
   <size memory="1M"/>
 
   <asset>
-    <mesh file="algr_fixed_angle_mount_coord_sys.stl"/>
+    <mesh file="algr_fixed_angle_mount_1inch.obj"/>
   </asset>
 
   <option integrator="implicitfast" iterations="100" ls_iterations="50"/>
@@ -72,7 +72,7 @@
       <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
     </body>
     <body name="connector" pos="0 0 0" quat="1 0 0 0">
-      <geom type="mesh" mesh="algr_fixed_angle_mount_coord_sys"/>
+      <geom type="mesh" mesh="algr_fixed_angle_mount_1inch"/>
     </body>
   </worldbody>
 

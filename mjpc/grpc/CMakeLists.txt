@@ -20,6 +20,10 @@ set(BUILD_SHARED_LIBS
   CACHE INTERNAL "Build SHARED libraries"
 )
 
+find_package(ZLIB REQUIRED)
+set(gRPC_ZLIB_PROVIDER "package" CACHE INTERNAL "")
+set(ZLIB_BUILD_EXAMPLES OFF)
+
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF
@@ -35,9 +39,6 @@ findorfetch(
   gRPC
 )
 
-find_package(ZLIB REQUIRED)
-set(gRPC_ZLIB_PROVIDER "package" CACHE INTERNAL "")
-set(ZLIB_BUILD_EXAMPLES OFF)
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)
 set(_PROTOBUF_PROTOC $<TARGET_FILE:protoc>)

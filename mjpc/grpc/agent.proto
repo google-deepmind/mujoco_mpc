@@ -39,6 +39,8 @@ service Agent {
       returns (GetTaskParametersResponse);
   // Set cost weights.
   rpc SetCostWeights(SetCostWeightsRequest) returns (SetCostWeightsResponse);
+  // Get cost term residuals.
+  rpc GetResiduals(GetResidualsRequest) returns (GetResidualsResponse);
   // Get cost term values.
   rpc GetCostValuesAndWeights(GetCostValuesAndWeightsRequest)
       returns (GetCostValuesAndWeightsResponse);
@@ -111,6 +113,16 @@ message GetActionRequest {
 
 message GetActionResponse {
   repeated float action = 1 [packed = true];
+}
+
+message GetResidualsRequest {}
+
+message Residual {
+  repeated double values = 1;
+}
+
+message GetResidualsResponse {
+  map<string, Residual> values = 1;
 }
 
 message GetCostValuesAndWeightsRequest {}

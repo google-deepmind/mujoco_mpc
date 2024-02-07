@@ -37,6 +37,8 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
+using ::agent::GetResidualsRequest;
+using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetStateRequest;
@@ -124,6 +126,18 @@ grpc::Status UiAgentService::GetAction(grpc::ServerContext* context,
         request, agent, model, rollout_data_.get(), &rollout_state_, response);
   });
 }
+
+grpc::Status UiAgentService::GetResiduals(
+    grpc::ServerContext* context, const GetResidualsRequest* request,
+    GetResidualsResponse* response) {
+  return RunBeforeStep(
+      context, [request, response](mjpc::Agent* agent, const mjModel* model,
+                                   mjData* data) {
+        return grpc_agent_util::GetResiduals(request, agent, model,
+                                             data, response);
+      });
+}
+
 
 grpc::Status UiAgentService::GetCostValuesAndWeights(
     grpc::ServerContext* context, const GetCostValuesAndWeightsRequest* request,

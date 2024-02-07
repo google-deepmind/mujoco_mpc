@@ -60,6 +60,21 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
           ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
+
+  # ALOHA
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/aloha/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/assets
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/aloha.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/integrated_cartesian_actuators.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/integrated_cartesian_actuators.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha_cartesian.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/bimanual/aloha.patch
+
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/robotis_op3/op3.xml
           ${CMAKE_CURRENT_BINARY_DIR}/op3/op3.xml
@@ -69,6 +84,7 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/op3/op3_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/op3/op3.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/op3/op3.xml.patch
+
   COMMAND ${Python_EXECUTABLE}
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/merge_panda_robotiq.py
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/panda_robotiq.xml

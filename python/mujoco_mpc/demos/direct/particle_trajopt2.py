@@ -14,9 +14,9 @@
 
 import matplotlib.pyplot as plt
 import mujoco
+from direct import direct_optimizer
 import numpy as np
 from numpy import typing as npt
-from direct_optimizer import DirectOptimizer, configuration_update
 
 # %%
 ## Example
@@ -111,7 +111,7 @@ plt.ylabel("Y")
 
 # %%
 # create optimizer
-optimizer = DirectOptimizer(model, T)
+optimizer = direct_optimizer.DirectOptimizer(model, T)
 
 # settings
 optimizer.max_iterations = 10
@@ -233,7 +233,7 @@ for t in range(T):
   mujoco.mj_Euler(model, data)
 
 # create optimizer
-optimizer = DirectOptimizer(model, T)
+optimizer = direct_optimizer.DirectOptimizer(model, T)
 
 # initialize
 optimizer.qpos = 0.0 * np.ones((model.nq, T))
@@ -259,7 +259,7 @@ optimizer.status()
 
 # %%
 def test_gradient(
-    optimizer: DirectOptimizer,
+    optimizer: direct_optimizer.DirectOptimizer,
     qpos: npt.ArrayLike,
     eps: float = 1.0e-10,
     verbose: bool = False,
@@ -284,7 +284,8 @@ def test_gradient(
     nudge[i] += eps
 
     # qpos nudge
-    qnudge = configuration_update(optimizer.model, qpos, nudge, 1.0, T)
+    qnudge = direct_optimizer.configuration_update(
+        optimizer.model, qpos, nudge, 1.0, T)
 
     # evaluate
     c = optimizer.cost(qnudge)
@@ -301,7 +302,7 @@ def test_gradient(
 
 
 def test_hessian(
-    optimizer: DirectOptimizer,
+    optimizer: direct_optimizer.DirectOptimizer,
     qpos: npt.ArrayLike,
     eps: float = 1.0e-5,
     verbose: bool = False,
@@ -334,7 +335,8 @@ def test_hessian(
       w1[j] += eps
 
       # qpos nudge 1
-      qnudge1 = configuration_update(optimizer.model, qpos, w1, 1.0, T)
+      qnudge1 = direct_optimizer.configuration_update(
+          optimizer.model, qpos, w1, 1.0, T)
 
       cij = optimizer.cost(qnudge1)
 
@@ -342,7 +344,8 @@ def test_hessian(
       w2[i] += eps
 
       # qpos nudge 2
-      qnudge2 = configuration_update(optimizer.model, qpos, w2, 1.0, T)
+      qnudge2 = direct_optimizer.configuration_update(
+          optimizer.model, qpos, w2, 1.0, T)
 
       ci = optimizer.cost(qnudge2)
 
@@ -350,7 +353,8 @@ def test_hessian(
       w3[j] += eps
 
       # qpos nudge 3
-      qnudge3 = configuration_update(optimizer.model, qpos, w3, 1.0, T)
+      qnudge3 = direct_optimizer.configuration_update(
+          optimizer.model, qpos, w3, 1.0, T)
 
       cj = optimizer.cost(qnudge3)
 

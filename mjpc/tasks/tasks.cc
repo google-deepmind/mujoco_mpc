@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 
+#include "mjpc/task.h"
 #include "mjpc/tasks/acrobot/acrobot.h"
 #include "mjpc/tasks/allegro/allegro.h"
 #include "mjpc/tasks/cartpole/cartpole.h"

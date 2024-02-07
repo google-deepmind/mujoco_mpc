@@ -149,12 +149,16 @@ class CopyTaskAssetsCommand(setuptools.Command):
     self.set_undefined_options("build_ext", ("build_lib", "build_lib"))
 
   def run(self):
-    mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
+    # try using the build directory if it exists
+    mjpc_tasks_path = Path(__file__).parent.parent / "build" / "mjpc" / "tasks"
+    if not mjpc_tasks_path.exists():
+      mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
     source_paths = (
       tuple(mjpc_tasks_path.rglob("*.xml"))
       + tuple(mjpc_tasks_path.rglob("*.png"))
       + tuple(mjpc_tasks_path.rglob("*.stl"))
       + tuple(mjpc_tasks_path.rglob("*.obj"))
+      + tuple(mjpc_tasks_path.rglob("*.patch"))
     )
     relative_source_paths = tuple(p.relative_to(mjpc_tasks_path) for p in source_paths)
     assert self.build_lib is not None

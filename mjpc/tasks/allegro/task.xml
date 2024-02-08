@@ -44,8 +44,8 @@
     <numeric name="num_randomized_models" data="5" />
 
     <!-- state noise -->
-    <numeric name="residual_Cube Rot Noise" data="0.04 0.0 0.4"/>
-    <numeric name="residual_Cube Pos Noise" data="0.002 0.0 0.01"/>
+    <numeric name="residual_Cube Rot Noise" data="0.00 0.0 0.4"/>
+    <numeric name="residual_Cube Pos Noise" data="0.00 0.0 0.01"/>
     <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Z Bias" data="-0.000 -0.02 0.02"/>
@@ -60,7 +60,7 @@
     <!-- [dirty] domain randomization noise -->
     <numeric name="residual_DR friction std" data="0.0 0.0 0.1"/>
     <numeric name="residual_DR actuator std" data="0.0 0.0 0.1"/>
-    <numeric name="residual_DR position std" data="0.002 0.0 0.03"/>
+    <numeric name="residual_DR position std" data="0.0 0.0 0.03"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

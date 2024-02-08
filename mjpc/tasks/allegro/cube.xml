@@ -1,9 +1,9 @@
 <mujoco>
   <asset>
     <texture name="cube" type="cube"
-             fileup="../assets/cube/fileup.png" fileback="../assets/cube/fileback.png"
-             filedown="../assets/cube/filedown.png" filefront="../assets/cube/filefront.png"
-             fileleft="../assets/cube/fileleft.png" fileright="../assets/cube/fileright.png"/>
+             fileup="../assets/cube_qwerty/fileup.png" fileback="../assets/cube_qwerty/fileback.png"
+             filedown="../assets/cube_qwerty/filedown.png" filefront="../assets/cube_qwerty/filefront.png"
+             fileleft="../assets/cube_qwerty/fileleft.png" fileright="../assets/cube_qwerty/fileright.png"/>
     <material name="cube" texture="cube"/>
     <texture name="graycube" type="cube" fileup="../assets/cube/grayup.png"
              fileback="../assets/cube/grayback.png" filedown="../assets/cube/graydown.png"

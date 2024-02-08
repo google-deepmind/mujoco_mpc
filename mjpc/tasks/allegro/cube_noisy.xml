@@ -1,9 +1,9 @@
 <mujoco>
   <asset>
     <texture name="cube_noisy" type="cube"
-             fileup="../assets/cube/fileup.png" fileback="../assets/cube/fileback.png"
-             filedown="../assets/cube/filedown.png" filefront="../assets/cube/filefront.png"
-             fileleft="../assets/cube/fileleft.png" fileright="../assets/cube/fileright.png"/>
+             fileup="../assets/cube_qwerty/fileup.png" fileback="../assets/cube_qwerty/fileback.png"
+             filedown="../assets/cube_qwerty/filedown.png" filefront="../assets/cube_qwerty/filefront.png"
+             fileleft="../assets/cube_qwerty/fileleft.png" fileright="../assets/cube_qwerty/fileright.png"/>
     <material name="cube_noisy" texture="cube_noisy" rgba="1 1 1 0.3"/>
     <texture name="graycube_noisy" type="cube" fileup="../assets/cube/grayup.png"
              fileback="../assets/cube/grayback.png" filedown="../assets/cube/graydown.png"

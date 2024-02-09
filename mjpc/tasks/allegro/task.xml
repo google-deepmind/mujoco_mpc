@@ -94,10 +94,6 @@
     <user name="Cube Position" dim="3" user="1 100 0 200 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 30 0 100" />
     <user name="Cube Velocity" dim="3" user="0 0 0 20" />
-    <user name="Actuation" dim="16" user="0 0 0.0 10" />
-    <user name="Grasp" dim="16" user="0 0.0 0.0 10" />
-    <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />
-    <user name="Fingertip Pos" dim="12" user="0 0.0 0.0 100" />
 
     <!-- Measurements we want to use -->
     <framepos name="cube_goal_position" objtype="site" objname="grasp_site"/>
@@ -106,8 +102,8 @@
  
   <include file="cube.xml"/>
   <include file="cube_noisy.xml"/>
-  <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/wonik_allegro -->
-  <include file="right_hand_modified.xml"/>
+  <!-- TODO: patch the menagerie model rather than using this custom one -->
+  <include file="right_hand_fingertip.xml"/>
 
   <keyframe>
     <key name="home" qpos="1 0 0 0 0.2 0.025 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715"/>

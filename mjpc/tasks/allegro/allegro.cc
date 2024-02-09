@@ -35,9 +35,6 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube position: (3)
 //     Cube orientation: (3)
 //     Cube linear velocity: (3)
-//     Control: (16), there are 16 servos
-//     Nominal pose: (16)
-//     Joint velocity: (16)
 // ------------------------------------------
 void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                    double *residual) const {
@@ -77,35 +74,6 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
       SensorByName(model, data, "cube_linear_velocity");
 
   mju_copy(residual + counter, cube_linear_velocity, 3);
-  counter += 3;
-
-  // ---------- Control ----------
-  mju_copy(residual + counter, data->actuator_force, model->nu);
-  counter += model->nu;
-
-  // ---------- Nominal Pose ----------
-  mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
-  counter += 16;
-
-  // ---------- Joint Velocity ----------
-  mju_copy(residual + counter, data->qvel + 6, 16);
-  counter += 16;
-
-  // ---------- Relative position of the fingertips and the cube ----------
-  double *rf_position = SensorByName(model, data, "trace1");
-  mju_sub3(residual + counter, cube_position, rf_position);
-  counter += 3;
-
-  double *ff_position = SensorByName(model, data, "trace2");
-  mju_sub3(residual + counter, cube_position, ff_position);
-  counter += 3;
-
-  double *mf_position = SensorByName(model, data, "trace3");
-  mju_sub3(residual + counter, cube_position, mf_position);
-  counter += 3;
-
-  double *th_position = SensorByName(model, data, "trace4");
-  mju_sub3(residual + counter, cube_position, th_position);
   counter += 3;
 
   // Sanity check

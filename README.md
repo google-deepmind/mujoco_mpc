@@ -109,6 +109,35 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 
 - [direct.py](python/mujoco_mpc/direct.py) for available methods for direct optimization.
 
+## PYTHON INSTALL 12/10
+
+Here's what works for python installation as of December 10:
+
+Set up a fresh conda environment (matching what we use in `ambersim`):
+```
+conda env create -n [env_name] -f environment.yml
+conda activate [env_name]
+```
+
+Install some prereqs:
+```
+pip install -U grpcio grpcio-tools
+```
+
+Install the bindings:
+```
+cd python/
+python setup.py install
+python setup_direct.py install
+python setup_filter.py install
+```
+
+Run what you like, e.g.,
+```
+cd mujoco_mpc/  # now in mujoco_mpc/python/mujoco_mpc
+python demos/agent/cartpole.py
+```
+
 ## Installing via Pip
 The MJPC Python module can be installed with:
 ```sh

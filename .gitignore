@@ -32,3 +32,5 @@ MJDATA.TXT
 MJMODEL.TXT
 # Python
 python/dist/
+# Vim
+*.swp

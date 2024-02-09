@@ -332,6 +332,11 @@ void Trajectory::UpdateReturn(const Task* task) {
         gamma * task->CostValue(DataAt(residual, t * task->num_residual));
     gamma *= gamma_;
 
+    // extra terminal cost
+    //if (t == horizon - 1) {
+    //  costs[t] *= 100;
+    //}
+
     // update total return
     total_return += costs[t];
   }

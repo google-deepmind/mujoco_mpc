@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_SAMPLING_PLANNER_H_
-#define MJPC_PLANNERS_SAMPLING_PLANNER_H_
+#ifndef MJPC_PLANNERS_MPPI_PLANNER_H_
+#define MJPC_PLANNERS_MPPI_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
@@ -22,27 +22,27 @@
 #include <vector>
 
 #include "mjpc/planners/planner.h"
-#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
 
 // sampling planner limits
-inline constexpr int MinSamplingSplinePoints = 1;
-inline constexpr int MaxSamplingSplinePoints = 36;
-inline constexpr double MinNoiseStdDev = 0.0;
-inline constexpr double MaxNoiseStdDev = 1.0;
-inline constexpr int kMaxRandomizedModels = 10;
-inline constexpr int kMaxRollouts = 128;
+// inline constexpr int MinSamplingSplinePoints = 1;
+// inline constexpr int MaxSamplingSplinePoints = 36;
+// inline constexpr int MinSamplingSplinePower = 1;
+// inline constexpr int MaxSamplingSplinePower = 5;
+// inline constexpr double MinNoiseStdDev = 0.0;
+// inline constexpr double MaxNoiseStdDev = 1.0;
 
-class SamplingPlanner : public RankedPlanner {
+class MPPIPlanner : public RankedPlanner {
  public:
   // constructor
-  SamplingPlanner() = default;
+  MPPIPlanner() = default;
 
   // destructor
-  ~SamplingPlanner() override = default;
+  ~MPPIPlanner() override = default;
 
   // ----- methods ----- //
 
@@ -90,7 +90,7 @@ class SamplingPlanner : public RankedPlanner {
   // planner-specific plots
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
-
+  
   // return number of parameters optimized by planner
   int NumParameters() override {
     return policy.num_spline_points * policy.model->nu;
@@ -135,13 +135,13 @@ class SamplingPlanner : public RankedPlanner {
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
 
+  // rollout parameters
+  double timestep_power;
+
   // ----- noise ----- //
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;
-
-  // best trajectory
-  int winner;
 
   // improvement
   double improvement;
@@ -154,10 +154,25 @@ class SamplingPlanner : public RankedPlanner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
+  // best trajectory
+  int winner;
+
+  // mppi
+  double lambda;                   // the temp of the energy-based model
+  std::vector<double> weight_vec;  // MPPI weights
+  double denom;                    // sum of weight_vec
+  double temp_weight;              // temp variable for storing weights
+
+  bool langevin;  // whether to use langevin update
+  enum LangevinRepresentation : bool {
+    kLangevinOff,
+    kLangevinOn,
+  };
+
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_SAMPLING_PLANNER_H_
+#endif  // MJPC_PLANNERS_MPPI_PLANNER_H_

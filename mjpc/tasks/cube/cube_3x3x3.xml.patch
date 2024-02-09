@@ -1,0 +1,60 @@
+diff --git a/cube_3x3x3_modified.xml b/cube_3x3x3_modified.xml
+--- a/cube_3x3x3_modified.xml
++++ b/cube_3x3x3_modified.xml
+@@ -1,23 +1,16 @@
+ <mujoco model="Cube 3x3x3">
+-  <compiler autolimits="true" texturedir="assets"/>
++  <compiler autolimits="true" angle="radian" texturedir="assets"/>
+ 
+   <option timestep="0.01" integrator="implicitfast"/>
+ 
+   <size memory="600K"/>
+ 
+-  <visual>
+-    <global azimuth="180" elevation="-20"/>
+-    <headlight ambient="0.3 0.3 0.3" diffuse="0.6 0.6 0.6" specular="0 0 0"/>
+-  </visual>
+-
+-  <statistic meansize="0.0087" extent="0.1"/>
+-
+   <default>
+     <geom mass="0.00253704"/>
+     <motor ctrlrange="-0.05 0.05"/>
+     <default class="cubelet">
+-      <joint type="ball" armature="0.0001" damping="0.0005" frictionloss="0.001"/>
+-      <geom type="mesh" condim="1" mesh="cubelet" euler="0 0 90"/>
++      <joint type="ball" armature="0.0001" damping="0.0005" frictionloss="0.00005"/>
++      <geom type="mesh" condim="1" mesh="cubelet" quat="1 0 0 1"/>
+     </default>
+     <default class="core">
+       <geom type="sphere" contype="0" conaffinity="0" group="4" size="0.01"/>
+@@ -93,7 +86,8 @@
+ 
+   <worldbody>
+     <light pos="0 0 1"/>
+-    <body name="core" childclass="cubelet">
++    <body name="core" pos="0.325 0.0 0.075" childclass="cubelet">
++      <freejoint/>
+       <geom class="core"/>
+       <body name="pX">
+         <joint name="pX" type="hinge" axis="1 0 0"/>
+@@ -202,12 +196,11 @@
+     </body>
+   </worldbody>
+ 
+-  <actuator>
+-    <motor name="red" joint="pX"/>
+-    <motor name="orange" joint="nX"/>
+-    <motor name="blue" joint="pY"/>
+-    <motor name="green" joint="nY"/>
+-    <motor name="white" joint="pZ"/>
+-    <motor name="yellow" joint="nZ"/>
+-  </actuator>
++  <sensor>
++    <framepos name="trace0" objtype="body" objname="core"/>
++    <framepos name="cube_position" objtype="body" objname="core"/>
++    <framequat name="cube_orientation" objtype="body" objname="core"/>
++    <framelinvel name="cube_linear_velocity" objtype="body" objname="core"/>
++    <frameangvel name="cube_angular_velocity" objtype="body" objname="core"/>
++  </sensor>
+ </mujoco>

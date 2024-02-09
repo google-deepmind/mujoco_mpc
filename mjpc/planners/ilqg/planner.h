@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_ILQG_OPTIMIZER_H_
-#define MJPC_PLANNERS_ILQG_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_ILQG_PLANNER_H_
+#define MJPC_PLANNERS_ILQG_PLANNER_H_
 
 #include <shared_mutex>
 #include <vector>
@@ -71,6 +71,11 @@ class iLQGPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.trajectory.dim_action * (policy.trajectory.horizon - 1);
+  };
+
   // single iLQG iteration
   void Iteration(int horizon, ThreadPool& pool);
 
@@ -84,8 +89,6 @@ class iLQGPlanner : public Planner {
   int BestRollout();
 
   void UpdateNumTrajectoriesFromGUI();
-
-  //
 
   // ----- members ----- //
   mjModel* model;
@@ -158,4 +161,4 @@ class iLQGPlanner : public Planner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_ILQG_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_ILQG_PLANNER_H_

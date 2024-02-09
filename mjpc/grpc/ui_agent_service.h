@@ -49,6 +49,11 @@ class UiAgentService final : public agent::Agent::Service {
                          const agent::GetActionRequest* request,
                          agent::GetActionResponse* response) override;
 
+  grpc::Status GetResiduals(
+      grpc::ServerContext* context,
+      const agent::GetResidualsRequest* request,
+      agent::GetResidualsResponse* response) override;
+
   grpc::Status GetCostValuesAndWeights(
       grpc::ServerContext* context,
       const agent::GetCostValuesAndWeightsRequest* request,

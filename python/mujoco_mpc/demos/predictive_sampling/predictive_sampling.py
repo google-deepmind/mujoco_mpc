@@ -14,25 +14,37 @@
 # ==============================================================================
 
 from __future__ import annotations
+
 import bisect
+from typing import Callable, Tuple
+
 import mujoco
 import numpy as np
+
 
 # predictive sampling
 # https://arxiv.org/abs/2212.00541
 
 
-# policy class for predictive sampling
 class Policy:
-  # initialize policy
+  """Policy class for predictive sampling."""
+
   def __init__(
       self,
       naction: int,
       horizon: float,
       splinestep: float,
       interp: str = "zero",
-      limits: np.array = None,
-  ):
+      limits: np.ndarray | None = None):
+    """Initialize policy class.
+
+    Args:
+        naction: number of actions
+        horizon: planning horizon (seconds)
+        splinestep: interval length between spline points
+        interp (optional): type of action interpolation. Defaults to "zero".
+        limits (optional): lower and upper bounds on actions. Defaults to None.
+    """
     self._naction = naction
     self._splinestep = splinestep
     self._horizon = horizon
@@ -44,8 +56,18 @@ class Policy:
     self._interp = interp
     self._limits = limits
 
-  # find interval containing value
-  def _find_interval(self, sequence: np.array, value: float) -> [int, int]:
+  def _find_interval(
+      self, sequence: np.ndarray, value: float
+  ) -> Tuple[int, int]:
+    """Find neighboring indices in sequence containing value.
+
+    Args:
+        sequence: array of values
+        value: value to find in interval
+
+    Returns:
+        lower and upper indices in sequence containing value
+    """
     # bisection search to get interval
     upper = bisect.bisect_right(sequence, value)
     lower = upper - 1
@@ -60,45 +82,62 @@ class Policy:
       return (L - 1, L - 1)
     return (max(lower, 0), min(upper, L - 1))
 
-  # compute slope at value
-  def _slope(self, input: np.array, output: np.array, value: float) -> np.array:
-    # bounds
-    bounds = self._find_interval(input, value)
+  def _slope(
+      self, times: np.ndarray, params: np.ndarray, value: float
+  ) -> np.ndarray:
+    """Compute interpolated slope vector at value.
 
-    # length of inputs
-    L = len(input)
+    Args:
+        times: sequence of time markers
+        params: sequence of vectors
+        value: input where to compute slope
+
+    Returns:
+        interpolated slope vector
+    """
+    # bounds
+    bounds = self._find_interval(times, value)
+
+    times_length = len(times)
 
     # lower out of bounds
     if bounds[0] == 0 and bounds[1] == 0:
-      if L > 2:
-        return (output[:, bounds[1] + 1] - output[:, bounds[1]]) / (
-            input[bounds[1] + 1] - input[bounds[1]]
+      if times_length > 2:
+        return (params[:, bounds[1] + 1] - params[:, bounds[1]]) / (
+            times[bounds[1] + 1] - times[bounds[1]]
         )
-      return np.zeros(output.shape[0])
+      return np.zeros(params.shape[0])
 
     # upper out of bounds
-    if bounds[0] == L - 1 and bounds[1] == L - 1:
-      if L > 2:
-        return (output[:, bounds[0]] - output[:, bounds[0] - 1]) / (
-            input[bounds[0]] - input[bounds[0] - 1]
+    if bounds[0] == times_length - 1 and bounds[1] == times_length - 1:
+      if times_length > 2:
+        return (params[:, bounds[0]] - params[:, bounds[0] - 1]) / (
+            times[bounds[0]] - times[bounds[0] - 1]
         )
-      return np.zeros(output.shape[0])
+      return np.zeros(params.shape[0])
 
     # lower boundary
     if bounds[0] == 0:
-      return (output[:, bounds[1]] - output[:, bounds[0]]) / (
-          input[bounds[1]] - input[bounds[0]]
+      return (params[:, bounds[1]] - params[:, bounds[0]]) / (
+          times[bounds[1]] - times[bounds[0]]
       )
 
     # internal interval
-    return 0.5 * (output[:, bounds[1]] - output[:, bounds[0]]) / (
-        input[bounds[1]] - input[bounds[0]]
-    ) + 0.5 * (output[:, bounds[0]] - output[:, bounds[0] - 1]) / (
-        input[bounds[0]] - input[bounds[0] - 1]
+    return 0.5 * (params[:, bounds[1]] - params[:, bounds[0]]) / (
+        times[bounds[1]] - times[bounds[0]]
+    ) + 0.5 * (params[:, bounds[0]] - params[:, bounds[0] - 1]) / (
+        times[bounds[0]] - times[bounds[0] - 1]
     )
 
-  # get action from policy
-  def action(self, time: float) -> np.array:
+  def action(self, time: float) -> np.ndarray:
+    """Return action from policy at time.
+
+    Args:
+        time: time value to evaluate plan for action
+
+    Returns:
+        interpolated action at time
+    """
     # find interval containing time
     bounds = self._find_interval(self._times, time)
 
@@ -141,8 +180,12 @@ class Policy:
     else:  # self._interp == "zero"
       return self.clamp(self._parameters[:, bounds[0]])
 
-  # resample policy plan from current time
   def resample(self, time: float):
+    """Resample plan starting from time.
+
+    Args:
+        time: time value to start updated plan
+    """
     # new times and parameters
     times = np.array(
         [i * self._splinestep + time for i in range(self._nspline)], dtype=float
@@ -153,16 +196,27 @@ class Policy:
     self._times = times
     self._parameters = parameters
 
-  # add zero-mean Gaussian noise to policy parameters
   def add_noise(self, scale: float):
+    """Add zero-mean Gaussian noise to plan.
+
+    Args:
+        scale: standard deviation of zero-mean Gaussian noise
+    """
     # clamp within limits
     self._parameters = self.clamp(
         self._parameters
         + np.random.normal(scale=scale, size=(self._naction, self._nspline))
     )
 
-  # return a copy of the policy with noisy parameters
   def noisy_copy(self, scale: float) -> Policy:
+    """Return a copy of plan with added noise.
+
+    Args:
+        scale: standard deviation of zero-mean Gaussian noise
+
+    Returns:
+        copy of policy object with noisy plan
+    """
     # create new policy object
     policy = Policy(self._naction, self._horizon, self._splinestep)
 
@@ -174,8 +228,15 @@ class Policy:
 
     return policy
 
-  # clamp action with limits
-  def clamp(self, action: np.array) -> np.array:
+  def clamp(self, action: np.ndarray) -> np.ndarray:
+    """Return input clamped between limits.
+
+    Args:
+        action: input vector
+
+    Returns:
+        clamped input vector
+    """
     # clamp within limits
     if self._limits is not None:
       return np.minimum(
@@ -184,20 +245,37 @@ class Policy:
     return action
 
 
-# rollout
 def rollout(
-    qpos: np.array,
-    qvel: np.array,
-    act: np.array,
+    qpos: np.ndarray,
+    qvel: np.ndarray,
+    act: np.ndarray,
     time: float,
-    mocap_pos: np.array,
-    mocap_quat: np.array,
+    mocap_pos: np.ndarray,
+    mocap_quat: np.ndarray,
     model: mujoco.MjModel,
     data: mujoco.MjData,
-    reward: function,
+    reward: Callable,
     policy: Policy,
     horizon: float,
 ) -> float:
+  """Return total return by rollout out plan with forward dynamics.
+
+  Args:
+      qpos: initial configuration
+      qvel: initial velocity
+      act: initial activation
+      time: current time
+      mocap_pos: motion-capture body positions
+      mocap_quat: motion-capture body orientations
+      model: MuJoCo model
+      data: MuJoCo data
+      reward: function returning per-timestep reward value
+      policy: plan for computing action at given time
+      horizon: planning duration (seconds)
+
+  Returns:
+      total return (normalized by number of planning steps)
+  """
   # number of steps
   steps = int(horizon / model.opt.timestep)
 
@@ -233,13 +311,13 @@ def rollout(
   return total_reward / (steps + 1)
 
 
-# predictive sampling planner class
 class Planner:
-  # initialize planner
+  """Predictive sampling planner class."""
+
   def __init__(
       self,
       model: mujoco.MjModel,
-      reward: function,
+      reward: Callable,
       horizon: float,
       splinestep: float,
       planstep: float,
@@ -249,6 +327,23 @@ class Planner:
       interp: str = "zero",
       limits: bool = True,
   ):
+    """Initialize planner.
+
+    Args:
+        model: MuJoCo model
+        reward: function returning per-timestep reward value
+        horizon: planning duration (seconds)
+        splinestep: interval length between spline points
+        planstep: interval length between forward dynamics steps
+        nsample: number of noisy plans to evaluate
+        noise_scale: standard deviation of zero-mean Gaussian
+        nimprove: number of iterations to improve plan for fixed initial
+          state
+        interp: type of action interpolation. Defaults to
+          "zero".
+        limits: lower and upper bounds on action. Defaults to
+          True.
+    """
     self._model = model.__copy__()
     self._model.opt.timestep = planstep
     self._data = mujoco.MjData(self._model)
@@ -265,20 +360,36 @@ class Planner:
     self._noise_scale = noise_scale
     self._nimprove = nimprove
 
-  # action from policy
-  def action_from_policy(self, time: float) -> np.array:
+  def action_from_policy(self, time: float) -> np.ndarray:
+    """Return action at time from policy.
+
+    Args:
+        time: time to evaluate plan for action
+
+    Returns:
+        action interpolation at time
+    """
     return self.policy.action(time)
 
-  # improve policy
   def improve_policy(
       self,
-      qpos: np.array,
-      qvel: np.array,
-      act: np.array,
+      qpos: np.ndarray,
+      qvel: np.ndarray,
+      act: np.ndarray,
       time: float,
-      mocap_pos: np.array,
-      mocap_quat: np.array,
+      mocap_pos: np.ndarray,
+      mocap_quat: np.ndarray,
   ):
+    """Iteratively improve plan via searching noisy plans.
+
+    Args:
+        qpos: initial configuration
+        qvel: initial velocity
+        act: initial activation
+        time: current time
+        mocap_pos: motion-capture body position
+        mocap_quat: motion-capture body orientation
+    """
     # resample
     self.policy.resample(time)
 

@@ -49,9 +49,6 @@ void GradientPlanner::Initialize(mjModel* model, const Task& task) {
   // task
   this->task = &task;
 
-  // rollout parameters
-  timestep_power = 1.0;
-
   // dimensions
   dim_state = model->nq + model->nv + model->na;  // state dimension
   dim_state_derivative =
@@ -374,11 +371,8 @@ void GradientPlanner::ResamplePolicy(int horizon) {
   mju_copy(candidate_policy[0].times.data(), times_scratch.data(),
            num_spline_points);
 
-  // time step power scaling
-  PowerSequence(candidate_policy[0].times.data(), time_shift,
-                candidate_policy[0].times[0],
-                candidate_policy[0].times[num_spline_points - 1],
-                timestep_power, num_spline_points);
+  LinearRange(candidate_policy[0].times.data(), time_shift,
+              candidate_policy[0].times[0], num_spline_points);
 }
 
 // compute candidate trajectories
@@ -474,7 +468,6 @@ void GradientPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

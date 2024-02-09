@@ -26,6 +26,7 @@
 namespace mjpc {
 
 inline constexpr int kMaxTrajectory = 128;
+inline constexpr int kMaxTrajectoryLarge = 1028;
 
 // virtual planner
 class Planner {
@@ -70,6 +71,9 @@ class Planner {
   virtual void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
                      int planner_shift, int timer_shift, int planning,
                      int* shift) = 0;
+
+  // return number of parameters optimized by planner
+  virtual int NumParameters() = 0;
 
   std::vector<UniqueMjData> data_;
   void ResizeMjData(const mjModel* model, int num_threads);

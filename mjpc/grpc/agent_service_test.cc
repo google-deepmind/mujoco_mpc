@@ -360,4 +360,16 @@ TEST_F(AgentServiceTest, GetAllModes_Works) {
   EXPECT_EQ(response.mode_names()[0], "default_mode");
 }
 
+TEST_F(AgentServiceTest, GetResiduals_Works) {
+  RunAndCheckInit("Cartpole", nullptr);
+
+  grpc::ClientContext context;
+
+  agent::GetResidualsRequest request;
+  agent::GetResidualsResponse response;
+  grpc::Status status = stub->GetResiduals(&context, request, &response);
+
+  EXPECT_TRUE(status.ok());
+}
+
 }  // namespace mjpc::agent_grpc

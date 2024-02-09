@@ -17,13 +17,13 @@
 
   <custom>
     <!-- agent 0 = Sampling, 5 = CEM, 6 = Sample Grad, 7 = MPPI, 8 = DR Sampling, 9 = DR MPPI, 10 = DR CEM -->
-    <numeric name="agent_planner" data="10" />
-    <numeric name="agent_horizon" data="0.5" />
-    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="agent_planner" data="5" />
+    <numeric name="agent_horizon" data="0.3" />
+    <numeric name="agent_timestep" data="0.006" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="2" />
+    <numeric name="sampling_spline_points" data="1" />
     <numeric name="sampling_exploration" data="0.4" />
-    <numeric name="sampling_trajectories" data="25" />
+    <numeric name="sampling_trajectories" data="125" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="1" />
@@ -33,7 +33,7 @@
     <numeric name="gamma" data="1.0" />
 
     <!-- cem -->
-    <numeric name="n_elite" data="3" />
+    <numeric name="n_elite" data="5" />
     <numeric name="std_min" data="0.4" />
 
     <!-- mppi -->
@@ -41,7 +41,7 @@
     <numeric name="lambda" data="0.1" />
 
     <!-- domain randomization -->
-    <numeric name="num_randomized_models" data="5" />
+    <numeric name="num_randomized_models" data="1" />
 
     <!-- state noise -->
     <numeric name="residual_Cube Rot Noise" data="0.0 0.0 0.4"/>
@@ -60,7 +60,7 @@
     <!-- [dirty] domain randomization noise -->
     <numeric name="residual_DR friction std" data="0.0 0.0 0.1"/>
     <numeric name="residual_DR actuator std" data="0.0 0.0 0.1"/>
-    <numeric name="residual_DR position std" data="0.01 0.0 0.03"/>
+    <numeric name="residual_DR position std" data="0.0 0.0 0.03"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

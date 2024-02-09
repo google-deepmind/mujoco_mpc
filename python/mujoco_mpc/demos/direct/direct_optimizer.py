@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Tuple
+
 import mujoco
 import numpy as np
 from numpy import typing as npt
-from typing import Tuple
 
 
 # %%
@@ -74,7 +75,7 @@ def diff_differentiatePos(
         jac1[vadr, vadr] = -1.0 / dt
         jac2[vadr, vadr] = 1.0 / dt
       case _:
-        raise NotImplementedException("Invalid joint")
+        raise NotImplementedError("Invalid joint")
 
   return jac1, jac2
 
@@ -85,7 +86,7 @@ def qpos_to_qvel_qacc(
     qpos: npt.ArrayLike,
     horizon: int,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-  """Velocity and acceleration from configuration.
+  """Compute velocity and acceleration using configurations.
 
   v1 = (q1 - q0) / h
   a1 = (v2 - v1) / h = (q2 - 2q1 + q0) / h^2
@@ -96,7 +97,8 @@ def qpos_to_qvel_qacc(
       horizon (int): number of timesteps
 
   Returns:
-      Tuple[npt.ArrayLike, npt.ArrayLike]: velocity and accelerations trajectories
+      Tuple[npt.ArrayLike, npt.ArrayLike]: velocity and accelerations
+      trajectories
   """
   qvel = np.zeros((model.nv, horizon))
   qacc = np.zeros((model.nv, horizon))
@@ -130,7 +132,7 @@ def diff_qpos_to_qvel_qacc(
 ) -> Tuple[
     npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike
 ]:
-  """Velocity and acceleration from configurations (derivatives wrt configurations.
+  """Velocity and acceleration from mujoco_mpc.demos.configurations (derivatives wrt configurations.
 
   Args:
       model (mujoco.MjModel): MuJoCo model
@@ -1025,6 +1027,7 @@ class DirectOptimizer:
     self._iterations_step = 0
     self._iterations_search = 0
     self._status_msg = ""
+    self._improvement = 0.0
 
     # settings
     self.gradient_tolerance = 1.0e-6

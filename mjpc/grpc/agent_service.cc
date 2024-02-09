@@ -35,6 +35,8 @@ using ::agent::GetAllModesRequest;
 using ::agent::GetAllModesResponse;
 using ::agent::GetBestTrajectoryRequest;
 using ::agent::GetBestTrajectoryResponse;
+using ::agent::GetResidualsRequest;
+using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
@@ -179,6 +181,16 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   }
   return grpc_agent_util::GetAction(
       request, &agent_, model, rollout_data_.get(), &rollout_state_, response);
+}
+
+grpc::Status AgentService::GetResiduals(
+    grpc::ServerContext* context, const GetResidualsRequest* request,
+    GetResidualsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetResiduals(request, &agent_, model,
+                                       data_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(

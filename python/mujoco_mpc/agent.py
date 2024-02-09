@@ -266,6 +266,11 @@ class Agent(contextlib.AbstractContextManager):
         for name, value_weight in terms.values_weights.items()
     }
 
+  def get_residuals(self) -> dict[str, Sequence[float]]:
+    residuals = self.stub.GetResiduals(agent_pb2.GetResidualsRequest())
+    return {name: residual.values
+            for name, residual in residuals.values.items()}
+
   def planner_step(self):
     """Send a planner request."""
     planner_step_request = agent_pb2.PlannerStepRequest()

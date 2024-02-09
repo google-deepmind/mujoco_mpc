@@ -15,9 +15,10 @@
 
 import mediapy as media
 import mujoco
+from predictive_sampling import predictive_sampling
 import numpy as np
 
-from predictive_sampling import Planner
+
 # %%
 xml = """
   <mujoco model="Particle Control">
@@ -119,7 +120,7 @@ nimprove = 4
 nsample = 4
 noise_scale = 0.01
 interp = "zero"
-planner = Planner(
+planner = predictive_sampling.Planner(
     model,
     reward,
     horizon,

@@ -14,18 +14,42 @@
 
 #include "mjpc/tasks/cube/solve.h"
 
+#include <algorithm>
+#include <iostream>
 #include <random>
 #include <string>
 
-#include <absl/log/check.h>
-#include <absl/log/log.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
+namespace {
+  constexpr static double kResetHeight = -0.1;  // cube height to reset
+}  // namespace
+
 std::string CubeSolve::XmlPath() const { return GetModelPath("cube/task.xml"); }
 std::string CubeSolve::Name() const { return "Cube Solving"; }
+
+CubeSolve::CubeSolve() : residual_(this) {
+  // path to transition model xml
+  std::string path = GetModelPath("cube/transition_model.xml");
+
+  // load transition model
+  constexpr int kErrorLength = 1024;
+  char load_error[kErrorLength] = "";
+  transition_model_ =
+      mj_loadXML(path.c_str(), nullptr, load_error, kErrorLength);
+  transition_data_ = mj_makeData(transition_model_);
+
+  // goal cache
+  goal_cache_.resize(6 * 10);
+  std::fill(goal_cache_.begin(), goal_cache_.end(), 0.0);
+}
+
+CubeSolve::~CubeSolve() {
+  if (transition_data_) mj_deleteData(transition_data_);
+  if (transition_model_) mj_deleteModel(transition_model_);
+}
 
 // ---------- Residuals for cube solving manipulation task ----
 //   Number of residuals:
@@ -34,7 +58,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                      double* residual) const {
   // initialize counter
   int counter = 0;
-  
+
   // lock current mode
   int mode = current_mode_;
 
@@ -85,12 +109,23 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 6;
 
   // ---------- Residual (4) ----------
+
+  // The unmodified cube model has 20 ball joints: nq=86, nv=66.
+  // The patch adds a free joint: nq=93, nv=72.
+  // The task adds a ball joint: nq=97, nv=75.
+  // The shadow hand has 24 DoFs: nq=121, nv=99.
+  // The following two residuals apply for the last 24 entries of qpos and qvel:
   mju_sub(residual + counter, data->qpos + 97, model->key_qpos + 97, 24);
   counter += 24;
 
   // ---------- Residual (5) ----------
-  mju_copy(residual + counter, data->qvel + 97, 24);
+  mju_copy(residual + counter, data->qvel + 75, 24);
   counter += 24;
+
+  // ---------- Residual (6) ----------
+  residual[counter++] =
+      goal_index_ * 12;  // each face has ~12 cost to unscramble based on
+                         // current weights, settings, etc.
 
   // sensor dim sanity check
   CheckSensorDim(model, counter);
@@ -103,6 +138,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
   if (transition_model_) {
     if (mode == kModeWait) {
+      weight[11] = .01;  // add penalty on joint movement
       // wait
     } else if (mode == kModeScramble) {  // scramble
       double scramble_param = parameters[6];
@@ -162,12 +198,12 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
       // set face goal index
       goal_index_ = num_scramble - 1;
+      std::cout << "rotations required: " << num_scramble << "\n";
 
-      // set to wait
-      mode = 0;
-    }
-
-    if (mode == kModeSolve) {  // solve
+      // set to solve
+      mode = kModeSolve;
+      weight[11] = 0;  // remove penalty on joint movement
+    } else if (mode == kModeSolve) {  // solve
       // set goal
       mju_copy(parameters.data(), goal_cache_.data() + 6 * goal_index_, 6);
 
@@ -177,10 +213,10 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
       if (mju_norm(error, 6) < 0.085) {
         if (goal_index_ == 0) {
-          // return to wait
-          printf("solved!");
-          mode = 0;
+          mode = kModeWait;
+          std::cout << "solved!\n";
         } else {
+          std::cout << "rotations remaining: " << goal_index_ << "\n";
           goal_index_--;
         }
       }
@@ -189,11 +225,15 @@ void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
 
   // check for drop
   if (data->qpos[6] < kResetHeight) {
-    // reset cube position + orientation
-    mju_copy(data->qpos, model->key_qpos, 7);
+    if (mode != kModeWait) { std::cout << "cube fell\n"; }
 
-    // reset cube velocity
-    mju_zero(data->qvel, 6);
+    // stop optimization
+    mode = kModeWait;
+  }
+
+  // check goal index
+  if (residual_.goal_index_ != goal_index_) {
+    residual_.goal_index_ = goal_index_;
   }
 
   // check for mode change

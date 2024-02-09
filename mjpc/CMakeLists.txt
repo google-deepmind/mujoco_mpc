@@ -40,6 +40,8 @@ add_library(
   tasks/acrobot/acrobot.h
   tasks/allegro/allegro.cc
   tasks/allegro/allegro.h
+  tasks/bimanual/bimanual.cc
+  tasks/bimanual/bimanual.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
   tasks/cube/solve.cc
@@ -85,6 +87,8 @@ add_library(
   planners/cross_entropy/planner.h
   planners/robust/robust_planner.cc
   planners/robust/robust_planner.h
+  planners/sample_gradient/planner.cc
+  planners/sample_gradient/planner.h
   planners/sampling/planner.cc
   planners/sampling/planner.h
   planners/sampling/policy.cc
@@ -122,6 +126,8 @@ add_library(
   direct/trajectory.h
   direct/model_parameters.cc
   direct/model_parameters.h
+  spline/spline.cc
+  spline/spline.h
   app.cc
   app.h
   norm.cc
@@ -138,8 +144,11 @@ target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
   absl::any_invocable
+  absl::check
   absl::flat_hash_map
+  absl::log
   absl::random_random
+  absl::span
   glfw
   lodepng
   mujoco::mujoco
@@ -176,6 +185,28 @@ if(APPLE)
   target_sources(mjpc PRIVATE macos_gui.mm)
   target_link_libraries(mjpc "-framework Cocoa")
 endif()
+
+add_executable(
+  testspeed
+  testspeed_app.cc
+  testspeed.h
+  testspeed.cc
+)
+target_link_libraries(
+  testspeed
+  absl::flags
+  absl::flags_parse
+  absl::random_random
+  absl::strings
+  libmjpc
+  mujoco::mujoco
+  threadpool
+  Threads::Threads
+)
+target_include_directories(testspeed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_options(testspeed PUBLIC ${MJPC_COMPILE_OPTIONS})
+target_link_options(testspeed PRIVATE ${MJPC_LINK_OPTIONS})
+target_compile_definitions(testspeed PRIVATE MJSIMULATE_STATIC)
 
 add_subdirectory(tasks)
 

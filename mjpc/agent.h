@@ -136,6 +136,7 @@ class Agent {
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
   int ActiveEstimatorIndex() const { return estimator_; }
+  double ComputeTime() const { return agent_compute_time_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
   // be used from trajectory rollout threads (no locking).

@@ -110,7 +110,7 @@ class SamplingPlanner : public RankedPlanner {
 
   void CopyCandidateToPolicy(int candidate) override;
 
-  // ----- members ----- /ntent): Merge conflict in mjpc/planners/samp/
+  // ----- members ----- //
   mjModel* model;
   const Task* task;
 

@@ -12,14 +12,14 @@
   <!-- changing contact model, default stiffness=-2500 damping=-100 -->
   <!-- pretty good, stiffness=-3000 damping=-200 -->
   <default>
-    <geom solref="-3000 -300"/>
+    <geom solref="-4000 -400"/>
   </default>
 
   <custom>
     <!-- agent 0 = Sampling, 5 = CEM, 6 = Sample Grad, 7 = MPPI, 8 = DR Sampling, 9 = DR MPPI, 10 = DR CEM -->
     <numeric name="agent_planner" data="5" />
     <numeric name="agent_horizon" data="0.3" />
-    <numeric name="agent_timestep" data="0.006" />
+    <numeric name="agent_timestep" data="0.003" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="1" />
     <numeric name="sampling_exploration" data="0.4" />

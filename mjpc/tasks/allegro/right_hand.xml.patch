@@ -15,7 +15,7 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
            <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
            <default class="thumbtip_collision">
 -            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035"/>
-+            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="1.0 0.1 0.05" priority="1" condim="6"/>
++            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="3.0 0.1 0.05" priority="1" condim="6"/>
            </default>
          </default>
        </default>

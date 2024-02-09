@@ -14,18 +14,20 @@
 
 #include "mjpc/planners/sample_gradient/planner.h"
 
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <mutex>
 #include <shared_mutex>
 
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
+#include "mjpc/planners/planner.h"
 #include "mjpc/planners/policy.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 

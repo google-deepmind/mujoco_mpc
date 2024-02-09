@@ -38,6 +38,8 @@ add_library(
   tasks/tasks.h
   tasks/acrobot/acrobot.cc
   tasks/acrobot/acrobot.h
+  tasks/bimanual/bimanual.cc
+  tasks/bimanual/bimanual.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
   tasks/cube/solve.cc
@@ -122,6 +124,8 @@ add_library(
   direct/trajectory.h
   direct/model_parameters.cc
   direct/model_parameters.h
+  spline/spline.cc
+  spline/spline.h
   app.cc
   app.h
   norm.cc
@@ -138,8 +142,11 @@ target_compile_definitions(libmjpc PRIVATE MJSIMULATE_STATIC)
 target_link_libraries(
   libmjpc
   absl::any_invocable
+  absl::check
   absl::flat_hash_map
+  absl::log
   absl::random_random
+  absl::span
   glfw
   lodepng
   mujoco::mujoco

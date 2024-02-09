@@ -259,13 +259,13 @@
 
   <actuator>
     <position name="ff1" site="ff_tip" refsite="ff_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
-    <position name="ff2" site="ff_tip" refsite="ff_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="ff2" site="ff_tip" refsite="ff_ref" gear="0 1 0 0 0 0" class="fingertip_actuator" ctrlrange="-0.05 0.05"/>
     <position name="ff3" site="ff_tip" refsite="ff_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
     <position name="mf1" site="mf_tip" refsite="mf_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
-    <position name="mf2" site="mf_tip" refsite="mf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="mf2" site="mf_tip" refsite="mf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator" ctrlrange="-0.05 0.05"/>
     <position name="mf3" site="mf_tip" refsite="mf_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
     <position name="rf1" site="rf_tip" refsite="rf_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
-    <position name="rf2" site="rf_tip" refsite="rf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="rf2" site="rf_tip" refsite="rf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator" ctrlrange="-0.05 0.05"/>
     <position name="rf3" site="rf_tip" refsite="rf_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
     <position name="th1" site="th_tip" refsite="th_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
     <position name="th2" site="th_tip" refsite="th_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>

@@ -17,7 +17,7 @@
 
   <custom>
     <!-- agent 0 = Sampling, 5 = CEM, 7 = MPPI, 8 = DR Sampling, 9 = DR MPPI, 10 = DR CEM -->
-    <numeric name="agent_planner" data="9" />
+    <numeric name="agent_planner" data="10" />
     <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.003" />
     <numeric name="agent_policy_width" data="0.0035" />

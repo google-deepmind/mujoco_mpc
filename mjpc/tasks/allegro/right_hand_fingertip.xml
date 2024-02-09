@@ -253,7 +253,7 @@
 
   <default>
     <default class="fingertip_actuator">
-      <position kp="100" kv="5" ctrlrange="-0.1 0.1"/>
+      <position kp="50" kv="2" ctrlrange="-0.1 0.1"/>
     </default>
   </default>
 

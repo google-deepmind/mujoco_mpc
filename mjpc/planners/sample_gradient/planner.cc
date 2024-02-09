@@ -47,9 +47,6 @@ void SampleGradientPlanner::Initialize(mjModel* model, const Task& task) {
   // task
   this->task = &task;
 
-  // rollout parameters
-  timestep_power = 1.0;
-
   // exploration noise
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
 

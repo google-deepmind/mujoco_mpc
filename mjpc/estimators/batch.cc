@@ -24,7 +24,6 @@
 #include "mjpc/array_safety.h"
 #include "mjpc/estimators/estimator.h"
 #include "mjpc/direct/direct.h"
-#include "mjpc/norm.h"
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 

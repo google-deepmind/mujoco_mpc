@@ -1,0 +1,42 @@
+diff --git a/transition_model.xml b/transition_model.xml
+--- a/transition_model.xml
++++ b/transition_model.xml
+@@ -1,5 +1,5 @@
+ <mujoco model="Cube 3x3x3">
+-  <compiler autolimits="true" texturedir="assets"/>
++  <compiler autolimits="true" angle="radian" texturedir="assets"/>
+ 
+   <option timestep="0.01" integrator="implicitfast"/>
+ 
+@@ -14,10 +14,10 @@
+ 
+   <default>
+     <geom mass="0.00253704"/>
+-    <motor ctrlrange="-0.05 0.05"/>
++    <position ctrlrange="-10 10"/>
+     <default class="cubelet">
+-      <joint type="ball" armature="0.0001" damping="0.0005" frictionloss="0.001"/>
+-      <geom type="mesh" condim="1" mesh="cubelet" euler="0 0 90"/>
++      <joint type="ball" armature="0.001" damping="0.001" frictionloss="0.001"/>
++      <geom type="mesh" condim="1" mesh="cubelet" quat="1 0 0 1"/>
+     </default>
+     <default class="core">
+       <geom type="sphere" contype="0" conaffinity="0" group="4" size="0.01"/>
+@@ -203,11 +203,11 @@
+   </worldbody>
+ 
+   <actuator>
+-    <motor name="red" joint="pX"/>
+-    <motor name="orange" joint="nX"/>
+-    <motor name="blue" joint="pY"/>
+-    <motor name="green" joint="nY"/>
+-    <motor name="white" joint="pZ"/>
+-    <motor name="yellow" joint="nZ"/>
++    <position name="red" joint="pX"/>
++    <position name="orange" joint="nX"/>
++    <position name="blue" joint="pY"/>
++    <position name="green" joint="nY"/>
++    <position name="white" joint="pZ"/>
++    <position name="yellow" joint="nZ"/>
+   </actuator>
+ </mujoco>

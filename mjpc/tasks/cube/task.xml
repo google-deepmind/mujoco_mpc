@@ -1,0 +1,78 @@
+<mujoco model="Cube Solving Manipulation">
+  <include file="../common.xml"/>
+
+  <statistic extent="0.4" center="0.3 0.1 0"/>
+  <size memory="1M"/>
+
+  <custom>
+    <!-- agent/planner settings -->
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.25" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_spline_points" data="6" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="sampling_trajectories" data="60" />
+    <numeric name="sampling_representation" data="1" />
+    <!-- manual face goals -->
+    <numeric name="residual_Red" data="0 -3.14 3.14"/>
+    <numeric name="residual_Orange" data="0 -3.14 3.14"/>
+    <numeric name="residual_Blue" data="0 -3.14 3.14"/>
+    <numeric name="residual_Green" data="0 -3.14 3.14"/>
+    <numeric name="residual_White" data="0 -3.14 3.14"/>
+    <numeric name="residual_Yellow" data="0 -3.14 3.14"/>
+    <!-- GUI elements -->
+    <text name="task_transition" data="Scramble|Solve|Wait|Manual"/>
+    <numeric name="residual_select_Scramble" data="3"/>
+    <text name="residual_list_Scramble" data="1|2|3|4|5|6|7|8|9|10"/>
+  </custom>
+
+  <visual>
+    <quality shadowsize="8192"/>
+    <global azimuth="180" elevation="-30"/>
+  </visual>
+
+  <default>
+    <geom friction=".6"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+        directional="true" castshadow="true"/>
+    <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
+    <body name="goal" pos="0.325 0.17 0.0475">
+      <joint type="ball" damping="0.01"/>
+      <geom type="box" size=".022 .022 .022" mass=".126" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+
+  <sensor>
+    <!-- cost terms -->
+    <user name="In Hand" dim="3" user="1 50 0 100 0.02 2"/>
+    <user name="Orientation" dim="3" user="0 0 0 10" />
+    <user name="Cube Vel." dim="3" user="0 2.5 0 20" />
+    <user name="Actuator" dim="20" user="0 0.0 0.0 1.0" />
+    <user name="Red" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="Orange" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="Blue" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="Green" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="White" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="Yellow" dim="1" user="0 10.0 0.0 25.0"/>
+    <user name="Grasp" dim="24" user="0 1.0 0.0 10.0" />
+    <user name="Joint Vel." dim="24" user="0 0.0 0.0 1.0e-1" />
+    <user name="Remaining" dim="1" user="-1 1.0 0.0 1.0" />
+    <!-- sensors -->
+    <framepos name="palm_position" objtype="site" objname="grasp_site"/>
+    <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
+  </sensor>
+
+  <!-- modified from: mujoco/model/cube/cube_3x3x3.xml -->
+  <include file="cube_3x3x3_modified.xml"/>
+  <!-- from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand -->
+  <include file="right_hand.xml"/>
+
+  <keyframe>
+    <key qpos='1 0 0 0 0.325 0 0.075 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 5.55212e-10 -0.235248 -0.178041 0.480484 0.730515 0.6284 -0.059347 0.535468 0.746225 0.56556 -0.03491 0.544632 0.53414 0.793355 0.384846 -0.254843 0.178072 0.761935 0.746225 -0.90042 0.06721 0.01047 0.6981 0.4255'/>
+  </keyframe>
+</mujoco>
+

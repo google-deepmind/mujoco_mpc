@@ -111,7 +111,6 @@ class CrossEntropyPlanner : public Planner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
-  Trajectory elite_avg;
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
@@ -139,6 +138,9 @@ class CrossEntropyPlanner : public Planner {
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
+
+  // elite average index
+  const int elite_average_index_ = 0;
 };
 
 }  // namespace mjpc

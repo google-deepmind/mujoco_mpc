@@ -85,7 +85,8 @@
       <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
     </body>
     <body name="connector" pos="0.13103288674 0 0.0336530231" quat="0 1 0 0.7">
-      <geom type="mesh" mesh="connector"/>
+      <geom type="mesh" mesh="connector" class="visual"/>
+      <geom size="0.034428 0.029856 0.029" pos="0.00 0 -0.003" class="collision"/>
     </body>
   </worldbody>
 

@@ -15,16 +15,16 @@
 #ifndef MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
 #define MJPC_PLANNERS_CROSS_ENTROPY_PLANNER_H_
 
-#include <mujoco/mujoco.h>
-
 #include <atomic>
-#include <memory>
 #include <shared_mutex>
 #include <vector>
 
+#include <mujoco/mujoco.h>
 #include "mjpc/planners/planner.h"
-#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/planners/sampling/policy.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
@@ -84,6 +84,11 @@ class CrossEntropyPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  };
+
   // ----- members ----- //
   mjModel* model;
   const Task* task;
@@ -110,9 +115,6 @@ class CrossEntropyPlanner : public Planner {
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
-
-  // rollout parameters
-  double timestep_power;
 
   // ----- noise ----- //
   double std_initial_;  // standard deviation for sampling normal: N(0,

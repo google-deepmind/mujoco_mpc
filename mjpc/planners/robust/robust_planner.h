@@ -54,6 +54,7 @@ class RobustPlanner : public Planner {
   void GUI(mjUI& ui) override;
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
+  int NumParameters() override { return delegate_->NumParameters(); };
 
  private:
   void ResizeTrajectories(int ntrajectories);

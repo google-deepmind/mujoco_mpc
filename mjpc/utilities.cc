@@ -14,6 +14,7 @@
 
 #include "mjpc/utilities.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -292,18 +293,9 @@ double* KeyActByName(const mjModel* m, const mjData* d,
   }
 }
 
-// return a power transformed sequence
-void PowerSequence(double* t, double t_step, double t1, double t2, double p,
-                   double N) {
-  // y = a * t^p + b
-  double den = (mju_pow(t1, p) - mju_pow(t2, p));
-  double a = (t1 - t2) / den;
-  double b = (-t1 * mju_pow(t2, p) + t2 * mju_pow(t1, p)) / den;
-
-  double t_running = t1;
+void LinearRange(double* t, double t_step, double t0, int N) {
   for (int i = 0; i < N; i++) {
-    t[i] = a * mju_pow(t_running, p) + b;
-    t_running += t_step;
+    t[i] = t0 + i * t_step;
   }
 }
 
@@ -848,9 +840,9 @@ bool CheckWarnings(mjData* data) {
 // compute vector with log-based scaling between min and max values
 void LogScale(double* values, double max_value, double min_value, int steps) {
   double step =
-      mju_log(max_value) - mju_log(min_value) / mju_max((steps - 1), 1);
+      (std::log(max_value) - std::log(min_value)) / std::max((steps - 1), 1);
   for (int i = 0; i < steps; i++) {
-    values[i] = mju_exp(mju_log(min_value) + i * step);
+    values[i] = std::exp(std::log(min_value) + i * step);
   }
 }
 

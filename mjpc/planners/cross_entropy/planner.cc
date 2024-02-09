@@ -14,18 +14,19 @@
 
 #include "mjpc/planners/cross_entropy/planner.h"
 
-#include <absl/random/random.h>
-#include <mujoco/mujoco.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <mutex>
 #include <shared_mutex>
 
+#include <absl/random/random.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
-#include "mjpc/planners/policy.h"
+#include "mjpc/planners/planner.h"
+#include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
+#include "mjpc/threadpool.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
@@ -46,9 +47,6 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
 
   // task
   this->task = &task;
-
-  // rollout parameters
-  timestep_power = 1.0;
 
   // sampling noise
   std_initial_ =
@@ -138,7 +136,7 @@ void CrossEntropyPlanner::Reset(int horizon,
 
   // variance
   double var = std_initial_ * std_initial_;
-  fill(variance.begin(), variance.end(), var);
+  std::fill(variance.begin(), variance.end(), var);
 
   // trajectory samples
   for (int i = 0; i < kMaxTrajectory; i++) {
@@ -243,7 +241,8 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // copy first elite trajectory
   mju_copy(elite_avg.actions.data(), trajectory[idx].actions.data(),
            model->nu * (horizon - 1));
-  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(), 3 * horizon);
+  mju_copy(elite_avg.trace.data(), trajectory[idx].trace.data(),
+           trajectory[idx].dim_trace * horizon);
   mju_copy(elite_avg.residual.data(), trajectory[idx].residual.data(),
            elite_avg.dim_residual * horizon);
   mju_copy(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -262,7 +261,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     mju_addTo(elite_avg.actions.data(), trajectory[idx].actions.data(),
               model->nu * (horizon - 1));
     mju_addTo(elite_avg.trace.data(), trajectory[idx].trace.data(),
-              3 * horizon);
+              trajectory[idx].dim_trace * horizon);
     mju_addTo(elite_avg.residual.data(), trajectory[idx].residual.data(),
               elite_avg.dim_residual * horizon);
     mju_addTo(elite_avg.costs.data(), trajectory[idx].costs.data(), horizon);
@@ -275,7 +274,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   mju_scl(elite_avg.actions.data(), elite_avg.actions.data(), 1.0 / n_elite,
           model->nu * (horizon - 1));
   mju_scl(elite_avg.trace.data(), elite_avg.trace.data(), 1.0 / n_elite,
-          3 * horizon);
+          elite_avg.dim_trace * horizon);
   mju_scl(elite_avg.residual.data(), elite_avg.residual.data(), 1.0 / n_elite,
           elite_avg.dim_residual * horizon);
   mju_scl(elite_avg.costs.data(), elite_avg.costs.data(), 1.0 / n_elite,
@@ -362,11 +361,8 @@ void CrossEntropyPlanner::ResamplePolicy(int horizon) {
   mju_copy(resampled_policy.times.data(), times_scratch.data(),
            num_spline_points);
 
-  // time step power scaling
-  PowerSequence(resampled_policy.times.data(), time_shift,
-                resampled_policy.times[0],
-                resampled_policy.times[num_spline_points - 1], timestep_power,
-                num_spline_points);
+  LinearRange(resampled_policy.times.data(), time_shift,
+              resampled_policy.times[0], num_spline_points);
 }
 
 // add random noise to nominal policy
@@ -513,8 +509,6 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial_, "0 1"},
       {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min_, "0.01 0.5"},
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},

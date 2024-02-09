@@ -1,5 +1,4 @@
 <mujoco model="allegro_right">
-  <!-- Model of the allegro hand, adopted from mujoco_menagerie, https://github.com/google-deepmind/mujoco_menagerie/tree/main/wonik_allegro -->
   <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
   <option cone="elliptic" impratio="10"/>
@@ -127,6 +126,14 @@
   <worldbody>
     <body name="palm" pos="0.25 0 0" quat="0 1 0 0.7" childclass="allegro_right">
       <!-- <inertial mass="0.4154" pos="0 0 0.0475" diaginertia="1e-4 1e-4 1e-4"/> -->
+      <site name="grasp_site" pos="0.03 0.01 -0.03" group="4"/>
+
+      <!-- Reference positions for the finger tips -->
+      <site name="ff_ref" pos="0.09 0.05 0.02" group="4"/>
+      <site name="mf_ref" pos="0.09 0.0 0.02" group="4"/>
+      <site name="rf_ref" pos="0.09 -0.04 0.02" group="4"/>
+      <site name="th_ref" pos="0.08 0.06 -0.06" group="4"/>
+
       <geom class="palm_visual" mesh="base_link"/>
       <geom class="palm_collision"/>
       <!-- First finger -->
@@ -149,7 +156,7 @@
               <body name="ff_tip">
                 <geom class="fingertip_visual"/>
                 <geom class="fingertip_collision"/>
-                <site name="tip" pos="0 0 0"/>
+                <site name="ff_tip" pos="0 0 0.025"/>
               </body>
             </body>
           </body>
@@ -175,6 +182,7 @@
               <body name="mf_tip">
                 <geom class="fingertip_visual"/>
                 <geom class="fingertip_collision"/>
+                <site name="mf_tip" pos="0 0 0.025"/>
               </body>
             </body>
           </body>
@@ -200,6 +208,7 @@
               <body name="rf_tip">
                 <geom class="fingertip_visual"/>
                 <geom class="fingertip_collision"/>
+                <site name="rf_tip" pos="0 0 0.025"/>
               </body>
             </body>
           </body>
@@ -225,6 +234,7 @@
               <body name="th_tip">
                 <geom class="thumbtip_visual"/>
                 <geom class="thumbtip_collision"/>
+                <site name="th_tip" pos="0 0 0.04"/>
               </body>
             </body>
           </body>
@@ -241,23 +251,25 @@
     <exclude body1="palm" body2="th_proximal"/>
   </contact>
 
+  <default>
+    <default class="fingertip_actuator">
+      <position kp="100" kv="5" ctrlrange="-0.1 0.1"/>
+    </default>
+  </default>
+
   <actuator>
-    <position name="ffa0" joint="ffj0" class="base"/>
-    <position name="ffa1" joint="ffj1" class="proximal"/>
-    <position name="ffa2" joint="ffj2" class="medial"/>
-    <position name="ffa3" joint="ffj3" class="distal"/>
-    <position name="mfa0" joint="mfj0" class="base"/>
-    <position name="mfa1" joint="mfj1" class="proximal"/>
-    <position name="mfa2" joint="mfj2" class="medial"/>
-    <position name="mfa3" joint="mfj3" class="distal"/>
-    <position name="rfa0" joint="rfj0" class="base"/>
-    <position name="rfa1" joint="rfj1" class="proximal"/>
-    <position name="rfa2" joint="rfj2" class="medial"/>
-    <position name="rfa3" joint="rfj3" class="distal"/>
-    <position name="tha0" joint="thj0" class="thumb_base"/>
-    <position name="tha1" joint="thj1" class="thumb_proximal"/>
-    <position name="tha2" joint="thj2" class="thumb_medial"/>
-    <position name="tha3" joint="thj3" class="thumb_distal"/>
+    <position name="ff1" site="ff_tip" refsite="ff_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
+    <position name="ff2" site="ff_tip" refsite="ff_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="ff3" site="ff_tip" refsite="ff_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
+    <position name="mf1" site="mf_tip" refsite="mf_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
+    <position name="mf2" site="mf_tip" refsite="mf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="mf3" site="mf_tip" refsite="mf_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
+    <position name="rf1" site="rf_tip" refsite="rf_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
+    <position name="rf2" site="rf_tip" refsite="rf_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="rf3" site="rf_tip" refsite="rf_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
+    <position name="th1" site="th_tip" refsite="th_ref" gear="1 0 0 0 0 0" class="fingertip_actuator"/>
+    <position name="th2" site="th_tip" refsite="th_ref" gear="0 1 0 0 0 0" class="fingertip_actuator"/>
+    <position name="th3" site="th_tip" refsite="th_ref" gear="0 0 1 0 0 0" class="fingertip_actuator"/>
   </actuator>
 
   <!-- Traces for visualizing rollouts --> 

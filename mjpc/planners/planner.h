@@ -26,6 +26,7 @@
 namespace mjpc {
 
 inline constexpr int kMaxTrajectory = 128;
+inline constexpr int kMaxTrajectoryLarge = 1028;
 
 // virtual planner
 class Planner {
@@ -87,7 +88,7 @@ class RankedPlanner : public Planner {
   // ncandidates. returns number of candidates created. only called
   // from the planning thread.
   virtual int OptimizePolicyCandidates(int ncandidates, int horizon,
-                                        ThreadPool& pool) = 0;
+                                       ThreadPool& pool) = 0;
   // returns the total return for the nth candidate (or another score to
   // minimize). only called from the planning thread.
   virtual double CandidateScore(int candidate) const = 0;

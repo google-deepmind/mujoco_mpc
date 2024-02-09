@@ -77,19 +77,12 @@ findorfetch(
   EXCLUDE_FROM_ALL
 )
 
+# TODO(nimrod): Update to the latest version of abseil, or use the one defined
+# by MuJoCo, once grpc fix their build issues.
 set(MUJOCO_DEP_VERSION_abseil
-    c8a2f92586fe9b4e1aff049108f5db8064924d8e # LTS 20230125.1
+    fb3621f4f897824c0dbe0615fa94543df6192f30 # LTS 20230802.1
     CACHE STRING "Version of `abseil` to be fetched."
-)
-
-set(MUJOCO_DEP_VERSION_glfw3
-    7482de6071d21db77a7236155da44c172a7f6c9e # 3.3.8
-    CACHE STRING "Version of `glfw` to be fetched."
-)
-
-set(MJPC_DEP_VERSION_lodepng
-    b4ed2cd7ecf61d29076169b49199371456d4f90b
-    CACHE STRING "Version of `lodepng` to be fetched."
+    FORCE
 )
 
 set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
@@ -118,6 +111,9 @@ findorfetch(
 
 set(ABSL_PROPAGATE_CXX_STD ON)
 set(ABSL_BUILD_TESTING OFF)
+# ABSL_ENABLE_INSTALL is needed for
+# https://github.com/protocolbuffers/protobuf/issues/12185#issuecomment-1594685860
+set(ABSL_ENABLE_INSTALL ON)
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF

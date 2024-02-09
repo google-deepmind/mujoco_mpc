@@ -390,7 +390,6 @@ void SamplingPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
       {mjITEM_END}};
 
@@ -433,9 +432,10 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   // ----- timer ----- //
 
-  PlotUpdateData(
-      fig_timer, timer_bounds, fig_timer->linedata[0 + timer_shift][0] + 1,
-      1.0e-3 * noise_compute_time * planning, 100, 0 + timer_shift, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * noise_compute_time * planning, 100,
+                 0 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,

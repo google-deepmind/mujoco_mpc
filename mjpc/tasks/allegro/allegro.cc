@@ -47,14 +47,18 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   // difference between the cube position and goal position
   mju_sub3(residual + counter, cube_position, cube_goal_position);
 
-  // extra penalty to stay inside the palm
-  if (cube_position[0] < 0.245 || cube_position[0] > 0.27) {
+  // penalty if the cube's x dimension is outside the hand/on edges
+  if (cube_position[0] < -0.09 + 0.140696023 ||
+      cube_position[0] > 0.025 + 0.140696023) {
     residual[counter] *= 5.0;
   }
-  if (cube_position[1] < -0.03 || cube_position[1] > 0.02) {
+
+  // penalty if the cube's y dimension is near edges
+  if (cube_position[1] < -0.04 - 0.005106107 ||
+      cube_position[1] > 0.03 - 0.005106107) {
     residual[counter + 1] *= 5.0;
   }
-  if (cube_position[2] < -0.02) {
+  if (cube_position[2] < -0.03 - 0.048353794) {
     residual[counter + 2] *= 5.0;
   }
 
@@ -320,8 +324,7 @@ void Allegro::ModifyState(const mjModel *model, State *state) {
 }
 
 // Change the friction coefficient of all the objects in the scene
-void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models) 
-    const {
+void Allegro::DomainRandomize(std::vector<mjModel *> &randomized_models) const {
   absl::BitGen gen_;
 
   // Standard deviations are set by slider parameters
@@ -331,41 +334,43 @@ void Allegro::DomainRandomize(std::vector<mjModel*>& randomized_models)
 
   // Each model has all friction coefficients boosted or shrunk, so some models
   // are more slippery and others are more grippy.
-  for (int i=1; i < randomized_models.size(); i++) {
-    mjModel* model = randomized_models[i];
+  for (int i = 1; i < randomized_models.size(); i++) {
+    mjModel *model = randomized_models[i];
 
-    const double friction_change = absl::Gaussian<double>(gen_, 0.0, friction_std_dev);
-    for (int j=0; j < model->ngeom; j++) {
+    const double friction_change =
+        absl::Gaussian<double>(gen_, 0.0, friction_std_dev);
+    for (int j = 0; j < model->ngeom; j++) {
       model->geom_friction[j] += friction_change;
       model->geom_friction[j] = std::max(model->geom_friction[j], 0.0);
     }
   }
 
   // Each model has different acutator gains
-  for (int i=1; i < randomized_models.size(); i++) {
-    mjModel* model = randomized_models[i];
+  for (int i = 1; i < randomized_models.size(); i++) {
+    mjModel *model = randomized_models[i];
 
-    const double act_gain_change = absl::Gaussian<double>(gen_, 0.0, act_gain_std_dev);
-    for (int j=0; j < model->nu; j++) {
-      model->actuator_gainprm[2*j] += act_gain_change;
-      model->actuator_gainprm[2*j] = std::max(model->actuator_gainprm[2*j], 0.01);
+    const double act_gain_change =
+        absl::Gaussian<double>(gen_, 0.0, act_gain_std_dev);
+    for (int j = 0; j < model->nu; j++) {
+      model->actuator_gainprm[2 * j] += act_gain_change;
+      model->actuator_gainprm[2 * j] =
+          std::max(model->actuator_gainprm[2 * j], 0.01);
     }
   }
 
   // The cube is in a different position in each model
   const int cube_body_id = mj_name2id(randomized_models[0], mjOBJ_BODY, "cube");
 
-  for (int i=1; i < randomized_models.size(); ++i) {
-    mjModel* model = randomized_models[i];
+  for (int i = 1; i < randomized_models.size(); ++i) {
+    mjModel *model = randomized_models[i];
 
     const double cube_dx = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
     const double cube_dy = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
     const double cube_dz = absl::Gaussian<double>(gen_, 0.0, cube_pos_std_dev);
 
-    model->body_pos[3*cube_body_id] += cube_dx;
-    model->body_pos[3*cube_body_id + 1] += cube_dy;
-    model->body_pos[3*cube_body_id + 2] += cube_dz;
-
+    model->body_pos[3 * cube_body_id] += cube_dx;
+    model->body_pos[3 * cube_body_id + 1] += cube_dy;
+    model->body_pos[3 * cube_body_id + 2] += cube_dz;
   }
 }
 

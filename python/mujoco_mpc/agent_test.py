@@ -303,6 +303,10 @@ class AgentTest(parameterized.TestCase):
       terms = list(terms_dict.values())
       self.assertFalse(np.any(np.isclose(terms, 0, rtol=0, atol=1e-4)))
 
+      residuals_dict = agent.get_residuals()
+      residuals = list(residuals_dict.values())
+      self.assertFalse(np.any(np.isclose(residuals, 0, rtol=0, atol=1e-4)))
+
   def test_set_state_with_lists(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

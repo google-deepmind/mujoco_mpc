@@ -165,9 +165,9 @@ void CrossEntropyPlanner::SetState(const State& state) {
 // optimize nominal policy using random sampling
 void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   // check horizon
-  if (horizon != elite_avg.horizon) {
-    NominalTrajectory(horizon, pool);
-  }
+  // if (horizon != elite_avg.horizon) {
+  //   NominalTrajectory(horizon, pool);
+  // }
 
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
@@ -190,6 +190,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // resample nominal policy to current time
   this->ResamplePolicy(horizon);
+  NominalTrajectory(horizon, pool);  // rollout nominal trajectory (elite_avg)
 
   // ----- rollout noisy policies ----- //
   // start timer
@@ -227,7 +228,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
 
   // reset elite average
-  elite_avg.Reset(horizon);
+  // elite_avg.Reset(horizon);
 
   // set elite average trajectory times
   for (int tt = 0; tt <= horizon; tt++) {

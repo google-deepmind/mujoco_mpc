@@ -194,6 +194,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // update policy
   double c_best = c_prev;
+  int skip = derivative_skip_;
   for (int i = 0; i < settings.max_rollout; i++) {
     // ----- model derivatives ----- //
     // start timer
@@ -204,7 +205,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         model, data_, trajectory[0].states.data(), trajectory[0].actions.data(),
         trajectory[0].times.data(), dim_state, dim_state_derivative, dim_action,
         dim_sensor, horizon, settings.fd_tolerance, settings.fd_mode, pool,
-        derivative_skip_);
+        skip);
 
     // stop timer
     model_derivative_time += GetDuration(model_derivative_start);

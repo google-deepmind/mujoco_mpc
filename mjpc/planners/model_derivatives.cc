@@ -63,9 +63,11 @@ void ModelDerivatives::Compute(const mjModel* m,
   evaluate_.push_back(T - 1);
 
   // interpolate indices
-  for (int t = 0; t < T; t++) {
-    if (std::find(evaluate_.begin(), evaluate_.end(), t) == evaluate_.end()) {
+  for (int t = 0, e = 0; t < T; t++) {
+    if (e == evaluate_.size() || evaluate_[e] > t) {
       interpolate_.push_back(t);
+    } else {
+      e++;
     }
   }
 
@@ -123,8 +125,8 @@ void ModelDerivatives::Compute(const mjModel* m,
       // A
       int nA = dim_state_derivative * dim_state_derivative;
       double* Ai = DataAt(A, t * nA);
-      double* AL = DataAt(A, e0 * nA);
-      double* AU = DataAt(A, e1 * nA);
+      const double* AL = DataAt(A, e0 * nA);
+      const double* AU = DataAt(A, e1 * nA);
 
       mju_scl(Ai, AL, 1.0 - tt, nA);
       mju_addToScl(Ai, AU, tt, nA);
@@ -132,8 +134,8 @@ void ModelDerivatives::Compute(const mjModel* m,
       // B
       int nB = dim_state_derivative * dim_action;
       double* Bi = DataAt(B, t * nB);
-      double* BL = DataAt(B, e0 * nB);
-      double* BU = DataAt(B, e1 * nB);
+      const double* BL = DataAt(B, e0 * nB);
+      const double* BU = DataAt(B, e1 * nB);
 
       mju_scl(Bi, BL, 1.0 - tt, nB);
       mju_addToScl(Bi, BU, tt, nB);
@@ -141,8 +143,8 @@ void ModelDerivatives::Compute(const mjModel* m,
       // C
       int nC = dim_sensor * dim_state_derivative;
       double* Ci = DataAt(C, t * nC);
-      double* CL = DataAt(C, e0 * nC);
-      double* CU = DataAt(C, e1 * nC);
+      const double* CL = DataAt(C, e0 * nC);
+      const double* CU = DataAt(C, e1 * nC);
 
       mju_scl(Ci, CL, 1.0 - tt, nC);
       mju_addToScl(Ci, CU, tt, nC);
@@ -150,8 +152,8 @@ void ModelDerivatives::Compute(const mjModel* m,
       // D
       int nD = dim_sensor * dim_action;
       double* Di = DataAt(D, t * nD);
-      double* DL = DataAt(D, e0 * nD);
-      double* DU = DataAt(D, e1 * nD);
+      const double* DL = DataAt(D, e0 * nD);
+      const double* DU = DataAt(D, e1 * nD);
 
       mju_scl(Di, DL, 1.0 - tt, nD);
       mju_addToScl(Di, DU, tt, nD);

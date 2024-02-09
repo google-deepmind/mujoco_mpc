@@ -44,6 +44,8 @@ using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
 using ::agent::GetAllModesRequest;
 using ::agent::GetAllModesResponse;
+using ::agent::GetResidualsRequest;
+using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
@@ -58,6 +60,7 @@ using ::agent::SetCostWeightsRequest;
 using ::agent::SetModeRequest;
 using ::agent::SetStateRequest;
 using ::agent::SetTaskParametersRequest;
+using ::agent::Residual;
 using ::agent::ValueAndWeight;
 
 grpc::Status GetState(const mjModel* model, const mjData* data,
@@ -223,6 +226,34 @@ grpc::Status GetAction(const GetActionRequest* request,
     response->mutable_action()->Assign(ret.begin(), ret.end());
   }
 
+  return grpc::Status::OK;
+}
+
+grpc::Status GetResiduals(
+    const GetResidualsRequest* request, const mjpc::Agent* agent,
+    const mjModel* model, mjData* data,
+    GetResidualsResponse* response) {
+  const mjModel* agent_model = agent->GetModel();
+  const mjpc::Task* task = agent->ActiveTask();
+  std::vector<double> residuals(task->num_residual, 0);  // scratch space
+  task->Residual(model, data, residuals.data());
+  std::vector<int> dim_norm_residual = task->dim_norm_residual;
+
+  int residual_shift = 0;
+  for (int i = 0; i < task->num_term; i++) {
+    CHECK_EQ(agent_model->sensor_type[i], mjSENS_USER);
+    std::string_view sensor_name(agent_model->names +
+                                  agent_model->name_sensoradr[i]);
+
+    std::vector<double> sensor_residual_values(
+        residuals.begin() + residual_shift,
+        residuals.begin() + residual_shift + dim_norm_residual[i]);
+    Residual sensor_residual;
+    sensor_residual.mutable_values()->Assign(sensor_residual_values.begin(),
+                                             sensor_residual_values.end());
+    (*response->mutable_values())[sensor_name] = sensor_residual;
+    residual_shift += dim_norm_residual[i];
+  }
   return grpc::Status::OK;
 }
 

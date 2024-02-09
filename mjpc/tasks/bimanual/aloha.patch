@@ -1,0 +1,10 @@
+diff --git a/aloha.xml b/aloha.xml
+--- a/aloha.xml
++++ b/aloha.xml
+@@ -284,5 +285,5 @@
+     <joint joint1="right/left_finger" joint2="right/right_finger" polycoef="0 1 0 0 0"/>
+   </equality>
+ 
+-  <include file="joint_position_actuators.xml"/>
++  <include file="integrated_cartesian_actuators.xml"/>
+ </mujoco>

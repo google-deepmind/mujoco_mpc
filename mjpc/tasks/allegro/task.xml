@@ -12,7 +12,7 @@
   <!-- changing contact model, default stiffness=-2500 damping=-100 -->
   <!-- pretty good, stiffness=-3000 damping=-200 -->
   <default>
-    <geom solref="-5000 -500"/>
+    <geom solref="-3000 -300"/>
   </default>
 
   <custom>

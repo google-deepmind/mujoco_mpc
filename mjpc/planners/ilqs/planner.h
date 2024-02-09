@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_ILQS_OPTIMIZER_H_
-#define MJPC_PLANNERS_ILQS_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_ILQS_PLANNER_H_
+#define MJPC_PLANNERS_ILQS_PLANNER_H_
 
 #include <mujoco/mujoco.h>
 
+#include <memory>
 #include <shared_mutex>
 #include <vector>
 
@@ -81,6 +82,11 @@ class iLQSPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return sampling.NumParameters() + ilqg.NumParameters();
+  };
+
   // ----- planners ----- //
   SamplingPlanner sampling;
   iLQGPlanner ilqg;
@@ -105,4 +111,4 @@ class iLQSPlanner : public Planner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_ILQS_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_ILQS_PLANNER_H_

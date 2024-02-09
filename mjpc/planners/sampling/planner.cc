@@ -46,9 +46,6 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   // task
   this->task = &task;
 
-  // rollout parameters
-  timestep_power = 1.0;
-
   // sampling noise
   noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
 
@@ -249,11 +246,8 @@ void SamplingPlanner::UpdateNominalPolicy(int horizon) {
     // parameters
     policy.CopyParametersFrom(parameters_scratch, times_scratch);
 
-    // time power transformation
-    PowerSequence(policy.times.data(), time_shift,
-                  policy.times[0],
-                  policy.times[num_spline_points - 1],
-                  timestep_power, num_spline_points);
+    LinearRange(policy.times.data(), time_shift, policy.times[0],
+                num_spline_points);
   }
 }
 
@@ -396,8 +390,6 @@ void SamplingPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      // {mjITEM_SLIDERNUM, "Spline Pow. ", 2, &timestep_power, "0 10"},
-      // {mjITEM_SELECT, "Noise type", 2, &noise_type, "Gaussian\nUniform"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
       {mjITEM_END}};
 
@@ -440,9 +432,10 @@ void SamplingPlanner::Plots(mjvFigure* fig_planner, mjvFigure* fig_timer,
 
   // ----- timer ----- //
 
-  PlotUpdateData(
-      fig_timer, timer_bounds, fig_timer->linedata[0 + timer_shift][0] + 1,
-      1.0e-3 * noise_compute_time * planning, 100, 0 + timer_shift, 0, 1, -100);
+  PlotUpdateData(fig_timer, timer_bounds,
+                 fig_timer->linedata[0 + timer_shift][0] + 1,
+                 1.0e-3 * noise_compute_time * planning, 100,
+                 0 + timer_shift, 0, 1, -100);
 
   PlotUpdateData(fig_timer, timer_bounds,
                  fig_timer->linedata[1 + timer_shift][0] + 1,

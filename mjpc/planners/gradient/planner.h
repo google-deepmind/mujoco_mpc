@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
-#define MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
+#ifndef MJPC_PLANNERS_GRADIENT_PLANNER_H_
+#define MJPC_PLANNERS_GRADIENT_PLANNER_H_
 
 #include <memory>
 #include <shared_mutex>
@@ -88,6 +88,11 @@ class GradientPlanner : public Planner {
   void Plots(mjvFigure* fig_planner, mjvFigure* fig_timer, int planner_shift,
              int timer_shift, int planning, int* shift) override;
 
+  // return number of parameters optimized by planner
+  int NumParameters() override {
+    return policy.num_spline_points * policy.model->nu;
+  };
+
   // ----- members ----- //
   mjModel* model;
   const Task* task;
@@ -117,9 +122,6 @@ class GradientPlanner : public Planner {
   // candidate trajectories
   Trajectory trajectory[kMaxTrajectory];
   int num_trajectory;
-
-  // rollout parameters
-  double timestep_power;
 
   // model derivatives
   ModelDerivatives model_derivative;
@@ -162,4 +164,4 @@ class GradientPlanner : public Planner {
 
 }  // namespace mjpc
 
-#endif  // MJPC_PLANNERS_GRADIENT_OPTIMIZER_H_
+#endif  // MJPC_PLANNERS_GRADIENT_PLANNER_H_

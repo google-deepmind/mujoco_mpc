@@ -35,6 +35,8 @@ using ::agent::GetAllModesRequest;
 using ::agent::GetAllModesResponse;
 using ::agent::GetBestTrajectoryRequest;
 using ::agent::GetBestTrajectoryResponse;
+using ::agent::GetResidualsRequest;
+using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
@@ -118,6 +120,11 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
   model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
   rollout_data_.reset(mj_makeData(model));
+  int home_id = mj_name2id(model, mjOBJ_KEY, "home");
+  if (home_id >= 0) {
+    mj_resetDataKeyframe(model, data_, home_id);
+    mj_resetDataKeyframe(model, rollout_data_.get(), home_id);
+  }
   mjcb_sensor = residual_sensor_callback;
 
   agent_.SetState(data_);
@@ -174,6 +181,16 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   }
   return grpc_agent_util::GetAction(
       request, &agent_, model, rollout_data_.get(), &rollout_state_, response);
+}
+
+grpc::Status AgentService::GetResiduals(
+    grpc::ServerContext* context, const GetResidualsRequest* request,
+    GetResidualsResponse* response) {
+  if (!Initialized()) {
+    return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
+  }
+  return grpc_agent_util::GetResiduals(request, &agent_, model,
+                                       data_, response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mujoco
-import numpy as np
 import matplotlib.pyplot as plt
 import mediapy as media
-
-# set current directory to mjpc/python/mujoco_mpc
+import mujoco
 from mujoco_mpc import direct as direct_lib
+import numpy as np
+
+
 # %%
 # 2D Particle Model
 xml = """

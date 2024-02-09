@@ -34,6 +34,10 @@ grpc::Status GetAction(const agent::GetActionRequest* request,
                        const mjModel* model, mjData* rollout_data,
                        mjpc::State* rollout_state,
                        agent::GetActionResponse* response);
+grpc::Status GetResiduals(
+    const agent::GetResidualsRequest* request,
+    const mjpc::Agent* agent, const mjModel* model, mjData* data,
+    agent::GetResidualsResponse* response);
 grpc::Status GetCostValuesAndWeights(
     const agent::GetCostValuesAndWeightsRequest* request,
     const mjpc::Agent* agent, const mjModel* model, mjData* data,

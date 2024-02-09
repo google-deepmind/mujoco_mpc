@@ -8,10 +8,11 @@
     <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="0.35" />
     <numeric name="agent_timestep" data="0.015" />
-    <numeric name="sampling_trajectories" data="20"/>
+    <numeric name="sampling_trajectories" data="32"/>
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.1" />
     <numeric name="gradient_spline_points" data="5" />
+    <numeric name="sample_gradient_trajectories" data="8"/>
     <numeric name="residual_Height Goal" data="0.38 0.0 0.75" />
     <text name="task_transition" data="Stand|Handstand" />
   </custom>

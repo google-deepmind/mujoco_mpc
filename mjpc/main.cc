@@ -47,6 +47,6 @@ int main(int argc, char** argv) {
 #endif
   absl::ParseCommandLine(argc, argv);
 
-  mjpc::StartApp(mjpc::GetTasks(), 13);  // start with quadruped flat
+  mjpc::StartApp(mjpc::GetTasks(), 11);  // start with quadruped flat
   return 0;
 }

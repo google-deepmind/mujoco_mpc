@@ -35,6 +35,7 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube position: (3)
 //     Cube orientation: (3)
 //     Cube linear velocity: (3)
+//     Acutuation: (12) - desired finger positions relative to reasonable nominal
 // ------------------------------------------
 void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                    double *residual) const {
@@ -79,6 +80,10 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   mju_copy(residual + counter, cube_linear_velocity, 3);
   counter += 3;
+  
+  // ---------- Actuation ----------
+  mju_copy(residual + counter, data->ctrl, 12);
+  counter += 12;
 
   // Sanity check
   CheckSensorDim(model, counter);

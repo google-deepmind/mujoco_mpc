@@ -57,6 +57,7 @@ class CrossEntropyPlanner : public Planner {
 
   // compute trajectory using nominal policy
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
+  void NominalTrajectory(int horizon);
 
   // set action from policy
   void ActionFromPolicy(double* action, const double* state, double time,
@@ -111,7 +112,7 @@ class CrossEntropyPlanner : public Planner {
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
-  Trajectory elite_avg;
+  Trajectory nominal_trajectory;
 
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
@@ -129,9 +130,6 @@ class CrossEntropyPlanner : public Planner {
   // improvement
   double improvement;
 
-  // flags
-  int processed_noise_status;
-
   // timing
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
@@ -139,9 +137,6 @@ class CrossEntropyPlanner : public Planner {
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
-
-  // discount factor
-  double gamma_;
 };
 
 }  // namespace mjpc

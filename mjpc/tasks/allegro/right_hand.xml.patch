@@ -1,6 +1,6 @@
 diff --git a/right_hand_modified.xml b/right_hand_modified.xml
---- a/right_hand_modified.xml
-+++ b/right_hand_modified.xml
+--- right_hand.xml      2024-02-10 12:31:15.581835171 -0800
++++ right_hand_modified.xml     2024-02-10 12:32:35.058510208 -0800
 @@ -6,7 +6,7 @@
    <default>
      <default class="allegro_right">
@@ -10,12 +10,24 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
        <geom density="800"/>
  
        <default class="visual">
-@@ -66,7 +66,7 @@
+@@ -42,7 +42,7 @@
+         <default class="base_collision">
+           <geom size="0.0098 0.01375 0.0082" pos="0 0 0.0082"/>
+           <default class="thumb_base_collision">
+-            <geom size="0.0179 0.017 0.02275" pos="-0.0179 0.009 0.0145"/>
++            <geom size="0.0179 0.01 0.02275" pos="-0.0179 0.005 0.0145" group="3" type="box" mass="0"/>
+           </default>
+         </default>
+         <default class="proximal_collision">
+@@ -64,9 +64,9 @@
+           </default>
+         </default>
          <default class="fingertip_collision">
-           <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
+-          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
++          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019" friction="0.7 0.05 0.01" priority="2" condim="6"/>
            <default class="thumbtip_collision">
 -            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035"/>
-+            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="3.0 0.1 0.05" priority="1" condim="6"/>
++            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="0.7 0.05 0.01" priority="2" condim="6"/>
            </default>
          </default>
        </default>

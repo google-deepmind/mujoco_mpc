@@ -216,7 +216,6 @@
         <joint name="thj0" class="thumb_base"/>
         <geom class="visual" mesh="link_12.0_right"/>
         <geom size="0.0179 0.01 0.02275" pos="-0.0179 0.005 0.0145" group="3" type="box" mass="0"/>
-        <!-- <geom size="0.0179 0.017 0.008" pos="-0.0179 0.009 0.0145" group="3" type="box" mass="0"/> -->
         <body name="th_proximal" pos="-0.027 0.005 0.0399">
           <joint name="thj1" class="thumb_proximal"/>
           <geom class="visual" mesh="link_13.0"/>

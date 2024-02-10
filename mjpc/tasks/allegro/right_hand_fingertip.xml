@@ -41,9 +41,6 @@
         </default>
         <default class="base_collision">
           <geom size="0.0098 0.01375 0.0082" pos="0 0 0.0082"/>
-          <default class="thumb_base_collision">
-            <geom size="0.0179 0.017 0.02275" pos="-0.0179 0.009 0.0145"/>
-          </default>
         </default>
         <default class="proximal_collision">
           <geom size="0.0098 0.01375 0.027" pos="0 0 0.027"/>
@@ -66,7 +63,7 @@
         <default class="fingertip_collision">
           <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
           <default class="thumbtip_collision">
-            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035"/>
+            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="3.0 0.1 0.05" priority="1" condim="6"/>
           </default>
         </default>
       </default>
@@ -218,7 +215,8 @@
       <body name="th_base" pos="-0.0182 0.019333 -0.045987" quat="0.477714 -0.521334 -0.521334 -0.477714">
         <joint name="thj0" class="thumb_base"/>
         <geom class="visual" mesh="link_12.0_right"/>
-        <geom class="thumb_base_collision"/>
+        <geom size="0.0179 0.01 0.02275" pos="-0.0179 0.005 0.0145" group="3" type="box" mass="0"/>
+        <!-- <geom size="0.0179 0.017 0.008" pos="-0.0179 0.009 0.0145" group="3" type="box" mass="0"/> -->
         <body name="th_proximal" pos="-0.027 0.005 0.0399">
           <joint name="thj1" class="thumb_proximal"/>
           <geom class="visual" mesh="link_13.0"/>

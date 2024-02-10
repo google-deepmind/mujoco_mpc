@@ -12,7 +12,7 @@
   <!-- changing contact model, default stiffness=-2500 damping=-100 -->
   <!-- pretty good, stiffness=-3000 damping=-200 -->
   <default>
-    <geom solref="-5000 -500"/>
+    <geom solref="-7500 -500"/>
   </default>
 
   <custom>
@@ -34,7 +34,7 @@
 
     <!-- cem -->
     <numeric name="n_elite" data="3" />
-    <numeric name="std_min" data="0.2" />
+    <numeric name="std_min" data="0.3" />
 
     <!-- mppi -->
     <numeric name="langevin" data="0" />
@@ -82,7 +82,7 @@
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
     <body name="goal" pos="0.075 0.17 0.0475">
       <joint type="ball" damping="0.001"/>
-      <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
+      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0"/>
     </body>
     <body name="connector" pos="0 0 0" quat="1 0 0 0">
       <geom type="mesh" mesh="algr_fixed_angle_mount_1inch" class="visual"/>

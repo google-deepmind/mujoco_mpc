@@ -34,7 +34,7 @@
 
     <!-- cem -->
     <numeric name="n_elite" data="3" />
-    <numeric name="std_min" data="0.4" />
+    <numeric name="std_min" data="0.2" />
 
     <!-- mppi -->
     <numeric name="langevin" data="0" />
@@ -72,7 +72,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".2"/>
+    <geom friction=".3"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->

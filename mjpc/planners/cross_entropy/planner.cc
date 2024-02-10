@@ -417,14 +417,6 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
 
 // returns the **nominal** trajectory (this is the purple trace)
 const Trajectory* CrossEntropyPlanner::BestTrajectory() {
-  // print the states of the nominal trajectory
-  for (int i = 0; i < nominal_trajectory.horizon; i++) {
-    printf("State %d: ", i);
-    for (int j = 0; j < model->nq; j++) {
-      printf("%f ", nominal_trajectory.states[i * model->nq + j]);
-    }
-    printf("\n");
-  }
   return &nominal_trajectory;
 }
 

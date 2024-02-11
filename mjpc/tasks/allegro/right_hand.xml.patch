@@ -24,10 +24,10 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
          </default>
          <default class="fingertip_collision">
 -          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
-+          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019" friction="0.7 0.05 0.01" priority="2" condim="6"/>
++          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019" friction="0.6 0.01 0.001" priority="1" condim="6"/>
            <default class="thumbtip_collision">
 -            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035"/>
-+            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="0.7 0.05 0.01" priority="2" condim="6"/>
++            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035" friction="0.6 0.01 0.001" priority="1" condim="6"/>
            </default>
          </default>
        </default>

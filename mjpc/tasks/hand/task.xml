@@ -46,7 +46,7 @@
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>
 
-  <include file="cube.xml"/>
+  <include file="../common_assets/reorientation_cube.xml"/>
   <include file="right_hand.xml"/>
 
   <keyframe>

@@ -15,15 +15,15 @@
 #ifndef MJPC_MJPC_SPLINE_SPLINE_H_
 #define MJPC_MJPC_SPLINE_SPLINE_H_
 
+#include <absl/log/check.h>
+#include <absl/types/span.h>
+
 #include <array>
 #include <cstddef>
 #include <deque>
 #include <iterator>
 #include <type_traits>
 #include <vector>
-
-#include <absl/log/check.h>
-#include <absl/types/span.h>
 
 namespace mjpc::spline {
 
@@ -32,7 +32,6 @@ enum SplineInterpolation : int {
   kLinearSpline,
   kCubicSpline,
 };
-
 
 // Represents a spline where values are interpolated based on time.
 // Allows updating the spline by adding new future points, or removing old
@@ -56,7 +55,7 @@ class TimeSpline {
   template <typename T>
   class NodeT {
    public:
-    NodeT() : time_(0) {};
+    NodeT() : time_(0){};
     NodeT(double time, T* values, int dim)
         : time_(time), values_(values, dim) {}
 
@@ -223,7 +222,6 @@ class TimeSpline {
 
   // Returns the number of nodes in the spline.
   std::size_t Size() const;
-
 
   // Returns the node at the given index, sorted by time. Any calls that mutate
   // the spline will invalidate the Node object.

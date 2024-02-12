@@ -60,7 +60,7 @@
     <!-- [dirty] domain randomization noise -->
     <numeric name="residual_DR friction std" data="0.1 0.0 0.1"/>
     <numeric name="residual_DR actuator std" data="0.1 0.0 0.1"/>
-    <numeric name="residual_DR position std" data="0.0075 0.0 0.03"/>
+    <numeric name="residual_DR position std" data="0.0125 0.0 0.03"/>
   </custom>
 
   <!-- Set the camera viewpoint -->

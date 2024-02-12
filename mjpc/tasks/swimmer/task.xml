@@ -1,6 +1,7 @@
 <mujoco model="Swimmer">
   <include file="../common.xml" />
-  <include file="swimmer.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/swimmer.xml -->
+  <include file="swimmer_modified.xml" />
 
   <custom>
     <!-- agent -->

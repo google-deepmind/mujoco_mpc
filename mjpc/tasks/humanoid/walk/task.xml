@@ -1,6 +1,7 @@
 <mujoco model="Humanoid Locomotion">
   <include file="../../common.xml"/>
-  <include file="../humanoid.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/humanoid.xml -->
+  <include file="../humanoid_modified.xml" />
   <size memory="400K"/>
   <custom>
     <!-- agent -->

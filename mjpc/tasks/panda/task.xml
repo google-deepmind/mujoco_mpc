@@ -72,5 +72,6 @@
     <framepos name="trace1" objtype="site" objname="touch_right"/>
   </sensor>
 
-  <include file="panda.xml"/>
+  <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/franka_emika_panda -->
+  <include file="panda_modified.xml"/>
 </mujoco>

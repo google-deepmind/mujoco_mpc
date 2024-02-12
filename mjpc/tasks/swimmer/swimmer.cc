@@ -18,7 +18,6 @@
 
 #include <absl/random/random.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {

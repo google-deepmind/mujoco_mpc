@@ -110,6 +110,13 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/quadrotor_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/quadrotor.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/quadrotor/quadrotor.xml.patch
+
+  ## Cube reorientation 
+  # patch cube from common assets
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/hand/cube_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/common_assets/reorientation_cube.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/hand/cube.xml.patch
+
   ## Cube solve task
   # copy cube model from MuJoCo
   COMMAND ${CMAKE_COMMAND} -E copy

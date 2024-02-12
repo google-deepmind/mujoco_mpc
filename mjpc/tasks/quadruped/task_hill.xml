@@ -23,7 +23,8 @@
     <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/>
   </worldbody>
 
-  <include file="a1.xml" />
+  <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/unitree_a1 -->
+  <include file="a1_modified.xml" />
 
   <default>
     <default class="task">

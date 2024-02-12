@@ -102,45 +102,41 @@ class TimeSpline {
     }
 
     // Copyable, Movable.
-    IteratorT<SplineType, NodeType>(
-        const IteratorT<SplineType, NodeType>& other) = default;
-    IteratorT<SplineType, NodeType>& operator=(
-        const IteratorT<SplineType, NodeType>& other) = default;
-    IteratorT<SplineType, NodeType>(IteratorT<SplineType, NodeType>&& other) =
-        default;
-    IteratorT<SplineType, NodeType>& operator=(
-        IteratorT<SplineType, NodeType>&& other) = default;
+    IteratorT(const IteratorT& other) = default;
+    IteratorT& operator=(const IteratorT& other) = default;
+    IteratorT(IteratorT&& other) = default;
+    IteratorT& operator=(IteratorT&& other) = default;
 
     reference operator*() { return node_; }
 
     pointer operator->() { return &node_; }
     pointer operator->() const { return &node_; }
 
-    IteratorT<SplineType, NodeType>& operator++() {
+    IteratorT& operator++() {
       ++index_;
       node_ = index_ == spline_->Size() ? NodeType() : spline_->NodeAt(index_);
       return *this;
     }
 
-    IteratorT<SplineType, NodeType> operator++(int) {
-      IteratorT<SplineType, NodeType> tmp = *this;
+    IteratorT operator++(int) {
+      IteratorT tmp = *this;
       ++(*this);
       return tmp;
     }
 
-    IteratorT<SplineType, NodeType>& operator--() {
+    IteratorT& operator--() {
       --index_;
       node_ = spline_->NodeAt(index_);
       return *this;
     }
 
-    IteratorT<SplineType, NodeType> operator--(int) {
-      IteratorT<SplineType, NodeType> tmp = *this;
+    IteratorT operator--(int) {
+      IteratorT tmp = *this;
       --(*this);
       return tmp;
     }
 
-    IteratorT<SplineType, NodeType>& operator+=(difference_type n) {
+    IteratorT& operator+=(difference_type n) {
       if (n != 0) {
         index_ += n;
         node_ =
@@ -149,29 +145,25 @@ class TimeSpline {
       return *this;
     }
 
-    IteratorT<SplineType, NodeType>& operator-=(difference_type n) {
-      return *this += -n;
-    }
+    IteratorT& operator-=(difference_type n) { return *this += -n; }
 
-    IteratorT<SplineType, NodeType> operator+(difference_type n) const {
-      IteratorT<SplineType, NodeType> tmp(*this);
+    IteratorT operator+(difference_type n) const {
+      IteratorT tmp(*this);
       tmp += n;
       return tmp;
     }
 
-    IteratorT<SplineType, NodeType> operator-(difference_type n) const {
-      IteratorT<SplineType, NodeType> tmp(*this);
+    IteratorT operator-(difference_type n) const {
+      IteratorT tmp(*this);
       tmp -= n;
       return tmp;
     }
 
-    friend IteratorT<SplineType, NodeType> operator+(
-        difference_type n, const IteratorT<SplineType, NodeType>& it) {
+    friend IteratorT operator+(difference_type n, const IteratorT& it) {
       return it + n;
     }
 
-    friend difference_type operator-(const IteratorT<SplineType, NodeType>& x,
-                                     const IteratorT<SplineType, NodeType>& y) {
+    friend difference_type operator-(const IteratorT& x, const IteratorT& y) {
       CHECK_EQ(x.spline_, y.spline_)
           << "Comparing iterators from different splines";
       if (x != y) return (x.index_ - y.index_);
@@ -180,35 +172,29 @@ class TimeSpline {
 
     NodeType operator[](difference_type n) const { return *(*this + n); }
 
-    friend bool operator==(const IteratorT<SplineType, NodeType>& x,
-                           const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator==(const IteratorT& x, const IteratorT& y) {
       return x.spline_ == y.spline_ && x.index_ == y.index_;
     }
 
-    friend bool operator!=(const IteratorT<SplineType, NodeType>& x,
-                           const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator!=(const IteratorT& x, const IteratorT& y) {
       return !(x == y);
     }
 
-    friend bool operator<(const IteratorT<SplineType, NodeType>& x,
-                          const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator<(const IteratorT& x, const IteratorT& y) {
       CHECK_EQ(x.spline_, y.spline_)
           << "Comparing iterators from different splines";
       return x.index_ < y.index_;
     }
 
-    friend bool operator>(const IteratorT<SplineType, NodeType>& x,
-                          const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator>(const IteratorT& x, const IteratorT& y) {
       return y < x;
     }
 
-    friend bool operator<=(const IteratorT<SplineType, NodeType>& x,
-                           const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator<=(const IteratorT& x, const IteratorT& y) {
       return !(y < x);
     }
 
-    friend bool operator>=(const IteratorT<SplineType, NodeType>& x,
-                           const IteratorT<SplineType, NodeType>& y) {
+    friend bool operator>=(const IteratorT& x, const IteratorT& y) {
       return !(x < y);
     }
 

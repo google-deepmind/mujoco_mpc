@@ -29,6 +29,7 @@ with agent_lib.Agent(
     / "mjpc"
     / "ui_agent_server",
     task_id="Cartpole",
+    model=model,
 ) as agent:
   while True:
     None

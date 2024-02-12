@@ -47,7 +47,8 @@ class UiAgentTest(absltest.TestCase):
   def test_stepping_on_agent_side(self):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -66,7 +67,9 @@ class UiAgentTest(absltest.TestCase):
         data.qvel = state.qvel
         data.act = state.act
         data.mocap_pos = np.array(state.mocap_pos).reshape(data.mocap_pos.shape)
-        data.mocap_quat = np.array(state.mocap_quat).reshape(data.mocap_quat.shape)
+        data.mocap_quat = np.array(state.mocap_quat).reshape(
+            data.mocap_quat.shape
+        )
         data.userdata = np.array(state.userdata).reshape(data.userdata.shape)
         observations.append(get_observation(model, data))
 
@@ -77,7 +80,8 @@ class UiAgentTest(absltest.TestCase):
 
   def test_set_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -106,7 +110,8 @@ class UiAgentTest(absltest.TestCase):
 
   def test_get_cost_weights(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -137,7 +142,7 @@ class UiAgentTest(absltest.TestCase):
   def test_set_state_with_lists(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -156,7 +161,8 @@ class UiAgentTest(absltest.TestCase):
 
   def test_set_get_mode(self):
     model_path = (
-        pathlib.Path(__file__).parent.parent.parent / "mjpc/tasks/cartpole/task.xml"
+        pathlib.Path(__file__).parent.parent.parent
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with self.get_agent(task_id="Cartpole", model=model) as agent:
@@ -167,7 +173,7 @@ class UiAgentTest(absltest.TestCase):
   def test_get_set_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with self.get_agent(task_id="Quadruped Flat", model=model) as agent:
@@ -178,7 +184,7 @@ class UiAgentTest(absltest.TestCase):
   def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with self.get_agent(task_id="Quadruped Flat", model=model) as agent:

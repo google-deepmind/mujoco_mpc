@@ -124,8 +124,8 @@ add_library(
   direct/trajectory.h
   direct/model_parameters.cc
   direct/model_parameters.h
-  spline/spline.cc
-  spline/spline.h
+  # spline/spline.cc
+  # spline/spline.h
   app.cc
   app.h
   norm.cc

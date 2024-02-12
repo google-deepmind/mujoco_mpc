@@ -46,7 +46,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_task_parameters(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
@@ -56,7 +56,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_subprocess_working_dir(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -76,7 +76,7 @@ class AgentTest(parameterized.TestCase):
   def test_step_env_with_planner(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -126,7 +126,7 @@ class AgentTest(parameterized.TestCase):
     # out physics, but the API should be implemented not to mutate the state
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -161,7 +161,7 @@ class AgentTest(parameterized.TestCase):
     # expect action averaging to be a bit better
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -213,7 +213,7 @@ class AgentTest(parameterized.TestCase):
     """Test an alternative way of stepping the physics, on the agent side."""
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -246,7 +246,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_cost_weights(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -271,7 +271,7 @@ class AgentTest(parameterized.TestCase):
   def test_get_cost_weights(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
 
@@ -310,7 +310,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_state_with_lists(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -330,7 +330,7 @@ class AgentTest(parameterized.TestCase):
   def test_get_set_default_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
@@ -341,7 +341,7 @@ class AgentTest(parameterized.TestCase):
   def test_get_set_mode(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
@@ -352,7 +352,7 @@ class AgentTest(parameterized.TestCase):
   def test_get_all_modes(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
@@ -365,7 +365,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_mode_error(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Quadruped Flat", model=model) as agent:
@@ -374,7 +374,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_task_parameters_from_another_agent(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/cartpole/task.xml"
+        / "build/mjpc/tasks/cartpole/task.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="Cartpole", model=model) as agent:
@@ -393,7 +393,7 @@ class AgentTest(parameterized.TestCase):
   def test_best_trajectory(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -418,7 +418,7 @@ class AgentTest(parameterized.TestCase):
   def test_set_mocap(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/particle/task_timevarying.xml"
+        / "build/mjpc/tasks/particle/task_timevarying.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with agent_lib.Agent(task_id="ParticleFixed", model=model) as agent:

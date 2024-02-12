@@ -122,9 +122,6 @@ class SampleGradientPlanner : public Planner {
   // order of indices of rolled out trajectories, ordered by total return
   std::vector<int> trajectory_order;
 
-  // rollout parameters
-  double timestep_power;
-
   // zero-mean Gaussian noise standard deviation
   double noise_exploration;
   std::vector<double> noise;

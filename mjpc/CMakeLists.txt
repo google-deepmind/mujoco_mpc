@@ -38,6 +38,8 @@ add_library(
   tasks/tasks.h
   tasks/acrobot/acrobot.cc
   tasks/acrobot/acrobot.h
+  tasks/allegro/allegro.cc
+  tasks/allegro/allegro.h
   tasks/bimanual/bimanual.cc
   tasks/bimanual/bimanual.h
   tasks/cartpole/cartpole.cc

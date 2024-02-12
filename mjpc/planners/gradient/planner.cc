@@ -144,6 +144,9 @@ void GradientPlanner::Reset(int horizon,
   expected = 0.0;
   improvement = 0.0;
   surprise = 0.0;
+
+  // derivative skip
+  derivative_skip_ = GetNumberOrDefault(0, model, "derivative_skip");
 }
 
 // set state
@@ -191,6 +194,7 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // update policy
   double c_best = c_prev;
+  int skip = derivative_skip_;
   for (int i = 0; i < settings.max_rollout; i++) {
     // ----- model derivatives ----- //
     // start timer
@@ -200,7 +204,8 @@ void GradientPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     model_derivative.Compute(
         model, data_, trajectory[0].states.data(), trajectory[0].actions.data(),
         trajectory[0].times.data(), dim_state, dim_state_derivative, dim_action,
-        dim_sensor, horizon, settings.fd_tolerance, settings.fd_mode, pool);
+        dim_sensor, horizon, settings.fd_tolerance, settings.fd_mode, pool,
+        skip);
 
     // stop timer
     model_derivative_time += GetDuration(model_derivative_start);
@@ -468,6 +473,7 @@ void GradientPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &policy.representation,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
+      {mjITEM_SLIDERINT, "Deriv. Skip", 2, &derivative_skip_, "0 16"},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

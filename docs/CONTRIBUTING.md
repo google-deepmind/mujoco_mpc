@@ -32,7 +32,13 @@ This code adheres to the [Google style](https://google.github.io/styleguide/).
 
 ## New Tasks
 
-When submitting a PR for a new task using models from [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie), do not include assets directly. Instead, modify the task [CMakeLists](mjpc/tasks/CMakeLists.txt) to copy these assets to the build binary.
+When submitting a PR for a new task that depends on third-party models, including from [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) and [dm_control](https://github.com/google-deepmind/dm_control), do not include the xml model or assets in the task directly. Instead, modify the task [CMakeLists](mjpc/tasks/CMakeLists.txt) to copy the xml model and/or assets to the build binary.
+
+If the xml model needs to be modified, create a patch that is applied in the [CMakeLists](mjpc/tasks/CMakeLists.txt). A [patch](https://github.com/google-deepmind/mujoco_mpc/blob/main/mjpc/tasks/op3/op3.xml.patch) can be generated using the following command:
+```
+diff -u {original}.xml {modified}.xml > {modified}.xml.patch
+```
+The first three lines of the generated patch file will need to be be adapted for your use case. Please see an [example](https://github.com/google-deepmind/mujoco_mpc/blob/main/mjpc/tasks/op3/op3.xml.patch) for a template.
 
 ## Unit Tests
 

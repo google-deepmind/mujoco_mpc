@@ -12,11 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
+from typing import Callable, Optional, Tuple
 
 import mujoco
 import numpy as np
 from numpy import typing as npt
+
+
+# %%
+# def finite_difference(func: Callable, input: npt.ArrayLike, eps: Optional[float] = 1.0e-6) -> npt.ArrayLike:
+#   """Compute finite-difference derivatives."""
+#   # input dimension
+#   n = len(input)
+
+#   # output
+#   deriv = np.zeros((n, n))
+
+#   # nominal
+#   nominal = func(input)
+
+#   # perturb
+#   perturb = np.zeros(n)
+
+#   # perturb and evaluate each dimension
+#   for i in range(n):
+#     # perturb
+#     perturb[i] += eps
+
+#     # evaluate
+#     output = func(input + perturb)
+
+#     # derivative
+#     deriv[:, i] = (output - nominal) / eps
+
+#     # restore
+#     perturb[i] = 0.0
+
+#   return deriv
 
 
 # %%
@@ -302,6 +334,79 @@ def diff_inverse_dynamics(
 
 
 # %%
+def diff_inverse_dynamics_parameters(
+    model: mujoco.MjModel,
+    model_update: mujoco.MjModel,
+    data: mujoco.MjData,
+    qpos: npt.ArrayLike,
+    qvel: npt.ArrayLike,
+    qacc: npt.ArrayLike,
+    sensor: npt.ArrayLike,
+    force: npt.ArrayLike,
+    parameter: npt.ArrayLike,
+    parameter_update: Callable,
+    horizon: int,
+    eps: Optional[float] = 1.0e-6,
+) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+  """Inverse dynamics.
+
+  (s, f) <- id(q, v, a, p + e_i)
+
+  Args:
+      model (mujoco.MjModel): MuJoCo model
+      model_update (mujoco.MjModel): MuJoCo model for updating parameters
+      data (mujoco.MjData): MuJoCo data
+      qpos (npt.ArrayLike): trajectory of configurations
+      qvel (npt.ArrayLike): trajectory of velocities
+      qacc (npt.ArrayLike): trajectory of accelerations
+      sensor (npt.ArrayLike): trajectory of sensors
+      force (npt.ArrayLike): trajectory of forces
+      parameter (npt.ArrayLike): nominal parameters
+      horizon (int): number of timesteps
+      eps (float): perturbation size
+
+  Returns:
+      Tuple[npt.ArrayLike, npt.ArrayLike]: sensor and force Jacobians wrt parameters trajectories
+  """
+  # number of parameters
+  num_parameter = len(parameter)
+
+  dsdp = np.array(
+      [np.zeros((model.nsensordata, num_parameter)) for _ in range(horizon)]
+  )
+  dfdp = np.array([np.zeros((model.nv, num_parameter)) for _ in range(horizon)])
+
+  # loop over horizon
+  for t in range(1, horizon - 1):
+    ## nominal
+    # set data
+    data.qpos = qpos[:, t]
+    data.qvel = qvel[:, t]
+    data.qacc = qacc[:, t]
+
+    ## perturb
+    perturb = np.zeros(num_parameter)
+    for i in range(num_parameter):
+      # perturb
+      perturb[i] = eps
+
+      # update model
+      parameter_update(model_update, parameter + perturb)
+
+      # inverse dynamics
+      mujoco.inverse(model_update, data)
+
+      # derivative
+      dsdp[t][:, i] = (data.sensordata - sensor[:, t]) / eps
+      dfdp[t][:, i] = (data.qfrc_inverse - force[:, t]) / eps
+
+      # restore
+      perturb[i] = 0.0
+
+  return dsdp, dfdp
+
+
+# %%
 def diff_sensor(
     model: mujoco.MjModel,
     dsdq: npt.ArrayLike,
@@ -440,6 +545,7 @@ def diff_cost_force(
     weights: npt.ArrayLike,
     dfdq012: npt.ArrayLike,
     horizon: int,
+    dfdp: Optional[npt.ArrayLike] = None,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
   """Force cost (derivatives wrt configurations).
 
@@ -452,12 +558,21 @@ def diff_cost_force(
       weights (npt.ArrayLike): trajectory of weights
       dfdq012 (npt.ArrayLike): trajectory of force derivatives wrt previous, current, and next configurations
       horizon (int): number of timesteps
+      dfdp (Optional[npt.ArrayLike]): trajectory of force derivatives wrt parameters.
 
   Returns:
       Tuple[npt.ArrayLike, npt.ArrayLike]: gradient and Hessian of force cost wrt to configurations
   """
+  # num parameter
+  nparam = 0
+  dpdq012 = None
+  if dfdp is not None:
+    nparam = dfdp[1].shape[1]
+    dpdq012 = np.zeros((nparam, model.nv * horizon + nparam))
+
   # dimensions
-  ntotal = model.nv * horizon
+  ndq = model.nv * horizon
+  ntotal = ndq + nparam
   nband = 3 * model.nv
 
   # derivatives
@@ -489,6 +604,18 @@ def diff_cost_force(
     hess = add_block_in_band(
         hess, blk, 1.0, ntotal, nband, 3 * model.nv, (t - 1) * model.nv
     )
+
+    if nparam > 0:
+      # gradient
+      grad[ndq:] += dfdp[t].T @ norm_grad
+
+      # dense rows
+      dpdq012[:, (t - 1) * model.nv] += dfdp[t].T @ norm_hess @ dfdq012[t]
+
+  # set dense rows in Hessian
+  # TODO(taylor): confirm ravel
+  if nparam > 0:
+    hess[ndq:, :] = dpdq012.ravel()
 
   return grad, hess
 
@@ -558,6 +685,7 @@ def diff_cost_sensor(
     weights: npt.ArrayLike,
     dsdq012: npt.ArrayLike,
     horizon: int,
+    dsdp: Optional[npt.ArrayLike] = None,
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
   """Sensor cost (derivatives wrt configurations).
 
@@ -570,12 +698,21 @@ def diff_cost_sensor(
       weights (npt.ArrayLike): trajectory of weights
       dsdq012 (npt.ArrayLike): trajectory of sensor derivatives wrt previous, current, and next configurations
       horizon (int): number of timesteps
+      dsdp (Optional[npt.ArrayLike]): trajectory of sensor derivatives wrt parameters
 
   Returns:
       Tuple[npt.ArrayLike, npt.ArrayLike]: gradient and Hessian of total sensor cost wrt configuration
   """
+  # num parameters
+  nparam = 0
+  dpdq012 = None
+  if dsdp is not None:
+    nparam = dsdp[1].shape[1]
+    dpdq012 = np.zeros((nparam, model.nv * horizon + nparam))
+
   # dimensions
-  ntotal = model.nv * horizon
+  ndq = model.nv * horizon
+  ntotal = ndq + nparam
   nband = 3 * model.nv
 
   # derivatives
@@ -627,6 +764,19 @@ def diff_cost_sensor(
       hess = add_block_in_band(
           hess, blk, 1.0, ntotal, nband, 3 * model.nv, (t - 1) * model.nv
       )
+
+      # parameters
+      if nparam > 0:
+        # gradient
+        grad[ndq:] += dsdp[t][idx, :].T @ normi_grad
+
+        # dense row
+        dpdq012[:, (t - 1) * model.nv] += dsdp[t][idx, :].T @ normi_hess @ dsidq012
+
+  # set Hessian dense rows
+  # TODO(taylor): confirm ravel
+  if nparam > 0:
+    hess[ndq:, :] = dpdq012.ravel()
 
   return grad, hess
 
@@ -756,6 +906,7 @@ class DirectOptimizer:
     _ntotal: number of qpos variables (nv * horizon).
     _ntotal_pin: number of decision variables (_ntotal - sum(pinned) * nv).
     _nband: cost Hessian band dimension (3 * nv).
+    _ndense: dense rows for band linear algebra methods.
     _gradient: gradient of cost wrt to decision variables (nv * horizon).
     _hessian: band representation of cost Hessian wrt decision variables (nv * horizon x 3 * nv).
     _hessian_factor: factorization of band represented cost Hessian
@@ -773,9 +924,25 @@ class DirectOptimizer:
     regularization_min: minimum regularization value.
     regularization_max: maximum regularization value.
     regularization_scale: value for increasing/decreasing regularization.
+    _parameter_flag: bool for valid parameter optimization.
+    _num_parameters: number of parameters as decision variables.
+    _parameter_update: Callable for updating model parameters.
+    _model_parameter: mjModel for updating model parameters.
+    parameter: parameter values (num_parameter).
+    parameter_target: target parameter values (num_parameter).
+    weight_parameter: scalar weight for parameter cost.
+    _parameter_copy: copy of parameters (num_parameter).
+    _dsdp: sensor Jacobian wrt parameters ((ns x np) x horizon).
+    _dfdp: force Jacobian wrt parameters ((nv x np) x horizon).
   """
 
-  def __init__(self, model: mujoco.MjModel, horizon: int):
+  def __init__(
+      self,
+      model: mujoco.MjModel,
+      horizon: int,
+      num_parameter: Optional[int] = 0,
+      parameter_update: Optional[Callable] = None,
+  ):
     """Construct direct optimizer.
 
     Args:
@@ -844,9 +1011,10 @@ class DirectOptimizer:
     self.cost_initial = 0.0
 
     # cost derivatives
-    self._ntotal = model.nv * horizon
+    self._ntotal = model.nv * horizon + num_parameter
     self._ntotal_pin = self._ntotal
     self._nband = 3 * model.nv
+    self._ndense = num_parameter
     self._gradient = np.zeros(self._ntotal)
     self._hessian = np.zeros((self._ntotal, self._nband))
 
@@ -878,6 +1046,25 @@ class DirectOptimizer:
     self.regularization_min = 1.0e-8
     self.regularization_max = 1.0e12
     self.regularization_scale = np.sqrt(10.0)
+
+    # parameters
+    if num_parameter > 0 and parameter_update is not None:
+      self._parameter_flag = True
+    else:
+      self._parameter_flag = False
+
+    self.cost_parameter = 0.0
+    self._num_parameter = num_parameter
+    self._parameter_update = parameter_update
+    self._model_parameter = self.model.__copy__()
+    self.parameter = np.zeros(num_parameter)
+    self.parameter_target = np.zeros(num_parameter)
+    self.weight_parameter = 0.0
+    self._parameter_copy = np.zeros(num_parameter)
+    self._dsdp = [
+        np.zeros((model.nsensordata, num_parameter)) for t in range(horizon)
+    ]
+    self._dfdp = [np.zeros((model.nv, num_parameter)) for t in range(horizon)]
 
   def cost(self, qpos: npt.ArrayLike) -> float:
     """Return total cost (force + sensor)
@@ -921,6 +1108,17 @@ class DirectOptimizer:
 
     # total cost
     self.cost_total = self.cost_force + self.cost_sensor
+
+    # parameter cost
+    if self._parameter_flag:
+      # quadratic cost
+      parameter_error = self.parameter - self.parameter_target
+      self.cost_parameter = (
+          0.5 * self.weight_parameter * np.dot(parameter_error, parameter_error)
+      )
+
+      # update total
+      self.cost_total += self.cost_parameter
 
     return self.cost_total
 
@@ -966,6 +1164,22 @@ class DirectOptimizer:
         self.horizon,
     )
 
+    # inverse dynamics Jacobians wrt parameters
+    if self._parameter_flag:
+      self._dsdp, self._dfdp = diff_inverse_dynamics_parameters(
+          self.model,
+          self.model_update,
+          self.data,
+          qpos,
+          self.qvel,
+          self.qacc,
+          self.sensor,
+          self.force,
+          self.parameter,
+          self._parameter_update,
+          self.horizon,
+      )
+
     # force derivatives
     self._dfdq012 = diff_force(
         self.model,
@@ -1002,6 +1216,7 @@ class DirectOptimizer:
         self.weights_force,
         self._dfdq012,
         self.horizon,
+        self._dfdp if self._parameter_flag else None,
     )
 
     # sensor cost derivatives
@@ -1012,6 +1227,7 @@ class DirectOptimizer:
         self.weights_sensor,
         self._dsdq012,
         self.horizon,
+        self._dsdp if self._parameter_flag else None,
     )
 
     # dimension
@@ -1058,6 +1274,17 @@ class DirectOptimizer:
       # increment
       tpin += 1
 
+    # parameters
+    if self._parameter_flag:
+      # gradient
+      self._gradient[self.model.nv * np.sum(self.pinned):] = self.weight_parameter * (self.parameter - self.parameter_target)
+
+      # Hessian
+      # TODO(taylor): improve
+      dense = np.zeros((self._num_parameter, self._ntotal_pin))
+      dense[:, self.model.nv * np.sum(self.pinned)] = self.weight_parameter * np.eye(self._num_parameter)
+      self._hessian[self.model.nv * np.sum(self.pinned):, :] = dense.ravel()
+
   def _eval_search_direction(self) -> bool:
     """Compute search direction.
 
@@ -1072,7 +1299,7 @@ class DirectOptimizer:
           self._hessian_factor,
           self._ntotal_pin,
           self._nband,
-          0,
+          self._ndense,
           self._regularization,
           0.0,
       )
@@ -1099,7 +1326,7 @@ class DirectOptimizer:
         self._gradient,
         self._ntotal_pin,
         self._nband,
-        0,
+        self._ndense,
     )
 
     # update Hessian
@@ -1130,7 +1357,7 @@ class DirectOptimizer:
         self._search_direction,
         self._ntotal_pin,
         self._nband,
-        0,
+        self._ndense,
         1,
         1,
     )

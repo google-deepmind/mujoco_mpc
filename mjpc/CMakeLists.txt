@@ -38,6 +38,8 @@ add_library(
   tasks/tasks.h
   tasks/acrobot/acrobot.cc
   tasks/acrobot/acrobot.h
+  tasks/allegro/allegro.cc
+  tasks/allegro/allegro.h
   tasks/bimanual/bimanual.cc
   tasks/bimanual/bimanual.h
   tasks/cartpole/cartpole.cc
@@ -184,22 +186,32 @@ if(APPLE)
   target_link_libraries(mjpc "-framework Cocoa")
 endif()
 
-add_executable(
-  testspeed
+add_library(
+  libtestspeed STATIC
   testspeed_app.cc
   testspeed.h
   testspeed.cc
 )
 target_link_libraries(
-  testspeed
-  absl::flags
-  absl::flags_parse
+  libtestspeed
   absl::random_random
   absl::strings
   libmjpc
   mujoco::mujoco
   threadpool
   Threads::Threads
+)
+target_include_directories(libtestspeed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+add_executable(
+  testspeed
+  testspeed_app.cc
+)
+target_link_libraries(
+  testspeed
+  libtestspeed
+  absl::flags
+  absl::flags_parse
 )
 target_include_directories(testspeed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(testspeed PUBLIC ${MJPC_COMPILE_OPTIONS})

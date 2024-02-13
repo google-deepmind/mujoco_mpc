@@ -17,7 +17,6 @@
 #include <string>
 
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/utilities.h"
 
 

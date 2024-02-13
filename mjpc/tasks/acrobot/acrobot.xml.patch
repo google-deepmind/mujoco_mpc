@@ -1,0 +1,28 @@
+diff --git a/acrobot_modified.xml b/acrobot_modified.xml
+--- a/acrobot_modified.xml
++++ b/acrobot_modified.xml
+@@ -6,22 +6,18 @@
+     IEEE control systems 15, no. 1 (1995): 49-55.
+ -->
+ <mujoco model="acrobot">
+-  <include file="./common/visual.xml"/>
+-  <include file="./common/skybox.xml"/>
+-  <include file="./common/materials.xml"/>
+-
+   <default>
+     <joint damping=".05"/>
+     <geom type="capsule" mass="1"/>
+   </default>
+ 
+-  <option timestep="0.01" integrator="RK4">
++  <option timestep="0.01">
+     <flag constraint="disable" energy="enable"/>
+   </option>
+ 
+   <worldbody>
+     <light name="light" pos="0 0 6"/>
+-    <geom name="floor" size="3 3 .2" type="plane" material="grid"/>
++    <geom name="floor" size="3 3 .2" type="plane" material="blue_grid"/>
+     <site name="target" type="sphere" pos="0 0 4" size="0.2" material="target" group="3"/>
+     <camera name="fixed" pos="0 -6 2" zaxis="0 -1 0"/>
+     <camera name="lookat" mode="targetbodycom" target="upper_arm" pos="0 -2 3"/>

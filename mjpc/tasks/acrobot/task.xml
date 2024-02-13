@@ -1,6 +1,7 @@
 <mujoco model="Acrobot Swing-Up">
   <include file="../common.xml"/>
-  <include file="acrobot.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/acrobot.xml-->
+  <include file="acrobot_modified.xml" />
 
   <size memory="4K"/>
 

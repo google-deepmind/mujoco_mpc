@@ -24,15 +24,5 @@
     <frameangvel name="angvel" objtype="body" objname="root"/>
     <framelinacc name="linacc" objtype="body" objname="root"/>
     <frameangacc name="angacc" objtype="body" objname="root"/>
-
-    <!-- <framepos name="corner0" objtype="site" objname="corner0"/> -->
-    <!-- <framepos name="corner1" objtype="site" objname="corner1"/>
-    <framepos name="corner2" objtype="site" objname="corner2"/>
-    <framepos name="corner3" objtype="site" objname="corner3"/>
-    <framepos name="corner4" objtype="site" objname="corner4"/>
-    <framepos name="corner5" objtype="site" objname="corner5"/>
-    <framepos name="corner6" objtype="site" objname="corner6"/>
-    <framepos name="corner7" objtype="site" objname="corner7"/>
-    <framelinvel name="boxlinvel" objtype="body" objname="root"/> -->
   </sensor>
 </mujoco>

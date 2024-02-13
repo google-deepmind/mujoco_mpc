@@ -1,6 +1,7 @@
 <mujoco model="Cart-Pole Swing-Up">
   <include file="../common.xml"/>
-  <include file="cartpole.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/cartpole.xml -->
+  <include file="cartpole_modified.xml" />
 
   <size memory="4K"/>
 
@@ -43,4 +44,7 @@
     <framepos name="position" objtype="site" objname="tip"/>
     <framelinvel name="velocity" objtype="site" objname="tip"/>
   </sensor>
+  <keyframe>
+    <key name="home" qpos="1 0" />
+  </keyframe>
 </mujoco>

@@ -189,6 +189,7 @@ class Agent(contextlib.AbstractContextManager):
       mocap_pos: Optional[npt.ArrayLike] = None,
       mocap_quat: Optional[npt.ArrayLike] = None,
       userdata: Optional[npt.ArrayLike] = None,
+      set_sim_state: Optional[bool] = False
   ):
     """Set `Agent`'s MuJoCo `data` state.
 
@@ -200,6 +201,7 @@ class Agent(contextlib.AbstractContextManager):
       mocap_pos: `data.mocap_pos`.
       mocap_quat: `data.mocap_quat`.
       userdata: `data.userdata`.
+      set_sim_state: bool, set the simulation state.
     """
     # if mocap_pos is an ndarray rather than a list, flatten it
     if hasattr(mocap_pos, "flatten"):
@@ -217,7 +219,7 @@ class Agent(contextlib.AbstractContextManager):
         userdata=userdata if userdata is not None else [],
     )
 
-    set_state_request = agent_pb2.SetStateRequest(state=state)
+    set_state_request = agent_pb2.SetStateRequest(state=state, set_sim_state=set_sim_state)
     self.stub.SetState(set_state_request)
 
   def get_state(self) -> agent_pb2.State:

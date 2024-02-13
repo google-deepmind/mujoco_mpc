@@ -149,7 +149,7 @@ class CopyTaskAssetsCommand(setuptools.Command):
     self.set_undefined_options("build_ext", ("build_lib", "build_lib"))
 
   def run(self):
-    mjpc_tasks_path = Path(__file__).parent.parent / "mjpc" / "tasks"
+    mjpc_tasks_path = Path(__file__).parent.parent / "build" / "mjpc" / "tasks"
     source_paths = (
       tuple(mjpc_tasks_path.rglob("*.xml"))
       + tuple(mjpc_tasks_path.rglob("*.png"))

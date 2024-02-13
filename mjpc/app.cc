@@ -417,6 +417,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
       std::make_unique<mujoco::GlfwAdapter>(),
       std::make_shared<Agent>());
 
+  sim->run = false;  // [DEBUG] sets the simulator to start from paused state
   sim->agent->SetTaskList(std::move(tasks));
   std::string task_name = absl::GetFlag(FLAGS_task);
   if (task_name.empty()) {

@@ -5,10 +5,10 @@
              filedown="../assets/cube_qwerty/filedown.png" filefront="../assets/cube_qwerty/filefront.png"
              fileleft="../assets/cube_qwerty/fileleft.png" fileright="../assets/cube_qwerty/fileright.png"/>
     <material name="cube_noisy" texture="cube_noisy" rgba="1 1 1 0.3"/>
-    <texture name="graycube_noisy" type="cube" fileup="../assets/cube/grayup.png"
-             fileback="../assets/cube/grayback.png" filedown="../assets/cube/graydown.png"
-             filefront="../assets/cube/grayfront.png" fileleft="../assets/cube/grayleft.png"
-             fileright="../assets/cube/grayright.png"/>
+    <texture name="graycube_noisy" type="cube" fileup="assets/grayup.png"
+             fileback="assets/grayback.png" filedown="assets/graydown.png"
+             filefront="assets/grayfront.png" fileleft="assets/grayleft.png"
+             fileright="assets/grayright.png"/>
     <material name="graycube_noisy" texture="graycube_noisy" rgba="1 1 1 0.3"/>
   </asset>
   <worldbody>

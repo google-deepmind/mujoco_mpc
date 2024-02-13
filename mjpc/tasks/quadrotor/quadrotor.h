@@ -15,6 +15,7 @@
 #ifndef MJPC_TASKS_QUADROTOR_QUADROTOR_H_
 #define MJPC_TASKS_QUADROTOR_QUADROTOR_H_
 
+#include <memory>
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
@@ -51,7 +52,7 @@ class Quadrotor : public Task {
   ResidualFn* InternalResidual() override { return &residual_; }
 
  private:
-  int current_mode_;
+  int current_mode_ = 0;
   ResidualFn residual_;
 };
 }  // namespace mjpc

@@ -1,4 +1,3 @@
-# %%
 # Copyright 2023 DeepMind Technologies Limited
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +13,13 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
+import mediapy as media
 import mujoco
-import direct_optimizer
+from mujoco_mpc import direct as direct_lib
 import numpy as np
-# %%
-## Example
 
+
+# %%
 # 2D Particle Model
 xml = """
 <mujoco model="Particle">
@@ -39,6 +39,11 @@ xml = """
   </asset>
 
   <option timestep="0.01"></option>
+
+  <default>
+    <joint type="hinge" axis="0 0 1" limited="true" range="-.29 .29" damping="1"/>
+    <motor gear=".1" ctrlrange="-1 1" ctrllimited="true"/>
+  </default>
 
   <worldbody>
     <light name="light" pos="0 0 1"/>
@@ -72,10 +77,10 @@ xml = """
 
 model = mujoco.MjModel.from_xml_string(xml)
 data = mujoco.MjData(model)
-
+renderer = mujoco.Renderer(model)
 # %%
 # initialization
-T = 400
+T = 100
 q0 = np.array([-0.25, -0.25])
 qM = np.array([-0.25, 0.25])
 qN = np.array([0.25, -0.25])
@@ -92,7 +97,6 @@ for t in range(T):
 
 # time
 time = [t * model.opt.timestep for t in range(T)]
-
 # %%
 # plot position
 fig = plt.figure()
@@ -107,74 +111,110 @@ plt.plot(qT[0], qT[1], color="magenta", marker="o")
 plt.legend()
 plt.xlabel("X")
 plt.ylabel("Y")
-
 # %%
-# create optimizer
-optimizer = direct_optimizer.DirectOptimizer(model, T)
+# optimizer model
+model_optimizer = mujoco.MjModel.from_xml_string(xml)
 
-# settings
-optimizer.max_iterations = 10
-optimizer.max_search_iterations = 10
-
-# force weight
-fw = 5.0e2
-
+# direct optimizer
+configuration_length = T + 2
+optimizer = direct_lib.Direct(
+    model=model_optimizer,
+    configuration_length=configuration_length,
+)
+# %%
 # set data
-for t in range(T):
+for t in range(configuration_length):
+  # unpack
+  qt = np.zeros(model.nq)
+  st = np.zeros(model.nsensordata)
+  mt = np.zeros(model.nsensor)
+  ft = np.zeros(model.nv)
+  ct = np.zeros(model.nu)
+  tt = np.array([t * model.opt.timestep])
+
   # set initial state
   if t == 0 or t == 1:
-    optimizer.pinned[t] = True
-    optimizer.qpos[:, t] = q0
-    if t == 1:
-      optimizer.weights_force[:, t] = fw
+    qt = q0
+    st = q0
+    mt = np.array([1, 1])
 
   # set goal
-  elif t >= T - 2:
-    optimizer.pinned[t] = True
-    optimizer.qpos[:, t] = qT
-    if t == T - 2:
-      optimizer.weights_force[:, t] = fw
+  elif t >= configuration_length - 2:
+    qt = qT
+    st = qT
+    mt = np.array([1, 1])
 
   # set waypoint
-  elif t == 100:
-    optimizer.pinned[t] = False
-    optimizer.qpos[:, t] = qM
-    optimizer.sensor_target[: model.nq, t] = qM
-    optimizer.weights_force[:, t] = fw
-    optimizer.weights_sensor[:, t] = 1.0
+  elif t == 25:
+    st = qM
+    mt = np.array([1, 1])
 
   # set waypoint
-  elif t == 300:
-    optimizer.pinned[t] = False
-    optimizer.qpos[:, t] = qN
-    optimizer.sensor_target[: model.nq, t] = qN
-    optimizer.weights_force[:, t] = fw
-    optimizer.weights_sensor[:, t] = 1.0
+  elif t == 75:
+    st = qN
+    mt = np.array([1, 1])
 
   # initialize qpos
   else:
-    optimizer.pinned[t] = False
-    optimizer.qpos[:, t] = qinterp[:, t]
-    optimizer.weights_force[:, t] = fw
-    optimizer.weights_sensor[:, t] = 0.0
+    qt = qinterp[:, t - 1]
+    mt = np.array([0, 0])
+
+  # set data
+  data_ = optimizer.data(
+      t,
+      configuration=qt,
+      sensor_measurement=st,
+      sensor_mask=mt,
+      force_measurement=ft,
+      time=tt,
+  )
+# %%
+# set std
+optimizer.noise(process=np.array([1000.0, 1000.0]), sensor=np.array([1.0, 1.0]))
+
+# set settings
+optimizer.settings(
+    sensor_flag=True,
+    force_flag=True,
+    max_smoother_iterations=1000,
+    max_search_iterations=1000,
+    regularization_initial=1.0e-12,
+    gradient_tolerance=1.0e-6,
+    search_direction_tolerance=1.0e-6,
+    cost_tolerance=1.0e-6,
+    first_step_position_sensors=True,
+    last_step_position_sensors=True,
+    last_step_velocity_sensors=True,
+)
 
 # optimize
 optimizer.optimize()
 
-# status
-optimizer.status()
+# costs
+optimizer.print_cost()
 
+# status
+optimizer.print_status()
+# %%
+# get estimated trajectories
+q_est = np.zeros((model_optimizer.nq, configuration_length))
+v_est = np.zeros((model_optimizer.nv, configuration_length))
+s_est = np.zeros((model_optimizer.nsensordata, configuration_length))
+f_est = np.zeros((model_optimizer.nv, configuration_length))
+t_est = np.zeros(configuration_length)
+for t in range(configuration_length):
+  data_ = optimizer.data(t)
+  q_est[:, t] = data_["configuration"]
+  v_est[:, t] = data_["velocity"]
+  s_est[:, t] = data_["sensor_prediction"]
+  f_est[:, t] = data_["force_prediction"]
+  t_est[t] = data_["time"]
 # %%
 # plot position
 fig = plt.figure()
 
 plt.plot(qinterp[0, :], qinterp[1, :], label="interpolation", color="black")
-plt.plot(
-    optimizer.qpos[0, :],
-    optimizer.qpos[1, :],
-    label="direct trajopt",
-    color="orange",
-)
+plt.plot(q_est[0, :], q_est[1, :], label="direct trajopt", color="orange")
 plt.plot(q0[0], q0[1], color="magenta", label="waypoint", marker="o")
 plt.plot(qM[0], qM[1], color="magenta", marker="o")
 plt.plot(qN[0], qN[1], color="magenta", marker="o")
@@ -184,22 +224,37 @@ plt.legend()
 plt.xlabel("X")
 plt.ylabel("Y")
 
-# %%
-# recover ctrl
-mujoco.mj_forward(model, data)
-ctrl = np.vstack(
-    [
-        np.linalg.pinv(data.actuator_moment.T) @ optimizer.force[:, t]
-        for t in range(T)
-    ]
+# plot velocity
+fig = plt.figure()
+
+# velocity
+plt.plot(t_est[1:] - model.opt.timestep, v_est[0, 1:], label="v0", color="cyan")
+plt.plot(
+    t_est[1:] - model.opt.timestep, v_est[1, 1:], label="v1", color="orange"
 )
 
-# plot ctrl
-fig = plt.figure()
-times = [t * model.opt.timestep for t in range(T)]
-
-plt.step(times, ctrl[:, 0], label="action 0", color="orange")
-plt.step(times, ctrl[:, 1], label="action 1", color="magenta")
 plt.legend()
 plt.xlabel("Time (s)")
-plt.ylabel("ctrl")
+plt.ylabel("Velocity")
+# %%
+# frames optimized
+frames_opt = []
+
+# simulate
+for t in range(configuration_length - 1):
+  # get solution from optimizer
+  data_ = optimizer.data(t)
+
+  # set configuration
+  data.qpos = q_est[:, t]
+  data.qvel = v_est[:, t]
+
+  mujoco.mj_forward(model, data)
+
+  # render and save frames
+  renderer.update_scene(data)
+  pixels = renderer.render()
+  frames_opt.append(pixels)
+
+# display video
+# media.show_video(frames_opt, fps=1.0 / model.opt.timestep, loop=False)

@@ -18,8 +18,9 @@
 #include <string>
 
 namespace mjpc {
-int TestSpeed(std::string task_name, int planner_thread_count,
-              int steps_per_planning_iteration, double total_time);
+double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
+                               int steps_per_planning_iteration,
+                               double total_time);
 }  // namespace mjpc
 
 #endif  // MJPC_MJPC_TESTSPEED_H_

@@ -41,8 +41,9 @@ void residual_callback(const mjModel* model, mjData* data, int stage) {
 }  // namespace
 
 // Run synchronous planning, print timing info,return 0 if nothing failed.
-int TestSpeed(std::string task_name, int planner_thread_count,
-              int steps_per_planning_iteration, double total_time) {
+double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
+                               int steps_per_planning_iteration,
+                               double total_time) {
   std::cout << "Test MJPC Speed\n";
   std::cout << " MuJoCo version " << mj_versionString() << "\n";
   if (mjVERSION_HEADER != mj_version()) {
@@ -63,7 +64,7 @@ int TestSpeed(std::string task_name, int planner_thread_count,
   mjModel* model = load_model.model.release();
   if (!model) {
     std::cerr << load_model.error << "\n";
-    return 1;
+    return -1;
   }
   mjData* data = mj_makeData(model);
   mj_forward(model, data);
@@ -123,6 +124,7 @@ int TestSpeed(std::string task_name, int planner_thread_count,
 
   mj_deleteData(data);
   mj_deleteModel(model);
-  return 0;
+  mjcb_sensor = nullptr;
+  return total_cost;
 }
 }  // namespace mjpc

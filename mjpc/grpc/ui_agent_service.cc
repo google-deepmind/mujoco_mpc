@@ -35,12 +35,16 @@ namespace mjpc::agent_grpc {
 
 using ::agent::GetActionRequest;
 using ::agent::GetActionResponse;
-using ::agent::GetModeRequest;
-using ::agent::GetModeResponse;
+using ::agent::GetAllModesRequest;
+using ::agent::GetAllModesResponse;
+using ::agent::GetBestTrajectoryRequest;
+using ::agent::GetBestTrajectoryResponse;
 using ::agent::GetResidualsRequest;
 using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
+using ::agent::GetModeRequest;
+using ::agent::GetModeResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::GetTaskParametersRequest;
@@ -220,6 +224,24 @@ grpc::Status UiAgentService::GetMode(grpc::ServerContext* context,
                                    mjData* data) {
         return grpc_agent_util::GetMode(request, agent, response);
       });
+}
+
+grpc::Status UiAgentService::GetAllModes(grpc::ServerContext* context,
+                                         const GetAllModesRequest* request,
+                                         GetAllModesResponse* response) {
+  return RunBeforeStep(
+      context, [request, response](mjpc::Agent* agent, const mjModel* model,
+                                   mjData* data) {
+        return grpc_agent_util::GetAllModes(request, agent, response);
+      });
+}
+
+grpc::Status UiAgentService::GetBestTrajectory(
+    grpc::ServerContext* context, const GetBestTrajectoryRequest* request,
+    GetBestTrajectoryResponse* response) {
+  // TODO - Implement.
+  return {grpc::StatusCode::UNIMPLEMENTED,
+          "GetBestTrajectory is not implemented."};
 }
 
 grpc::Status UiAgentService::SetAnything(grpc::ServerContext* context,

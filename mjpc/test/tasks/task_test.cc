@@ -13,9 +13,14 @@
 // limitations under the License.
 
 #include "mjpc/task.h"
+#include <memory>
+#include <string>
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+#include "mjpc/norm.h"
+#include "mjpc/tasks/tasks.h"
+#include "mjpc/testspeed.h"
 #include "mjpc/test/load.h"
 
 namespace mjpc {
@@ -91,6 +96,16 @@ TEST(TasksTest, Task) {
 
   // delete model
   mj_deleteModel(model);
+}
+
+TEST(StepAllTasksTest, Task) {
+  auto tasks = GetTasks();
+  for (auto& task : tasks) {
+    double cost = SynchronousPlanningCost(
+                  task->Name(), /*planner_thread_count=*/1,
+                  /*steps_per_planning_iteration=*/100, /*total_time=*/0.1);
+    EXPECT_GT(cost, 0) << "Task " << task->Name() << " failed.";
+  }
 }
 
 }  // namespace

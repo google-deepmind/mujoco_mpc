@@ -34,6 +34,10 @@ int main(int argc, char** argv) {
   int steps_per_planning_iteration =
       absl::GetFlag(FLAGS_steps_per_planning_iteration);
   double total_time = absl::GetFlag(FLAGS_total_time);
-  return mjpc::TestSpeed(task_name, planner_thread_count,
-                         steps_per_planning_iteration, total_time);
+  double cost =
+      mjpc::SynchronousPlanningCost(task_name, planner_thread_count,
+                                    steps_per_planning_iteration, total_time);
+  if (cost < 0) {
+    return -1;
+  }
 }

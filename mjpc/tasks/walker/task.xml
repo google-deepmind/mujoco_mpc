@@ -1,6 +1,7 @@
 <mujoco model="Walker Locomotion">
   <include file="../common.xml"/>
-  <include file="walker.xml" />
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/walker.xml -->
+  <include file="walker_modified.xml" />
 
   <size memory="100K"/>
 

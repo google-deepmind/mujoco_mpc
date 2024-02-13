@@ -299,28 +299,6 @@ void LinearRange(double* t, double t_step, double t0, int N) {
   }
 }
 
-// find interval in monotonic sequence containing value
-void FindInterval(int* bounds, const std::vector<double>& sequence,
-                  double value, int length) {
-  // get bounds
-  auto it =
-      std::upper_bound(sequence.begin(), sequence.begin() + length, value);
-  int upper_bound = it - sequence.begin();
-  int lower_bound = upper_bound - 1;
-
-  // set bounds
-  if (lower_bound < 0) {
-    bounds[0] = 0;
-    bounds[1] = 0;
-  } else if (lower_bound > length - 1) {
-    bounds[0] = length - 1;
-    bounds[1] = length - 1;
-  } else {
-    bounds[0] = mju_max(lower_bound, 0);
-    bounds[1] = mju_min(upper_bound, length - 1);
-  }
-}
-
 // zero-order interpolation
 void ZeroInterpolation(double* output, double x, const std::vector<double>& xs,
                        const double* ys, int dim, int length) {

@@ -79,7 +79,8 @@
     </default>
   </default>
 
-  <include file="a1.xml" />
+  <!-- modified from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/unitree_a1 -->
+  <include file="a1_modified.xml" />
 
   <actuator>
     <general class="torque" name="FR_hip" joint="FR_hip_joint"/>

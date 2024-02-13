@@ -89,6 +89,7 @@ message GetStateResponse {
 
 message SetStateRequest {
   State state = 1;
+  bool set_sim_state = 2;
 }
 message SetStateResponse {}
 

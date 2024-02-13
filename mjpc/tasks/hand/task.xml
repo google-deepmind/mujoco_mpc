@@ -53,8 +53,8 @@
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
   </sensor>
 
-  <include file="cube.xml"/>
-  <include file="cube_noisy.xml"/>
+  <include file="../common_assets/reorientation_cube.xml"/>
+  <!-- from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand -->
   <include file="right_hand.xml"/>
 
   <keyframe>

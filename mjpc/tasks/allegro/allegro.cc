@@ -1,4 +1,4 @@
-// Copyright 2022 DeepMind Technologies Limited
+// Copyright 2024 DeepMind Technologies Limited
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@
 #include <chrono>
 #include <cmath>
 #include <string>
-#include <vector>
 
-#include "mjpc/task.h"
+#include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
 namespace mjpc {

@@ -1,3 +1,4 @@
+# %%
 # Copyright 2023 DeepMind Technologies Limited
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +15,8 @@
 
 import matplotlib.pyplot as plt
 import mujoco
-from direct import direct_optimizer
+import direct_optimizer
 import numpy as np
-from numpy import typing as npt
-
 # %%
 ## Example
 
@@ -124,20 +123,21 @@ fw = 5.0e2
 for t in range(T):
   # set initial state
   if t == 0 or t == 1:
+    optimizer.pinned[t] = True
     optimizer.qpos[:, t] = q0
-    optimizer.sensor_target[: model.nq, t] = q0
-    optimizer.weights_force[:, t] = fw
-    optimizer.weights_sensor[:, t] = 1.0
+    if t == 1:
+      optimizer.weights_force[:, t] = fw
 
   # set goal
   elif t >= T - 2:
+    optimizer.pinned[t] = True
     optimizer.qpos[:, t] = qT
-    optimizer.sensor_target[: model.nq, t] = qT
-    optimizer.weights_force[:, t] = fw
-    optimizer.weights_sensor[:, t] = 1.0
+    if t == T - 2:
+      optimizer.weights_force[:, t] = fw
 
   # set waypoint
   elif t == 100:
+    optimizer.pinned[t] = False
     optimizer.qpos[:, t] = qM
     optimizer.sensor_target[: model.nq, t] = qM
     optimizer.weights_force[:, t] = fw
@@ -145,6 +145,7 @@ for t in range(T):
 
   # set waypoint
   elif t == 300:
+    optimizer.pinned[t] = False
     optimizer.qpos[:, t] = qN
     optimizer.sensor_target[: model.nq, t] = qN
     optimizer.weights_force[:, t] = fw
@@ -152,6 +153,7 @@ for t in range(T):
 
   # initialize qpos
   else:
+    optimizer.pinned[t] = False
     optimizer.qpos[:, t] = qinterp[:, t]
     optimizer.weights_force[:, t] = fw
     optimizer.weights_sensor[:, t] = 0.0
@@ -185,7 +187,12 @@ plt.ylabel("Y")
 # %%
 # recover ctrl
 mujoco.mj_forward(model, data)
-ctrl = np.vstack([data.actuator_moment @ optimizer.force[:, t] for t in range(T)])
+ctrl = np.vstack(
+    [
+        np.linalg.pinv(data.actuator_moment.T) @ optimizer.force[:, t]
+        for t in range(T)
+    ]
+)
 
 # plot ctrl
 fig = plt.figure()
@@ -196,182 +203,3 @@ plt.step(times, ctrl[:, 1], label="action 1", color="magenta")
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("ctrl")
-
-# %%
-# trajectories
-T = 3
-qpos = np.zeros((model.nq, T))
-qvel = np.zeros((model.nv, T))
-qacc = np.zeros((model.nv, T))
-ctrl = np.zeros((model.nu, T))
-qfrc = np.zeros((model.nv, T))
-sensor = np.zeros((model.nsensordata, T))
-noisy_sensor = np.zeros((model.nsensordata, T))
-time = np.zeros(T)
-
-# set initial state
-mujoco.mj_resetData(model, data)
-
-# simulate
-for t in range(T):
-  # forward dynamics
-  mujoco.mj_forward(model, data)
-
-  # cache
-  qpos[:, t] = data.qpos
-  qvel[:, t] = data.qvel
-  qacc[:, t] = data.qacc
-  ctrl[:, t] = data.ctrl
-  qfrc[:, t] = data.qfrc_actuator
-  sensor[:, t] = data.sensordata
-  time[t] = data.time
-
-  # noisy sensors
-  noisy_sensor[:, t] = sensor[:, t]
-
-  # intergrate with Euler
-  mujoco.mj_Euler(model, data)
-
-# create optimizer
-optimizer = direct_optimizer.DirectOptimizer(model, T)
-
-# initialize
-optimizer.qpos = 0.0 * np.ones((model.nq, T))
-
-# set data
-optimizer.sensor_target = sensor
-optimizer.force_target = qfrc
-optimizer.ctrl = ctrl
-
-# set weights
-optimizer.weights_force[:, :] = 1.0
-optimizer.weights_sensor[:, :] = 1.0
-
-# settings
-optimizer.max_iterations = 10
-optimizer.max_search_iterations = 10
-
-# optimize
-optimizer.optimize()
-
-# status
-optimizer.status()
-
-# %%
-def test_gradient(
-    optimizer: direct_optimizer.DirectOptimizer,
-    qpos: npt.ArrayLike,
-    eps: float = 1.0e-10,
-    verbose: bool = False,
-):
-  # evaluate nominal cost
-  c0 = optimizer.cost(qpos)
-
-  # evaluate optimizer gradient
-  optimizer._cost_derivatives(qpos)
-  g0 = np.array(optimizer._gradient)
-
-  # finite difference gradient
-  g = np.zeros(optimizer._ntotal)
-
-  # horizon
-  T = optimizer.horizon
-
-  # loop over inputs
-  for i in range(optimizer._ntotal):
-    # nudge
-    nudge = np.zeros(optimizer._ntotal)
-    nudge[i] += eps
-
-    # qpos nudge
-    qnudge = direct_optimizer.configuration_update(
-        optimizer.model, qpos, nudge, 1.0, T)
-
-    # evaluate
-    c = optimizer.cost(qnudge)
-
-    # derivative
-    g[i] = (c - c0) / eps
-
-  if verbose:
-    print("gradient optimizer: \n", g0)
-    print("gradient finite difference: \n", g)
-
-  # return max difference
-  return np.linalg.norm(g - g0, np.Inf)
-
-
-def test_hessian(
-    optimizer: direct_optimizer.DirectOptimizer,
-    qpos: npt.ArrayLike,
-    eps: float = 1.0e-5,
-    verbose: bool = False,
-):
-  # evaluate nominal cost
-  c0 = optimizer.cost(qpos)
-
-  # evaluate optimizer Hessian
-  optimizer._cost_derivatives(qpos)
-  h0 = np.zeros((optimizer._ntotal, optimizer._ntotal))
-  mujoco.mju_band2Dense(
-      h0, optimizer._hessian.ravel(), optimizer._ntotal, optimizer._nband, 0, 1
-  )
-
-  # finite difference gradient
-  h = np.zeros((optimizer._ntotal, optimizer._ntotal))
-
-  # horizon
-  T = optimizer.horizon
-
-  for i in range(optimizer._ntotal):
-    for j in range(i, optimizer._ntotal):
-      # workspace
-      w1 = np.zeros(optimizer._ntotal)
-      w2 = np.zeros(optimizer._ntotal)
-      w3 = np.zeros(optimizer._ntotal)
-
-      # workspace 1
-      w1[i] += eps
-      w1[j] += eps
-
-      # qpos nudge 1
-      qnudge1 = direct_optimizer.configuration_update(
-          optimizer.model, qpos, w1, 1.0, T)
-
-      cij = optimizer.cost(qnudge1)
-
-      # workspace 2
-      w2[i] += eps
-
-      # qpos nudge 2
-      qnudge2 = direct_optimizer.configuration_update(
-          optimizer.model, qpos, w2, 1.0, T)
-
-      ci = optimizer.cost(qnudge2)
-
-      # workspace 3
-      w3[j] += eps
-
-      # qpos nudge 3
-      qnudge3 = direct_optimizer.configuration_update(
-          optimizer.model, qpos, w3, 1.0, T)
-
-      cj = optimizer.cost(qnudge3)
-
-      # Hessian value
-      h[i, j] = (cij - ci - cj + c0) / (eps * eps)
-      h[j, i] = (cij - ci - cj + c0) / (eps * eps)
-
-  if verbose:
-    print("Hessian optimizer: \n", h0)
-    print("Hessian finite difference: \n", h)
-
-  # return maximum difference
-  return np.linalg.norm((h - h0).ravel(), np.Inf)
-
-
-# %%
-test_gradient(optimizer, np.ones((model.nq, T)))
-
-# %%
-test_hessian(optimizer, np.zeros((model.nq, T)))

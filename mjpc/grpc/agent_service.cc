@@ -170,6 +170,17 @@ grpc::Status AgentService::SetState(grpc::ServerContext* context,
   task->Transition(model, data_);
   agent_.SetState(data_);
 
+  // Set simulation state
+  if (request->set_simulation()) {
+    Agent::StepJob job = [&agent_data = data_](
+                             Agent* agent, const mjModel* model, mjData* data) {
+      mju_copy(data->qpos, agent_data->qpos, model->nq);
+      mju_copy(data->qvel, agent_data->qvel, model->nv);
+      data->time = agent_data->time;
+    };
+    agent_.RunBeforeStep(std::move(job));
+  }
+
   return grpc::Status::OK;
 }
 

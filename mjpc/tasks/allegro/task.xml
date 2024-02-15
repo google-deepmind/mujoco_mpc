@@ -16,15 +16,16 @@
   </default>
 
   <custom>
-    <!-- agent 0 = Sampling, 5 = CEM, 7 = MPPI, 8 = DR Sampling, 9 = DR MPPI, 10 = DR CEM -->
+    <!-- agent_planner 0=Sampling, 5=CEM, 7=MPPI, 8=DR Sampling, 9=DR MPPI, 10=DR CEM -->
+    <!-- sampling_representation 0=zero order, 1=linear, 2=cubic -->
     <numeric name="agent_planner" data="5" />
-    <numeric name="agent_horizon" data="0.5" />
-    <numeric name="agent_timestep" data="0.003" />
+    <numeric name="agent_horizon" data="0.6" />
+    <numeric name="agent_timestep" data="0.003 0.002 0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_spline_points" data="1" />
+    <numeric name="sampling_spline_points" data="2" />
     <numeric name="sampling_exploration" data="0.1" />
-    <numeric name="sampling_trajectories" data="125" />
-    <numeric name="sampling_representation" data="0" />
+    <numeric name="sampling_trajectories" data="100" />
+    <numeric name="sampling_representation" data="2" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="1" />
     <numeric name="task_risk" data="0.0" />
@@ -72,7 +73,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".2"/>
+    <geom friction=".3"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->
@@ -93,7 +94,7 @@
   <sensor>
     <!-- Residuals -->
     <user name="Cube Position" dim="3" user="1 100 0 300 0.02 2"/>
-    <user name="Cube Orientation" dim="3" user="0 15 0 100" />
+    <user name="Cube Orientation" dim="3" user="0 5 0 100" />
     <user name="Cube Velocity" dim="3" user="0 0 0 20" />
     <user name="Actuation" dim="12" user="0 0 0 10" />
 
@@ -109,6 +110,6 @@
   <include file="right_hand_modified.xml"/>
 
   <keyframe>
-    <key name="home" qpos="1 0 0 0 0.090696023 0.025 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715"/>
+    <key name="home" qpos="1 0 0 0 0.090696023 0.0 0.075 1 0 0 0 0 0.58058 0.701595 0.538675 0 0.60767 0.758085 0.741625 0 0.8876 0.720425 0.5848 0.263 0.32612 1.08493 0.806715"/>
   </keyframe>
 </mujoco>

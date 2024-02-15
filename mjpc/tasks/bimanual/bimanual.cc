@@ -48,9 +48,6 @@ void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
 }
 
 void mjpc::Bimanual::TransitionLocked(mjModel* model, mjData* data) {
-  data->mocap_pos[0] = -0.4;
-  data->mocap_pos[1] = -0.2;
-  data->mocap_pos[2] = 0.3;
 }
 
 }  // namespace mjpc

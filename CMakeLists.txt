@@ -61,7 +61,7 @@ set(MUJOCO_MPC_MUJOCO_GIT_TAG
 )
 
 set(MUJOCO_MPC_MENAGERIE_GIT_TAG
-    aef3ee5c07ea51506e893a62fd832773ff0162c8
+    94ea114fa8c60a0fd542c8e1ffeb997204acbea2
     CACHE STRING "Git revision for MuJoCo Menagerie."
 )
 

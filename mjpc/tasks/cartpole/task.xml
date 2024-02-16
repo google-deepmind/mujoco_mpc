@@ -44,4 +44,7 @@
     <framepos name="position" objtype="site" objname="tip"/>
     <framelinvel name="velocity" objtype="site" objname="tip"/>
   </sensor>
+  <keyframe>
+    <key name="home" qpos="1 0" />
+  </keyframe>
 </mujoco>

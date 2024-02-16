@@ -16,6 +16,7 @@
 .vs/
 # Exclude temporary folders
 *.egg-info/
+.eggs/
 build/
 build_cmake/
 # Exclude macOS folder attributes

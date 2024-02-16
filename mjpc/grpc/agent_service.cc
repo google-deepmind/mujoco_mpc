@@ -326,23 +326,24 @@ grpc::Status AgentService::GetBestTrajectory(
   for (int t = 0; t < steps; t++) {
     // states
     for (int i = 0; i < num_state; i++) {
-      response->add_states(trajectory->states[t * num_state + i]);
+      response->add_states(trajectory ? trajectory->states[t * num_state + i]
+                                      : 0.0);
     }
 
     // times
-    response->add_times(trajectory->times[t]);
+    response->add_times(trajectory ? trajectory->times[t] : 0.0);
 
     // actions
     if (t >= steps - 1) continue;
     for (int i = 0; i < num_action; i++) {
-      response->add_actions(trajectory->actions[t * num_action + i]);
+      response->add_actions(trajectory ? trajectory->actions[t * num_action + i]
+                                       : 0.0);
     }
   }
 
   // TODO(taylor): improve return status
   return grpc::Status::OK;
 }
-
 
 grpc::Status AgentService::SetAnything(
     grpc::ServerContext* context, const SetAnythingRequest* request,

@@ -24,9 +24,9 @@ from predictive_sampling import predictive_sampling
 # path to hand task
 
 model_path = (
-        pathlib.Path(os.path.abspath("")).parent.parent.parent
-        / "mujoco_mpc/mjpc/tasks/shadow/task.xml"
-    )
+    pathlib.Path(os.path.abspath("")).parent.parent.parent
+    / "mujoco_mpc/mjpc/tasks/shadow_reorient/task.xml"
+)
 # create simulation model + data
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)

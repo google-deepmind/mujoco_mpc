@@ -110,7 +110,7 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 - [direct.py](python/mujoco_mpc/direct.py) for available methods for direct optimization.
 
 ## Installing via Pip
-The MJPC Python module can be installed with:
+First, build MJPC (see above), then the MJPC Python module can be installed with:
 ```sh
 python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
 ```

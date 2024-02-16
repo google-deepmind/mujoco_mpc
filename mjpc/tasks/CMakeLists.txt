@@ -64,7 +64,7 @@ add_custom_target(
   ## Menagerie models
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/shadow_reorient/right_hand.xml
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/wonik_allegro/right_hand.xml
           ${CMAKE_CURRENT_BINARY_DIR}/allegro/right_hand.xml
@@ -76,7 +76,7 @@ add_custom_target(
           <${CMAKE_CURRENT_SOURCE_DIR}/allegro/right_hand.xml.patch
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/shadow_reorient/assets
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/franka_emika_panda/panda.xml
           ${CMAKE_CURRENT_BINARY_DIR}/panda/panda.xml

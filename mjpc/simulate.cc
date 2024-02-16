@@ -1163,10 +1163,7 @@ void UiEvent(mjuiState* state) {
         sim->screenshotrequest.store(true);
         break;
       }
-    }
-
-    // option section
-    else if (it && it->sectionid==SECT_OPTION) {
+    } else if (it && it->sectionid == SECT_OPTION) {
       if (it->pdata == &sim->spacing) {
         sim->ui0.spacing = mjui_themeSpacing(sim->spacing);
         sim->ui1.spacing = mjui_themeSpacing(sim->spacing);
@@ -1184,37 +1181,16 @@ void UiEvent(mjuiState* state) {
       // modify UI
       UiModify(&sim->ui0, state, &sim->platform_ui->mjr_context());
       UiModify(&sim->ui1, state, &sim->platform_ui->mjr_context());
-    }
 
-    // simulation section
-    else if (it && it->sectionid==SECT_SIMULATION) {
+    } else if (it && it->sectionid == SECT_SIMULATION) {
       switch (it->itemid) {
       case 1:             // Reset
         if (m) {
-          mj_resetData(m, d);
+          mj_resetDataKeyframe(m, d, mj_name2id(m, mjOBJ_KEY, "home"));
           mj_forward(m, d);
           UpdateProfiler(sim);
           UpdateSensor(sim);
           UpdateSettings(sim);
-          // set initial qpos via keyframe
-          double* key_qpos = mjpc::KeyQPosByName(sim->mnew, sim->dnew,
-                                                 "home");
-          if (key_qpos) {
-            mju_copy(sim->dnew->qpos, key_qpos, sim->mnew->nq);
-          }
-          // set initial qvel via keyframe
-          double* key_qvel = mjpc::KeyQVelByName(sim->mnew, sim->dnew,
-                                                 "home");
-          if (key_qvel) {
-            mju_copy(sim->dnew->qvel, key_qvel, sim->mnew->nv);
-          }
-          // set initial act via keyframe
-          double* act = mjpc::KeyActByName(sim->mnew, sim->dnew,
-                                           "home");
-          if (act) {
-            mju_copy(sim->dnew->act, act, sim->mnew->na);
-          }
-
           sim->agent->PlotReset();
         }
         break;

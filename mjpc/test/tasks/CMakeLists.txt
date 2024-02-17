@@ -13,4 +13,4 @@
 # limitations under the License.
 
 test(task_test)
-target_link_libraries(task_test load gmock)
+target_link_libraries(task_test load gmock libtestspeed)

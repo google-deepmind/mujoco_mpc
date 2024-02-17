@@ -44,12 +44,8 @@ add_library(
   tasks/bimanual/bimanual.h
   tasks/cartpole/cartpole.cc
   tasks/cartpole/cartpole.h
-  tasks/cube/solve.cc
-  tasks/cube/solve.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
-  tasks/hand/hand.cc
-  tasks/hand/hand.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc
@@ -66,6 +62,10 @@ add_library(
   tasks/panda/panda.h
   tasks/particle/particle.cc
   tasks/particle/particle.h
+  tasks/rubik/solve.cc
+  tasks/rubik/solve.h
+  tasks/shadow_reorient/hand.cc
+  tasks/shadow_reorient/hand.h
   tasks/quadrotor/quadrotor.cc
   tasks/quadrotor/quadrotor.h
   tasks/quadruped/quadruped.cc

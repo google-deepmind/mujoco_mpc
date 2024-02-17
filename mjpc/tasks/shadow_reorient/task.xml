@@ -44,6 +44,7 @@
     <user name="Joint Vel." dim="26" user="0 1.0e-4 0.0 1.0e-1" />
     <framepos name="palm_position" objtype="site" objname="grasp_site"/>
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
+    <framepos name="trace0" objtype="body" objname="cube"/>
   </sensor>
 
   <include file="../common_assets/reorientation_cube.xml"/>

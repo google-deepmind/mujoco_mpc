@@ -47,8 +47,8 @@
     <framepos name="trace0" objtype="body" objname="cube"/>
   </sensor>
 
-  <!-- from: common_assests -->
-  <include file="cube_modified.xml"/>
+  <!-- from: common_assets -->
+  <include file="../common_assets/cube_modified_shadow_reorient.xml"/>
   <!-- from: https://github.com/google-deepmind/mujoco_menagerie/tree/main/shadow_hand -->
   <include file="right_hand.xml"/>
 

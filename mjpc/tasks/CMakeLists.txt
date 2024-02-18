@@ -118,7 +118,7 @@ add_custom_target(
 
   ## Cube reorientation 
   # patch cube from common assets
-  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/shadow_reorient/cube_modified.xml
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/common_assets/cube_modified_shadow_reorient.xml
           ${CMAKE_CURRENT_BINARY_DIR}/common_assets/reorientation_cube.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/shadow_reorient/cube.xml.patch
 

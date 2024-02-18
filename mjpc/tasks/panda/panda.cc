@@ -25,7 +25,7 @@ namespace mjpc {
 std::string Panda::XmlPath() const {
   return GetModelPath("panda/task.xml");
 }
-std::string Panda::Name() const { return "Panda"; }
+std::string Panda::Name() const { return "Pick"; }
 
 // ---------- Residuals for in-panda manipulation task ---------
 //   Number of residuals: 5

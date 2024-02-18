@@ -111,14 +111,6 @@ void GetTraces(double* traces, const mjModel* m, const mjData* d,
 double* KeyQPosByName(const mjModel* m, const mjData* d,
                       const std::string& name);
 
-// get keyframe `qvel` data using string
-double* KeyQVelByName(const mjModel* m, const mjData* d,
-                      const std::string& name);
-
-// get keyframe `act` data using string
-double* KeyActByName(const mjModel* m, const mjData* d,
-                     const std::string& name);
-
 // fills t with N numbers, starting from t0 and incrementing by t_step
 void LinearRange(double* t, double t_step, double t0, int N);
 

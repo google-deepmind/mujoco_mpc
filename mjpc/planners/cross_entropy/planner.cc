@@ -322,7 +322,7 @@ void CrossEntropyPlanner::ResamplePolicy(int horizon) {
 
   LinearRange(resampled_policy.times.data(), time_shift,
               resampled_policy.times[0], num_spline_points);
-  
+
   resampled_policy.representation = policy.representation;
 }
 

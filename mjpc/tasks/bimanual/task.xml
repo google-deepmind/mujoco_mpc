@@ -15,7 +15,7 @@
     <numeric name="agent_sample_width" data="0.0025" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_exploration" data="0.5" />
-    <numeric name="sampling_trajectories" data="100"/>
+    <numeric name="sampling_trajectories" data="120"/>
     <numeric name="sampling_spline_points" data="4" />
     <numeric name="gradient_spline_points" data="6" />
   </custom>
@@ -36,13 +36,14 @@
     <geom name="floor" pos="0 0 -0.75" size="0 0 0.05" type="plane" material="groundplane"/>
     <body name="table" pos="0 0 -0.75">
       <geom name="table" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" class="collision"/>
+      <geom name="table_visual" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" rgba="0.4 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
     <body mocap="true" name="box_goal_mocap">
-      <geom group="5" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
+      <geom group="2" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
     <body name="box">
       <freejoint/>
-      <geom name="box" type="box" size="0.025 0.025 0.025" priority="1" condim="6"
+      <geom name="box" type="box" size="0.015 0.015 0.015" priority="1" condim="6"
         friction="1.5 .03 .003" rgba="0 1 0 1"/>
     </body>
   </worldbody>
@@ -50,16 +51,16 @@
     <key name="home" qpos=
     "0 -0.96 1.16 0 -0.3 0 0.002 0.002
     0 -0.96 1.16 0 -0.3 0 0.002 0.002
-    0.1 0.2 0.3 1 0 0 0"
-    ctrl="-0.1 0 0 0 0 0 0.01 0.1 0 0 0 0 0 0.01"/>
+    -0.25 0.2 0.3 1 0 0 0"
+    mpos="0.4 -0.25 0.3"
+    act= "-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"
+    ctrl="-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"/>
   </keyframe>
 
   <sensor>
-    <user name="Reach L" dim="3" user="2 0.1 0 5 0.01"/>
-    <user name="Reach R" dim="3" user="2 0.1 0 5 0.01"/>
+    <user name="Reach L" dim="3" user="2 0.1 0 .5 0.005"/>
+    <user name="Reach R" dim="3" user="2 0.1 0 .5 0.005"/>
     <user name="Bring" dim="3" user="2 1 0 1 0.003"/>
-    <!-- <user name="arm_table_contact" dim="2" user="2 0.5 0 1 0.01"/>
-    <user name="arm_arm_contact" dim="1" user="2 0.5 0 1 0.01"/> -->
     <framepos name="left/gripper" objtype="site" objname="left/gripper"/>
     <framepos name="right/gripper" objtype="site" objname="right/gripper"/>
     <framepos name="box" objtype="body" objname="box"/>

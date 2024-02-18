@@ -16,11 +16,9 @@
 
 #include <string>
 
-#include <absl/container/flat_hash_map.h>
 #include <absl/random/random.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/task.h"
 #include "mjpc/tasks/manipulation/common.h"
 #include "mjpc/utilities.h"
 
@@ -28,7 +26,7 @@ namespace mjpc {
 std::string manipulation::Bring::XmlPath() const {
   return GetModelPath("manipulation/task_panda_bring.xml");
 }
-std::string manipulation::Bring::Name() const { return "Panda Robotiq Bring"; }
+std::string manipulation::Bring::Name() const { return "PickAndPlace"; }
 
 void manipulation::Bring::ResidualFn::Residual(const mjModel* model,
                                                const mjData* data,

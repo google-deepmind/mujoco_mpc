@@ -1,5 +1,5 @@
 <mujoco model="aloha">
-  <include file="../common.xml"/>
+  <include file="../../common.xml"/>
 
   <size memory="1M"/>
 
@@ -28,7 +28,7 @@
     <scale framelength=".3" framewidth=".03"/>
   </visual>
 
-  <include file="aloha_cartesian.xml"/>
+  <include file="../aloha_cartesian.xml"/>
 
   <worldbody>
     <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"

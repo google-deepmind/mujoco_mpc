@@ -1,6 +1,43 @@
 diff --git a/aloha.xml b/aloha.xml
 --- a/aloha.xml
 +++ b/aloha.xml
+@@ -1,23 +1,23 @@
+ <mujoco model="aloha">
+-  <compiler angle="radian" meshdir="assets" autolimits="true"/>
++  <compiler angle="radian" autolimits="true"/>
+ 
+   <option cone="elliptic" impratio="10"/>
+ 
+   <asset>
+     <material name="black" rgba="0.15 0.15 0.15 1"/>
+ 
+-    <mesh file="vx300s_1_base.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_2_shoulder.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_3_upper_arm.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_4_upper_forearm.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_5_lower_forearm.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_6_wrist.stl" scale="0.001 0.001 0.001"/>
+-    <mesh file="vx300s_7_gripper_prop.stl"/>
+-    <mesh file="vx300s_7_gripper_bar.stl"/>
+-    <mesh file="vx300s_7_gripper_wrist_mount.stl"/>
+-    <mesh file="vx300s_8_custom_finger_left.stl"/>
+-    <mesh file="vx300s_8_custom_finger_right.stl"/>
+-    <mesh file="d405_solid.stl"/>
++    <mesh file="assets/vx300s_1_base.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_2_shoulder.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_3_upper_arm.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_4_upper_forearm.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_5_lower_forearm.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_6_wrist.stl" scale="0.001 0.001 0.001"/>
++    <mesh file="assets/vx300s_7_gripper_prop.stl"/>
++    <mesh file="assets/vx300s_7_gripper_bar.stl"/>
++    <mesh file="assets/vx300s_7_gripper_wrist_mount.stl"/>
++    <mesh file="assets/vx300s_8_custom_finger_left.stl"/>
++    <mesh file="assets/vx300s_8_custom_finger_right.stl"/>
++    <mesh file="assets/d405_solid.stl"/>
+   </asset>
+ 
+   <default>
 @@ -284,5 +285,5 @@
      <joint joint1="right/left_finger" joint2="right/right_finger" polycoef="0 1 0 0 0"/>
    </equality>

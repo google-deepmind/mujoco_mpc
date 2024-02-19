@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/tasks/bimanual/bimanual.h"
+#include "mjpc/tasks/bimanual/reorient/reorient.h"
 
 #include <string>
 
 #include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
-namespace mjpc {
-std::string Bimanual::XmlPath() const {
-  return GetModelPath("bimanual/task.xml");
+namespace mjpc::aloha {
+std::string Reorient::XmlPath() const {
+  return GetModelPath("bimanual/reorient/task.xml");
 }
-std::string Bimanual::Name() const { return "Bimanual"; }
+std::string Reorient::Name() const { return "Bimanual Reorient"; }
 
-void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
+void Reorient::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                     double* residual) const {
   int counter = 0;
 
@@ -44,10 +44,23 @@ void Bimanual::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_sub3(residual + counter, box, target);
   counter += 3;
 
+  // ---------- Cube orientation ----------
+  double *cube_orientation = SensorByName(model, data, "cube_orientation");
+  double *goal_cube_orientation =
+      SensorByName(model, data, "cube_goal_orientation");
+  mju_normalize4(goal_cube_orientation);
+
+  mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
+  counter += 3;
+
+  // ---------- Cube linear velocity ----------
+  double *cube_linear_velocity =
+      SensorByName(model, data, "cube_linear_velocity");
+
+  mju_copy(residual + counter, cube_linear_velocity, 3);
+  counter += 3;
+
   CheckSensorDim(model, counter);
 }
 
-void mjpc::Bimanual::TransitionLocked(mjModel* model, mjData* data) {
-}
-
-}  // namespace mjpc
+}  // namespace mjpc::aloha

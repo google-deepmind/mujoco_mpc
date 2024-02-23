@@ -1,0 +1,78 @@
+<mujoco model="aloha">
+  <include file="../../common.xml"/>
+
+  <size memory="1M"/>
+
+  <asset>
+    <texture name="groundplane" type="2d" builtin="flat" rgb1="0.20000000000000001 0.29999999999999999 0.40000000000000002" rgb2="0.10000000000000001 0.20000000000000001 0.29999999999999999" mark="edge" markrgb="0.50000000000000004 0.50000000000000004 0.50000000000000004" width="200" height="200"/>
+    <material name="groundplane" texture="groundplane" texrepeat="2 2" texuniform="true" reflectance="0.20000000000000001"/>
+  </asset>
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_sample_width" data="0.0025" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="sampling_trajectories" data="120"/>
+    <numeric name="sampling_spline_points" data="4" />
+    <numeric name="gradient_spline_points" data="6" />
+  </custom>
+
+  <statistic extent="1.5" center="0.0 0.35 0.2"/>
+
+  <visual>
+    <quality shadowsize="8192"/>
+    <global azimuth="90" elevation="-30"/>
+    <scale framelength=".3" framewidth=".03"/>
+  </visual>
+
+  <!-- since the included reorientation_cube brings its own sensors, the residuals must be specified first -->
+  <sensor>
+    <user name="Reach L" dim="3" user="2 0.1 0 .5 0.005"/>
+    <user name="Reach R" dim="3" user="2 0.1 0 .5 0.005"/>
+    <user name="Bring" dim="3" user="2 1 0 1 0.003"/>
+    <user name="Cube Orientation" dim="3" user="0 0.02 0 .2" />
+    <user name="Cube Velocity" dim="3" user="0 .01 0 .2" />
+    <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>
+    <framepos name="left/gripper" objtype="site" objname="left/gripper"/>
+    <framepos name="right/gripper" objtype="site" objname="right/gripper"/>
+    <framepos name="box" objtype="body" objname="cube"/>
+    <framepos name="target" objtype="body" objname="box_goal_mocap"/>
+    <framepos name="trace0" objtype="body" objname="cube"/>
+    <framepos name="trace1" objtype="site" objname="left/gripper"/>
+    <framepos name="trace2" objtype="site" objname="right/gripper"/>
+  </sensor>
+
+  <include file="../aloha_cartesian.xml"/>
+  <include file="../../common_assets/reorientation_cube.xml"/>
+
+  <worldbody>
+    <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+        directional="true" castshadow="true"/>
+    <geom name="floor" pos="0 0 -0.75" size="0 0 0.05" type="plane" material="groundplane"/>
+    <body name="table" pos="0 0 -0.75">
+      <geom name="table" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" class="collision"/>
+      <geom name="table_visual" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" rgba="0.4 0.4 0.4 1" conaffinity="0" contype="0"/>
+    </body>
+    <body mocap="true" name="box_goal_mocap">
+      <geom group="2" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
+    </body>
+    <body name="goal" pos="0.325 0.17 0.0475">
+      <joint type="ball" damping="0.001"/>
+      <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+  <keyframe>
+    <key name="home" qpos=
+    "0 -0.96 1.16 0 -0.3 0 0.002 0.002
+    0 -0.96 1.16 0 -0.3 0 0.002 0.002
+    0.02 0.02 0.075 1 0 0 0
+    1 0 0 0
+    "
+    mpos="0 0 0.25"
+    act= "-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"
+    ctrl="-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"/>
+  </keyframe>
+</mujoco>

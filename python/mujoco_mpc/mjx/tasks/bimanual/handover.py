@@ -18,8 +18,7 @@ import jax
 from jax import numpy as jp
 import mujoco
 from mujoco import mjx
-from mujoco_mpc.mjx import predictive_sampling
-
+from typing import Callable
 
 def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
   """Returns cost for bimanual bring to target task."""
@@ -48,7 +47,7 @@ def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
 
 
 def get_models_and_cost_fn() -> (
-    tuple[mujoco.MjModel, mujoco.MjModel, predictive_sampling.CostFn]
+    tuple[mujoco.MjModel, mujoco.MjModel, Callable[[mjx.Model, mjx.Data], jax.Array]]
 ):
   """Returns a tuple of the model and the cost function."""
   path = epath.Path(

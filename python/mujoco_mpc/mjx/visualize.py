@@ -19,7 +19,7 @@ import mujoco
 import predictive_sampling
 from tasks.bimanual import handover
 # %%
-nsteps = 500
+nsteps = 1
 steps_per_plan = 4
 frame_skip = 5  # how many steps between each rendered frame
 
@@ -34,7 +34,7 @@ p = predictive_sampling.Planner(
     nsample=128 - 1,
     interp='zero',
 )
-
+# %%
 trajectory, costs, plan_time = (
     predictive_sampling.receding_horizon_optimization(
         p,

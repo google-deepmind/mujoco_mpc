@@ -21,6 +21,8 @@ import os
 import pathlib
 from typing import Callable
 
+CostFn = Callable[[mjx.Model, mjx.Data], jax.Array]
+
 def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
   """Returns cost for bimanual bring to target task."""
   # reach
@@ -48,7 +50,7 @@ def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
 
 
 def get_models_and_cost_fn() -> (
-    tuple[mujoco.MjModel, mujoco.MjModel, Callable[[mjx.Model, mjx.Data], jax.Array]]
+    tuple[mujoco.MjModel, mujoco.MjModel, CostFn]
 ):
   """Returns a tuple of the model and the cost function."""
   path = (

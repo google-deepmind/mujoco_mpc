@@ -26,7 +26,8 @@ frame_skip = 5  # how many steps between each rendered frame
 
 sim_model, plan_model, cost_fn = handover.get_models_and_cost_fn()
 p = predictive_sampling.Planner(
-    cost_fn,
+    model=plan_model,
+    cost=cost_fn,
     noise_scale=0.3,
     horizon=128,
     nspline=4,

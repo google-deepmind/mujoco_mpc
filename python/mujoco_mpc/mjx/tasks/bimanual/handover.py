@@ -13,15 +13,13 @@
 # limitations under the License.
 # ==============================================================================
 
+from etils import epath
 import jax
 from jax import numpy as jp
 import mujoco
 from mujoco import mjx
-import os
-import pathlib
-from typing import Callable
+from mujoco_mpc.mjx import predictive_sampling
 
-CostFn = Callable[[mjx.Model, mjx.Data], jax.Array]
 
 def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
   """Returns cost for bimanual bring to target task."""
@@ -50,14 +48,22 @@ def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
 
 
 def get_models_and_cost_fn() -> (
-    tuple[mujoco.MjModel, mujoco.MjModel, CostFn]
+    tuple[mujoco.MjModel, mujoco.MjModel, predictive_sampling.CostFn]
 ):
   """Returns a tuple of the model and the cost function."""
-  path = (
-        pathlib.Path(os.path.abspath("")).parent.parent.parent
-        / "build/mjpc/tasks/bimanual/mjx_scene.xml"
-    )
-  sim_model = mujoco.MjModel.from_xml_path(str(path))
-  plan_model = mujoco.MjModel.from_xml_path(str(path))
+  path = epath.Path(
+      'build/mjpc/tasks/bimanual/'
+  )
+  model_file_name = 'mjx_scene.xml'
+  xml = (path / model_file_name).read_text()
+  assets = {}
+  for f in path.glob('*.xml'):
+    if f.name == model_file_name:
+      continue
+    assets[f.name] = f.read_bytes()
+  for f in (path / 'assets').glob('*'):
+    assets[f.name] = f.read_bytes()
+  sim_model = mujoco.MjModel.from_xml_string(xml, assets)
+  plan_model = mujoco.MjModel.from_xml_string(xml, assets)
   plan_model.opt.timestep = 0.01  # incidentally, already the case
   return sim_model, plan_model, bring_to_target

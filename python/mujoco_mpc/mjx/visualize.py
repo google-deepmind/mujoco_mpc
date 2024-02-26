@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# %%
+
 import matplotlib.pyplot as plt
 import mediapy
 import mujoco
-import predictive_sampling
-from tasks.bimanual import handover
+from mujoco_mpc.mjx import predictive_sampling
+from mujoco_mpc.mjx.tasks.bimanual import handover
 # %%
-nsteps = 1
+nsteps = 500
 steps_per_plan = 4
 frame_skip = 5  # how many steps between each rendered frame
 
@@ -34,7 +34,7 @@ p = predictive_sampling.Planner(
     nsample=128 - 1,
     interp='zero',
 )
-# %%
+
 trajectory, costs, plan_time = (
     predictive_sampling.receding_horizon_optimization(
         p,

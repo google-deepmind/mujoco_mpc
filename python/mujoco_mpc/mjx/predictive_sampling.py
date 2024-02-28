@@ -15,7 +15,6 @@
 
 """Predictive sampling for MPC."""
 
-import time
 from typing import Callable, Tuple
 
 import jax
@@ -23,7 +22,6 @@ from jax import numpy as jnp
 import mujoco
 from mujoco import mjx
 from mujoco.mjx._src import dataclasses
-import numpy as np
 
 CostFn = Callable[[mjx.Model, mjx.Data], jax.Array]
 
@@ -75,7 +73,7 @@ def get_actions(p: Planner, policy: jax.Array) -> jax.Array:
     actions = jax.vmap(jnp.multiply)(policy[idx], 1 - locs + idx)
     actions += jax.vmap(jnp.multiply)(policy[idx + 1], locs - idx)
   else:
-    raise ValueError(f'unimplemented interp: {p.interp}')
+    raise ValueError(f'unimplemented interpolation method: {p.interp}')
 
   return actions
 v_get_actions = jax.vmap(get_actions, in_axes=[None, 0])
@@ -123,15 +121,16 @@ def set_state(d, state):
       ctrl=state.ctrl)
 set_states = jax.vmap(set_state, in_axes=[0, 0])
 
-def receding_horizon_optimization(
+
+def receding_horizon_control(
     p: Planner,
+    init_policy,
+    rng,
     plan_model_cpu,
     sim_model_cpu,
     nsteps,
     nplans,
     steps_per_plan,
-    frame_skip,
-    verbose=False,
 ):
   """Receding horizon optimization, all nplans start from same keyframe."""
   plan_data = mujoco.MjData(plan_model_cpu)
@@ -146,8 +145,7 @@ def receding_horizon_optimization(
   sim_data = mjx.put_data(sim_model_cpu, sim_data)
   sim_model = mjx.put_model(sim_model_cpu)
 
-  policy = jnp.tile(sim_data.ctrl, (nplans, p.nspline, 1))
-  multi_actions = v_get_actions(p, policy)
+  multi_actions = v_get_actions(p, init_policy)
   first_actions = multi_actions[:, 0, :]  # just the first actions
   # duplicate data for each plan
   def set_action(data, action):
@@ -157,62 +155,44 @@ def receding_horizon_optimization(
   sim_datas = duplicate_data(sim_data, first_actions)
   plan_datas = duplicate_data(plan_data, first_actions)
 
-  def step_and_cost(model, data, action):
+  def step_and_cost(data, action):
     data = data.replace(ctrl=action)
-    cost = p.cost(model, data)
-    data = mjx.step(model, data)
+    cost = p.cost(sim_model, data)
+    data = mjx.step(sim_model, data)
     return data, cost
 
-  multi_step = (
-      jax.jit(
-          jax.vmap(step_and_cost, in_axes=[None, 0, 0])
-          )
-      .lower(sim_model, sim_datas, first_actions)
-      .compile()
-  )
+  multi_step = jax.vmap(step_and_cost, in_axes=[0, 0])
 
-  rng = jax.random.key(0)
-  keys = jax.random.split(rng, nplans)
-  improve_fn = (
-      jax.jit(
-          jax.vmap(improve_policy, in_axes=(None, 0, 0, 0))
-          )
-      .lower(p, plan_datas, policy, keys)
-      .compile()
-  )
-  trajectories = np.zeros(
-      (nplans, nsteps // frame_skip, sim_data.qpos.shape[0])
-  )
-  costs = np.zeros((nplans, nsteps))
-  plan_time = 0
-  multi_actions = v_get_actions(p, policy)
+  def step_cost_traj(datas, actions):
+    data, cost = multi_step(datas, actions)
+    return data, (cost, data.qpos)
 
-  for step in range(nsteps):
-    if step % steps_per_plan == 0:
-      if verbose:
-        print('re-planning')
-      # resample policy to new advanced time
-      policy = resample(p, policy, steps_per_plan)
-      beg = time.perf_counter()
-      plan_datas = set_states(plan_datas, sim_datas)
-      policy, winners = improve_fn(
-          p, plan_datas, policy, jax.random.split(jax.random.key(step), nplans)
-      )
-      this_plan_time = time.perf_counter() - beg
-      plan_time += this_plan_time
-      if verbose:
-        print(f'winners: {winners}')
-      multi_actions = v_get_actions(p, policy)
+  improve_fn = jax.vmap(improve_policy, in_axes=(None, 0, 0, 0))
 
-    step_index = step % steps_per_plan
-    sim_datas, cost = multi_step(
-        sim_model, sim_datas, multi_actions[:, step_index, :]
+  def plan_and_step(carry, rng):
+    sim_datas, policy = carry
+    policy = resample(p, policy, steps_per_plan)
+    policy, _ = improve_fn(
+        p,
+        set_states(plan_datas, sim_datas),
+        policy,
+        jax.random.split(rng, nplans),
     )
-    costs[:, step] = jax.device_get(cost)
-    if step % frame_skip == 0:
-      trajectories[:, step // frame_skip, :] = jax.device_get(sim_datas.qpos)
-      if verbose:
-        print(f'step: {step}')
-        print(f'avg cost: {np.mean(costs[:, step])}')
+    multi_actions = v_get_actions(p, policy)
+    sim_datas, (cost, traj) = jax.lax.scan(
+        step_cost_traj,
+        sim_datas,
+        jnp.transpose(multi_actions[:, :steps_per_plan, :], (1, 0, 2)),
+    )
+    return (sim_datas, policy), (cost, traj)
 
-  return trajectories, costs, plan_time
+  (_, final_policy), (costs, trajs) = jax.lax.scan(
+      plan_and_step,
+      (sim_datas, init_policy),
+      jax.random.split(rng, nsteps // steps_per_plan),
+  )
+  return (
+      trajs.reshape(nsteps, nplans, sim_model.nq).transpose(1, 0, 2),
+      costs.reshape(nsteps, nplans).transpose(),
+      final_policy,
+  )

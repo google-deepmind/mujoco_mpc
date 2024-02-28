@@ -13,12 +13,12 @@
 # limitations under the License.
 # ==============================================================================
 
+import jax
 import matplotlib.pyplot as plt
 import mediapy
 import mujoco
 from mujoco_mpc.mjx import predictive_sampling
 from mujoco_mpc.mjx.tasks.bimanual import handover
-
 import numpy as np
 # %%
 costs_to_compare = {}
@@ -42,18 +42,19 @@ for it in [0.3, 0.5, 0.8]:
       interp='zero',
   )
 
-  trajectories, costs, plan_time = (
-      predictive_sampling.receding_horizon_optimization(
-          p,
-          plan_model_cpu,
-          sim_model_cpu,
-          nsteps,
-          nplans,
-          steps_per_plan,
-          frame_skip,
-      )
+  policy = np.tile(sim_model_cpu.key_ctrl[0, :], (nplans, p.nspline, 1))
+  trajectories, costs, _ = jax.jit(
+      predictive_sampling.receding_horizon_control
+  )(
+      p,
+      jax.device_put(policy),
+      jax.random.key(0),
+      plan_model_cpu,
+      sim_model_cpu,
+      nsteps,
+      nplans,
+      steps_per_plan,
   )
-  print(f'plan_time: {plan_time}')
 
   plt.figure()
   plt.xlim([0, nsteps * sim_model_cpu.opt.timestep])
@@ -62,7 +63,7 @@ for it in [0.3, 0.5, 0.8]:
   plt.ylabel('cost')
   x_time = [i * sim_model_cpu.opt.timestep for i in range(nsteps)]
   for i in range(nplans):
-    plt.plot(x_time, costs[i], alpha=0.1)
+    plt.plot(x_time, costs[i, :], alpha=0.1)
   avg = np.mean(costs, axis=0)
   plt.plot(x_time, avg, linewidth=2.0)
   var = np.var(costs, axis=0)
@@ -79,8 +80,6 @@ for it in [0.3, 0.5, 0.8]:
 
   plt.show()
   costs_to_compare[it] = costs
-
-trajectory = trajectories[0]
 # %%
 plt.figure()
 plt.xlim([0, nsteps * sim_model_cpu.opt.timestep])
@@ -92,7 +91,9 @@ for val, costs in costs_to_compare.items():
   avg = np.mean(costs, axis=0)
   plt.plot(x_time, avg, label=str(val))
   var = np.var(costs, axis=0)
-  plt.errorbar(x_time, avg, yerr=var, fmt='none', elinewidth=1, alpha=0.2, capsize=0)
+  plt.errorbar(
+      x_time, avg, yerr=var, fmt='none', elinewidth=1, alpha=0.2, capsize=0
+  )
 
 plt.legend()
 plt.show()
@@ -100,7 +101,7 @@ plt.show()
 frames = []
 renderer = mujoco.Renderer(sim_model_cpu)
 d = mujoco.MjData(sim_model_cpu)
-
+trajectory = trajectories[0, ...]
 for qpos in trajectory:
   d.qpos = qpos
   mujoco.mj_forward(sim_model_cpu, d)

@@ -57,7 +57,7 @@ def get_models_and_cost_fn() -> tuple[
     mujoco.MjModel,
     Callable[[mjx.Model, mjx.Data], jax.Array],
 ]:
-  """Returns a tuple of the model and the cost function."""
+  """Returns a planning model, a sim model, and a cost function."""
   path = epath.Path(
       'build'
       / 'mujoco_menagerie/aloha/'

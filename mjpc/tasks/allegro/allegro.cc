@@ -21,7 +21,6 @@
 #include <cmath>
 #include <string>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
 namespace mjpc {
@@ -34,7 +33,7 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube position: (3)
 //     Cube orientation: (3)
 //     Cube linear velocity: (3)
-//     Acutuation: (12) - desired finger positions relative to reasonable nominal
+//     Actuation: (12) - desired finger positions relative to reasonable nominal
 // ------------------------------------------
 void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                    double *residual) const {

@@ -129,10 +129,6 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
 +
 +  <!-- Traces for visualizing rollouts --> 
 +  <sensor>
-+    <framepos name="trace1" objtype="body" objname="rf_tip"/>
-+    <framepos name="trace2" objtype="body" objname="ff_tip"/>
-+    <framepos name="trace3" objtype="body" objname="mf_tip"/>
-+    <framepos name="trace4" objtype="body" objname="th_tip"/>
 +    <jointpos name="ffj0_sensor" joint="ffj0"/>
 +    <jointpos name="ffj1_sensor" joint="ffj1"/>
 +    <jointpos name="ffj2_sensor" joint="ffj2"/>
@@ -149,5 +145,9 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
 +    <jointpos name="thj1_sensor" joint="thj1"/>
 +    <jointpos name="thj2_sensor" joint="thj2"/>
 +    <jointpos name="thj3_sensor" joint="thj3"/>
++    <framepos name="trace1" objtype="body" objname="rf_tip"/>
++    <framepos name="trace2" objtype="body" objname="ff_tip"/>
++    <framepos name="trace3" objtype="body" objname="mf_tip"/>
++    <framepos name="trace4" objtype="body" objname="th_tip"/>
 +  </sensor>
  </mujoco>

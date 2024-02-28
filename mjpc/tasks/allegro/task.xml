@@ -49,7 +49,7 @@
     <numeric name="batch_configuration_length" data="5"/>
     <numeric name="batch_scale_prior" data="1.0e-2" />
     <numeric name="estimator_timestep" data="0.003" />
-    <numeric name="estimator_sensor_start" data="10" />
+    <numeric name="estimator_sensor_start" data="9" />
     <numeric name="estimator_number_sensor" data="18" />
 
     <!-- state noise -->
@@ -113,8 +113,8 @@
  
   <!-- TODO: patch the menagerie model rather than using this custom one -->
   <!-- <include file="right_hand_fingertip.xml"/> -->
-  <include file="right_hand_modified.xml"/>
   <include file="cube.xml"/>
+  <include file="right_hand_modified.xml"/>
   <include file="cube_noisy.xml"/>
 
   <keyframe>

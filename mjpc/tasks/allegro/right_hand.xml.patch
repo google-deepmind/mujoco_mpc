@@ -1,6 +1,6 @@
 diff --git a/right_hand_modified.xml b/right_hand_modified.xml
---- right_hand.xml      2024-02-11 22:18:30.090429715 -0800
-+++ right_hand_modified.xml     2024-02-11 22:25:03.113952550 -0800
+--- right_hand.xml      2024-02-28 11:42:12.606580701 -0800
++++ right_hand_modified.xml     2024-02-28 11:43:02.947304406 -0800
 @@ -6,7 +6,7 @@
    <default>
      <default class="allegro_right">
@@ -122,7 +122,7 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
                </body>
              </body>
            </body>
-@@ -257,4 +257,12 @@
+@@ -257,4 +257,28 @@
      <position name="tha2" joint="thj2" class="thumb_medial"/>
      <position name="tha3" joint="thj3" class="thumb_distal"/>
    </actuator>
@@ -133,5 +133,21 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
 +    <framepos name="trace2" objtype="body" objname="ff_tip"/>
 +    <framepos name="trace3" objtype="body" objname="mf_tip"/>
 +    <framepos name="trace4" objtype="body" objname="th_tip"/>
++    <jointpos name="ffj0_sensor" joint="ffj0"/>
++    <jointpos name="ffj1_sensor" joint="ffj1"/>
++    <jointpos name="ffj2_sensor" joint="ffj2"/>
++    <jointpos name="ffj3_sensor" joint="ffj3"/>
++    <jointpos name="mfj0_sensor" joint="mfj0"/>
++    <jointpos name="mfj1_sensor" joint="mfj1"/>
++    <jointpos name="mfj2_sensor" joint="mfj2"/>
++    <jointpos name="mfj3_sensor" joint="mfj3"/>
++    <jointpos name="rfj0_sensor" joint="rfj0"/>
++    <jointpos name="rfj1_sensor" joint="rfj1"/>
++    <jointpos name="rfj2_sensor" joint="rfj2"/>
++    <jointpos name="rfj3_sensor" joint="rfj3"/>
++    <jointpos name="thj0_sensor" joint="thj0"/>
++    <jointpos name="thj1_sensor" joint="thj1"/>
++    <jointpos name="thj2_sensor" joint="thj2"/>
++    <jointpos name="thj3_sensor" joint="thj3"/>
 +  </sensor>
  </mujoco>

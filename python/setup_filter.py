@@ -292,7 +292,8 @@ setuptools.setup(
     extras_require={
         "test": [
             "absl-py",
-            "mujoco >= 2.3.3",
+            "mujoco >= 3.1.1",
+            "mujoco-mjx",
         ],
     },
     ext_modules=[CMakeExtension("filter_server")],

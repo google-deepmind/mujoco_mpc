@@ -64,22 +64,21 @@ add_custom_target(
   ## Menagerie models
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/hand/right_hand.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/shadow_reorient/right_hand.xml
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/wonik_allegro/right_hand.xml
           ${CMAKE_CURRENT_BINARY_DIR}/allegro/right_hand.xml
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/shadow_hand/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/shadow_reorient/assets
+
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/wonik_allegro/assets
           ${CMAKE_CURRENT_BINARY_DIR}/allegro/assets
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/allegro/right_hand_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/allegro/right_hand.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/allegro/right_hand.xml.patch
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/wonik_allegro/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/allegro/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${menagerie_SOURCE_DIR}/shadow_hand/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/hand/assets
+
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/franka_emika_panda/panda.xml
           ${CMAKE_CURRENT_BINARY_DIR}/panda/panda.xml
@@ -89,6 +88,7 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/panda/panda_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/panda/panda.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/panda/panda.xml.patch
+
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/unitree_a1/a1.xml
           ${CMAKE_CURRENT_BINARY_DIR}/quadruped/a1.xml
@@ -98,12 +98,14 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/quadruped/a1_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/quadruped/a1.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/quadruped/a1.xml.patch
+
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/franka_emika_panda
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/robotiq_2f85
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation
+
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/skydio_x2/x2.xml
           ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/quadrotor.xml
@@ -113,31 +115,38 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/quadrotor_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/quadrotor/quadrotor.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/quadrotor/quadrotor.xml.patch
+
+  ## Cube reorientation
+  # patch cube from common assets
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/common_assets/cube_modified_shadow_reorient.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/common_assets/reorientation_cube.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/common_assets/cube.xml.patch
+
   ## Cube solve task
   # copy cube model from MuJoCo
   COMMAND ${CMAKE_COMMAND} -E copy
           ${mujoco_SOURCE_DIR}/model/cube/cube_3x3x3.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/cube_3x3x3.xml
   # copy cube assets from MuJoCo
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${mujoco_SOURCE_DIR}/model/cube/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/assets
   # modified cube model for task
-  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3_modified.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
-          <${CMAKE_CURRENT_SOURCE_DIR}/cube/cube_3x3x3.xml.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/rubik/cube_3x3x3_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/cube_3x3x3.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/rubik/cube_3x3x3.xml.patch
   # modified cube model to transition model for scramble mode
-  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/cube/transition_model.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/cube_3x3x3.xml
-          <${CMAKE_CURRENT_SOURCE_DIR}/cube/transition_model.xml.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/rubik/transition_model.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/cube_3x3x3.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/rubik/transition_model.xml.patch
   # copy hand model from Menagerie
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/shadow_hand/right_hand.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/right_hand.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/right_hand.xml
   # copy hand assets from Menagerie
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${menagerie_SOURCE_DIR}/shadow_hand/assets
-          ${CMAKE_CURRENT_BINARY_DIR}/cube/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/rubik/assets
 
   # ALOHA
   COMMAND ${CMAKE_COMMAND} -E copy_directory

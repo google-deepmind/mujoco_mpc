@@ -12,22 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/tasks/hand/hand.h"
+#include "mjpc/tasks/shadow_reorient/hand.h"
 
-#include <absl/log/check.h>
-#include <absl/log/log.h>
-#include <absl/random/random.h>
 #include <mujoco/mujoco.h>
 
 #include <string>
-#include <vector>
 
-#include "mjpc/task.h"
+#include "absl/random/random.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
-std::string Hand::XmlPath() const { return GetModelPath("hand/task.xml"); }
-std::string Hand::Name() const { return "Hand"; }
+std::string ShadowReorient::XmlPath() const {
+  return GetModelPath("shadow_reorient/task.xml");
+}
+std::string ShadowReorient::Name() const { return "Shadow"; }
 
 // ---------- Residuals for in-hand manipulation task ---------
 //   Number of residuals: 6
@@ -38,8 +36,9 @@ std::string Hand::Name() const { return "Hand"; }
 //     Residual (4): hand configuration - nominal hand configuration
 //     Residual (5): hand joint velocity
 // ------------------------------------------------------------
-void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                                double* residual) const {
+void ShadowReorient::ResidualFn::Residual(const mjModel* model,
+                                          const mjData* data,
+                                          double* residual) const {
   int counter = 0;
   // ---------- Residual (0) ----------
   // goal position
@@ -90,7 +89,7 @@ void Hand::ResidualFn::Residual(const mjModel* model, const mjData* data,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // -----------------------------------------------
-void Hand::TransitionLocked(mjModel* model, mjData* data) {
+void ShadowReorient::TransitionLocked(mjModel* model, mjData* data) {
   // find cube and floor
   int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
   int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
@@ -132,7 +131,7 @@ void Hand::TransitionLocked(mjModel* model, mjData* data) {
   data->mocap_quat[3] = quat_cube[3];
 }
 
-void Hand::ModifyState(const mjModel* model, State* state) {
+void ShadowReorient::ModifyState(const mjModel* model, State* state) {
   // sampling token
   absl::BitGen gen_;
 

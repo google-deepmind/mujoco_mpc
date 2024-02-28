@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mjpc/tasks/cube/solve.h"
+#include "mjpc/tasks/rubik/solve.h"
 
 #include <algorithm>
 #include <iostream>
@@ -27,12 +27,14 @@ namespace {
   constexpr static double kResetHeight = -0.1;  // cube height to reset
 }  // namespace
 
-std::string CubeSolve::XmlPath() const { return GetModelPath("cube/task.xml"); }
-std::string CubeSolve::Name() const { return "Cube Solving"; }
+std::string Rubik::XmlPath() const {
+  return GetModelPath("rubik/task.xml");
+}
+std::string Rubik::Name() const { return "Rubik"; }
 
-CubeSolve::CubeSolve() : residual_(this) {
+Rubik::Rubik() : residual_(this) {
   // path to transition model xml
-  std::string path = GetModelPath("cube/transition_model.xml");
+  std::string path = GetModelPath("rubik/transition_model.xml");
 
   // load transition model
   constexpr int kErrorLength = 1024;
@@ -46,7 +48,7 @@ CubeSolve::CubeSolve() : residual_(this) {
   std::fill(goal_cache_.begin(), goal_cache_.end(), 0.0);
 }
 
-CubeSolve::~CubeSolve() {
+Rubik::~Rubik() {
   if (transition_data_) mj_deleteData(transition_data_);
   if (transition_model_) mj_deleteModel(transition_model_);
 }
@@ -54,7 +56,7 @@ CubeSolve::~CubeSolve() {
 // ---------- Residuals for cube solving manipulation task ----
 //   Number of residuals:
 // ------------------------------------------------------------
-void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
+void Rubik::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                      double* residual) const {
   // initialize counter
   int counter = 0;
@@ -135,7 +137,7 @@ void CubeSolve::ResidualFn::Residual(const mjModel* model, const mjData* data,
 //   If cube is within tolerance or floor ->
 //   reset cube into hand.
 // ---------------------------------------------------------
-void CubeSolve::TransitionLocked(mjModel* model, mjData* data) {
+void Rubik::TransitionLocked(mjModel* model, mjData* data) {
   if (transition_model_) {
     if (mode == kModeWait) {
       weight[11] = .01;  // add penalty on joint movement

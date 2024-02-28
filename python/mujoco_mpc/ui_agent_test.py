@@ -173,7 +173,7 @@ class UiAgentTest(absltest.TestCase):
   def test_get_all_modes(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent
-        / "mjpc/tasks/quadruped/task_flat.xml"
+        / "build/mjpc/tasks/quadruped/task_flat.xml"
     )
     model = mujoco.MjModel.from_xml_path(str(model_path))
     with self.get_agent(task_id="Quadruped Flat", model=model) as agent:

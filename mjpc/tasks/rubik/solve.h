@@ -12,57 +12,70 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_TASKS_HAND_HAND_H_
-#define MJPC_TASKS_HAND_HAND_H_
+#ifndef MJPC_TASKS_RUBIK_SOLVE_H_
+#define MJPC_TASKS_RUBIK_SOLVE_H_
 
-#include <mujoco/mujoco.h>
-
+#include <algorithm>
 #include <memory>
-#include <string>
 #include <vector>
-
+#include <string>
+#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
+#include "mjpc/utilities.h"
 
 namespace mjpc {
-class Hand : public Task {
+
+class Rubik : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
+
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const Hand* task) : BaseResidualFn(task) {}
-
-    // ---------- Residuals for in-hand manipulation task ---------
-    //   Number of residuals: 5
-    //     Residual (0): cube_position - palm_position
-    //     Residual (1): cube_orientation - cube_goal_orientation
-    //     Residual (2): cube linear velocity
-    //     Residual (3): cube angular velocity
-    //     Residual (4): control
-    // ------------------------------------------------------------
+    explicit ResidualFn(const Rubik* task, int current_mode = 0,
+                        int goal_index = 0)
+        : BaseResidualFn(task),
+          current_mode_(current_mode),
+          goal_index_(goal_index) {}
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
-  };
-  Hand() : residual_(this) {}
 
-  // ----- Transition for in-hand manipulation task -----
-  //   If cube is within tolerance or floor ->
-  //   reset cube into hand.
-  // -----------------------------------------------
+   private:
+    friend class Rubik;
+    int current_mode_ = 0;
+    int goal_index_ = 0;
+  };
+
+  Rubik();
+  ~Rubik();
+
   void TransitionLocked(mjModel* model, mjData* data) override;
-  void ModifyState(const mjModel* model, State* state) override;
+
+  // modes
+  enum RubikMode {
+    kModeScramble = 0,
+    kModeSolve,
+    kModeWait,
+    kModeManual,
+  };
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
-    return std::make_unique<ResidualFn>(this);
+    return std::make_unique<ResidualFn>(this, residual_.current_mode_,
+                                        residual_.goal_index_);
   }
   ResidualFn* InternalResidual() override { return &residual_; }
 
  private:
   ResidualFn residual_;
-  std::vector<double> pos_cube_ = std::vector<double>(3);
-  std::vector<double> quat_cube_ = std::vector<double>(4);
+  mjModel* transition_model_ = nullptr;
+  mjData* transition_data_ = nullptr;
+  std::vector<int> face_;
+  std::vector<int> direction_;
+  std::vector<double> goal_cache_;
+  int goal_index_;
 };
+
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_HAND_HAND_H_
+#endif  // MJPC_TASKS_RUBIK_SOLVE_H_

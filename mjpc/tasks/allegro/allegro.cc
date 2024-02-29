@@ -250,9 +250,7 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     mju_normalize4(q_goal.data());  // enforce unit norm
 
     // set new goal quaternion
-    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
-    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+    mju_copy(data->mocap_quat, q_goal.data(), 4);
   }
 
   if (on_floor || new_goal) {
@@ -263,15 +261,11 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
   }
 
   // update mocap position
-  std::vector<double> pos_cube = pos_cube_;
-  std::vector<double> quat_cube = quat_cube_;
-  data->mocap_pos[0] = pos_cube[0];
-  data->mocap_pos[1] = pos_cube[1];
-  data->mocap_pos[2] = pos_cube[2];
-  data->mocap_quat[0] = quat_cube[0];
-  data->mocap_quat[1] = quat_cube[1];
-  data->mocap_quat[2] = quat_cube[2];
-  data->mocap_quat[3] = quat_cube[3];
+  // [DEBUG] if employing debug hacks in app.cc, this must be commented out!
+  // std::vector<double> pos_cube = pos_cube_;
+  // std::vector<double> quat_cube = quat_cube_;
+  // mju_copy(data->mocap_pos + 3, pos_cube.data(), 3);
+  // mju_copy(data->mocap_quat + 4, quat_cube.data(), 4);
 
   // update the rotation counter in the GUI
   parameters[5] = rotation_counter;
@@ -301,7 +295,7 @@ void Allegro::ModifyState(const mjModel *model, State *state) {
   dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
   dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
   dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
-  std::vector<double> quat_cube = {s[7], s[8], s[9], s[10]};  // quat cube state
+  std::vector<double> quat_cube = {s[3], s[4], s[5], s[6]};  // quat cube state
   mju_quatIntegrate(quat_cube.data(), dv.data(), 1.0);        // update the quat
   mju_normalize4(quat_cube.data());  // normalize the quat for numerics
 
@@ -311,14 +305,14 @@ void Allegro::ModifyState(const mjModel *model, State *state) {
   dp[0] += absl::Gaussian<double>(gen_, 0.0, std_pos);
   dp[1] += absl::Gaussian<double>(gen_, 0.0, std_pos);
   dp[2] += absl::Gaussian<double>(gen_, 0.0, std_pos);
-  std::vector<double> pos_cube = {s[4], s[5], s[6]};  // position cube state
+  std::vector<double> pos_cube = {s[0], s[1], s[2]};  // position cube state
   mju_addTo3(pos_cube.data(), dp.data());             // update the pos
 
   // set state
   std::vector<double> qpos(model->nq);
   mju_copy(qpos.data(), s.data(), model->nq);
-  mju_copy(qpos.data() + 7, quat_cube.data(), 4);
-  mju_copy(qpos.data() + 4, pos_cube.data(), 3);
+  mju_copy(qpos.data() + 0, pos_cube.data(), 3);
+  mju_copy(qpos.data() + 3, quat_cube.data(), 4);
   state->SetPosition(model, qpos.data());
 
   // update cube mocap state

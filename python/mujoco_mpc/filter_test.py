@@ -62,10 +62,12 @@ class FilterTest(absltest.TestCase):
     self.assertLess(np.linalg.norm(noise["process"] - process), 1.0e-5)
     self.assertLess(np.linalg.norm(noise["sensor"] - sensor), 1.0e-5)
 
-    # measurement update
+    # update
     ctrl = np.random.normal(scale=1.0, size=model.nu)
     sensor = np.random.normal(scale=1.0, size=model.nsensordata)
     filter.update(ctrl=ctrl, sensor=sensor)
+    filter.update(ctrl=ctrl, sensor=sensor, mode=0)
+    filter.update(ctrl=ctrl, sensor=sensor, mode=1)
 
     # TODO(etom): more tests
 

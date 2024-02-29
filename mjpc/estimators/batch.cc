@@ -282,7 +282,7 @@ void Batch::Reset(const mjData* data) {
 }
 
 // update
-void Batch::Update(const double* ctrl, const double* sensor) {
+void Batch::Update(const double* ctrl, const double* sensor, int mode) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 

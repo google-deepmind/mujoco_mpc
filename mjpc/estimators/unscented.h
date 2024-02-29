@@ -61,7 +61,7 @@ class Unscented : public Estimator {
   void SigmaCovariances();
 
   // update
-  void Update(const double* ctrl, const double* sensor) override;
+  void Update(const double* ctrl, const double* sensor, int mode = 0) override;
 
   // quaternion means
   void QuaternionMeans();

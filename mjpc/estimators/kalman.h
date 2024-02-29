@@ -54,12 +54,12 @@ class Kalman : public Estimator {
   void UpdatePrediction();
 
   // update
-  void Update(const double* ctrl, const double* sensor) override {
+  void Update(const double* ctrl, const double* sensor, int mode = 0) override {
     // correct state with latest measurement
-    UpdateMeasurement(ctrl, sensor);
+    if (mode == 0 || mode == 1) UpdateMeasurement(ctrl, sensor);
 
     // propagate state forward in time with model
-    UpdatePrediction();
+    if (mode == 0 || mode == 2) UpdatePrediction();
 
     // set time
     time = data_->time;

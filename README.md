@@ -74,7 +74,7 @@ For a detailed dive of the graphical user interface, see the
 
 ## Installation
 
-You will need [CMake](https://cmake.org/) and a working C++20 compiler to build
+You will need [CMake](https://cmake.org/) and [clang](https://clang.llvm.org/) to build
 MJPC. We recommend using [VSCode](https://code.visualstudio.com/) and 2 of its
 extensions ([CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
 and [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools))
@@ -94,10 +94,14 @@ Additionally, install:
 sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev ninja-build
 ```
 
+If clang is not already installed:
+```shell
+sudo apt-get clang-12
+```
+
 ### Build Issues
 If you encounter build issues, please see the
 [Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml).
-Note, we are using `clang-14`.
 
 # Python API
 

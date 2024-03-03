@@ -481,7 +481,7 @@ void Unscented::SigmaCovariances() {
 }
 
 // unscented filter update
-void Unscented::Update(const double* ctrl, const double* sensor) {
+void Unscented::Update(const double* ctrl, const double* sensor, int mode) {
   // start timer
   auto start = std::chrono::steady_clock::now();
 

@@ -1,8 +1,8 @@
 <mujoco model="Particle1D">
   <custom>
     <numeric name="batch_configuration_length" data="3" />
-    <numeric name="batch_num_parameters" data="6" />
-    <numeric name="batch_model_parameters_id" data="1" />
+    <numeric name="direct_num_parameters" data="6" />
+    <numeric name="direct_model_parameters_id" data="1" />
   </custom>
 
   <visual>

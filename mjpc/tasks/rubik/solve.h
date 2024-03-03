@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_TASKS_CUBE_SOLVE_H_
-#define MJPC_TASKS_CUBE_SOLVE_H_
+#ifndef MJPC_TASKS_RUBIK_SOLVE_H_
+#define MJPC_TASKS_RUBIK_SOLVE_H_
 
 #include <algorithm>
 #include <memory>
@@ -25,14 +25,14 @@
 
 namespace mjpc {
 
-class CubeSolve : public Task {
+class Rubik : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
 
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const CubeSolve* task, int current_mode = 0,
+    explicit ResidualFn(const Rubik* task, int current_mode = 0,
                         int goal_index = 0)
         : BaseResidualFn(task),
           current_mode_(current_mode),
@@ -41,18 +41,18 @@ class CubeSolve : public Task {
                   double* residual) const override;
 
    private:
-    friend class CubeSolve;
+    friend class Rubik;
     int current_mode_ = 0;
     int goal_index_ = 0;
   };
 
-  CubeSolve();
-  ~CubeSolve();
+  Rubik();
+  ~Rubik();
 
   void TransitionLocked(mjModel* model, mjData* data) override;
 
   // modes
-  enum CubeSolveMode {
+  enum RubikMode {
     kModeScramble = 0,
     kModeSolve,
     kModeWait,
@@ -78,4 +78,4 @@ class CubeSolve : public Task {
 
 }  // namespace mjpc
 
-#endif  // MJPC_TASKS_CUBE_SOLVE_H_
+#endif  // MJPC_TASKS_RUBIK_SOLVE_H_

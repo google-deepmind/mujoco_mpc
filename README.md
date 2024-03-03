@@ -18,7 +18,7 @@ Google DeepMind.
 MJPC allows the user to easily author and solve complex robotics tasks, and
 currently supports multiple shooting-based planners. Derivative-based methods include iLQG and
 Gradient Descent, while derivative-free methods include a simple yet very competitive planner
-called Predictive Sampling and the Cross Entropy Method (with diagonal covariance).
+called Predictive Sampling.
 
 - [Overview](#overview)
 - [Graphical User Interface](#graphical-user-interface)
@@ -96,37 +96,38 @@ sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-de
 
 ### Build Issues
 If you encounter build issues, please see the
-[Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml).
-Note, we are using `clang-14`.
+[Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml). 
+This provides the exact setup we use for building MJPC for testing. 
+
+We recommend building with `clang` and not `gcc`.
 
 # Python API
 
 We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibility and may be difficult to debug without more in-depth knowledge about mujoco and MJPC.
 
-- [agent.py](python/mujoco_mpc/agent.py) for available methods for planning.
-
-- [filter.py](python/mujoco_mpc/filter.py) for available methods for state estimation.
-
-- [direct.py](python/mujoco_mpc/direct.py) for available methods for direct optimization.
-
 ## Installing via Pip
-First, build MJPC (see above), then the MJPC Python module can be installed with:
+First, build MJPC (see above).
+
+Next, change to the python directory:
 ```sh
-python "${MUJOCO_MPC_ROOT}/python/${API}.py" install
+cd python
+```
+
+Install the Python module:
+```sh
+python setup.py install
 ```
 
 Test that installation was successful:
 ```sh
-python "${MUJOCO_MPC_ROOT}/python/mujoco_mpc/${API_TEST}.py"
+python "mujoco_mpc/agent_test.py"
 ```
 
-where API(_TEST) can be: agent(_test), filter(_test), or direct(_test). Additionally, the [Python version of MuJoCo](https://pypi.org/project/mujoco/#history) must match the MJPC version (this information can be found in the terminal while the application is running).
+Additionally, the [Python version of MuJoCo](https://pypi.org/project/mujoco/#history) should match the MJPC version (this information can be found in the terminal while the application is running).
 
 
 ## Example Usage
 See [cartpole.py](python/mujoco_mpc/demos/agent/cartpole.py) for example usage for planning.
-
-See [cartpole_trajopt.py](python/mujoco_mpc/demos/direct/cartpole_trajopt.py) for usage for direct optimization.
 
 ## Predictive Control
 

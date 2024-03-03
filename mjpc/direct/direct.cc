@@ -77,11 +77,11 @@ void Direct::Initialize(const mjModel* model) {
   }
 
   // number of parameters
-  nparam_ = GetNumberOrDefault(0, model, "batch_num_parameters");
+  nparam_ = GetNumberOrDefault(0, model, "direct_num_parameters");
 
   // model parameters id
   model_parameters_id_ =
-      GetNumberOrDefault(-1, model, "batch_model_parameters_id");
+      GetNumberOrDefault(-1, model, "direct_model_parameters_id");
   if (model_parameters_id_ == -1 && nparam_ > 0) {
     mju_error("nparam > 0 but model_parameter_id is missing\n");
   }

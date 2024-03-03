@@ -267,8 +267,13 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   int shift = i * (model->nu * kMaxTrajectoryHorizon);
 
   // sample noise
-  for (int k = 0; k < num_parameters; k++) {
-    noise[k + shift] = absl::Gaussian<double>(gen_, 0.0, noise_exploration);
+  for (int t = 0; t < num_spline_points; t++) {
+    for (int k = 0; k < model->nu; k++) {
+      double scale = 0.5 * (model->actuator_ctrlrange[2 * k + 1] -
+                            model->actuator_ctrlrange[2 * k]);
+      noise[shift + t * model->nu + k] =
+          absl::Gaussian<double>(gen_, 0.0, scale * noise_exploration);
+    }
   }
 
   // add noise

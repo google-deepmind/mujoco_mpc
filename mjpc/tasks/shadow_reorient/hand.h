@@ -1,4 +1,4 @@
-// Copyright 2024 DeepMind Technologies Limited
+// Copyright 2022 DeepMind Technologies Limited
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_MJPC_TASKS_BIMANUAL_BIMANUAL_H_
-#define MJPC_MJPC_TASKS_BIMANUAL_BIMANUAL_H_
+#ifndef MJPC_TASKS_SHADOW_REORIENT_HAND_H_
+#define MJPC_TASKS_SHADOW_REORIENT_HAND_H_
 
 #include <memory>
 #include <string>
-
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
 namespace mjpc {
-class Bimanual : public Task {
+class ShadowReorient : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
-
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const Bimanual* task) : BaseResidualFn(task) {}
-    void Residual(const mjModel* model, const mjData* data,
-                  double* residual) const override;
-  };
+    explicit ResidualFn(const ShadowReorient* task) : BaseResidualFn(task) {}
 
-  Bimanual() : residual_(this) {}
+  // ---------- Residuals for in-hand manipulation task ---------
+  //   Number of residuals: 5
+  //     Residual (0): cube_position - palm_position
+  //     Residual (1): cube_orientation - cube_goal_orientation
+  //     Residual (2): cube linear velocity
+  //     Residual (3): cube angular velocity
+  //     Residual (4): control
+  // ------------------------------------------------------------
+  void Residual(const mjModel* model, const mjData* data,
+                double* residual) const override;
+  };
+  ShadowReorient() : residual_(this) {}
+
+// ----- Transition for in-hand manipulation task -----
+//   If cube is within tolerance or floor ->
+//   reset cube into hand.
+// -----------------------------------------------
   void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
@@ -45,8 +56,8 @@ class Bimanual : public Task {
 
  private:
   ResidualFn residual_;
+
 };
 }  // namespace mjpc
 
-
-#endif  // MJPC_MJPC_TASKS_BIMANUAL_BIMANUAL_H_
+#endif  // MJPC_TASKS_SHADOW_REORIENT_HAND_H_

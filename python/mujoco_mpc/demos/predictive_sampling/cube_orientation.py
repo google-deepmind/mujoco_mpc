@@ -21,11 +21,12 @@ import predictive_sampling
 
 # %%
 # path to hand task
-
 model_path = (
     pathlib.Path(__file__).parent.parent.parent
     / "../../build/mjpc/tasks/hand/task.xml"
+
 )
+
 # create simulation model + data
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)

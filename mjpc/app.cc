@@ -222,6 +222,23 @@ void PhysicsLoop(mj::Simulate& sim) {
 
     // ----- task reload ----- //
     if (sim.uiloadrequest.load() == 1) {
+      // get new estimator model
+      sim.filename = sim.agent->GetEstimatorXmlPath(sim.agent->gui_task_id);
+
+      mjModel* mest = nullptr;
+      if (!sim.filename.empty()) {
+        mest = LoadModel(sim.agent.get(), sim);
+      }
+
+      // get new planner model
+      sim.filename = sim.agent->GetPlannerXmlPath(sim.agent->gui_task_id);
+
+      mjModel* mplan = nullptr;
+      if (!sim.filename.empty()) {
+        mplan = LoadModel(sim.agent.get(), sim);
+        sim.agent->Initialize(mplan, mest);
+      }
+
       // get new model + task
       sim.filename = sim.agent->GetTaskXmlPath(sim.agent->gui_task_id);
 
@@ -229,7 +246,7 @@ void PhysicsLoop(mj::Simulate& sim) {
       mjData* dnew = nullptr;
       if (mnew) dnew = mj_makeData(mnew);
       if (dnew) {
-        sim.agent->Initialize(mnew);
+        if (mplan == nullptr) sim.agent->Initialize(mnew, mest);
         sim.agent->plot_enabled = absl::GetFlag(FLAGS_show_plot);
         sim.agent->plan_enabled = absl::GetFlag(FLAGS_planner_enabled);
         sim.agent->Allocate();
@@ -428,6 +445,23 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
     }
   }
 
+  // estimator setup
+  sim->agent->estimator_enabled = absl::GetFlag(FLAGS_estimator_enabled);
+  mjModel* mest = nullptr;
+  sim->filename = sim->agent->GetEstimatorXmlPath(sim->agent->gui_task_id);
+  if (!sim->filename.empty()) {
+    mest = LoadModel(sim->agent.get(), *sim);
+  }
+
+  // load planner model
+  mjModel* mplan = nullptr;
+  sim->filename = sim->agent->GetPlannerXmlPath(sim->agent->gui_task_id);
+  if (!sim->filename.empty()) {
+    mplan = LoadModel(sim->agent.get(), *sim);
+    sim->agent->Initialize(mplan, mest);
+  }
+
+  // load task model
   sim->filename = sim->agent->GetTaskXmlPath(sim->agent->gui_task_id);
   m = LoadModel(sim->agent.get(), *sim);
   if (m) d = mj_makeData(m);
@@ -445,8 +479,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
   mju_zero(ctrlnoise, m->nu);
 
   // agent
-  sim->agent->estimator_enabled = absl::GetFlag(FLAGS_estimator_enabled);
-  sim->agent->Initialize(m);
+  if (mplan == nullptr) sim->agent->Initialize(m, mest);
   sim->agent->Allocate();
   sim->agent->Reset();
   sim->agent->PlotInitialize();

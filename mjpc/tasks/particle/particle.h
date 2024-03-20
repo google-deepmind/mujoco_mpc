@@ -25,6 +25,7 @@ class Particle : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
+  std::string PlannerXmlPath() const override;
   class ResidualFn : public mjpc::BaseResidualFn {
    public:
     explicit ResidualFn(const Particle* task) : mjpc::BaseResidualFn(task) {}

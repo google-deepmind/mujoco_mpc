@@ -15,7 +15,7 @@
 
 import mediapy as media
 import mujoco
-from predictive_sampling import predictive_sampling
+import predictive_sampling
 import numpy as np
 
 

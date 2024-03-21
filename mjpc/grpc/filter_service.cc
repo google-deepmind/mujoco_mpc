@@ -128,8 +128,9 @@ grpc::Status FilterService::Update(grpc::ServerContext* context,
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
 
-  // measurement update
-  filters_[filter_]->Update(request->ctrl().data(), request->sensor().data());
+  // update
+  filters_[filter_]->Update(request->ctrl().data(), request->sensor().data(),
+                            request->mode());
 
   return grpc::Status::OK;
 }

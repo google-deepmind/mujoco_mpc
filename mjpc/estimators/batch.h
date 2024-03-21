@@ -58,7 +58,7 @@ class Batch : public Direct, public Estimator {
   void Reset(const mjData* data = nullptr) override;
 
   // update
-  void Update(const double* ctrl, const double* sensor) override;
+  void Update(const double* ctrl, const double* sensor, int mode = 0) override;
 
   // get state
   double* State() override { return state.data(); };

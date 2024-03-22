@@ -59,8 +59,7 @@ def get_models_and_cost_fn() -> tuple[
 ]:
   """Returns a planning model, a sim model, and a cost function."""
   path = epath.Path(
-      'build'
-      / 'mujoco_menagerie/aloha/'
+      'build/mjpc/tasks/bimanual/'
   )
   model_file_name = 'mjx_scene.xml'
   xml = (path / model_file_name).read_text()

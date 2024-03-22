@@ -22,9 +22,9 @@ import pathlib
 # %%
 ## Example
 model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "../../mjpc/test/testdata/estimator/particle/task1D_framepos.xml"
-    )
+    pathlib.Path(__file__).parent.parent.parent
+    / "../../mjpc/test/testdata/estimator/particle/task1D_framepos.xml"
+)
 # create simulation model + data
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)

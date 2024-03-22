@@ -45,6 +45,7 @@
 
 extern "C" {
 #if defined(_WIN32) || defined(__CYGWIN__)
+#define NOMINMAX
 #include <windows.h>
 #else
 #if defined(__APPLE__)

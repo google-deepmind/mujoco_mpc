@@ -26,9 +26,9 @@ from mujoco_mpc import agent as agent_lib
 # %%
 # model
 model_path = (
-        pathlib.Path(__file__).parent.parent.parent
-        / "../../build/mjpc/tasks/cartpole/task.xml"
-    )
+    pathlib.Path(__file__).parent.parent.parent
+    / "../../build/mjpc/tasks/cartpole/task.xml"
+)
 model = mujoco.MjModel.from_xml_path(str(model_path))
 
 # data

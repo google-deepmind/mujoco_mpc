@@ -16,8 +16,8 @@
 import matplotlib.pyplot as plt
 import mediapy
 import mujoco
-from mujoco_mpc.mjx import predictive_sampling
-from mujoco_mpc.mjx.tasks.bimanual import handover
+import predictive_sampling
+from tasks.bimanual import handover
 # %%
 nsteps = 500
 steps_per_plan = 4

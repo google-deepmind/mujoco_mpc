@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
 import mujoco
 from mujoco_mpc import agent as agent_lib
+import pathlib
 
 # Cartpole model
 model_path = (
@@ -32,4 +32,4 @@ with agent_lib.Agent(
     model=model,
 ) as agent:
   while True:
-    None
+    pass

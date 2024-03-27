@@ -17,16 +17,15 @@ import mediapy as media
 import mujoco
 import numpy as np
 import pathlib
-import predictive_sampling
 
+import predictive_sampling
 # %%
 # path to hand task
+
 model_path = (
     pathlib.Path(__file__).parent.parent.parent
-    / "../../build/mjpc/tasks/hand/task.xml"
-
+    / "../../build/mjpc/tasks/shadow_reorient/task.xml"
 )
-
 # create simulation model + data
 model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
@@ -35,7 +34,6 @@ renderer = mujoco.Renderer(model)
 
 # %%
 # reward
-
 
 def reward(model: mujoco.MjModel, data: mujoco.MjData) -> float:
   # cube position - palm position (L22 norm)

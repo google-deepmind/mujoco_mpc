@@ -29,7 +29,6 @@
 #include <vector>
 
 #include <absl/flags/flag.h>
-#include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <glfw_adapter.h>
 #include "mjpc/array_safety.h"
@@ -40,8 +39,6 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-ABSL_FLAG(std::string, task, "Quadruped Flat",
-          "Which model to load on startup.");
 ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,
@@ -393,7 +390,7 @@ void PhysicsLoop(mj::Simulate& sim) {
 
 namespace mjpc {
 
-MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
+MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
   // MJPC
   printf("MuJoCo MPC (MJPC)\n");
 
@@ -415,18 +412,7 @@ MjpcApp::MjpcApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
       std::make_shared<Agent>());
 
   sim->agent->SetTaskList(std::move(tasks));
-  std::string task_name = absl::GetFlag(FLAGS_task);
-  if (task_name.empty()) {  // shouldn't happen, flag has a default value
-    sim->agent->gui_task_id = 0;
-  } else {
-    sim->agent->gui_task_id = sim->agent->GetTaskIdByName(task_name);
-    if (sim->agent->gui_task_id == -1) {
-      std::cerr << "Invalid --task flag: '" << task_name
-                << "'. Valid values:\n";
-      std::cerr << sim->agent->GetTaskNames();
-      mju_error("Invalid --task flag.");
-    }
-  }
+  sim->agent->gui_task_id = task_id;
 
   sim->filename = sim->agent->GetTaskXmlPath(sim->agent->gui_task_id);
   m = LoadModel(sim->agent.get(), *sim);
@@ -520,8 +506,8 @@ mj::Simulate* MjpcApp::Sim() {
   return sim.get();
 }
 
-void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks) {
-  MjpcApp app(std::move(tasks));
+void StartApp(std::vector<std::shared_ptr<mjpc::Task>> tasks, int task_id) {
+  MjpcApp app(std::move(tasks), task_id);
   app.Start();
 }
 

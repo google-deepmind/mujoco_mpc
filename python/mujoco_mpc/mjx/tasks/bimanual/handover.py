@@ -13,27 +13,31 @@
 # limitations under the License.
 # ==============================================================================
 
+from typing import Callable
+
 from etils import epath
+# internal import
 import jax
-from jax import numpy as jp
+from jax import numpy as jnp
 import mujoco
 from mujoco import mjx
-from mujoco_mpc.mjx import predictive_sampling
 
 
 def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
   """Returns cost for bimanual bring to target task."""
   # reach
-  left_gripper = d.site_xpos[3]
-  right_gripper = d.site_xpos[6]
-  box = d.xpos[m.nbody - 1]
+  left_gripper_site_index = 3
+  right_gripper_site_index = 6
+  box_body_index = m.nbody - 1
+  left_gripper_pos = d.site_xpos[..., left_gripper_site_index, :]
+  right_gripper_pos = d.site_xpos[..., right_gripper_site_index, :]
+  box_pos = d.xpos[..., box_body_index, :]
 
-  reach_l = left_gripper - box
-  reach_r = right_gripper - box
+  reach_l = left_gripper_pos - box_pos
+  reach_r = right_gripper_pos - box_pos
 
-  # bring
-  target = jp.array([-0.4, -0.2, 0.3])
-  bring = box - target
+  target = jnp.array([-0.4, -0.2, 0.3])
+  bring = box_pos - target
 
   residuals = [reach_l, reach_r, bring]
   weights = [0.1, 0.1, 1]
@@ -41,16 +45,19 @@ def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
 
   # NormType::kL2: y = sqrt(x*x' + p^2) - p
   terms = []
-  for r, w, p in zip(residuals, weights, norm_p):
-    terms.append(w * (jp.sqrt(jp.dot(r, r) + p**2) - p))
+  for t, w, p in zip(residuals, weights, norm_p):
+    terms.append(w * jnp.sqrt(jnp.sum(t**2, axis=-1) + p**2) - p)
+  costs = jnp.sum(jnp.array(terms), axis=-1)
 
-  return jp.sum(jp.array(terms))
+  return costs
 
 
-def get_models_and_cost_fn() -> (
-    tuple[mujoco.MjModel, mujoco.MjModel, predictive_sampling.CostFn]
-):
-  """Returns a tuple of the model and the cost function."""
+def get_models_and_cost_fn() -> tuple[
+    mujoco.MjModel,
+    mujoco.MjModel,
+    Callable[[mjx.Model, mjx.Data], jax.Array],
+]:
+  """Returns a planning model, a sim model, and a cost function."""
   path = epath.Path(
       'build/mjpc/tasks/bimanual/'
   )

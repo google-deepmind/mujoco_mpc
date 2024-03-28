@@ -17,7 +17,7 @@
 
 from typing import Callable, Tuple
 
-from brax.base import State
+from brax import base as brax_base
 import jax
 from jax import numpy as jnp
 from mujoco import mjx
@@ -117,6 +117,7 @@ def set_state(d, state):
       time=state.time, qpos=state.qpos, qvel=state.qvel, act=state.act,
       ctrl=state.ctrl)
 
+
 def mpc_rollout(
     nsteps,
     steps_per_plan,
@@ -144,7 +145,7 @@ def mpc_rollout(
       d = mjx.step(sim_model, d)
       return d, (
           cost,
-          State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),
+          brax_base.State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),  # pytype: disable=wrong-arg-types
       )
     actions = get_actions(p, policy)
     sim_data, (cost, traj) = jax.lax.scan(

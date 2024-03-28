@@ -284,6 +284,7 @@ setuptools.setup(
         "grpcio",
     ],
     install_requires=[
+        "brax",
         "grpcio",
         "mujoco >= 3.1.1",
         "mujoco-mjx",

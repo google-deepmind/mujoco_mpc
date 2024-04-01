@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(FetchContent)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 add_library(threadpool STATIC)
 target_sources(
   threadpool
@@ -50,6 +54,10 @@ add_library(
   tasks/cartpole/cartpole.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
+  tasks/humanoid/interact/interact.cc
+  tasks/humanoid/interact/interact.h
+  tasks/humanoid/interact/contact_keyframe.cc
+  tasks/humanoid/interact/contact_keyframe.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc
@@ -159,6 +167,7 @@ target_link_libraries(
   mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
+  nlohmann_json::nlohmann_json
 )
 target_include_directories(libmjpc
   PUBLIC
@@ -180,6 +189,7 @@ target_link_libraries(
   mujoco::mujoco
   threadpool
   Threads::Threads
+  nlohmann_json::nlohmann_json
 )
 target_include_directories(mjpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(mjpc PUBLIC ${MJPC_COMPILE_OPTIONS})
@@ -204,6 +214,7 @@ target_link_libraries(
   mujoco::mujoco
   threadpool
   Threads::Threads
+  nlohmann_json::nlohmann_json
 )
 target_include_directories(libtestspeed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 

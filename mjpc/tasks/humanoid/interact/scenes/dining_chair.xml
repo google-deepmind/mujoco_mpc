@@ -1,0 +1,70 @@
+<mujoco model="chair">
+  <worldbody>
+    <body name="chair" pos="-0.35 0 0.2" quat="1 0 0 0">
+      <freejoint/>
+      <geom name="seat" type="box" pos="0 0 0.15" size=".2 .25 .05" mass="1." material="seat"/>
+      <geom name="back" type="box" pos="-0.25 0 0.45" size=".05 0.25 .35" mass="1." quat="1 0 0 0" material="legs"/>
+      <geom name="chair_leg_1" type="box" pos="0.15 0.22 -0.05" size=".05 0.03 .15" mass="1." quat="1 0 0 0" material="legs"/>
+      <geom name="chair_leg_2" type="box" pos="0.15 -0.22 -0.05" size=".05 0.03 .15" mass="1." quat="1 0 0 0" material="legs"/>
+      <geom name="chair_leg_3" type="box" pos="-0.25 0.22 -0.05" size=".05 0.03 .15" mass="1." quat="1 0 0 0" material="legs"/>
+      <geom name="chair_leg_4" type="box" pos="-0.25 -0.22 -0.05" size=".05 0.03 .15" mass="1." quat="1 0 0 0" material="legs"/>
+    </body>
+  </worldbody>
+
+  <asset>
+    <material name="seat" rgba="0.33333  0.20000  0.06667 1"/>
+    <material name="legs" rgba="0.33333  0.20000  0.06667 1"/>
+  </asset>
+
+
+  <keyframe>
+    <!--
+    The values below are split into rows for readibility:
+      torso position :    3
+      torso orientation : 4
+      spinal :            3
+      right leg :         6
+      left leg :          6
+      arms :              6
+      chair :             7
+    -->
+    <key name="home" 
+    qpos="
+    -0.51531989354036611
+    0.032933633318515593
+    0.87732941016704469
+    0.99761439387206619
+    -0.0065133222520771987
+    0.068476871947574
+    0.0058323049291868646
+    -0.068702868674644271
+    -0.77953093529062722
+    0.028667779404812705
+    0.081617301874930451
+    0.018211716295673731
+    -0.86845778150448738
+    -1.7659837449391931
+    -0.081695791348171537
+    -0.056373709690576077
+    0.054429392594306431
+    0.034064348693304013
+    -0.866013836371705
+    -1.2769539487662525
+    0.062247089081351521
+    -0.0022423992789854163
+    0.56453602474666709
+    -0.41379503061208572
+    -1.7504428837977317
+    0.65163529237023232
+    -0.57633030635548088
+    -1.7502585541145725
+    -0.40089173462681549
+    0.0062503126758045834
+    0.19966578174788596
+    0.99997979291605332
+    -5.3406491535402932e-05
+    8.2763479235466449e-05
+    0.006356418607982031"/> 
+  </keyframe>
+
+</mujoco>

@@ -22,16 +22,17 @@ import jax
 from jax import numpy as jnp
 import mujoco
 from mujoco import mjx
+from mujoco.mjx._src import math
+
 
 
 @struct.dataclass
 class ObjectInstruction:
   position: jax.Array     # 3D desired position of the object
   orientation: jax.Array  # 4D desired quaternion of the object
-  linear_speed: float
-  angular_speed: float
+  speed: float
   linear_weights: jax.Array
-  angular_weights: jax.Array
+  angular_span: jax.Array
   body_index: int
   dof_index: int
   reference_index: int   # body index, 0 for ground
@@ -51,10 +52,9 @@ def make_instruction(m: mjx.Model, d: mjx.Data) -> Instruction:
       dof_index=m.nv - 6,
       position=jnp.array([-0.4, -0.2, 0.3]),
       orientation=jnp.array([1, 0, 0, 0]),
-      linear_speed=0.3,
-      angular_speed=0,
+      speed=0.3,
       linear_weights=jnp.array([1, 1, 1]),
-      angular_weights=jnp.array([0, 0, 0]),
+      angular_span=jnp.array([0, 0, 0]),
   )
   return Instruction(
       left_target=jnp.where(d.time > 3, m.nbody - 1, 0),
@@ -66,16 +66,30 @@ def make_instruction(m: mjx.Model, d: mjx.Data) -> Instruction:
 def instruction_cost(
     m: mjx.Model, d: mjx.Data, instruction: Instruction
 ) -> jax.Array:
-  def linear_errors(des: ObjectInstruction):
-    offset = des.position - d.xpos[..., des.body_index, :]
+
+  def pos_vel_error(
+      desired: ObjectInstruction,
+      obj_spur_pos: jax.Array,
+      obj_spur_vel: jax.Array,
+  ):
+    reference_pos = d.xpos[..., desired.reference_index, :]
+    reference_quaternion = d.xquat[..., desired.reference_index, :]
+    desired_spur_pos = reference_pos + math.rotate(
+        desired.position, reference_quaternion
+    )
+    offset = desired_spur_pos - obj_spur_pos
     dist = jnp.linalg.norm(offset)
     direction = offset / dist
     scaling = jnp.tanh(dist*10)  # at a distance of 5cm, stop moving
-    des_velocity = direction * des.linear_speed * scaling
-    obj_velocity = d.qvel[..., des.dof_index:des.dof_index+3]
-    return offset, des.linear_weights * (des_velocity - obj_velocity)
+    desired_vel = direction * desired.speed * scaling
+    return offset, desired.linear_weights * (desired_vel - obj_spur_vel)
 
-  pos_err, vel_err = linear_errors(instruction.object_instructions[0])
+  object_pos = d.xpos[..., instruction.object_instructions[0].body_index, :]
+  dof_index = instruction.object_instructions[0].dof_index
+  object_vel = d.qvel[..., dof_index:dof_index+3]
+  pos_err, vel_err = pos_vel_error(
+      instruction.object_instructions[0], object_pos, object_vel
+  )
 
   # reach
   left_gripper_site_index = 3

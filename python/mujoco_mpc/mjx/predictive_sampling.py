@@ -90,6 +90,8 @@ def improve_policy(
 ) -> Tuple[jax.Array, jax.Array]:
   """Improves policy."""
 
+  # without this, data may be uninitialized
+  data = mjx.kinematics(p.model, data)
   # create noisy policies, with nominal policy at index 0
   noise = (
       jax.random.normal(rng, (p.nsample, p.nspline, p.model.nu)) * p.noise_scale
@@ -140,6 +142,7 @@ def mpc_rollout(
   """Receding horizon optimization starting from sim_data's state."""
   def plan_and_step(carry, rng):
     sim_data, policy = carry
+    sim_data = mjx.kinematics(sim_model, sim_data)
     instruction = p.instruction_fn(sim_model, sim_data)
     policy = resample(p, policy, steps_per_plan)
     policy, _ = improve_policy(

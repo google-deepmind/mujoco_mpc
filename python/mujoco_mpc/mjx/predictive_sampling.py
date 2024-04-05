@@ -15,7 +15,7 @@
 
 """Predictive sampling for MPC."""
 
-from typing import Callable, Tuple
+from typing import Any, Callable, Tuple
 
 from brax import base as brax_base
 import jax
@@ -23,7 +23,8 @@ from jax import numpy as jnp
 from mujoco import mjx
 from mujoco.mjx._src import dataclasses
 
-CostFn = Callable[[mjx.Model, mjx.Data], jax.Array]
+
+CostFn = Callable[[mjx.Model, mjx.Data, Any], jax.Array]
 
 
 class Planner(dataclasses.PyTreeNode):
@@ -45,15 +46,18 @@ class Planner(dataclasses.PyTreeNode):
   nspline: int
   nsample: int
   interp: str
+  instruction_fn: Callable[[mjx.Model, mjx.Data], Any]
 
 
-def _rollout(p: Planner, d: mjx.Data, policy: jax.Array) -> jax.Array:
+def _rollout(
+    p: Planner, d: mjx.Data, instruction: Any, policy: jax.Array
+) -> jax.Array:
   """Expand the policy into actions and roll out dynamics and cost."""
   actions = get_actions(p, policy)
 
   def step(d, action):
     d = d.replace(ctrl=action)
-    cost = p.cost(p.model, d)
+    cost = p.cost(p.model, d, instruction)
     d = mjx.step(p.model, d)
     return d, cost
 
@@ -78,7 +82,11 @@ def get_actions(p: Planner, policy: jax.Array) -> jax.Array:
 
 
 def improve_policy(
-    p: Planner, d: mjx.Data, policy: jax.Array, rng: jax.Array
+    p: Planner,
+    data: mjx.Data,
+    instruction: Any,
+    policy: jax.Array,
+    rng: jax.Array,
 ) -> Tuple[jax.Array, jax.Array]:
   """Improves policy."""
 
@@ -91,7 +99,9 @@ def improve_policy(
   limit = p.model.actuator_ctrlrange
   policies = jnp.clip(policies, limit[:, 0], limit[:, 1])
   # perform nsample + 1 parallel rollouts
-  costs = jax.vmap(_rollout, in_axes=(None, None, 0))(p, d, policies)
+  costs = jax.vmap(_rollout, in_axes=(None, None, None, 0))(
+      p, data, instruction, policies
+  )
   costs = jnp.nan_to_num(costs, nan=jnp.inf)
   winners = jnp.argmin(costs)
 
@@ -128,20 +138,20 @@ def mpc_rollout(
     sim_data,
 ):
   """Receding horizon optimization starting from sim_data's state."""
-  plan_data = mjx.make_data(p.model)
-
   def plan_and_step(carry, rng):
     sim_data, policy = carry
+    instruction = p.instruction_fn(sim_model, sim_data)
     policy = resample(p, policy, steps_per_plan)
     policy, _ = improve_policy(
         p,
-        set_state(plan_data, sim_data),
+        set_state(mjx.make_data(p.model), sim_data),
+        instruction,
         policy,
         rng,
     )
     def step(d, action):
       d = d.replace(ctrl=action)
-      cost = p.cost(sim_model, d)
+      cost = p.cost(sim_model, d, instruction)
       d = mjx.step(sim_model, d)
       return d, (
           cost,

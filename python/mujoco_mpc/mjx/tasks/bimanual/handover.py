@@ -25,23 +25,34 @@ from mujoco import mjx
 
 def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
   """Returns cost for bimanual bring to target task."""
+  target = jnp.array([-0.4, -0.2, 0.3])
+  desired_speed = 0.3
+
+  def desired_velocity(pos):
+    offset = target - pos
+    dist = jnp.linalg.norm(offset)
+    direction = offset / dist
+    scaling = jnp.tanh(dist*10)  # at a distance of 5cm, stop moving
+    return direction * desired_speed * scaling
+
   # reach
   left_gripper_site_index = 3
   right_gripper_site_index = 6
   box_body_index = m.nbody - 1
+  box_dof_index = m.nv - 6
+
   left_gripper_pos = d.site_xpos[..., left_gripper_site_index, :]
   right_gripper_pos = d.site_xpos[..., right_gripper_site_index, :]
   box_pos = d.xpos[..., box_body_index, :]
-
   reach_l = left_gripper_pos - box_pos
   reach_r = right_gripper_pos - box_pos
 
-  target = jnp.array([-0.4, -0.2, 0.3])
-  bring = box_pos - target
+  box_vel = d.qvel[..., box_dof_index:box_dof_index+3]
+  vel_err = desired_velocity(box_pos) - box_vel
 
-  residuals = [reach_l, reach_r, bring]
-  weights = [0.1, 0.1, 1]
-  norm_p = [0.005, 0.005, 0.003]
+  residuals = [reach_l, reach_r, vel_err]
+  weights = [1, 1, 1]
+  norm_p = [0.005, 0.005, 0.1]
 
   # NormType::kL2: y = sqrt(x*x' + p^2) - p
   terms = []

@@ -14,16 +14,17 @@
 
 #include "mjpc/planners/sampling/policy.h"
 
-#include <algorithm>
-#include <vector>
-
+#include <absl/log/check.h>
+#include <absl/types/span.h>
 #include <mujoco/mujoco.h>
-#include "mjpc/planners/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
+
+using mjpc::spline::TimeSpline;
 
 // allocate memory
 void SamplingPolicy::Allocate(const mjModel* model, const Task& task,
@@ -31,60 +32,27 @@ void SamplingPolicy::Allocate(const mjModel* model, const Task& task,
   // model
   this->model = model;
 
-  // parameters
-  parameters.resize(model->nu * kMaxTrajectoryHorizon);
-
-  // times
-  times.resize(kMaxTrajectoryHorizon);
-
-  // dimensions
-  num_parameters = model->nu * kMaxTrajectoryHorizon;
-
   // spline points
   num_spline_points = GetNumberOrDefault(kMaxTrajectoryHorizon, model,
                                          "sampling_spline_points");
 
-  // representation
-  representation = GetNumberOrDefault(PolicyRepresentation::kCubicSpline, model,
-                                      "sampling_representation");
+  plan = TimeSpline(/*dim=*/model->nu);
+  plan.Reserve(num_spline_points);
 }
 
 // reset memory to zeros
 void SamplingPolicy::Reset(int horizon, const double* initial_repeated_action) {
-  // parameters
+  plan.Clear();
   if (initial_repeated_action != nullptr) {
-    for (int i = 0; i < num_spline_points; ++i) {
-      mju_copy(parameters.data() + i * model->nu, initial_repeated_action,
-               model->nu);
-    }
-  } else {
-    std::fill(parameters.begin(),
-              parameters.begin() + model->nu * num_spline_points, 0.0);
+    plan.AddNode(0, absl::MakeConstSpan(initial_repeated_action, model->nu));
   }
-  // policy parameter times
-  std::fill(times.begin(), times.begin() + horizon, 0.0);
 }
 
 // set action from policy
 void SamplingPolicy::Action(double* action, const double* state,
                             double time) const {
-  // find times bounds
-  int bounds[2];
-  FindInterval(bounds, times, time, num_spline_points);
-
-  // ----- get action ----- //
-
-  if (bounds[0] == bounds[1] ||
-      representation == PolicyRepresentation::kZeroSpline) {
-    ZeroInterpolation(action, time, times, parameters.data(), model->nu,
-                      num_spline_points);
-  } else if (representation == PolicyRepresentation::kLinearSpline) {
-    LinearInterpolation(action, time, times, parameters.data(), model->nu,
-                        num_spline_points);
-  } else if (representation == PolicyRepresentation::kCubicSpline) {
-    CubicInterpolation(action, time, times, parameters.data(), model->nu,
-                       num_spline_points);
-  }
+  CHECK(action != nullptr);
+  plan.Sample(time, absl::MakeSpan(action, model->nu));
 
   // Clamp controls
   Clamp(action, model->actuator_ctrlrange, model->nu);
@@ -92,19 +60,13 @@ void SamplingPolicy::Action(double* action, const double* state,
 
 // copy policy
 void SamplingPolicy::CopyFrom(const SamplingPolicy& policy, int horizon) {
-  mju_copy(parameters.data(), policy.parameters.data(), policy.num_parameters);
-  mju_copy(times.data(), policy.times.data(), policy.num_spline_points);
+  this->plan = policy.plan;
   num_spline_points = policy.num_spline_points;
-  num_parameters = policy.num_parameters;
 }
 
 // copy parameters
-void SamplingPolicy::CopyParametersFrom(
-    const std::vector<double>& src_parameters,
-    const std::vector<double>& src_times) {
-  mju_copy(parameters.data(), src_parameters.data(),
-           num_spline_points * model->nu);
-  mju_copy(times.data(), src_times.data(), num_spline_points);
+void SamplingPolicy::SetPlan(const TimeSpline& plan) {
+  this->plan = plan;
 }
 
 }  // namespace mjpc

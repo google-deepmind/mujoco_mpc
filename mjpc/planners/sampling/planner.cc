@@ -23,6 +23,7 @@
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -32,6 +33,8 @@
 namespace mjpc {
 
 namespace mju = ::mujoco::util_mjpc;
+using mjpc::spline::SplineInterpolation;
+using mjpc::spline::TimeSpline;
 
 // initialize data and settings
 void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
@@ -52,6 +55,9 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
 
+  interpolation_ = GetNumberOrDefault(SplineInterpolation::kCubicSpline, model,
+                                      "sampling_representation");
+
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
                 kMaxTrajectory);
@@ -71,13 +77,9 @@ void SamplingPlanner::Allocate() {
   userdata.resize(model->nuserdata);
 
   // policy
-  int num_max_parameter = model->nu * kMaxTrajectoryHorizon;
   policy.Allocate(model, *task, kMaxTrajectoryHorizon);
   previous_policy.Allocate(model, *task, kMaxTrajectoryHorizon);
-
-  // scratch
-  parameters_scratch.resize(num_max_parameter);
-  times_scratch.resize(kMaxTrajectoryHorizon);
+  plan_scratch = TimeSpline(/*dim=*/model->nu);
 
   // noise
   noise.resize(kMaxTrajectory * (model->nu * kMaxTrajectoryHorizon));
@@ -106,8 +108,7 @@ void SamplingPlanner::Reset(int horizon,
   previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
-  std::fill(parameters_scratch.begin(), parameters_scratch.end(), 0.0);
-  std::fill(times_scratch.begin(), times_scratch.end(), 0.0);
+  plan_scratch.Clear();
 
   // noise
   std::fill(noise.begin(), noise.end(), 0.0);
@@ -153,6 +154,7 @@ int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
   auto rollouts_start = std::chrono::steady_clock::now();
 
   // simulate noisy policies
+  policy.plan.SetInterpolation(interpolation_);
   this->Rollouts(num_trajectory, horizon, pool);
 
   // sort candidate policies and trajectories by score
@@ -229,25 +231,31 @@ void SamplingPlanner::UpdateNominalPolicy(int horizon) {
 
   // set time
   double nominal_time = time;
-  double time_shift = mju_max(
-      (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
+  double time_shift;
+  if (interpolation_ == spline::SplineInterpolation::kZeroSpline) {
+    time_shift = mju_max(
+        (horizon - 1) * model->opt.timestep / num_spline_points, 1.0e-5);
+  } else {
+    time_shift = mju_max(
+        (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
+  }
+
+  plan_scratch.Clear();
+  plan_scratch.Reserve(num_spline_points);
+  plan_scratch.SetInterpolation(interpolation_);
 
   // get spline points
   for (int t = 0; t < num_spline_points; t++) {
-    times_scratch[t] = nominal_time;
-    candidate_policy[winner].Action(DataAt(parameters_scratch, t * model->nu),
-                               nullptr, nominal_time);
+    TimeSpline::Node node = plan_scratch.AddNode(nominal_time);
+    candidate_policy[winner].Action(node.values().data(), /*state=*/nullptr,
+                                    nominal_time);
     nominal_time += time_shift;
   }
 
   // update
   {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
-    // parameters
-    policy.CopyParametersFrom(parameters_scratch, times_scratch);
-
-    LinearRange(policy.times.data(), time_shift, policy.times[0],
-                num_spline_points);
+    policy.SetPlan(plan_scratch);
   }
 }
 
@@ -256,34 +264,18 @@ void SamplingPlanner::AddNoiseToPolicy(int i) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
 
-  // dimensions
-  int num_spline_points = candidate_policy[i].num_spline_points;
-  int num_parameters = candidate_policy[i].num_parameters;
-
   // sampling token
   absl::BitGen gen_;
 
-  // shift index
-  int shift = i * (model->nu * kMaxTrajectoryHorizon);
-
-  // sample noise
-  for (int t = 0; t < num_spline_points; t++) {
+  for (const TimeSpline::Node& node : candidate_policy[i].plan) {
     for (int k = 0; k < model->nu; k++) {
       double scale = 0.5 * (model->actuator_ctrlrange[2 * k + 1] -
                             model->actuator_ctrlrange[2 * k]);
-      noise[shift + t * model->nu + k] =
+      double noise =
           absl::Gaussian<double>(gen_, 0.0, scale * noise_exploration);
+      node.values()[k] += noise;
     }
-  }
-
-  // add noise
-  mju_addTo(candidate_policy[i].parameters.data(), DataAt(noise, shift),
-            num_parameters);
-
-  // clamp parameters
-  for (int t = 0; t < num_spline_points; t++) {
-    Clamp(DataAt(candidate_policy[i].parameters, t * model->nu),
-          model->actuator_ctrlrange, model->nu);
+    Clamp(node.values().data(), model->actuator_ctrlrange, model->nu);
   }
 
   // end timer
@@ -296,8 +288,6 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
   // reset noise compute time
   noise_compute_time = 0.0;
 
-  policy.num_parameters = model->nu * policy.num_spline_points;
-
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
@@ -309,7 +299,6 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
         s.candidate_policy[i].CopyFrom(s.policy, s.policy.num_spline_points);
-        s.candidate_policy[i].representation = s.policy.representation;
       }
 
       // sample noise policy
@@ -392,7 +381,7 @@ void SamplingPlanner::Traces(mjvScene* scn) {
 void SamplingPlanner::GUI(mjUI& ui) {
   mjuiDef defSampling[] = {
       {mjITEM_SLIDERINT, "Rollouts", 2, &num_trajectory_, "0 1"},
-      {mjITEM_SELECT, "Spline", 2, &policy.representation,
+      {mjITEM_SELECT, "Spline", 2, &interpolation_,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},

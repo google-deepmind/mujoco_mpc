@@ -70,7 +70,7 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 // initialize data, settings, planners, state
 void Agent::Initialize(const mjModel* model) {
   // ----- model ----- //
-  if (model_) mj_deleteModel(model_);
+  mjModel* old_model = model_;
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
   // check for limits on all actuators
@@ -152,6 +152,12 @@ void Agent::Initialize(const mjModel* model) {
   // planner threads
   planner_threads_ =
       std::max(1, NumAvailableHardwareThreads() - 3 - 2 * estimator_threads_);
+
+  // delete the previous model after all the planners have been updated to use
+  // the new one.
+  if (old_model) {
+    mj_deleteModel(old_model);
+  }
 }
 
 // allocate memory

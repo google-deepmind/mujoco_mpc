@@ -23,7 +23,9 @@
 
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
@@ -91,7 +93,7 @@ class SamplingPlanner : public RankedPlanner {
 
   // return number of parameters optimized by planner
   int NumParameters() override {
-    return policy.num_spline_points * policy.model->nu;
+    return policy.num_spline_points * model->nu;
   };
 
   // optimizes policies, but rather than picking the best, generate up to
@@ -124,8 +126,7 @@ class SamplingPlanner : public RankedPlanner {
   SamplingPolicy previous_policy;
 
   // scratch
-  std::vector<double> parameters_scratch;
-  std::vector<double> times_scratch;
+  mjpc::spline::TimeSpline plan_scratch;
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
@@ -137,6 +138,8 @@ class SamplingPlanner : public RankedPlanner {
   double noise_exploration;  // standard deviation for sampling normal: N(0,
                              // exploration)
   std::vector<double> noise;
+mjpc::spline::SplineInterpolation interpolation_ =
+      mjpc::spline::SplineInterpolation::kZeroSpline;
 
   // best trajectory
   int winner;

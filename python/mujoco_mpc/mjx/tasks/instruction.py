@@ -86,11 +86,11 @@ def instruction_cost(
 
   for obj_instruction in instruction.object_instructions:
     object_body_index = obj_instruction.body_index
-    dof_index = obj_instruction.dof_index
     object_pos = d.xpos[..., object_body_index, :]
     object_rot = d.xquat[..., object_body_index, :]
-    object_lin_vel = d.qvel[..., dof_index:dof_index+3]
-    object_ang_vel = d.qvel[..., dof_index+3:dof_index+6]
+    dof_index = obj_instruction.dof_index
+    object_lin_vel = jax.lax.dynamic_slice_in_dim(d.qvel, dof_index, 3, axis=-1)
+    object_ang_vel = jax.lax.dynamic_slice_in_dim(d.qvel, dof_index+3, 3, axis=-1)
     spurs = [
         jnp.array([obj_instruction.radii[0], 0, 0]),
         jnp.array([-obj_instruction.radii[0], 0, 0]),

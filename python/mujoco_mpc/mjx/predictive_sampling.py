@@ -143,7 +143,8 @@ def mpc_rollout(
   def plan_and_step(carry, rng):
     sim_data, policy = carry
     sim_data = mjx.kinematics(sim_model, sim_data)
-    instruction = p.instruction_fn(sim_model, sim_data)
+    instruction, userdata = p.instruction_fn(sim_model, sim_data)
+    sim_data = sim_data.replace(userdata=userdata)
     policy = resample(p, policy, steps_per_plan)
     policy, _ = improve_policy(
         p,
@@ -154,23 +155,24 @@ def mpc_rollout(
     )
     def step(d, action):
       d = d.replace(ctrl=action)
-      cost, _ = p.cost(sim_model, d, instruction)
+      cost, (terms, _) = p.cost(sim_model, d, instruction)
       d = mjx.step(sim_model, d)
       return d, (
           cost,
           brax_base.State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),  # pytype: disable=wrong-arg-types
+          terms,
       )
     actions = get_actions(p, policy)
-    sim_data, (cost, traj) = jax.lax.scan(
+    sim_data, (cost, traj, terms) = jax.lax.scan(
         step,
         sim_data,
         actions[:steps_per_plan, :],
     )
-    return (sim_data, policy), (cost, traj)
+    return (sim_data, policy), (cost, traj, terms)
 
-  (sim_data, final_policy), (costs, trajs) = jax.lax.scan(
+  (sim_data, final_policy), (costs, trajs, terms) = jax.lax.scan(
       plan_and_step,
       (sim_data, init_policy),
       jax.random.split(rng, nsteps // steps_per_plan),
   )
-  return sim_data, final_policy, costs.flatten(), trajs
+  return sim_data, final_policy, costs.flatten(), trajs, terms

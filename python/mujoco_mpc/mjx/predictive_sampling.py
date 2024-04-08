@@ -24,7 +24,7 @@ from mujoco import mjx
 from mujoco.mjx._src import dataclasses
 
 
-CostFn = Callable[[mjx.Model, mjx.Data, Any], jax.Array]
+CostFn = Callable[[mjx.Model, mjx.Data, Any], Tuple[jax.Array, Any]]
 
 
 class Planner(dataclasses.PyTreeNode):
@@ -57,7 +57,7 @@ def _rollout(
 
   def step(d, action):
     d = d.replace(ctrl=action)
-    cost = p.cost(p.model, d, instruction)
+    cost, _ = p.cost(p.model, d, instruction)
     d = mjx.step(p.model, d)
     return d, cost
 
@@ -154,7 +154,7 @@ def mpc_rollout(
     )
     def step(d, action):
       d = d.replace(ctrl=action)
-      cost = p.cost(sim_model, d, instruction)
+      cost, _ = p.cost(sim_model, d, instruction)
       d = mjx.step(sim_model, d)
       return d, (
           cost,

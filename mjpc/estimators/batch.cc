@@ -952,7 +952,7 @@ void Batch::GUI(mjUI& ui) {
       {mjITEM_BUTTON, "Reset", 2, nullptr, ""},
       {mjITEM_SLIDERNUM, "Timestep", 2, &gui_timestep_, "1.0e-3 0.1"},
       {mjITEM_SELECT, "Integrator", 2, &gui_integrator_,
-       "Euler\nRK4\nImplicit\nFastImplicit"},
+       "Euler\nRK4\nImplicit\nImplicitFast"},
       {mjITEM_SLIDERINT, "Horizon", 2, &gui_horizon_, "3 3"},
       {mjITEM_SLIDERNUM, "Prior Scale", 2, &gui_scale_prior_, "1.0e-8 0.1"},
       {mjITEM_END}};

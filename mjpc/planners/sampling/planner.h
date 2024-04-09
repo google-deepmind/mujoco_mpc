@@ -18,6 +18,7 @@
 #include <mujoco/mujoco.h>
 
 #include <atomic>
+#include <cstdint>
 #include <shared_mutex>
 #include <vector>
 
@@ -73,7 +74,7 @@ class SamplingPlanner : public RankedPlanner {
   void UpdateNominalPolicy(int horizon);
 
   // add noise to nominal policy
-  void AddNoiseToPolicy(int i);
+  void AddNoiseToPolicy(double start_time, int i);
 
   // compute candidate trajectories
   void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
@@ -154,6 +155,9 @@ mjpc::spline::SplineInterpolation interpolation_ =
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;
+
+  // If true, use sliding plans (no resampling)
+  std::uint8_t sliding_plan_ = false;
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;

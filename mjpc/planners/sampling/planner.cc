@@ -57,6 +57,7 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
 
   interpolation_ = GetNumberOrDefault(SplineInterpolation::kCubicSpline, model,
                                       "sampling_representation");
+  sliding_plan_ = GetNumberOrDefault(0, model, "sampling_sliding_plan");
 
   if (num_trajectory_ > kMaxTrajectory) {
     mju_error_i("Too many trajectories, %d is the maximum allowed.",
@@ -231,36 +232,78 @@ void SamplingPlanner::UpdateNominalPolicy(int horizon) {
 
   // set time
   double nominal_time = time;
-  double time_shift;
-  if (interpolation_ == spline::SplineInterpolation::kZeroSpline) {
-    time_shift = mju_max(
-        (horizon - 1) * model->opt.timestep / num_spline_points, 1.0e-5);
-  } else {
-    time_shift = mju_max(
-        (horizon - 1) * model->opt.timestep / (num_spline_points - 1), 1.0e-5);
-  }
+  double time_horizon = (horizon - 1) * model->opt.timestep;
 
-  plan_scratch.Clear();
-  plan_scratch.Reserve(num_spline_points);
-  plan_scratch.SetInterpolation(interpolation_);
+  if (sliding_plan_) {
+    // extra points required outside of the horizon window
+    int extra_points;
+    switch (interpolation_) {
+      case spline::SplineInterpolation::kZeroSpline:
+        extra_points = 1;
+        break;
+      case spline::SplineInterpolation::kLinearSpline:
+        extra_points = 2;
+        break;
+      case spline::SplineInterpolation::kCubicSpline:
+        extra_points = 4;
+        break;
+    }
 
-  // get spline points
-  for (int t = 0; t < num_spline_points; t++) {
-    TimeSpline::Node node = plan_scratch.AddNode(nominal_time);
-    candidate_policy[winner].Action(node.values().data(), /*state=*/nullptr,
-                                    nominal_time);
-    nominal_time += time_shift;
-  }
+    // temporal distance between spline points
+    double time_shift;
+    if (num_spline_points > extra_points) {
+      time_shift = mju_max(time_horizon /
+                            (num_spline_points - extra_points), 1.0e-5);
+    } else {
+      // not a valid setting, but avoid division by zero
+      time_shift = time_horizon;
+    }
 
-  // update
-  {
     const std::shared_lock<std::shared_mutex> lock(mtx_);
-    policy.SetPlan(plan_scratch);
+    policy.plan.DiscardBefore(nominal_time);
+    if (policy.plan.Size() == 0) {
+      policy.plan.AddNode(time);
+    }
+    while (policy.plan.Size() < num_spline_points) {
+      // duplicate the last node, with a time further in the future.
+      double new_node_time = (policy.plan.end() - 1)->time() + time_shift;
+      TimeSpline::Node new_node = policy.plan.AddNode(new_node_time);
+      std::copy((policy.plan.end() - 2)->values().begin(),
+                (policy.plan.end() - 2)->values().end(),
+                new_node.values().begin());
+    }
+  } else {
+    // non-sliding, resample the plan into a scratch plan
+    double time_shift;
+    if (interpolation_ == spline::SplineInterpolation::kZeroSpline) {
+      time_shift = mju_max(time_horizon / num_spline_points, 1.0e-5);
+    } else {
+      time_shift = mju_max(time_horizon / (num_spline_points - 1), 1.0e-5);
+    }
+
+    // resample the nominal plan on a new set of spline points
+    plan_scratch.Clear();
+    plan_scratch.SetInterpolation(interpolation_);
+    plan_scratch.Reserve(num_spline_points);
+
+    // get spline points
+    for (int t = 0; t < num_spline_points; t++) {
+      TimeSpline::Node node = plan_scratch.AddNode(nominal_time);
+      candidate_policy[winner].Action(node.values().data(), /*state=*/nullptr,
+                                      nominal_time);
+      nominal_time += time_shift;
+    }
+
+    // copy scratch into plan
+    {
+      const std::shared_lock<std::shared_mutex> lock(mtx_);
+      policy.plan = plan_scratch;
+    }
   }
 }
 
 // add random noise to nominal policy
-void SamplingPlanner::AddNoiseToPolicy(int i) {
+void SamplingPlanner::AddNoiseToPolicy(double start_time, int i) {
   // start timer
   auto noise_start = std::chrono::steady_clock::now();
 
@@ -302,7 +345,7 @@ void SamplingPlanner::Rollouts(int num_trajectory, int horizon,
       }
 
       // sample noise policy
-      if (i != 0) s.AddNoiseToPolicy(i);
+      if (i != 0) s.AddNoiseToPolicy(time, i);
 
       // ----- rollout sample policy ----- //
 
@@ -385,6 +428,7 @@ void SamplingPlanner::GUI(mjUI& ui) {
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_CHECKBYTE, "Sliding plan", 2, &sliding_plan_, ""},
       {mjITEM_END}};
 
   // set number of trajectory slider limits

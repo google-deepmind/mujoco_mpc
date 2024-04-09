@@ -136,8 +136,7 @@ class SamplingPlanner : public RankedPlanner {
   std::vector<int> trajectory_order;
 
   // ----- noise ----- //
-  double noise_exploration;  // standard deviation for sampling normal: N(0,
-                             // exploration)
+  double noise_exploration[2] = {0};  // stds for sampling: N(0, exploration)
   std::vector<double> noise;
 mjpc::spline::SplineInterpolation interpolation_ =
       mjpc::spline::SplineInterpolation::kZeroSpline;

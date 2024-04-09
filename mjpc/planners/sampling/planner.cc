@@ -49,8 +49,15 @@ void SamplingPlanner::Initialize(mjModel* model, const Task& task) {
   // task
   this->task = &task;
 
-  // sampling noise
-  noise_exploration = GetNumberOrDefault(0.1, model, "sampling_exploration");
+  // sampling noise std
+  noise_exploration[0] = GetNumberOrDefault(0.1, model, "sampling_exploration");
+
+  // optional second std (defaults to 0)
+  int se_id = mj_name2id(model, mjOBJ_NUMERIC, "sampling_exploration");
+  if (se_id >= 0 && model->numeric_size[se_id] > 1) {
+    int se_adr = model->numeric_adr[se_id];
+    noise_exploration[1] = model->numeric_data[se_adr+1];
+  }
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -310,12 +317,18 @@ void SamplingPlanner::AddNoiseToPolicy(double start_time, int i) {
   // sampling token
   absl::BitGen gen_;
 
+  // get standard deviation, fixed or mixture of noise_exploration[0,1]
+  double std = noise_exploration[0];
+  constexpr double kStd2Proportion = 0.2;  // hardcoded proportion of 2nd std
+  if (noise_exploration[1] > 0 && absl::Bernoulli(gen_, kStd2Proportion)) {
+    std = noise_exploration[1];
+  }
+
   for (const TimeSpline::Node& node : candidate_policy[i].plan) {
     for (int k = 0; k < model->nu; k++) {
       double scale = 0.5 * (model->actuator_ctrlrange[2 * k + 1] -
                             model->actuator_ctrlrange[2 * k]);
-      double noise =
-          absl::Gaussian<double>(gen_, 0.0, scale * noise_exploration);
+      double noise = absl::Gaussian<double>(gen_, 0.0, scale * std);
       node.values()[k] += noise;
     }
     Clamp(node.values().data(), model->actuator_ctrlrange, model->nu);
@@ -427,7 +440,8 @@ void SamplingPlanner::GUI(mjUI& ui) {
       {mjITEM_SELECT, "Spline", 2, &interpolation_,
        "Zero\nLinear\nCubic"},
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
-      {mjITEM_SLIDERNUM, "Noise Std", 2, &noise_exploration, "0 1"},
+      {mjITEM_SLIDERNUM, "Noise Std", 2, noise_exploration, "0 1"},
+      {mjITEM_SLIDERNUM, "Noise Std2", 2, noise_exploration+1, "0 1"},
       {mjITEM_CHECKBYTE, "Sliding plan", 2, &sliding_plan_, ""},
       {mjITEM_END}};
 

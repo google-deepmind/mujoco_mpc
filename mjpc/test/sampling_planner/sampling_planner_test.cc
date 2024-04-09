@@ -16,10 +16,10 @@
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
-#include "mjpc/task.h"
 #include "mjpc/test/load.h"
 #include "mjpc/test/testdata/particle_residual.h"
 #include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
 
 namespace mjpc {
 namespace {
@@ -62,7 +62,7 @@ TEST(SamplingPlannerTest, RandomSearch) {
   planner.Reset(kMaxTrajectoryHorizon);
   // A larger value causes flakiness, because the final state isn't close enough
   // to the goal.
-  planner.noise_exploration = 0.01;
+  planner.noise_exploration[0] = 0.01;
   // ----- settings ----- //
   int iterations = 1000;
   double horizon = 2.5;

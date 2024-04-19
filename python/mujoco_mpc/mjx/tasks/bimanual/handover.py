@@ -41,7 +41,7 @@ def make_instruction(
       left_target=jnp.where(d.time > 3, m.nbody - 1, 0),
       right_target=jnp.where(d.time < 6, m.nbody - 1, 0),
       object_instructions=[box_instruction],
-  ), jnp.Array([], dtype=jnp.float32)  # no userdata
+  ), jnp.array([1.0])  # dummy userdata
 
 
 def get_models_and_cost_fn() -> tuple[
@@ -56,7 +56,7 @@ def get_models_and_cost_fn() -> tuple[
   path = epath.Path(
       'build/mjpc/tasks/bimanual/'
   )
-  model_file_name = 'mjx_scene.xml'
+  model_file_name = 'mjx_single_cube.xml'
   xml = (path / model_file_name).read_text()
   assets = {}
   for f in path.glob('*.xml'):

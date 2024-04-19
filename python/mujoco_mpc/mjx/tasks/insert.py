@@ -77,7 +77,7 @@ def get_models_and_cost_fn() -> tuple[
   path = epath.Path(
       'build/mjpc/tasks/bimanual/'
   )
-  model_file_name = 'mjx_scene.xml'
+  model_file_name = 'mjx_insert_cube.xml'
   xml = (path / model_file_name).read_text()
   assets = {}
   for f in path.glob('*.xml'):

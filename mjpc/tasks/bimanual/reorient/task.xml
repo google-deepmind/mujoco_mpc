@@ -74,9 +74,9 @@
     </body>
   </worldbody>
   <keyframe>
-    <key name="home" qpos=
-    "0 -0.96 1.16 0 -0.3 0 0.01 0.01
-    0 -0.96 1.16 0 -0.3 0 0.01 0.01
+    <key name="home" qpos="
+    0 -0.96 1.16 0 -0.3 0 0.02 0.02
+    0 -0.96 1.16 0 -0.3 0 0.02 0.02
     0 0 0.3 1 0 0 0
     1 0 0 0
     "
@@ -84,4 +84,10 @@
     act= "-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"
     ctrl="-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"/>
   </keyframe>
+
+  <default>
+    <default class="grasp">
+      <geom type="sphere" size="0.0006" rgba="1 0 0 1" condim="6" friction="1 5e-3 5e-4" solref=".01 1" margin=".02" gap=".02" group="3"/>
+    </default>
+  </default>
 </mujoco>

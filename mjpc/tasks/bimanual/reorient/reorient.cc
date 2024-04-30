@@ -48,32 +48,33 @@ void Reorient::ResidualFn::Residual(const mjModel* model, const mjData* data,
   residual[counter + 2] *= 3;
   counter += 3;
 
-  // grasp
+  // ===== grasp
 
   // normal arrays, counters
   double normal[4][3] = {{0}, {0}, {0}, {0}};
   int nnormal[4] = {0, 0, 0, 0};
 
-  // get body ids, object position
+  // get body ids, object id
   int finger[4] = {mj_name2id(model, mjOBJ_BODY, "left/left_finger_link"),
                    mj_name2id(model, mjOBJ_BODY, "left/right_finger_link"),
                    mj_name2id(model, mjOBJ_BODY, "right/left_finger_link"),
                    mj_name2id(model, mjOBJ_BODY, "right/right_finger_link")};
   int object_id = mj_name2id(model, mjOBJ_BODY, "cross");
 
-  // loop over contacts, add up (and maybe flip) relevant normals
+
   int ncon = data->ncon;
   for (int i = 0; i < ncon; ++i) {
     const mjContact* con = data->contact + i;
-    int bb[2] = {model->geom_bodyid[con->geom[0]],
-                 model->geom_bodyid[con->geom[1]]};
+    int body[2] = {model->geom_bodyid[con->geom[0]],
+                   model->geom_bodyid[con->geom[1]]};
     for (int j = 0; j < 2; ++j) {
-      if (bb[j] == object_id) {
+      if (body[j] == object_id) {
         for (int k = 0; k < 4; ++k) {
-          if (bb[1-j] == finger[k]) {
-            double con_to_object[3];
-            mju_sub3(con_to_object, object_pos, con->pos);
-            double sign = mju_dot3(con_to_object, con->frame) > 0 ? 1 : -1;
+          if (body[1-j] == finger[k]) {
+            // We want the normal to point from the finger to the object.
+            // In mjContact the normal always points from body[0] to body[1].
+            // Since body[j] is the object, if j == 0, the normal is flipped.
+            double sign = (j == 0) ? -1 : 1;
             mju_addToScl3(normal[k], con->frame, sign);
             nnormal[k]++;
           }
@@ -83,14 +84,12 @@ void Reorient::ResidualFn::Residual(const mjModel* model, const mjData* data,
   }
 
   double grasp = 1;
-  double sum[3];
 
   // left hand
   if (nnormal[0] && nnormal[1]) {
     mju_normalize3(normal[0]);
     mju_normalize3(normal[1]);
-    mju_add3(sum, normal[0], normal[1]);
-    grasp = 0.5 * mju_norm3(sum);
+    grasp = 0.5 * (mju_dot3(normal[0], normal[1]) + 1);
   }
   residual[counter++] = grasp;
 
@@ -99,8 +98,7 @@ void Reorient::ResidualFn::Residual(const mjModel* model, const mjData* data,
   if (nnormal[2] && nnormal[3]) {
     mju_normalize3(normal[2]);
     mju_normalize3(normal[3]);
-    mju_add3(sum, normal[2], normal[3]);
-    grasp = 0.5 * mju_norm3(sum);
+    grasp = 0.5 * (mju_dot3(normal[2], normal[3]) + 1);
   }
   residual[counter++] = grasp;
 

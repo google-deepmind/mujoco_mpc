@@ -63,22 +63,21 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
                    mj_name2id(model, mjOBJ_BODY, "right/left_finger_link"),
                    mj_name2id(model, mjOBJ_BODY, "right/right_finger_link")};
   int object_id = mj_name2id(model, mjOBJ_BODY, "box");
-  double object_pos[3];
-  mju_copy3(object_pos, data->xipos + 3*object_id);
 
   // loop over contacts, add up (and maybe flip) relevant normals
   int ncon = data->ncon;
   for (int i = 0; i < ncon; ++i) {
     const mjContact* con = data->contact + i;
-    int bb[2] = {model->geom_bodyid[con->geom[0]],
-                 model->geom_bodyid[con->geom[1]]};
+    int body[2] = {model->geom_bodyid[con->geom[0]],
+                   model->geom_bodyid[con->geom[1]]};
     for (int j = 0; j < 2; ++j) {
-      if (bb[j] == object_id) {
+      if (body[j] == object_id) {
         for (int k = 0; k < 4; ++k) {
-          if (bb[1-j] == finger[k]) {
-            double con2object[3];
-            mju_sub3(con2object, object_pos, con->pos);
-            double sign = mju_dot3(con2object, con->frame) > 0 ? 1 : -1;
+          if (body[1-j] == finger[k]) {
+            // We want the normal to point from the finger to the object.
+            // In mjContact the normal always points from body[0] to body[1].
+            // Since body[j] is the object, if j == 0, the normal is flipped.
+            double sign = (j == 0) ? -1 : 1;
             mju_addToScl3(normal[k], con->frame, sign);
             nnormal[k]++;
           }
@@ -89,15 +88,13 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
 
   // grasp residual
   double grasp = 1;
-  double sum[3];
 
   // left hand
   if (nnormal[0] && nnormal[1]) {
     mju_normalize3(normal[0]);
     mju_normalize3(normal[1]);
-    // we want the two normal sums' directions to be opposite each other
-    mju_add3(sum, normal[0], normal[1]);
-    grasp = 0.5 * mju_norm3(sum);
+    // we want the two normal directions to be opposite each other
+    grasp = 0.5 * (mju_dot3(normal[0], normal[1]) + 1);
   }
   residual[counter] = grasp;
 
@@ -107,8 +104,7 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
   if (nnormal[2] && nnormal[3]) {
     mju_normalize3(normal[2]);
     mju_normalize3(normal[3]);
-    mju_add3(sum, normal[2], normal[3]);
-    grasp = 0.5 * mju_norm3(sum);
+    grasp = 0.5 * (mju_dot3(normal[2], normal[3]) + 1);
     residual[counter] *= grasp;
   }
 
@@ -147,7 +143,7 @@ void Handover::TransitionLocked(mjModel* model, mjData* data) {
     data->mocap_pos[0] = flip * Uniform<double>(gen_, .3, .4);
     double side = Uniform<double>(gen_, 0, 1) > 0.5 ? -1 : 1;
     data->mocap_pos[1] = side * Uniform<double>(gen_, .2, .3);
-    data->mocap_pos[2] = Uniform<double>(gen_, 0.25, 0.75);
+    data->mocap_pos[2] = Uniform<double>(gen_, 0.25, 0.7);
 
     // set solve time
     last_solve_time = data->time;

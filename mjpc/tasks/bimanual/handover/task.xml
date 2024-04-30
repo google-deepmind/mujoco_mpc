@@ -50,6 +50,7 @@
             rgba=".1 .6 .1 1" group="0"/>
     </body>
   </worldbody>
+
   <keyframe>
     <key name="home" qpos=
     "0 -0.96 1.16 0 -0.3 0 0.01 0.01
@@ -63,7 +64,7 @@
 
   <sensor>
     <user name="Reach L" dim="3" user="2 .1  0 .5 0.01"/>
-    <user name="Reach R" dim="3" user="2 .1  0 .5 0.005"/>
+    <user name="Reach R" dim="3" user="2 .1  0 .5 0.01"/>
     <user name="Grasp" dim="1"   user="-1 .05 0 .5"/>
     <user name="Bring" dim="3"   user="2 .4  0 1 0.003"/>
     <framepos name="left/gripper" objtype="body" objname="box" reftype="site" refname="left/gripper"/>
@@ -74,4 +75,10 @@
     <framepos name="trace1" objtype="site" objname="right/gripper"/>
     <framepos name="trace2" objtype="geom" objname="box"/>
   </sensor>
+
+  <default>
+    <default class="grasp">
+      <geom type="sphere" size="0.0006" rgba="1 0 0 1" condim="6" friction="1 5e-3 5e-4" solref=".01 1" margin=".02" gap=".02" group="3"/>
+    </default>
+  </default>
 </mujoco>

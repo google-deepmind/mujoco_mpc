@@ -21,13 +21,14 @@
     <numeric name="sampling_sliding_plan" data="1" />
   </custom>
 
-  <statistic extent="1" center="0.2 0 0.25" meansize="0.03"/>
+  <statistic extent=".5" center="0.1 0 0.15" meansize="0.03"/>
+
 
   <option timestep="0.01"/>
 
   <visual>
     <quality shadowsize="8192"/>
-    <global azimuth="90" elevation="-20" realtime="0.5"/>
+    <global azimuth="80" elevation="-10" realtime="0.33"/>
   </visual>
 
   <!-- since the included reorientation_cube brings its own sensors, the residuals must be specified first -->
@@ -66,7 +67,7 @@
     <body mocap="true" name="target_pos">
       <geom class="target" size="0.02" rgba="1 0.4 0.4 1"/>
     </body>
-    <body name="target_orient" pos="0.2 -.2 0.1" gravcomp="1">
+    <body name="target_orient" pos="0.1 -.2 0.1" gravcomp="1">
       <joint name="target_orient" type="ball" damping="0.001"/>
       <geom class="target" type="capsule" size=".015" fromto="-.02 0 0 .06 0 0" mass=".04" rgba="1 .2 .2 1"/>
       <geom class="target" type="capsule" size=".015" fromto="0 -.02 0 0 .06 0" mass=".04" rgba=".2 1 .2 1"/>
@@ -77,7 +78,7 @@
     <key name="home" qpos="
     0 -0.96 1.16 0 -0.3 0 0.02 0.02
     0 -0.96 1.16 0 -0.3 0 0.02 0.02
-    0 0 0.3 1 0 0 0
+    0 0 0.3 1 1 1 1
     1 0 0 0
     "
     mpos="0 0 0.25"
@@ -87,7 +88,7 @@
 
   <default>
     <default class="grasp">
-      <geom type="sphere" size="0.0006" rgba="1 0 0 1" condim="6" friction="1 5e-3 5e-4" solref=".01 1" margin=".02" gap=".02" group="3"/>
+      <geom type="sphere" size="0.0006" rgba="1 0 0 1" condim="6" friction="1 5e-3 5e-4" solref=".01 1" margin=".01" gap=".01" group="3"/>
     </default>
   </default>
 </mujoco>

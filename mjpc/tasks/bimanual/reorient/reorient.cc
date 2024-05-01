@@ -146,7 +146,7 @@ void Reorient::TransitionLocked(mjModel* model, mjData* data) {
 
   // reset target on success
   constexpr int kMinSolveTime = 3;
-  if (data->time > last_solve_time + kMinSolveTime && dist < .05) {
+  if (data->time > last_solve_time + kMinSolveTime && dist < .02) {
     int target_orient_id = mj_name2id(model, mjOBJ_JOINT, "target_orient");
     int dof = model->jnt_dofadr[target_orient_id];
 

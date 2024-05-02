@@ -40,6 +40,8 @@ add_library(
   tasks/acrobot/acrobot.h
   tasks/allegro/allegro.cc
   tasks/allegro/allegro.h
+  tasks/bimanual/insert/insert.cc
+  tasks/bimanual/insert/insert.h
   tasks/bimanual/handover/handover.cc
   tasks/bimanual/handover/handover.h
   tasks/bimanual/reorient/reorient.cc

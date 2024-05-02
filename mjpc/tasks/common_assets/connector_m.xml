@@ -1,0 +1,30 @@
+<mujoco model="connector_m">
+  <default>
+    <default class="connector_m.visual">
+      <geom type="mesh" group="1" mass="0.025" rgba="0 0 1 1"/>
+    </default>
+    <default class="connector_m.collision">
+      <geom type="mesh" group="3" friction="0.5 5e-3 5e-4" mass="0" solref="0.004 1"/>
+    </default>
+  </default>
+  <asset>
+    <mesh name="connector_m" file="../common_assets/connector/mcX_m.stl" />
+    <mesh name="connector_m_MESH" file="../common_assets/connector/mcX_m_collision_mcX_m_MESH.stl" />
+  </asset>
+  <worldbody>
+    <body name="connector_m" pos="-.2 -0.1 0.1">
+      <freejoint name="connector_m"/>
+      <geom name="connector_m" group="1" type="mesh" contype="0" conaffinity="0" rgba="0.5 0.2 0.5 1" mesh="connector_m" />
+      <geom name="connector_m_BOX" type="box" class="connector_m.collision" size="0.00077138969209045172 0.016199786216020584 0.010499864816665649" pos="1.705484464764595e-08 -1.1743395589292049e-08 -0.011897046118974686" />
+      <geom name="connector_m_grip" type="box" class="connector_m.collision" size="0.024999681860208511 0.019499748945236206 0.0062637552618980408" pos="0 0 0.012838795781135559" />
+      <site name="connector_m_grip" pos="0 0 0.012838795781135559" group="5" xyaxes="0 0 1 0 1 0"/>
+      <geom name="connector_m_BOX.002" type="box" class="connector_m.collision" size="0.034999549388885498 0.019499748945236206 0.00074998883064836264" pos="-1.6398011837281956e-08 -1.8495484255254269e-08 -0.0066471174359321594" />
+      <geom name="connector_m_BOX.003" type="box" class="connector_m.collision" size="0.034999549388885498 0.010999856516718864 0.0044999443925917149" pos="-3.875209486636777e-08 -1.6499583921358862e-08 -0.0058971233665943146" />
+      <geom name="connector_m_BOX.004" type="box" class="connector_m.collision" size="0.022199714556336403 0.01319983322173357 0.010499864816665649" pos="-1.5333727176880529e-08 -1.5302044076292987e-08 -0.011897046118974686" />
+      <geom name="connector_m_BOX.005" type="box" class="connector_m.collision" size="0.00077138969209045172 0.016199786216020584 0.010499864816665649" pos="-0.014285527169704437 -2.1056621335446835e-08 -0.011897046118974686" />
+      <geom name="connector_m_BOX.006" type="box" class="connector_m.collision" size="0.00077138969209045172 0.016199786216020584 0.010499864816665649" pos="0.014285504817962646 -1.1743395589292049e-08 -0.011897046118974686" />
+      <geom name="connector_m_MESH" type="mesh" mesh="connector_m_MESH" class="connector_m.collision" rgba="0.5 0.2 0.5 1" pos="-2.1853423959328211e-08 -1.8495484255254269e-08 0.00038930028676986694" />
+      <site name="connector_m" group="3" type="box" size=".01 .01 .01" pos="0 0 -.018"/>
+    </body>
+  </worldbody>
+</mujoco>

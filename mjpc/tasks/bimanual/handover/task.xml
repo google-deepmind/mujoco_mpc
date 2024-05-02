@@ -70,6 +70,10 @@
     <framepos name="left/gripper" objtype="body" objname="box" reftype="site" refname="left/gripper"/>
     <framepos name="right/gripper" objtype="body" objname="box" reftype="site" refname="right/gripper"/>
     <framepos name="box" objtype="body" objname="box"/>
+    <framepos name="fingerLL" objtype="body" objname="left/left_finger_link"/>
+    <framepos name="fingerLR" objtype="body" objname="left/right_finger_link"/>
+    <framepos name="fingerRL" objtype="body" objname="right/left_finger_link"/>
+    <framepos name="fingerRR" objtype="body" objname="right/right_finger_link"/>
     <framepos name="target" objtype="body" objname="box_goal_mocap"/>
     <framepos name="trace0" objtype="site" objname="left/gripper"/>
     <framepos name="trace1" objtype="site" objname="right/gripper"/>

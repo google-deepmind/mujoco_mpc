@@ -14,6 +14,7 @@
 
 #include "mjpc/tasks/bimanual/handover/handover.h"
 
+#include <cstring>
 #include <string>
 
 #include <absl/random/random.h>
@@ -58,11 +59,17 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
   int nnormal[4] = {0, 0, 0, 0};
 
   // get body ids, object position
-  int finger[4] = {mj_name2id(model, mjOBJ_BODY, "left/left_finger_link"),
-                   mj_name2id(model, mjOBJ_BODY, "left/right_finger_link"),
-                   mj_name2id(model, mjOBJ_BODY, "right/left_finger_link"),
-                   mj_name2id(model, mjOBJ_BODY, "right/right_finger_link")};
-  int object_id = mj_name2id(model, mjOBJ_BODY, "box");
+
+  int finger[4] = {0};
+  char name[] = "fingerLL";
+  char finger_name[4][3] = {"LL", "LR", "RL", "RR"};
+  for (int segment = 0; segment < 4; segment++) {
+    std::strncpy(name+sizeof("finger"), finger_name[segment], 2);
+    int finger_sensor_id = mj_name2id(model, mjOBJ_SENSOR, name);
+    finger[segment] = model->sensor_objid[finger_sensor_id];
+  }
+  int target_sensor_id = mj_name2id(model, mjOBJ_SENSOR, "box");
+  int object_id = model->sensor_objid[target_sensor_id];
 
   // loop over contacts, add up (and maybe flip) relevant normals
   int ncon = data->ncon;

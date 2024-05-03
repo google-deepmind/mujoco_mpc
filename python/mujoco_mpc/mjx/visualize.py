@@ -17,95 +17,60 @@ import jax
 import matplotlib.pyplot as plt
 import mediapy
 import mujoco
+from mujoco import mjx
 from mujoco_mpc.mjx import predictive_sampling
 from mujoco_mpc.mjx.tasks.bimanual import handover
 import numpy as np
+
 # %%
-costs_to_compare = {}
-for it in [0.3, 0.5, 0.8]:
-  nsteps = 300
-  steps_per_plan = 10
-  frame_skip = 5  # how many steps between each rendered frame
-  batch_size = 8192
-  nsamples = 512
-  nplans = batch_size // nsamples
-  print(f'nplans: {nplans}')
-
-  sim_model_cpu, plan_model_cpu, cost_fn = handover.get_models_and_cost_fn()
-  p = predictive_sampling.Planner(
-      model=plan_model_cpu,  # dummy
-      cost=cost_fn,
-      noise_scale=it,
-      horizon=128,
-      nspline=4,
-      nsample=nsamples - 1,
-      interp='zero',
-  )
-
-  policy = np.tile(sim_model_cpu.key_ctrl[0, :], (nplans, p.nspline, 1))
-  trajectories, costs, _ = jax.jit(
-      predictive_sampling.receding_horizon_control
-  )(
-      p,
-      jax.device_put(policy),
-      jax.random.key(0),
-      plan_model_cpu,
-      sim_model_cpu,
-      nsteps,
-      nplans,
-      steps_per_plan,
-  )
-
-  plt.figure()
-  plt.xlim([0, nsteps * sim_model_cpu.opt.timestep])
-  plt.ylim([0, max(costs.flatten())])
-  plt.xlabel('time')
-  plt.ylabel('cost')
-  x_time = [i * sim_model_cpu.opt.timestep for i in range(nsteps)]
-  for i in range(nplans):
-    plt.plot(x_time, costs[i, :], alpha=0.1)
-  avg = np.mean(costs, axis=0)
-  plt.plot(x_time, avg, linewidth=2.0)
-  var = np.var(costs, axis=0)
-  plt.errorbar(
-      x_time,
-      avg,
-      yerr=var,
-      fmt='none',
-      ecolor='b',
-      elinewidth=1,
-      alpha=0.2,
-      capsize=0,
-  )
-
-  plt.show()
-  costs_to_compare[it] = costs
+sim_model_cpu, plan_model_cpu, cost_fn = handover.get_models_and_cost_fn()
 # %%
+p = predictive_sampling.Planner(
+    model=mjx.put_model(plan_model_cpu),
+    cost=cost_fn,
+    noise_scale=0.5,
+    horizon=128,
+    nspline=4,
+    nsample=8192 - 1,
+    interp='zero',
+)
+
+sim_data = mujoco.MjData(sim_model_cpu)
+mujoco.mj_resetDataKeyframe(sim_model_cpu, sim_data, 0)
+mujoco.mj_forward(sim_model_cpu, sim_data)
+sim_data = mjx.put_data(sim_model_cpu, sim_data)
+policy = np.tile(sim_model_cpu.key_ctrl[0, :], (p.nspline, 1))
+
+_, _, costs, traj = jax.jit(
+    predictive_sampling.mpc_rollout, static_argnums=[0, 1]
+)(
+    500,
+    10,
+    p,
+    jax.device_put(policy),
+    jax.random.key(0),
+    mjx.put_model(sim_model_cpu),
+    sim_data,
+)
 plt.figure()
-plt.xlim([0, nsteps * sim_model_cpu.opt.timestep])
-plt.ylim([0, max(costs.flatten())])
+plt.xlim([0, costs.size * sim_model_cpu.opt.timestep])
+plt.ylim([0, 1])
 plt.xlabel('time')
 plt.ylabel('cost')
-x_time = [i * sim_model_cpu.opt.timestep for i in range(nsteps)]
-for val, costs in costs_to_compare.items():
-  avg = np.mean(costs, axis=0)
-  plt.plot(x_time, avg, label=str(val))
-  var = np.var(costs, axis=0)
-  plt.errorbar(
-      x_time, avg, yerr=var, fmt='none', elinewidth=1, alpha=0.2, capsize=0
-  )
+x_time = [i * sim_model_cpu.opt.timestep for i in range(costs.size)]
+plt.plot(x_time, costs)
 
 plt.legend()
 plt.show()
 # %%
+frame_skip = 5
 frames = []
 renderer = mujoco.Renderer(sim_model_cpu)
 d = mujoco.MjData(sim_model_cpu)
-trajectory = trajectories[0, ...]
-for qpos in trajectory:
+qs = trajectories.q[0, ...].reshape(-1, sim_model_cpu.nq)[0:-1:frame_skip, :]
+for qpos in qs:
   d.qpos = qpos
   mujoco.mj_forward(sim_model_cpu, d)
   renderer.update_scene(d)
   frames.append(renderer.render())
-# %%
-mediapy.show_video(frames, fps=1/sim_model_cpu.opt.timestep/frame_skip)
+  mediapy.show_video(frames, fps=1/sim_model_cpu.opt.timestep/frame_skip)

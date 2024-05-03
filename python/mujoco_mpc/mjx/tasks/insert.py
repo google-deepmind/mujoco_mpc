@@ -27,21 +27,42 @@ from mujoco_mpc.mjx.tasks import instruction
 def make_instruction(
     m: mjx.Model, d: mjx.Data
 ) -> Tuple[instruction.Instruction, jnp.ndarray]:
-  box_instruction = instruction.ObjectInstruction(
+  align_instruction = instruction.ObjectInstruction(
       body_index=m.nbody - 1,
       reference_index=0,
       dof_index=m.nv - 6,
-      position=jnp.array([-0.3, -0.2, 0.3]),
-      orientation=jnp.array([0.5, 0.5, 0.5, 0.5]),
+      position=jnp.array([0, 0, 0.15]),
+      orientation=jnp.array([1, 0, 0, 0]),
       speed=0.3,
       linear_weights=jnp.array([1, 1, 1]),
-      radii=jnp.array([0.05, 0.05, 0.05]),
+      radii=jnp.array([0.15, 0.15, 0.15]),
   )
-  return instruction.Instruction(
-      left_target=jnp.where(d.time > 3, m.nbody - 1, 0),
+  align = instruction.Instruction(
+      left_target=jnp.where(d.time > 0, 0, 0),
       right_target=jnp.where(d.time < 6, m.nbody - 1, 0),
-      object_instructions=[box_instruction],
-  ), jnp.array([1.0])  # dummy userdata
+      object_instructions=[align_instruction],
+  )
+  insert_instruction = instruction.ObjectInstruction(
+      body_index=m.nbody - 1,
+      reference_index=0,
+      dof_index=m.nv - 6,
+      position=jnp.array([0.0, 0.0, 0.03]),
+      orientation=jnp.array([1, 0, 0, 0]),
+      speed=0.3,
+      linear_weights=jnp.array([1, 1, 1]),
+      radii=jnp.array([0.07, 0.07, 0.07]),
+  )
+  insert = instruction.Instruction(
+      left_target=jnp.where(d.time > 0, 0, 0),
+      right_target=jnp.where(d.time < 6, m.nbody - 1, 0),
+      object_instructions=[insert_instruction],
+  )
+  _, (terms, _) = instruction.instruction_cost(m, d, align)
+  align_pos_err = jnp.sum(terms[..., 2:13:2], axis=-1)
+  userdata = jnp.array(
+      [jnp.where((d.userdata[0] > 0) | (align_pos_err < 0.007), 1.0, 0.0)]
+  )
+  return jax.lax.cond(userdata[0] > 0, lambda: insert, lambda: align), userdata
 
 
 def get_models_and_cost_fn() -> tuple[
@@ -56,7 +77,7 @@ def get_models_and_cost_fn() -> tuple[
   path = epath.Path(
       'build/mjpc/tasks/bimanual/'
   )
-  model_file_name = 'mjx_single_cube.xml'
+  model_file_name = 'mjx_insert_cube.xml'
   xml = (path / model_file_name).read_text()
   assets = {}
   for f in path.glob('*.xml'):

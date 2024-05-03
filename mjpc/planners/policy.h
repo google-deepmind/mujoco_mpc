@@ -20,13 +20,6 @@
 
 namespace mjpc {
 
-// type of interpolation
-enum PolicyRepresentation : int {
-  kZeroSpline,
-  kLinearSpline,
-  kCubicSpline,
-};
-
 // virtual policy
 class Policy {
  public:

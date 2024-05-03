@@ -66,6 +66,6 @@ int main(int argc, char** argv) {
     mju_error("Invalid --task flag.");
   }
 
-  mjpc::StartApp(tasks, 11);  // start with quadruped flat
+  mjpc::StartApp(tasks, task_id);  // start with quadruped flat
   return 0;
 }

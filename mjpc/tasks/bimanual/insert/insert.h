@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MJPC_MJPC_TASKS_BIMANUAL_REORIENT_REORIENT_H_
-#define MJPC_MJPC_TASKS_BIMANUAL_REORIENT_REORIENT_H_
+#ifndef MJPC_MJPC_TASKS_BIMANUAL_INSERT_INSERT_H_
+#define MJPC_MJPC_TASKS_BIMANUAL_INSERT_INSERT_H_
 
 #include <memory>
 #include <string>
@@ -22,19 +22,19 @@
 #include "mjpc/task.h"
 
 namespace mjpc::aloha {
-class Reorient : public Task {
+class Insert : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
 
   class ResidualFn : public BaseResidualFn {
    public:
-    explicit ResidualFn(const Reorient* task) : BaseResidualFn(task) {}
+    explicit ResidualFn(const Insert* task) : BaseResidualFn(task) {}
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
   };
 
-  Reorient() : residual_(this) {}
+  Insert() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
@@ -50,4 +50,4 @@ class Reorient : public Task {
 }  // namespace mjpc::aloha
 
 
-#endif  // MJPC_MJPC_TASKS_BIMANUAL_REORIENT_REORIENT_H_
+#endif  // MJPC_MJPC_TASKS_BIMANUAL_INSERT_INSERT_H_

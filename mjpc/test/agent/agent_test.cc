@@ -222,7 +222,7 @@ class AgentTest : public ::testing::Test {
     // A smaller value causes flakiness because the optimizer fails to find a
     // better solution:
     reinterpret_cast<SamplingPlanner*>(&agent->ActivePlanner())
-        ->noise_exploration = 0.2;
+        ->noise_exploration[0] = 0.2;
     int repeats = 10;
     for (int i = 0; i < repeats; i++) {
       agent->Reset();
@@ -334,7 +334,7 @@ class AgentTest : public ::testing::Test {
 
     // A smaller value causes flakiness because the optimizer fails to find a
     // better solution.
-    planner->sampling.noise_exploration = 0.2;
+    planner->sampling.noise_exploration[0] = 0.2;
     bool case_tested[4];
     for (int i = 0; i < 4; ++i) {
       case_tested[i] = false;

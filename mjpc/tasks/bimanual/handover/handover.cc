@@ -14,6 +14,7 @@
 
 #include "mjpc/tasks/bimanual/handover/handover.h"
 
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -59,12 +60,12 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
   int nnormal[4] = {0, 0, 0, 0};
 
   // get body ids, object position
-
   int finger[4] = {0};
-  char name[] = "fingerLL";
+  char name[] = "finger__";
   char finger_name[4][3] = {"LL", "LR", "RL", "RR"};
   for (int segment = 0; segment < 4; segment++) {
-    std::strncpy(name+sizeof("finger"), finger_name[segment], 2);
+    name[6] = finger_name[segment][0];
+    name[7] = finger_name[segment][1];
     int finger_sensor_id = mj_name2id(model, mjOBJ_SENSOR, name);
     finger[segment] = model->sensor_objid[finger_sensor_id];
   }

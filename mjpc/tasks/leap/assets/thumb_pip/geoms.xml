@@ -1,0 +1,33 @@
+<mujoco model="thumb_pip">
+  <geom mesh="thumb_pip" class="visual" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0" />
+  <geom mesh="thumb_pip_collision_0" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.06782765615382447 0.40931920520110776 0.9399727533113499 1" class="collision" />
+  <geom mesh="thumb_pip_collision_1" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.8788684095929808 0.26851183500698805 0.4252696788110323 1" class="collision" />
+  <geom mesh="thumb_pip_collision_2" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.8929058207559563 0.4313186420752162 0.17154658464593242 1" class="collision" />
+  <geom mesh="thumb_pip_collision_3" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.5926760224124559 0.3587363631953664 0.7018294856248647 1" class="collision" />
+  <geom mesh="thumb_pip_collision_4" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.08828696057269148 0.5219453816916771 0.09575362814748556 1" class="collision" />
+  <geom mesh="thumb_pip_collision_5" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.692953648423968 0.8446138078158272 0.6377895969185974 1" class="collision" />
+  <geom mesh="thumb_pip_collision_6" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.5239071646126466 0.29026464465028634 0.8327273040653546 1" class="collision" />
+  <geom mesh="thumb_pip_collision_7" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.9791948011545141 0.23052505114607003 0.6839546452134899 1" class="collision" />
+  <geom mesh="thumb_pip_collision_8" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.00854253046516229 0.9511282475158648 0.8077589779728955 1" class="collision" />
+  <geom mesh="thumb_pip_collision_9" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.8549410719462935 0.12119884719667295 0.8434957062246338 1" class="collision" />
+  <geom mesh="thumb_pip_collision_10" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.0411142706812877 0.7401623812034754 0.12863069125750337 1" class="collision" />
+  <geom mesh="thumb_pip_collision_11" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.5627160755759538 0.5101060133109206 0.24265359032034672 1" class="collision" />
+  <geom mesh="thumb_pip_collision_12" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.6257219440022901 0.18304824565272604 0.5898014219441119 1" class="collision" />
+  <geom mesh="thumb_pip_collision_13" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.2592388956743573 0.9250901190997889 0.0885169497485071 1" class="collision" />
+  <geom mesh="thumb_pip_collision_14" pos="0.0119619 0 -0.0158526" quat="0.707107 0.707107 0 0"
+    rgba="0.15419526344838164 0.7556673008674717 0.7358661658645259 1" class="collision" />
+</mujoco>

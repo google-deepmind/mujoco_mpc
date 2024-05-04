@@ -1,0 +1,33 @@
+<mujoco model="mcp_joint">
+  <geom mesh="mcp_joint" class="visual" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0" />
+  <geom mesh="mcp_joint_collision_0" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.2530622254656948 0.7357034189987938 0.6911346202147483 1" class="collision" />
+  <geom mesh="mcp_joint_collision_1" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.7094787793015381 0.9166572423638575 0.46530344351203046 1" class="collision" />
+  <geom mesh="mcp_joint_collision_2" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.1550593719972453 0.1130879560306346 0.06197669373782522 1" class="collision" />
+  <geom mesh="mcp_joint_collision_3" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.7272827860302257 0.6623369417690415 0.5869516015954255 1" class="collision" />
+  <geom mesh="mcp_joint_collision_4" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.8293712134360373 0.6966330787995492 0.054377340192694024 1" class="collision" />
+  <geom mesh="mcp_joint_collision_5" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.6769164162685606 0.6504510956564885 0.5973128041984117 1" class="collision" />
+  <geom mesh="mcp_joint_collision_6" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.9478397318025142 0.24808720494862335 0.3916510301488382 1" class="collision" />
+  <geom mesh="mcp_joint_collision_7" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.08891632096999513 0.3163578744754494 0.17690907420961466 1" class="collision" />
+  <geom mesh="mcp_joint_collision_8" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.010798046244277715 0.00512167119097906 0.019919974565147713 1" class="collision" />
+  <geom mesh="mcp_joint_collision_9" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.374876768900298 0.7316402335113696 0.39452690617765573 1" class="collision" />
+  <geom mesh="mcp_joint_collision_10" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.41743894961841677 0.5836870315736307 0.7090078119936272 1" class="collision" />
+  <geom mesh="mcp_joint_collision_11" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.7528275636963249 0.40458810840024784 0.11085942442280672 1" class="collision" />
+  <geom mesh="mcp_joint_collision_12" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.28054274512584676 0.7325559690696619 0.5291189157049415 1" class="collision" />
+  <geom mesh="mcp_joint_collision_13" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.1694269434150718 0.5164542071981576 0.7138638659990811 1" class="collision" />
+  <geom mesh="mcp_joint_collision_14" pos="0.0084069 0.00776624 0.0146574" quat="1 0 0 0"
+    rgba="0.19937629899149023 0.47964570905110715 0.4767036942456506 1" class="collision" />
+</mujoco>

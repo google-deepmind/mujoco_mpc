@@ -33,3 +33,8 @@ MJDATA.TXT
 MJMODEL.TXT
 # Python
 python/dist/
+# Exclude build/setup folders
+build/
+dist/
+install/
+log/

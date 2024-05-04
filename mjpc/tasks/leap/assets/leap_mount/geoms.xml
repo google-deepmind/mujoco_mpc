@@ -1,0 +1,34 @@
+<mujoco model="leap_mount">
+
+  <geom mesh="leap_mount" class="visual" />
+  <geom mesh="leap_mount_collision_0"
+    rgba="0.04187673537249792 0.17842030802610953 0.059125861476378105 1" class="collision" />
+  <geom mesh="leap_mount_collision_1"
+    rgba="0.006834501002710325 0.007359990114647497 0.7917030738572672 1" class="collision" />
+  <geom mesh="leap_mount_collision_2"
+    rgba="0.22633265663037627 0.024496289549262085 0.3547617895447044 1" class="collision" />
+  <geom mesh="leap_mount_collision_3"
+    rgba="0.3292760750013515 0.7645471380282193 0.16232184373452152 1" class="collision" />
+  <geom mesh="leap_mount_collision_4"
+    rgba="0.5582650123411744 0.8367229910442325 0.8236024114679866 1" class="collision" />
+  <geom mesh="leap_mount_collision_5"
+    rgba="0.6483133731020084 0.25294107423926737 0.678164119911877 1" class="collision" />
+  <geom mesh="leap_mount_collision_6"
+    rgba="0.8873834272917507 0.950943725712084 0.06522223744109512 1" class="collision" />
+  <geom mesh="leap_mount_collision_7"
+    rgba="0.8030252809279271 0.4596495433011999 0.09980665164633062 1" class="collision" />
+  <geom mesh="leap_mount_collision_8"
+    rgba="0.24306571367779484 0.24357292263209485 0.753473061916568 1" class="collision" />
+  <geom mesh="leap_mount_collision_9"
+    rgba="0.44018827155647045 0.00978635228833713 0.015372139069103952 1" class="collision" />
+  <geom mesh="leap_mount_collision_10"
+    rgba="0.5486370551580942 0.6782024497585967 0.4818955545419942 1" class="collision" />
+  <geom mesh="leap_mount_collision_11"
+    rgba="0.6047847054195042 0.11824818777340085 0.37101998702215866 1" class="collision" />
+  <geom mesh="leap_mount_collision_12"
+    rgba="0.43590737109191213 0.10341968671179991 0.17095615341821446 1" class="collision" />
+  <geom mesh="leap_mount_collision_13"
+    rgba="0.236494594023261 0.10322043824946892 0.8661863578953153 1" class="collision" />
+  <geom mesh="leap_mount_collision_14"
+    rgba="0.1217125250887312 0.28552950754814677 0.9494945319666235 1" class="collision" />
+</mujoco>

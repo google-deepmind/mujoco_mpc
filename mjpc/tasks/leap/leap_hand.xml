@@ -1,0 +1,218 @@
+<mujoco model="leap_hand">
+  <compiler angle="radian" exactmeshinertia="false" />
+  <option cone="elliptic" impratio="10" />
+  <include file="assets/leap_mount/assets.xml" />
+  <include file="assets/palm_lower/assets.xml" />
+  <include file="assets/mcp_joint/assets.xml" />
+  <include file="assets/pip/assets.xml" />
+  <include file="assets/dip/assets.xml" />
+  <include file="assets/fingertip/assets.xml" />
+  <include file="assets/thumb_pip/assets.xml" />
+  <include file="assets/thumb_dip/assets.xml" />
+  <include file="assets/thumb_fingertip/assets.xml" />
+  <default>
+    <position kp="0.25" kv="0.025" />
+    <default class="visual">
+      <geom group="2" type="mesh" contype="0" conaffinity="0" />
+    </default>
+    <default class="collision">
+      <geom group="3" type="mesh" />
+    </default>
+    <joint frictionloss="0.05" />
+    <default class="mcp_joint">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.314 2.23" />
+      <position ctrlrange="-0.314 2.23" />
+    </default>
+    <default class="pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-1.047 1.047" />
+      <position ctrlrange="-1.047 1.047" />
+    </default>
+    <default class="dip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.506 1.885" />
+      <position ctrlrange="-0.506 1.885" />
+    </default>
+    <default class="fingertip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.366 2.042" />
+      <position ctrlrange="-0.366 2.042" />
+    </default>
+    <default class="thumb_base_pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.349 2.094" />
+      <position ctrlrange="-0.349 2.094" />
+    </default>
+    <default class="thumb_pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.349 2.094" />
+      <position ctrlrange="-0.349 2.094" />
+    </default>
+    <default class="thumb_dip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.47 2.443" />
+      <position ctrlrange="-0.47 2.443" />
+    </default>
+    <default class="thumb_fingertip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-1.34 1.88" />
+      <position ctrlrange="-1.34 1.88" />
+    </default>
+  </default>
+  <contact>
+    <exclude body1="palm_lower" body2="mcp_joint_index" />
+    <exclude body1="palm_lower" body2="mcp_joint_middle" />
+    <exclude body1="palm_lower" body2="mcp_joint_ring" />
+    <exclude body1="palm_lower" body2="thumb_base_pip" />
+    <exclude body1="palm_lower" body2="thumb_pip" />
+    <exclude body1="mcp_joint_index" body2="dip_index" />
+    <exclude body1="mcp_joint_middle" body2="dip_middle" />
+    <exclude body1="mcp_joint_ring" body2="dip_ring" />
+  </contact>
+  <worldbody>
+    <site name="grasp_site" pos="0.229064 -0.00444682 0.0126518" group="4" />
+
+    <body name="mount" pos="0.1 0 0">
+      <include file="assets/leap_mount/geoms_debug.xml" />
+      <body name="palm_lower">
+        <include file="assets/palm_lower/geoms_debug.xml" />
+
+
+        <body name="mcp_joint_index" pos="0.123644 -0.0546561 -0.0469753"
+          quat="-0.579284 0.579284 0.405499 0.405499">
+          <!-- <inertial pos="-0.02206476  0.0343657 0.01547265"
+            quat="0.388585 0.626468 -0.324549 0.592628"
+            mass="0.044"
+            diaginertia="1.47756e-05 1.31982e-05 6.0802e-06" /> -->
+          <joint name="1" class="mcp_joint" />
+          <include file="assets/mcp_joint/geoms_debug.xml" />
+          <body name="pip_index" pos="-0.0122 0.0381 0.0145" quat="0.5 -0.5 -0.5 0.5">
+            <!-- <inertial pos=" -0.00058387 -0.00197425  0.00144777"
+              quat="0.704534287 -0.000624442999999989 -0.709651713 0.00501555699999999" mass="0.032"
+              diaginertia="4.7981e-06 4.23406e-06 2.86184e-06" /> -->
+            <joint name="0" class="pip" />
+            <include file="assets/pip/geoms_debug.xml" />
+            <body name="dip_index" pos="0.015 0.0143 -0.013" quat="0.5 0.5 -0.5 0.5">
+              <!-- <inertial pos="0 0 0" quat="-0.252689 0.659216 0.238844 0.666735" mass="0.037"
+                diaginertia="6.68256e-06 6.24841e-06 5.02002e-06" /> -->
+              <joint name="2" class="dip" />
+              <include file="assets/dip/geoms_debug.xml" />
+              <body name="fingertip_index" pos="-4.08806e-09 -0.0361 0.0002">
+                <!-- <inertial pos="0 0 0" quat="0.706755 0.706755 0.0223155 0.0223155" mass="0.016"
+                  diaginertia="3.37527e-06 2.863e-06 1.54873e-06" /> -->
+                <joint name="3" class="fingertip" />
+                <include file="assets/fingertip/geoms_debug.xml" />
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="mcp_joint_middle" pos="0.123644 -0.00920611 -0.0469753"
+          quat="-0.579284 0.579284 0.405499 0.405499">
+          <!-- <inertial pos="-0.02206476  0.0343657 0.01547265"
+            quat="0.388585 0.626468 -0.324549 0.592628"
+            mass="0.044" 
+            diaginertia="1.47756e-05 1.31982e-05 6.0802e-06" />-->
+          <joint name="5" class="mcp_joint" />
+          <include file="assets/mcp_joint/geoms_debug.xml" />
+          <body name="pip_middle" pos="-0.0122 0.0381 0.0145" quat="0.5 -0.5 -0.5 0.5">
+            <!-- <inertial pos="-0.00298624 -0.00136363  0.00070939"
+              quat="0.709913 0.704273 -0.000363156 0.00475427" mass="0.032"
+              diaginertia="4.7981e-06 4.23406e-06 2.86184e-06" /> -->
+            <joint name="4" class="pip" />
+            <include file="assets/pip/geoms_debug.xml" />
+            <body name="dip_middle" pos="0.015 0.0143 -0.013" quat="0.5 0.5 -0.5 0.5">
+              <!-- <inertial pos="0 0 0" quat="-0.252689 0.659216 0.238844 0.666735" mass="0.037"
+                diaginertia="6.68256e-06 6.24841e-06 5.02002e-06" />-->
+              <joint name="6" class="dip" />
+              <include file="assets/dip/geoms_debug.xml" />
+              <body name="fingertip_middle" pos="0 -0.0361 0.0002">
+                <!-- <inertial pos="0 0 0" quat="0.706755 0.706755 0.0223155 0.0223155" mass="0.016"
+                  diaginertia="3.37527e-06 2.863e-06 1.54873e-06" /> -->
+                <joint name="7" class="fingertip" />
+                <include file="assets/fingertip/geoms_debug.xml" />
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="mcp_joint_ring" pos="0.123644 0.0362439 -0.0469753"
+          quat="-0.579284 0.579284 0.405499 0.405499">
+          <!-- <inertial pos="-0.02206476  0.0343657 0.01547265"
+            quat="0.388585 0.626468 -0.324549 0.592628"
+            mass="0.044"
+            diaginertia="1.47756e-05 1.31982e-05 6.0802e-06" /> -->
+          <joint name="9" class="mcp_joint" />
+          <include file="assets/mcp_joint/geoms_debug.xml" />
+          <body name="pip_ring" pos="-0.0122 0.0381 0.0145" quat="0.5 -0.5 -0.5 0.5">
+            <!-- <inertial pos="-0.00298624 -0.00136363  0.00070939"
+              quat="0.709913 0.704273 -0.000363156 0.00475427" mass="0.032"
+              diaginertia="4.7981e-06 4.23406e-06 2.86184e-06" /> -->
+            <joint name="8" class="pip" />
+            <include file="assets/pip/geoms_debug.xml" />
+            <body name="dip_ring" pos="0.015 0.0143 -0.013" quat="0.5 0.5 -0.5 0.5">
+              <!-- <inertial pos="0 0 0" quat="-0.252689 0.659216 0.238844 0.666735" mass="0.037"
+                diaginertia="6.68256e-06 6.24841e-06 5.02002e-06" /> -->
+              <joint name="10" class="dip" />
+              <include file="assets/dip/geoms_debug.xml" />
+              <body name="fingertip_ring" pos="0 -0.0361 0.0002">
+                <!-- <inertial pos="0 0 0" quat="0.706755 0.706755 0.0223155 0.0223155" mass="0.016"
+                  diaginertia="3.37527e-06 2.863e-06 1.54873e-06" /> -->
+                <joint name="11" class="fingertip" />
+                <include file="assets/fingertip/geoms_debug.xml" />
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="thumb_base_pip" pos="0.0660994 -0.0303561 -0.0229263"
+          quat="1.02931e-09 0.819232 1.47044e-09 0.573462">
+          <!-- <inertial pos="0 0 0" quat="0.709913 0.704273 -0.000363156 0.00475427" mass="0.032"
+            diaginertia="4.7981e-06 4.23406e-06 2.86184e-06" /> -->
+          <joint name="12" class="thumb_base_pip" />
+          <include file="assets/thumb_base_pip/geoms_debug.xml" />
+          <body name="thumb_pip" pos="0 0.0143 -0.013" quat="0.5 0.5 -0.5 0.5">
+            <!-- <inertial pos="0 0 0" mass="0.003" diaginertia="5.93e-07 5.49e-07 2.24e-07" /> -->
+            <joint name="13" class="thumb_pip" />
+            <include file="assets/thumb_pip/geoms_debug.xml" />
+            <body name="thumb_dip" pos="0 0.0145 -0.017" quat="0.707107 -0.707107 0 0">
+              <!-- <inertial pos="0 0 0" quat="0.708624 0.704906 0.00637342 0.0303153" mass="0.038"
+                diaginertia="8.48742e-06 7.67823e-06 3.82835e-06" /> -->
+              <joint name="14" class="thumb_dip" />
+              <include file="assets/thumb_dip/geoms_debug.xml" />
+              <body name="thumb_fingertip" pos="0 0.0466 0.0002" quat="0 0 0 1">
+                <!-- <inertial pos="0 0 0" quat="0.704307 0.709299 0.006848 -0.0282727" mass="0.049"
+                  diaginertia="2.03882e-05 1.98443e-05 4.32049e-06" /> -->
+                <joint name="15" class="thumb_fingertip" />
+                <include file="assets/thumb_fingertip/geoms_debug.xml" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="1" joint="1" class="mcp_joint" />
+    <position name="0" joint="0" class="pip" />
+    <position name="2" joint="2" class="dip" />
+    <position name="3" joint="3" class="fingertip" />
+    <position name="5" joint="5" class="mcp_joint" />
+    <position name="4" joint="4" class="pip" />
+    <position name="6" joint="6" class="dip" />
+    <position name="7" joint="7" class="fingertip" />
+    <position name="9" joint="9" class="mcp_joint" />
+    <position name="8" joint="8" class="pip" />
+    <position name="10" joint="10" class="dip" />
+    <position name="11" joint="11" class="fingertip" />
+    <position name="12" joint="12" class="thumb_base_pip" />
+    <position name="13" joint="13" class="thumb_pip" />
+    <position name="14" joint="14" class="thumb_dip" />
+    <position name="15" joint="15" class="thumb_fingertip" />
+  </actuator>
+
+  <sensor>
+    <framepos name="trace1" objtype="body" objname="fingertip_index" />
+    <framepos name="trace2" objtype="body" objname="fingertip_middle" />
+    <framepos name="trace3" objtype="body" objname="fingertip_ring" />
+    <framepos name="trace4" objtype="body" objname="thumb_fingertip" />
+  </sensor>
+</mujoco>

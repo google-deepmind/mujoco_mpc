@@ -1,0 +1,72 @@
+<mujoco model="Allegro Hand Cube Rotation">
+  <include file="../common.xml" />
+
+  <!-- <size memory="1M" /> -->
+
+  <option integrator="implicitfast" iterations="100" ls_iterations="50" />
+
+  <custom>
+    <!-- agent -->
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_spline_points" data="6" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="sampling_trajectories" data="10" />
+    <numeric name="sampling_representation" data="2" />
+    <numeric name="robust_xfrc" data="0.004" />
+    <numeric name="gradient_spline_points" data="6" />
+
+    <!-- cem -->
+    <numeric name="n_elite" data="10" />
+    <numeric name="std_min" data="0.2" />
+  </custom>
+
+  <!-- Set the camera viewpoint -->
+  <statistic extent="0.4" center="0.3 0.1 0" />
+  <visual>
+    <quality shadowsize="8192" />
+    <global azimuth="180" elevation="-30" />
+  </visual>
+
+  <!-- Set default friction coefficient -->
+  <default>
+    <geom friction=".3" />
+  </default>
+
+  <!-- Create the scene, including floor and the interactive target cube. -->
+  <worldbody>
+    <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+      directional="true" castshadow="true" />
+    <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid" />
+    <body name="goal" pos="0.325 0.17 0.0475">
+      <joint type="ball" damping="0.001" />
+      <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0" />
+    </body>
+  </worldbody>
+
+
+  <sensor>
+    <!-- Residuals -->
+    <user name="Cube Position" dim="3" user="1 75 0 100 0.02 2" />
+    <user name="Cube Orientation" dim="3" user="0 7.5 0 10" />
+    <user name="Cube Velocity" dim="3" user="0 10 0 20" />
+    <user name="Actuation" dim="16" user="0 1 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.1 0.0 10" />
+    <user name="Joint Vel" dim="16" user="0 1.0e-3 0.0 0.1" />
+
+    <!-- Measurements we want to use -->
+    <framepos name="cube_goal_position" objtype="site" objname="grasp_site" />
+    <framequat name="cube_goal_orientation" objtype="body" objname="goal" />
+    <framepos name="trace0" objtype="body" objname="cube" />
+  </sensor>
+
+  <include file="../common_assets/reorientation_cube.xml" />
+  <include file="leap_hand.xml" />
+
+  <keyframe>
+    <key name="home"
+      qpos="1 0 0 0 0.15 0.025 0.075 1 0 0 0 0.5 -0.75 0.75 0.25 0.5 0 0.75 0.25 0.5 0.75 0.75 0.25 0.65 0.9 0.75 0.6" />
+  </keyframe>
+</mujoco>

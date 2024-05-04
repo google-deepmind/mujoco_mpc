@@ -54,6 +54,8 @@ add_library(
   tasks/humanoid/tracking/tracking.h
   tasks/humanoid/walk/walk.cc
   tasks/humanoid/walk/walk.h
+  tasks/leap/leap.cc
+  tasks/leap/leap.h
   tasks/manipulation/common.cc
   tasks/manipulation/common.h
   tasks/manipulation/manipulation.cc

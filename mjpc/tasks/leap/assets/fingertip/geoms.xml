@@ -1,0 +1,33 @@
+<mujoco model="fingertip">
+    <geom mesh="fingertip" class="visual" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0" />
+    <geom mesh="fingertip_collision_0" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.21194898228256132 0.5599553223554531 0.8190002758329057 1" class="collision" />
+    <geom mesh="fingertip_collision_1" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.17332100879150436 0.934546726124237 0.953841741138031 1" class="collision" />
+    <geom mesh="fingertip_collision_2" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.45835705660575365 0.45174388662156406 0.9452853744862599 1" class="collision" />
+    <geom mesh="fingertip_collision_3" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.10008077377129043 0.06430617667330707 0.22549253136622704 1" class="collision" />
+    <geom mesh="fingertip_collision_4" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.9761988335330603 0.6532277412178649 0.9324474178519211 1" class="collision" />
+    <geom mesh="fingertip_collision_5" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.255434909019128 0.43913926945256443 0.6918493775634377 1" class="collision" />
+    <geom mesh="fingertip_collision_6" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.9694942496105714 0.04210192949539193 0.12628186376711892 1" class="collision" />
+    <geom mesh="fingertip_collision_7" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.287775890335783 0.9866838067468972 0.7038480129800289 1" class="collision" />
+    <geom mesh="fingertip_collision_8" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.9531757302635323 0.23048968043859608 0.8535262891867951 1" class="collision" />
+    <geom mesh="fingertip_collision_9" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.32271323372954086 0.6552015422657226 0.29499738438331424 1" class="collision" />
+    <geom mesh="fingertip_collision_10" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.026070122190640532 0.7205136827952214 0.5395127447416234 1" class="collision" />
+    <geom mesh="fingertip_collision_11" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.5609070261346987 0.8494225660316078 0.2324969904936296 1" class="collision" />
+    <geom mesh="fingertip_collision_12" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.6754488802812102 0.4711795611519457 0.7181516403750192 1" class="collision" />
+    <geom mesh="fingertip_collision_13" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.49353769274187165 0.4095975980208034 0.23427580748416565 1" class="collision" />
+    <geom mesh="fingertip_collision_14" pos="0.0132864 -0.00611424 0.0145" quat="0 1 0 0"
+        rgba="0.16562792194593423 0.40284088680879326 0.6752253239417391 1" class="collision" />
+</mujoco>

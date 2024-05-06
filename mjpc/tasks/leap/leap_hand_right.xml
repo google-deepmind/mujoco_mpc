@@ -8,12 +8,15 @@
           - opened urdf in mujoco and clicked "save xml"
       - Set options like cone="elliptic", frictionloss="0.05", etc from the old xml
       - Changed visual goems to group 2 and collision geoms to group 3 (was 0 and 1)
-      - Add visual geoms for the fingertip and thumb_fingertip
+      - Add visual geoms for the fingertips
+      - Set colors (black for everything except the fingertips
   -->
 
   <compiler angle="radian" meshdir="./meshes/" texturedir="./meshes/" />
   <option cone="elliptic" impratio="10" />
   <asset>
+    <material name="black" rgba="0.2 0.2 0.2 1" />
+    <material name="white" rgba="0.9 0.9 0.9 1" />
     <mesh name="palm_lower" file="palm_lower.obj" />
     <mesh name="mcp_joint" file="mcp_joint.obj" />
     <mesh name="pip" file="pip.obj" />
@@ -29,7 +32,7 @@
     <position kp="0.25" kv="0.025" />
     <joint frictionloss="0.05" />
     <default class="visual">
-      <geom group="2" type="mesh" contype="0" conaffinity="0" />
+      <geom group="2" type="mesh" contype="0" conaffinity="0" density="0" material="black" />
     </default>
     <default class="collision">
       <geom group="3" type="box" mass="0" />
@@ -100,7 +103,7 @@
             <geom size="0.007 0.011 0.002" pos="0 -0.006 0.03" class="collision" />
             <geom size="0.007 0.011 0.002" pos="0 -0.006 -0.001" class="collision" />
             <geom type="mesh" mesh="white_tip" class="collision" />
-            <geom type="mesh" mesh="white_tip" class="visual" />
+            <geom type="mesh" mesh="white_tip" class="visual" material="white" />
           </body>
         </body>
       </body>
@@ -146,7 +149,7 @@
             <geom size="0.007 0.011 0.002" pos="0 -0.006 0.03" class="collision" />
             <geom size="0.007 0.011 0.002" pos="0 -0.006 -0.001" class="collision" />
             <geom type="mesh" mesh="white_tip" class="collision" />
-            <geom type="mesh" mesh="white_tip" class="visual" />
+            <geom type="mesh" mesh="white_tip" class="visual" material="white" />
           </body>
         </body>
       </body>
@@ -192,7 +195,7 @@
             <geom size="0.007 0.011 0.002" pos="0 -0.006 0.03" class="collision" />
             <geom size="0.007 0.011 0.002" pos="0 -0.006 -0.001" class="collision" />
             <geom type="mesh" mesh="white_tip" class="collision" />
-            <geom type="mesh" mesh="white_tip" class="visual" />
+            <geom type="mesh" mesh="white_tip" class="visual" material="white" />
           </body>
         </body>
       </body>
@@ -235,7 +238,7 @@
             <geom size="0.01 0.002 0.015" pos="0 -0.029 -0.014" class="collision" />
             <geom size="0.004 0.012 0.009" pos="0.015 -0.0175 -0.0115" class="collision" />
             <geom type="mesh" mesh="white_tip_thumb" class="collision" />
-            <geom type="mesh" mesh="white_tip_thumb" class="visual" />
+            <geom type="mesh" mesh="white_tip_thumb" class="visual" material="white" />
           </body>
         </body>
       </body>

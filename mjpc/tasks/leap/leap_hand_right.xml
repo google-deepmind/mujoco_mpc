@@ -11,6 +11,7 @@
       - Add visual geoms for the fingertips
       - Set colors (black for everything except the fingertips
       - Add position actuators for all joints
+      - Add sensors to make traces of the fingertips
   -->
 
   <compiler angle="radian" meshdir="./meshes/" texturedir="./meshes/" />
@@ -307,4 +308,11 @@
     <position name="14" joint="14" class="thumb_dip" />
     <position name="15" joint="15" class="thumb_fingertip" />
   </actuator>
+ 
+  <sensor>
+    <framepos name="trace1" objtype="body" objname="fingertip" />
+    <framepos name="trace2" objtype="body" objname="fingertip_2" />
+    <framepos name="trace3" objtype="body" objname="fingertip_3" />
+    <framepos name="trace4" objtype="body" objname="thumb_fingertip" />
+  </sensor>
 </mujoco>

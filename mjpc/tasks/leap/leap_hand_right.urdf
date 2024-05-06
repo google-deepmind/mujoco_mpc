@@ -8,7 +8,7 @@
 
 <robot name="leap_hand">
   <mujoco>
-    <compiler meshdir="./meshes/"/>
+    <compiler assetdir="./meshes/" discardvisual="false"/>
   </mujoco>
 
   <link name="base"/>

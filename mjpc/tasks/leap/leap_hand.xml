@@ -89,7 +89,8 @@
       <inertial pos="0.01 0 0.04" quat="0.707109 0 -0.707105 0" mass="0.237"
         diaginertia="0.00029351 0.00019217 0.00040716" />
 
-      <site name="grasp_site" pos="0.229064 -0.00444682 0.0126518" group="4" />
+      <!-- N.B. visualize the grasp site by removing the group tag-->
+      <site name="grasp_site" pos="0.07 0.0 0.1" group="4" />
 
       <geom pos="0.0346999 0.06375 0.0779998" quat="0.707109 0 -0.707105 0" class="visual"
         mesh="palm_lower" />

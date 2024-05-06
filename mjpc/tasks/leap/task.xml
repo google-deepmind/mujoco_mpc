@@ -19,7 +19,7 @@
     <numeric name="gradient_spline_points" data="6" />
 
     <!-- cem -->
-    <numeric name="n_elite" data="10" />
+    <numeric name="n_elite" data="3" />
     <numeric name="std_min" data="0.2" />
   </custom>
 
@@ -41,7 +41,7 @@
       directional="true" castshadow="true" />
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid" />
     <body name="goal" pos="0.325 0.17 0.0475">
-      <joint type="ball" damping="0.001" />
+      <joint type="ball" damping="0.001" frictionloss="0.0"/>
       <geom type="box" size=".03 .03 .03" mass=".124" material="cube" contype="0" conaffinity="0" />
     </body>
   </worldbody>

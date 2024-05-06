@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+  Original URDF from https://github.com/dexsuite/dex-urdf.
+-->
+
+<robot name="leap_right">
+  <link name="base"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="base"/>
+    <child link="palm_lower"/>
+    <origin xyz="0 0.038 0.098" rpy="0 -1.57079 0"/>
+  </joint>
+  <link name="palm_lower">
+    <visual>
+      <origin xyz="-0.0200 0.02575 -0.0347" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/palm_lower.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- palm_lower -->
+      <origin xyz="-0.009 0.008 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.022 0.026 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.009 -0.037 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.022 0.026 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.009 -0.082 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.022 0.026 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.066 -0.078 -0.0115" rpy="0 0 -0.2967"/>
+      <geometry>
+        <box size="0.058 0.02 0.046"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.03 -0.035 -0.003" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.12 0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.032 -0.035 -0.024" rpy="0 0.785 0"/>
+      <geometry>
+        <box size="0.01 0.12 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.048 -0.033 -0.0115" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.024 0.116 0.046"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.078 -0.053 -0.0115" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.044 0.052 0.046"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.098 -0.009 -0.006" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.004 0.036 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.078 -0.003 0.01" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.044 0.056 0.004"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.237"/>
+      <inertia ixx="0.000354094" ixy="-0.000001193" ixz="-0.000002445" iyy="0.000260915" iyz="-0.000002905" izz="0.000529257"/>
+    </inertial>
+  </link>
+  <link name="mcp_joint">
+    <visual>
+      <origin xyz="0.0084 0.0077 0.01465" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/mcp_joint.obj"/>
+      </geometry>
+    </visual>
+    <collision>      <!-- mcp_joint -->
+      <origin xyz="0 0.018 0.0147" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.027 0.042 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.028 0.04 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0262 0.02 0.0146" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.006 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0295 0.035 0.029" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.024 0.008"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.044"/>
+      <inertia ixx="0.000011499" ixy="0.000003049" ixz="0.000000121" iyy="0.000007796" iyz="0.000000112" izz="0.000014759"/>
+    </inertial>
+  </link>
+  <link name="pip">
+    <visual>
+      <origin xyz="0.0096 0.0002 0.0007" rpy="-1.57079 -1.57079 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/pip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- pip -->
+      <origin xyz="0.0075 -0.0002 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.026 0.022"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.032"/>
+      <inertia ixx="0.000004798" ixy="0.000000012" ixz="0.000000004" iyy="0.000002862" iyz="0.000000011" izz="0.000004234"/>
+    </inertial>
+  </link>
+  <link name="dip">
+    <visual>
+      <origin xyz="0.0211 -0.0084 0.0097" rpy="-3.1415926 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/dip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- dip -->
+      <origin xyz="0 -0.02 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.016 0.006 0.026"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.016 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.004 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0075 -0.035 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.022 0.026"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.037"/>
+      <inertia ixx="0.000005542" ixy="-0.000000607" ixz="-0.000000017" iyy="0.000005727" iyz="-0.000000023" izz="0.000006682"/>
+    </inertial>
+  </link>
+  <link name="fingertip">
+    <visual>
+      <origin xyz="0.0132 -0.0061 0.0144" rpy="3.1415926 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/fingertip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- fingertip -->
+      <origin xyz="0 -0.017 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/collision/white_tip.obj"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.016"/>
+      <inertia ixx="0.000003368" ixy="0.000000115" ixz="0" iyy="0.000001556" iyz="0" izz="0.000002863"/>
+    </inertial>
+  </link>
+  <joint name="0" type="revolute">
+    <origin xyz="-0.0122 0.03810 0.01450" rpy="-1.57079 0 1.57079"/>
+    <parent link="mcp_joint"/>
+    <child link="pip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-1.047" upper="1.047"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="1" type="revolute">
+    <origin xyz="-0.0070 0.0230 -0.0187" rpy="1.57079 1.57079 0"/>
+    <parent link="palm_lower"/>
+    <child link="mcp_joint"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.314" upper="2.23"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="2" type="revolute">
+    <origin xyz="0.015 0.0143 -0.013" rpy="1.57079 -1.57079 0"/>
+    <parent link="pip"/>
+    <child link="dip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.506" upper="1.885"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="3" type="revolute">
+    <origin xyz="0 -0.0361 0.0002" rpy="0 0 0"/>
+    <parent link="dip"/>
+    <child link="fingertip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.366" upper="2.042"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <link name="mcp_joint_2">
+    <visual>
+      <origin xyz="0.0084 0.0077 0.01465" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/mcp_joint.obj"/>
+      </geometry>
+    </visual>
+    <collision>      <!-- mcp_joint -->
+      <origin xyz="0 0.018 0.0147" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.027 0.042 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.028 0.04 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0262 0.02 0.0146" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.006 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0295 0.035 0.029" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.024 0.008"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.044"/>
+      <inertia ixx="0.000011499" ixy="0.000003049" ixz="0.000000121" iyy="0.000007796" iyz="0.000000112" izz="0.000014759"/>
+    </inertial>
+  </link>
+  <link name="pip_2">
+    <visual>
+      <origin xyz="0.0096 0.0003 0.0007" rpy="-1.57079 -1.57079 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/pip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- pip -->
+      <origin xyz="0.0075 -0.0002 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.026 0.022"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.032"/>
+      <inertia ixx="0.000004798" ixy="0.000000012" ixz="0.000000004" iyy="0.000002862" iyz="0.000000011" izz="0.000004234"/>
+    </inertial>
+  </link>
+  <link name="dip_2">
+    <visual>
+      <origin xyz="0.0211 -0.0084 0.0097" rpy="-3.14159 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/dip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- dip -->
+      <origin xyz="0 -0.02 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.016 0.006 0.026"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.016 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.004 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0075 -0.035 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.022 0.026"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.037"/>
+      <inertia ixx="0.000005542" ixy="-0.000000607" ixz="-0.000000017" iyy="0.000005727" iyz="-0.000000023" izz="0.000006682"/>
+    </inertial>
+  </link>
+  <link name="fingertip_2">
+    <visual>
+      <origin xyz="0.0132 -0.0061 0.01450" rpy="3.14159 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/fingertip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- fingertip -->
+      <origin xyz="0 -0.017 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/collision/white_tip.obj"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.016"/>
+      <inertia ixx="0.000003368" ixy="0.000000115" ixz="0" iyy="0.000001556" iyz="0" izz="0.000002863"/>
+    </inertial>
+  </link>
+  <joint name="4" type="revolute">
+    <origin xyz="-0.0122 0.0381 0.0145" rpy="-1.57079 0 1.57079"/>
+    <parent link="mcp_joint_2"/>
+    <child link="pip_2"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-1.047" upper="1.047"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="5" type="revolute">
+    <origin xyz="-0.0071 -0.0224 -0.0187" rpy="1.57079 1.57079 0"/>
+    <parent link="palm_lower"/>
+    <child link="mcp_joint_2"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.314" upper="2.23"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="6" type="revolute">
+    <origin xyz="0.015 0.0143 -0.013" rpy="1.57079 -1.57079 0"/>
+    <parent link="pip_2"/>
+    <child link="dip_2"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.506" upper="1.885"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="7" type="revolute">
+    <origin xyz="0 -0.0361 0.0002" rpy="0 0 0"/>
+    <parent link="dip_2"/>
+    <child link="fingertip_2"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.366" upper="2.042"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <link name="mcp_joint_3">
+    <visual>
+      <origin xyz="0.0084 0.0077 0.01465" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/mcp_joint.obj"/>
+      </geometry>
+    </visual>
+    <collision>      <!-- mcp_joint -->
+      <origin xyz="0 0.018 0.0147" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.027 0.042 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.028 0.04 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0262 0.02 0.0146" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.006 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0295 0.035 0.029" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.024 0.008"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.005 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.044"/>
+      <inertia ixx="0.000011499" ixy="0.000003049" ixz="0.000000121" iyy="0.000007796" iyz="0.000000112" izz="0.000014759"/>
+    </inertial>
+  </link>
+  <link name="pip_3">
+    <visual>
+      <origin xyz="0.0096 0.0003 0.0007" rpy="-1.57079 -1.57079 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/pip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- pip -->
+      <origin xyz="0.0075 -0.0002 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.026 0.022"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.032"/>
+      <inertia ixx="0.000004798" ixy="0.000000012" ixz="0.000000004" iyy="0.000002862" iyz="0.000000011" izz="0.000004234"/>
+    </inertial>
+  </link>
+  <link name="dip_3">
+    <visual>
+      <origin xyz="0.0211 -0.0084 0.0097" rpy="-3.14159 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/dip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- dip -->
+      <origin xyz="0 -0.02 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.016 0.006 0.026"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.016 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.004 0.034"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0045 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0075 -0.035 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.022 0.026"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.037"/>
+      <inertia ixx="0.000005542" ixy="-0.000000607" ixz="-0.000000017" iyy="0.000005727" iyz="-0.000000023" izz="0.000006682"/>
+    </inertial>
+  </link>
+  <link name="fingertip_3">
+    <visual>
+      <origin xyz="0.0132 -0.0061 0.0145" rpy="3.14159 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/fingertip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- fingertip -->
+      <origin xyz="0 -0.017 0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.006 0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.006 -0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.022 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/collision/white_tip.obj"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.016"/>
+      <inertia ixx="0.000003368" ixy="0.000000115" ixz="0" iyy="0.000001556" iyz="0" izz="0.000002863"/>
+    </inertial>
+  </link>
+  <joint name="8" type="revolute">
+    <origin xyz="-0.0122 0.0381 0.0145" rpy="-1.57079 0 1.57079"/>
+    <parent link="mcp_joint_3"/>
+    <child link="pip_3"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-1.047" upper="1.047"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="9" type="revolute">
+    <origin xyz="-0.00709 -0.0678 -0.0187" rpy="1.57079 1.57079 0"/>
+    <parent link="palm_lower"/>
+    <child link="mcp_joint_3"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.314" upper="2.23"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="10" type="revolute">
+    <origin xyz="0.015 0.0143 -0.013" rpy="1.57079 -1.57079 0"/>
+    <parent link="pip_3"/>
+    <child link="dip_3"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.506" upper="1.885"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="11" type="revolute">
+    <origin xyz="0 -0.03609 0.0002" rpy="0 0 0"/>
+    <parent link="dip_3"/>
+    <child link="fingertip_3"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.366" upper="2.042"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <link name="pip_4">
+    <visual>
+      <origin xyz="-0.0053 0.0003 0.00078" rpy="-1.57079 -1.57079 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/pip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- pip -->
+      <origin xyz="0.0075 -0.0002 -0.011" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.034 0.026 0.022"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.032"/>
+      <inertia ixx="0.000004798" ixy="0.000000012" ixz="0.000000004" iyy="0.000002862" iyz="0.000000011" izz="0.000004234"/>
+    </inertial>
+  </link>
+  <link name="thumb_pip">
+    <visual>
+      <origin xyz="0.01196 0 -0.0158" rpy="1.57079 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/thumb_pip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- thumb_pip -->
+      <origin xyz="0 0 -0.0015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.018 0.033 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.015 -0.013" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.004 0.02"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.015 -0.013" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.004 0.02"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.003"/>
+      <inertia ixx="0.000000593" ixy="0" ixz="0" iyy="0.000000549" iyz="0" izz="0.000000224"/>
+    </inertial>
+  </link>
+  <link name="thumb_dip">
+    <visual>
+      <origin xyz="0.0439 0.0579 -0.0086" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/thumb_dip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- thumb_dip -->
+      <origin xyz="0 0.0105 -0.014" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.04 0.024"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.031 -0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.004 0.032"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.042 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.042 -0.029" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.014 0.02 0.004"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0135 0.0175 -0.011656" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.024 0.018"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.038"/>
+      <inertia ixx="0.000008474" ixy="0.000000241" ixz="0.000000026" iyy="0.000003841" iyz="0.000000025" izz="0.000007679"/>
+    </inertial>
+  </link>
+  <link name="thumb_fingertip">
+    <visual>
+      <origin xyz="0.0625 0.0784 0.0489" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/visual/thumb_fingertip.obj"/>
+      </geometry>
+    </visual>
+    <collision>     <!-- thumb_fingertip -->
+      <origin xyz="0 -0.0085 -0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.036 0.024"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.029 -0.014" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.004 0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.015 -0.0175 -0.0115" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.008 0.024 0.018"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/collision/white_tip_thumb.obj"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.049"/>
+      <inertia ixx="0.000020372" ixy="-0.000000489" ixz="-0.00000003" iyy="0.000004336" iyz="-0.000000097" izz="0.000019845"/>
+    </inertial>
+  </link>
+  <joint name="12" type="revolute">
+    <origin xyz="-0.0693 -0.0012 -0.0216" rpy="0 1.57079 0"/>
+    <parent link="palm_lower"/>
+    <child link="pip_4"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.349" upper="2.094"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="13" type="revolute">
+    <origin xyz="0 0.0143 -0.013" rpy="1.57079 -1.57079 0"/>
+    <parent link="pip_4"/>
+    <child link="thumb_pip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-0.47" upper="2.443"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="14" type="revolute">
+    <origin xyz="0 0.0145 -0.017" rpy="-1.57079 0 0"/>
+    <parent link="thumb_pip"/>
+    <child link="thumb_dip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-1.20" upper="1.90"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+  <joint name="15" type="revolute">
+    <origin xyz="0 0.0466 0.0002" rpy="0 0 3.14159"/>
+    <parent link="thumb_dip"/>
+    <child link="thumb_fingertip"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="0.95" velocity="8.48" lower="-1.34" upper="1.88"/>
+    <joint_properties friction="0.0"/>
+  </joint>
+
+  <!--  virtual auxiliary link-->
+  <link name="thumb_tip_head"/>
+  <link name="index_tip_head"/>
+  <link name="middle_tip_head"/>
+  <link name="ring_tip_head"/>
+  <joint name="thumb_tip" type="fixed">
+    <parent link="thumb_fingertip"/>
+    <child link="thumb_tip_head"/>
+    <origin rpy="0 0 0" xyz="0 -0.06 -0.015"/>
+  </joint>
+  <joint name="index_tip" type="fixed">
+    <parent link="fingertip"/>
+    <child link="index_tip_head"/>
+    <origin rpy="0 0 0" xyz="0 -0.048 0.015"/>
+  </joint>
+  <joint name="middle_tip" type="fixed">
+    <parent link="fingertip_2"/>
+    <child link="middle_tip_head"/>
+    <origin rpy="0 0 0" xyz="0 -0.048 0.015"/>
+  </joint>
+  <joint name="ring_tip" type="fixed">
+    <parent link="fingertip_3"/>
+    <child link="ring_tip_head"/>
+    <origin rpy="0 0 0" xyz="0 -0.048 0.015"/>
+  </joint>
+</robot>

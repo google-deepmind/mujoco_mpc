@@ -1,4 +1,4 @@
-<mujoco model="Allegro Hand Cube Rotation">
+<mujoco model="LEAP Hand Cube Rotation">
   <include file="../common.xml" />
 
   <!-- <size memory="1M" /> -->
@@ -63,7 +63,7 @@
   </sensor>
 
   <include file="../common_assets/reorientation_cube.xml" />
-  <include file="leap_hand.xml" />
+  <include file="leap_hand_right.xml" />
 
   <keyframe>
     <key name="home"

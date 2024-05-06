@@ -10,6 +10,7 @@
       - Changed visual goems to group 2 and collision geoms to group 3 (was 0 and 1)
       - Add visual geoms for the fingertips
       - Set colors (black for everything except the fingertips
+      - Add position actuators for all joints
   -->
 
   <compiler angle="radian" meshdir="./meshes/" texturedir="./meshes/" />
@@ -37,9 +38,52 @@
     <default class="collision">
       <geom group="3" type="box" mass="0" />
     </default>
+
+    <default class="mcp_joint">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.314 2.23" />
+      <position ctrlrange="-0.314 2.23" />
+    </default>
+    <default class="pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-1.047 1.047" />
+      <position ctrlrange="-1.047 1.047" />
+    </default>
+    <default class="dip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.506 1.885" />
+      <position ctrlrange="-0.506 1.885" />
+    </default>
+    <default class="fingertip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.366 2.042" />
+      <position ctrlrange="-0.366 2.042" />
+    </default>
+    <default class="thumb_base_pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.349 2.094" />
+      <position ctrlrange="-0.349 2.094" />
+    </default>
+    <default class="thumb_pip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.349 2.094" />
+      <position ctrlrange="-0.349 2.094" />
+    </default>
+    <default class="thumb_dip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-0.47 2.443" />
+      <position ctrlrange="-0.47 2.443" />
+    </default>
+    <default class="thumb_fingertip">
+      <joint pos="0 0 0" axis="0 0 -1"
+        limited="true" range="-1.34 1.88" />
+      <position ctrlrange="-1.34 1.88" />
+    </default>
   </default>
 
   <worldbody>
+    <site name="grasp_site" pos="0.229064 -0.00444682 0.0126518" group="4" />
+
     <geom pos="0.0346999 0.06375 0.0779998" quat="0.707109 0 -0.707105 0" class="visual"
       mesh="palm_lower" />
     <geom size="0.011 0.013 0.017" pos="0.0109999 0.046 0.0889999" quat="0.707109 0 -0.707105 0"
@@ -244,4 +288,23 @@
       </body>
     </body>
   </worldbody>
+
+  <actuator>
+    <position name="1" joint="1" class="mcp_joint" />
+    <position name="0" joint="0" class="pip" />
+    <position name="2" joint="2" class="dip" />
+    <position name="3" joint="3" class="fingertip" />
+    <position name="5" joint="5" class="mcp_joint" />
+    <position name="4" joint="4" class="pip" />
+    <position name="6" joint="6" class="dip" />
+    <position name="7" joint="7" class="fingertip" />
+    <position name="9" joint="9" class="mcp_joint" />
+    <position name="8" joint="8" class="pip" />
+    <position name="10" joint="10" class="dip" />
+    <position name="11" joint="11" class="fingertip" />
+    <position name="12" joint="12" class="thumb_base_pip" />
+    <position name="13" joint="13" class="thumb_pip" />
+    <position name="14" joint="14" class="thumb_dip" />
+    <position name="15" joint="15" class="thumb_fingertip" />
+  </actuator>
 </mujoco>

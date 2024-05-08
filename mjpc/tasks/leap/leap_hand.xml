@@ -83,6 +83,28 @@
     </default>
   </default>
 
+  <!-- Some collision filtering -->
+  <contact>
+    <exclude body1="palm" body2="mcp_joint" />
+    <exclude body1="palm" body2="mcp_joint_2" />
+    <exclude body1="palm" body2="mcp_joint_3" />
+    <exclude body1="palm" body2="pip" />
+    <exclude body1="palm" body2="pip_2" />
+    <exclude body1="palm" body2="pip_3" />
+    <exclude body1="palm" body2="pip_4" />
+    <exclude body1="palm" body2="thumb_pip" />
+    <exclude body1="palm" body2="dip" />
+    <exclude body1="palm" body2="dip_2" />
+    <exclude body1="palm" body2="dip_3" />
+    <exclude body1="palm" body2="thumb_dip" />
+    <exclude body1="mcp_joint" body2="mcp_joint_2" />
+    <exclude body1="mcp_joint" body2="mcp_joint_3" />
+    <exclude body1="mcp_joint_2" body2="mcp_joint_3" />
+    <exclude body1="pip_4" body2="mcp_joint" />
+    <exclude body1="pip_4" body2="mcp_joint_2" />
+    <exclude body1="pip_4" body2="mcp_joint_3" />
+  </contact>
+
   <worldbody>
 
     <body name="palm" pos="0.1 0 0" quat="0 1 0 0.7">

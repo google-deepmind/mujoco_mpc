@@ -60,7 +60,7 @@ std::vector<std::shared_ptr<Task>> GetTasks() {
       std::make_shared<Panda>(),
       std::make_shared<Particle>(),
       std::make_shared<ParticleFixed>(),
-      std::make_shared<Rubik>(),
+      // std::make_shared<Rubik>(),
       std::make_shared<ShadowReorient>(),
       std::make_shared<Quadrotor>(),
       std::make_shared<QuadrupedFlat>(),

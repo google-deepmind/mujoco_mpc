@@ -51,6 +51,13 @@ class Leap : public Task {
 
   // Token for random number generation
   absl::BitGen gen_;
+
+  // Variables for counting rotations
+  int rotation_count_ = 0;
+  int best_rotation_count_ = 0;
+  std::chrono::steady_clock::time_point time_of_last_reset_ =
+      std::chrono::steady_clock::now();
+  double time_since_last_reset_ = 0.0;
 };
 }  // namespace mjpc
 

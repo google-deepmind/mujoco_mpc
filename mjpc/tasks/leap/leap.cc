@@ -76,20 +76,6 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
 }
 
 void Leap::TransitionLocked(mjModel *model, mjData *data) {
-  // Check for contact between the cube and the floor
-  int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
-  int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
-
-  bool on_floor = false;
-  for (int i = 0; i < data->ncon; i++) {
-    mjContact *g = data->contact + i;
-    if ((g->geom1 == cube && g->geom2 == floor) ||
-        (g->geom2 == cube && g->geom1 == floor)) {
-      on_floor = true;
-      break;
-    }
-  }
-
   // Compute the angle between the cube and the goal orientation
   double *cube_orientation = SensorByName(model, data, "cube_orientation");
   double *goal_cube_orientation =
@@ -109,7 +95,13 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
 
   // Decide whether to change the goal orientation
   bool change_goal = false;
-  if (angle < 15.0) change_goal = true;
+  if (angle < 15.0) {
+    change_goal = true;
+    ++rotation_count_;
+    if (rotation_count_ > best_rotation_count_) {
+      best_rotation_count_ = rotation_count_;
+    }
+  }
 
   if (change_goal) {
     // Randomly sample a quaternion
@@ -132,6 +124,19 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   }
 
   // Figure out whether we dropped the cube
+  int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
+  int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
+
+  bool on_floor = false;
+  for (int i = 0; i < data->ncon; i++) {
+    mjContact *g = data->contact + i;
+    if ((g->geom1 == cube && g->geom2 == floor) ||
+        (g->geom2 == cube && g->geom1 == floor)) {
+      on_floor = true;
+      break;
+    }
+  }
+
   double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
   bool cube_dropped = on_floor && mju_norm3(cube_lin_vel) < 0.001;
 
@@ -146,12 +151,29 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     }
   }
 
+  // Reset the rotation count if we dropped the cube or took too long
+  time_since_last_reset_ =
+      std::chrono::duration_cast<std::chrono::duration<double>>(
+          std::chrono::steady_clock::now() - time_of_last_reset_)
+          .count();
+
+  if (cube_dropped || time_since_last_reset_ > 60.0) {  // 60 second timeout
+    time_of_last_reset_ = std::chrono::steady_clock::now();
+    rotation_count_ = 0;
+  }
+
   if (cube_dropped || change_goal) {
     // Reset stored data in the simulation
     mutex_.unlock();
     mj_forward(model, data);
     mutex_.lock();
   }
+
+  // Update rotation counters in the GUI
+  parameters[0] = rotation_count_;
+  parameters[1] = best_rotation_count_;
+  parameters[2] =
+      time_since_last_reset_ / std::max(double(rotation_count_), 1.0);
 }
 
 }  // namespace mjpc

@@ -95,32 +95,12 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
 
   // Decide whether to change the goal orientation
   bool change_goal = false;
-  if (angle < 15.0) {
+  if (angle < 22.0) {
     change_goal = true;
     ++rotation_count_;
     if (rotation_count_ > best_rotation_count_) {
       best_rotation_count_ = rotation_count_;
     }
-  }
-
-  if (change_goal) {
-    // Randomly sample a quaternion
-    // https://stackoverflow.com/a/44031492
-    const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double s1 = std::sqrt(1.0 - a);
-    const double s2 = std::sqrt(a);
-    const double sb = std::sin(2.0 * mjPI * b);
-    const double cb = std::cos(2.0 * mjPI * b);
-    const double sc = std::sin(2.0 * mjPI * c);
-    const double cc = std::cos(2.0 * mjPI * c);
-    std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
-
-    // Set the new goal orientation
-    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
-    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
   }
 
   // Figure out whether we dropped the cube
@@ -156,11 +136,42 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
       std::chrono::duration_cast<std::chrono::duration<double>>(
           std::chrono::steady_clock::now() - time_of_last_reset_)
           .count();
+  time_since_last_rotation_ =
+      std::chrono::duration_cast<std::chrono::duration<double>>(
+          std::chrono::steady_clock::now() - time_of_last_rotation_)
+          .count();
 
-  if (cube_dropped || time_since_last_reset_ > 60.0) {  // 60 second timeout
+  if (cube_dropped || time_since_last_rotation_ > 60.0) {  // 60 second timeout
     time_of_last_reset_ = std::chrono::steady_clock::now();
     rotation_count_ = 0;
+    change_goal = true;
   }
+
+  // Change the goal orientation if needed
+  if (change_goal) {
+    time_of_last_rotation_ = std::chrono::steady_clock::now();
+
+    // Randomly sample a quaternion
+    // https://stackoverflow.com/a/44031492
+    const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double s1 = std::sqrt(1.0 - a);
+    const double s2 = std::sqrt(a);
+    const double sb = std::sin(2.0 * mjPI * b);
+    const double cb = std::cos(2.0 * mjPI * b);
+    const double sc = std::sin(2.0 * mjPI * c);
+    const double cc = std::cos(2.0 * mjPI * c);
+    std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+
+    // Set the new goal orientation
+    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+  }
+
+
+
 
   if (cube_dropped || change_goal) {
     // Reset stored data in the simulation
@@ -172,7 +183,8 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   // Update rotation counters in the GUI
   parameters[0] = rotation_count_;
   parameters[1] = best_rotation_count_;
-  parameters[2] =
+  parameters[2] = time_since_last_rotation_;
+  parameters[3] =
       time_since_last_reset_ / std::max(double(rotation_count_), 1.0);
 }
 

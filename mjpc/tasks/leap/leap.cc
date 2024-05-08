@@ -14,107 +14,144 @@
 
 #include "mjpc/tasks/leap/leap.h"
 
+#include <mujoco/mujoco.h>
+
 #include <string>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/utilities.h"
 
-namespace mjpc
-{
-  std::string Leap::XmlPath() const
-  {
-    return GetModelPath("leap/task.xml");
-  }
-  std::string Leap::Name() const { return "Leap"; }
+namespace mjpc {
+std::string Leap::XmlPath() const { return GetModelPath("leap/task.xml"); }
+std::string Leap::Name() const { return "Leap"; }
 
-  // ------- Residuals for cube manipulation task ------
-  //     Cube position: (3)
-  //     Cube orientation: (3)
-  //     Cube linear velocity: (3)
-  //     Control: (16), there are 16 servos
-  //     Nominal pose: (16)
-  //     Joint velocity: (16)
-  // ------------------------------------------
-  void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
-                                  double *residual) const
-  {
-    int counter = 0;
+// ------- Residuals for cube manipulation task ------
+//     Cube position: (3)
+//     Cube orientation: (3)
+//     Cube linear velocity: (3)
+//     Control: (16), there are 16 servos
+//     Nominal pose: (16)
+//     Joint velocity: (16)
+// ------------------------------------------
+void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
+                                double *residual) const {
+  int counter = 0;
 
-    // ---------- Cube position ----------
-    double *cube_position = SensorByName(model, data, "cube_position");
-    double *cube_goal_position = SensorByName(model, data, "cube_goal_position");
+  // ---------- Cube position ----------
+  double *cube_position = SensorByName(model, data, "cube_position");
+  double *cube_goal_position = SensorByName(model, data, "cube_goal_position");
 
-    mju_sub3(residual + counter, cube_position, cube_goal_position);
-    counter += 3;
+  mju_sub3(residual + counter, cube_position, cube_goal_position);
+  counter += 3;
 
-    // ---------- Cube orientation ----------
-    double *cube_orientation = SensorByName(model, data, "cube_orientation");
-    double *goal_cube_orientation =
-        SensorByName(model, data, "cube_goal_orientation");
-    mju_normalize4(goal_cube_orientation);
+  // ---------- Cube orientation ----------
+  double *cube_orientation = SensorByName(model, data, "cube_orientation");
+  double *goal_cube_orientation =
+      SensorByName(model, data, "cube_goal_orientation");
+  mju_normalize4(goal_cube_orientation);
 
-    mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
-    counter += 3;
+  mju_subQuat(residual + counter, goal_cube_orientation, cube_orientation);
+  counter += 3;
 
-    // ---------- Cube linear velocity ----------
-    double *cube_linear_velocity =
-        SensorByName(model, data, "cube_linear_velocity");
+  // ---------- Cube linear velocity ----------
+  double *cube_linear_velocity =
+      SensorByName(model, data, "cube_linear_velocity");
 
-    mju_copy(residual + counter, cube_linear_velocity, 3);
-    counter += 3;
+  mju_copy(residual + counter, cube_linear_velocity, 3);
+  counter += 3;
 
-    // ---------- Control ----------
-    mju_copy(residual + counter, data->actuator_force, model->nu);
-    counter += model->nu;
+  // ---------- Control ----------
+  mju_copy(residual + counter, data->actuator_force, model->nu);
+  counter += model->nu;
 
-    // ---------- Nominal Pose ----------
-    mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
-    counter += 16;
+  // ---------- Nominal Pose ----------
+  mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
+  counter += 16;
 
-    // ---------- Joint Velocity ----------
-    mju_copy(residual + counter, data->qvel + 6, 16);
-    counter += 16;
+  // ---------- Joint Velocity ----------
+  mju_copy(residual + counter, data->qvel + 6, 16);
+  counter += 16;
 
-    // Sanity check
-    CheckSensorDim(model, counter);
-  }
+  // Sanity check
+  CheckSensorDim(model, counter);
+}
 
-  void Leap::TransitionLocked(mjModel *model, mjData *data)
-  {
-    // Check for contact between the cube and the floor
-    int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
-    int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
+void Leap::TransitionLocked(mjModel *model, mjData *data) {
+  // Check for contact between the cube and the floor
+  int cube = mj_name2id(model, mjOBJ_GEOM, "cube");
+  int floor = mj_name2id(model, mjOBJ_GEOM, "floor");
 
-    bool on_floor = false;
-    for (int i = 0; i < data->ncon; i++)
-    {
-      mjContact *g = data->contact + i;
-      if ((g->geom1 == cube && g->geom2 == floor) ||
-          (g->geom2 == cube && g->geom1 == floor))
-      {
-        on_floor = true;
-        break;
-      }
-    }
-
-    // If the cube is on the floor and not moving, reset it
-    double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
-    if (on_floor && mju_norm3(cube_lin_vel) < 0.001)
-    {
-      int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
-      if (cube_body != -1)
-      {
-        int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
-        int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
-        mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
-        mju_zero(data->qvel + jnt_veladr, 6);
-      }
-
-      // Step the simulation forward
-      mutex_.unlock();
-      mj_forward(model, data);
-      mutex_.lock();
+  bool on_floor = false;
+  for (int i = 0; i < data->ncon; i++) {
+    mjContact *g = data->contact + i;
+    if ((g->geom1 == cube && g->geom2 == floor) ||
+        (g->geom2 == cube && g->geom1 == floor)) {
+      on_floor = true;
+      break;
     }
   }
 
-} // namespace mjpc
+  // Compute the angle between the cube and the goal orientation
+  double *cube_orientation = SensorByName(model, data, "cube_orientation");
+  double *goal_cube_orientation =
+      SensorByName(model, data, "cube_goal_orientation");
+  std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
+  std::vector<double> q_gco_conj = {0.0, 0.0, 0.0, 0.0};
+  mju_negQuat(q_gco_conj.data(), goal_cube_orientation);
+  mju_mulQuat(q_diff.data(), cube_orientation, q_gco_conj.data());
+  mju_normalize4(q_diff.data());
+  if (q_diff[0] < 0.0) {
+    q_diff[0] *= -1.0;
+    q_diff[1] *= -1.0;
+    q_diff[2] *= -1.0;
+    q_diff[3] *= -1.0;
+  }
+  double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
+
+  // Decide whether to change the goal orientation
+  bool change_goal = false;
+  if (angle < 15.0) change_goal = true;
+
+  if (change_goal) {
+    // Randomly sample a quaternion
+    // https://stackoverflow.com/a/44031492
+    const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
+    const double s1 = std::sqrt(1.0 - a);
+    const double s2 = std::sqrt(a);
+    const double sb = std::sin(2.0 * mjPI * b);
+    const double cb = std::cos(2.0 * mjPI * b);
+    const double sc = std::sin(2.0 * mjPI * c);
+    const double cc = std::cos(2.0 * mjPI * c);
+    std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+
+    // Set the new goal orientation
+    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+  }
+
+  // Figure out whether we dropped the cube
+  double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
+  bool cube_dropped = on_floor && mju_norm3(cube_lin_vel) < 0.001;
+
+  // Reset the cube to be on the hand if needed
+  if (cube_dropped) {
+    int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
+    if (cube_body != -1) {
+      int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
+      int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
+      mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
+      mju_zero(data->qvel + jnt_veladr, 6);
+    }
+  }
+
+  if (cube_dropped || change_goal) {
+    // Reset stored data in the simulation
+    mutex_.unlock();
+    mj_forward(model, data);
+    mutex_.lock();
+  }
+}
+
+}  // namespace mjpc

@@ -80,6 +80,21 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   double *cube_orientation = SensorByName(model, data, "cube_orientation");
   double *goal_cube_orientation =
       SensorByName(model, data, "cube_goal_orientation");
+
+  // if goal cube orientation is all 0s, set it to {1.0, 0.0, 0.0, 0.0}
+  // do this without using a norm utility
+  if (
+    goal_cube_orientation[0] == 0.0 &&
+    goal_cube_orientation[1] == 0.0 &&
+    goal_cube_orientation[2] == 0.0 &&
+    goal_cube_orientation[3] == 0.0
+  ) {
+    goal_cube_orientation[0] = 1.0;
+    goal_cube_orientation[1] = 0.0;
+    goal_cube_orientation[2] = 0.0;
+    goal_cube_orientation[3] = 0.0;
+  }
+
   std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
   std::vector<double> q_gco_conj = {0.0, 0.0, 0.0, 0.0};
   mju_negQuat(q_gco_conj.data(), goal_cube_orientation);
@@ -177,15 +192,14 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
         q_diff[3] *= -1.0;
       }
       double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
-      if (angle < 120.0) {
-        continue;
-      }
 
       // Set the new goal orientation
-      int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
-      int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-      mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
-      break;
+      if (angle >= 120.0) {
+        int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+        int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+        mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+        break;
+      }
     }
   }
 

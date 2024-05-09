@@ -95,7 +95,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
 
   // Decide whether to change the goal orientation
   bool change_goal = false;
-  if (angle < 22.0) {
+  if (angle < 30.0) {
     change_goal = true;
     ++rotation_count_;
     if (rotation_count_ > best_rotation_count_) {
@@ -151,23 +151,42 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   if (change_goal) {
     time_of_last_rotation_ = std::chrono::steady_clock::now();
 
-    // Randomly sample a quaternion
-    // https://stackoverflow.com/a/44031492
-    const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
-    const double s1 = std::sqrt(1.0 - a);
-    const double s2 = std::sqrt(a);
-    const double sb = std::sin(2.0 * mjPI * b);
-    const double cb = std::cos(2.0 * mjPI * b);
-    const double sc = std::sin(2.0 * mjPI * c);
-    const double cc = std::cos(2.0 * mjPI * c);
-    std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+    while (true) {
+      // Randomly sample a quaternion
+      // https://stackoverflow.com/a/44031492
+      const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
+      const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
+      const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
+      const double s1 = std::sqrt(1.0 - a);
+      const double s2 = std::sqrt(a);
+      const double sb = std::sin(2.0 * mjPI * b);
+      const double cb = std::cos(2.0 * mjPI * b);
+      const double sc = std::sin(2.0 * mjPI * c);
+      const double cc = std::cos(2.0 * mjPI * c);
+      std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
 
-    // Set the new goal orientation
-    int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
-    int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-    mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+      // check the new goal is far enough away from the current orientation
+      // only consider rots >= 120 degs
+      std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
+      mju_mulQuat(q_diff.data(), q_goal.data(), q_gco_conj.data());
+      mju_normalize4(q_diff.data());
+      if (q_diff[0] < 0.0) {
+        q_diff[0] *= -1.0;
+        q_diff[1] *= -1.0;
+        q_diff[2] *= -1.0;
+        q_diff[3] *= -1.0;
+      }
+      double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
+      if (angle < 120.0) {
+        continue;
+      }
+
+      // Set the new goal orientation
+      int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+      int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+      mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+      break;
+    }
   }
 
 

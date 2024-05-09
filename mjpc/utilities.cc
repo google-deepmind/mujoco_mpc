@@ -505,8 +505,7 @@ static std::string GetTasksDir() {
   if (tasks_dir) {
     return tasks_dir;
   }
-  // return absl::StrCat(GetExecutableDir(), "/../mjpc/tasks");
-  return "/home/test/build/_deps/mjpc-build/mjpc/tasks";  // [DEBUG] hardcode tasks path
+  return absl::StrCat(GetExecutableDir(), "/../mjpc/tasks");
 }
 
 // convenience function for paths

@@ -2041,12 +2041,6 @@ void Simulate::InitializeRenderLoop() {
 void Simulate::RenderLoop() {
   // run event loop
   while (!this->platform_ui->ShouldCloseWindow() && !this->exitrequest.load()) {
-    // [DEBUG] print the current time
-    auto curr_time = std::chrono::system_clock::now();
-    auto curr_time_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(curr_time);
-    auto curr_time_ms_val = curr_time_ms.time_since_epoch().count();
-    std::cerr << "Current time: " << curr_time_ms_val << std::endl;
-
     {
       const std::lock_guard<std::mutex> lock(this->mtx);
 

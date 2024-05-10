@@ -203,9 +203,6 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     }
   }
 
-
-
-
   if (cube_dropped || change_goal) {
     // Reset stored data in the simulation
     mutex_.unlock();

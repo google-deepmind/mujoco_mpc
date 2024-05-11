@@ -65,7 +65,7 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   counter += model->nu;
 
   // ---------- Nominal Pose ----------
-  mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
+  mju_sub(residual + counter, data->qpos + 11, model->key_qpos + 11, 16);
   counter += 16;
 
   // ---------- Joint Velocity ----------

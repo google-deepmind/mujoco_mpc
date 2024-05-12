@@ -6,18 +6,23 @@
   <worldbody>
     <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" type="plane" conaffinity="1" size="50 50 .05" material="blue_grid"/>
+    <body name="goal" mocap="true" pos=".3 0 0.26">
+      <geom size="0.12" contype="0" conaffinity="0" rgba="0 1 0 .5" group="2"/>
+    </body>
   </worldbody>
 
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="2" />
-    <numeric name="agent_horizon" data="0.5" />
-    <numeric name="agent_timestep" data="0.020" />
+    <numeric name="agent_horizon" data="0.6" />
+    <numeric name="agent_timestep" data="0.02" />
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.05" />
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Torso" data="1.30 1.0 1.7" />
-    <numeric name="residual_Speed" data="0.7 -3.0 3.0" />
+    <numeric name="residual_Speed" data="0.70 -3.0 3.0" />
+    <numeric name="residual_FeetDistance" data="0.4 0.0 1.0" />
+    <numeric name="residual_BalanceSpeed" data="0.3 0.0 1.0" />
 
     <!-- estimator --><!--
     <numeric name="estimator" data="0" />
@@ -33,13 +38,15 @@
     <user name="Height" dim="1" user="7 5.0 0 25.0 0.1 4.0" /> <!--kSmoothAbs2Loss -->
     <user name="Pelvis/Feet" dim="1" user="8 1.0 0.0 10.0 0.05" /> <!--kRectifyLoss-->
     <user name="Balance" dim="2" user="1 5.0 0.0 25.0 0.02 4.0" /> <!--kL22-->
-    <user name="Upright" dim="8" user="2 4.25 0.0 25.0 0.01" /> <!--kL2-->
-    <user name="Posture up" dim="9" user="0 0.02 0 1.0" /> <!--kQuadratic-->
+    <user name="Upright" dim="8" user="2 4.0 0.0 25.0 0.01" /> <!--kL2-->
+    <user name="Posture up" dim="9" user="0 0.020 0 1.0" /> <!--kQuadratic-->
     <user name="Posture down" dim="10" user="0 0.0 0 1.0" /> <!--kQuadratic-->
-    <user name="Walk forward" dim="1" user="7 8.1 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> <!--This has been flipped with velocity after reading the code!!-->
+    <user name="Face forward" dim="1" user="7 2.0 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> 
+    <user name="Walk forward" dim="1" user="7 7.88 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> <!--This has been flipped with velocity after reading the code!!-->
     <user name="Move feet" dim="2" user="7 4.0 0 25.0 0.2 4.0" /> <!--kSmoothAbs2Loss -->
     <user name="Control" dim="19" user="0 0.00005 0.00001 0.001" /> <!--kQuadratic-->
-    <user name="Feet Distance" dim="1" user="7 5.6 0 25.0 0.1 4.0" /> <!--kSmoothAbs2Loss-->
+    <user name="Feet Distance" dim="1" user="7 5.62 0 25.0 0.1 4.0" /> <!--kSmoothAbs2Loss-->
+    <user name="Slippage" dim="2" user="0 0.0 0 50.0" /> <!--kQuadratic-->
 
     <!-- estimator measurements -->
     <!--
@@ -79,7 +86,10 @@
     <subtreelinvel name="torso_subcomvel" body="pelvis"/> <!--pelvis is the root node for the H1-->
     <framepos name="foot_right" objtype="body" objname="right_ankle_link"/><!--wrong-->
     <framepos name="foot_left" objtype="body" objname="left_ankle_link"/><!--wrong-->
+    <framepos name="foot_right_xbody" objtype="xbody" objname="right_ankle_link"/><!--wrong-->
+    <framepos name="foot_left_xbody" objtype="xbody" objname="left_ankle_link"/><!--wrong-->
     <framepos name="pelvis_position" objtype="body" objname="pelvis"/>
+    <framepos name="goal" objtype="xbody" objname="goal"/>
     <framezaxis name="torso_up" objtype="site" objname="upper_torso"/><!--upper_torso is between the shoulders-->
     <framezaxis name="pelvis_up" objtype="xbody" objname="pelvis"/>
     <framezaxis name="foot_right_up" objtype="xbody" objname="right_ankle_link"/><!--wrong-->
@@ -92,5 +102,7 @@
     <framelinvel name="torso_velocity" objtype="body" objname="torso_link"/> <!--might be too low-->
     <framelinvel name="foot_right_velocity" objtype="body" objname="right_ankle_link"/><!--wrong-->
     <framelinvel name="foot_left_velocity" objtype="body" objname="left_ankle_link"/><!--wrong-->
+    <frameangvel name="foot_right_ang_velocity" objtype="body" objname="right_ankle_link"/><!--wrong-->
+    <frameangvel name="foot_left_ang_velocity" objtype="body" objname="left_ankle_link"/><!--wrong-->
   </sensor>
 </mujoco>

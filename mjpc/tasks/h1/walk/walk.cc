@@ -37,9 +37,13 @@ std::string Walk::Name() const { return "H1 Walk"; }
 //     Residual (5): walk
 //     Residual (6): move feet
 //     Residual (7): control
+//     Residual (8): feet distance
+//     Residual (9): slippage
 //   Number of parameters:
 //     Parameter (0): torso height goal
 //     Parameter (1): speed goal
+//     Parameter (2): feet distance goal
+//     Parameter (3): balance speed
 // ----------------------------------------------------------------
 void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
                                 double* residual) const {
@@ -62,7 +66,7 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   double* subcomvel = SensorByName(model, data, "torso_subcomvel");
 
   double capture_point[3];
-  mju_addScl(capture_point, subcom, subcomvel, 0.3, 3);
+  mju_addScl(capture_point, subcom, subcomvel, parameters_[3], 3);
   capture_point[2] = 1.0e-3;
 
   // project onto line segment
@@ -129,12 +133,18 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   double* foot_right_forward = SensorByName(model, data, "foot_right_forward");
   double* foot_left_forward = SensorByName(model, data, "foot_left_forward");
 
+  double forward_target[2];
   double forward[2];
   mju_copy(forward, torso_forward, 2);
   mju_addTo(forward, pelvis_forward, 2);
   mju_addTo(forward, foot_right_forward, 2);
   mju_addTo(forward, foot_left_forward, 2);
   mju_normalize(forward, 2);
+
+  double* goal_point = SensorByName(model, data, "goal");
+  double* torso_position = SensorByName(model, data, "torso_position");
+  mju_sub(forward_target, goal_point, torso_position, 2);
+  mju_normalize(forward_target, 2);
 
   // com vel
   // double* waist_lower_subcomvel =
@@ -147,9 +157,13 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   double com_vel[2];
   mju_copy(com_vel,subcomvel,2); //subcomvel is the velocity of the robot's CoM
 
+  // face forward
+  residual[counter++] =
+      standing * (mju_dot(forward, forward_target, 2) - 1);
+
   // walk forward
   residual[counter++] =
-      standing * (mju_dot(com_vel, forward, 2) - parameters_[1]);
+      standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]);
 
   // ----- move feet ----- //
   double* foot_right_vel = SensorByName(model, data, "foot_right_velocity");
@@ -172,8 +186,17 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_copy(feet_axis, foot_right, 2);
   mju_addToScl(feet_axis, foot_left, -1, 2);
   double feet_distance = mju_norm(feet_axis, 2);
-  residual[counter] = feet_distance - 0.4;
+  residual[counter] = feet_distance - parameters_[2];
   counter += 1;
+  // ----- slippage ----- //
+  double* foot_right_ang_velocity = SensorByName(model, data, "foot_right_ang_velocity");
+  double* foot_left_ang_velocity = SensorByName(model, data, "foot_left_ang_velocity");
+  double* right_foot_xbody = SensorByName(model, data, "foot_right_xbody");
+  double* left_foot_xbody = SensorByName(model, data, "foot_right_xbody");
+  
+  
+  residual[counter++] = (tanh(-(right_foot_xbody[2]-0.0645)/0.001)+1)*0.5*foot_right_ang_velocity[2];
+  residual[counter++] = (tanh(-(left_foot_xbody[2]-0.0645)/0.001)+1)*0.5*foot_left_ang_velocity[2];
 
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function
@@ -189,6 +212,17 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
         "and actual length of residual %d",
         counter);
   }
+}
+
+double Walk::ResidualFn::StepHeight(double time, double footphase,
+                                             double duty_ratio) const {
+  double angle = fmod(time + mjPI - footphase, 2*mjPI) - mjPI;
+  double value = 0;
+  if (duty_ratio < 1) {
+    angle *= 0.5 / (1 - duty_ratio);
+    value = mju_cos(mju_clip(angle, -mjPI/2, mjPI/2));
+  }
+  return mju_abs(value) < 1e-6 ? 0.0 : value;
 }
 
 }  // namespace mjpc::h1

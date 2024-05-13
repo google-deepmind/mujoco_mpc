@@ -132,11 +132,8 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     }
   }
 
-  double *cube_lin_vel = SensorByName(model, data, "cube_linear_velocity");
-  bool cube_dropped = on_floor && mju_norm3(cube_lin_vel) < 0.001;
-
   // Reset the cube to be on the hand if needed
-  if (cube_dropped) {
+  if (on_floor) {
     int cube_body = mj_name2id(model, mjOBJ_BODY, "cube");
     if (cube_body != -1) {
       int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
@@ -156,7 +153,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
           std::chrono::steady_clock::now() - time_of_last_rotation_)
           .count();
 
-  if (cube_dropped || time_since_last_rotation_ > 60.0) {  // 60 second timeout
+  if (on_floor || time_since_last_rotation_ > 60.0) {  // 60 second timeout
     time_of_last_reset_ = std::chrono::steady_clock::now();
     rotation_count_ = 0;
     change_goal = true;

@@ -56,7 +56,7 @@
   <sensor>
     <!-- Residuals -->
     <user name="Cube Position" dim="3" user="1 100 0 200 0.02 10" />
-    <user name="Cube Orientation" dim="3" user="0 5 0 10" />
+    <user name="Cube Orientation" dim="3" user="0 2 0 10" />
     <user name="Cube Velocity" dim="3" user="0 0 0 10" />
     <user name="Actuation" dim="16" user="0 0.0 0.0 10" />
     <user name="Grasp" dim="16" user="0 0.5 0.0 10" />

@@ -8,19 +8,19 @@
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="5" />
-    <numeric name="agent_horizon" data="0.6" />
+    <numeric name="agent_horizon" data="0.5" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.2" />
     <numeric name="sampling_trajectories" data="125" />
-    <numeric name="sampling_representation" data="2" />
+    <numeric name="sampling_representation" data="1" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
 
     <!-- cem -->
-    <numeric name="n_elite" data="3" />
-    <numeric name="std_min" data="0.4" />
+    <numeric name="n_elite" data="5" />
+    <numeric name="std_min" data="0.3" />
 
     <!-- Rotation counters -->
     <numeric name="residual_Curr # Rots" data="0 0 1000000"/>
@@ -59,7 +59,7 @@
     <user name="Cube Orientation" dim="3" user="0 5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 0 0 10" />
     <user name="Actuation" dim="16" user="0 0.0 0.0 10" />
-    <user name="Grasp" dim="16" user="0 1.0 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.5 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />
 
     <!-- Measurements we want to use -->

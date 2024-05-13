@@ -45,7 +45,7 @@
   <worldbody>
     <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
       directional="true" castshadow="true" />
-    <geom name="floor" pos="0 0 -0.3" size="0 0 0.05" type="plane" material="blue_grid" />
+    <geom name="floor" pos="0 0 -0.25" size="0 0 0.05" type="plane" material="blue_grid" />
     <body name="goal" pos="0.325 0.17 0.0475">
       <joint type="ball" damping="0.001" frictionloss="0.0"/>
       <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" />

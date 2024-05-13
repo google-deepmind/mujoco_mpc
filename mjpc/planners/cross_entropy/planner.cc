@@ -35,6 +35,7 @@
 namespace mjpc {
 
 namespace mju = ::mujoco::util_mjpc;
+using mjpc::spline::SplineInterpolation;
 using mjpc::spline::TimeSpline;
 
 // initialize data and settings
@@ -59,6 +60,8 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
+  interpolation_ = GetNumberOrDefault(SplineInterpolation::kCubicSpline, model,
+                                      "sampling_representation");
 
   // set number of elite samples max(best 10%, 2)
   n_elite_ =

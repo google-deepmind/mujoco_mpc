@@ -34,7 +34,7 @@
   </asset>
   <default>
     <position kp="0.25" kv="0.005" />
-    <joint frictionloss="0.05" />
+    <joint damping="0.01" />
     <default class="visual">
       <geom group="2" type="mesh" contype="0" conaffinity="0" density="0" material="black" />
     </default>

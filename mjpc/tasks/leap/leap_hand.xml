@@ -15,7 +15,7 @@
       - Change the initial orientation of the palm
   -->
 
-  <compiler angle="radian" meshdir="./meshes/" texturedir="./meshes/" />
+  <compiler angle="radian" meshdir="./meshes/" />
   <option cone="elliptic" impratio="10" />
   <asset>
     <material name="black" rgba="0.2 0.2 0.2 1" />

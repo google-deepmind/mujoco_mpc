@@ -102,7 +102,6 @@ void Agent::Initialize(const mjModel* model) {
 
   // time step
   timestep_ = GetNumberOrDefault(1.0e-2, model, "agent_timestep");
-  printf("Agent timestep %.3f\n", timestep_);
 
   // planning steps
   steps_ = mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);

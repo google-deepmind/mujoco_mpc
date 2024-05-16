@@ -64,7 +64,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   counter += model->nu;
 
   // ---------- Nominal Pose ----------
-  mju_sub(residual + counter, data->qpos + 11, model->key_qpos + 11, 16);
+  mju_sub(residual + counter, data->qpos + 7, model->key_qpos + 7, 16);
   counter += 16;
 
   // ---------- Joint Velocity ----------
@@ -194,7 +194,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
       if (angle >= 120.0) {
         int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
         int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-        mju_copy(data->qpos + jnt_qposadr, q_goal.data(), 4);
+        mju_copy(data->mocap_quat + jnt_qposadr, q_goal.data(), 4);
         break;
       }
     }

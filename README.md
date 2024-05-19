@@ -96,8 +96,8 @@ sudo apt-get install libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-de
 
 ### Build Issues
 If you encounter build issues, please see the
-[Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml). 
-This provides the exact setup we use for building MJPC for testing. 
+[Github Actions configuration](https://github.com/google-deepmind/mujoco_mpc/blob/main/.github/workflows/build.yml).
+This provides the exact setup we use for building MJPC for testing.
 
 We recommend building with `clang` and not `gcc`.
 

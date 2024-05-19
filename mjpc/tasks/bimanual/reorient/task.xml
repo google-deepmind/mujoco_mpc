@@ -32,7 +32,7 @@
   <sensor>
     <user name="Reach L" dim="3" user="2 0.1 0 .5 0.005"/>
     <user name="Reach R" dim="3" user="2 0.1 0 .5 0.005"/>
-    <user name="Bring" dim="3" user="2 1 0 1 0.003"/>
+    <user name="Bring" dim="3" user="2 1 0 5 0.003"/>
     <user name="Cube Orientation" dim="3" user="0 0.02 0 .2" />
     <user name="Cube Velocity" dim="3" user="0 .01 0 .2" />
     <framequat name="cube_goal_orientation" objtype="body" objname="goal"/>

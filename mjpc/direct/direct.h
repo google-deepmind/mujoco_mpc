@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
-
 #include "mjpc/direct/model_parameters.h"
 #include "mjpc/direct/trajectory.h"
 #include "mjpc/norm.h"
@@ -292,19 +291,19 @@ class Direct {
   void ParameterJacobian(int index);
 
   // dimensions
-  int nstate_;
-  int ndstate_;
-  int nsensordata_;
-  int nsensor_;
+  int nstate_ = 0;
+  int ndstate_ = 0;
+  int nsensordata_ = 0;
+  int nsensor_ = 0;
 
-  int ntotal_;  // total number of decision variable
-  int nvel_;    // number of configuration (derivatives) variables
-  int nparam_;  // number of parameter variable (ndense)
-  int nband_;   // cost Hessian band dimension
+  int ntotal_ = 0;  // total number of decision variable
+  int nvel_ = 0;    // number of configuration (derivatives) variables
+  int nparam_ = 0;  // number of parameter variable (ndense)
+  int nband_ = 0;   // cost Hessian band dimension
 
   // sensor indexing
-  int sensor_start_;
-  int sensor_start_index_;
+  int sensor_start_ = 0;
+  int sensor_start_index_ = 0;
 
   // perturbed models (for parameter estimation)
   std::vector<UniqueMjModel> model_perturb_;
@@ -313,15 +312,15 @@ class Direct {
   std::vector<UniqueMjData> data_;
 
   // cost
-  double cost_sensor_;
-  double cost_force_;
-  double cost_parameter_;
-  double cost_;
-  double cost_initial_;
-  double cost_previous_;
+  double cost_sensor_ = 0.0;
+  double cost_force_ = 0.0;
+  double cost_parameter_ = 0.0;
+  double cost_ = 0.0;
+  double cost_initial_ = 0.0;
+  double cost_previous_ = 0.0;
 
   // lengths
-  int configuration_length_;  // T
+  int configuration_length_ = 0;  // T
 
   // configuration copy
   DirectTrajectory<double> configuration_copy_;  // nq x max_history_
@@ -443,58 +442,58 @@ class Direct {
   // dense cost Hessian rows (for parameter derivatives)
   std::vector<double> dense_force_parameter_;   // nparam x ntotal
   std::vector<double> dense_sensor_parameter_;  // nparam x ntotal
-  std::vector<double> dense_parameter_;   // nparam x ntotal
+  std::vector<double> dense_parameter_;         // nparam x ntotal
 
   // model parameters
   std::vector<std::unique_ptr<mjpc::ModelParameters>> model_parameters_;
-  int model_parameters_id_;
+  int model_parameters_id_ = 0;
 
   // status (internal)
-  int cost_count_;          // number of cost evaluations
+  int cost_count_ = 0;      // number of cost evaluations
   bool cost_skip_ = false;  // flag for only evaluating cost derivatives
 
   // status (external)
-  int iterations_smoother_;       // total smoother iterations after Optimize
-  int iterations_search_;         // total line search iterations
-  double gradient_norm_;          // norm of cost gradient
-  double regularization_;         // regularization
-  double step_size_;              // step size for line search
-  double search_direction_norm_;  // search direction norm
-  DirectStatus solve_status_;     // solve status
-  double cost_difference_;        // cost difference: abs(cost - cost_previous)
-  double improvement_;            // cost improvement
-  double expected_;               // expected cost improvement
-  double reduction_ratio_;  // reduction ratio: cost_improvement / expected cost
-                            // improvement
+  int iterations_smoother_ = 0;  // total smoother iterations after Optimize
+  int iterations_search_ = 0;    // total line search iterations
+  double gradient_norm_ = 0.0;   // norm of cost gradient
+  double regularization_ = 0.0;  // regularization
+  double step_size_ = 0.0;       // step size for line search
+  double search_direction_norm_ = 0.0;     // search direction norm
+  DirectStatus solve_status_ = kUnsolved;  // solve status
+  double cost_difference_ = 0.0;  // cost difference: abs(cost - cost_previous)
+  double improvement_ = 0.0;      // cost improvement
+  double expected_ = 0.0;         // expected cost improvement
+  double reduction_ratio_ = 0.0;  // reduction ratio: cost_improvement /
+                                  // expected cost improvement
 
   // timers
   struct DirectTimers {
-    double inverse_dynamics_derivatives;
-    double velacc_derivatives;
-    double jacobian_sensor;
-    double jacobian_force;
-    double jacobian_total;
-    double cost_sensor_derivatives;
-    double cost_force_derivatives;
-    double cost_total_derivatives;
-    double cost_gradient;
-    double cost_hessian;
-    double cost_derivatives;
-    double cost;
-    double cost_sensor;
-    double cost_force;
-    double cost_config_to_velacc;
-    double cost_prediction;
-    double residual_sensor;
-    double residual_force;
-    double search_direction;
-    double search;
-    double configuration_update;
-    double optimize;
-    double update_trajectory;
+    double inverse_dynamics_derivatives = 0.0;
+    double velacc_derivatives = 0.0;
+    double jacobian_sensor = 0.0;
+    double jacobian_force = 0.0;
+    double jacobian_total = 0.0;
+    double cost_sensor_derivatives = 0.0;
+    double cost_force_derivatives = 0.0;
+    double cost_total_derivatives = 0.0;
+    double cost_gradient = 0.0;
+    double cost_hessian = 0.0;
+    double cost_derivatives = 0.0;
+    double cost = 0.0;
+    double cost_sensor = 0.0;
+    double cost_force = 0.0;
+    double cost_config_to_velacc = 0.0;
+    double cost_prediction = 0.0;
+    double residual_sensor = 0.0;
+    double residual_force = 0.0;
+    double search_direction = 0.0;
+    double search = 0.0;
+    double configuration_update = 0.0;
+    double optimize = 0.0;
+    double update_trajectory = 0.0;
     std::vector<double> sensor_step;
     std::vector<double> force_step;
-    double update;
+    double update = 0.0;
   } timer_;
 
   // max history

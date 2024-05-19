@@ -149,12 +149,25 @@ If you encounter build issues, please see the
 This provides the exact setup we use for building MJPC for testing with Ubuntu 20.04 and macOS-12.
 
 # Python API
+We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibility and may be difficult to debug without more in-depth knowledge about MuJoCo and MJPC.
 
-We provide a simple Python API for MJPC. This API is still experimental and expects some more experience from its users. For example, the correct usage requires that the model (defined in Python) and the MJPC task (i.e., the residual and transition functions defined in C++) are compatible with each other. Currently, the Python API does not provide any particular error handling for verifying this compatibility and may be difficult to debug without more in-depth knowledge about mujoco and MJPC.
+## Installation
 
-## Installing via Pip
-First, build MJPC (see above).
+### Prerequisites
+1. Build MJPC (see instructions above).
 
+2. Create a conda environment with **Python 3.10**:
+```sh
+conda create -n mjpc python=3.10
+conda activate mjpc
+```
+
+3. Install MuJoCo
+```sh
+pip install mujoco
+```
+
+### Install API
 Next, change to the python directory:
 ```sh
 cd python
@@ -170,11 +183,14 @@ Test that installation was successful:
 python "mujoco_mpc/agent_test.py"
 ```
 
-Additionally, the [Python version of MuJoCo](https://pypi.org/project/mujoco/#history) should match the MJPC version (this information can be found in the terminal while the application is running).
+Example scripts are found in `python/mujoco_mpc/demos`. For example from `python/`:
+```sh
+python mujoco_mpc/demos/agent/cartpole_gui.py
+```
+will run the MJPC GUI application using MuJoCo's passive viewer via Python.
 
-
-## Example Usage
-See [cartpole.py](python/mujoco_mpc/demos/agent/cartpole.py) for example usage for planning.
+### Python API Installation Issues
+If your installation fails or is terminated prematurely, we recommend deleting the MJPC build directory and starting from scratch as the build will likely be corrupted.
 
 ## Predictive Control
 

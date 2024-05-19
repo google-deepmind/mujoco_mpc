@@ -278,7 +278,7 @@ setuptools.setup(
         "Topic :: Scientific/Engineering",
     ],
     packages=setuptools.find_packages(),
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     setup_requires=[
         "grpcio-tools",
         "grpcio",

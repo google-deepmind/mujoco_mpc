@@ -22,6 +22,7 @@
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/states/state.h"
 #include "mjpc/task.h"
 #include "mjpc/threadpool.h"
@@ -135,6 +136,8 @@ class CrossEntropyPlanner : public Planner {
   double rollouts_compute_time;
   double policy_update_compute_time;
 
+  mjpc::spline::SplineInterpolation interpolation_ =
+      mjpc::spline::SplineInterpolation::kZeroSpline;
   int num_trajectory_;
   mutable std::shared_mutex mtx_;
 };

@@ -15,15 +15,16 @@
 
 """Predictive sampling for MPC."""
 
-from typing import Callable, Tuple
+from typing import Any, Callable, Tuple
 
-from brax.base import State
+from brax import base as brax_base
 import jax
 from jax import numpy as jnp
 from mujoco import mjx
 from mujoco.mjx._src import dataclasses
 
-CostFn = Callable[[mjx.Model, mjx.Data], jax.Array]
+
+CostFn = Callable[[mjx.Model, mjx.Data, Any], Tuple[jax.Array, Any]]
 
 
 class Planner(dataclasses.PyTreeNode):
@@ -45,15 +46,18 @@ class Planner(dataclasses.PyTreeNode):
   nspline: int
   nsample: int
   interp: str
+  instruction_fn: Callable[[mjx.Model, mjx.Data], Any]
 
 
-def _rollout(p: Planner, d: mjx.Data, policy: jax.Array) -> jax.Array:
+def _rollout(
+    p: Planner, d: mjx.Data, instruction: Any, policy: jax.Array
+) -> jax.Array:
   """Expand the policy into actions and roll out dynamics and cost."""
   actions = get_actions(p, policy)
 
   def step(d, action):
     d = d.replace(ctrl=action)
-    cost = p.cost(p.model, d)
+    cost, _ = p.cost(p.model, d, instruction)
     d = mjx.step(p.model, d)
     return d, cost
 
@@ -78,10 +82,16 @@ def get_actions(p: Planner, policy: jax.Array) -> jax.Array:
 
 
 def improve_policy(
-    p: Planner, d: mjx.Data, policy: jax.Array, rng: jax.Array
+    p: Planner,
+    data: mjx.Data,
+    instruction: Any,
+    policy: jax.Array,
+    rng: jax.Array,
 ) -> Tuple[jax.Array, jax.Array]:
   """Improves policy."""
 
+  # without this, data may be uninitialized
+  data = mjx.kinematics(p.model, data)
   # create noisy policies, with nominal policy at index 0
   noise = (
       jax.random.normal(rng, (p.nsample, p.nspline, p.model.nu)) * p.noise_scale
@@ -91,7 +101,9 @@ def improve_policy(
   limit = p.model.actuator_ctrlrange
   policies = jnp.clip(policies, limit[:, 0], limit[:, 1])
   # perform nsample + 1 parallel rollouts
-  costs = jax.vmap(_rollout, in_axes=(None, None, 0))(p, d, policies)
+  costs = jax.vmap(_rollout, in_axes=(None, None, None, 0))(
+      p, data, instruction, policies
+  )
   costs = jnp.nan_to_num(costs, nan=jnp.inf)
   winners = jnp.argmin(costs)
 
@@ -117,6 +129,7 @@ def set_state(d, state):
       time=state.time, qpos=state.qpos, qvel=state.qvel, act=state.act,
       ctrl=state.ctrl)
 
+
 def mpc_rollout(
     nsteps,
     steps_per_plan,
@@ -127,36 +140,39 @@ def mpc_rollout(
     sim_data,
 ):
   """Receding horizon optimization starting from sim_data's state."""
-  plan_data = mjx.make_data(p.model)
-
   def plan_and_step(carry, rng):
     sim_data, policy = carry
+    sim_data = mjx.kinematics(sim_model, sim_data)
+    instruction, userdata = p.instruction_fn(sim_model, sim_data)
+    sim_data = sim_data.replace(userdata=userdata)
     policy = resample(p, policy, steps_per_plan)
     policy, _ = improve_policy(
         p,
-        set_state(plan_data, sim_data),
+        set_state(mjx.make_data(p.model), sim_data),
+        instruction,
         policy,
         rng,
     )
     def step(d, action):
       d = d.replace(ctrl=action)
-      cost = p.cost(sim_model, d)
+      cost, (terms, _) = p.cost(sim_model, d, instruction)
       d = mjx.step(sim_model, d)
       return d, (
           cost,
-          State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),
+          brax_base.State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),  # pytype: disable=wrong-arg-types
+          terms,
       )
     actions = get_actions(p, policy)
-    sim_data, (cost, traj) = jax.lax.scan(
+    sim_data, (cost, traj, terms) = jax.lax.scan(
         step,
         sim_data,
         actions[:steps_per_plan, :],
     )
-    return (sim_data, policy), (cost, traj)
+    return (sim_data, policy), (cost, traj, terms)
 
-  (sim_data, final_policy), (costs, trajs) = jax.lax.scan(
+  (sim_data, final_policy), (costs, trajs, terms) = jax.lax.scan(
       plan_and_step,
       (sim_data, init_policy),
       jax.random.split(rng, nsteps // steps_per_plan),
   )
-  return sim_data, final_policy, costs.flatten(), trajs
+  return sim_data, final_policy, costs.flatten(), trajs, terms

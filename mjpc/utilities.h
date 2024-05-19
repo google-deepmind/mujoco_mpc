@@ -100,6 +100,9 @@ int ParameterIndex(const mjModel* model, std::string_view name);
 
 int CostTermByName(const mjModel* m, const std::string& name);
 
+// return total size of sensors of type user
+int ResidualSize(const mjModel* model);
+
 // sanity check that residual size equals total user-sensor dimension
 void CheckSensorDim(const mjModel* model, int residual_size);
 

@@ -19,6 +19,7 @@
 
 #include <mujoco/mujoco.h>
 #include "mjpc/planners/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -62,7 +63,7 @@ class GradientPolicy : public Policy {
   std::vector<double> times;
   int num_parameters;
   int num_spline_points;
-  PolicyRepresentation representation;
+  mjpc::spline::SplineInterpolation representation;
 };
 
 }  // namespace mjpc

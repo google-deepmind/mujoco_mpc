@@ -100,6 +100,9 @@ class iLQSPlanner : public Planner {
   std::vector<double> inversemappingT;
   std::vector<double> inversemapping;
 
+  std::vector<double> spline_times_cache;
+  std::vector<double> spline_parameters_cache;
+
   // mapping dimensions
   int dim_actions;
   int dim_parameters;

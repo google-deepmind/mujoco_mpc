@@ -72,7 +72,7 @@ void Agent::Initialize(const mjModel* model, const mjModel* estimator_model) {
   // ----- model ----- //
 
   // planner model
-  if (model_) mj_deleteModel(model_);
+  mjModel* old_model = model_;
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
   // estimator model
@@ -162,6 +162,12 @@ void Agent::Initialize(const mjModel* model, const mjModel* estimator_model) {
   // planner threads
   planner_threads_ =
       std::max(1, NumAvailableHardwareThreads() - 3 - 2 * estimator_threads_);
+
+  // delete the previous model after all the planners have been updated to use
+  // the new one.
+  if (old_model) {
+    mj_deleteModel(old_model);
+  }
 }
 
 // allocate memory
@@ -664,7 +670,7 @@ void Agent::GUI(mjUI& ui) {
                         {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
                         {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
                         {mjITEM_SELECT, "Integrator", 2, &integrator_,
-                         "Euler\nRK4\nImplicit\nFastImplicit"},
+                         "Euler\nRK4\nImplicit\nImplicitFast"},
                         {mjITEM_SEPARATOR, "Planner Settings", 1},
                         {mjITEM_END}};
 

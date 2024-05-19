@@ -18,12 +18,15 @@
 #include <mujoco/mujoco.h>
 
 #include <atomic>
+#include <cstdint>
 #include <shared_mutex>
 #include <vector>
 
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
@@ -71,7 +74,7 @@ class SamplingPlanner : public RankedPlanner {
   void UpdateNominalPolicy(int horizon);
 
   // add noise to nominal policy
-  void AddNoiseToPolicy(int i);
+  void AddNoiseToPolicy(double start_time, int i);
 
   // compute candidate trajectories
   void Rollouts(int num_trajectory, int horizon, ThreadPool& pool);
@@ -91,7 +94,7 @@ class SamplingPlanner : public RankedPlanner {
 
   // return number of parameters optimized by planner
   int NumParameters() override {
-    return policy.num_spline_points * policy.model->nu;
+    return policy.num_spline_points * model->nu;
   };
 
   // optimizes policies, but rather than picking the best, generate up to
@@ -124,8 +127,7 @@ class SamplingPlanner : public RankedPlanner {
   SamplingPolicy previous_policy;
 
   // scratch
-  std::vector<double> parameters_scratch;
-  std::vector<double> times_scratch;
+  mjpc::spline::TimeSpline plan_scratch;
 
   // trajectories
   Trajectory trajectory[kMaxTrajectory];
@@ -134,9 +136,10 @@ class SamplingPlanner : public RankedPlanner {
   std::vector<int> trajectory_order;
 
   // ----- noise ----- //
-  double noise_exploration;  // standard deviation for sampling normal: N(0,
-                             // exploration)
+  double noise_exploration[2] = {0};  // stds for sampling: N(0, exploration)
   std::vector<double> noise;
+mjpc::spline::SplineInterpolation interpolation_ =
+      mjpc::spline::SplineInterpolation::kZeroSpline;
 
   // best trajectory
   int winner;
@@ -151,6 +154,9 @@ class SamplingPlanner : public RankedPlanner {
   std::atomic<double> noise_compute_time;
   double rollouts_compute_time;
   double policy_update_compute_time;
+
+  // If true, use sliding plans (no resampling)
+  std::uint8_t sliding_plan_ = false;
 
   int num_trajectory_;
   mutable std::shared_mutex mtx_;

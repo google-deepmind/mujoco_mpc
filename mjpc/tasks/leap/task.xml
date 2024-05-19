@@ -7,7 +7,7 @@
 
   <!-- make contacts rigid for visual realism -->
   <default>
-    <geom solimp="0.99 0.99 0.01 0.5 1"/>
+    <geom solimp="0.9 0.99 0.001 0.5 4"/>
   </default>
 
   <custom>
@@ -24,7 +24,7 @@
     <numeric name="gradient_spline_points" data="6" />
 
     <!-- cem -->
-    <numeric name="n_elite" data="5" />
+    <numeric name="n_elite" data="3" />
     <numeric name="std_min" data="0.5" />
 
     <!-- Rotation counters -->
@@ -63,7 +63,7 @@
     <user name="Cube Orientation" dim="3" user="0 5 0 10" />
     <user name="Cube Velocity" dim="3" user="0 0 0 10" />
     <user name="Actuation" dim="16" user="0 0.0 0.0 10" />
-    <user name="Grasp" dim="16" user="0 1.0 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.1 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />
 
     <!-- Measurements we want to use -->

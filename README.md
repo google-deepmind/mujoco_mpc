@@ -190,7 +190,7 @@ python mujoco_mpc/demos/agent/cartpole_gui.py
 will run the MJPC GUI application using MuJoCo's passive viewer via Python.
 
 ### Python API Installation Issues
-If your installation fails or is terminated prematurely, we recommend deleting the MJPC build directory and starting from scratch as the build will likely be corrupted.
+If your installation fails or is terminated prematurely, we recommend deleting the MJPC build directory and starting from scratch as the build will likely be corrupted. Additionally, delete the files generated during the installation process from the `python/` directory.
 
 ## Predictive Control
 

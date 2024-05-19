@@ -14,13 +14,13 @@
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.2" />
     <numeric name="sampling_trajectories" data="125" />
-    <numeric name="sampling_representation" data="1" />
+    <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
 
     <!-- cem -->
     <numeric name="n_elite" data="5" />
-    <numeric name="std_min" data="0.3" />
+    <numeric name="std_min" data="0.5" />
 
     <!-- Rotation counters -->
     <numeric name="residual_Curr # Rots" data="0 0 1000000"/>
@@ -72,6 +72,6 @@
 
   <keyframe>
     <key name="home"
-      qpos="0.15 0.025 0.075 1 0 0 0 0.5 -0.75 0.75 0.25 0.5 0 0.75 0.25 0.5 0.75 0.75 0.25 0.65 0.9 0.75 0.6" />
+      qpos="0.1 0.025 0.075 1 0 0 0 0.5 -0.75 0.75 0.25 0.5 0 0.75 0.25 0.5 0.75 0.75 0.25 0.65 0.9 0.75 0.6" />
   </keyframe>
 </mujoco>

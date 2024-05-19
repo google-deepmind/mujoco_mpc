@@ -156,13 +156,15 @@ We provide a simple Python API for MJPC. This API is still experimental and expe
 ### Prerequisites
 1. Build MJPC (see instructions above).
 
-2. Create a conda environment with **Python 3.10**:
+2. Python 3.10
+
+3. (Optionally) Create a conda environment with **Python 3.10**:
 ```sh
 conda create -n mjpc python=3.10
 conda activate mjpc
 ```
 
-3. Install MuJoCo
+4. Install MuJoCo
 ```sh
 pip install mujoco
 ```

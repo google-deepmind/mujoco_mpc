@@ -5,6 +5,11 @@
 
   <option integrator="implicitfast" iterations="100" ls_iterations="50" />
 
+  <!-- make contacts rigid for visual realism -->
+  <default>
+    <geom solimp="0.995 0.995 0.01 0.5 1"/>
+  </default>
+
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="5" />

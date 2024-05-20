@@ -38,7 +38,7 @@
   <statistic extent="0.4" center="0.3 0.1 0" />
   <visual>
     <quality shadowsize="8192" />
-    <global azimuth="180" elevation="-30" />
+    <global azimuth="180" elevation="-30" offheight="376" offwidth="672" fovy="70"/>
   </visual>
 
   <!-- Set default friction coefficient -->
@@ -54,6 +54,10 @@
     <body name="goal" mocap="true" pos="0.325 0.17 0.0475">
       <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" />
     </body>
+
+    <!-- adding cameras for simulated rendering -->
+    <camera name="cam1" pos="0.008581479 0.14786571 0.1259940" mode="fixed" fovy="70" quat="-0.82047324 0.4247082 0.1759199 -0.33985114" />
+    <camera name="cam2" pos="0.008581479 -0.14786571 0.1259940" mode="fixed" fovy="70" quat="-0.33985114 0.1759199  0.4247082 -0.82047324" />
   </worldbody>
 
 

@@ -98,7 +98,7 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
     if (cube_body != -1) {
       int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
       int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
-      mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
+      mju_copy(data->qpos + jnt_qposadr, model->key_qpos + jnt_qposadr, 7);
       mju_zero(data->qvel + jnt_veladr, 6);
     }
 

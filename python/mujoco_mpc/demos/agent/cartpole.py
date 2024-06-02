@@ -14,7 +14,7 @@
 
 # %%
 import matplotlib.pyplot as plt
-# import mediapy as media
+import mediapy as media
 import mujoco
 import numpy as np
 import pathlib

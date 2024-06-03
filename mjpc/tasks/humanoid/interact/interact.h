@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #ifndef MJPC_TASKS_HUMANOID_INTERACT_TASK_H_
 #define MJPC_TASKS_HUMANOID_INTERACT_TASK_H_
 
@@ -43,7 +44,7 @@ const std::vector<std::vector<double>> default_weights = {{10,10,5,5,0,20,30,0,0
 };
 
 // ----------- Default colors for the contact pair points ------------ //
-constexpr float CONTACT_POINTS_COLOR[NUMBER_OF_CONTACT_PAIRS][4] = {
+constexpr float CONTACT_POINTS_COLOR[kNumberOfContactPairsInteract][4] = {
   {0., 0., 1., 0.8}, // blue
   {0., 1., 0., 0.8}, // green
   {0., 1., 1., 0.8}, // cyan

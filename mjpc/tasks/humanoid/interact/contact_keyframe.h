@@ -1,3 +1,17 @@
+// Copyright 2022 DeepMind Technologies Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef CONTACT_KEYFRAME_H
 #define CONTACT_KEYFRAME_H
 
@@ -9,18 +23,18 @@ using json = nlohmann::json;
 namespace mjpc::humanoid {
 
 // ---------- Constants ----------------- //
-constexpr int NOT_SELECTED = -1;
-constexpr int NUMBER_OF_CONTACT_PAIRS = 5;
+constexpr int kNotSelectedInteract = -1;
+constexpr int kNumberOfContactPairsInteract = 5;
 
 class ContactPair {
 public:
     int body1, body2, geom1, geom2;
     mjtNum local_pos1[3], local_pos2[3];
 
-    ContactPair() : body1(NOT_SELECTED),
-                body2(NOT_SELECTED),
-                geom1(NOT_SELECTED),
-                geom2(NOT_SELECTED),
+    ContactPair() : body1(kNotSelectedInteract),
+                body2(kNotSelectedInteract),
+                geom1(kNotSelectedInteract),
+                geom2(kNotSelectedInteract),
                 local_pos1{0.},
                 local_pos2{0.} {}
     
@@ -30,7 +44,7 @@ public:
 class ContactKeyframe {
 public:
     std::string name;
-    ContactPair contact_pairs[NUMBER_OF_CONTACT_PAIRS]; 
+    ContactPair contact_pairs[kNumberOfContactPairsInteract]; 
 
     // the direction on the xy-plane for the torso to point towards   
     std::vector<mjtNum> facing_target; 

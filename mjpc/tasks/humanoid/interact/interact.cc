@@ -99,9 +99,9 @@ void Interact::ResidualFn::FacingDirectionResidual(const mjModel* model, const m
 
 void Interact::ResidualFn::ContactResidual(const mjModel* model, const mjData* data,
                 double* residual, int& counter) const {
-  for (int i=0; i<NUMBER_OF_CONTACT_PAIRS; i++) {
+  for (int i=0; i<kNumberOfContactPairsInteract; i++) {
     const ContactPair& contact = residual_keyframe_.contact_pairs[i];
-    if (contact.body1 != NOT_SELECTED && contact.body2 != NOT_SELECTED) {
+    if (contact.body1 != kNotSelectedInteract && contact.body2 != kNotSelectedInteract) {
       mjtNum tmp1[3];
       mjtNum selected_global_pos1[3];
       mju_mulMatVec(tmp1, 
@@ -197,16 +197,16 @@ void Interact::TransitionLocked(mjModel* model, mjData* data) {
 void Interact::ModifyScene(const mjModel* model, const mjData* data,
                            mjvScene* scene) const {
   // add visuals for the contact points
-  for (int i=0; i<NUMBER_OF_CONTACT_PAIRS; i++) {
+  for (int i=0; i<kNumberOfContactPairsInteract; i++) {
     double sz[3] = {0.03};
     const ContactPair contact = residual_.residual_keyframe_.contact_pairs[i];
-    if (contact.body1 != NOT_SELECTED) {
+    if (contact.body1 != kNotSelectedInteract) {
       mjtNum global[3];
       mju_mulMatVec(global, data->xmat+9*contact.body1, contact.local_pos1, 3, 3);
       mju_addTo(global, data->xpos+3*contact.body1, 3);
       AddGeom(scene, mjGEOM_SPHERE, sz, global, nullptr, CONTACT_POINTS_COLOR[i]);
     }
-    if (contact.body2 != NOT_SELECTED) {
+    if (contact.body2 != kNotSelectedInteract) {
       mjtNum global[3];
       mju_mulMatVec(global, data->xmat+9*contact.body2, contact.local_pos2, 3, 3);
       mju_addTo(global, data->xpos+3*contact.body2, 3);

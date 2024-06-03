@@ -17,7 +17,7 @@
     <material name="wood" rgba="0.25 0.15 0.04 1"/>
   </asset>
 
-    <keyframe>
+  <keyframe>
     <!--
     The values below are split into rows for readibility:
       torso position :    3
@@ -32,7 +32,7 @@
       qpos="-0.38    
       0.015   
       0.82    
-      1       
+      1.00       
       -0.032   
       -0.004   
       -0.051   

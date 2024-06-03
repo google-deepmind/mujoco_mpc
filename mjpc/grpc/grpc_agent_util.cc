@@ -14,7 +14,6 @@
 
 #include "mjpc/grpc/grpc_agent_util.h"
 
-#include <cstring>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -521,9 +520,7 @@ mjpc::UniqueMjModel LoadModelFromString(std::string_view xml, char* error,
   // mjVFS structs need to be allocated on the heap, because it's ~2MB
   auto vfs = std::make_unique<mjVFS>();
   mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, xml.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  std::memcpy(vfs->filedata[file_idx], xml.data(), xml.size());
+  mj_addBufferVFS(vfs.get(), file, xml.data(), xml.size());
   mjpc::UniqueMjModel m = {mj_loadXML(file, vfs.get(), error, error_size),
                            mj_deleteModel};
   mj_deleteFileVFS(vfs.get(), file);
@@ -535,9 +532,7 @@ mjpc::UniqueMjModel LoadModelFromBytes(std::string_view mjb) {
   // mjVFS structs need to be allocated on the heap, because it's ~2MB
   auto vfs = std::make_unique<mjVFS>();
   mj_defaultVFS(vfs.get());
-  mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
-  int file_idx = mj_findFileVFS(vfs.get(), file);
-  memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+  mj_addBufferVFS(vfs.get(), file, mjb.data(), mjb.size());
   mjpc::UniqueMjModel m = {mj_loadModel(file, vfs.get()), mj_deleteModel};
   mj_deleteFileVFS(vfs.get(), file);
   return m;

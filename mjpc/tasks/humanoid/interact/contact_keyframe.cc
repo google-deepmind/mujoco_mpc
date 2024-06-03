@@ -15,6 +15,7 @@
 #include "mjpc/tasks/humanoid/interact/contact_keyframe.h"
 
 namespace mjpc::humanoid {
+
 void ContactPair::Reset() {
   body1 = kNotSelectedInteract;
   body2 = kNotSelectedInteract;

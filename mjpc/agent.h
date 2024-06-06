@@ -35,219 +35,275 @@
 namespace mjpc {
 
 // figures
-struct AgentPlots {
-  mjvFigure action;
-  mjvFigure cost;
-  mjvFigure planner;
-  mjvFigure timer;
-};
+    struct AgentPlots {
+        mjvFigure action;
+        mjvFigure cost;
+        mjvFigure planner;
+        mjvFigure timer;
+    };
 
-class Agent {
- public:
-  friend class AgentTest;
+    class Agent {
+    public:
+        friend class AgentTest;
 
-  // constructor
-  Agent()
-      : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
-  explicit Agent(const mjModel* model, std::shared_ptr<Task> task);
+        // constructor
+        Agent()
+                : planners_(mjpc::LoadPlanners()), estimators_(mjpc::LoadEstimators()) {}
 
-  // destructor
-  ~Agent() {
-    if (model_) mj_deleteModel(model_);  // we made a copy in Initialize
-  }
+        explicit Agent(const mjModel *model, std::shared_ptr<Task> task);
 
-  // ----- methods ----- //
+        // destructor
+        ~Agent() {
+            if (model_) mj_deleteModel(model_);  // we made a copy in Initialize
+        }
 
-  // initialize data, settings, planners, states
-  void Initialize(const mjModel* model);
+        // ----- methods ----- //
 
-  // allocate memory
-  void Allocate();
+        // initialize data, settings, planners, states
+        void Initialize(const mjModel *model);
 
-  // reset data, settings, planners, states
-  void Reset(const double* initial_repeated_action = nullptr);
+        // allocate memory
+        void Allocate();
 
-  // single planner iteration
-  void PlanIteration(ThreadPool* pool);
+        // reset data, settings, planners, states
+        void Reset(const double *initial_repeated_action = nullptr);
 
-  // call planner to update nominal policy
-  void Plan(std::atomic<bool>& exitrequest, std::atomic<int>& uiloadrequest);
+        // single planner iteration
+        void PlanIteration(ThreadPool *pool);
 
-  using StepJob =
-      absl::AnyInvocable<void(Agent*, const mjModel*, mjData*)>;
+        // call planner to update nominal policy
+        void Plan(std::atomic<bool> &exitrequest, std::atomic<int> &uiloadrequest);
 
-  // runs a callback before the next physics step, on the physics thread
-  void RunBeforeStep(StepJob job);
+        using StepJob =
+                absl::AnyInvocable<void(Agent *, const mjModel *, mjData *)>;
 
-  // executes all the callbacks added by RunBeforeStep. should be called on the
-  // physics thread
-  void ExecuteAllRunBeforeStepJobs(const mjModel* model, mjData* data);
+        // runs a callback before the next physics step, on the physics thread
+        void RunBeforeStep(StepJob job);
 
-  // modify the scene, e.g. add trace visualization
-  void ModifyScene(mjvScene* scn);
+        // executes all the callbacks added by RunBeforeStep. should be called on the
+        // physics thread
+        void ExecuteAllRunBeforeStepJobs(const mjModel *model, mjData *data);
 
-  // graphical user interface elements for agent and task
-  void GUI(mjUI& ui);
+        // modify the scene, e.g. add trace visualization
+        void ModifyScene(mjvScene *scn);
 
-  // task-based GUI event
-  void TaskEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,
-                 int& run);
+        // graphical user interface elements for agent and task
+        void GUI(mjUI &ui);
 
-  // agent-based GUI event
-  void AgentEvent(mjuiItem* it, mjData* data, std::atomic<int>& uiloadrequest,
-                  int& run);
+        // task-based GUI event
+        void TaskEvent(mjuiItem *it, mjData *data, std::atomic<int> &uiloadrequest,
+                       int &run);
 
-  // estimator-based GUI event
-  void EstimatorEvent(mjuiItem* it, mjData* data,
-                      std::atomic<int>& uiloadrequest, int& run);
+        // agent-based GUI event
+        void AgentEvent(mjuiItem *it, mjData *data, std::atomic<int> &uiloadrequest,
+                        int &run);
 
-  // initialize plots
-  void PlotInitialize();
+        // estimator-based GUI event
+        void EstimatorEvent(mjuiItem *it, mjData *data,
+                            std::atomic<int> &uiloadrequest, int &run);
 
-  // reset plot data to zeros
-  void PlotReset();
+        // initialize plots
+        void PlotInitialize();
 
-  // plot current information
-  void Plots(const mjData* data, int shift);
+        // reset plot data to zeros
+        void PlotReset();
 
-  // return horizon (continuous time)
-  double Horizon() const;
+        // plot current information
+        void Plots(const mjData *data, int shift);
 
-  // render plots
-  void PlotShow(mjrRect* rect, mjrContext* con);
+        // return horizon (continuous time)
+        double Horizon() const;
 
-  // returns all task names, joined with '\n' characters
-  std::string GetTaskNames() const { return task_names_; }
-  int GetTaskIdByName(std::string_view name) const;
-  std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
+        // render plots
+        void PlotShow(mjrRect *rect, mjrContext *con);
 
-  // load the latest task model, based on GUI settings
-  struct LoadModelResult {
-    UniqueMjModel model{nullptr, mj_deleteModel};
-    std::string error;
-  };
-  LoadModelResult LoadModel() const;
+        // returns all task names, joined with '\n' characters
+        std::string GetTaskNames() const { return task_names_; }
 
-  // Sets a custom model (not from the task), to be returned by the next
-  // call to LoadModel. Passing nullptr model clears the override and will
-  // return the normal task's model.
-  void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
+        int GetTaskIdByName(std::string_view name) const;
 
-  mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
-  mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
-  int ActiveEstimatorIndex() const { return estimator_; }
-  double ComputeTime() const { return agent_compute_time_; }
-  Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
-  // a residual function that can be used from trajectory rollouts. must only
-  // be used from trajectory rollout threads (no locking).
-  const ResidualFn* PlanningResidual() const {
-    return residual_fn_.get();
-  }
-  bool IsPlanningModel(const mjModel* model) const {
-    return model == model_;
-  }
-  int PlanSteps() const { return steps_; }
-  int GetActionDim() const { return model_->nu; }
-  mjModel* GetModel() { return model_; }
-  const mjModel* GetModel() const { return model_; }
+        std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
 
-  void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
-  void SetState(const mjData* data);
-  void SetTaskByIndex(int id) { active_task_id_ = id; }
-  // returns param index, or -1 if not found.
-  int SetParamByName(std::string_view name, double value);
-  // returns param index, or -1 if not found.
-  int SetSelectionParamByName(std::string_view name, std::string_view value);
-  // returns weight index, or -1 if not found.
-  int SetWeightByName(std::string_view name, double value);
-  // returns mode index, or -1 if not found.
-  int SetModeByName(std::string_view name);
+        // load the latest task model, based on GUI settings
+        struct LoadModelResult {
+            UniqueMjModel model{nullptr, mj_deleteModel};
+            std::string error;
+        };
 
-  std::vector<std::string> GetAllModeNames() const;
-  std::string GetModeName() const;
+        LoadModelResult LoadModel() const;
 
-  // threads
-  int planner_threads() const { return planner_threads_;}
-  int estimator_threads() const { return estimator_threads_;}
+        // Sets a custom model (not from the task), to be returned by the next
+        // call to LoadModel. Passing nullptr model clears the override and will
+        // return the normal task's model.
+        void OverrideModel(UniqueMjModel model = {nullptr, mj_deleteModel});
 
-  // status flags, logically should be bool, but mjUI needs int pointers
-  int plan_enabled;
-  int action_enabled;
-  int visualize_enabled;
-  int allocate_enabled;
-  int plot_enabled;
-  int gui_task_id = 0;
+        mjpc::Planner &ActivePlanner() const { return *planners_[planner_]; }
 
-  // state
-  mjpc::State state;
+        mjpc::Estimator &ActiveEstimator() const { return *estimators_[estimator_]; }
 
-  // estimator
-  std::vector<double> sensor;
-  std::vector<double> ctrl;
-  bool reset_estimator = true;
-  bool estimator_enabled = false;
+        int ActiveEstimatorIndex() const { return estimator_; }
 
- private:
-  // model
-  mjModel* model_ = nullptr;
+        double ComputeTime() const { return agent_compute_time_; }
 
-  UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
+        Task *ActiveTask() const { return tasks_[active_task_id_].get(); }
 
-  // integrator
-  int integrator_;
+        // a residual function that can be used from trajectory rollouts. must only
+        // be used from trajectory rollout threads (no locking).
+        const ResidualFn *PlanningResidual() const {
+            return residual_fn_.get();
+        }
 
-  // planning horizon (continuous time)
-  double horizon_;
+        bool IsPlanningModel(const mjModel *model) const {
+            return model == model_;
+        }
 
-  // planning steps (number of discrete timesteps)
-  int steps_;
+        int PlanSteps() const { return steps_; }
 
-  // time step
-  double timestep_;
+        int GetActionDim() const { return model_->nu; }
 
-  std::vector<std::shared_ptr<Task>> tasks_;
-  int active_task_id_ = 0;
+        mjModel *GetModel() { return model_; }
 
-  // residual function for the active task, updated once per planning iteration
-  std::unique_ptr<ResidualFn> residual_fn_;
+        const mjModel *GetModel() const { return model_; }
 
-  // planners
-  std::vector<std::unique_ptr<mjpc::Planner>> planners_;
-  int planner_;
+        void SetTaskList(std::vector<std::shared_ptr<Task>> tasks);
 
-  // estimators
-  std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
-  int estimator_;
+        void SetState(const mjData *data);
 
-  // task queue for RunBeforeStep
-  std::mutex step_jobs_mutex_;
-  std::deque<StepJob> step_jobs_;
+        void SetTaskByIndex(int id) { active_task_id_ = id; }
 
-  // timing
-  double agent_compute_time_;
-  double rollout_compute_time_;
+        // returns param index, or -1 if not found.
+        int SetParamByName(std::string_view name, double value);
 
-  // objective
-  double cost_;
-  std::vector<double> terms_;
+        // returns param index, or -1 if not found.
+        int SetSelectionParamByName(std::string_view name, std::string_view value);
 
-  // planning iterations counter
-  std::atomic_int count_;
+        // returns weight index, or -1 if not found.
+        int SetWeightByName(std::string_view name, double value);
 
-  // names
-  char task_names_[1024];
-  char planner_names_[1024];
-  char estimator_names_[1024];
+        // returns mode index, or -1 if not found.
+        int SetModeByName(std::string_view name);
 
-  // plots
-  AgentPlots plots_;
+        std::vector<std::string> GetAllModeNames() const;
 
-  // max threads for planning
-  int planner_threads_;
+        std::string GetModeName() const;
 
-  // max threads for estimation
-  int estimator_threads_;
-};
+        // threads
+        int planner_threads() const { return planner_threads_; }
+
+        int estimator_threads() const { return estimator_threads_; }
+
+        // status flags, logically should be bool, but mjUI needs int pointers
+        int plan_enabled;
+        int action_enabled;
+        int visualize_enabled;
+        int allocate_enabled;
+        int plot_enabled;
+        int gui_task_id = 0;
+
+        // modifications to select task and robot separately
+        int task_id = 0;
+        int robot_id = 0;
+
+        char task_names[1024] =
+                "Balance\n"
+                "Walk\n"
+                "Slide\n"
+                "Stand\n"
+                "Run\n"
+                "Stairs\n"
+                "Crawl\n"
+                "Sit\n"
+                "Hurdle\n"
+                "Basketball\n"
+                "Bookshelf\n"
+                "Cabinet\n"
+                "Cube\n"
+                "Door\n"
+                "High Bar\n"
+                "Insert\n"
+                "Kitchen\n"
+                "Maze\n"
+                "Package\n"
+                "Poles\n"
+                "Powerlift\n"
+                "Push\n"
+                "Reach\n"
+                "Room\n"
+                "Spoon\n"
+                "Truck\n"
+                "Window\n";
+        char robot_names[1024] = "without Hand\nHand\nGripper\nSimple Hand\nStrong\nTouch\n";
+
+        // state
+        mjpc::State state;
+
+        // estimator
+        std::vector<double> sensor;
+        std::vector<double> ctrl;
+        bool reset_estimator = true;
+        bool estimator_enabled = false;
+
+    private:
+        // model
+        mjModel *model_ = nullptr;
+
+        UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
+
+        // integrator
+        int integrator_;
+
+        // planning horizon (continuous time)
+        double horizon_;
+
+        // planning steps (number of discrete timesteps)
+        int steps_;
+
+        // time step
+        double timestep_;
+
+        std::vector<std::shared_ptr<Task>> tasks_;
+        int active_task_id_ = 0;
+
+        // residual function for the active task, updated once per planning iteration
+        std::unique_ptr<ResidualFn> residual_fn_;
+
+        // planners
+        std::vector<std::unique_ptr<mjpc::Planner>> planners_;
+        int planner_;
+
+        // estimators
+        std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;
+        int estimator_;
+
+        // task queue for RunBeforeStep
+        std::mutex step_jobs_mutex_;
+        std::deque<StepJob> step_jobs_;
+
+        // timing
+        double agent_compute_time_;
+        double rollout_compute_time_;
+
+        // objective
+        double cost_;
+        std::vector<double> terms_;
+
+        // planning iterations counter
+        std::atomic_int count_;
+
+        // names
+        char task_names_[1024];
+        char planner_names_[1024];
+        char estimator_names_[1024];
+
+        // plots
+        AgentPlots plots_;
+
+        // max threads for planning
+        int planner_threads_;
+
+        // max threads for estimation
+        int estimator_threads_;
+    };
 
 }  // namespace mjpc
 

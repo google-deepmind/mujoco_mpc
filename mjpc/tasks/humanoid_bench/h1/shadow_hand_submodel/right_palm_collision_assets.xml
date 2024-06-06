@@ -1,0 +1,35 @@
+<mujoco model="palm_collision_assets">
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_0.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_1.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_2.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_3.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_4.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_5.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_6.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_7.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_8.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_9.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_10.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_11.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_12.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_13.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_14.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_15.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_16.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_17.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_18.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_19.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_20.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_21.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_22.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_23.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_24.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_25.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_26.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_27.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_28.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_29.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_30.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_31.obj"/>
+<mesh class="right_hand" file="../shadow_hand_submodel/assets/right_palm_split/right_palm_part_32.obj"/>
+</mujoco>

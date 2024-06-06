@@ -1,0 +1,18 @@
+<mujoco model="f_distal_pst_collision_assets">
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_0.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_1.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_2.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_3.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_4.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_5.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_6.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_7.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_8.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_9.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_10.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_11.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_12.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_13.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_14.obj"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_f_distal_pst_split/left_f_distal_pst_part_15.obj"/>
+</mujoco>

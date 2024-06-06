@@ -1,0 +1,30 @@
+<mujoco model="H1 High_bar Strong">
+    <include file="../h1/h1strong_pos.xml"/>
+    <include file="highbar.xml"/>
+    <include file="../../common.xml"/>
+    <include file="../../floor.xml"/>
+
+    <keyframe>
+        <!-- home is the initial position of the robot at the beginning and after reset-->
+        <key name="home"
+             qpos="0.27 0. 1.62 1 0 0 0
+            0 0 0 0 0
+            0 0 0 0 0
+            0
+            0 3.11 0 1.6 0
+            0.11 0.33
+            0 1.3 0.7 1.7
+            0 1.3 0.7 1.7
+            0 1.3 0.7 1.7
+            0.1 0 1.2 0.77 1.62
+            0.31 1.35 0.27 0.27 1.45
+            0 -3.11 0 1.6 0
+            0.11 0.33
+            0 1.3 0.7 1.7
+            0 1.3 0.7 1.7
+            0 1.3 0.7 1.7
+            0.1 0 1.2 0.77 1.62
+            0.31 1.35 0.27 0.27 1.45"/>
+    </keyframe>
+    <include file="task.xml"/>
+</mujoco>

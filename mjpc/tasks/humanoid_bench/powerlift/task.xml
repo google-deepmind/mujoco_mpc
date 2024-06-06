@@ -1,0 +1,33 @@
+<mujocoinlcude>
+    <custom>
+        <!-- agent -->
+        <numeric name="agent_planner" data="0"/>
+        <numeric name="agent_horizon" data="0.8"/>
+        <numeric name="agent_timestep" data="0.01"/>
+        <numeric name="sampling_spline_points" data="3"/>
+        <numeric name="sampling_exploration" data="0.5"/>
+
+
+        <!-- estimator -->
+        <numeric name="estimator" data="0"/>
+        <numeric name="estimator_sensor_start" data="4"/>
+        <numeric name="estimator_number_sensor" data="9"/>
+        <numeric name="estimator_timestep" data="0.005"/>
+        <numeric name="batch_configuration_length" data="3"/>
+        <numeric name="batch_scale_prior" data="1.0e-3"/>
+    </custom>
+
+    <sensor>
+        <!-- the user sensors specify the dimension of the residuals and how the cost is computed from the residuals-->
+        <!-- see https://github.com/google-deepmind/mujoco_mpc/blob/main/docs/OVERVIEW.md for reverence -->
+
+        <!-- cost terms -->
+        <user name="exp(-r)" dim="1" user="5 1 0 1 1"/>
+
+        <!-- task specific sensors -->
+        <framepos name="dumbbell_height" objtype="body" objname="dumbbell"/>
+    </sensor>
+    <!-- the sensors have to be defined AFTER THE DEFINITION of the user sensors, therefore they are in a separate file-->
+    <include file="../h1/h1_sensors.xml"/>
+
+</mujocoinlcude>

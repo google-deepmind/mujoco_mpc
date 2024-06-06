@@ -1,0 +1,32 @@
+<mujocoinclude>
+    <asset>
+        <mesh name="slide" vertex="0.3 5 0  0.3 -5 0  5.3 5 1.75  5.3 -5 1.75  10.3 5 0  10.3 -5 0"/>
+    </asset>
+    <worldbody>
+        <body name="slides" pos="0 0 0">
+            <geom type="mesh" mesh="slide" pos="0 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="10 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="20 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="30 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="40 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="50 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="60 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="70 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+            <geom type="mesh" mesh="slide" pos="80 0 0" rgba="0.6 0.6 0.6 1" class="visual"/>
+
+
+            <geom type="mesh" mesh="slide" pos="0 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="10 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="20 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="30 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="40 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="50 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="60 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="70 0 0"  class="collision"/>
+            <geom type="mesh" mesh="slide" pos="80 0 0"  class="collision"/>
+        </body>
+        <geom type="box" pos="48.85 -5.15 4" size="53 0.15 4" class="collision"/>
+        <geom type="box" pos="48.85 5.15 4" size="53 0.15 4" class="collision"/>
+        <geom type="box" pos="-4 0 4" size="0.15 5.15 4" class="collision"/>
+    </worldbody>
+</mujocoinclude>

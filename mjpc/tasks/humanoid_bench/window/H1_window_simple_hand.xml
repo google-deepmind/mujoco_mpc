@@ -1,0 +1,13 @@
+<mujoco model="H1 Window Simple_hand">
+    <include file="../h1/h1simple_hand_pos.xml"/>
+<include file="window.xml"/>    
+<include file="../../common.xml"/>
+    <include file="../../floor.xml"/>
+
+    <keyframe>
+        <!-- home is the initial position of the robot at the beginning and after reset-->
+        <key name="home"
+             qpos="0 0 0.98 1 0 0 0 0 0 -0.4 0.8 -0.4 0 0 -0.4 0.8 -0.4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.45 0 1.085 0 0 0 0 0 0 0 0"/>
+    </keyframe>
+    <include file="task.xml"/>
+</mujoco>

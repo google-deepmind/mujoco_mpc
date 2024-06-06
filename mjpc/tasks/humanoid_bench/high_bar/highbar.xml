@@ -1,0 +1,29 @@
+<mujocoinclude>
+    <asset>
+        <material name="steel_cover"  texuniform="false"  texture="steel_cover"/>
+        <texture type="2d" name="steel_cover" file="../assets/steel-scratched.png"/>
+    </asset>
+
+    <worldbody>
+        <body name="athletic_high_bar" pos="0.5 0 0">
+            <geom type="cylinder" name="left_supporting_bar" pos="-0.19 1.2 2" size="0.02 2" rgba="0.2 0.2 0.2 1" class="visual"/>
+            <geom type="cylinder" name="right_supporting_bar" pos="-0.19 -1.2 2" size="0.02 2" rgba="0.2 0.2 0.2 1" class="visual"/>
+            <geom type="cylinder" name="holding_bar" pos="-0.19 0 2.8" size="0.02 1.2 0.02" zaxis="0 1 0" material="steel_cover" class="visual"/>
+
+
+            <geom type="cylinder" pos="-0.19 1.2 2" size="0.02 2" class="collision"/>
+            <geom type="cylinder" pos="-0.19 -1.2 2" size="0.02 2" class="collision"/>
+            <geom type="cylinder" pos="-0.19 0 2.8" size="0.02 1.2 0.02" zaxis="0 1 0" class="collision"/>
+        </body>
+    </worldbody>
+
+    <equality>
+        <connect name='left_hand_to_bar' body1='athletic_high_bar' body2='left_elbow_link' anchor='-0.19 0.22 2.82' />
+        <connect name='right_hand_to_bar' body1='athletic_high_bar' body2='right_elbow_link' anchor='-0.19 -0.22 2.82' />
+    </equality>
+
+    <contact>
+        <exclude body1='athletic_high_bar' body2='left_elbow_link' />
+        <exclude body1='athletic_high_bar' body2='right_elbow_link' />
+    </contact>
+</mujocoinclude>

@@ -1,0 +1,23 @@
+<mujoco model="forearm_0_collision_assets">
+<compiler meshdir='assets'/>
+<asset>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_0.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_1.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_2.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_3.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_4.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_5.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_6.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_7.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_8.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_9.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_10.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_11.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_12.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_13.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_14.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_15.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_16.obj"/>
+<mesh class="left_hand" file="forearm_0_split/forearm_0_part_17.obj"/>
+</asset>
+</mujoco>

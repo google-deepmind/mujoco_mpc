@@ -1,0 +1,47 @@
+<mujocoinclude>
+    <asset>
+        <mesh file="../assets/hoop_post.stl" scale="0.25 0.25 0.25"/>
+        <material name="baskethoop"  texuniform="true"  texture="baskethoop"/>
+        <texture type="2d" name="baskethoop" file="../assets/hoop.png"/>
+        <mesh name="baskethoop" file="../assets/hoop.obj" scale="1.1 1.1 1.1"/>
+        <mesh name="visual_hoop" file="../assets/hoop.stl" scale="0.3 0.3 0.3"/>
+        <material name="spherebody"  texuniform="true" texture="basketball"
+                  reflectance="0.8" shininess="0.9"/>
+        <texture type="2d" name="basketball" file="../assets/basketball.png"/>
+    </asset>
+    <worldbody>
+        <body name="basketball_hoop" pos="6.0198 0 0">
+            <body name="baskethoop" pos='-0.2 0 2.25'>
+                <geom type="mesh" mesh="baskethoop" material="baskethoop" pos="0.4 0 -2.25" xyaxes="0 -1 0 0 0 1" class="visual"/>
+                <geom type="box" pos="0.25 0 -0.2" size="0.01 0.2 0.2" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="0.2 0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 -45" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="0.2 -0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 45" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="-0.3 0 -0.2" size="0.01 0.2 0.2" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="-0.25 0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 45" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="-0.25 -0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 -45" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="-0.05 0.25 -0.2" size="0.2 0.01 0.2" class="visual" rgba="0 0 0 0"/>
+                <geom type="box" pos="-0.05 -0.25 -0.2" size="0.2 0.01 0.2" class="visual" rgba="0 0 0 0"/>
+
+                <geom type="box" pos="0.25 0 -0.2" size="0.01 0.2 0.2" class="collision" />
+                <geom type="box" pos="0.2 0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 -45" class="collision" />
+                <geom type="box" pos="0.2 -0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 45" class="collision" />
+                <geom type="box" pos="-0.3 0 -0.2" size="0.01 0.2 0.2" class="collision" />
+                <geom type="box" pos="-0.25 0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 45" class="collision" />
+                <geom type="box" pos="-0.25 -0.2 -0.2" size="0.15 0.01 0.2" euler="0 0 -45" class="collision" />
+                <geom type="box" pos="-0.05 0.25 -0.2" size="0.2 0.01 0.2" class="collision" />
+                <geom type="box" pos="-0.05 -0.25 -0.2" size="0.2 0.01 0.2" class="collision" />
+
+                <geom type="box" pos="0.27 0 0.3" size="0.01 0.55 0.35" class="collision"/>
+
+                <geom type="cylinder" pos="0.6 0 -1.25" size="0.05 1" class="collision"/>
+                <geom type="box"  pos="0.9 0 -2.17" size="0.35 0.25 0.08" class="collision"/>
+            </body>
+        </body>
+        <body name="basketball" pos="0.35 0.9 2">
+            <freejoint name="free_basketball"/>
+            <geom type="sphere" pos="0 0 0" size="0.1193" density="35" material="spherebody" class="visual"/>
+            <geom name="basketball_collision" type="sphere" pos="0 0 0" size="0.1193" density="35" class="collision"/>
+        </body>
+        <site name="hoop_center" pos="5.9 0 2.25" />
+    </worldbody>
+</mujocoinclude>

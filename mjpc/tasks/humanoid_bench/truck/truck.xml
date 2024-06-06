@@ -1,0 +1,97 @@
+<mujocoinclude>
+    <asset>
+        <material name="package" texuniform="true" texture="package"/>
+        <texture type="2d" name="package" file="../assets/package_plain.png"/>
+        <material name="wooden_cover" texuniform="false" texture="wooden_cover"/>
+        <texture type="2d" name="wooden_cover" file="../assets/kitchen-wood.png"/>
+        <material name="dark_wooden_cover" texuniform="false" texture="dark_wooden_cover"/>
+        <texture type="2d" name="dark_wooden_cover" file="../assets/dark-wood.png"/>
+    </asset>
+    <worldbody>
+        <body name="truck" pos="8 0 0">
+            <geom name="truck_base" type="box" pos="0 0 0.8" size="4 1.2 0.2" rgba="0.5 0.5 0.5 1" class="visual"/>
+            <geom name="truck_wheel_1" type="cylinder" pos="-3.5 0.8 0.5" size="0.5 0.2" zaxis="0 1 0" class="visual"/>
+            <geom name="truck_wheel_2" type="cylinder" pos="-3.5 -0.8 0.5" size="0.5 0.2" zaxis="0 1 0" class="visual"/>
+            <geom name="truck_wheel_3" type="cylinder" pos="3.5 0.8 0.5" size="0.5 0.2" zaxis="0 1 0" class="visual"/>
+            <geom name="truck_wheel_4" type="cylinder" pos="3.5 -0.8 0.5" size="0.5 0.2" zaxis="0 1 0" class="visual"/>
+            <geom name="truck_base_collision" type="box" pos="0 0 0.5" size="4 1.2 0.5" rgba="0.5 0.5 0.5 1"
+                  class="collision"/>
+
+            <geom name="truck_left_wall" type="box" pos="0 1.15 2" size="4 0.05 1"/>
+            <geom name="truck_right_wall" type="box" pos="0 -1.15 2" size="4 0.05 1"/>
+            <geom name="truck_behind_wall" type="box" pos="4 0 2" size="0.05 1.2 1"/>
+            <geom name="truck_top" type="box" pos="0 0 3.05" size="4 1.2 0.05"/>
+
+            <geom name="slide" type="box" pos="-4.7 0 0.5" size="0.85 1.2 0.1" rgba="0.6 0.6 0.6 1" euler="0 -0.5 0"
+                  class="visual"/>
+            <geom name="slide_collision" type="box" pos="-4.7 0 0.5" size="0.85 1.2 0.1" rgba="0.5 0.5 0.5 1"
+                  euler="0 -0.5 0" class="collision"/>
+
+        </body>
+        <body name="table" pos="2 -1.7 0.45">
+            <geom name="table_top" type="box" pos="0 0 0.45" size="0.5 0.5 0.05" class="visual"
+                  material="wooden_cover"/>
+            <geom name="table_top_collision" type="box" pos="0 0 0.45" size="0.5 0.5 0.05" class="collision"/>
+            <geom name="table_leg_1" type="box" pos="0.4 0.4 0.0" size="0.05 0.05 0.45" class="visual"
+                  material="dark_wooden_cover"/>
+            <geom name="table_leg_2" type="box" pos="0.4 -0.4 0.0" size="0.05 0.05 0.45" class="visual"
+                  material="dark_wooden_cover"/>
+            <geom name="table_leg_3" type="box" pos="-0.4 0.4 0.0" size="0.05 0.05 0.45" class="visual"
+                  material="dark_wooden_cover"/>
+            <geom name="table_leg_4" type="box" pos="-0.4 -0.4 0.0" size="0.05 0.05 0.45" class="visual"
+                  material="dark_wooden_cover"/>
+            <geom name="table_leg_1_collision" type="box" pos="0.4 0.4 0.0" size="0.05 0.05 0.5" class="collision"/>
+            <geom name="table_leg_2_collision" type="box" pos="0.4 -0.4 0.0" size="0.05 0.05 0.5" class="collision"/>
+            <geom name="table_leg_3_collision" type="box" pos="-0.4 0.4 0.0" size="0.05 0.05 0.5" class="collision"/>
+            <geom name="table_leg_4_collision" type="box" pos="-0.4 -0.4 0.0" size="0.05 0.05 0.5" class="collision"/>
+        </body>
+
+        <body name="package_wall" pos="7 0 1">
+            <geom name="package_wall_a" type="box" pos="0 0.7 0.2" size="0.2 0.4 0.2" material="package"
+                  class="visual"/>
+            <geom name="package_wall_b" type="box" pos="0 -0.7 0.3" size="0.2 0.4 0.3" material="package"
+                  class="visual"/>
+            <geom name="package_wall_c" type="box" pos="0.16 0 0.35" size="0.2 0.3 0.35" material="package"
+                  class="visual"/>
+            <geom name="package_wall_d" type="box" pos="0.1 0.7 0.7" size="0.2 0.4 0.4" material="package"
+                  class="visual"/>
+            <geom name="package_wall_e" type="box" pos="0.1 -0.7 0.7" size="0.2 0.4 0.4" material="package"
+                  class="visual"/>
+            <geom name="package_wall_f" type="box" pos="0.2 0 0.7" size="0.2 0.3 0.35" material="package"
+                  class="visual"/>
+            <geom name="package_wall_g" type="box" pos="0.14 0.7 1.1" size="0.2 0.4 0.4" material="package"
+                  class="visual"/>
+            <geom name="package_wall_h" type="box" pos="0.14 -0.7 1.1" size="0.2 0.4 0.4" material="package"
+                  class="visual"/>
+            <geom name="package_wall_i" type="box" pos="0.24 0 1.05" size="0.2 0.3 0.35" material="package"
+                  class="visual"/>
+            <geom name="package_wall_collision" type="box" pos="0 0 0.9" size="0.2 1.1 0.9" class="collision"/>
+        </body>
+
+        <body name="package_a" pos="5 0 1.1" euler="-1.5708 0 0">
+            <freejoint name="free_package_a"/>
+            <geom name="package_a" type="box" size="0.2 0.1 0.15" material="package" class="visual"/>
+            <geom name="package_a_collision" type="box" size="0.2 0.1 0.15" rgba="0.5 0.5 0.5 1" class="collision"/>
+        </body>
+        <body name="package_b" pos="5.1 0 1.3" euler="0 0 1.5718">
+            <freejoint name="free_package_b"/>
+            <geom name="package_b" type="box" size="0.25 0.2 0.1" material="package" class="visual"/>
+            <geom name="package_b_collision" type="box" size="0.25 0.2 0.1" rgba="0.5 0.5 0.5 1" class="collision"/>
+        </body>
+        <body name="package_c" pos="5 0.35 1.3" euler="1.5708 0 0">
+            <freejoint name="free_package_c"/>
+            <geom name="package_c" type="box" size="0.2 0.3 0.1" material="package" class="visual"/>
+            <geom name="package_c_collision" type="box" size="0.2 0.3 0.1" rgba="0.5 0.5 0.5 1" class="collision"/>
+        </body>
+        <body name="package_d" pos="5 -0.5 1.1" euler="0 0 0">
+            <freejoint name="free_package_d"/>
+            <geom name="package_d" type="box" size="0.25 0.3 0.1" material="package" class="visual"/>
+            <geom name="package_d_collision" type="box" size="0.25 0.3 0.1" rgba="0.5 0.5 0.5 1" class="collision"/>
+        </body>
+        <body name="package_e" pos="5.1 -0.6 1.4" euler="0 0 0">
+            <freejoint name="free_package_e"/>
+            <geom name="package_e" type="box" size="0.2 0.2 0.2" material="package" class="visual"/>
+            <geom name="package_e_collision" type="box" size="0.2 0.2 0.2" rgba="0.5 0.5 0.5 1" class="collision"/>
+        </body>
+    </worldbody>
+</mujocoinclude>

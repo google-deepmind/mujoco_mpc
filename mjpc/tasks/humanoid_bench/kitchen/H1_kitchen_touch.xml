@@ -1,0 +1,13 @@
+<mujoco model="H1 Kitchen Touch">
+    <include file="../h1/h1touch_pos.xml"/>
+<include file="kitchen.xml"/>    
+<include file="../../common.xml"/>
+    <include file="../../floor.xml"/>
+
+    <keyframe>
+        <!-- home is the initial position of the robot at the beginning and after reset-->
+        <key name="home"
+             qpos="0 -0.6 0.98 1 0 0 1.57 0 0 -0.4 0.8 -0.4 0 0 -0.4 0.8 -0.4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.25561e-05 1.57437e-07 1.25561e-05 1.57437e-07 1.25561e-05 1.57437e-07 1.25561e-05 1.57437e-07 8.24417e-05 9.48283e-05 0 0 0 0 -0.269 0.35 0.994 1 1.34939e-19 -3.51612e-05 -7.50168e-19"/>
+    </keyframe>
+    <include file="task.xml"/>
+</mujoco>

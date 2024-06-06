@@ -1,0 +1,13 @@
+<mujoco model="H1 High_bar Gripper">
+    <include file="../h1/h1gripper_pos.xml"/>
+    <include file="highbar.xml"/>
+    <include file="../../common.xml"/>
+    <include file="../../floor.xml"/>
+
+    <keyframe>
+        <!-- home is the initial position of the robot at the beginning and after reset-->
+        <key name="home"
+             qpos="0.27 0 1.74 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.11 0 1.49 0 0 0 0 0 0 0 0 0 0 -3.11 0 1.49 0 0 0 0 0 0 0 0 0"/>
+    </keyframe>
+    <include file="task.xml"/>
+</mujoco>

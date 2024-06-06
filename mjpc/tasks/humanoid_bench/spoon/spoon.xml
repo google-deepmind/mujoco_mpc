@@ -1,0 +1,60 @@
+<mujocoinclude>
+    <asset>
+        <material name="metal_cover"  texuniform="false"  texture="metal_cover"/>
+        <texture type="2d" name="metal_cover" file="../assets/metal.png"/>
+
+        <material name="steel_cover"  texuniform="false"  texture="steel_cover"/>
+        <texture type="2d" name="steel_cover" file="../assets/steel-scratched.png"/>
+
+        <material name="wooden_cover"  texuniform="false"  texture="wooden_cover"/>
+        <texture type="2d" name="wooden_cover" file="../assets/kitchen-wood.png"/>
+
+        <material name="dark_wooden_cover"  texuniform="false"  texture="dark_wooden_cover"/>
+        <texture type="2d" name="dark_wooden_cover" file="../assets/dark-wood.png"/>
+    </asset>
+    <worldbody>
+        <site name="goal" pos="0.75 0.1 0.9" size="0.01" rgba="1 0 0 0.5" />
+        <body name="table" pos="1 0 0.45">
+            <geom name="table_top" type="box" pos="0 0 0.4" size="0.5 0.5 0.05" class="visual" material="wooden_cover"/>
+            <geom name="table_top_collision" type="box" pos="0 0 0.4" size="0.5 0.5 0.05"  class="collision"/>
+            <geom name="table_leg_1" type="box" pos="0.4 0.4 -0.05" size="0.05 0.05 0.4" class="visual" material="dark_wooden_cover"/>
+            <geom name="table_leg_2" type="box" pos="0.4 -0.4 -0.05" size="0.05 0.05 0.4" class="visual" material="dark_wooden_cover"/>
+            <geom name="table_leg_3" type="box" pos="-0.4 0.4 -0.05" size="0.05 0.05 0.4" class="visual" material="dark_wooden_cover"/>
+            <geom name="table_leg_4" type="box" pos="-0.4 -0.4 -0.05" size="0.05 0.05 0.4" class="visual" material="dark_wooden_cover"/>
+            <geom name="table_leg_1_collision" type="box" pos="0.4 0.4 -0.05" size="0.05 0.05 0.4" class="collision"/>
+            <geom name="table_leg_2_collision" type="box" pos="0.4 -0.4 -0.05" size="0.05 0.05 0.4" class="collision"/>
+            <geom name="table_leg_3_collision" type="box" pos="-0.4 0.4 -0.05" size="0.05 0.05 0.4" class="collision"/>
+            <geom name="table_leg_4_collision" type="box" pos="-0.4 -0.4 -0.05" size="0.05 0.05 0.4" class="collision"/>
+        </body>
+        <body name="cup" pos="0.75 -0.1 0.9">
+            <geom type="box" pos="0 0.1 0.1" size="0.12 0.02 0.1" material="metal_cover" class="visual"/>
+            <geom type="box" pos="0 -0.1 0.1" size="0.12 0.02 0.1" material="metal_cover" class="visual"/>
+            <geom type="box" pos="-0.1 0 0.1" size="0.02 0.08 0.1" material="metal_cover" class="visual"/>
+            <geom type="box" pos="0.1 0 0.1" size="0.02 0.08 0.1" material="metal_cover" class="visual"/>
+            <geom type="box" pos="0 0 0.01" size="0.1 0.1 0.02" material="metal_cover" class="visual"/>
+            <geom type="cylinder" pos="0 0.19 0.08" size="0.01 0.06" material="metal_cover" class="visual"/>
+            <geom type="box" pos="0 0.15 0.14" size="0.01 0.05 0.01" material="metal_cover" class="visual"/>
+            <geom type="box" pos="0 0.15 0.02" size="0.01 0.05 0.01" material="metal_cover" class="visual"/>
+
+            <geom type="box" pos="0 0.1 0.1" size="0.12 0.02 0.1" class="collision"/>
+            <geom type="box" pos="0 -0.1 0.1" size="0.12 0.02 0.1" class="collision"/>
+            <geom type="box" pos="-0.1 0 0.1" size="0.02 0.12 0.1" class="collision"/>
+            <geom type="box" pos="0.1 0 0.1" size="0.02 0.12 0.1" class="collision"/>
+            <geom type="box" pos="0 0 0.01" size="0.12 0.12 0.02" class="collision"/>
+            <geom type="cylinder" pos="0 0.19 0.08" size="0.01 0.06" class="collision"/>
+            <geom type="box" pos="0 0.15 0.14" size="0.01 0.05 0.01" class="collision"/>
+            <geom type="box" pos="0 0.15 0.02" size="0.01 0.05 0.01" class="collision"/>
+        </body>
+        <body name="spoon" pos="0.75 0.2 0.9">
+            <freejoint name="free_spoon"/>
+            <geom type="cylinder" name="spoon_handle" pos="0 0 0.0035" size="0.007 0.08" zaxis="1 0 0" material="steel_cover" class="visual"/>
+            <geom type="cylinder" name="spoon_plate" pos="0.1 0 0.0035" size="0.03 0.005" material="steel_cover" class="visual"/>
+
+            <geom type="cylinder" pos="0 0 0.0035" size="0.007 0.08" zaxis="1 0 0" class="collision" density="500"/>
+            <geom type="cylinder" pos="0.1 0 0.0035" size="0.03 0.005" class="collision" density="500"/>
+
+            <site name="spoon_handle" pos="0 0 0.0035" />
+            <site name="spoon_plate" pos="0.1 0 0.0035" />
+        </body>
+    </worldbody>
+</mujocoinclude>

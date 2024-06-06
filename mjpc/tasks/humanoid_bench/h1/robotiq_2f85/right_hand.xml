@@ -1,0 +1,91 @@
+<mujoco model="right_2f85_hand">
+    <body name="rh_base_mount" pos="0 0 0" childclass="2f85" quat="1 0 0 -1">
+      <geom class="2f85_visual" mesh="base_mount" material="black"/>
+      <geom class="2f85_collision" mesh="base_mount"/>
+      <body name="rh_base" pos="0 0 0.0038" quat="1 0 0 -1">
+        <inertial mass="0.777441" pos="0 -2.70394e-05 0.0354675" quat="1 -0.00152849 0 0"
+          diaginertia="0.000260285 0.000225381 0.000152708"/>
+        <geom class="2f85_visual" mesh="base" material="black"/>
+        <geom class="2f85_collision" mesh="base"/>
+        <site name="rh_pinch" pos="0 0 0.145" type="sphere" group="5" rgba="0.9 0.9 0.9 1" size="0.005"/>
+        <!-- Right-hand side 4-bar linkage -->
+        <body name="rh_right_driver" pos="0 0.0306011 0.054904">
+          <inertial mass="0.00899563" pos="2.96931e-12 0.0177547 0.00107314" quat="0.681301 0.732003 0 0"
+            diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
+          <joint name="rh_right_driver_joint" class="driver"/>
+          <geom class="2f85_visual" mesh="driver" material="gray"/>
+          <geom class="2f85_collision" mesh="driver"/>
+          <body name="rh_right_coupler" pos="0 0.0315 -0.0041">
+            <inertial mass="0.0140974" pos="0 0.00301209 0.0232175" quat="0.705636 -0.0455904 0.0455904 0.705636"
+              diaginertia="4.16206e-06 3.52216e-06 8.88131e-07"/>
+            <joint name="rh_right_coupler_joint" class="coupler"/>
+            <geom class="2f85_visual" mesh="coupler" material="black"/>
+            <geom class="2f85_collision" mesh="coupler"/>
+          </body>
+        </body>
+        <body name="rh_right_spring_link" pos="0 0.0132 0.0609">
+          <inertial mass="0.0221642" pos="-8.65005e-09 0.0181624 0.0212658" quat="0.663403 -0.244737 0.244737 0.663403"
+            diaginertia="8.96853e-06 6.71733e-06 2.63931e-06"/>
+          <joint name="rh_right_spring_link_joint" class="spring_link"/>
+          <geom class="2f85_visual" mesh="spring_link" material="black"/>
+          <geom class="2f85_collision" mesh="spring_link"/>
+          <body name="rh_right_follower" pos="0 0.055 0.0375">
+            <inertial mass="0.0125222" pos="0 -0.011046 0.0124786" quat="1 0.1664 0 0"
+              diaginertia="2.67415e-06 2.4559e-06 6.02031e-07"/>
+            <joint name="rh_right_follower_joint" class="follower"/>
+            <geom class="2f85_visual" mesh="follower" material="black"/>
+            <geom class="2f85_collision" mesh="follower"/>
+            <body name="rh_right_pad" pos="0 -0.0189 0.01352">
+              <geom class="pad_box1" name="rh_right_pad1"/>
+              <geom class="pad_box2" name="rh_right_pad2"/>
+              <inertial mass="0.0035" pos="0 -0.0025 0.0185" quat="0.707107 0 0 0.707107"
+                diaginertia="4.73958e-07 3.64583e-07 1.23958e-07"/>
+              <geom class="2f85_visual" mesh="pad"/>
+              <body name="rh_right_silicone_pad">
+                <geom class="2f85_visual" mesh="silicone_pad" material="black"/>
+              </body>
+            </body>
+          </body>
+        </body>
+        <!-- Left-hand side 4-bar linkage -->
+        <body name="rh_left_driver" pos="0 -0.0306011 0.054904" quat="0 0 0 1">
+          <inertial mass="0.00899563" pos="0 0.0177547 0.00107314" quat="0.681301 0.732003 0 0"
+            diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
+          <joint name="rh_left_driver_joint" class="driver"/>
+          <geom class="2f85_visual" mesh="driver" material="gray"/>
+          <geom class="2f85_collision" mesh="driver"/>
+          <body name="rh_left_coupler" pos="0 0.0315 -0.0041">
+            <inertial mass="0.0140974" pos="0 0.00301209 0.0232175" quat="0.705636 -0.0455904 0.0455904 0.705636"
+              diaginertia="4.16206e-06 3.52216e-06 8.88131e-07"/>
+            <joint name="rh_left_coupler_joint" class="coupler"/>
+            <geom class="2f85_visual" mesh="coupler" material="black"/>
+            <geom class="2f85_collision" mesh="coupler"/>
+          </body>
+        </body>
+        <body name="rh_left_spring_link" pos="0 -0.0132 0.0609" quat="0 0 0 1">
+          <inertial mass="0.0221642" pos="-8.65005e-09 0.0181624 0.0212658" quat="0.663403 -0.244737 0.244737 0.663403"
+            diaginertia="8.96853e-06 6.71733e-06 2.63931e-06"/>
+          <joint name="rh_left_spring_link_joint" class="spring_link"/>
+          <geom class="2f85_visual" mesh="spring_link" material="black"/>
+          <geom class="2f85_collision" mesh="spring_link"/>
+          <body name="rh_left_follower" pos="0 0.055 0.0375">
+            <inertial mass="0.0125222" pos="0 -0.011046 0.0124786" quat="1 0.1664 0 0"
+              diaginertia="2.67415e-06 2.4559e-06 6.02031e-07"/>
+            <joint name="rh_left_follower_joint" class="follower"/>
+            <geom class="2f85_visual" mesh="follower" material="black"/>
+            <geom class="2f85_collision" mesh="follower"/>
+            <body name="rh_left_pad" pos="0 -0.0189 0.01352">
+              <geom class="pad_box1" name="rh_left_pad1"/>
+              <geom class="pad_box2" name="rh_left_pad2"/>
+              <inertial mass="0.0035" pos="0 -0.0025 0.0185" quat="1 0 0 1"
+                diaginertia="4.73958e-07 3.64583e-07 1.23958e-07"/>
+              <geom class="2f85_visual" mesh="pad"/>
+              <body name="rh_left_silicone_pad">
+                <geom class="2f85_visual" mesh="silicone_pad" material="black"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+</mujoco>

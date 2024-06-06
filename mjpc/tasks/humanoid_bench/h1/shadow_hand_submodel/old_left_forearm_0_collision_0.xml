@@ -1,0 +1,20 @@
+<mujoco model="forearm_0_collision">
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_0"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_1"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_2"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_3"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_4"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_5"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_6"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_7"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_8"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_9"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_10"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_11"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_12"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_13"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_14"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_15"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_16"/>
+<geom class="plastic_collision" type="mesh" mesh="left_forearm_0_part_17"/>
+</mujoco>

@@ -23,7 +23,7 @@
 #include "mjpc/app.h"
 #include "mjpc/tasks/tasks.h"
 
-ABSL_FLAG(std::string, task, "Quadruped Flat",
+ABSL_FLAG(std::string, task, "Balance Simple Position",
           "Which model to load on startup.");
 
 // machinery for replacing command line error by a macOS dialog box

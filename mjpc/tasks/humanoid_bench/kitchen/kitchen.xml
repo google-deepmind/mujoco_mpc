@@ -1,0 +1,56 @@
+<mujocoinclude>
+    <size njmax='1000' nconmax='1000'/>
+    <compiler inertiafromgeom='auto' inertiagrouprange='3 5' angle="radian"/>
+
+    <include file="kitchen/adept_models/scenes/basic_scene.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/oven_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/counters_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/backwall_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/slidecabinet_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/hingecabinet_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/microwave_asset.xml"/>
+    <include file="kitchen/adept_models/kitchen/assets/kettle_asset.xml"/>
+
+
+    <equality>
+        <weld body1="vive_controller" body2="world" solref="0.02 1" solimp=".7 .95 0.050"/>
+    </equality>
+
+    <worldbody>
+         Mocap
+                <body name="vive_controller" mocap="true" pos="-0.440 -0.092 2.026" euler="-1.57 0 -.785">
+                    <geom type="box" group="2" pos='0 0 .142' size="0.02 0.10 0.03" contype="0" conaffinity="0" rgba=".9 .7 .95 0" euler="0 0 -.785"/>
+                </body>
+
+        <site name='target' pos='0 0 0' size='0.1' rgba='0 2 0 .0'/>
+        <camera name='left_cap' pos='-1.2 -0.5 1.8' quat='0.78 0.49 -0.22 -0.32'/>
+        <camera name='right_cap' pos='1.2 -0.5 1.8' quat='0.76 0.5 0.21 0.35'/>
+
+        <body name='desk' pos='-0.1 0.75 0'>
+            <body name="counters1" pos="0 0 0">
+                <include file="kitchen/adept_models/kitchen/assets/counters_chain_scaled.xml"/>
+            </body>
+            <body name="oven" pos="0 0 0">
+                <include file="kitchen/adept_models/kitchen/assets/oven_chain_scaled.xml"/>
+            </body>
+            <body name="backwall" pos="0 0 -0.605">
+                <include file="kitchen/adept_models/kitchen/assets/backwall_chain.xml"/>
+            </body>
+            <body name="slidecabinet" pos="0.4 0.3 1.98">
+                <include file="kitchen/adept_models/kitchen/assets/slidecabinet_chain.xml"/>
+            </body>
+            <body name="hingecabinet" pos="-0.504 0.28 1.98">
+                <include file="kitchen/adept_models/kitchen/assets/hingecabinet_chain.xml"/>
+            </body>
+            <body name="microwave" pos="-0.750 -0.025 0.99" euler="0 0 0.25">
+                <include file="kitchen/adept_models/kitchen/assets/microwave_chain.xml"/>
+            </body>
+        </body>
+        <body name="kettle" pos="-0.269 0.35 1">
+            <freejoint name="free_kettle"/>
+            <include file="kitchen/adept_models/kitchen/assets/kettle_chain.xml"/>
+        </body>
+
+
+    </worldbody>
+</mujocoinclude>

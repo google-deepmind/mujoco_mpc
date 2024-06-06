@@ -1,0 +1,20 @@
+<mujocoinclude>
+    <asset>
+        <material name="metal_cover"  texuniform="false"  texture="metal_cover"/>
+        <texture type="2d" name="metal_cover" file="../assets/metal.png"/>
+        <material name="steel_cover"  texuniform="false"  texture="steel_cover"/>
+        <texture type="2d" name="steel_cover" file="../assets/steel-scratched.png"/>
+    </asset>
+    <worldbody>
+        <body name="dumbbell" pos="0.5 0 0.2">
+            <freejoint name="free_dumbbell"/>
+            <geom name="post" type="cylinder" pos="0 0 0" size="0.029 0.65" zaxis="0 1 0" material="steel_cover" class="visual"/>
+            <geom name="left_weight" type="cylinder" pos="0 0.75 0" size="0.2 0.2" zaxis="0 1 0" material="metal_cover" class="visual"/>
+            <geom name="right_weight" type="cylinder" pos="0 -0.75 0" size="0.2 0.2" zaxis="0 1 0" material="metal_cover" class="visual"/>
+
+            <geom type="cylinder" pos="0 0 0" size="0.029 0.65" zaxis="0 1 0" class="collision"/>
+            <geom type="cylinder" pos="0 0.75 0" size="0.2 0.2" zaxis="0 1 0" class="collision" density="500"/>
+            <geom type="cylinder" pos="0 -0.75 0" size="0.2 0.2" zaxis="0 1 0" class="collision" density="500"/>
+        </body>
+    </worldbody>
+</mujocoinclude>

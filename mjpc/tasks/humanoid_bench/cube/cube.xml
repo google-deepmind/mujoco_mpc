@@ -1,0 +1,27 @@
+<mujocoinclude>
+    <asset>
+        <texture name="texture:object" file="../assets/block.png" gridsize="3 4" gridlayout=".U..LFRB.D.."></texture>
+        <material name="material:object" texture="texture:object" specular="1" shininess="0.3"
+                  reflectance="0"></material>
+        <material name="material:target" texture="texture:object" specular="1" shininess="0.3" reflectance="0"
+                  rgba="1 1 1 0.3"></material>
+    </asset>
+    <worldbody>
+        <body name="left_cube_to_rotate" pos="0.45 0.21 1.25">
+            <freejoint name="free_left_cube_to_rotate"/>
+            <geom type="box" pos="0 0 0" size="0.025 0.025 0.025" material="material:object" class="visual"
+                  density="500"/>
+            <geom type="box" pos="0 0 0" size="0.025 0.025 0.025" class="collision"/>
+        </body>
+        <body name="right_cube_to_rotate" pos="0.45 -0.21 1.25">
+            <freejoint name="free_right_cube_to_rotate"/>
+            <geom type="box" pos="0 0 0" size="0.025 0.025 0.025" material="material:object" class="visual"
+                  density="500"/>
+            <geom type="box" pos="0 0 0" size="0.025 0.025 0.025" class="collision"/>
+        </body>
+        <body name="target_cube" pos="0.5 -0 1.5">
+            <geom type="box" pos="0 0 0" size="0.025 0.025 0.025" material="material:target" class="visual"
+                  density="500"/>
+        </body>
+    </worldbody>
+</mujocoinclude>

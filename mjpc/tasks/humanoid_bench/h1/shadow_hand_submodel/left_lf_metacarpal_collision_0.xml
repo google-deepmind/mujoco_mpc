@@ -1,0 +1,17 @@
+<mujoco model="lf_metacarpal_collision">
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_0"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_1"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_2"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_3"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_4"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_5"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_6"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_7"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_8"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_9"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_10"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_11"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_12"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_13"/>
+<geom class="left_plastic_collision" type="mesh" mesh="left_lf_metacarpal_part_14"/>
+</mujoco>

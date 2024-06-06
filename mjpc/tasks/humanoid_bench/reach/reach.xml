@@ -1,0 +1,7 @@
+<mujocoinclude>
+    <worldbody>
+        <body name="target" mocap="true" pos="1 1 1">
+            <geom type="sphere" size="0.1" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+        </body>
+    </worldbody>
+</mujocoinclude>

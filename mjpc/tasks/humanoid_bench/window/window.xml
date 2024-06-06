@@ -1,0 +1,73 @@
+<mujocoinclude>
+    <asset>
+        <material name="metal_cover"  texuniform="false"  texture="metal_cover"/>
+        <texture type="2d" name="metal_cover" file="../assets/metal.png"/>
+
+        <material name="steel_cover"  texuniform="false"  texture="steel_cover"/>
+        <texture type="2d" name="steel_cover" file="../assets/steel-scratched.png"/>
+
+        <material name="wooden_cover"  texuniform="false"  texture="wooden_cover"/>
+        <texture type="2d" name="wooden_cover" file="../assets/kitchen-wood.png"/>
+
+        <material name="dark_wooden_cover"  texuniform="false"  texture="dark_wooden_cover"/>
+        <texture type="2d" name="dark_wooden_cover" file="../assets/dark-wood.png"/>
+    </asset>
+    <worldbody>
+        <body name="window" pos="1 0 0">
+            <geom name="window_base" type="box" pos="0 0 0.35" size="0.1 1 0.35" class="visual" material="steel_cover"/>
+            <geom name="window_bottom_column_1" type="box" pos="0 -0.975 1.1" size="0.1 0.025 0.4" class="visual" material="steel_cover"/>
+            <geom name="window_bottom_column_2" type="box" pos="0 -0.325 1.1" size="0.1 0.025 0.4" class="visual" material="steel_cover"/>
+            <geom name="window_bottom_column_3" type="box" pos="0 0.325 1.1" size="0.1 0.025 0.4" class="visual" material="steel_cover"/>
+            <geom name="window_bottom_column_4" type="box" pos="0 0.975 1.1" size="0.1 0.025 0.4" class="visual" material="steel_cover"/>
+
+            <geom type="box" pos="0 0 0.35" size="0.1 1 0.35" class="collision"/>
+            <geom type="box" pos="0 -0.975 1.1" size="0.1 0.025 0.4" class="collision"/>
+            <geom type="box" pos="0 -0.325 1.1" size="0.1 0.025 0.4" class="collision"/>
+            <geom type="box" pos="0 0.325 1.1" size="0.1 0.025 0.4" class="collision"/>
+            <geom type="box" pos="0 0.975 1.1" size="0.1 0.025 0.4" class="collision"/>
+
+            <geom name="window_middle_base" type="box" pos="0 0 1.5125" size="0.1 1 0.025" class="visual" material="steel_cover"/>
+            <geom name="window_top_column_1" type="box" pos="0 -0.975 1.7125" size="0.1 0.025 0.2" class="visual" material="steel_cover"/>
+            <geom name="window_top_column_2" type="box" pos="0 -0.325 1.7125" size="0.1 0.025 0.2" class="visual" material="steel_cover"/>
+            <geom name="window_top_column_3" type="box" pos="0 0.325 1.7125" size="0.1 0.025 0.2" class="visual" material="steel_cover"/>
+            <geom name="window_top_column_4" type="box" pos="0 0.975 1.7125" size="0.1 0.025 0.2" class="visual" material="steel_cover"/>
+            <geom name="window_top_base" type="box" pos="0 0 1.915" size="0.1 1 0.025" class="visual" material="steel_cover"/>
+
+            <geom type="box" pos="0 0 1.5125" size="0.1 1 0.025" class="collision"/>
+            <geom type="box" pos="0 -0.975 1.7125" size="0.1 0.025 0.2" class="collision"/>
+            <geom type="box" pos="0 -0.325 1.7125" size="0.1 0.025 0.2" class="collision"/>
+            <geom type="box" pos="0 0.325 1.7125" size="0.1 0.025 0.2" class="collision"/>
+            <geom type="box" pos="0 0.975 1.7125" size="0.1 0.025 0.2" class="collision"/>
+            <geom type="box" pos="0 0 1.915" size="0.1 1 0.025" class="collision"/>
+
+
+            <geom name="window_bottom_pane_1" type="box" pos="0 -0.65 1.1" size="0.05 0.3 0.4" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_bottom_pane_2" type="box" pos="0 0 1.1" size="0.05 0.3 0.4" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_bottom_pane_3" type="box" pos="0 0.65 1.1" size="0.05 0.3 0.4" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_top_pane_1" type="box" pos="0 -0.65 1.7125" size="0.05 0.3 0.2" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_top_pane_2" type="box" pos="0 0 1.7125" size="0.05 0.3 0.2" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_top_pane_3" type="box" pos="0 0.65 1.7125" size="0.05 0.3 0.2" rgba="0.2 0.95 0.95 0.3" class="visual"/>
+            <geom name="window_pane_collision" type="box" pos="0 0 0.97" size="0.05 1 0.97" class="collision"/>
+        </body>
+        <body name="window_wiping_tool" pos="0.45 0 1.2">
+            <freejoint name="free_window_wiping_tool"/>
+            <geom type="cylinder" pos="0 0 0.02" size="0.02 0.5" zaxis="0 1 0" material="steel_cover" class="visual"/>
+            <geom type="cylinder" pos="0 0 0.02" size="0.02 0.5" zaxis="0 1 0" class="collision"/>
+            <body name="window_wiper_sphere" pos="0 0.5 0.02">
+                <joint type="ball" range="0 1.4"/>
+
+                <geom type="sphere" pos="0 0 0" size="0.03" material="steel_cover" class="visual"/>
+                <geom type="box" pos="0 0.03 0.02" size="0.1 0.01 0.05" class="visual"/>
+
+                <geom type="sphere" pos="0 0 0" size="0.03" class="collision"/>
+                <geom type="box" name="window_wipe_collision" pos="0 0.03 0.02" size="0.1 0.01 0.05" class="collision"/>
+
+                <site name="wipe_contact_site_a" pos="0.1 0.04 0.07"/>
+                <site name="wipe_contact_site_b" pos="-0.1 0.04 0.07"/>
+                <site name="wipe_contact_site_c" pos="0.1 0.04 -0.03"/>
+                <site name="wipe_contact_site_d" pos="-0.1 0.04 -0.03"/>
+                <site name="wipe_contact_site_e" pos="0 0.04 0.02"/>
+            </body>
+        </body>
+    </worldbody>
+</mujocoinclude>

@@ -1,0 +1,23 @@
+<mujocoinclude>
+    <asset>
+        <material name="wooden_cover"  texuniform="false"  texture="wooden_cover"/>
+        <texture type="2d" name="wooden_cover" file="../../assets/light-wood.png"/>
+    </asset>
+    <worldbody>
+        <body name="chair" pos="-0.25 0 0">
+            <geom type="box" pos="0.19 0.19 0.225" size="0.02 0.02 0.225" material="wooden_cover" class="visual"/>
+            <geom type="box" pos="0.19 -0.19 0.225" size="0.02 0.02 0.225" material="wooden_cover" class="visual"/>
+            <geom type="box" pos="-0.19 0.19 0.225" size="0.02 0.02 0.225" material="wooden_cover" class="visual"/>
+            <geom type="box" pos="-0.19 -0.19 0.225" size="0.02 0.02 0.225" material="wooden_cover" class="visual"/>
+
+            <geom type="box" pos="0 0 0.45" size="0.21 0.21 0.025" material="wooden_cover" class="visual"/>
+
+            <geom type="box" pos="-0.23 0.19 0.6375" size="0.02 0.02 0.2125" material="wooden_cover" class="visual"/>
+            <geom type="box" pos="-0.23 -0.19 0.6375" size="0.02 0.02 0.2125" material="wooden_cover" class="visual"/>
+            <geom type="box" pos="-0.23 0 0.77" size="0.02 0.21 0.08" material="wooden_cover" class="visual"/>
+
+            <geom type="box" pos="-0.23 0 0.65" size="0.02 0.21 0.2" class="collision" density="13900" />
+            <geom type="box" pos="0 0 0.2375" size="0.21 0.21 0.2375" class="collision" density="1250" />
+        </body>
+    </worldbody>
+</mujocoinclude>

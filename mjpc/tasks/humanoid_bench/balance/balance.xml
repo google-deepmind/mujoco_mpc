@@ -1,0 +1,13 @@
+<mujocoinclude>
+    <worldbody>
+        <body name="stand_board" pos="0 0 0.34">
+            <freejoint name="free_stand_board"/>
+            <geom type="box" pos="0 0 0" size="0.15 0.55 0.01" rgba="0.7 0.7 0.7 1" class="visual"/>
+            <geom type="box" name="stand_board_collision" pos="0 0 0" size="0.15 0.55 0.01" class="collision"/>
+        </body>
+        <body name="rolling_pivot" pos="0 0 0.17">
+            <geom type="sphere" pos="0 0 0" size="0.17" rgba="0.3 0.3 0.3 1" class="visual"/>
+            <geom type="sphere" name="pivot_sphere_collision" pos="0 0 0" size="0.17" class="collision"/>
+        </body>
+    </worldbody>
+</mujocoinclude>

@@ -1,0 +1,17 @@
+<mujoco model="lf_metacarpal_collision_assets">
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_0.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_1.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_2.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_3.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_4.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_5.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_6.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_7.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_8.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_9.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_10.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_11.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_12.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_13.obj" scale="-0.001 0.001 0.001"/>
+<mesh class="left_hand" file="../shadow_hand_submodel/assets/left_lf_metacarpal_split/left_lf_metacarpal_part_14.obj" scale="-0.001 0.001 0.001"/>
+</mujoco>

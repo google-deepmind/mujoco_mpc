@@ -1,0 +1,16 @@
+<mujoco model="H1 Truck Strong">
+    <include file="../h1/h1strong_pos.xml"/>
+<include file="truck.xml"/>    
+<include file="../../common.xml"/>
+    <include file="../../floor.xml"/>
+
+    <keyframe>
+        <!-- home is the initial position of the robot at the beginning and after reset-->
+        <key name="home"
+             qpos="2 0 0.98 1 0 0 0 0 0 -0.4 0.8 -0.4 0 0 -0.4 0.8 -0.4 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+            5 0 1.1 0.707105 -0.707108 0 0 5.1 0 1.3 0.706752 0 0 0.707462 5 0.35 1.3 0.707105 0.707108 0 0 5 -0.5 1.1 1 0 0 0 5.1 -0.6 1.4 1 0 0 0"/>
+    </keyframe>
+    <include file="task.xml"/>
+</mujoco>

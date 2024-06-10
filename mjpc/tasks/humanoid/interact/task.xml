@@ -4,14 +4,14 @@
   <include file="../humanoid_modified.xml" />
 
   <!-- uncomment any scene below to activate it, one scene at a time -->
-    <!-- if you activate any of the scenes below, make sure to set NUMBER_OF_FREE_JOINTS=0-->
+    <!-- if you activate any of the scenes below, make sure to set kNumberOfFreeJoints=0-->
   <include file="./scenes/armchair.xml"/>
   <!-- <include file="./scenes/bed.xml"/> -->
   <!-- <include file="./scenes/bench.xml"/> -->
   <!-- <include file="./scenes/stool.xml"/> -->
   <!-- <include file="./scenes/table.xml"/> -->
 
-    <!-- if you activate the scene below, make sure to set NUMBER_OF_FREE_JOINTS=1-->
+    <!-- if you activate the scene below, make sure to set kNumberOfFreeJoints=1-->
   <!-- <include file="./scenes/dining_chair.xml"/> -->
   
   <size memory="400K"/>

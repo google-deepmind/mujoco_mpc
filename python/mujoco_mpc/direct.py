@@ -444,7 +444,7 @@ class Direct:
     print("  [total]      = ", cost["total"])
     print("     sensor    = ", cost["sensor"])
     print("     force     = ", cost["force"])
-    print("     parameter = ", cost["parameter"])
+    print("     parameter = ", cost["parameters"])
     print("  (initial  = ", cost["initial"], ")")
 
   def print_status(self):

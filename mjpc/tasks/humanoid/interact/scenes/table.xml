@@ -1,0 +1,17 @@
+<mujoco model="table">
+  <worldbody>
+    <body name="table" pos="0.5 0 0.05" quat="0 0 1 0">
+      <geom name="top" type="box" pos="0 0 -0.6" size=".35 .55 .05" mass="0.001" material="wood"/>
+      <body name="leg" pos="0 0 0" quat="1 0 0 0">
+        <geom name="table_leg_1" type="box" pos="-0.2 0.4 -0.27" size=".03 0.03 .32" mass="0.001" quat="0 1 0 0" material="wood"/>
+        <geom name="table_leg_2" type="box" pos="0.2 -0.4 -0.27" size=".03 0.03 .32" mass="0.001" quat="0 1 0 0" material="wood"/>
+        <geom name="table_leg_3" type="box" pos="0.2 0.4 -0.27" size=".03 0.03 .32" mass="0.001" quat="0 1 0 0" material="wood"/>
+        <geom name="table_leg_4" type="box" pos="-0.2 -0.4 -0.27" size=".03 0.03 .32" mass="0.001" quat="0 1 0 0" material="wood"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <asset>
+    <material name="wood" rgba="0.20000  0.13333  0.06667 1"/>
+  </asset>
+</mujoco>

@@ -1,0 +1,58 @@
+<mujoco model="bed">
+  <worldbody>
+    <body name="bed" pos="-0.35 0 0" quat="1 0 0 0">
+      <geom name="mattress" type="box" pos="-0.25 0 0.25" size="0.5 .9 .05" mass="1." material="metal"/>
+      <geom name="frame" type="box" pos="-0.25 0 0.1" size="0.5 .9 .1" mass="1." material="metal"/>
+      <body name="pillow" pos="0 0.95 0.2" quat="1 0 0 0">
+        <geom name="pillow" type="box" pos="-0.25 0 0" size=".5 0.1 .2" mass="1." quat="1 0 0 0" material="metal"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <asset>
+    <material name="metal" rgba="0.5 0.5 0.5 1"/>
+  </asset>
+
+  <keyframe>
+    <!--
+    The values below are split into rows for readibility:
+      torso position :    3
+      torso orientation : 4
+      spinal :            3
+      right leg :         6
+      left leg :          6
+      arms :              6
+      chair :             7
+    -->
+    <key name="home" 
+    qpos="
+        -0.5458
+        0.0477
+        0.7766
+        0.9771
+        -0.0125
+        -0.1393
+        -0.1603
+        0.1179
+        -0.3636
+        0.01740
+        0.09886
+        0.2240
+        -1.0849
+        -1.8019
+        -0.0667
+        0.07948
+        0.13066
+        -0.4637
+        -1.1276
+        -1.7488
+        -0.1084
+        -0.6416
+        0.4902
+        -0.2919
+        -1.7595
+        0.6055
+        -1.1677
+        -0.8268"/>
+  </keyframe>
+</mujoco>

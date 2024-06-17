@@ -1,0 +1,43 @@
+<mujoco model="stool">
+  <worldbody>
+    <body name="stool" pos="0 0 0" quat="1 0 0 0">
+      <geom name="base" type="cylinder" pos="0 0 0" size=".3 0.4" mass="0.001" material="seat"/>
+    </body>
+  </worldbody>
+
+  <asset>
+    <material name="seat" rgba="0.5 0.25 0.04 1"/>
+  </asset>
+
+  <keyframe>
+    <key name="home" 
+    qpos="0.038 
+      0.0057  
+      0.92    
+      0.99    
+      -0.027   
+      0.0087  
+      0.16    
+      -0.012   
+      -0.066   
+      0.044   
+      -0.15    
+      -0.31    
+      -1.5     
+      -1.7     
+      0.093   
+      0.11    
+      -0.14    
+      -0.24    
+      -1.5     
+      -1.7     
+      -0.01    
+      0.13    
+      0.59    
+      -0.45    
+      -1.5     
+      0.55    
+      -0.3     
+      -1.7"/>
+  </keyframe>
+</mujoco>

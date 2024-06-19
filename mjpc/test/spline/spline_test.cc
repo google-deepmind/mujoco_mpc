@@ -158,6 +158,26 @@ TEST(TimeSplineTest, Cubic) {
   }
 }
 
+TEST(TimeSplineAllInterpolationsTest, ShiftTime) {
+  TimeSpline spline(/*dim=*/2);
+  spline.SetInterpolation(mjpc::spline::kLinearSpline);
+
+  spline.AddNode(1.0, {1.0, 2.0});
+  spline.AddNode(2.0, {2.0, 3.0});
+  spline.AddNode(3.0, {3.0, 4.0});
+  spline.AddNode(4.0, {4.0, 5.0});
+  EXPECT_EQ(spline.Size(), 4);
+
+  EXPECT_THAT(spline.Sample(1.0), ElementsAre(1.0, 2.0));
+  EXPECT_THAT(spline.Sample(1.5), ElementsAre(1.5, 2.5));
+
+  // Shift the spline so that the first node is at 1.5.
+  spline.ShiftTime(1.5);
+  EXPECT_EQ(spline.Size(), 4);
+  EXPECT_THAT(spline.Sample(1.5), ElementsAre(1.0, 2.0));
+  EXPECT_THAT(spline.Sample(2.0), ElementsAre(1.5, 2.5));
+}
+
 TEST_P(TimeSplineAllInterpolationsTest, DiscardBefore) {
   const TimeSplineTestCase& test_case = GetParam();
   TimeSpline spline(/*dim=*/2);

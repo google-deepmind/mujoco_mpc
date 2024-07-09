@@ -90,6 +90,11 @@ brew install ninja zlib
 sudo apt-get update && sudo apt-get install cmake libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev ninja-build zlib1g-dev clang-12
 ```
 
+If you are using Ubuntu 22.04 you may need to additionally install:
+```sh
+sudo apt-get install libstdc++-12-dev
+```
+
 ### Clone MuJoCo MPC
 ```sh
 git clone https://github.com/google-deepmind/mujoco_mpc

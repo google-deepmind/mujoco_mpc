@@ -1,0 +1,71 @@
+<mujoco model="Humanoid Interact">
+  <include file="../../common.xml"/>
+  <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/humanoid.xml -->
+  <include file="../humanoid_modified.xml" />
+
+  <!-- uncomment any scene below to activate it, one scene at a time -->
+    <!-- if you activate any of the scenes below, make sure to set kNumberOfFreeJoints=0-->
+  <include file="./scenes/armchair.xml"/>
+  <!-- <include file="./scenes/bed.xml"/> -->
+  <!-- <include file="./scenes/bench.xml"/> -->
+  <!-- <include file="./scenes/stool.xml"/> -->
+  <!-- <include file="./scenes/table.xml"/> -->
+
+    <!-- if you activate the scene below, make sure to set kNumberOfFreeJoints=1-->
+  <!-- <include file="./scenes/dining_chair.xml"/> -->
+  
+  <size memory="400K"/>
+
+  <visual>
+    <global offwidth="1280" offheight="1280" />
+  </visual>
+
+  <worldbody>
+    <light pos="0.5 0 1.5" dir="0 0 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+        directional="true" castshadow="true"/>
+  </worldbody>
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.35" />
+    <numeric name="agent_timestep" data="0.015" />
+    <numeric name="sampling_spline_points" data="3" />
+    <numeric name="sampling_exploration" data="0.05" />
+    <numeric name="gradient_spline_points" data="5" />
+    <text name="task_transition" data="Sit Down|Stand Up|Relax|Stay Still" />
+    <numeric name="residual_Head Height" data="1.4 0 2." />             <!--0-->
+    <numeric name="residual_Torso Height" data="1.3 0 2." />            <!--1-->
+  </custom>
+  
+  <sensor>
+    <user name="Torso Up" dim="1" user="6 10.0 0.0 100.0 0.1" />
+    <user name="Pelvis Up" dim="1" user="6 10.0 0.0 100.0 0.1" />
+    <user name="RFoot Up" dim="1" user="6 5.0 0.0 100.0 0.1" />
+    <user name="LFoot Up" dim="1" user="6 5.0 0.0 100.0 0.1" />
+    <user name="Head Height" dim="1" user="6 0.0 0.0 100.0 0.1" />
+    <user name="Torso Height" dim="1" user="6 20.0 0.0 100.0 0.1" />
+    <user name="Knee Feet XY" dim="1" user="6 30.0 0.0 100.0 0.1" />
+    <user name="COM Feet XY" dim="1" user="6 0.0 0.0 100.0 0.1" />
+    <user name="Facing Dir" dim="1" user="6 0.0 0.0 100.0 0.1" />
+    <user name="CoM Vel." dim="2" user="0 10.0 0.0 100.0" />
+    <user name="Joint Vel." dim="21" user="0 0.01 0.0 10." />
+    <user name="Control" dim="21" user="3 .8 0.0 5. 0.05" />
+    <user name="Contact" dim="15" user="6 100.0 0.0 100.0 0.1" /> 
+    <framepos name="floor" objtype="geom" objname="floor"/>
+    <framepos name="torso_position" objtype="body" objname="torso"/>
+    <framepos name="head_position" objtype="body" objname="head"/>
+    <framequat name="head_orientation" objtype="body" objname="head"/>
+    <framezaxis name="torso_up" objtype="xbody" objname="torso"/>
+    <framezaxis name="pelvis_up" objtype="xbody" objname="pelvis"/>    
+    <framezaxis name="foot_right_up" objtype="xbody" objname="foot_right"/>
+    <framezaxis name="foot_left_up" objtype="xbody" objname="foot_left"/>
+    <framelinvel name="torso_subtreelinvel" objtype="body" objname="torso" />
+    <subtreecom name="torso_subtreecom" body="torso"/>
+    <framexaxis name="torso_forward" objtype="body" objname="torso" /> 
+    <framepos name="foot_right" objtype="body" objname="foot_right"/>
+    <framepos name="foot_left" objtype="body" objname="foot_left"/>
+    <framepos name="knee_right" objtype="body" objname="shin_right"/>
+    <framepos name="knee_left" objtype="body" objname="shin_left"/>
+  </sensor>
+
+</mujoco>

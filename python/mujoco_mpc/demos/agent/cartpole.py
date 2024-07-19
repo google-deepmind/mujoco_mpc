@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# %%
 import matplotlib.pyplot as plt
 import mediapy as media
 import mujoco
@@ -96,14 +97,14 @@ for t in range(T - 1):
   for _ in range(num_steps):
     agent.planner_step()
 
+  # set ctrl from agent policy
+  data.ctrl = agent.get_action()
+  ctrl[:, t] = data.ctrl
+
   # get costs
   cost_total[t] = agent.get_total_cost()
   for i, c in enumerate(agent.get_cost_term_values().items()):
     cost_terms[i, t] = c[1]
-
-  # set ctrl from agent policy
-  data.ctrl = agent.get_action()
-  ctrl[:, t] = data.ctrl
 
   # step
   mujoco.mj_step(model, data)

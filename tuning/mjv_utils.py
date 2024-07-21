@@ -22,6 +22,14 @@ class Line(Geometry):
     def update(self, ref):
         mujoco.mjv_connector(ref, mujoco.mjtGeom.mjGEOM_LINE, self.width, self.start(), self.end())
     
+class Point(Geometry):
+    def __init__(self, geom_id, geom_rgba, size=0.025):
+        super().__init__(geom_id, mujoco.mjtGeom.mjGEOM_SPHERE, geom_rgba)
+        self.location = None
+        self.geom_size = [size, size, size]
+    
+    def update(self, ref):
+        ref.pos = self.location()
 
 class GeomManager:
     def __init__(self, scene):
@@ -40,6 +48,10 @@ class GeomManager:
                             geom.geom_rgba)
         self.scene.ngeom += 1
         return geom
+    
+    def add_point(self, geom_rgba = [1, 0, 0, 1]):
+        geom = Point(self.scene.ngeom, geom_rgba)
+        return self.add_geom(geom)
     
     def add_line(self, geom_rgba = [1, 0, 0, 1]):
         geom = Line(self.scene.ngeom, geom_rgba)

@@ -39,7 +39,8 @@ std::string Walk::Name() const { return "H1 Walk"; }
 //     Residual (7): move feet
 //     Residual (8): control
 //     Residual (9): feet distance
-//     Residual (10): slippage
+//     Residual (10): feet cross
+//     Residual (11): slippage
 //   Number of parameters:
 //     Parameter (0): torso height goal
 //     Parameter (1): speed goal
@@ -189,11 +190,18 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   double feet_distance = mju_norm(feet_axis, 2);
   residual[counter] = feet_distance - parameters_[2];
   counter += 1;
+
+  // ----- feet cross ----- //
+  double *left_foot_left_axis = SensorByName(model, data, "foot_left_left");
+  mju_sub3(vec, foot_right, foot_left);
+  residual[counter++] = mju_dot3(vec, left_foot_left_axis) - 0.2;
+  
+
   // ----- slippage ----- //
   double* foot_right_ang_velocity = SensorByName(model, data, "foot_right_ang_velocity");
   double* foot_left_ang_velocity = SensorByName(model, data, "foot_left_ang_velocity");
   double* right_foot_xbody = SensorByName(model, data, "foot_right_xbody");
-  double* left_foot_xbody = SensorByName(model, data, "foot_right_xbody");
+  double* left_foot_xbody = SensorByName(model, data, "foot_left_xbody");
   
   
   residual[counter++] = (tanh(-(right_foot_xbody[2]-0.0645)/0.001)+1)*0.5*foot_right_ang_velocity[2];

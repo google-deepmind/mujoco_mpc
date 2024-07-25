@@ -3,9 +3,14 @@
   <include file="../h1_modified.xml" />
   <size memory="400K"/>
 
+  <visual>
+    <global offwidth="1280" offheight="720"/>
+  </visual>
+
   <worldbody>
     <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" type="plane" conaffinity="1" size="50 50 .05" material="blue_grid"/>
+    <camera name="top" mode="targetbody" target="pelvis" pos="10.0 1.0 3.5" />
     <body name="goal" mocap="true" pos=".3 0 0.26">
       <geom size="0.12" contype="0" conaffinity="0" rgba="0 1 0 .5" group="2"/>
     </body>
@@ -46,6 +51,7 @@
     <user name="Move feet" dim="2" user="7 4.0 0 25.0 0.2 4.0" /> <!--kSmoothAbs2Loss -->
     <user name="Control" dim="19" user="0 0.00005 0.00001 0.001" /> <!--kQuadratic-->
     <user name="Feet Distance" dim="1" user="7 5.62 0 25.0 0.1 4.0" /> <!--kSmoothAbs2Loss-->
+    <user name="Leg cross" dim="1" user="8 2.0 0.0 10.0 0.05" /> <!--kRectifyLoss-->
     <user name="Slippage" dim="2" user="0 0.0 0 50.0" /> <!--kQuadratic-->
 
     <!-- estimator measurements -->
@@ -94,6 +100,7 @@
     <framezaxis name="pelvis_up" objtype="xbody" objname="pelvis"/>
     <framezaxis name="foot_right_up" objtype="xbody" objname="right_ankle_link"/><!--wrong-->
     <framezaxis name="foot_left_up" objtype="xbody" objname="left_ankle_link"/><!--wrong-->
+    <frameyaxis name="foot_left_left" objtype="xbody" objname="left_ankle_link"/>
     <framexaxis name="torso_forward" objtype="site" objname="upper_torso"/>
     <framexaxis name="pelvis_forward" objtype="xbody" objname="pelvis"/>
     <framexaxis name="foot_right_forward" objtype="xbody" objname="right_ankle_link"/><!--wrong-->

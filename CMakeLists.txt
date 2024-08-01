@@ -111,6 +111,7 @@ findorfetch(
   GIT_REPO
   https://github.com/google/googletest.git
   GIT_TAG
+  main
   ${MUJOCO_DEP_VERSION_gtest}
   TARGETS
   gtest

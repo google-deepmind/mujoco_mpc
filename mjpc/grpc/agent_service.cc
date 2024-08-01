@@ -179,8 +179,15 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetAction(
+  // get action
+  auto out = grpc_agent_util::GetAction(
       request, &agent_, model, rollout_data_.get(), &rollout_state_, response);
+  // set data
+  auto action = response->action().data();
+  for (int i = 0; i < model->nu; i++) {
+    data_->ctrl[i] = action[i];
+  }
+  return out;
 }
 
 grpc::Status AgentService::GetResiduals(

@@ -35,17 +35,19 @@ class Handover : public Task {
   };
 
   Handover() : residual_(this) {}
+  void TransitionLocked(mjModel* model, mjData* data) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
     return std::make_unique<ResidualFn>(this);
   }
   ResidualFn* InternalResidual() override { return &residual_; }
+  double last_solve_time = 0;
 
  private:
   ResidualFn residual_;
 };
-}  // namespace mjpc
+}  // namespace mjpc::aloha
 
 
 #endif  // MJPC_MJPC_TASKS_BIMANUAL_HANDOVER_HANDOVER_H_

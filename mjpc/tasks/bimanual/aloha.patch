@@ -1,16 +1,15 @@
-diff --git a/aloha.xml b/aloha.xml
---- a/aloha.xml
-+++ b/aloha.xml
+--- aloha.xml	2024-04-29 19:27:18.208137279 +0100
++++ aloha_cartesian.xml	2024-04-30 12:26:54.446160026 +0100
 @@ -1,23 +1,23 @@
  <mujoco model="aloha">
 -  <compiler angle="radian" meshdir="assets" autolimits="true"/>
 +  <compiler angle="radian" autolimits="true"/>
- 
+
    <option cone="elliptic" impratio="10"/>
- 
+
    <asset>
      <material name="black" rgba="0.15 0.15 0.15 1"/>
- 
+
 -    <mesh file="vx300s_1_base.stl" scale="0.001 0.001 0.001"/>
 -    <mesh file="vx300s_2_shoulder.stl" scale="0.001 0.001 0.001"/>
 -    <mesh file="vx300s_3_upper_arm.stl" scale="0.001 0.001 0.001"/>
@@ -36,12 +35,48 @@ diff --git a/aloha.xml b/aloha.xml
 +    <mesh file="assets/vx300s_8_custom_finger_right.stl"/>
 +    <mesh file="assets/d405_solid.stl"/>
    </asset>
- 
+
    <default>
-@@ -284,5 +285,5 @@
+@@ -160,7 +160,7 @@
+                         mesh="vx300s_8_custom_finger_left"/>
+                       <geom name="left/left_g0" pos="0.013  -0.0892 0.0268" class="sphere_collision"/>
+                       <geom name="left/left_g1" pos="0.0222 -0.0892 0.0268" class="sphere_collision"/>
+-                      <geom name="left/left_g2" pos="0.0182 -0.0845 0.0266" class="sphere_collision"/>
++                      <geom name="left/left_g2" pos="0.0182 -0.0845 0.0266" class="grasp"/>
+                       <site name="left/left_finger" pos="0.015 -0.06 0.02"/>
+                     </body>
+                     <body name="left/right_finger_link" pos="-0.0191 -0.0141637 0.0211727" quat="1 1 1 1">
+@@ -173,7 +173,7 @@
+                         mesh="vx300s_8_custom_finger_right"/>
+                       <geom name="left/right_g0" pos="0.013  0.0892 0.0268" class="sphere_collision"/>
+                       <geom name="left/right_g1" pos="0.0222 0.0892 0.0268" class="sphere_collision"/>
+-                      <geom name="left/right_g2" pos="0.0182 0.0845 0.0266" class="sphere_collision"/>
++                      <geom name="left/right_g2" pos="0.0182 0.0845 0.0266" class="grasp"/>
+                       <site name="left/right_finger" pos="0.015 0.06 0.02"/>
+                     </body>
+                   </body>
+@@ -247,7 +247,7 @@
+                         mesh="vx300s_8_custom_finger_left"/>
+                       <geom name="right/left_g0" pos="0.013  -0.0892 0.0268" class="sphere_collision"/>
+                       <geom name="right/left_g1" pos="0.0222 -0.0892 0.0268" class="sphere_collision"/>
+-                      <geom name="right/left_g2" pos="0.0182 -0.0845 0.0266" class="sphere_collision"/>
++                      <geom name="right/left_g2" pos="0.0182 -0.0845 0.0266" class="grasp"/>
+                       <site name="right/left_finger" pos="0.015 -0.06 0.02"/>
+                     </body>
+                     <body name="right/right_finger_link" pos="-0.0191 -0.0141637 0.0211727" quat="1 1 1 1">
+@@ -260,7 +260,7 @@
+                         mesh="vx300s_8_custom_finger_right"/>
+                       <geom name="right/right_g0" pos="0.013  0.0892 0.0268" class="sphere_collision"/>
+                       <geom name="right/right_g1" pos="0.0222 0.0892 0.0268" class="sphere_collision"/>
+-                      <geom name="right/right_g2" pos="0.0182 0.0845 0.0266" class="sphere_collision"/>
++                      <geom name="right/right_g2" pos="0.0182 0.0845 0.0266" class="grasp"/>
+                       <site name="right/right_finger" pos="0.015 0.06 0.02"/>
+                     </body>
+                   </body>
+@@ -283,5 +283,5 @@
      <joint joint1="right/left_finger" joint2="right/right_finger" polycoef="0 1 0 0 0"/>
    </equality>
- 
+
 -  <include file="joint_position_actuators.xml"/>
-+  <include file="integrated_cartesian_actuators.xml"/>
++  <include file="filtered_cartesian_actuators.xml"/>
  </mujoco>

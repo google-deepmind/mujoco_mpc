@@ -15,14 +15,18 @@
 #include "mjpc/planners/gradient/policy.h"
 
 #include <algorithm>
+#include <vector>
 
 #include <mujoco/mujoco.h>
-#include "mjpc/planners/gradient/spline_mapping.h"
-#include "mjpc/planners/policy.h"
+#include "mjpc/spline/spline.h"
+#include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 
 namespace mjpc {
+
+using mjpc::spline::SplineInterpolation;
+
 
 // allocate memory
 void GradientPolicy::Allocate(const mjModel* model, const Task& task,
@@ -48,7 +52,7 @@ void GradientPolicy::Allocate(const mjModel* model, const Task& task,
                                          "gradient_spline_points");
 
   // representation
-  representation = GetNumberOrDefault(PolicyRepresentation::kLinearSpline,
+  representation = GetNumberOrDefault(SplineInterpolation::kLinearSpline,
                                       model, "gradient_representation");
 }
 
@@ -83,13 +87,13 @@ void GradientPolicy::Action(double* action, const double* state,
   // ----- get action ----- //
 
   if (bounds[0] == bounds[1] ||
-      representation == PolicyRepresentation::kZeroSpline) {
+      representation == SplineInterpolation::kZeroSpline) {
     ZeroInterpolation(action, time, times, parameters.data(), model->nu,
                       num_spline_points);
-  } else if (representation == PolicyRepresentation::kLinearSpline) {
+  } else if (representation == SplineInterpolation::kLinearSpline) {
     LinearInterpolation(action, time, times, parameters.data(), model->nu,
                         num_spline_points);
-  } else if (representation == PolicyRepresentation::kCubicSpline) {
+  } else if (representation == SplineInterpolation::kCubicSpline) {
     CubicInterpolation(action, time, times, parameters.data(), model->nu,
                        num_spline_points);
   }

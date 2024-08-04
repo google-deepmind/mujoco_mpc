@@ -15,7 +15,9 @@
 #include "mjpc/planners/ilqs/planner.h"
 
 #include <chrono>
+#include <vector>
 
+#include <absl/types/span.h>
 #include <mujoco/mujoco.h>
 #include "mjpc/array_safety.h"
 #include "mjpc/planners/ilqg/planner.h"
@@ -102,13 +104,11 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
         1.0e-5);
 
     // get spline points
+    spline_times_cache.clear();
     for (int t = 0; t < num_spline_points; t++) {
-      sampling.policy.times[t] = nominal_time;
+      spline_times_cache.push_back(nominal_time);
       nominal_time += time_shift;
     }
-
-    LinearRange(sampling.policy.times.data(), time_shift,
-                sampling.policy.times[0], num_spline_points);
 
     // linear system solve
     if (dim_actions != sampling.model->nu * (horizon - 1) ||
@@ -118,8 +118,8 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       dim_actions = sampling.model->nu * (horizon - 1);
 
       // compute parameter to action mapping
-      mappings[sampling.policy.representation]->Compute(
-          sampling.policy.times, num_spline_points,
+      mappings[sampling.policy.plan.Interpolation()]->Compute(
+          spline_times_cache, num_spline_points,
           ilqg.candidate_policy[0].trajectory.times.data(), horizon - 1);
 
       // ----- compute inverse mapping ----- //
@@ -129,7 +129,7 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
       inversemappingT.resize(dim_actions * dim_parameters);
 
       // M = A' A
-      double* mapping = mappings[sampling.policy.representation]->Get();
+      double* mapping = mappings[sampling.policy.plan.Interpolation()]->Get();
       mju_mulMatTMat(inversemapping_cache.data(), mapping, mapping, dim_actions,
                      dim_parameters, dim_parameters);
 
@@ -149,14 +149,23 @@ void iLQSPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
     }
 
     // compute parameters from actions via inverse mapping
-    mju_mulMatVec(sampling.policy.parameters.data(), inversemapping.data(),
+    spline_parameters_cache.resize(dim_parameters);
+    mju_mulMatVec(spline_parameters_cache.data(), inversemapping.data(),
                   ilqg.candidate_policy[0].trajectory.actions.data(),
                   dim_parameters, dim_actions);
 
     // clamp parameters
     for (int t = 0; t < num_spline_points; t++) {
-      Clamp(DataAt(sampling.policy.parameters, t * sampling.model->nu),
+      Clamp(DataAt(spline_parameters_cache, t * sampling.model->nu),
             sampling.model->actuator_ctrlrange, sampling.model->nu);
+    }
+    sampling.policy.plan.Clear();
+    for (int t = 0; t < num_spline_points; t++) {
+      sampling.policy.plan.AddNode(
+          spline_times_cache[t],
+          absl::MakeConstSpan(
+              spline_parameters_cache.data() + t * sampling.model->nu,
+              sampling.model->nu));
     }
   }
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-from typing import Callable
+from typing import Any, Callable, Tuple
 
 from etils import epath
 # internal import
@@ -21,47 +21,42 @@ import jax
 from jax import numpy as jnp
 import mujoco
 from mujoco import mjx
+from mujoco_mpc.mjx.tasks import instruction
 
 
-def bring_to_target(m: mjx.Model, d: mjx.Data) -> jax.Array:
-  """Returns cost for bimanual bring to target task."""
-  # reach
-  left_gripper_site_index = 3
-  right_gripper_site_index = 6
-  box_body_index = m.nbody - 1
-  left_gripper_pos = d.site_xpos[..., left_gripper_site_index, :]
-  right_gripper_pos = d.site_xpos[..., right_gripper_site_index, :]
-  box_pos = d.xpos[..., box_body_index, :]
-
-  reach_l = left_gripper_pos - box_pos
-  reach_r = right_gripper_pos - box_pos
-
-  target = jnp.array([-0.4, -0.2, 0.3])
-  bring = box_pos - target
-
-  residuals = [reach_l, reach_r, bring]
-  weights = [0.1, 0.1, 1]
-  norm_p = [0.005, 0.005, 0.003]
-
-  # NormType::kL2: y = sqrt(x*x' + p^2) - p
-  terms = []
-  for t, w, p in zip(residuals, weights, norm_p):
-    terms.append(w * jnp.sqrt(jnp.sum(t**2, axis=-1) + p**2) - p)
-  costs = jnp.sum(jnp.array(terms), axis=-1)
-
-  return costs
+def make_instruction(
+    m: mjx.Model, d: mjx.Data
+) -> Tuple[instruction.Instruction, jnp.ndarray]:
+  box_instruction = instruction.ObjectInstruction(
+      body_index=m.nbody - 1,
+      reference_index=0,
+      dof_index=m.nv - 6,
+      position=jnp.array([-0.3, -0.2, 0.3]),
+      orientation=jnp.array([0.5, 0.5, 0.5, 0.5]),
+      speed=0.3,
+      linear_weights=jnp.array([1, 1, 1]),
+      radii=jnp.array([0.05, 0.05, 0.05]),
+  )
+  return instruction.Instruction(
+      left_target=jnp.where(d.time > 3, m.nbody - 1, 0),
+      right_target=jnp.where(d.time < 6, m.nbody - 1, 0),
+      object_instructions=[box_instruction],
+  ), jnp.array([1.0])  # dummy userdata
 
 
 def get_models_and_cost_fn() -> tuple[
     mujoco.MjModel,
     mujoco.MjModel,
-    Callable[[mjx.Model, mjx.Data], jax.Array],
+    Callable[
+        [mjx.Model, mjx.Data, instruction.Instruction], Tuple[jax.Array, Any]
+    ],
+    Callable[[mjx.Model, mjx.Data], Tuple[instruction.Instruction, jax.Array]],
 ]:
   """Returns a planning model, a sim model, and a cost function."""
   path = epath.Path(
       'build/mjpc/tasks/bimanual/'
   )
-  model_file_name = 'mjx_scene.xml'
+  model_file_name = 'mjx_single_cube.xml'
   xml = (path / model_file_name).read_text()
   assets = {}
   for f in path.glob('*.xml'):
@@ -72,5 +67,5 @@ def get_models_and_cost_fn() -> tuple[
     assets[f.name] = f.read_bytes()
   sim_model = mujoco.MjModel.from_xml_string(xml, assets)
   plan_model = mujoco.MjModel.from_xml_string(xml, assets)
-  plan_model.opt.timestep = 0.01  # incidentally, already the case
-  return sim_model, plan_model, bring_to_target
+  plan_model.opt.timestep = 0.01
+  return sim_model, plan_model, instruction.instruction_cost, make_instruction

@@ -1,0 +1,24 @@
+<mujoco>
+  <default>
+    <default class="object">
+      <geom type="capsule" size=".015" mass=".04" condim="6" friction="1 5e-3 5e-4"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 1"/>
+    <body name="cross" pos="0.2 0.0 0.075" quat="1 0 0 0">
+      <freejoint/>
+      <geom class="object" fromto="-.02 0 0 .06 0 0" rgba=".8 .2 .2 1" name="red"/>
+      <geom class="object" fromto="0 -.02 0 0 .06 0" rgba=".2 .8 .2 1" name="green"/>
+      <geom class="object" fromto="0 0 -.02 0 0 .06" rgba=".2 .2 .8 1" name="blue"/>
+    </body>
+  </worldbody>
+
+  <sensor>
+    <framepos name="position" objtype="body" objname="cross"/>
+    <framequat name="orientation" objtype="body" objname="cross"/>
+    <framelinvel name="linear_velocity" objtype="body" objname="cross"/>
+    <frameangvel name="angular_velocity" objtype="body" objname="cross"/>
+  </sensor>
+</mujoco>

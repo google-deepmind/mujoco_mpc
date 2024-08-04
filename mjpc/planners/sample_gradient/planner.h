@@ -24,7 +24,10 @@
 
 #include "mjpc/planners/planner.h"
 #include "mjpc/planners/sampling/planner.h"
+#include "mjpc/planners/sampling/policy.h"
+#include "mjpc/spline/spline.h"
 #include "mjpc/states/state.h"
+#include "mjpc/task.h"
 #include "mjpc/trajectory.h"
 
 namespace mjpc {
@@ -64,8 +67,7 @@ class SampleGradientPlanner : public Planner {
 
   // resample nominal policy
   void ResamplePolicy(SamplingPolicy& policy, int horizon,
-                      int num_spline_points,
-                      PolicyRepresentation representation);
+                      int num_spline_points);
 
   // add noise to nominal policy
   void AddNoiseToPolicy(int i);
@@ -93,7 +95,7 @@ class SampleGradientPlanner : public Planner {
 
   // return number of parameters optimized by planner
   int NumParameters() override {
-    return policy.num_spline_points * policy.model->nu;
+    return policy.num_spline_points * model->nu;
   };
 
   // ----- members ----- //
@@ -113,8 +115,7 @@ class SampleGradientPlanner : public Planner {
   SamplingPolicy previous_policy;
 
   // scratch
-  std::vector<double> parameters_scratch;
-  std::vector<double> times_scratch;
+  mjpc::spline::TimeSpline plan_scratch;
 
   // trajectories
   std::vector<Trajectory> trajectory;
@@ -125,6 +126,8 @@ class SampleGradientPlanner : public Planner {
   // zero-mean Gaussian noise standard deviation
   double noise_exploration;
   std::vector<double> noise;
+  mjpc::spline::SplineInterpolation interpolation_ =
+      mjpc::spline::SplineInterpolation::kZeroSpline;
 
   // improvement
   double improvement;

@@ -33,14 +33,15 @@ std::string Walk::Name() const { return "H1 Walk"; }
 //     Residual (1): pelvis-feet aligment
 //     Residual (2): balance
 //     Residual (3): upright
-//     Residual (4): posture
-//     Residual (5): face towards goal
-//     Residual (6): walk towards goal
-//     Residual (7): move feet
-//     Residual (8): control
-//     Residual (9): feet distance
-//     Residual (10): feet cross
-//     Residual (11): slippage
+//     Residual (4): upper posture
+//     Residual (5): lower posture
+//     Residual (6): face towards goal
+//     Residual (7): walk towards goal
+//     Residual (8): move feet
+//     Residual (9): control
+//     Residual (10): feet distance
+//     Residual (11): leg cross
+//     Residual (12): slippage
 //   Number of parameters:
 //     Parameter (0): torso height goal
 //     Parameter (1): speed goal

@@ -49,6 +49,8 @@ Steps to Generate This Model
     ```
     Replace the old obj files with the simplified ones.
 19. Add sensors for each of the fingers.
+20. Change the "pos" field of "thumb_mp_collision" to "-0.0075 -0.0002 -0.011" in
+    order to fix incorrect orientation of thumb collision geometry.
 
 ##################
 Naming Conventions
@@ -382,7 +384,7 @@ Naming Conventions
           <inertial pos="0.0075 -0.0002 -0.011" quat="0 0.707107 0 0.707107" mass="0.032" diaginertia="4.8853e-06 4.3733e-06 3.0933e-06"/>
           <joint name="th_cmc" class="thumb_cmc"/>
           <geom name="th_mp_visual" pos="-0.0053 0.0003 0.00078" quat="0.500003 -0.5 -0.5 -0.499997" class="visual" mesh="proximal"/>
-          <geom name="th_mp_collision" size="0.017 0.013 0.011" pos="0.0075 -0.0002 -0.011" type="box"/>
+          <geom name="th_mp_collision" size="0.017 0.013 0.011" pos="-0.0075 -0.0002 -0.011" type="box"/>
 
           <body name="th_bs" pos="0 0.0143 -0.013" quat="0.500003 0.5 -0.5 0.499997">
             <inertial pos="0 0 -0.0070806" quat="0.707107 0.707107 0 0" mass="0.003" diaginertia="6.1932e-07 5.351e-07 2.1516e-07"/>

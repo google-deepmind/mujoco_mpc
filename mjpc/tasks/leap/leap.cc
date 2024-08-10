@@ -153,11 +153,12 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
           std::chrono::steady_clock::now() - time_of_last_rotation_)
           .count();
 
-  if (on_floor || time_since_last_rotation_ > 60.0) {  // 60 second timeout
-    time_of_last_reset_ = std::chrono::steady_clock::now();
-    rotation_count_ = 0;
-    change_goal = true;
-  }
+  // [DEBUG] for now, disable the timeout
+  // if (on_floor || time_since_last_rotation_ > 60.0) {  // 60 second timeout
+  //   time_of_last_reset_ = std::chrono::steady_clock::now();
+  //   rotation_count_ = 0;
+  //   change_goal = true;
+  // }
 
   // Change the goal orientation if needed
   if (change_goal) {

@@ -231,6 +231,8 @@ Naming Conventions
     <body name="leap_mount" pos="0 0 0" quat="1 0 0 0">
       <!-- NOTE: no collision geom for the moment -->
       <geom name="leap_mount_visual" pos="0 0 0" quat="1 0 0 0" class="visual" mesh="leap_mount"/>
+      <geom name="leap_mount_collision_0" size="0.002 0.025 0.005" pos="0.0405 0.02 0.009" quat="0.57346234 0 0.81923192 0" type="box"/>
+      <geom name="leap_mount_collision_1" size="0.005 0.005 0.005" pos="0.05 0.053 0.002" quat="0.4987168 0.64994038 -0.34910175 0.45495826" type="box"/>
 
       <!-- the grasp site: delete the group to view it temporarily -->
       <site name="grasp_site" pos="0.11 0.0 0.03" group="4" />

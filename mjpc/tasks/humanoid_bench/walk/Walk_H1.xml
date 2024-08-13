@@ -1,0 +1,59 @@
+<mujoco model="Walk H1">
+  <include file="../h1/h1_modified.xml"/>
+  <include file="../../common.xml"/>
+  <include file="../assets/floor.xml"/>
+
+  <keyframe>
+    <key name="home" qpos="0 0 0.98 1 0 0 0 0 0 -0.4 0.8 -0.4 0 0 -0.4 0.8 -0.4 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
+
+  <custom>
+    <numeric name="agent_planner" data="2"/>
+    <numeric name="agent_horizon" data="0.35"/>
+    <numeric name="agent_timestep" data="0.015"/>
+    <numeric name="sampling_spline_points" data="3"/>
+    <numeric name="sampling_exploration" data="0.05"/>
+    <numeric name="gradient_spline_points" data="5"/>
+    <numeric name="residual_Torso" data="1.25 0 1.7"/>
+    <numeric name="residual_HeadHeight" data="1.65 0.0 2.0"/>
+    <numeric name="residual_Speed" data="1.0 0.0 5.0"/>
+    <numeric name="residual_direction" data="0 -45 45"/>
+  </custom>
+
+  <sensor>
+    <user name="humanoid_bench" dim="1" user="6 0.0 0.0 100.0 0.01"/>
+    <user name="Height" dim="1" user="7 5.0 0 25.0 0.1 4.0"/>
+    <user name="Pelvis/Feet" dim="1" user="8 1.0 0.0 10.0 0.05"/>
+    <user name="Balance" dim="2" user="1 5.0 0.0 25.0 0.02 4.0"/>
+    <user name="Upright" dim="8" user="2 5.0 0.0 25.0 0.01"/>
+    <user name="Posture" dim="19" user="0 0.025 0 1.0"/>
+    <user name="Face Forward" dim="2" user="7 1.0 0.0 25.0 0.5 3.0"/>
+    <user name="Walk" dim="1" user="7 1.0 0.0 25.0 0.5 3.0"/>
+    <user name="Velocity" dim="2" user="7 0.625 0 25.0 0.2 4.0"/>
+    <user name="Control" dim="19" user="3 0.1 0 1.0 0.3"/>
+
+    <framepos name="trace0" objtype="body" objname="torso_link"/>
+
+    <framepos name="torso_position" objtype="body" objname="torso_link"/>
+    <subtreecom name="torso_subcom" body="torso_link"/>
+    <subtreelinvel name="torso_subcomvel" body="torso_link"/>
+    <framepos name="foot_right" objtype="body" objname="right_ankle_link"/>
+    <framepos name="foot_left" objtype="body" objname="left_ankle_link"/>
+    <framepos name="pelvis_position" objtype="body" objname="pelvis"/>
+    <framezaxis name="torso_up" objtype="xbody" objname="torso_link"/>
+    <framezaxis name="pelvis_up" objtype="xbody" objname="pelvis"/>
+    <framezaxis name="foot_right_up" objtype="xbody" objname="right_ankle_link"/>
+    <framezaxis name="foot_left_up" objtype="xbody" objname="left_ankle_link"/>
+    <framexaxis name="torso_forward" objtype="xbody" objname="torso_link"/>
+    <framexaxis name="pelvis_forward" objtype="xbody" objname="pelvis"/>
+    <framexaxis name="foot_right_forward" objtype="xbody" objname="right_ankle_link"/>
+    <framexaxis name="foot_left_forward" objtype="xbody" objname="left_ankle_link"/>
+    <subtreelinvel name="waist_lower_subcomvel" body="pelvis"/>
+    <framelinvel name="torso_velocity" objtype="body" objname="torso_link"/>
+    <framelinvel name="foot_right_velocity" objtype="body" objname="right_ankle_link"/>
+    <framelinvel name="foot_left_velocity" objtype="body" objname="left_ankle_link"/>
+    <framepos name="head_height" objtype="site" objname="head"/>
+    <framezaxis name="torso_upright" objtype="xbody" objname="torso_link"/>
+    <subtreelinvel name="center_of_mass_velocity" body="pelvis"/>
+  </sensor>
+</mujoco>

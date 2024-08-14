@@ -19,7 +19,7 @@
   <custom>
     <!-- agent -->
     <numeric name="agent_planner" data="2" />
-    <numeric name="agent_horizon" data="0.6" />
+    <numeric name="agent_horizon" data="0.4" />
     <numeric name="agent_timestep" data="0.02" />
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.05" />

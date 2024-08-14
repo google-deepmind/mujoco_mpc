@@ -108,9 +108,13 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   }
   double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
 
+  // Check if the goal orientation is axis-aligned
+  int axis_aligned_goal = GetNumberOrDefault(1, model, "axis_aligned_goal");
+  double angle_thresh = axis_aligned_goal ? 10.0 : 30.0;
+
   // Decide whether to change the goal orientation
   bool change_goal = false;
-  if (angle < 30.0) {
+  if (angle < angle_thresh) {
     change_goal = true;
     ++rotation_count_;
     if (rotation_count_ > best_rotation_count_) {
@@ -164,39 +168,104 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
   if (change_goal) {
     time_of_last_rotation_ = std::chrono::steady_clock::now();
 
-    while (true) {
-      // Randomly sample a quaternion
-      // https://stackoverflow.com/a/44031492
-      const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
-      const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
-      const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
-      const double s1 = std::sqrt(1.0 - a);
-      const double s2 = std::sqrt(a);
-      const double sb = std::sin(2.0 * mjPI * b);
-      const double cb = std::cos(2.0 * mjPI * b);
-      const double sc = std::sin(2.0 * mjPI * c);
-      const double cc = std::cos(2.0 * mjPI * c);
-      std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+    // [option 1] uniformly randomly sample one of 24 possible cube orientations
+    if (axis_aligned_goal) {
+      std::vector<double> q0 = {0.0, 1.0, 0.0, 0.7};      // wrist tilt
+      std::vector<double> q1 = {0.0, 0.0, 0.0, 0.0};      // first rotation
+      std::vector<double> q2 = {0.0, 0.0, 0.0, 0.0};      // second rotation
+      std::vector<double> q_goal = {0.0, 0.0, 0.0, 0.0};  // goal rotation
 
-      // check the new goal is far enough away from the current orientation
-      // only consider rots >= 120 degs
-      std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
-      mju_mulQuat(q_diff.data(), q_goal.data(), q_gco_conj.data());
-      mju_normalize4(q_diff.data());
-      if (q_diff[0] < 0.0) {
-        q_diff[0] *= -1.0;
-        q_diff[1] *= -1.0;
-        q_diff[2] *= -1.0;
-        q_diff[3] *= -1.0;
+      // ensure that the newly sampled rotation differs from the old one
+      int rand1 = rand1_;
+      int rand2 = rand2_;
+      while (rand1 == rand1_ && rand2 == rand2_) {
+        rand1 = absl::Uniform<int>(gen_, 0, 6);
+        rand2 = absl::Uniform<int>(gen_, 0, 4);
       }
-      double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
+      rand1_ = rand1;  // reset the old rotation
+      rand2_ = rand2;
 
-      // Set the new goal orientation
-      if (angle >= 120.0) {
-        int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
-        int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
-        mju_copy(data->mocap_quat + jnt_qposadr, q_goal.data(), 4);
-        break;
+      // choose which face faces +z
+      if (rand1 == 0) {
+        // do nothing
+        q1 = {1.0, 0.0, 0.0, 0.0};
+      } else if (rand1 == 1) {
+        // rotate about x axis by 90 degrees
+        q1 = {0.7071067811865476, 0.7071067811865476, 0.0, 0.0};
+      } else if (rand1 == 2) {
+        // rotate about x axis by 180 degrees
+        q1 = {0.0, 1.0, 0.0, 0.0};
+      } else if (rand1 == 3) {
+        // rotate about x axis by 270 degrees
+        q1 = {-0.7071067811865476, 0.7071067811865476, 0.0, 0.0};
+      } else if (rand1 == 4) {
+        // rotate about y axis by 90 degrees
+        q1 = {0.7071067811865476, 0.0, 0.7071067811865476, 0.0};
+      } else if (rand1 == 5) {
+        // rotate about y axis by 270 degrees
+        q1 = {0.7071067811865476, 0.0, -0.7071067811865476, 0.0};
+      }
+
+      // choose rotation about +z
+      if (rand2 == 0) {
+        // do nothing
+        q2 = {1.0, 0.0, 0.0, 0.0};
+      } else if (rand2 == 1) {
+        // rotate about z axis by 90 degrees
+        q2 = {0.7071067811865476, 0.0, 0.0, 0.7071067811865476};
+      } else if (rand2 == 2) {
+        // rotate about z axis by 180 degrees
+        q2 = {0.0, 0.0, 0.0, 1.0};
+      } else if (rand2 == 3) {
+        // rotate about z axis by 270 degrees
+        q2 = {-0.7071067811865476, 0.0, 0.0, 0.7071067811865476};
+      }
+
+      // combine the two quaternions
+      mju_mulQuat(q_goal.data(), q0.data(), q2.data());
+      mju_mulQuat(q_goal.data(), q_goal.data(), q1.data());
+      mju_normalize4(q_goal.data());  // enforce unit norm
+
+      // set the new goal orientation
+      int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+      int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+      mju_copy(data->mocap_quat + jnt_qposadr, q_goal.data(), 4);
+
+    // [option 2] uniformly randomly sample a quaternion
+    // see: https://stackoverflow.com/a/44031492
+    } else {
+      while (true) {
+        const double a = absl::Uniform<double>(gen_, 0.0, 1.0);
+        const double b = absl::Uniform<double>(gen_, 0.0, 1.0);
+        const double c = absl::Uniform<double>(gen_, 0.0, 1.0);
+        const double s1 = std::sqrt(1.0 - a);
+        const double s2 = std::sqrt(a);
+        const double sb = std::sin(2.0 * mjPI * b);
+        const double cb = std::cos(2.0 * mjPI * b);
+        const double sc = std::sin(2.0 * mjPI * c);
+        const double cc = std::cos(2.0 * mjPI * c);
+        std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
+
+        // check the new goal is far enough away from the current orientation
+        // only consider rots >= 120 degs
+        std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
+        mju_mulQuat(q_diff.data(), q_goal.data(), q_gco_conj.data());
+        mju_normalize4(q_diff.data());
+        if (q_diff[0] < 0.0) {
+          q_diff[0] *= -1.0;
+          q_diff[1] *= -1.0;
+          q_diff[2] *= -1.0;
+          q_diff[3] *= -1.0;
+        }
+        double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
+
+        // Set the new goal orientation
+        if (angle >= 120.0) {
+          int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
+          int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
+          mju_copy(data->mocap_quat + jnt_qposadr, q_goal.data(), 4);
+          break;
+        }
       }
     }
   }

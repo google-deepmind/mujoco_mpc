@@ -61,6 +61,10 @@ class Leap : public Task {
       std::chrono::steady_clock::now();
   double time_since_last_reset_ = 0.0;
   double time_since_last_rotation_ = 0.0;
+
+  // variables for randomizing the axis-aligned goal cube orientation
+  int rand1_ = 0;
+  int rand2_ = 0;
 };
 }  // namespace mjpc
 

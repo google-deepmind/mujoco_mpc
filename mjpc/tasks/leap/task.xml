@@ -17,6 +17,7 @@
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
+    <numeric name="axis_aligned_goal" data="1" />
 
     <!-- cem -->
     <numeric name="n_elite" data="3" />

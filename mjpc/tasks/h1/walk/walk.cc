@@ -125,10 +125,10 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
   counter += 3;
   // ----- posture up ----- //
-  mju_copy(&residual[counter], data->qpos + 17, model->nq - 17); //First 7 are freejoint coord, the other 10 are lower body joints
+  mju_copy(&residual[counter], data->qpos + 17, model->nq - 17); // First 7 are freejoint coord, the other 10 are lower body joints
   counter += model->nq - 17;
   // ----- posture down ----- //
-  mju_copy(&residual[counter], data->qpos + 7, model->nq - 16); //First 7 are freejoint coord, the other 10 are lower body joints
+  mju_copy(&residual[counter], data->qpos + 7, model->nq - 16); // First 7 are freejoint coord, the other 10 are lower body joints
   counter += model->nq - 16;
   // ----- walk ----- //
   double* torso_forward = SensorByName(model, data, "torso_forward");
@@ -158,7 +158,7 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   // mju_scl(com_vel, com_vel, 0.5, 2);
 
   double com_vel[2];
-  mju_copy(com_vel,subcomvel,2); //subcomvel is the velocity of the robot's CoM
+  mju_copy(com_vel,subcomvel,2); // subcomvel is the velocity of the robot's CoM
 
   // face forward
   residual[counter++] =

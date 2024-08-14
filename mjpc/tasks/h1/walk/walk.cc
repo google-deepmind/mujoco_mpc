@@ -17,14 +17,12 @@
 #include <iostream>
 #include <string>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
+#include <mujoco/mujoco.h>
 
 namespace mjpc::h1 {
-std::string Walk::XmlPath() const {
-  return GetModelPath("h1/walk/task.xml");
-}
+std::string Walk::XmlPath() const { return GetModelPath("h1/walk/task.xml"); }
 std::string Walk::Name() const { return "H1 Walk"; }
 
 // ------------------ Residuals for humanoid walk task ------------
@@ -48,8 +46,8 @@ std::string Walk::Name() const { return "H1 Walk"; }
 //     Parameter (2): feet distance goal
 //     Parameter (3): balance speed
 // ----------------------------------------------------------------
-void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
-                                double* residual) const {
+void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
+                                double *residual) const {
   int counter = 0;
 
   // ----- torso height ----- //
@@ -57,16 +55,16 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   residual[counter++] = torso_height - parameters_[0];
 
   // ----- pelvis / feet ----- //
-  double* foot_right = SensorByName(model, data, "foot_right");
-  double* foot_left = SensorByName(model, data, "foot_left");
+  double *foot_right = SensorByName(model, data, "foot_right");
+  double *foot_left = SensorByName(model, data, "foot_left");
   double pelvis_height = SensorByName(model, data, "pelvis_position")[2];
   residual[counter++] =
       0.5 * (foot_left[2] + foot_right[2]) - pelvis_height - 0.2;
 
   // ----- balance ----- //
   // capture point
-  double* subcom = SensorByName(model, data, "torso_subcom");
-  double* subcomvel = SensorByName(model, data, "torso_subcomvel");
+  double *subcom = SensorByName(model, data, "torso_subcom");
+  double *subcomvel = SensorByName(model, data, "torso_subcomvel");
 
   double capture_point[3];
   mju_addScl(capture_point, subcom, subcomvel, parameters_[3], 3);
@@ -96,7 +94,7 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
 
   // is standing
   double standing =
-        torso_height / mju_sqrt(torso_height * torso_height + 0.45 * 0.45) - 0.4;
+      torso_height / mju_sqrt(torso_height * torso_height + 0.45 * 0.45) - 0.4;
 
   mju_sub(&residual[counter], capture_point, pcp, 2);
   mju_scl(&residual[counter], &residual[counter], standing, 2);
@@ -104,10 +102,10 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   counter += 2;
 
   // ----- upright ----- //
-  double* torso_up = SensorByName(model, data, "torso_up");
-  double* pelvis_up = SensorByName(model, data, "pelvis_up");
-  double* foot_right_up = SensorByName(model, data, "foot_right_up");
-  double* foot_left_up = SensorByName(model, data, "foot_left_up");
+  double *torso_up = SensorByName(model, data, "torso_up");
+  double *pelvis_up = SensorByName(model, data, "pelvis_up");
+  double *foot_right_up = SensorByName(model, data, "foot_right_up");
+  double *foot_left_up = SensorByName(model, data, "foot_left_up");
   double z_ref[3] = {0.0, 0.0, 1.0};
 
   // torso
@@ -125,16 +123,20 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
   counter += 3;
   // ----- posture up ----- //
-  mju_copy(&residual[counter], data->qpos + 17, model->nq - 17); // First 7 are freejoint coord, the other 10 are lower body joints
+  mju_copy(&residual[counter], data->qpos + 17,
+           model->nq - 17); // First 7 are freejoint coord, the other 10 are
+                            // lower body joints
   counter += model->nq - 17;
   // ----- posture down ----- //
-  mju_copy(&residual[counter], data->qpos + 7, model->nq - 16); // First 7 are freejoint coord, the other 10 are lower body joints
+  mju_copy(&residual[counter], data->qpos + 7,
+           model->nq - 16); // First 7 are freejoint coord, the other 10 are
+                            // lower body joints
   counter += model->nq - 16;
   // ----- walk ----- //
-  double* torso_forward = SensorByName(model, data, "torso_forward");
-  double* pelvis_forward = SensorByName(model, data, "pelvis_forward");
-  double* foot_right_forward = SensorByName(model, data, "foot_right_forward");
-  double* foot_left_forward = SensorByName(model, data, "foot_left_forward");
+  double *torso_forward = SensorByName(model, data, "torso_forward");
+  double *pelvis_forward = SensorByName(model, data, "pelvis_forward");
+  double *foot_right_forward = SensorByName(model, data, "foot_right_forward");
+  double *foot_left_forward = SensorByName(model, data, "foot_left_forward");
 
   double forward_target[2];
   double forward[2];
@@ -144,25 +146,25 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_addTo(forward, foot_left_forward, 2);
   mju_normalize(forward, 2);
 
-  double* goal_point = SensorByName(model, data, "goal");
-  double* torso_position = SensorByName(model, data, "torso_position");
+  double *goal_point = SensorByName(model, data, "goal");
+  double *torso_position = SensorByName(model, data, "torso_position");
   mju_sub(forward_target, goal_point, torso_position, 2);
   mju_normalize(forward_target, 2);
 
   double com_vel[2];
-  mju_copy(com_vel,subcomvel,2); // subcomvel is the velocity of the robot's CoM
+  mju_copy(com_vel, subcomvel,
+           2); // subcomvel is the velocity of the robot's CoM
 
   // face forward
-  residual[counter++] =
-      standing * (mju_dot(forward, forward_target, 2) - 1);
+  residual[counter++] = standing * (mju_dot(forward, forward_target, 2) - 1);
 
   // walk forward
   residual[counter++] =
       standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]);
 
   // ----- move feet ----- //
-  double* foot_right_vel = SensorByName(model, data, "foot_right_velocity");
-  double* foot_left_vel = SensorByName(model, data, "foot_left_velocity");
+  double *foot_right_vel = SensorByName(model, data, "foot_right_velocity");
+  double *foot_left_vel = SensorByName(model, data, "foot_left_velocity");
   double move_feet[2];
   mju_copy(move_feet, com_vel, 2);
   mju_addToScl(move_feet, foot_right_vel, -0.5, 2);
@@ -188,17 +190,19 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   double *left_foot_left_axis = SensorByName(model, data, "foot_left_left");
   mju_sub3(vec, foot_right, foot_left);
   residual[counter++] = mju_dot3(vec, left_foot_left_axis) - 0.2;
-  
 
   // ----- slippage ----- //
-  double* foot_right_ang_velocity = SensorByName(model, data, "foot_right_ang_velocity");
-  double* foot_left_ang_velocity = SensorByName(model, data, "foot_left_ang_velocity");
-  double* right_foot_xbody = SensorByName(model, data, "foot_right_xbody");
-  double* left_foot_xbody = SensorByName(model, data, "foot_left_xbody");
-  
-  
-  residual[counter++] = (tanh(-(right_foot_xbody[2]-0.0645)/0.001)+1)*0.5*foot_right_ang_velocity[2];
-  residual[counter++] = (tanh(-(left_foot_xbody[2]-0.0645)/0.001)+1)*0.5*foot_left_ang_velocity[2];
+  double *foot_right_ang_velocity =
+      SensorByName(model, data, "foot_right_ang_velocity");
+  double *foot_left_ang_velocity =
+      SensorByName(model, data, "foot_left_ang_velocity");
+  double *right_foot_xbody = SensorByName(model, data, "foot_right_xbody");
+  double *left_foot_xbody = SensorByName(model, data, "foot_left_xbody");
+
+  residual[counter++] = (tanh(-(right_foot_xbody[2] - 0.0645) / 0.001) + 1) *
+                        0.5 * foot_right_ang_velocity[2];
+  residual[counter++] = (tanh(-(left_foot_xbody[2] - 0.0645) / 0.001) + 1) *
+                        0.5 * foot_left_ang_velocity[2];
 
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function
@@ -209,11 +213,10 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
     }
   }
   if (user_sensor_dim != counter) {
-    mju_error_i(
-        "mismatch between total user-sensor dimension"
-        "and actual length of residual %d",
-        counter);
+    mju_error_i("mismatch between total user-sensor dimension"
+                "and actual length of residual %d",
+                counter);
   }
 }
 
-}  // namespace mjpc::h1
+} // namespace mjpc::h1

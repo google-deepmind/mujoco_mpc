@@ -1,7 +1,6 @@
-diff --git a/home/antonio/uni/tesi/mujoco_mpc/build/_deps/menagerie-src/unitree_h1/h1.xml b/home/antonio/uni/tesi/mujoco_mpc/mjpc/tasks/h1/h1.xml
-index 32d3fb9..dfe3948 100644
---- a/home/antonio/uni/tesi/mujoco_mpc/build/_deps/menagerie-src/unitree_h1/h1.xml
-+++ b/home/antonio/uni/tesi/mujoco_mpc/mjpc/tasks/h1/h1.xml
+diff --git a/h1.xml b/h1.xml
+--- a/h1.xml
++++ b/h1.xml
 @@ -1,5 +1,5 @@
  <mujoco model="h1">
 -  <compiler angle="radian" meshdir="assets" autolimits="true"/>

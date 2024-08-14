@@ -43,7 +43,6 @@ class Walk : public Task {
     // ----------------------------------------------------------------
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
-    double StepHeight(double time, double footphase, double duty_ratio) const;
   };
 
   Walk() : residual_(this) {}

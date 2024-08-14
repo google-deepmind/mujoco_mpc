@@ -149,14 +149,6 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
   mju_sub(forward_target, goal_point, torso_position, 2);
   mju_normalize(forward_target, 2);
 
-  // com vel
-  // double* waist_lower_subcomvel =
-  //     SensorByName(model, data, "waist_lower_subcomvel");
-  // double* torso_velocity = SensorByName(model, data, "torso_velocity");
-  // double com_vel[2];
-  // mju_add(com_vel, waist_lower_subcomvel, torso_velocity, 2);
-  // mju_scl(com_vel, com_vel, 0.5, 2);
-
   double com_vel[2];
   mju_copy(com_vel,subcomvel,2); // subcomvel is the velocity of the robot's CoM
 
@@ -222,17 +214,6 @@ void Walk::ResidualFn::Residual(const mjModel* model, const mjData* data,
         "and actual length of residual %d",
         counter);
   }
-}
-
-double Walk::ResidualFn::StepHeight(double time, double footphase,
-                                             double duty_ratio) const {
-  double angle = fmod(time + mjPI - footphase, 2*mjPI) - mjPI;
-  double value = 0;
-  if (duty_ratio < 1) {
-    angle *= 0.5 / (1 - duty_ratio);
-    value = mju_cos(mju_clip(angle, -mjPI/2, mjPI/2));
-  }
-  return mju_abs(value) < 1e-6 ? 0.0 : value;
 }
 
 }  // namespace mjpc::h1

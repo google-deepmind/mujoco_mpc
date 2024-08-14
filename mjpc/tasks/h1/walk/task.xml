@@ -21,6 +21,7 @@
     <numeric name="agent_planner" data="2" />
     <numeric name="agent_horizon" data="0.4" />
     <numeric name="agent_timestep" data="0.02" />
+    <numeric name="agent_integrator" data="3" />
     <numeric name="sampling_spline_points" data="3" />
     <numeric name="sampling_exploration" data="0.05" />
     <numeric name="gradient_spline_points" data="5" />

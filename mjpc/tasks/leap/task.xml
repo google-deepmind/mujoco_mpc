@@ -39,7 +39,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".3" />
+    <geom friction=".5" />
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->

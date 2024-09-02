@@ -154,6 +154,9 @@ void SamplingPlanner::SetState(const State& state) {
 
 int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
                                               ThreadPool& pool) {
+  // resample nominal policy to current time
+  this->UpdateNominalPolicy(horizon);
+
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
@@ -192,9 +195,6 @@ int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
 
 // optimize nominal policy using random sampling
 void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
-  // resample nominal policy to current time
-  this->UpdateNominalPolicy(horizon);
-
   OptimizePolicyCandidates(1, horizon, pool);
 
   // ----- update policy ----- //

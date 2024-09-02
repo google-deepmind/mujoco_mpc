@@ -110,7 +110,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
 
   // Check if the goal orientation is axis-aligned
   int axis_aligned_goal = GetNumberOrDefault(1, model, "axis_aligned_goal");
-  double angle_thresh = axis_aligned_goal ? 10.0 : 20.0;
+  double angle_thresh = axis_aligned_goal ? 11.4592 : 22.9183;  // 0.2 and 0.4 radians, (0.4 same as dextreme)
 
   // Decide whether to change the goal orientation
   bool change_goal = false;

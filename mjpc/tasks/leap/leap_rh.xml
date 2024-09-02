@@ -142,18 +142,18 @@ Naming Conventions
     <geom solref="0.0001 1.0"/>
 
     <!-- actuator defaults -->
-    <position kp="0.15" kv="0.0" />
-    <joint damping="0.03" frictionloss="0.001"/>
+    <position kp="0.2827620538871408" kv="0.08484981477307343" />
+    <joint damping="0.003955015283771064" frictionloss="0.035302420100902204"/>
 
     <!-- geom class defaults -->
     <default class="visual">
       <geom group="1" type="mesh" contype="0" conaffinity="0" density="0" material="black" />
     </default>
     <default class="tip">
-      <geom type="mesh" mesh="tip" friction="1.0"/>
+      <geom type="mesh" mesh="tip" friction="0.8"/>
     </default>
     <default class="thumb_tip">
-      <geom type="mesh" mesh="thumb_tip" friction="1.0"/>
+      <geom type="mesh" mesh="thumb_tip" friction="0.8"/>
     </default>
 
     <!-- joint class defaults -->

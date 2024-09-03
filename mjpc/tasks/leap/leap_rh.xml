@@ -150,10 +150,10 @@ Naming Conventions
       <geom group="1" type="mesh" contype="0" conaffinity="0" density="0" material="black" />
     </default>
     <default class="tip">
-      <geom type="mesh" mesh="tip" friction="0.8"/>
+      <geom type="mesh" mesh="tip" friction="1.0"/>
     </default>
     <default class="thumb_tip">
-      <geom type="mesh" mesh="thumb_tip" friction="0.8"/>
+      <geom type="mesh" mesh="thumb_tip" friction="1.0"/>
     </default>
 
     <!-- joint class defaults -->

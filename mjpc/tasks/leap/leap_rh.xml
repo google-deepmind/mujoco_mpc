@@ -142,8 +142,10 @@ Naming Conventions
     <geom solref="0.0001 1.0"/>
 
     <!-- actuator defaults -->
-    <position kp="0.2827620538871408" kv="0.08484981477307343" />
-    <joint damping="0.003955015283771064" frictionloss="0.035302420100902204"/>
+    <!-- <position kp="0.2827620538871408" kv="0.08484981477307343" />
+    <joint damping="0.003955015283771064" frictionloss="0.035302420100902204"/> -->
+    <position kp="0.2" kv="0.01" />
+    <joint damping="0.03" frictionloss="0.001"/>
 
     <!-- geom class defaults -->
     <default class="visual">

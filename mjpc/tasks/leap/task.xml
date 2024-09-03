@@ -39,7 +39,7 @@
 
   <!-- Set default friction coefficient -->
   <default>
-    <geom friction=".25" />
+    <geom friction=".2" />
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->
@@ -48,7 +48,7 @@
       directional="true" castshadow="true" />
     <geom name="floor" pos="0 0 -0.25" size="0 0 0.05" type="plane" material="blue_grid" />
     <body name="goal" mocap="true" pos="0.325 0.17 0.0475">
-      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" friction="1.25"/>
+      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" />
     </body>
 
     <!-- adding cameras for simulated rendering -->

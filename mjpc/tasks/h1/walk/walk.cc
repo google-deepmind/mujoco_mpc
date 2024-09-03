@@ -149,19 +149,21 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double *goal_point = SensorByName(model, data, "goal");
   double *torso_position = SensorByName(model, data, "torso_position");
   mju_sub(forward_target, goal_point, torso_position, 2);
-  mju_normalize(forward_target, 2);
-
+  double goal_distance = mju_normalize(forward_target, 2);
+  // A function of the distance to the goal used to disable goal tracking when the goal is too close.
+  // To do this, we use a tanh function that tends to 0 when the goal is less than 30cm away and 1 otherwise.
+  double goal_distance_factor = std::tanh((goal_distance - 0.3) / 0.01) / 2.0 + 0.5;
   double com_vel[2];
-  mju_copy(com_vel, subcomvel,
-           2); // subcomvel is the velocity of the robot's CoM
+  mju_copy(com_vel, subcomvel, 2); // subcomvel is the velocity of the robot's CoM
 
-  // face forward
-  residual[counter++] = standing * (mju_dot(forward, forward_target, 2) - 1);
+  // Extract the goal forward direction from the goal point
+  double *goal_forward = SensorByName(model, data, "goal_forward");
+
+  // face goal
+  residual[counter++] = standing * ((goal_distance_factor * mju_dot(forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * mju_dot(forward, goal_forward, 2) - 1);
 
   // walk forward
-  residual[counter++] =
-      standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]);
-
+  residual[counter++] = standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]) * goal_distance_factor;
   // ----- move feet ----- //
   double *foot_right_vel = SensorByName(model, data, "foot_right_velocity");
   double *foot_left_vel = SensorByName(model, data, "foot_left_velocity");
@@ -186,10 +188,15 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   residual[counter] = feet_distance - parameters_[2];
   counter += 1;
 
-  // ----- feet cross ----- //
-  double *left_foot_left_axis = SensorByName(model, data, "foot_left_left");
-  mju_sub3(vec, foot_right, foot_left);
-  residual[counter++] = mju_dot3(vec, left_foot_left_axis) - 0.2;
+  // ----- leg cross ----- //
+  //double *left_foot_left_axis = SensorByName(model, data, "foot_left_left");
+  double *right_hip_roll = SensorByName(model, data, "right_hip_roll");
+  double *left_hip_roll = SensorByName(model, data, "left_hip_roll");
+
+  // mju_sub3(vec, foot_right, foot_left);
+  // residual[counter++] = mju_dot3(vec, left_foot_left_axis) + 0.3;
+  residual[counter++] = *right_hip_roll - 0.15;
+  residual[counter++] = -(*left_hip_roll) - 0.15;
 
   // ----- slippage ----- //
   double *foot_right_ang_velocity =

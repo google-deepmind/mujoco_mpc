@@ -39,12 +39,12 @@
     <user name="Upright" dim="8" user="2 4.0 0.0 25.0 0.01" /> <!--kL2-->
     <user name="Posture up" dim="9" user="0 0.020 0 1.0" /> <!--kQuadratic-->
     <user name="Posture down" dim="10" user="0 0.0 0 1.0" /> <!--kQuadratic-->
-    <user name="Face forward" dim="1" user="7 2.0 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> 
+    <user name="Face goal" dim="1" user="7 2.0 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> 
     <user name="Walk forward" dim="1" user="7 7.88 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss -->
     <user name="Move feet" dim="2" user="7 4.0 0 25.0 0.2 4.0" /> <!--kSmoothAbs2Loss -->
     <user name="Control" dim="19" user="0 0.00005 0.00001 0.001" /> <!--kQuadratic-->
     <user name="Feet Distance" dim="1" user="7 5.62 0 25.0 0.1 4.0" /> <!--kSmoothAbs2Loss-->
-    <user name="Leg cross" dim="1" user="8 2.0 0.0 10.0 0.05" /> <!--kRectifyLoss-->
+    <user name="Leg cross" dim="2" user="8 5.0 0.0 20.0 0.05" /> <!--kRectifyLoss-->
     <user name="Slippage" dim="2" user="0 0.0 0 50.0" /> <!--kQuadratic-->
 
     <!-- residual -->
@@ -66,11 +66,14 @@
     <framexaxis name="pelvis_forward" objtype="xbody" objname="pelvis"/>
     <framexaxis name="foot_right_forward" objtype="xbody" objname="right_ankle_link"/>
     <framexaxis name="foot_left_forward" objtype="xbody" objname="left_ankle_link"/>
+    <framexaxis name="goal_forward" objtype="xbody" objname="goal"/>
     <subtreelinvel name="waist_lower_subcomvel" body="legs"/>
     <framelinvel name="torso_velocity" objtype="body" objname="torso_link"/>
     <framelinvel name="foot_right_velocity" objtype="body" objname="right_ankle_link"/>
     <framelinvel name="foot_left_velocity" objtype="body" objname="left_ankle_link"/>
     <frameangvel name="foot_right_ang_velocity" objtype="body" objname="right_ankle_link"/>
     <frameangvel name="foot_left_ang_velocity" objtype="body" objname="left_ankle_link"/>
+    <jointpos name="right_hip_roll" joint="right_hip_roll"/>
+    <jointpos name="left_hip_roll" joint="left_hip_roll"/>
   </sensor>
 </mujoco>

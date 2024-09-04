@@ -48,7 +48,7 @@
       directional="true" castshadow="true" />
     <geom name="floor" pos="0 0 -0.25" size="0 0 0.05" type="plane" material="blue_grid" />
     <body name="goal" mocap="true" pos="0.325 0.17 0.0475">
-      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" />
+      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" friction=".5 0.05 0.0002"/>
     </body>
 
     <!-- adding cameras for simulated rendering -->
@@ -59,7 +59,7 @@
 
   <sensor>
     <!-- Residuals -->
-    <user name="Cube Position" dim="3" user="1 100 0 200 0.02 10" />
+    <user name="Cube Position" dim="1" user="8 2.5 0 10 0.05" />
     <user name="Cube Orientation" dim="3" user="0 1 0 10" />
     <user name="Cube Velocity" dim="3" user="0 0 0 10" />
     <user name="Actuation" dim="16" user="0 0.0 0.0 10" />

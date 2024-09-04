@@ -38,9 +38,9 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   // ---------- Cube position ----------
   // we use the kRectifyLoss on the distance of the cube to a rectangular tube of the following dimensions:
-  // * x in [0.085, 0.14]
+  // * x in [0.08, 0.14]
   // * y in [-0.02, 0.025]
-  // * z in [0.015, inf)
+  // * z in [z_min(x), z_min(x) + 0.035]
   // the loss has the form y = p * log(1 + exp(x / p))
   // we let x = 250 * dist(cube_center, tube),
   // where the distance function reports a set distance and 250 is a tuned slope controlling the scale of the loss.
@@ -55,7 +55,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double x_min = 0.08;
   double x_max = 0.14;
   double y_min = -0.02;
-  double y_max = 0.025;
+  double y_max = 0.02;
 
   double x_closest = mju_max(x_min, mju_min(x, x_max));
   double y_closest = mju_max(y_min, mju_min(y, y_max));
@@ -63,7 +63,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   if (x < x_min || x > x_max || y < y_min || y > y_max) {
       double theta = 0.349066;  // 20 degree palm tilt
       double z_min = x * std::tan(theta) - 0.035 / std::cos(theta);  // height of center of cube if flat
-      double z_max = z_min + 0.025;  // allow the cube to come up a bit
+      double z_max = z_min + 0.035;  // allow the cube to come up a bit
       z_closest = mju_max(z_min, mju_min(z, z_max));
   } else {
       double z_min = 0.015;

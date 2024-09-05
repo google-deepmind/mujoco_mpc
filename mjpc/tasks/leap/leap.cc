@@ -40,43 +40,25 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   // we use the kRectifyLoss on the distance of the cube to a rectangular tube of the following dimensions:
   // * x in [0.08, 0.14]
   // * y in [-0.02, 0.025]
-  // * z in [z_min(x), z_min(x) + 0.035]
-  // the loss has the form y = p * log(1 + exp(x / p))
-  // we let x = 250 * dist(cube_center, tube),
+  // the loss has the form y = p * log(1 + exp(var / p))
+  // we let var = 250 * dist(cube_center, tube),
   // where the distance function reports a set distance and 250 is a tuned slope controlling the scale of the loss.
   // for p = 0.05, this gives roughly a loss of 1 with a 1cm violation.
   double *cube_position = SensorByName(model, data, "cube_position");
-  // double *cube_goal_position = SensorByName(model, data, "cube_goal_position"); // unused for this loss
 
   double x = cube_position[0];
   double y = cube_position[1];
-  double z = cube_position[2];
 
   double x_min = 0.1;
-  double x_max = 0.14;
+  double x_max = 0.15;
   double y_min = -0.02;
   double y_max = 0.015;
 
   double x_closest = mju_max(x_min, mju_min(x, x_max));
   double y_closest = mju_max(y_min, mju_min(y, y_max));
-  double z_closest;
-  if (x < x_min || x > x_max || y < y_min || y > y_max) {
-      double theta = 0.349066;  // 20 degree palm tilt
-      double z_min = x * std::tan(theta) - 0.035 / std::cos(theta);  // height of center of cube if flat
-      double z_max = z_min + 0.05;  // allow the cube to come up a bit
-      z_closest = mju_max(z_min, mju_min(z, z_max));
-  } else {
-      double z_min = 1000.0;  // really prioritize not dropping the cube
-      z_closest = mju_max(z_min, z);
-  }
 
-  double dist = std::sqrt(
-      std::pow(x_closest - cube_position[0], 2) +
-      std::pow(y_closest - cube_position[1], 2) +
-      std::pow(z_closest - cube_position[2], 2));
-
-  // mju_sub3(residual + counter, cube_position, cube_goal_position);  // old loss takes in a 3-vector
-  // counter += 3;
+  double dist =
+      std::sqrt(std::pow(x_closest - cube_position[0], 2) + std::pow(y_closest - cube_position[1], 2));
 
   residual[counter] = 250.0 * dist;  // new loss takes a scalar
   counter += 1;
@@ -95,6 +77,13 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
       SensorByName(model, data, "cube_linear_velocity");
 
   mju_copy(residual + counter, cube_linear_velocity, 3);
+  counter += 3;
+
+  // ---------- Cube angular velocity ----------
+  double *cube_angular_velocity =
+      SensorByName(model, data, "cube_angular_velocity");
+
+  mju_copy(residual + counter, cube_angular_velocity, 3);
   counter += 3;
 
   // ---------- Control ----------
@@ -285,7 +274,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
         std::vector<double> q_goal = {s1 * sb, s1 * cb, s2 * sc, s2 * cc};
 
         // check the new goal is far enough away from the current orientation
-        // only consider rots >= 120 degs
+        // only consider rots >= 90 degs
         std::vector<double> q_diff = {0.0, 0.0, 0.0, 0.0};
         mju_mulQuat(q_diff.data(), q_goal.data(), q_gco_conj.data());
         mju_normalize4(q_diff.data());
@@ -298,7 +287,7 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
         double angle = 2.0 * std::acos(q_diff[0]) * 180.0 / M_PI;  // in degrees
 
         // Set the new goal orientation
-        if (angle >= 120.0) {
+        if (angle >= 90.0) {
           int goal = mj_name2id(model, mjOBJ_GEOM, "goal");
           int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[goal]];
           mju_copy(data->mocap_quat + jnt_qposadr, q_goal.data(), 4);

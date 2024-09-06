@@ -48,10 +48,11 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   double x = cube_position[0];
   double y = cube_position[1];
+  double z = cube_position[2];
 
   double x_min = 0.085;
-  double x_max = 0.11;
-  double y_min = -0.015;
+  double x_max = 0.15;
+  double y_min = -0.02;
   double y_max = 0.015;
 
   double x_closest = mju_max(x_min, mju_min(x, x_max));
@@ -59,6 +60,10 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   double dist =
       std::sqrt(std::pow(x_closest - cube_position[0], 2) + std::pow(y_closest - cube_position[1], 2));
+
+  if (z <= 0.15) {
+    dist *= 10.0;  // dropping is really bad
+  }
 
   residual[counter] = 250.0 * dist;  // new loss takes a scalar
   counter += 1;

@@ -51,7 +51,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   double x_min = 0.1;
   double x_max = 0.14;
-  double y_min = -0.015;
+  double y_min = -0.02;
   double y_max = 0.015;
 
   double x_closest = mju_max(x_min, mju_min(x, x_max));

@@ -190,10 +190,16 @@ double Norm(double* g, double* H, const double* x, const double* params, int n,
     case NormType::kRectifyLoss: {  // y  =  p*log(1 + exp(x/p))
       for (int i = 0; i < n; i++) {
         if (p > 0) {
-          double s = mju_exp(x[i] / p);
-          y += p * mju_log(1 + s);
-          if (g) g[i] = s / (1 + s);
-          if (H) H[i * n + i] = s / (p * (1 + s) * (1 + s));
+          if (x[i] / p >= 4.0) {  // when x/p is large, use linear approximation
+            y += x[i] / p;
+            if (g) g[i] = 1.0;
+            if (H) H[i * n + i] = 0.0;
+          } else {
+            double s = mju_exp(x[i] / p);
+            y += mju_log(1.0 + s);
+            if (g) g[i] = s / (1 + s);
+            if (H) H[i * n + i] = s / (p * (1 + s) * (1 + s));
+          }
         } else {
           y += x[i] > 0 ? x[i] : 0;
           if (g) g[i] = x[i] > 0 ? 1 : 0;

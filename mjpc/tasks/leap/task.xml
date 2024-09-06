@@ -7,13 +7,13 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="5" />
+    <numeric name="agent_planner" data="0" />
     <numeric name="agent_horizon" data="1.0" />
-    <numeric name="agent_timestep" data="0.005" />
+    <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
     <numeric name="sampling_spline_points" data="4" />
-    <numeric name="sampling_exploration" data="0.2" />
-    <numeric name="sampling_trajectories" data="125" />
+    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="sampling_trajectories" data="120" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
@@ -21,7 +21,7 @@
 
     <!-- cem -->
     <numeric name="n_elite" data="4" />
-    <numeric name="std_min" data="1.0" />
+    <numeric name="std_min" data="0.5" />
 
     <!-- Rotation counters -->
     <numeric name="residual_Curr # Rots" data="0 0 1000000"/>
@@ -59,10 +59,10 @@
 
   <sensor>
     <!-- Residuals -->
-    <user name="Cube Position" dim="1" user="8 1.0 0 10 0.05" />
-    <user name="Cube Orientation" dim="3" user="0 1 0 10" />
-    <user name="Cube Velocity" dim="3" user="0 0.05 0 10" />
-    <user name="Cube Angular Velocity" dim="3" user="0 0.025 0 1" />
+    <user name="Cube Position" dim="1" user="8 2.5 0 10 0.05" />
+    <user name="Cube Orientation" dim="3" user="0 1.0 0 10" />
+    <user name="Cube Velocity" dim="3" user="0 0.0 0 10" />
+    <user name="Cube Angular Velocity" dim="3" user="0 0.0 0 1" />
     <user name="Actuation" dim="16" user="0 0.0 0.0 10" />
     <user name="Grasp" dim="16" user="0 0.0 0.0 10" />
     <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />

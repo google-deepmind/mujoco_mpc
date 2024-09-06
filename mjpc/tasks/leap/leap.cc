@@ -49,7 +49,7 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double x = cube_position[0];
   double y = cube_position[1];
 
-  double x_min = 0.09;
+  double x_min = 0.085;
   double x_max = 0.11;
   double y_min = -0.015;
   double y_max = 0.015;

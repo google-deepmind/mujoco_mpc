@@ -50,20 +50,35 @@ void Leap::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double y = cube_position[1];
   double z = cube_position[2];
 
-  double x_min = 0.085;
-  double x_max = 0.15;
+  double x_min = 0.08;
+  double x_max = 0.14;
   double y_min = -0.02;
-  double y_max = 0.015;
+  double y_max = 0.02;
 
   double x_closest = mju_max(x_min, mju_min(x, x_max));
   double y_closest = mju_max(y_min, mju_min(y, y_max));
 
-  double dist =
-      std::sqrt(std::pow(x_closest - cube_position[0], 2) + std::pow(y_closest - cube_position[1], 2));
+  // double dist =
+  //     std::sqrt(std::pow(x_closest - cube_position[0], 2) + std::pow(y_closest - cube_position[1], 2));
 
-  if (z <= 0.15) {
-    dist *= 10.0;  // dropping is really bad
+  // if (z <= 0.15 && x <= x_min && x >= x_max && y <= y_min && y >= y_max) {
+  //   dist += 10.0;  // dropping is bad
+  // }
+  double z_closest;
+  if (x < x_min || x > x_max || y < y_min || y > y_max) {
+      double theta = 0.349066;  // 20 degree palm tilt
+      double z_min = x * std::tan(theta) - 0.035 / std::cos(theta);  // height of center of cube if flat
+      double z_max = z_min + 0.035;  // allow the cube to come up a bit
+      z_closest = mju_max(z_min, mju_min(z, z_max));
+  } else {
+      double z_min = 0.015;
+      z_closest = mju_max(z_min, z);
   }
+
+  double dist = std::sqrt(
+      std::pow(x_closest - cube_position[0], 2) +
+      std::pow(y_closest - cube_position[1], 2) +
+      std::pow(z_closest - cube_position[2], 2));
 
   residual[counter] = 250.0 * dist;  // new loss takes a scalar
   counter += 1;

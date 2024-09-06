@@ -7,7 +7,7 @@
 
   <custom>
     <!-- agent -->
-    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_planner" data="5" />
     <numeric name="agent_horizon" data="1.0" />
     <numeric name="agent_timestep" data="0.01" />
     <numeric name="agent_policy_width" data="0.0035" />
@@ -17,6 +17,8 @@
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
     <numeric name="gradient_spline_points" data="6" />
+    <numeric name="ilqg_num_rollouts" data="120" />
+    <numeric name="ilqg_regularization_type" data="0" />
     <numeric name="axis_aligned_goal" data="1" />
 
     <!-- cem -->

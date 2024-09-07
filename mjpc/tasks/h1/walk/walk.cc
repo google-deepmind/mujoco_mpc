@@ -71,7 +71,6 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   capture_point[2] = 1.0e-3;
 
   // project onto line segment
-
   double axis[3];
   double center[3];
   double vec[3];
@@ -93,8 +92,7 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   pcp[2] = 1.0e-3;
 
   // is standing
-  double standing =
-      torso_height / mju_sqrt(torso_height * torso_height + 0.45 * 0.45) - 0.4;
+  double standing = torso_height / mju_sqrt(torso_height * torso_height + 0.45 * 0.45) - 0.4;
 
   mju_sub(&residual[counter], capture_point, pcp, 2);
   mju_scl(&residual[counter], &residual[counter], standing, 2);
@@ -122,16 +120,11 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_sub3(&residual[counter], foot_left_up, z_ref);
   mju_scl3(&residual[counter], &residual[counter], 0.1 * standing);
   counter += 3;
-  // ----- posture up ----- //
-  mju_copy(&residual[counter], data->qpos + 17,
-           model->nq - 17); // First 7 are freejoint coord, the other 10 are
-                            // lower body joints
+  // ----- torso & arms posture ----- //
+  // We ignore the 7 dof of the freejoint and the 10 dof of the lower body joints
+  mju_copy(&residual[counter], data->qpos + 17, model->nq - 17); 
+                            
   counter += model->nq - 17;
-  // ----- posture down ----- //
-  mju_copy(&residual[counter], data->qpos + 7,
-           model->nq - 16); // First 7 are freejoint coord, the other 10 are
-                            // lower body joints
-  counter += model->nq - 16;
   // ----- walk ----- //
   double *torso_forward = SensorByName(model, data, "torso_forward");
   double *pelvis_forward = SensorByName(model, data, "pelvis_forward");
@@ -159,11 +152,12 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   // Extract the goal forward direction from the goal point
   double *goal_forward = SensorByName(model, data, "goal_forward");
 
-  // face goal
-  residual[counter++] = standing * ((goal_distance_factor * mju_dot(forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * mju_dot(forward, goal_forward, 2) - 1);
+  // Face towards goal point when the goal is far away, and face towards the goal forward direction when the goal is close.
+  residual[counter++] = standing * (goal_distance_factor * (mju_dot(forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(forward, goal_forward, 2) - 1));
 
-  // walk forward
+  // Walk towards the goal point when the goal is far away
   residual[counter++] = standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]) * goal_distance_factor;
+
   // ----- move feet ----- //
   double *foot_right_vel = SensorByName(model, data, "foot_right_velocity");
   double *foot_left_vel = SensorByName(model, data, "foot_left_velocity");
@@ -189,27 +183,21 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   counter += 1;
 
   // ----- leg cross ----- //
-  //double *left_foot_left_axis = SensorByName(model, data, "foot_left_left");
   double *right_hip_roll = SensorByName(model, data, "right_hip_roll");
   double *left_hip_roll = SensorByName(model, data, "left_hip_roll");
 
-  // mju_sub3(vec, foot_right, foot_left);
-  // residual[counter++] = mju_dot3(vec, left_foot_left_axis) + 0.3;
   residual[counter++] = *right_hip_roll - 0.15;
   residual[counter++] = -(*left_hip_roll) - 0.15;
 
   // ----- slippage ----- //
-  double *foot_right_ang_velocity =
-      SensorByName(model, data, "foot_right_ang_velocity");
-  double *foot_left_ang_velocity =
-      SensorByName(model, data, "foot_left_ang_velocity");
+  // This term is experimental and is used to penalize the robot for slipping.
+  double *foot_right_ang_velocity = SensorByName(model, data, "foot_right_ang_velocity");
+  double *foot_left_ang_velocity = SensorByName(model, data, "foot_left_ang_velocity");
   double *right_foot_xbody = SensorByName(model, data, "foot_right_xbody");
   double *left_foot_xbody = SensorByName(model, data, "foot_left_xbody");
 
-  residual[counter++] = (tanh(-(right_foot_xbody[2] - 0.0645) / 0.001) + 1) *
-                        0.5 * foot_right_ang_velocity[2];
-  residual[counter++] = (tanh(-(left_foot_xbody[2] - 0.0645) / 0.001) + 1) *
-                        0.5 * foot_left_ang_velocity[2];
+  residual[counter++] = (tanh(-(right_foot_xbody[2] - 0.0645) / 0.001) + 1) * 0.5 * foot_right_ang_velocity[2];
+  residual[counter++] = (tanh(-(left_foot_xbody[2] - 0.0645) / 0.001) + 1) * 0.5 * foot_left_ang_velocity[2];
 
   // sensor dim sanity check
   // TODO: use this pattern everywhere and make this a utility function

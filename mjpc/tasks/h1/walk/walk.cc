@@ -31,8 +31,8 @@ std::string Walk::Name() const { return "H1 Walk"; }
 //     Residual (1): pelvis-feet aligment
 //     Residual (2): balance
 //     Residual (3): upright
-//     Residual (4): upper posture
-//     Residual (5): lower posture
+//     Residual (4): torso posture
+//     Residual (5): arms posture
 //     Residual (6): face towards goal
 //     Residual (7): walk towards goal
 //     Residual (8): move feet

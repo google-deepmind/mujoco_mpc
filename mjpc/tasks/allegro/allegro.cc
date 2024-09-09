@@ -33,7 +33,7 @@ std::string Allegro::Name() const { return "Allegro"; }
 //     Cube position: (3)
 //     Cube orientation: (3)
 //     Cube linear velocity: (3)
-//     Actuation: (12) - desired finger positions relative to reasonable nominal
+//     Actuation: (16) - desired finger positions relative to reasonable nominal
 // ------------------------------------------
 void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
                                    double *residual) const {
@@ -79,17 +79,9 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
   mju_copy(residual + counter, cube_linear_velocity, 3);
   counter += 3;
 
-  // ---------- Control ----------
+  // ---------- Actuation ----------
   mju_copy(residual + counter, data->actuator_force, model->nu);
   counter += model->nu;
-
-  // ---------- Nominal Pose ----------
-  mju_sub(residual + counter, data->qpos + 11, model->key_qpos + 11, 16);
-  counter += 16;
-
-  // ---------- Joint Velocity ----------
-  mju_copy(residual + counter, data->qvel + 6, 16);
-  counter += 16;
 
   // Sanity check
   CheckSensorDim(model, counter);
@@ -270,10 +262,10 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
 
   // update mocap position
   // [DEBUG] if employing debug hacks in app.cc, this must be commented out!
-  // std::vector<double> pos_cube = pos_cube_;
-  // std::vector<double> quat_cube = quat_cube_;
-  // mju_copy(data->mocap_pos + 3, pos_cube.data(), 3);
-  // mju_copy(data->mocap_quat + 4, quat_cube.data(), 4);
+  std::vector<double> pos_cube = pos_cube_;
+  std::vector<double> quat_cube = quat_cube_;
+  mju_copy(data->mocap_pos + 3, pos_cube.data(), 3);
+  mju_copy(data->mocap_quat + 4, quat_cube.data(), 4);
 
   // update the rotation counter in the GUI
   parameters[5] = rotation_counter;

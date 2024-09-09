@@ -64,11 +64,6 @@
     <numeric name="residual_Prev # Rots" data="0 0 1000000"/>
     <numeric name="residual_Total # Rots" data="0 0 1000000"/>
     <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
-
-    <!-- [dirty] domain randomization noise -->
-    <numeric name="residual_DR friction std" data="0.1 0.0 0.1"/>
-    <numeric name="residual_DR actuator std" data="0.1 0.0 0.1"/>
-    <numeric name="residual_DR position std" data="0.0125 0.0 0.03"/>
   </custom>
 
   <!-- Set the camera viewpoint -->
@@ -102,7 +97,7 @@
     <user name="Cube Position" dim="3" user="1 100 0 300 0.02 2"/>
     <user name="Cube Orientation" dim="3" user="0 5 0 100" />
     <user name="Cube Velocity" dim="3" user="0 0 0 20" />
-    <user name="Actuation" dim="12" user="0 0 0 10" />
+    <user name="Actuation" dim="16" user="0 0 0 10" />
 
     <!-- Measurements we want to use -->
     <framepos name="cube_goal_position" objtype="site" objname="grasp_site"/>

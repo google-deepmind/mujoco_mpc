@@ -41,8 +41,6 @@
 #include "mjpc/threadpool.h"
 #include "mjpc/utilities.h"
 
-ABSL_FLAG(std::string, task, "Leap",
-          "Which model to load on startup.");
 ABSL_FLAG(bool, planner_enabled, false,
           "If true, the planner will run on startup");
 ABSL_FLAG(float, sim_percent_realtime, 100,

@@ -10,22 +10,25 @@
 
   <custom>
     <numeric name="agent_planner" data="0" />
-    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_horizon" data="0.6" />
     <numeric name="agent_timestep" data="0.01" />
-    <numeric name="agent_sample_width" data="0.0025" />
-    <numeric name="agent_policy_width" data="0.0035" />
-    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="agent_sample_width" data="0.2" />
+    <numeric name="agent_policy_width" data="0.002" />
+    <numeric name="sampling_exploration" data="0.1 0.6" />
     <numeric name="sampling_trajectories" data="120"/>
+    <numeric name="sampling_representation" data="1" />
+    <numeric name="sampling_sliding_plan" data="1" />
     <numeric name="sampling_spline_points" data="4" />
     <numeric name="gradient_spline_points" data="6" />
   </custom>
 
-  <statistic extent="1.5" center="0.0 0.35 0.2"/>
+  <statistic extent="1" center="0.2 0 0.25" meansize="0.03"/>
+
+  <option timestep="0.01"/>
 
   <visual>
     <quality shadowsize="8192"/>
-    <global azimuth="90" elevation="-30"/>
-    <scale framelength=".3" framewidth=".03"/>
+    <global azimuth="90" elevation="-30" realtime="0.5"/>
   </visual>
 
   <include file="../aloha_cartesian.xml"/>
@@ -39,35 +42,47 @@
       <geom name="table_visual" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" rgba="0.4 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
     <body mocap="true" name="box_goal_mocap">
-      <geom group="2" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
+      <geom group="1" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
     <body name="box">
       <freejoint/>
-      <geom name="box" type="box" size="0.015 0.015 0.015" priority="1" condim="6"
-        friction="1.5 .03 .003" rgba="0 1 0 1"/>
+      <geom name="box" type="box" size="0.015 0.015 0.015" condim="6" friction="1 5e-3 5e-4"
+            rgba=".1 .6 .1 1" group="0"/>
     </body>
   </worldbody>
+
   <keyframe>
     <key name="home" qpos=
-    "0 -0.96 1.16 0 -0.3 0 0.002 0.002
-    0 -0.96 1.16 0 -0.3 0 0.002 0.002
-    -0.25 0.2 0.3 1 0 0 0"
+    "0 -0.96 1.16 0 -0.3 0 0.01 0.01
+    0 -0.96 1.16 0 -0.3 0 0.01 0.01
+    0 0 0.3
+    1 0 0 0"
     mpos="0.4 -0.25 0.3"
     act= "-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"
     ctrl="-0.1 0 0 0 0 0 0.03 0.1 0 0 0 0 0 0.03"/>
   </keyframe>
 
   <sensor>
-    <user name="Reach L" dim="3" user="2 0.1 0 .5 0.005"/>
-    <user name="Reach R" dim="3" user="2 0.1 0 .5 0.005"/>
-    <user name="Bring" dim="3" user="2 1 0 1 0.003"/>
-    <framepos name="left/gripper" objtype="site" objname="left/gripper"/>
-    <framepos name="right/gripper" objtype="site" objname="right/gripper"/>
+    <user name="Reach L" dim="3" user="2 .1  0 .5 0.01"/>
+    <user name="Reach R" dim="3" user="2 .1  0 .5 0.01"/>
+    <user name="Grasp" dim="1"   user="-1 .05 0 .5"/>
+    <user name="Bring" dim="3"   user="2 .4  0 1 0.003"/>
+    <framepos name="left/gripper" objtype="body" objname="box" reftype="site" refname="left/gripper"/>
+    <framepos name="right/gripper" objtype="body" objname="box" reftype="site" refname="right/gripper"/>
     <framepos name="box" objtype="body" objname="box"/>
+    <framepos name="fingerLL" objtype="body" objname="left/left_finger_link"/>
+    <framepos name="fingerLR" objtype="body" objname="left/right_finger_link"/>
+    <framepos name="fingerRL" objtype="body" objname="right/left_finger_link"/>
+    <framepos name="fingerRR" objtype="body" objname="right/right_finger_link"/>
     <framepos name="target" objtype="body" objname="box_goal_mocap"/>
     <framepos name="trace0" objtype="site" objname="left/gripper"/>
     <framepos name="trace1" objtype="site" objname="right/gripper"/>
-
-
+    <framepos name="trace2" objtype="geom" objname="box"/>
   </sensor>
+
+  <default>
+    <default class="grasp">
+      <geom type="sphere" size="0.0006" rgba="1 0 0 1" condim="6" friction="1 5e-3 5e-4" solref=".01 1" margin=".02" gap=".02" group="3"/>
+    </default>
+  </default>
 </mujoco>

@@ -48,7 +48,7 @@ Direct::Direct(const mjModel* model, int length, int max_history)
   Reset();
 }
 
-// initialize batch estimator
+// initialize direct optimizer
 void Direct::Initialize(const mjModel* model) {
   // model
   if (this->model) mj_deleteModel(this->model);
@@ -77,11 +77,11 @@ void Direct::Initialize(const mjModel* model) {
   }
 
   // number of parameters
-  nparam_ = GetNumberOrDefault(0, model, "batch_num_parameters");
+  nparam_ = GetNumberOrDefault(0, model, "direct_num_parameters");
 
   // model parameters id
   model_parameters_id_ =
-      GetNumberOrDefault(-1, model, "batch_model_parameters_id");
+      GetNumberOrDefault(-1, model, "direct_model_parameters_id");
   if (model_parameters_id_ == -1 && nparam_ > 0) {
     mju_error("nparam > 0 but model_parameter_id is missing\n");
   }
@@ -256,7 +256,7 @@ void Direct::Initialize(const mjModel* model) {
   // TODO(taylor): method for xml to initial norm
   for (int i = 0; i < nsensor_; i++) {
     norm_type_sensor[i] =
-        (NormType)GetNumberOrDefault(0, model, "batch_norm_sensor");
+        (NormType)GetNumberOrDefault(0, model, "direct_norm_sensor");
 
     // add support by parsing norm parameters
     if (norm_type_sensor[i] != 0) {
@@ -314,7 +314,7 @@ void Direct::Initialize(const mjModel* model) {
 
   // search type
   settings.search_type = (SearchType)GetNumberOrDefault(
-      static_cast<int>(settings.search_type), model, "batch_search_type");
+      static_cast<int>(settings.search_type), model, "direct_search_type");
 
   // timer
   timer_.sensor_step.resize(max_history_);
@@ -369,7 +369,7 @@ void Direct::Reset(const mjData* data) {
 
   // parameter weights
   double noise_parameter_scl =
-      GetNumberOrDefault(1.0, model, "batch_noise_parameter");
+      GetNumberOrDefault(1.0, model, "direct_noise_parameter");
   std::fill(noise_parameter.begin(), noise_parameter.end(),
             noise_parameter_scl);
 
@@ -1189,15 +1189,15 @@ void Direct::JacobianSensor() {
   // loop over predictions
   for (int t = 0; t < configuration_length_; t++) {
     // schedule by time step
-    pool_.Schedule([&batch = *this, t]() {
+    pool_.Schedule([&direct = *this, t]() {
       // start Jacobian timer
       auto jacobian_sensor_start = std::chrono::steady_clock::now();
 
       // block
-      batch.BlockSensor(t);
+      direct.BlockSensor(t);
 
       // stop Jacobian timer
-      batch.timer_.sensor_step[t] = GetDuration(jacobian_sensor_start);
+      direct.timer_.sensor_step[t] = GetDuration(jacobian_sensor_start);
     });
   }
 }
@@ -1464,15 +1464,15 @@ void Direct::JacobianForce() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule by time step
-    pool_.Schedule([&batch = *this, t]() {
+    pool_.Schedule([&direct = *this, t]() {
       // start Jacobian timer
       auto jacobian_force_start = std::chrono::steady_clock::now();
 
       // block
-      batch.BlockForce(t);
+      direct.BlockForce(t);
 
       // stop Jacobian timer
-      batch.timer_.force_step[t] = GetDuration(jacobian_force_start);
+      direct.timer_.force_step[t] = GetDuration(jacobian_force_start);
     });
   }
 }
@@ -1495,46 +1495,47 @@ void Direct::InverseDynamicsPrediction() {
   int count_before = pool_.GetCount();
 
   // first time step
-  pool_.Schedule([&batch = *this, nq, nv]() {
+  pool_.Schedule([&direct = *this, nq, nv]() {
     // time index
     int t = 0;
 
     // data
-    mjData* d = batch.data_[t].get();
+    mjData* d = direct.data_[t].get();
 
     // terms
-    double* q0 = batch.configuration.Get(t);
-    double* y0 = batch.sensor_prediction.Get(t);
-    mju_zero(y0, batch.nsensordata_);
+    double* q0 = direct.configuration.Get(t);
+    double* y0 = direct.sensor_prediction.Get(t);
+    mju_zero(y0, direct.nsensordata_);
 
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->qacc, nv);
-    d->time = batch.times.Get(t)[0];
+    d->time = direct.times.Get(t)[0];
 
     // position sensors
-    mj_fwdPosition(batch.model, d);
-    mj_sensorPos(batch.model, d);
-    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
-      mj_energyPos(batch.model, d);
+    mj_fwdPosition(direct.model, d);
+    mj_sensorPos(direct.model, d);
+    if (direct.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(direct.model, d);
     }
 
     // loop over position sensors
-    for (int i = 0; i < batch.nsensor_; i++) {
+    for (int i = 0; i < direct.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+      int sensor_stage =
+          direct.model->sensor_needstage[direct.sensor_start_ + i];
 
       // check for position
       if (sensor_stage == mjSTAGE_POS) {
         // dimension
-        int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+        int sensor_dim = direct.model->sensor_dim[direct.sensor_start_ + i];
 
         // address
-        int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+        int sensor_adr = direct.model->sensor_adr[direct.sensor_start_ + i];
 
         // copy sensor data
-        mju_copy(y0 + sensor_adr - batch.sensor_start_index_,
+        mju_copy(y0 + sensor_adr - direct.sensor_start_index_,
                  d->sensordata + sensor_adr, sensor_dim);
       }
     }
@@ -1543,14 +1544,14 @@ void Direct::InverseDynamicsPrediction() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool_.Schedule([&batch = *this, nq, nv, na, ns, t]() {
+    pool_.Schedule([&direct = *this, nq, nv, na, ns, t]() {
       // terms
-      double* qt = batch.configuration.Get(t);
-      double* vt = batch.velocity.Get(t);
-      double* at = batch.acceleration.Get(t);
+      double* qt = direct.configuration.Get(t);
+      double* vt = direct.velocity.Get(t);
+      double* at = direct.acceleration.Get(t);
 
       // data
-      mjData* d = batch.data_[t].get();
+      mjData* d = direct.data_[t].get();
 
       // set qt, vt, at
       mju_copy(d->qpos, qt, nq);
@@ -1558,71 +1559,72 @@ void Direct::InverseDynamicsPrediction() {
       mju_copy(d->qacc, at, nv);
 
       // inverse dynamics
-      mj_inverse(batch.model, d);
+      mj_inverse(direct.model, d);
 
       // copy sensor
-      double* st = batch.sensor_prediction.Get(t);
-      mju_copy(st, d->sensordata + batch.sensor_start_index_, ns);
+      double* st = direct.sensor_prediction.Get(t);
+      mju_copy(st, d->sensordata + direct.sensor_start_index_, ns);
 
       // copy force
-      double* ft = batch.force_prediction.Get(t);
+      double* ft = direct.force_prediction.Get(t);
       mju_copy(ft, d->qfrc_inverse, nv);
 
       // copy act
-      double* act = batch.act.Get(t + 1);
+      double* act = direct.act.Get(t + 1);
       mju_copy(act, d->act, na);
     });
   }
 
   // last time step
-  pool_.Schedule([&batch = *this, nq, nv]() {
+  pool_.Schedule([&direct = *this, nq, nv]() {
     // time index
-    int t = batch.ConfigurationLength() - 1;
+    int t = direct.ConfigurationLength() - 1;
 
     // data
-    mjData* d = batch.data_[t].get();
+    mjData* d = direct.data_[t].get();
 
     // terms
-    double* qT = batch.configuration.Get(t);
-    double* vT = batch.velocity.Get(t);
-    double* yT = batch.sensor_prediction.Get(t);
-    mju_zero(yT, batch.nsensordata_);
+    double* qT = direct.configuration.Get(t);
+    double* vT = direct.velocity.Get(t);
+    double* yT = direct.sensor_prediction.Get(t);
+    mju_zero(yT, direct.nsensordata_);
 
     // set data
     mju_copy(d->qpos, qT, nq);
     mju_copy(d->qvel, vT, nv);
     mju_zero(d->qacc, nv);
-    d->time = batch.times.Get(t)[0];
+    d->time = direct.times.Get(t)[0];
 
     // position sensors
-    mj_fwdPosition(batch.model, d);
-    mj_sensorPos(batch.model, d);
-    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
-      mj_energyPos(batch.model, d);
+    mj_fwdPosition(direct.model, d);
+    mj_sensorPos(direct.model, d);
+    if (direct.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyPos(direct.model, d);
     }
 
     // velocity sensors
-    mj_fwdVelocity(batch.model, d);
-    mj_sensorVel(batch.model, d);
-    if (batch.model->opt.enableflags & (mjENBL_ENERGY)) {
-      mj_energyVel(batch.model, d);
+    mj_fwdVelocity(direct.model, d);
+    mj_sensorVel(direct.model, d);
+    if (direct.model->opt.enableflags & (mjENBL_ENERGY)) {
+      mj_energyVel(direct.model, d);
     }
 
     // loop over position sensors
-    for (int i = 0; i < batch.nsensor_; i++) {
+    for (int i = 0; i < direct.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+      int sensor_stage =
+          direct.model->sensor_needstage[direct.sensor_start_ + i];
 
       // check for position
       if (sensor_stage == mjSTAGE_POS || sensor_stage == mjSTAGE_VEL) {
         // dimension
-        int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+        int sensor_dim = direct.model->sensor_dim[direct.sensor_start_ + i];
 
         // address
-        int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+        int sensor_adr = direct.model->sensor_adr[direct.sensor_start_ + i];
 
         // copy sensor data
-        mju_copy(yT + sensor_adr - batch.sensor_start_index_,
+        mju_copy(yT + sensor_adr - direct.sensor_start_index_,
                  d->sensordata + sensor_adr, sensor_dim);
       }
     }
@@ -1654,46 +1656,47 @@ void Direct::InverseDynamicsDerivatives() {
   int count_before = pool_.GetCount();
 
   // first time step
-  pool_.Schedule([&batch = *this, nq, nv]() {
+  pool_.Schedule([&direct = *this, nq, nv]() {
     // time index
     int t = 0;
 
     // data
-    mjData* d = batch.data_[t].get();
+    mjData* d = direct.data_[t].get();
 
     // terms
-    double* q0 = batch.configuration.Get(t);
-    double* dsdq = batch.block_sensor_configuration_.Get(t);
+    double* q0 = direct.configuration.Get(t);
+    double* dsdq = direct.block_sensor_configuration_.Get(t);
 
     // set data
     mju_copy(d->qpos, q0, nq);
     mju_zero(d->qvel, nv);
     mju_zero(d->qacc, nv);
-    d->time = batch.times.Get(t)[0];
+    d->time = direct.times.Get(t)[0];
 
     // finite-difference derivatives
-    double* dqds = batch.block_sensor_configurationT_.Get(t);
-    mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
-                  batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
-                  NULL, NULL, NULL);
+    double* dqds = direct.block_sensor_configurationT_.Get(t);
+    mjd_inverseFD(direct.model, d, direct.finite_difference.tolerance,
+                  direct.finite_difference.flg_actuation, NULL, NULL, NULL,
+                  dqds, NULL, NULL, NULL);
     // transpose
-    mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
+    mju_transpose(dsdq, dqds, nv, direct.model->nsensordata);
 
     // parameters
-    if (batch.nparam_ > 0) {
-      batch.ParameterJacobian(t);
+    if (direct.nparam_ > 0) {
+      direct.ParameterJacobian(t);
     }
 
     // loop over position sensors
-    for (int i = 0; i < batch.nsensor_; i++) {
+    for (int i = 0; i < direct.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+      int sensor_stage =
+          direct.model->sensor_needstage[direct.sensor_start_ + i];
 
       // dimension
-      int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+      int sensor_dim = direct.model->sensor_dim[direct.sensor_start_ + i];
 
       // address
-      int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+      int sensor_adr = direct.model->sensor_adr[direct.sensor_start_ + i];
 
       // check for position
       if (sensor_stage != mjSTAGE_POS) {
@@ -1701,10 +1704,10 @@ void Direct::InverseDynamicsDerivatives() {
         mju_zero(dsdq + sensor_adr * nv, sensor_dim * nv);
 
         // parameter Jacobian
-        if (batch.nparam_) {
-          mju_zero(batch.block_sensor_parameters_.Get(t) +
-                       sensor_adr * batch.nparam_,
-                   sensor_dim * batch.nparam_);
+        if (direct.nparam_) {
+          mju_zero(direct.block_sensor_parameters_.Get(t) +
+                       sensor_adr * direct.nparam_,
+                   sensor_dim * direct.nparam_);
         }
       }
     }
@@ -1713,22 +1716,22 @@ void Direct::InverseDynamicsDerivatives() {
   // loop over predictions
   for (int t = 1; t < configuration_length_ - 1; t++) {
     // schedule
-    pool_.Schedule([&batch = *this, nq, nv, t]() {
+    pool_.Schedule([&direct = *this, nq, nv, t]() {
       // unpack
-      double* q = batch.configuration.Get(t);
-      double* v = batch.velocity.Get(t);
-      double* a = batch.acceleration.Get(t);
+      double* q = direct.configuration.Get(t);
+      double* v = direct.velocity.Get(t);
+      double* a = direct.acceleration.Get(t);
 
-      double* dsdq = batch.block_sensor_configuration_.Get(t);
-      double* dsdv = batch.block_sensor_velocity_.Get(t);
-      double* dsda = batch.block_sensor_acceleration_.Get(t);
-      double* dqds = batch.block_sensor_configurationT_.Get(t);
-      double* dvds = batch.block_sensor_velocityT_.Get(t);
-      double* dads = batch.block_sensor_accelerationT_.Get(t);
-      double* dqdf = batch.block_force_configuration_.Get(t);
-      double* dvdf = batch.block_force_velocity_.Get(t);
-      double* dadf = batch.block_force_acceleration_.Get(t);
-      mjData* data = batch.data_[t].get();  // TODO(taylor): WorkerID
+      double* dsdq = direct.block_sensor_configuration_.Get(t);
+      double* dsdv = direct.block_sensor_velocity_.Get(t);
+      double* dsda = direct.block_sensor_acceleration_.Get(t);
+      double* dqds = direct.block_sensor_configurationT_.Get(t);
+      double* dvds = direct.block_sensor_velocityT_.Get(t);
+      double* dads = direct.block_sensor_accelerationT_.Get(t);
+      double* dqdf = direct.block_force_configuration_.Get(t);
+      double* dvdf = direct.block_force_velocity_.Get(t);
+      double* dadf = direct.block_force_acceleration_.Get(t);
+      mjData* data = direct.data_[t].get();  // TODO(taylor): WorkerID
 
       // set state, acceleration
       mju_copy(data->qpos, q, nq);
@@ -1736,67 +1739,68 @@ void Direct::InverseDynamicsDerivatives() {
       mju_copy(data->qacc, a, nv);
 
       // finite-difference derivatives
-      mjd_inverseFD(batch.model, data, batch.finite_difference.tolerance,
-                    batch.finite_difference.flg_actuation, dqdf, dvdf, dadf,
+      mjd_inverseFD(direct.model, data, direct.finite_difference.tolerance,
+                    direct.finite_difference.flg_actuation, dqdf, dvdf, dadf,
                     dqds, dvds, dads, NULL);
 
       // transpose
-      mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
-      mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
-      mju_transpose(dsda, dads, nv, batch.model->nsensordata);
+      mju_transpose(dsdq, dqds, nv, direct.model->nsensordata);
+      mju_transpose(dsdv, dvds, nv, direct.model->nsensordata);
+      mju_transpose(dsda, dads, nv, direct.model->nsensordata);
 
       // parameters
-      if (batch.nparam_ > 0) {
-        batch.ParameterJacobian(t);
+      if (direct.nparam_ > 0) {
+        direct.ParameterJacobian(t);
       }
     });
   }
 
   // last time step
-  pool_.Schedule([&batch = *this, nq, nv]() {
+  pool_.Schedule([&direct = *this, nq, nv]() {
     // time index
-    int t = batch.ConfigurationLength() - 1;
+    int t = direct.ConfigurationLength() - 1;
 
     // data
-    mjData* d = batch.data_[t].get();
+    mjData* d = direct.data_[t].get();
 
     // terms
-    double* qT = batch.configuration.Get(t);
-    double* vT = batch.velocity.Get(t);
-    double* dsdq = batch.block_sensor_configuration_.Get(t);
-    double* dsdv = batch.block_sensor_velocity_.Get(t);
+    double* qT = direct.configuration.Get(t);
+    double* vT = direct.velocity.Get(t);
+    double* dsdq = direct.block_sensor_configuration_.Get(t);
+    double* dsdv = direct.block_sensor_velocity_.Get(t);
 
     // set data
     mju_copy(d->qpos, qT, nq);
     mju_copy(d->qvel, vT, nv);
     mju_zero(d->qacc, nv);
-    d->time = batch.times.Get(t)[0];
+    d->time = direct.times.Get(t)[0];
 
     // finite-difference derivatives
-    double* dqds = batch.block_sensor_configurationT_.Get(t);
-    double* dvds = batch.block_sensor_velocityT_.Get(t);
-    mjd_inverseFD(batch.model, d, batch.finite_difference.tolerance,
-                  batch.finite_difference.flg_actuation, NULL, NULL, NULL, dqds,
-                  dvds, NULL, NULL);
+    double* dqds = direct.block_sensor_configurationT_.Get(t);
+    double* dvds = direct.block_sensor_velocityT_.Get(t);
+    mjd_inverseFD(direct.model, d, direct.finite_difference.tolerance,
+                  direct.finite_difference.flg_actuation, NULL, NULL, NULL,
+                  dqds, dvds, NULL, NULL);
     // transpose
-    mju_transpose(dsdq, dqds, nv, batch.model->nsensordata);
-    mju_transpose(dsdv, dvds, nv, batch.model->nsensordata);
+    mju_transpose(dsdq, dqds, nv, direct.model->nsensordata);
+    mju_transpose(dsdv, dvds, nv, direct.model->nsensordata);
 
     // parameters
-    if (batch.nparam_ > 0) {
-      batch.ParameterJacobian(t);
+    if (direct.nparam_ > 0) {
+      direct.ParameterJacobian(t);
     }
 
     // loop over position sensors
-    for (int i = 0; i < batch.nsensor_; i++) {
+    for (int i = 0; i < direct.nsensor_; i++) {
       // sensor stage
-      int sensor_stage = batch.model->sensor_needstage[batch.sensor_start_ + i];
+      int sensor_stage =
+          direct.model->sensor_needstage[direct.sensor_start_ + i];
 
       // dimension
-      int sensor_dim = batch.model->sensor_dim[batch.sensor_start_ + i];
+      int sensor_dim = direct.model->sensor_dim[direct.sensor_start_ + i];
 
       // address
-      int sensor_adr = batch.model->sensor_adr[batch.sensor_start_ + i];
+      int sensor_adr = direct.model->sensor_adr[direct.sensor_start_ + i];
 
       // check for position
       if (sensor_stage == mjSTAGE_ACC) {
@@ -1805,10 +1809,10 @@ void Direct::InverseDynamicsDerivatives() {
         mju_zero(dsdv + sensor_adr * nv, sensor_dim * nv);
 
         // parameter Jacobian
-        if (batch.nparam_) {
-          mju_zero(batch.block_sensor_parameters_.Get(t) +
-                       sensor_adr * batch.nparam_,
-                   sensor_dim * batch.nparam_);
+        if (direct.nparam_) {
+          mju_zero(direct.block_sensor_parameters_.Get(t) +
+                       sensor_adr * direct.nparam_,
+                   sensor_dim * direct.nparam_);
         }
       }
     }
@@ -1964,19 +1968,19 @@ double Direct::Cost(double* gradient, double* hessian) {
 
   // sensor
   if (settings.sensor_flag) {
-    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_sensor_ = batch.CostSensor(
-          gradient_flag ? batch.cost_gradient_sensor_.data() : NULL,
-          hessian_flag ? batch.cost_hessian_sensor_band_.data() : NULL);
+    pool_.Schedule([&direct = *this, gradient_flag, hessian_flag]() {
+      direct.cost_sensor_ = direct.CostSensor(
+          gradient_flag ? direct.cost_gradient_sensor_.data() : NULL,
+          hessian_flag ? direct.cost_hessian_sensor_band_.data() : NULL);
     });
   }
 
   // force
   if (settings.force_flag) {
-    pool_.Schedule([&batch = *this, gradient_flag, hessian_flag]() {
-      batch.cost_force_ = batch.CostForce(
-          gradient_flag ? batch.cost_gradient_force_.data() : NULL,
-          hessian_flag ? batch.cost_hessian_force_band_.data() : NULL);
+    pool_.Schedule([&direct = *this, gradient_flag, hessian_flag]() {
+      direct.cost_force_ = direct.CostForce(
+          gradient_flag ? direct.cost_gradient_force_.data() : NULL,
+          hessian_flag ? direct.cost_hessian_force_band_.data() : NULL);
     });
   }
 
@@ -2530,7 +2534,7 @@ void Direct::ResetTimers() {
   timer_.update_trajectory = 0.0;
 }
 
-// batch status string
+// direct status string
 std::string StatusString(int code) {
   switch (code) {
     case kUnsolved:

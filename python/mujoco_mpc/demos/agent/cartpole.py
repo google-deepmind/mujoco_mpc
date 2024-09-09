@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# %%
 import matplotlib.pyplot as plt
 # import mediapy as media
 import mujoco
 import numpy as np
-import os
 import pathlib
 import time as ttime
 
@@ -24,9 +24,9 @@ from mujoco_mpc import agent as agent_lib
 
 # Assumes this is run from mujoco_mpc/python/mujoco_mpc
 model_path = (
-        pathlib.Path(os.path.abspath("")).parent.parent.parent
-        / "mujoco_mpc/mjpc/tasks/cartpole/task.xml"
-    )
+    pathlib.Path(__file__).parent.parent.parent
+    / "../../build/mjpc/tasks/cartpole/task.xml"
+)
 model = mujoco.MjModel.from_xml_path(str(model_path))
 
 # data

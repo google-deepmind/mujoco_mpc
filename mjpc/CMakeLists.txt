@@ -40,6 +40,8 @@ add_library(
   tasks/acrobot/acrobot.h
   tasks/allegro/allegro.cc
   tasks/allegro/allegro.h
+  tasks/bimanual/insert/insert.cc
+  tasks/bimanual/insert/insert.h
   tasks/bimanual/handover/handover.cc
   tasks/bimanual/handover/handover.h
   tasks/bimanual/reorient/reorient.cc
@@ -48,12 +50,18 @@ add_library(
   tasks/cartpole/cartpole.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
+  tasks/humanoid/interact/interact.cc
+  tasks/humanoid/interact/interact.h
+  tasks/humanoid/interact/contact_keyframe.cc
+  tasks/humanoid/interact/contact_keyframe.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc
   tasks/humanoid/tracking/tracking.h
   tasks/humanoid/walk/walk.cc
   tasks/humanoid/walk/walk.h
+  tasks/leap/leap.cc
+  tasks/leap/leap.h
   tasks/manipulation/common.cc
   tasks/manipulation/common.h
   tasks/manipulation/manipulation.cc

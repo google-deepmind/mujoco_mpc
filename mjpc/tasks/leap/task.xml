@@ -1,0 +1,85 @@
+<mujoco model="LEAP Hand Cube Rotation">
+  <include file="../common.xml" />
+
+  <!-- <size memory="1M" /> -->
+
+  <option integrator="implicitfast" iterations="100" ls_iterations="50" />
+
+  <custom>
+    <!-- agent -->
+    <numeric name="agent_planner" data="5" />
+    <numeric name="agent_horizon" data="1.0" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="agent_policy_width" data="0.0035" />
+    <numeric name="sampling_spline_points" data="4" />
+    <numeric name="sampling_exploration" data="0.5" />
+    <numeric name="sampling_trajectories" data="120" />
+    <numeric name="sampling_representation" data="0" />
+    <numeric name="robust_xfrc" data="0.004" />
+    <numeric name="gradient_spline_points" data="6" />
+    <numeric name="ilqg_num_rollouts" data="120" />
+    <numeric name="ilqg_regularization_type" data="0" />
+    <numeric name="axis_aligned_goal" data="1" />
+
+    <!-- cem -->
+    <numeric name="n_elite" data="4" />
+    <numeric name="std_min" data="0.5" />
+
+    <!-- Rotation counters -->
+    <numeric name="residual_Curr # Rots" data="0 0 1000000"/>
+    <numeric name="residual_Best # Rots" data="0 0 1000000"/>
+    <numeric name="residual_Timeout" data="0.0 0.0 60.0"/>
+    <numeric name="residual_Sec per Rot" data="0.0 0.0 60.0"/>
+  </custom>
+
+  <!-- Set the camera viewpoint -->
+  <statistic extent="0.4" center="0.3 0.1 0" />
+  <visual>
+    <quality shadowsize="8192" />
+    <global azimuth="180" elevation="-30" offheight="376" offwidth="672" fovy="70"/>
+  </visual>
+
+  <!-- Set default friction coefficient -->
+  <default>
+    <geom friction=".2" />
+  </default>
+
+  <!-- Create the scene, including floor and the interactive target cube. -->
+  <worldbody>
+    <light pos="0 -0.1 0.5" dir="0 0.2 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
+      directional="true" castshadow="true" />
+    <geom name="floor" pos="0 0 -0.25" size="0 0 0.05" type="plane" material="blue_grid" />
+    <body name="goal" mocap="true" pos="0.325 0.17 0.0475">
+      <geom type="box" size=".035 .035 .035" mass=".108" material="cube" contype="0" conaffinity="0" friction=".5 0.05 0.0002"/>
+    </body>
+
+    <!-- adding cameras for simulated rendering -->
+    <camera name="cam1" pos="0.008581479 0.14786571 0.1259940" mode="fixed" fovy="70" quat="-0.82047324 0.4247082 0.1759199 -0.33985114" />
+    <camera name="cam2" pos="0.008581479 -0.14786571 0.1259940" mode="fixed" fovy="70" quat="-0.33985114 0.1759199  0.4247082 -0.82047324" />
+  </worldbody>
+
+
+  <sensor>
+    <!-- Residuals -->
+    <user name="Cube Position" dim="1" user="8 2.5 0 10 0.05" />
+    <user name="Cube Orientation" dim="3" user="0 1.0 0 10" />
+    <user name="Cube Velocity" dim="3" user="0 0.0 0 10" />
+    <user name="Cube Angular Velocity" dim="3" user="0 0.0 0 1" />
+    <user name="Actuation" dim="16" user="0 0.0 0.0 10" />
+    <user name="Grasp" dim="16" user="0 0.0 0.0 10" />
+    <user name="Joint Vel" dim="16" user="0 0.0 0.0 0.1" />
+
+    <!-- Measurements we want to use -->
+    <framepos name="cube_goal_position" objtype="site" objname="grasp_site" />
+    <framequat name="cube_goal_orientation" objtype="body" objname="goal" />
+    <framepos name="trace0" objtype="body" objname="cube" />
+  </sensor>
+
+  <include file="../common_assets/reorientation_cube.xml" />
+  <include file="leap_rh.xml" />
+
+  <keyframe>
+    <key name="home"
+      qpos="0.1 0.025 0.035 1 0 0 0 0.5 -0.75 0.75 0.25 0.5 0 0.75 0.25 0.5 0.75 0.75 0.25 0.65 0.9 0.75 0.6" />
+  </keyframe>
+</mujoco>

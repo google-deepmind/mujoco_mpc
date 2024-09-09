@@ -156,11 +156,35 @@ add_custom_target(
           ${menagerie_SOURCE_DIR}/aloha/aloha.xml
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
   COMMAND ${CMAKE_COMMAND} -E copy
-          ${menagerie_SOURCE_DIR}/aloha/integrated_cartesian_actuators.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/integrated_cartesian_actuators.xml
+          ${menagerie_SOURCE_DIR}/aloha/filtered_cartesian_actuators.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/filtered_cartesian_actuators.xml
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha_cartesian.xml
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/bimanual/aloha.patch
+
+  # MJX ALOHA
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/mjx_aloha.patch
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_aloha.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_aloha.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/aloha.xml
+          <${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_aloha.patch
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/scene.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/scene.xml
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/mjx_scene.patch
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/scene.xml
+          <${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.patch
+
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/aloha/mjx_filtered_cartesian_actuators.patch
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_filtered_cartesian_actuators.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_filtered_cartesian_actuators.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/filtered_cartesian_actuators.xml
+          <${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_filtered_cartesian_actuators.patch
 
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/robotis_op3/op3.xml

@@ -45,6 +45,7 @@
 
 extern "C" {
 #if defined(_WIN32) || defined(__CYGWIN__)
+#define NOMINMAX
 #include <windows.h>
 #else
 #if defined(__APPLE__)
@@ -219,7 +220,7 @@ int CostTermByName(const mjModel* m, const std::string& name) {
   }
 }
 
-void CheckSensorDim(const mjModel* model, int residual_size) {
+int ResidualSize(const mjModel* model) {
   int user_sensor_dim = 0;
   bool encountered_nonuser_sensor = false;
   for (int i = 0; i < model->nsensor; i++) {
@@ -232,6 +233,11 @@ void CheckSensorDim(const mjModel* model, int residual_size) {
       encountered_nonuser_sensor = true;
     }
   }
+  return user_sensor_dim;
+}
+
+void CheckSensorDim(const mjModel* model, int residual_size) {
+  int user_sensor_dim = ResidualSize(model);
   if (user_sensor_dim != residual_size) {
     mju_error(
         "mismatch between total user-sensor dimension %d "

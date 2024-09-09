@@ -78,10 +78,18 @@ void Allegro::ResidualFn::Residual(const mjModel *model, const mjData *data,
 
   mju_copy(residual + counter, cube_linear_velocity, 3);
   counter += 3;
-  
-  // ---------- Actuation ----------
-  mju_copy(residual + counter, data->ctrl, 12);
-  counter += 12;
+
+  // ---------- Control ----------
+  mju_copy(residual + counter, data->actuator_force, model->nu);
+  counter += model->nu;
+
+  // ---------- Nominal Pose ----------
+  mju_sub(residual + counter, data->qpos + 11, model->key_qpos + 11, 16);
+  counter += 16;
+
+  // ---------- Joint Velocity ----------
+  mju_copy(residual + counter, data->qvel + 6, 16);
+  counter += 16;
 
   // Sanity check
   CheckSensorDim(model, counter);
@@ -121,7 +129,7 @@ void Allegro::TransitionLocked(mjModel *model, mjData *data) {
       // reset cube
       int jnt_qposadr = model->jnt_qposadr[model->body_jntadr[cube_body]];
       int jnt_veladr = model->jnt_dofadr[model->body_jntadr[cube_body]];
-      mju_copy(data->qpos + jnt_qposadr, model->qpos0 + jnt_qposadr, 7);
+      mju_copy(data->qpos + jnt_qposadr, model->key_qpos + jnt_qposadr, 7);
       mju_zero(data->qvel + jnt_veladr, 6);
 
       // reset palm

@@ -16,16 +16,15 @@
 import mediapy as media
 import mujoco
 import numpy as np
-import os
 import pathlib
 
-from predictive_sampling import predictive_sampling
+import predictive_sampling
 # %%
 # path to hand task
 
 model_path = (
-    pathlib.Path(os.path.abspath("")).parent.parent.parent
-    / "mujoco_mpc/mjpc/tasks/shadow_reorient/task.xml"
+    pathlib.Path(__file__).parent.parent.parent
+    / "../../build/mjpc/tasks/shadow_reorient/task.xml"
 )
 # create simulation model + data
 model = mujoco.MjModel.from_xml_path(str(model_path))

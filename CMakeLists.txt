@@ -56,12 +56,12 @@ set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
 set(MUJOCO_MPC_MUJOCO_GIT_TAG
-    24eb4c9f092da7dd245a116841a5325a0fb359b9
+    3.1.4
     CACHE STRING "Git revision for MuJoCo."
 )
 
 set(MUJOCO_MPC_MENAGERIE_GIT_TAG
-    8ef01e87fffaa8ec634a4826c5b2092733b2f3c8
+    aff360ad958cb0e45d8f740816b1aacad84e9282
     CACHE STRING "Git revision for MuJoCo Menagerie."
 )
 
@@ -111,6 +111,7 @@ findorfetch(
   GIT_REPO
   https://github.com/google/googletest.git
   GIT_TAG
+  main
   ${MUJOCO_DEP_VERSION_gtest}
   TARGETS
   gtest

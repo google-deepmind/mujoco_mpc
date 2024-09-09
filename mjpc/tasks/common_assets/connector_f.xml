@@ -1,0 +1,47 @@
+<mujoco model="connector_f">
+  <default>
+    <default class="connector_f.visual">
+      <geom type="mesh" group="1" mass="0.039" rgba="1 0 0 1"/>
+    </default>
+    <default class="connector_f.collision">
+      <geom type="mesh" group="3" friction="0.5 5e-3 5e-4" mass="0" solref="0.004 1"/>
+    </default>
+  </default>
+  <asset>
+    <mesh name="connector_f" file="../common_assets/connector/mcX_f.stl"/>
+    <mesh name="connector_f_MESH" file="../common_assets/connector/mcX_f_collision_mcX_f_MESH.stl" />
+  </asset>
+  <worldbody>
+    <body name="connector_f" pos="0.3 0 0.06">
+      <freejoint name="connector_f"/>
+      <geom name="connector_f" group="1" type="mesh" contype="0" conaffinity="0" rgba="0.2 0.5 0.2 1" mesh="connector_f" />
+      <geom name="connector_f_BOX" type="box" class="connector_f.collision" size="0.0039999475702643394 0.00099998479709029198 0.0059999218210577965" pos="-0.028999632224440575 -0.0099998908117413521 0.019729591906070709" />
+      <geom name="connector_f_grip" type="box" class="connector_f.collision" size="0.024999674409627914 0.019499750807881355 0.0065" pos="0 0 -.0065" />
+      <site name="connector_f_grip" pos="0 0 -.0065" group="5" xyaxes="0 0 -1 0 1 0"/>
+      <geom name="connector_f_BOX.003" type="box" class="connector_f.collision" size="0.034999549388885498 0.019499750807881355 0.00074998725904151797" pos="-9.6042640507221222e-09 -1.3572362789204817e-08 0.012979676946997643" />
+      <geom name="connector_f_BOX.004" type="box" class="connector_f.collision" size="0.00099998863879591227 0.015999795868992805 0.0059999218210577965" pos="-0.023999698460102081 -1.5169081990507038e-08 0.019729588180780411" />
+      <geom name="connector_f_BOX.005" type="box" class="connector_f.collision" size="0.00099998863879591227 0.015999795868992805 0.0059999218210577965" pos="0.023999679833650589 -1.8894372288968952e-08 0.019729591906070709" />
+      <geom name="connector_f_BOX.006" type="box" class="connector_f.collision" size="0.0045713908039033413 0.00099998479709029198 0.0059999218210577965" pos="0.020428277552127838 -0.014999823644757271 0.019729591906070709" />
+      <geom name="connector_f_BOX.007" type="box" class="connector_f.collision" size="0.0045713908039033413 0.00099998479709029198 0.0059999218210577965" pos="0.020428277552127838 0.014999790117144585 0.019729591906070709" />
+      <geom name="connector_f_BOX.008" type="box" class="connector_f.collision" size="0.0045713908039033413 0.00099998479709029198 0.0059999218210577965" pos="-0.02042829617857933 0.014999790117144585 0.019729591906070709" />
+      <geom name="connector_f_BOX.009" type="box" class="connector_f.collision" size="0.0045713908039033413 0.00099998479709029198 0.0059999218210577965" pos="-0.02042829617857933 -0.014999827370047569 0.019729591906070709" />
+      <geom name="connector_f_BOX.010" type="box" class="connector_f.collision" size="0.0055713639594614506 0.0009999849135056138 0.0059999218210577965" pos="-0.0071427826769649982 -0.014999822713434696 0.019729591906070709" />
+      <geom name="connector_f_BOX.011" type="box" class="connector_f.collision" size="0.0055713639594614506 0.00099998479709029198 0.0059999218210577965" pos="0.0071427631191909313 -0.014999822713434696 0.019729591906070709" />
+      <geom name="connector_f_BOX.012" type="box" class="connector_f.collision" size="0.0055713639594614506 0.00099998852238059044 0.0059999218210577965" pos="0.0071427631191909313 0.014999788254499435 0.019729591906070709" />
+      <geom name="connector_f_BOX.013" type="box" class="connector_f.collision" size="0.0055713639594614506 0.00099998852238059044 0.0059999218210577965" pos="-0.0071427826769649982 0.014999791979789734 0.019729591906070709" />
+      <geom name="connector_f_BOX.014" type="box" class="connector_f.collision" size="0.0035713519901037216 0.00099998479709029198 0.0059999218210577965" pos="0.014285504817962646 0.017999753355979919 0.019729591906070709" />
+      <geom name="connector_f_BOX.015" type="box" class="connector_f.collision" size="0.0035713519901037216 0.00099998479709029198 0.0059999218210577965" pos="-4.1443854570388794e-08 0.017999753355979919 0.019729591906070709" />
+      <geom name="connector_f_BOX.016" type="box" class="connector_f.collision" size="0.0035713519901037216 0.00099998479709029198 0.0059999218210577965" pos="-0.014285527169704437 0.017999753355979919 0.019729591906070709" />
+      <geom name="connector_f_BOX.017" type="box" class="connector_f.collision" size="0.0035713519901037216 0.0009999849135056138 0.0059999218210577965" pos="-0.014285527169704437 -0.017999786883592606 0.019729591906070709" />
+      <geom name="connector_f_BOX.018" type="box" class="connector_f.collision" size="0.0035713519901037216 0.00099998479709029198 0.0059999218210577965" pos="2.1886080503463745e-08 -0.017999786883592606 0.019729591906070709" />
+      <geom name="connector_f_BOX.019" type="box" class="connector_f.collision" size="0.0035713519901037216 0.00099998479709029198 0.0059999218210577965" pos="0.014285508543252945 -0.017999786883592606 0.019729591906070709" />
+      <geom name="connector_f_BOX.020" type="box" class="connector_f.collision" size="0.00099998863879591227 0.010999858379364014 0.0059999218210577965" pos="-0.033999573439359665 -1.7164982324402445e-08 0.019729591906070709" />
+      <geom name="connector_f_BOX.021" type="box" class="connector_f.collision" size="0.00099998863879591227 0.010999858379364014 0.0059999218210577965" pos="0.033999551087617874 -1.8961145542562008e-08 0.019729591906070709" />
+      <geom name="connector_f_BOX.022" type="box" class="connector_f.collision" size="0.0039999475702643394 0.00099998479709029198 0.0059999218210577965" pos="0.028999617323279381 0.0099998507648706436 0.019729591906070709" />
+      <geom name="connector_f_BOX.023" type="box" class="connector_f.collision" size="0.0039999475702643394 0.00099998479709029198 0.0059999218210577965" pos="0.028999613597989082 -0.0099998917430639267 0.019729591906070709" />
+      <geom name="connector_f_BOX.024" type="box" class="connector_f.collision" size="0.0039999475702643394 0.00099998479709029198 0.0059999218210577965" pos="-0.028999635949730873 0.0099998544901609421 0.019729591906070709" />
+      <geom name="connector_f_MESH" type="mesh" mesh="connector_f_MESH" class="connector_f.collision" rgba="0.5 0.20000000000000001 0.5 1" pos="-9.1724974282669791e-09 -1.3572362789204817e-08 0" />
+      <site name="connector_f" group="3" type="box" size=".01 .01 .01" pos="0 0 0.018"/>
+    </body>
+  </worldbody>
+</mujoco>

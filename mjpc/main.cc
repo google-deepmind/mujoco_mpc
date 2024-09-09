@@ -17,13 +17,19 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <ostream>
+#include <string>
 #include <vector>
 
+#include <absl/flags/flag.h>
+#include <absl/strings/match.h>
+#include <mujoco/mujoco.h>
 #include "mjpc/app.h"
 #include "mjpc/task.h"
 #include "mjpc/tasks/tasks.h"
 #include "mjpc/utilities.h"
+
+ABSL_FLAG(std::string, task, "Leap",
+          "Which model to load on startup.");
 
 // machinery for replacing command line error by a macOS dialog box
 // when running under Rosetta
@@ -46,6 +52,24 @@ int main(int argc, char** argv) {
   }
 #endif
   absl::ParseCommandLine(argc, argv);
-  mjpc::StartApp(mjpc::GetTasks());
+  std::string task_name = absl::GetFlag(FLAGS_task);
+  auto tasks = mjpc::GetTasks();
+  int task_id = -1;
+  for (int i = 0; i < tasks.size(); i++) {
+    if (absl::EqualsIgnoreCase(task_name, tasks[i]->Name())) {
+      task_id = i;
+      break;
+    }
+  }
+  if (task_id == -1) {
+    std::cerr << "Invalid --task flag: '" << task_name
+              << "'. Valid values:\n";
+    for (int i = 0; i < tasks.size(); i++) {
+      std::cerr << "  " << tasks[i]->Name() << "\n";
+    }
+    mju_error("Invalid --task flag.");
+  }
+
+  mjpc::StartApp(tasks, task_id);  // start with quadruped flat
   return 0;
 }

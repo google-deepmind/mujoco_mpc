@@ -281,13 +281,16 @@ setuptools.setup(
         "Topic :: Scientific/Engineering",
     ],
     packages=setuptools.find_packages(),
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     setup_requires=[
         "grpcio-tools",
         "grpcio",
     ],
     install_requires=[
+        "brax",
         "grpcio",
+        "matplotlib",
+        "mediapy",
         "mujoco >= 3.1.1",
         "mujoco-mjx",
         "protobuf",

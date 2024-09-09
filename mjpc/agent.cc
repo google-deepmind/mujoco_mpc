@@ -71,7 +71,7 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 // initialize data, settings, planners, state
 void Agent::Initialize(const mjModel* model) {
   // ----- model ----- //
-  if (model_) mj_deleteModel(model_);
+  mjModel* old_model = model_;
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
 
   // check for limits on all actuators
@@ -153,6 +153,12 @@ void Agent::Initialize(const mjModel* model) {
   // planner threads
   planner_threads_ =
       std::max(1, NumAvailableHardwareThreads() - 3 - 2 * estimator_threads_);
+
+  // delete the previous model after all the planners have been updated to use
+  // the new one.
+  if (old_model) {
+    mj_deleteModel(old_model);
+  }
 }
 
 // allocate memory
@@ -637,22 +643,21 @@ void Agent::GUI(mjUI& ui) {
   }
 
   // ----- agent ----- //
-  mjuiDef defAgent[] = {
-      {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
-      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-      {mjITEM_SELECT, "Planner", 2, &planner_, ""},
-      {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
-      {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
-      {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
-      {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
-      {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
-      {mjITEM_SEPARATOR, "Agent Settings", 1},
-      {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
-      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-      {mjITEM_SELECT, "Integrator", 2, &integrator_,
-       "Euler\nRK4\nImplicit\nFastImplicit"},
-      {mjITEM_SEPARATOR, "Planner Settings", 1},
-      {mjITEM_END}};
+  mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
+                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+                        {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+                        {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
+                        {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
+                        {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
+                        {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
+                        {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
+                        {mjITEM_SEPARATOR, "Agent Settings", 1},
+                        {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
+                        {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
+                        {mjITEM_SELECT, "Integrator", 2, &integrator_,
+                         "Euler\nRK4\nImplicit\nImplicitFast"},
+                        {mjITEM_SEPARATOR, "Planner Settings", 1},
+                        {mjITEM_END}};
 
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);

@@ -27,6 +27,18 @@ void ContactPair::Reset() {
   }
 }
 
+void ContactPair::GetDistance(mjtNum distance[3], const mjData* data) const {
+  mjtNum selected_global_pos1[3] = {0.};
+  mju_mulMatVec(selected_global_pos1, data->xmat + 9 * body1, local_pos1, 3, 3);
+  mju_addTo3(selected_global_pos1, data->xpos + 3 * body1);
+
+  mjtNum selected_global_pos2[3] = {0.};
+  mju_mulMatVec(selected_global_pos2, data->xmat + 9 * body2, local_pos2, 3, 3);
+  mju_addTo3(selected_global_pos2, data->xpos + 3 * body2);
+
+  mju_sub3(distance, selected_global_pos1, selected_global_pos2);
+}
+
 void ContactKeyframe::Reset() {
   name.clear();
   for (auto& contact_pair : contact_pairs) contact_pair.Reset();

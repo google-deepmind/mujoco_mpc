@@ -54,6 +54,8 @@ add_library(
   tasks/humanoid/interact/interact.h
   tasks/humanoid/interact/contact_keyframe.cc
   tasks/humanoid/interact/contact_keyframe.h
+  tasks/humanoid/interact/motion_strategy.cc
+  tasks/humanoid/interact/motion_strategy.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc

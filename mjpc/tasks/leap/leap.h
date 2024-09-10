@@ -85,8 +85,8 @@ class Leap : public Task {
   double last_time_ = 0.0;
   bool first_time_ = true;
 
-  // EMA filter parameter for velocity estimates
-  double alpha_ = 0.1;
+  // make a list of stored states
+  std::vector<std::vector<double>> stored_states_;
 };
 }  // namespace mjpc
 

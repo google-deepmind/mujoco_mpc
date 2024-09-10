@@ -349,6 +349,13 @@ void Leap::ModifyState(const mjModel *model, State *state) {
   double bias_posy = parameters[7];  // bias for position noise
   double bias_posz = parameters[8];  // bias for position noise
 
+  // ema filtering and lag parameters
+  double alpha = parameters[9];  // EMA filter parameter
+  int lag_steps = static_cast<int>(std::round(parameters[10]));  // lag steps
+  while (stored_states_.size() > lag_steps) {
+    stored_states_.erase(stored_states_.begin());
+  }
+
   // current state
   const std::vector<double> &s = state->state();
 
@@ -415,38 +422,48 @@ void Leap::ModifyState(const mjModel *model, State *state) {
     // all other velocities are straightforward
     // alpha is the EMA filtering parameter
     for (int i = 0; i < 3; i++) {
-      ds[i] = alpha_ * (pos_cube[i] - last_state_[i]) / dt;
-      ds[i + 3] = alpha_ * omega[i];
+      ds[i] = alpha * (pos_cube[i] - last_state_[i]) / dt;
+      ds[i + 3] = alpha * omega[i];
     }  // cube translational velocity
     for (int i = 0; i < 16; i++) {
-      ds[i + 6] = alpha_ * (s[i + 7] - last_state_[i + 7]) / dt;
+      ds[i + 6] = alpha * (s[i + 7] - last_state_[i + 7]) / dt;
     }  // joint velocities
   }
 
   // completing the EMA filtering
   // v_ema(t) = alpha * v(t) + (1 - alpha) * v_ema(t-1)
-  mju_addToScl(ds.data(), last_state_.data() + 7 + 16, 1.0 - alpha_, 6 + 16);
-
-  // set controller's internal state with noisy estimate
-  std::vector<double> qpos(model->nq);
-  std::vector<double> qvel(model->nv);
+  mju_addToScl(ds.data(), last_state_.data() + 7 + 16, 1.0 - alpha, 6 + 16);
 
   // setting last state
   last_time_ = t;
   mju_copy(last_state_.data(), s.data(), 7 + 16 + 6 + 16);
 
-  // update cube mocap state
-  mju_copy(qpos.data(), s.data(), model->nq);
-  mju_copy(qpos.data() + 0, pos_cube.data(), 3);
-  mju_copy(qpos.data() + 3, quat_cube.data(), 4);
-  state->SetPosition(model, qpos.data());
+  // update cube mocap state by moving lagged states out of queue if it is full by popping the front and using it to set
+  // the mocap states
+  std::vector<double> state_new = s;
+  mju_copy(state_new.data(), pos_cube.data(), 3);
+  mju_copy(state_new.data() + 3, quat_cube.data(), 4);
+  mju_copy(state_new.data() + model->nq, ds.data(), model->nv);
 
-  mju_copy(qvel.data(), ds.data(), model->nv);
+  std::vector<double> state_lagged = state_new;
+  if (stored_states_.size() >= lag_steps && lag_steps > 0) {
+    mju_copy(state_lagged.data(), stored_states_[0].data(), model->nq + model->nv);
+    stored_states_.erase(stored_states_.begin(), stored_states_.begin() + 1);
+  }
+  if (lag_steps > 0) {
+    stored_states_.push_back(state_new);
+  }
+
+  std::vector<double> qpos(model->nq);
+  std::vector<double> qvel(model->nv);
+  mju_copy(qpos.data(), state_lagged.data(), model->nq);
+  mju_copy(qvel.data(), state_lagged.data() + model->nq, model->nv);
+  state->SetPosition(model, qpos.data());
   state->SetVelocity(model, qvel.data());
 
   // update cube mocap state
-  mju_copy(pos_cube_.data(), pos_cube.data(), 3);
-  mju_copy(quat_cube_.data(), quat_cube.data(), 4);
+  mju_copy(pos_cube_.data(), state_lagged.data(), 3);
+  mju_copy(quat_cube_.data(), state_lagged.data() + 3, 4);
 }
 
 }  // namespace mjpc

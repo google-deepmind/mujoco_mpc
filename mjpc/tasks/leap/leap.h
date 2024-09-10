@@ -58,9 +58,6 @@ class Leap : public Task {
   std::vector<double> pos_cube_noise_ = std::vector<double>(3);
   std::vector<double> quat_cube_noise_ = std::vector<double>(3);  // noise in tangent space
 
-  std::vector<double> pos_cube_noise_max_ = {0.01, 0.01, 0.01};  // max position noise in meters
-  std::vector<double> quat_cube_noise_max_ = {0.1, 0.1, 0.1};  // max orientation noise in radians in tangent space
-
   std::vector<double> pos_cube_ = std::vector<double>(3);
   std::vector<double> quat_cube_ = std::vector<double>(4);
 

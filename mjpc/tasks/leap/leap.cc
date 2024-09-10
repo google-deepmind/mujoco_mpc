@@ -349,10 +349,12 @@ void Leap::ModifyState(const mjModel *model, State *state) {
   double bias_posx = parameters[6];  // bias for position noise
   double bias_posy = parameters[7];  // bias for position noise
   double bias_posz = parameters[8];  // bias for position noise
+  double quat_cube_noise_max = parameters[9];  // max orientation noise in tangent space
+  double pos_cube_noise_max = parameters[10];  // max position noise in meters
 
   // ema filtering and lag parameters
-  double alpha = parameters[9];  // EMA filter parameter
-  int lag_steps = static_cast<int>(std::round(parameters[10]));  // lag steps
+  double alpha = parameters[11];  // EMA filter parameter
+  int lag_steps = static_cast<int>(std::round(parameters[12]));  // lag steps
   while (stored_states_.size() > lag_steps) {
     stored_states_.erase(stored_states_.begin());
   }
@@ -368,10 +370,10 @@ void Leap::ModifyState(const mjModel *model, State *state) {
 
   mju_addTo3(quat_cube_noise_.data(), dv.data());  // update the quat noise random walk
   for (int i = 0; i < 3; i++) {  // check bounds on noise
-    if (quat_cube_noise_[i] > quat_cube_noise_max_[i]) {
-      quat_cube_noise_[i] = quat_cube_noise_max_[i];
-    } else if (quat_cube_noise_[i] < -quat_cube_noise_max_[i]) {
-      quat_cube_noise_[i] = -quat_cube_noise_max_[i];
+    if (quat_cube_noise_[i] > quat_cube_noise_max) {
+      quat_cube_noise_[i] = quat_cube_noise_max;
+    } else if (quat_cube_noise_[i] < -quat_cube_noise_max) {
+      quat_cube_noise_[i] = -quat_cube_noise_max;
     }
   }
 
@@ -388,10 +390,10 @@ void Leap::ModifyState(const mjModel *model, State *state) {
 
   mju_addTo3(pos_cube_noise_.data(), dp.data());  // update the pos noise random walk
   for (int i = 0; i < 3; i++) {  // check bounds on noise
-    if (pos_cube_noise_[i] > pos_cube_noise_max_[i]) {
-      pos_cube_noise_[i] = pos_cube_noise_max_[i];
-    } else if (pos_cube_noise_[i] < -pos_cube_noise_max_[i]) {
-      pos_cube_noise_[i] = -pos_cube_noise_max_[i];
+    if (pos_cube_noise_[i] > pos_cube_noise_max) {
+      pos_cube_noise_[i] = pos_cube_noise_max;
+    } else if (pos_cube_noise_[i] < -pos_cube_noise_max) {
+      pos_cube_noise_[i] = -pos_cube_noise_max;
     }
   }
   std::vector<double> pos_cube = {s[0], s[1], s[2]};

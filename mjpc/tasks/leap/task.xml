@@ -34,9 +34,13 @@
     <!-- state noise -->
     <numeric name="residual_Cube Rot Noise" data="0.00 0.0 0.4"/>
     <numeric name="residual_Cube Pos Noise" data="0.00 0.0 0.01"/>
+
     <numeric name="residual_Cube Pos X Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Y Bias" data="-0.000 -0.02 0.02"/>
     <numeric name="residual_Cube Pos Z Bias" data="-0.000 -0.02 0.02"/>
+    
+    <numeric name="residual_Max Rot Noise" data="0.1 0.0 0.2"/>
+    <numeric name="residual_Max Pos Noise" data="0.01 0.0 0.01"/>
 
     <!-- EMA filtering -->
     <numeric name="residual_EMA alpha" data="0.1 0.0 1.0" />

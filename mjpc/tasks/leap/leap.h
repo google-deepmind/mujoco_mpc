@@ -28,6 +28,7 @@ class Leap : public Task {
  public:
   std::string Name() const override;
   std::string XmlPath() const override;
+  std::string PlannerXmlPath() const override;
 
   class ResidualFn : public BaseResidualFn {
    public:

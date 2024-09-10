@@ -22,6 +22,7 @@
 
 namespace mjpc {
 std::string Leap::XmlPath() const { return GetModelPath("leap/task.xml"); }
+std::string Leap::PlannerXmlPath() const { return GetModelPath("leap/task_planner.xml"); }
 std::string Leap::Name() const { return "Leap"; }
 
 // ------- Residuals for cube manipulation task ------

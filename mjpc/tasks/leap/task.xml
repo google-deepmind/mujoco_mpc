@@ -55,6 +55,15 @@
   <!-- Set default friction coefficient -->
   <default>
     <geom friction=".2" />
+    <default class="cube">
+      <geom friction="0.3 0.05 0.01"/>
+    </default>
+    <default class="tip">
+      <geom type="mesh" mesh="tip" friction="0.7 0.05 0.0002"/>
+    </default>
+    <default class="thumb_tip">
+      <geom type="mesh" mesh="thumb_tip" friction="0.7 0.05 0.0002"/>
+    </default>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->

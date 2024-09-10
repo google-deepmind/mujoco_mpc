@@ -130,6 +130,8 @@ class Task {
 
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;
+  virtual std::string PlannerXmlPath() const { return ""; };
+  virtual std::string EstimatorXmlPath() const { return ""; };
 
   // mode
   int mode;

@@ -26,7 +26,10 @@
 namespace mjpc {
 
 std::string Particle::XmlPath() const {
-  return GetModelPath("particle/task_timevarying.xml");
+  return GetModelPath("particle/task_timevarying_task.xml");
+}
+std::string Particle::PlannerXmlPath() const {
+  return GetModelPath("particle/task_timevarying_plan.xml");
 }
 std::string Particle::Name() const { return "Particle"; }
 

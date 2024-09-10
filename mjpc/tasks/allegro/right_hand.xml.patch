@@ -1,6 +1,6 @@
 diff --git a/right_hand_modified.xml b/right_hand_modified.xml
---- a/right_hand_modified.xml
-+++ b/right_hand_modified.xml
+--- right_hand.xml      2024-02-28 11:42:12.606580701 -0800
++++ right_hand_modified.xml     2024-02-28 11:43:02.947304406 -0800
 @@ -6,7 +6,7 @@
    <default>
      <default class="allegro_right">
@@ -10,32 +10,141 @@ diff --git a/right_hand_modified.xml b/right_hand_modified.xml
        <geom density="800"/>
  
        <default class="visual">
-@@ -124,8 +124,9 @@
+@@ -39,14 +39,11 @@
+         <default class="palm_collision">
+           <geom size="0.0204 0.0565 0.0475" pos="-0.0093 0 -0.0475"/>
+         </default>
+-        <default class="base_collision">
+-          <geom size="0.0098 0.01375 0.0082" pos="0 0 0.0082"/>
+-          <default class="thumb_base_collision">
+-            <geom size="0.0179 0.017 0.02275" pos="-0.0179 0.009 0.0145"/>
+-          </default>
++        <default class="thumb_base_collision">
++          <geom size="0.0179 0.01 0.02275" pos="-0.0179 0.005 0.0145" group="3" type="box" mass="0"/>
+         </default>
+         <default class="proximal_collision">
+-          <geom size="0.0098 0.01375 0.027" pos="0 0 0.027"/>
++          <geom size="0.0098 0.01375 0.03" pos="0 0 0.024"/>
+           <default class="thumb_proximal_collision">
+             <geom size="0.0098 0.01375 0.00885" pos="0 0 0.00885"/>
+           </default>
+@@ -63,12 +60,6 @@
+             <geom size="0.0098 0.01375 0.0157" pos="0 0 0.0157"/>
+           </default>
+         </default>
+-        <default class="fingertip_collision">
+-          <geom type="capsule" size="0.012 0.01" pos="0 0 0.019"/>
+-          <default class="thumbtip_collision">
+-            <geom type="capsule" size="0.012 0.008" pos="0 0 0.035"/>
+-          </default>
+-        </default>
+       </default>
+ 
+       <default class="base">
+@@ -124,15 +115,17 @@
    </asset>
  
    <worldbody>
 -    <body name="palm" quat="0 1 0 1" childclass="allegro_right">
-+    <body name="palm" pos="0.25 0 0" quat="0 1 0 0.7" childclass="allegro_right">
++    <body name="palm" pos="0.133823154 -0.005106107 -0.048353794" quat="0.0 0.81923193 0.0 0.57346233" childclass="allegro_right">
        <!-- <inertial mass="0.4154" pos="0 0 0.0475" diaginertia="1e-4 1e-4 1e-4"/> -->
-+      <site name="grasp_site" pos="0.0 0.0 0.0" group="4"/>
++      <site name="grasp_site" pos="0.055 0.01 0.0" group="4"/>
        <geom class="palm_visual" mesh="base_link"/>
        <geom class="palm_collision"/>
        <!-- First finger -->
-@@ -148,6 +149,7 @@
+       <body name="ff_base" pos="0 0.0435 -0.001542" quat="0.999048 -0.0436194 0 0">
+         <joint name="ffj0" class="base"/>
+         <geom class="base_visual"/>
+-        <geom class="base_collision"/>
++        <geom group="3" type="box" mass="0" size="0.0094 0.01375 0.0082" pos="-0.00075 0 0.0082"/>
++        <geom group="3" type="box" mass="0" size="0.0098 0.01375 0.002" pos="0.0 0 0.002"/>
+         <body name="ff_proximal" pos="0 0 0.0164">
+           <joint name="ffj1" class="proximal"/>
+           <geom class="proximal_visual"/>
+@@ -147,7 +140,9 @@
+               <geom class="distal_collision"/>
                <body name="ff_tip">
                  <geom class="fingertip_visual"/>
-                 <geom class="fingertip_collision"/>
+-                <geom class="fingertip_collision"/>
++                <geom group="3" mass="0" type="sphere" size="0.012" pos="0 0 0.0267" friction="0.7 0.05 0.01" priority="0" condim="6"/>
++                <geom group="3" mass="0" type="cylinder" size="0.012 0.00535" pos="0 0 0.0207" friction="0.7 0.05 0.01" priority="0" condim="6"/>
 +                <site name="tip" pos="0 0 0"/>
                </body>
              </body>
            </body>
-@@ -257,4 +259,12 @@
+@@ -157,7 +152,8 @@
+       <body name="mf_base" pos="0 0 0.0007">
+         <joint name="mfj0" class="base"/>
+         <geom class="base_visual"/>
+-        <geom class="base_collision"/>
++        <geom group="3" type="box" mass="0" size="0.0094 0.01375 0.0082" pos="-0.00075 0 0.0082"/>
++        <geom group="3" type="box" mass="0" size="0.0098 0.01375 0.002" pos="0.0 0 0.002"/>
+         <body name="mf_proximal" pos="0 0 0.0164">
+           <joint name="mfj1" class="proximal"/>
+           <geom class="proximal_visual"/>
+@@ -172,7 +168,8 @@
+               <geom class="distal_collision"/>
+               <body name="mf_tip">
+                 <geom class="fingertip_visual"/>
+-                <geom class="fingertip_collision"/>
++                <geom group="3" mass="0" type="sphere" size="0.012" pos="0 0 0.0267" friction="0.7 0.05 0.01" priority="0" condim="6"/>
++                <geom group="3" mass="0" type="cylinder" size="0.012 0.00535" pos="0 0 0.0207" friction="0.7 0.05 0.01" priority="0" condim="6"/>
+               </body>
+             </body>
+           </body>
+@@ -182,7 +179,8 @@
+       <body name="rf_base" pos="0 -0.0435 -0.001542" quat="0.999048 0.0436194 0 0">
+         <joint name="rfj0" class="base"/>
+         <geom class="base_visual"/>
+-        <geom class="base_collision"/>
++        <geom group="3" type="box" mass="0" size="0.0094 0.01375 0.0082" pos="-0.00075 0 0.0082"/>
++        <geom group="3" type="box" mass="0" size="0.0098 0.01375 0.002" pos="0.0 0 0.002"/>
+         <body name="rf_proximal" pos="0 0 0.0164">
+           <joint name="rfj1" class="proximal"/>
+           <geom class="proximal_visual"/>
+@@ -197,7 +195,8 @@
+               <geom class="distal_collision"/>
+               <body name="rf_tip">
+                 <geom class="fingertip_visual"/>
+-                <geom class="fingertip_collision"/>
++                <geom group="3" mass="0" type="sphere" size="0.012" pos="0 0 0.0267" friction="0.7 0.05 0.01" priority="0" condim="6"/>
++                <geom group="3" mass="0" type="cylinder" size="0.012 0.00535" pos="0 0 0.0207" friction="0.7 0.05 0.01" priority="0" condim="6"/>
+               </body>
+             </body>
+           </body>
+@@ -222,7 +221,8 @@
+               <geom class="thumb_distal_collision"/>
+               <body name="th_tip">
+                 <geom class="thumbtip_visual"/>
+-                <geom class="thumbtip_collision"/>
++                <geom group="3" mass="0" type="sphere" size="0.012" pos="0 0 0.04207" friction="1.0 0.01 0.01" priority="1" condim="6"/>
++                <geom group="3" mass="0" type="cylinder" size="0.012 0.00535" pos="0 0 0.03607" friction="1.0 0.1 0.01" priority="1" condim="6"/>
+               </body>
+             </body>
+           </body>
+@@ -257,4 +257,28 @@
      <position name="tha2" joint="thj2" class="thumb_medial"/>
      <position name="tha3" joint="thj3" class="thumb_distal"/>
    </actuator>
 +
 +  <!-- Traces for visualizing rollouts --> 
 +  <sensor>
++    <jointpos name="ffj0_sensor" joint="ffj0"/>
++    <jointpos name="ffj1_sensor" joint="ffj1"/>
++    <jointpos name="ffj2_sensor" joint="ffj2"/>
++    <jointpos name="ffj3_sensor" joint="ffj3"/>
++    <jointpos name="mfj0_sensor" joint="mfj0"/>
++    <jointpos name="mfj1_sensor" joint="mfj1"/>
++    <jointpos name="mfj2_sensor" joint="mfj2"/>
++    <jointpos name="mfj3_sensor" joint="mfj3"/>
++    <jointpos name="rfj0_sensor" joint="rfj0"/>
++    <jointpos name="rfj1_sensor" joint="rfj1"/>
++    <jointpos name="rfj2_sensor" joint="rfj2"/>
++    <jointpos name="rfj3_sensor" joint="rfj3"/>
++    <jointpos name="thj0_sensor" joint="thj0"/>
++    <jointpos name="thj1_sensor" joint="thj1"/>
++    <jointpos name="thj2_sensor" joint="thj2"/>
++    <jointpos name="thj3_sensor" joint="thj3"/>
 +    <framepos name="trace1" objtype="body" objname="rf_tip"/>
 +    <framepos name="trace2" objtype="body" objname="ff_tip"/>
 +    <framepos name="trace3" objtype="body" objname="mf_tip"/>

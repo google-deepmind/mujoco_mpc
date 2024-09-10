@@ -14,18 +14,15 @@
 
 # %%
 import matplotlib.pyplot as plt
-import mediapy as media
+# import mediapy as media
 import mujoco
 import numpy as np
 import pathlib
+import time as ttime
 
-# set current directory: mujoco_mpc/python/mujoco_mpc
 from mujoco_mpc import agent as agent_lib
 
-# %matplotlib inline
-
-# %%
-# model
+# Assumes this is run from mujoco_mpc/python/mujoco_mpc
 model_path = (
     pathlib.Path(__file__).parent.parent.parent
     / "../../build/mjpc/tasks/cartpole/task.xml"
@@ -36,7 +33,7 @@ model = mujoco.MjModel.from_xml_path(str(model_path))
 data = mujoco.MjData(model)
 
 # renderer
-renderer = mujoco.Renderer(model)
+# renderer = mujoco.Renderer(model)
 
 # %%
 # agent
@@ -76,57 +73,62 @@ time[0] = data.time
 frames = []
 FPS = 1.0 / model.opt.timestep
 
+# Realtime clock
+start_time = ttime.time()
+real_time = np.zeros(T)
+
 # simulate
 for t in range(T - 1):
-  if t % 100 == 0:
-    print("t = ", t)
 
-  # set planner state
-  agent.set_state(
-      time=data.time,
-      qpos=data.qpos,
-      qvel=data.qvel,
-      act=data.act,
-      mocap_pos=data.mocap_pos,
-      mocap_quat=data.mocap_quat,
-      userdata=data.userdata,
-  )
+    if t % 100 == 0:
+        print("t = ", t)
 
-  # run planner for num_steps
-  num_steps = 10
-  for _ in range(num_steps):
-    agent.planner_step()
+    # set planner state
+    agent.set_state(
+            time=data.time,
+            qpos=data.qpos,
+            qvel=data.qvel,
+            act=data.act,
+            mocap_pos=data.mocap_pos,
+            mocap_quat=data.mocap_quat,
+            userdata=data.userdata,
+            )
 
-  # set ctrl from agent policy
-  data.ctrl = agent.get_action()
-  ctrl[:, t] = data.ctrl
+    # run planner for num_steps
+    num_steps = 1
+    for _ in range(num_steps):
+        agent.planner_step()
 
-  # get costs
-  cost_total[t] = agent.get_total_cost()
-  for i, c in enumerate(agent.get_cost_term_values().items()):
-    cost_terms[i, t] = c[1]
+    # get costs
+    cost_total[t] = agent.get_total_cost()
+    for i, c in enumerate(agent.get_cost_term_values().items()):
+        cost_terms[i, t] = c[1]
 
-  # step
-  mujoco.mj_step(model, data)
+    # set ctrl from agent policy
+    data.ctrl = agent.get_action()
+    ctrl[:, t] = data.ctrl
 
-  # cache
-  qpos[:, t + 1] = data.qpos
-  qvel[:, t + 1] = data.qvel
-  time[t + 1] = data.time
+    # step
+    mujoco.mj_step(model, data)
 
-  # render and save frames
-  renderer.update_scene(data)
-  pixels = renderer.render()
-  frames.append(pixels)
+    # cache
+    qpos[:, t + 1] = data.qpos
+    qvel[:, t + 1] = data.qvel
+    time[t + 1] = data.time
+    real_time[t+1] = ttime.time() - start_time
+
+    # render and save frames
+    # renderer.update_scene(data)
+    # pixels = renderer.render()
+    # frames.append(pixels)
 
 # reset
 agent.reset()
 
 # display video
 SLOWDOWN = 0.5
-media.show_video(frames, fps=SLOWDOWN * FPS)
+#media.show_video(frames, fps=SLOWDOWN * FPS)
 
-# %%
 # plot position
 fig = plt.figure()
 
@@ -137,7 +139,6 @@ plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Configuration")
 
-# %%
 # plot velocity
 fig = plt.figure()
 
@@ -148,7 +149,6 @@ plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Velocity")
 
-# %%
 # plot control
 fig = plt.figure()
 
@@ -157,15 +157,23 @@ plt.plot(time[:-1], ctrl[0, :], color="blue")
 plt.xlabel("Time (s)")
 plt.ylabel("Control")
 
-# %%
 # plot costs
 fig = plt.figure()
 
 for i, c in enumerate(agent.get_cost_term_values().items()):
-  plt.plot(time[:-1], cost_terms[i, :], label=c[0])
+    plt.plot(time[:-1], cost_terms[i, :], label=c[0])
 
 plt.plot(time[:-1], cost_total, label="Total (weighted)", color="black")
 
 plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Costs")
+
+# plot sim time vs real time
+fig = plt.figure()
+
+plt.plot(time, real_time)
+plt.xlabel("Simulated Time (s)")
+plt.ylabel("Real time (s)")
+
+plt.show()

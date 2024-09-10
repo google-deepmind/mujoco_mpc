@@ -36,6 +36,8 @@ inline constexpr int MinSamplingSplinePoints = 1;
 inline constexpr int MaxSamplingSplinePoints = 36;
 inline constexpr double MinNoiseStdDev = 0.0;
 inline constexpr double MaxNoiseStdDev = 1.0;
+inline constexpr int kMaxRandomizedModels = 10;
+inline constexpr int kMaxRollouts = 128;
 
 class SamplingPlanner : public RankedPlanner {
  public:
@@ -67,8 +69,8 @@ class SamplingPlanner : public RankedPlanner {
   void NominalTrajectory(int horizon, ThreadPool& pool) override;
 
   // set action from policy
-  void ActionFromPolicy(double* action, const double* state,
-                        double time, bool use_previous = false) override;
+  void ActionFromPolicy(double* action, const double* state, double time,
+                        bool use_previous = false) override;
 
   // resample nominal policy
   void UpdateNominalPolicy(int horizon);

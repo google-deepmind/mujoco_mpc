@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <mujoco/mujoco.h>
+#include "mjpc/states/state.h"
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -39,6 +40,7 @@ class Particle : public Task {
   };
   Particle() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
+  void ModifyState(const mjModel* model, State* state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {

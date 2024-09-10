@@ -39,6 +39,7 @@ class Leap : public Task {
 
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel *model, mjData *data) override;
+  void ModifyState(const mjModel *model, State *state) override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
@@ -48,6 +49,19 @@ class Leap : public Task {
 
  private:
   ResidualFn residual_;
+
+  // noise variables
+  // in the real world, noise is not Gaussian-distributed, independent, and zero-mean. usually, it is strongly
+  // correlated with state in some complicated way that also depends on the vision model. because this is very hard to
+  // simulate realistically, we simulate the noise by maintaining a noise state that does a random walk.
+  std::vector<double> pos_cube_noise_ = std::vector<double>(3);
+  std::vector<double> quat_cube_noise_ = std::vector<double>(3);  // noise in tangent space
+
+  std::vector<double> pos_cube_noise_max_ = {0.01, 0.01, 0.01};  // max position noise in meters
+  std::vector<double> quat_cube_noise_max_ = {0.1, 0.1, 0.1};  // max orientation noise in radians in tangent space
+
+  std::vector<double> pos_cube_ = std::vector<double>(3);
+  std::vector<double> quat_cube_ = std::vector<double>(4);
 
   // Token for random number generation
   absl::BitGen gen_;
@@ -65,6 +79,14 @@ class Leap : public Task {
   // variables for randomizing the axis-aligned goal cube orientation
   int rand1_ = 0;
   int rand2_ = 0;
+
+  // variables for manually computing a finite-difference estimate of the velocities
+  std::vector<double> last_state_ = std::vector<double>(7 + 16 + 6 + 16);
+  double last_time_ = 0.0;
+  bool first_time_ = true;
+
+  // make a list of stored states
+  std::vector<std::vector<double>> stored_states_;
 };
 }  // namespace mjpc
 

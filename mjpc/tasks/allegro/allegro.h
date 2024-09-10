@@ -15,10 +15,12 @@
 #ifndef MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 #define MJPC_TASKS_ALLEGRO_ALLEGRO_H_
 
+#include <mujoco/mujoco.h>
+
 #include <memory>
 #include <string>
+#include <vector>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 
 namespace mjpc {
@@ -37,6 +39,10 @@ class Allegro : public Task {
 
   // Reset the cube into the hand if it's on the floor
   void TransitionLocked(mjModel *model, mjData *data) override;
+  void ModifyState(const mjModel *model, State *state) override;
+  
+  // Do domain randomization
+  void DomainRandomize(std::vector<mjModel*>& randomized_models) const override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
@@ -46,6 +52,31 @@ class Allegro : public Task {
 
  private:
   ResidualFn residual_;
+
+  // noisy state estimate states
+  std::vector<double> pos_cube_ = std::vector<double>(3);
+  std::vector<double> quat_cube_ = std::vector<double>(4);
+
+  // variables for randomizing the goal cube orientation
+  int rand1_ = 0;
+  int rand2_ = 0;
+
+  // variables related to counting # of rotations
+  int rotation_counter = 0;
+  std::chrono::steady_clock::time_point time_reset =
+      std::chrono::steady_clock::now();  // time of last reset
+  int num_best_rots = 0;  // best number of rots in a row so far
+  int prev_best_rots = 0;  // previous run of rots in a row
+  double time_per_rot = 0.0;  // avg. time per rotation
+
+  // variables related to keeping average time per rotation
+  std::chrono::steady_clock::time_point time_start =
+      std::chrono::steady_clock::now();  // time of the Allegro task starting
+  bool first_rot = true;  // don't count the first rotation in timing
+  int total_rots = 0;  // total number of rots across all runs
+
+  // timeout
+  double timeout_ = 60.0;  // if no successes in 60 seconds, reset
 };
 }  // namespace mjpc
 

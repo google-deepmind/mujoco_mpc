@@ -12,6 +12,13 @@
     <numeric name="sampling_exploration" data="0.1" />
     <numeric name="sampling_representation" data="0" />
     <numeric name="robust_xfrc" data="0.004" />
+
+    <!-- state noise -->
+    <numeric name="residual_Cube Rot Noise" data="0.005 0.0 0.5"/>
+    <numeric name="residual_Cube Pos Noise" data="0.0025 0.0 0.01"/>
+    <numeric name="residual_Cube Pos X Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Y Bias" data="0.0 -0.02 0.02"/>
+    <numeric name="residual_Cube Pos Z Bias" data="0.0 -0.02 0.02"/>
   </custom>
 
   <statistic extent="0.4" center="0.3 0.1 0"/>
@@ -30,7 +37,7 @@
         directional="true" castshadow="true"/>
     <geom name="floor" pos="0 0 -0.2" size="0 0 0.05" type="plane" material="blue_grid"/>
     <body name="goal" pos="0.325 0.17 0.0475">
-      <joint type="ball" damping="0.01"/>
+      <joint type="ball" damping="0.001"/>
       <geom type="box" size=".022 .022 .022" mass=".126" material="cube" contype="0" conaffinity="0"/>
     </body>
   </worldbody>

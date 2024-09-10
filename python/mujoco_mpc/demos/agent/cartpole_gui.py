@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 import mujoco
 from mujoco_mpc import agent as agent_lib
-import pathlib
+import numpy as np
 
 # Cartpole model
 model_path = (
@@ -24,6 +25,7 @@ model_path = (
 model = mujoco.MjModel.from_xml_path(str(model_path))
 
 # Run GUI
+counter = 0
 with agent_lib.Agent(
     server_binary_path=pathlib.Path(agent_lib.__file__).parent
     / "mjpc"
@@ -32,4 +34,10 @@ with agent_lib.Agent(
     model=model,
 ) as agent:
   while True:
-    pass
+    state = agent.get_state()
+
+    if counter > 1000:
+      qpos = np.array([-0.5, 0.0])
+      agent.set_state(qpos=qpos, set_sim_state=True)
+
+    counter += 1

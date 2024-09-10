@@ -22,6 +22,7 @@
 
 #include <mujoco/mujoco.h>
 #include "mjpc/norm.h"
+#include "mjpc/states/state.h"
 
 namespace mjpc {
 
@@ -102,6 +103,9 @@ class Task {
   // lock
   void Transition(mjModel* model, mjData* data);
 
+  // modify state
+  virtual void ModifyState(const mjModel* model, State* state){};
+
   // get information from model
   // calls ResetLocked and InternalResidual()->Update() while holding a lock
   void Reset(const mjModel* model);
@@ -120,6 +124,9 @@ class Task {
 
   virtual void ModifyScene(const mjModel* model, const mjData* data,
                            mjvScene* scene) const {}
+
+  // Set different model parameters for domain randomization.
+  virtual void DomainRandomize(std::vector<mjModel*>& randomized_models) const {}
 
   virtual std::string Name() const = 0;
   virtual std::string XmlPath() const = 0;

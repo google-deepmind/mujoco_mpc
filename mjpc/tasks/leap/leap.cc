@@ -324,12 +324,146 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     mutex_.lock();
   }
 
+  // update noisy cube mocap state
+  // first mocap state is goal, the second is noisy cube
+  mju_copy(data->mocap_pos + 3, pos_cube_.data(), 3);
+  mju_copy(data->mocap_quat + 4, quat_cube_.data(), 4);
+
   // Update rotation counters in the GUI
   parameters[0] = rotation_count_;
   parameters[1] = best_rotation_count_;
   parameters[2] = time_since_last_rotation_;
   parameters[3] =
       time_since_last_reset_ / std::max(double(rotation_count_), 1.0);
+}
+
+void Leap::ModifyState(const mjModel *model, State *state) {
+  // sampling token
+  absl::BitGen gen_;
+
+  // std from GUI
+  double std_rot =
+      parameters[4];  // stdev for rotational noise in tangent space
+  double std_pos = parameters[5];    // uniform stdev for position noise
+  double bias_posx = parameters[6];  // bias for position noise
+  double bias_posy = parameters[7];  // bias for position noise
+  double bias_posz = parameters[8];  // bias for position noise
+
+  // ema filtering and lag parameters
+  double alpha = parameters[9];  // EMA filter parameter
+  int lag_steps = static_cast<int>(std::round(parameters[10]));  // lag steps
+  while (stored_states_.size() > lag_steps) {
+    stored_states_.erase(stored_states_.begin());
+  }
+
+  // current state
+  const std::vector<double> &s = state->state();
+
+  // add quaternion noise
+  std::vector<double> dv = {0.0, 0.0, 0.0};  // rotational velocity noise
+  dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+  dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
+
+  mju_addTo3(quat_cube_noise_.data(), dv.data());  // update the quat noise random walk
+  for (int i = 0; i < 3; i++) {  // check bounds on noise
+    if (quat_cube_noise_[i] > quat_cube_noise_max_[i]) {
+      quat_cube_noise_[i] = quat_cube_noise_max_[i];
+    } else if (quat_cube_noise_[i] < -quat_cube_noise_max_[i]) {
+      quat_cube_noise_[i] = -quat_cube_noise_max_[i];
+    }
+  }
+
+  std::vector<double> quat_cube = {s[3], s[4], s[5], s[6]};
+  mju_quatIntegrate(quat_cube.data(), quat_cube_noise_.data(), 1.0);  // update the noisy quat state
+  mju_normalize4(quat_cube.data());  // normalize the quat for numerics
+
+  // add position noise
+  std::vector<double> dp = {bias_posx, bias_posy,
+                            bias_posz};  // translational velocity noise
+  dp[0] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[1] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+  dp[2] += absl::Gaussian<double>(gen_, 0.0, std_pos);
+
+  mju_addTo3(pos_cube_noise_.data(), dp.data());  // update the pos noise random walk
+  for (int i = 0; i < 3; i++) {  // check bounds on noise
+    if (pos_cube_noise_[i] > pos_cube_noise_max_[i]) {
+      pos_cube_noise_[i] = pos_cube_noise_max_[i];
+    } else if (pos_cube_noise_[i] < -pos_cube_noise_max_[i]) {
+      pos_cube_noise_[i] = -pos_cube_noise_max_[i];
+    }
+  }
+  std::vector<double> pos_cube = {s[0], s[1], s[2]};
+  mju_addTo3(pos_cube.data(), pos_cube_noise_.data());  // update the noisy pos state
+
+  // computing finite-difference approximations of velocities
+  double t = state->time();
+  double dt = t - last_time_;
+  std::vector<double> ds(6 + 16, 0.0);
+  if (first_time_ || dt < 1e-6) {
+    first_time_ = false;
+  } else {
+    // rotational velocity of the cube
+    // see: https://mariogc.com/post/angular-velocity-quaternions/
+    std::vector<double> quat_cube_last = {last_state_[3], last_state_[4],
+                                          last_state_[5], last_state_[6]};
+    std::vector<double> omega = {
+        (2.0 / dt) *
+            (quat_cube[1] * quat_cube_last[0] - quat_cube[0] * quat_cube_last[1] -
+             quat_cube[3] * quat_cube_last[2] + quat_cube[2] * quat_cube_last[3]),
+        (2.0 / dt) *
+            (quat_cube[2] * quat_cube_last[0] + quat_cube[3] * quat_cube_last[1] -
+             quat_cube[0] * quat_cube_last[2] - quat_cube[1] * quat_cube_last[3]),
+        (2.0 / dt) *
+            (quat_cube[3] * quat_cube_last[0] - quat_cube[2] * quat_cube_last[1] +
+             quat_cube[1] * quat_cube_last[2] - quat_cube[0] * quat_cube_last[3])};
+    mju_copy(ds.data() + 3, omega.data(), 3);
+
+    // all other velocities are straightforward
+    // alpha is the EMA filtering parameter
+    for (int i = 0; i < 3; i++) {
+      ds[i] = alpha * (pos_cube[i] - last_state_[i]) / dt;
+      ds[i + 3] = alpha * omega[i];
+    }  // cube translational velocity
+    for (int i = 0; i < 16; i++) {
+      ds[i + 6] = alpha * (s[i + 7] - last_state_[i + 7]) / dt;
+    }  // joint velocities
+  }
+
+  // completing the EMA filtering
+  // v_ema(t) = alpha * v(t) + (1 - alpha) * v_ema(t-1)
+  mju_addToScl(ds.data(), last_state_.data() + 7 + 16, 1.0 - alpha, 6 + 16);
+
+  // setting last state
+  last_time_ = t;
+  mju_copy(last_state_.data(), s.data(), 7 + 16 + 6 + 16);
+
+  // update cube mocap state by moving lagged states out of queue if it is full by popping the front and using it to set
+  // the mocap states
+  std::vector<double> state_new = s;
+  mju_copy(state_new.data(), pos_cube.data(), 3);
+  mju_copy(state_new.data() + 3, quat_cube.data(), 4);
+  mju_copy(state_new.data() + model->nq, ds.data(), model->nv);
+
+  std::vector<double> state_lagged = state_new;
+  if (stored_states_.size() >= lag_steps && lag_steps > 0) {
+    mju_copy(state_lagged.data(), stored_states_[0].data(), model->nq + model->nv);
+    stored_states_.erase(stored_states_.begin(), stored_states_.begin() + 1);
+  }
+  if (lag_steps > 0) {
+    stored_states_.push_back(state_new);
+  }
+
+  std::vector<double> qpos(model->nq);
+  std::vector<double> qvel(model->nv);
+  mju_copy(qpos.data(), state_lagged.data(), model->nq);
+  mju_copy(qvel.data(), state_lagged.data() + model->nq, model->nv);
+  state->SetPosition(model, qpos.data());
+  state->SetVelocity(model, qvel.data());
+
+  // update cube mocap state
+  mju_copy(pos_cube_.data(), state_lagged.data(), 3);
+  mju_copy(quat_cube_.data(), state_lagged.data() + 3, 4);
 }
 
 }  // namespace mjpc

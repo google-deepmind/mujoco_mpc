@@ -50,7 +50,16 @@ class Leap : public Task {
  private:
   ResidualFn residual_;
 
-  // noisy state estimate states
+  // noise variables
+  // in the real world, noise is not Gaussian-distributed, independent, and zero-mean. usually, it is strongly
+  // correlated with state in some complicated way that also depends on the vision model. because this is very hard to
+  // simulate realistically, we simulate the noise by maintaining a noise state that does a random walk.
+  std::vector<double> pos_cube_noise_ = std::vector<double>(3);
+  std::vector<double> quat_cube_noise_ = std::vector<double>(3);  // noise in tangent space
+
+  std::vector<double> pos_cube_noise_max_ = {0.01, 0.01, 0.01};  // max position noise in meters
+  std::vector<double> quat_cube_noise_max_ = {0.1, 0.1, 0.1};  // max orientation noise in radians in tangent space
+
   std::vector<double> pos_cube_ = std::vector<double>(3);
   std::vector<double> quat_cube_ = std::vector<double>(4);
 

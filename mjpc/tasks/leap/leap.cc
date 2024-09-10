@@ -324,11 +324,10 @@ void Leap::TransitionLocked(mjModel *model, mjData *data) {
     mutex_.lock();
   }
 
-  // update mocap position
-  std::vector<double> pos_cube = pos_cube_;
-  std::vector<double> quat_cube = quat_cube_;
-  mju_copy(data->mocap_pos + 3, pos_cube.data(), 3);
-  mju_copy(data->mocap_quat + 4, quat_cube.data(), 4);
+  // update noisy cube mocap state
+  // first mocap state is goal, the second is noisy cube
+  mju_copy(data->mocap_pos + 3, pos_cube_.data(), 3);
+  mju_copy(data->mocap_quat + 4, quat_cube_.data(), 4);
 
   // Update rotation counters in the GUI
   parameters[0] = rotation_count_;
@@ -358,8 +357,18 @@ void Leap::ModifyState(const mjModel *model, State *state) {
   dv[0] = absl::Gaussian<double>(gen_, 0.0, std_rot);
   dv[1] = absl::Gaussian<double>(gen_, 0.0, std_rot);
   dv[2] = absl::Gaussian<double>(gen_, 0.0, std_rot);
-  std::vector<double> quat_cube = {s[3], s[4], s[5], s[6]};  // quat cube state
-  mju_quatIntegrate(quat_cube.data(), dv.data(), 1.0);        // update the quat
+
+  mju_addTo3(quat_cube_noise_.data(), dv.data());  // update the quat noise random walk
+  for (int i = 0; i < 3; i++) {  // check bounds on noise
+    if (quat_cube_noise_[i] > quat_cube_noise_max_[i]) {
+      quat_cube_noise_[i] = quat_cube_noise_max_[i];
+    } else if (quat_cube_noise_[i] < -quat_cube_noise_max_[i]) {
+      quat_cube_noise_[i] = -quat_cube_noise_max_[i];
+    }
+  }
+
+  std::vector<double> quat_cube = {s[3], s[4], s[5], s[6]};
+  mju_quatIntegrate(quat_cube.data(), quat_cube_noise_.data(), 1.0);  // update the noisy quat state
   mju_normalize4(quat_cube.data());  // normalize the quat for numerics
 
   // add position noise
@@ -368,10 +377,19 @@ void Leap::ModifyState(const mjModel *model, State *state) {
   dp[0] += absl::Gaussian<double>(gen_, 0.0, std_pos);
   dp[1] += absl::Gaussian<double>(gen_, 0.0, std_pos);
   dp[2] += absl::Gaussian<double>(gen_, 0.0, std_pos);
-  std::vector<double> pos_cube = {s[0], s[1], s[2]};  // position cube state
-  mju_addTo3(pos_cube.data(), dp.data());             // update the pos
 
-  // set state
+  mju_addTo3(pos_cube_noise_.data(), dp.data());  // update the pos noise random walk
+  for (int i = 0; i < 3; i++) {  // check bounds on noise
+    if (pos_cube_noise_[i] > pos_cube_noise_max_[i]) {
+      pos_cube_noise_[i] = pos_cube_noise_max_[i];
+    } else if (pos_cube_noise_[i] < -pos_cube_noise_max_[i]) {
+      pos_cube_noise_[i] = -pos_cube_noise_max_[i];
+    }
+  }
+  std::vector<double> pos_cube = {s[0], s[1], s[2]};
+  mju_addTo3(pos_cube.data(), pos_cube_noise_.data());  // update the noisy pos state
+
+  // set controller's internal state with noisy estimate
   std::vector<double> qpos(model->nq);
   mju_copy(qpos.data(), s.data(), model->nq);
   mju_copy(qpos.data() + 0, pos_cube.data(), 3);

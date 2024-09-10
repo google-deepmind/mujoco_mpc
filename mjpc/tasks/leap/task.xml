@@ -52,9 +52,10 @@
     <global azimuth="180" elevation="-30" offheight="376" offwidth="672" fovy="70"/>
   </visual>
 
-  <!-- Set default friction coefficient -->
+  <!-- Set defaults -->
   <default>
-    <geom friction=".2" />
+    <!-- friction -->
+    <geom friction="0.2" />
     <default class="cube">
       <geom friction="0.3 0.05 0.01"/>
     </default>
@@ -64,6 +65,13 @@
     <default class="thumb_tip">
       <geom type="mesh" mesh="thumb_tip" friction="0.7 0.05 0.0002"/>
     </default>
+
+    <!-- actuators -->
+    <!-- sysid -->
+    <!-- <position kp="0.2827620538871408" kv="0.08484981477307343" />
+    <joint damping="0.003955015283771064" frictionloss="0.035302420100902204"/> -->
+    <position kp="0.2" kv="0.01" />
+    <joint damping="0.03" frictionloss="0.001"/>
   </default>
 
   <!-- Create the scene, including floor and the interactive target cube. -->

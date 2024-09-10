@@ -130,7 +130,7 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 //--------------------------------- simulation ---------------------------------
 
 mjModel* LoadModel(const mjpc::Agent* agent, mj::Simulate& sim) {
-  mjpc::Agent::LoadModelResult load_model = sim.agent->LoadModel();
+  mjpc::Agent::LoadModelResult load_model = sim.agent->LoadModel(sim.filename);
   mjModel* mnew = load_model.model.release();
   mju::strcpy_arr(sim.load_error, load_model.error.c_str());
 

@@ -226,7 +226,7 @@ int Agent::GetTaskIdByName(std::string_view name) const {
   return -1;
 }
 
-Agent::LoadModelResult Agent::LoadModel() const {
+Agent::LoadModelResult Agent::LoadModel(std::string in_filename) const {
   // if user specified a custom model, use that.
   mjModel* mnew = nullptr;
   constexpr int kErrorLength = 1024;
@@ -236,7 +236,12 @@ Agent::LoadModelResult Agent::LoadModel() const {
     mnew = mj_copyModel(nullptr, model_override_.get());
   } else {
     // otherwise use the task's model
-    std::string filename = tasks_[gui_task_id]->XmlPath();
+    std::string filename;
+    if (in_filename.empty()) {
+      filename = tasks_[gui_task_id]->XmlPath();
+    } else {
+      filename = in_filename;
+    }
     // make sure filename is not empty
     if (filename.empty()) {
       return {};

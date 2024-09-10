@@ -60,7 +60,8 @@ double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
     std::cerr << agent.GetTaskNames();
     return -1;
   }
-  auto load_model = agent.LoadModel();
+  std::string empty_filename = "";
+  auto load_model = agent.LoadModel(empty_filename);
   mjModel* model = load_model.model.release();
   if (!model) {
     std::cerr << load_model.error << "\n";

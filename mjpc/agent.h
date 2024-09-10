@@ -131,7 +131,7 @@ class Agent {
     UniqueMjModel model{nullptr, mj_deleteModel};
     std::string error;
   };
-  LoadModelResult LoadModel() const;
+  LoadModelResult LoadModel(std::string in_filename) const;
 
   // Sets a custom model (not from the task), to be returned by the next
   // call to LoadModel. Passing nullptr model clears the override and will

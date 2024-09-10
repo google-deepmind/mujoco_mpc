@@ -389,12 +389,60 @@ void Leap::ModifyState(const mjModel *model, State *state) {
   std::vector<double> pos_cube = {s[0], s[1], s[2]};
   mju_addTo3(pos_cube.data(), pos_cube_noise_.data());  // update the noisy pos state
 
+  // computing finite-difference approximations of velocities
+  double t = state->time();
+  double dt = t - last_time_;
+  std::vector<double> ds(6 + 16, 0.0);
+  if (first_time_ || dt < 1e-6) {
+    first_time_ = false;
+  } else {
+    // rotational velocity of the cube
+    // see: https://mariogc.com/post/angular-velocity-quaternions/
+    std::vector<double> quat_cube_last = {last_state_[3], last_state_[4],
+                                          last_state_[5], last_state_[6]};
+    std::vector<double> omega = {
+        (2.0 / dt) *
+            (quat_cube[1] * quat_cube_last[0] - quat_cube[0] * quat_cube_last[1] -
+             quat_cube[3] * quat_cube_last[2] + quat_cube[2] * quat_cube_last[3]),
+        (2.0 / dt) *
+            (quat_cube[2] * quat_cube_last[0] + quat_cube[3] * quat_cube_last[1] -
+             quat_cube[0] * quat_cube_last[2] - quat_cube[1] * quat_cube_last[3]),
+        (2.0 / dt) *
+            (quat_cube[3] * quat_cube_last[0] - quat_cube[2] * quat_cube_last[1] +
+             quat_cube[1] * quat_cube_last[2] - quat_cube[0] * quat_cube_last[3])};
+    mju_copy(ds.data() + 3, omega.data(), 3);
+
+    // all other velocities are straightforward
+    // alpha is the EMA filtering parameter
+    for (int i = 0; i < 3; i++) {
+      ds[i] = alpha_ * (pos_cube[i] - last_state_[i]) / dt;
+      ds[i + 3] = alpha_ * omega[i];
+    }  // cube translational velocity
+    for (int i = 0; i < 16; i++) {
+      ds[i + 6] = alpha_ * (s[i + 7] - last_state_[i + 7]) / dt;
+    }  // joint velocities
+  }
+
+  // completing the EMA filtering
+  // v_ema(t) = alpha * v(t) + (1 - alpha) * v_ema(t-1)
+  mju_addToScl(ds.data(), last_state_.data() + 7 + 16, 1.0 - alpha_, 6 + 16);
+
   // set controller's internal state with noisy estimate
   std::vector<double> qpos(model->nq);
+  std::vector<double> qvel(model->nv);
+
+  // setting last state
+  last_time_ = t;
+  mju_copy(last_state_.data(), s.data(), 7 + 16 + 6 + 16);
+
+  // update cube mocap state
   mju_copy(qpos.data(), s.data(), model->nq);
   mju_copy(qpos.data() + 0, pos_cube.data(), 3);
   mju_copy(qpos.data() + 3, quat_cube.data(), 4);
   state->SetPosition(model, qpos.data());
+
+  mju_copy(qvel.data(), ds.data(), model->nv);
+  state->SetVelocity(model, qvel.data());
 
   // update cube mocap state
   mju_copy(pos_cube_.data(), pos_cube.data(), 3);

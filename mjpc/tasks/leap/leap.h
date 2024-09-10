@@ -79,6 +79,14 @@ class Leap : public Task {
   // variables for randomizing the axis-aligned goal cube orientation
   int rand1_ = 0;
   int rand2_ = 0;
+
+  // variables for manually computing a finite-difference estimate of the velocities
+  std::vector<double> last_state_ = std::vector<double>(7 + 16 + 6 + 16);
+  double last_time_ = 0.0;
+  bool first_time_ = true;
+
+  // EMA filter parameter for velocity estimates
+  double alpha_ = 0.1;
 };
 }  // namespace mjpc
 

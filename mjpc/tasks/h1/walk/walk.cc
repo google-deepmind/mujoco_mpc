@@ -153,7 +153,11 @@ void Walk::ResidualFn::Residual(const mjModel *model, const mjData *data,
   double *goal_forward = SensorByName(model, data, "goal_forward");
 
   // Face towards goal point when the goal is far away, and face towards the goal forward direction when the goal is close.
-  residual[counter++] = standing * (goal_distance_factor * (mju_dot(forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(forward, goal_forward, 2) - 1));
+  //residual[counter++] = standing * (goal_distance_factor * (mju_dot(forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(forward, goal_forward, 2) - 1));
+  residual[counter++] = standing * (goal_distance_factor * (mju_dot(torso_forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(torso_forward, goal_forward, 2) - 1));
+  residual[counter++] = standing * (goal_distance_factor * (mju_dot(pelvis_forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(pelvis_forward, goal_forward, 2) - 1));
+  residual[counter++] = standing * (goal_distance_factor * (mju_dot(foot_right_forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(foot_right_forward, goal_forward, 2) - 1));
+  residual[counter++] = standing * (goal_distance_factor * (mju_dot(foot_left_forward, forward_target, 2) - 1) + (1.0-goal_distance_factor) * (mju_dot(foot_left_forward, goal_forward, 2) - 1));
 
   // Walk towards the goal point when the goal is far away
   residual[counter++] = standing * (mju_dot(com_vel, forward_target, 2) - parameters_[1]) * goal_distance_factor;

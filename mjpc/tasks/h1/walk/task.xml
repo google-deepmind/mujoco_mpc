@@ -39,7 +39,7 @@
     <user name="Upright" dim="8" user="2 4.0 0.0 25.0 0.01" /> <!--kL2-->
     <user name="Posture torso" dim="1" user="0 0.020 0 1.0" /> <!--kQuadratic-->
     <user name="Posture arms" dim="8" user="0 0.020 0 1.0" /> <!--kQuadratic-->
-    <user name="Face goal" dim="1" user="7 2.0 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> 
+    <user name="Face goal" dim="4" user="7 2.0 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss --> 
     <user name="Walk forward" dim="1" user="7 7.88 0.0 25.0 0.5 3.0" /> <!--kSmoothAbs2Loss -->
     <user name="Move feet" dim="2" user="7 4.0 0 25.0 0.2 4.0" /> <!--kSmoothAbs2Loss -->
     <user name="Control" dim="19" user="0 0.00005 0.00001 0.001" /> <!--kQuadratic-->

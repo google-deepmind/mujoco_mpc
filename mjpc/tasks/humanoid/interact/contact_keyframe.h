@@ -15,11 +15,14 @@
 #ifndef MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 #define MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 
-#include <mujoco/mujoco.h>
 
 #include <map>
 #include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 namespace mjpc::humanoid {
 
@@ -85,6 +88,11 @@ class ContactKeyframe {
                                      // that needs to be maintained for a
                                      // certain time
 };
+
+void to_json(json& j, const ContactPair& contact_pair);
+void from_json(const json& j, ContactPair& contact_pair);
+void to_json(json& j, const ContactKeyframe& keyframe);
+void from_json(const json& j, ContactKeyframe& keyframe);
 
 }  // namespace mjpc::humanoid
 

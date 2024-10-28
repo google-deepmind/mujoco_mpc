@@ -15,11 +15,11 @@
 #ifndef MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 #define MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 
-#include <mujoco/mujoco.h>
-
 #include <map>
 #include <string>
 #include <vector>
+
+#include <mujoco/mujoco.h>
 
 namespace mjpc::humanoid {
 

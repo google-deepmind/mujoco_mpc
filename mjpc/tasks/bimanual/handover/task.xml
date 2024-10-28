@@ -41,8 +41,8 @@
       <geom name="table" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" class="collision"/>
       <geom name="table_visual" pos="0 0 0.6509" size="0.61 0.37 0.1" type="box" rgba="0.4 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
-    <body mocap="true" name="box_goal_mocap">
-      <geom group="1" size="0.02" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
+    <body mocap="true" name="target">
+      <geom name="target" group="1" size="0.01" rgba="1 0.4 0.4 1" conaffinity="0" contype="0"/>
     </body>
     <body name="box">
       <freejoint/>
@@ -74,7 +74,7 @@
     <framepos name="fingerLR" objtype="body" objname="left/right_finger_link"/>
     <framepos name="fingerRL" objtype="body" objname="right/left_finger_link"/>
     <framepos name="fingerRR" objtype="body" objname="right/right_finger_link"/>
-    <framepos name="target" objtype="body" objname="box_goal_mocap"/>
+    <framepos name="target" objtype="body" objname="target"/>
     <framepos name="trace0" objtype="site" objname="left/gripper"/>
     <framepos name="trace1" objtype="site" objname="right/gripper"/>
     <framepos name="trace2" objtype="geom" objname="box"/>

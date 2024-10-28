@@ -27,9 +27,12 @@
 namespace mjpc::humanoid {
 
 // ---------- Constants ----------------- //
+constexpr int kNumberOfFreeJoints = 0;
 constexpr int kHeadHeightParameterIndex = 0;
 constexpr int kTorsoHeightParameterIndex = 1;
-constexpr int kNumberOfFreeJoints = 0;
+constexpr int kDistanceToleranceParameterIndex = 2;
+constexpr int kTimeLimitParameterIndex = 3;
+constexpr int kSustainTimeParameterIndex = 4;
 
 // ---------- Enums ----------------- //
 enum TaskMode : int {
@@ -123,6 +126,9 @@ class Interact : public Task {
  private:
   ResidualFn residual_;
   MotionStrategy motion_strategy_;
+
+  void SaveParamsToKeyframe(ContactKeyframe& kf) const;
+  void LoadParamsFromKeyframe(const ContactKeyframe& kf);
 
   // draw task-related geometry in the scene
   void ModifyScene(const mjModel* model, const mjData* data,

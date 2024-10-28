@@ -1,0 +1,737 @@
+[
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    -0.077371,
+                    0.042382,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 2,
+                "geom2": 22,
+                "local_pos1": [
+                    -0.064812,
+                    -0.022854,
+                    -0.144406
+                ],
+                "local_pos2": [
+                    -0.330955,
+                    0.001345,
+                    0.441806
+                ]
+            },
+            {
+                "body1": 7,
+                "body2": 0,
+                "geom1": 9,
+                "geom2": 0,
+                "local_pos1": [
+                    0.058889,
+                    0.014053,
+                    -0.02573
+                ],
+                "local_pos2": [
+                    0.059334,
+                    -0.217544,
+                    0.0
+                ]
+            },
+            {
+                "body1": 12,
+                "body2": 0,
+                "geom1": 12,
+                "geom2": 0,
+                "local_pos1": [
+                    0.066571,
+                    -0.012282,
+                    -0.0248
+                ],
+                "local_pos2": [
+                    0.088113,
+                    0.237827,
+                    0.0
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax1",
+        "success_sustain_time": 0.5,
+        "target_distance_tolerance": 0.2,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 30.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 5.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 5.5
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 1,
+                "geom2": 22,
+                "local_pos1": [
+                    -0.059872,
+                    -0.006664,
+                    -0.036268
+                ],
+                "local_pos2": [
+                    -0.330955,
+                    0.001345,
+                    0.441806
+                ]
+            },
+            {
+                "body1": 7,
+                "body2": 0,
+                "geom1": 9,
+                "geom2": 0,
+                "local_pos1": [
+                    0.058889,
+                    0.014053,
+                    -0.02573
+                ],
+                "local_pos2": [
+                    0.059334,
+                    -0.217544,
+                    0.0
+                ]
+            },
+            {
+                "body1": 12,
+                "body2": 0,
+                "geom1": 12,
+                "geom2": 0,
+                "local_pos1": [
+                    0.066571,
+                    -0.012282,
+                    -0.0248
+                ],
+                "local_pos2": [
+                    0.088113,
+                    0.237827,
+                    0.0
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax2",
+        "success_sustain_time": 0.3,
+        "target_distance_tolerance": 0.3,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 5.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 5.5
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 2,
+                "geom2": 22,
+                "local_pos1": [
+                    -0.066968,
+                    0.003691,
+                    -0.138831
+                ],
+                "local_pos2": [
+                    -0.294421,
+                    0.257243,
+                    0.344129
+                ]
+            },
+            {
+                "body1": 6,
+                "body2": 21,
+                "geom1": 7,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.043896,
+                    -0.021775,
+                    -0.069169
+                ],
+                "local_pos2": [
+                    0.25,
+                    -0.346188,
+                    0.155922
+                ]
+            },
+            {
+                "body1": 12,
+                "body2": 0,
+                "geom1": 12,
+                "geom2": 0,
+                "local_pos1": [
+                    0.066571,
+                    -0.012282,
+                    -0.0248
+                ],
+                "local_pos2": [
+                    0.11838,
+                    -0.178174,
+                    0.0
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax3",
+        "success_sustain_time": 0.2,
+        "target_distance_tolerance": 0.4,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 0.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 0.0
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 19,
+                "body2": 21,
+                "geom1": 18,
+                "geom2": 23,
+                "local_pos1": [
+                    0.021663,
+                    0.01204,
+                    -0.008418
+                ],
+                "local_pos2": [
+                    0.138935,
+                    0.312639,
+                    0.4
+                ]
+            },
+            {
+                "body1": 6,
+                "body2": 21,
+                "geom1": 7,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.043896,
+                    -0.021775,
+                    -0.069169
+                ],
+                "local_pos2": [
+                    0.128166,
+                    -0.37206,
+                    0.4
+                ]
+            },
+            {
+                "body1": 12,
+                "body2": 0,
+                "geom1": 12,
+                "geom2": 0,
+                "local_pos1": [
+                    0.066571,
+                    -0.012282,
+                    -0.0248
+                ],
+                "local_pos2": [
+                    0.11838,
+                    -0.178174,
+                    0.0
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax4",
+        "success_sustain_time": 0.1,
+        "target_distance_tolerance": 0.2,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 0.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 0.0
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 2,
+                "geom2": 23,
+                "local_pos1": [
+                    -0.069989,
+                    0.008408,
+                    -0.118845
+                ],
+                "local_pos2": [
+                    -0.137655,
+                    0.303035,
+                    0.4
+                ]
+            },
+            {
+                "body1": 6,
+                "body2": 21,
+                "geom1": 7,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.043896,
+                    -0.021775,
+                    -0.069169
+                ],
+                "local_pos2": [
+                    -0.132634,
+                    -0.354813,
+                    0.4
+                ]
+            },
+            {
+                "body1": 11,
+                "body2": 21,
+                "geom1": 11,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.047545,
+                    0.01185,
+                    -0.070724
+                ],
+                "local_pos2": [
+                    0.245098,
+                    -0.341528,
+                    0.17
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax5",
+        "success_sustain_time": 0.5,
+        "target_distance_tolerance": 0.2,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 0.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 0.0
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 2,
+                "geom2": 23,
+                "local_pos1": [
+                    -0.069989,
+                    0.008408,
+                    -0.118845
+                ],
+                "local_pos2": [
+                    -0.137655,
+                    0.303035,
+                    0.4
+                ]
+            },
+            {
+                "body1": 6,
+                "body2": 21,
+                "geom1": 7,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.043896,
+                    -0.021775,
+                    -0.069169
+                ],
+                "local_pos2": [
+                    -0.132634,
+                    -0.354813,
+                    0.4
+                ]
+            },
+            {
+                "body1": 11,
+                "body2": 21,
+                "geom1": 11,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.047545,
+                    0.01185,
+                    -0.070724
+                ],
+                "local_pos2": [
+                    0.092992,
+                    -0.360093,
+                    0.4
+                ]
+            },
+            {
+                "body1": -1,
+                "body2": -1,
+                "geom1": -1,
+                "geom2": -1,
+                "local_pos1": [
+                    -0.08998,
+                    0.011944,
+                    -0.056593
+                ],
+                "local_pos2": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax6",
+        "success_sustain_time": 0.5,
+        "target_distance_tolerance": 0.15,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 0.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 15.0
+        }
+    },
+    {
+        "contacts": [
+            {
+                "body1": 4,
+                "body2": 21,
+                "geom1": 5,
+                "geom2": 20,
+                "local_pos1": [
+                    -0.084515,
+                    -0.003438,
+                    -0.062752
+                ],
+                "local_pos2": [
+                    0.038509,
+                    0.001444,
+                    0.17
+                ]
+            },
+            {
+                "body1": 1,
+                "body2": 21,
+                "geom1": 2,
+                "geom2": 23,
+                "local_pos1": [
+                    -0.069989,
+                    0.008408,
+                    -0.118845
+                ],
+                "local_pos2": [
+                    -0.137655,
+                    0.303035,
+                    0.4
+                ]
+            },
+            {
+                "body1": 6,
+                "body2": 21,
+                "geom1": 7,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.043896,
+                    -0.021775,
+                    -0.069169
+                ],
+                "local_pos2": [
+                    -0.132634,
+                    -0.354813,
+                    0.4
+                ]
+            },
+            {
+                "body1": 11,
+                "body2": 21,
+                "geom1": 11,
+                "geom2": 24,
+                "local_pos1": [
+                    -0.047545,
+                    0.01185,
+                    -0.070724
+                ],
+                "local_pos2": [
+                    0.092992,
+                    -0.360093,
+                    0.4
+                ]
+            },
+            {
+                "body1": 17,
+                "body2": 5,
+                "geom1": 16,
+                "geom2": 6,
+                "local_pos1": [
+                    0.020934,
+                    0.022527,
+                    0.025579
+                ],
+                "local_pos2": [
+                    0.04905,
+                    0.016951,
+                    -0.373849
+                ]
+            }
+        ],
+        "facing_target": [],
+        "name": "armchair_relax7",
+        "success_sustain_time": 1.0,
+        "target_distance_tolerance": 0.2,
+        "time_limit": 5.0,
+        "weight": {
+            "COM Feet XY": 0.0,
+            "CoM Vel.": 10.0,
+            "Contact": 100.0,
+            "Control": 0.2,
+            "Facing Dir": 0.0,
+            "Head Height": 0.0,
+            "Joint Vel.": 0.01,
+            "Knee Feet XY": 0.0,
+            "LFoot Up": 5.0,
+            "Pelvis Up": 0.0,
+            "RFoot Up": 5.0,
+            "Torse Target": 0.0,
+            "Torso Height": 0.0,
+            "Torso Up": 15.0
+        }
+    }
+]

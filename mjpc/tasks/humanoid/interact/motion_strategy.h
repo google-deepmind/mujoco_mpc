@@ -17,12 +17,19 @@
 
 #include <mujoco/mujoco.h>
 
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
 #include "mjpc/tasks/humanoid/interact/contact_keyframe.h"
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 namespace mjpc::humanoid {
+
+constexpr char kMotionStrategyFilePath[] =
+    SOURCE_DIR "/mjpc/tasks/humanoid/interact/strategies/";
 
 /*
 This class holds the motion strategy, e.g. given a sequence of keyframes, it
@@ -69,6 +76,10 @@ class MotionStrategy {
   void SetContactKeyframes(const std::vector<ContactKeyframe>& keyframes) {
     contact_keyframes_ = keyframes;
   }
+  bool SaveStrategy(const std::string& name,
+                    const std::string& path = kMotionStrategyFilePath);
+  bool LoadStrategy(const std::string& name,
+                    const std::string& path = kMotionStrategyFilePath);
 
   int NextKeyframe();
   void ClearKeyframes();
@@ -84,6 +95,8 @@ class MotionStrategy {
   mjtNum current_keyframe_success_start_time_;
 };
 
+void to_json(json& j, const MotionStrategy& strategy);
+void from_json(const json& j, MotionStrategy& strategy);
 }  // namespace mjpc::humanoid
 
 #endif  // MJPC_TASKS_HUMANOID_INTERACT_MOTION_STRATEGY_H_

@@ -78,4 +78,70 @@ double MotionStrategy::CalculateTotalKeyframeDistance(
   return total_error;
 }
 
+bool MotionStrategy::SaveStrategy(const std::string& name,
+                                  const std::string& path) {
+  std::string filename(path);
+  filename.append(name);
+  filename.append(".json");
+
+  try {
+    json json_keyframes = json::array();
+    json json_kf;
+    for (auto& kf: contact_keyframes_) {
+      to_json(json_kf, kf);
+      json_keyframes.push_back(json_kf);
+    }
+
+    std::ofstream of(filename);
+    if (!of.is_open()) {
+      std::printf("\nFailed to open file %s", filename.c_str());
+      return false;
+    }
+    of << std::setw(4) << json_keyframes << std::endl;
+    of.close();
+    std::printf("\nKeyframe sequence saved as %s", filename.c_str());
+    return true;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return false;
+  }
+}
+
+bool MotionStrategy::LoadStrategy(const std::string& name,
+                                  const std::string& path) {
+  std::string filename(path);
+  filename.append(name);
+  filename.append(".json");
+  try {
+    std::ifstream file(filename);
+    if (!file.good()) {
+      std::printf("\nFile %s does not exist", filename.c_str());
+      return false;
+    }
+    contact_keyframes_.clear();
+    json json_keyframes = json::parse(file);
+    ContactKeyframe kf;
+    for (auto& json_kf: json_keyframes) {
+      from_json(json_kf, kf);
+      contact_keyframes_.push_back(kf);
+    }
+
+    current_keyframe_index_ = 0;
+    std::printf("\nKeyframe sequence loaded from %s", filename.c_str());
+    return true;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return false;
+  }
+}
+
+void to_json(json& j, const MotionStrategy& strategy) {
+  j = json{{"contact_keyframes", strategy.GetContactKeyframes()}};
+}
+
+void from_json(const json& j, MotionStrategy& strategy) {
+  strategy.SetContactKeyframes(
+      j.at("contact_keyframes").get<std::vector<ContactKeyframe>>());
+}
+
 }  // namespace mjpc::humanoid

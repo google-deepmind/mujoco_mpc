@@ -126,6 +126,39 @@ void Interact::ResidualFn::ContactResidual(const mjModel* model,
   }
 }
 
+void Interact::SaveParamsToKeyframe(ContactKeyframe& kf) const {
+  for (int i = 0; i < weight_names.size(); i++) {
+    kf.weight[weight_names[i]] = weight[i];
+  }
+  kf.target_distance_tolerance = parameters[kDistanceToleranceParameterIndex];
+  kf.time_limit = parameters[kTimeLimitParameterIndex];
+  kf.success_sustain_time = parameters[kSustainTimeParameterIndex];
+}
+
+void Interact::LoadParamsFromKeyframe(const ContactKeyframe& kf) {
+  ContactKeyframe current_keyframe = motion_strategy_.GetCurrentKeyframe();
+  weight.clear();
+  int index = 0;
+  for (auto& w : weight_names) {
+    if (kf.weight.find(w) != kf.weight.end()) {
+      weight.push_back(kf.weight.at(w));
+    } else {
+      double default_weight =
+          default_weights[residual_.current_task_mode_][index];
+      std::printf(
+          "Keyframe %s does not have weight for %s, set default %.1f.\n",
+          kf.name.c_str(), w.c_str(), default_weight);
+      weight.push_back(default_weight);
+    }
+    current_keyframe.weight[w] = weight[index];
+    index++;
+  }
+  current_keyframe.name = kf.name;
+  parameters[kDistanceToleranceParameterIndex] = kf.target_distance_tolerance;
+  parameters[kTimeLimitParameterIndex] = kf.time_limit;
+  parameters[kSustainTimeParameterIndex] = kf.success_sustain_time;
+}
+
 // ---------------- Residuals for humanoid interaction task ----------- //
 //   Number of residuals: 13
 //     Residual (0): Torso up
@@ -183,13 +216,18 @@ void Interact::ResidualFn::Residual(const mjModel* model, const mjData* data,
 
 // -------- Transition for interaction task -------- //
 void Interact::TransitionLocked(mjModel* model, mjData* data) {
-  //   If the task mode is changed, sync it with the residual here
+  //  If the task mode is changed, sync it with the residual here
   if (residual_.current_task_mode_ != mode) {
     residual_.current_task_mode_ = (TaskMode)mode;
     weight = default_weights[residual_.current_task_mode_];
   }
 
-  if (!motion_strategy_.HasKeyframes()) return;
+  //  If the motion strategy is not initialized, load the given strategy
+  if (!motion_strategy_.HasKeyframes()) {
+    motion_strategy_.LoadStrategy("armchair_cross_leg");
+    LoadParamsFromKeyframe(motion_strategy_.GetCurrentKeyframe());
+    return;
+  }
 
   const ContactKeyframe& current_keyframe =
       motion_strategy_.GetCurrentKeyframe();
@@ -199,8 +237,9 @@ void Interact::TransitionLocked(mjModel* model, mjData* data) {
   if (data->time - motion_strategy_.GetCurrentKeyframeStartTime() >
           current_keyframe.time_limit &&
       total_distance > current_keyframe.target_distance_tolerance) {
-    // success criteria not reached, reset
+    // timelimit reached but distance criteria not reached, reset
     motion_strategy_.Reset();
+    LoadParamsFromKeyframe(motion_strategy_.GetCurrentKeyframe());
     residual_.residual_keyframe_ = motion_strategy_.GetCurrentKeyframe();
     motion_strategy_.SetCurrentKeyframeStartTime(data->time);
   } else if (total_distance <= current_keyframe.target_distance_tolerance &&
@@ -209,11 +248,13 @@ void Interact::TransitionLocked(mjModel* model, mjData* data) {
                  current_keyframe.success_sustain_time) {
     // success criteria reached, go to the next keyframe
     motion_strategy_.NextKeyframe();
+    LoadParamsFromKeyframe(motion_strategy_.GetCurrentKeyframe());
     residual_.residual_keyframe_ = motion_strategy_.GetCurrentKeyframe();
   } else if (total_distance > current_keyframe.target_distance_tolerance) {
     // keyframe error is more than tolerance, update the success start time
     motion_strategy_.SetCurrentKeyframeSuccessStartTime(data->time);
   }
+  SaveParamsToKeyframe(motion_strategy_.GetCurrentKeyframe());
 }
 
 // draw task-related geometry in the scene

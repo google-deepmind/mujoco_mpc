@@ -202,6 +202,7 @@ void Task::Reset(const mjModel* model) {
 
   // loop over sensors
   int parameter_shift = 0;
+  weight_names.resize(num_term);
   for (int i = 0; i < num_term; i++) {
     // residual dimension
     num_residual += model->sensor_dim[i];
@@ -209,6 +210,7 @@ void Task::Reset(const mjModel* model) {
 
     // user data: [norm, weight, weight_lower, weight_upper, parameters...]
     double* s = model->sensor_user + i * model->nuser_sensor;
+    char* name = model->names + model->name_sensoradr[i];
 
     // check number of parameters
     int norm_parameter_dimension = NormParameterDimension(s[0]);
@@ -231,6 +233,7 @@ void Task::Reset(const mjModel* model) {
     }
 
     weight[i] = s[1];
+    weight_names[i] = name;
     num_norm_parameter[i] = norm_parameter_dimension;
     mju_copy(DataAt(norm_parameter, parameter_shift), s + 4,
              num_norm_parameter[i]);

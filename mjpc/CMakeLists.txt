@@ -50,6 +50,10 @@ add_library(
   tasks/cartpole/cartpole.h
   tasks/fingers/fingers.cc
   tasks/fingers/fingers.h
+  tasks/humanoid/interact/interact.cc
+  tasks/humanoid/interact/interact.h
+  tasks/humanoid/interact/contact_keyframe.cc
+  tasks/humanoid/interact/contact_keyframe.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc

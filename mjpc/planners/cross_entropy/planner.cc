@@ -465,14 +465,10 @@ void CrossEntropyPlanner::Traces(mjvScene* scn) {
         // elite index
         int idx = trajectory_order[k];
         // make geometry
-        mjv_makeConnector(
+        mjv_connector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectory[idx].trace[3 * task->num_trace * i + 3 * j],
-            trajectory[idx].trace[3 * task->num_trace * i + 1 + 3 * j],
-            trajectory[idx].trace[3 * task->num_trace * i + 2 + 3 * j],
-            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 3 * j],
-            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
-            trajectory[idx].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
+            trajectory[idx].trace.data() + 3*task->num_trace * i + 3 * j,
+            trajectory[idx].trace.data() + 3*task->num_trace * (i + 1) + 3 * j);
 
         // increment number of geometries
         scn->ngeom += 1;

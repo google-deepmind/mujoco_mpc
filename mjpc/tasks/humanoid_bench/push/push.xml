@@ -1,0 +1,41 @@
+<mujocoinclude>
+  <asset>
+    <material name="wooden_cover" texuniform="false" texture="wooden_cover"/>
+    <texture type="2d" name="wooden_cover" file="../assets/kitchen-wood.png"/>
+
+    <material name="dark_wooden_cover" texuniform="false" texture="dark_wooden_cover"/>
+    <texture type="2d" name="dark_wooden_cover" file="../assets/dark-wood.png"/>
+
+    <material name="plywood_cover" texuniform="false" texture="plywood_cover"/>
+    <texture type="2d" name="plywood_cover" file="../assets/plywood-4k.png"/>
+  </asset>
+  <worldbody>
+    <body name="table" pos="0.9 0 0.45">
+      <geom name="table_top" type="box" pos="0 0 0.4" size="0.5 1 0.05" class="visual" material="wooden_cover"/>
+      <geom name="table_top_collision" type="box" pos="0 0 0.4" size="0.5 1 0.05" class="collision"/>
+      <geom name="table_leg_1" type="box" pos="0.4 0.85 -0.05" size="0.05 0.05 0.4" class="visual"
+            material="dark_wooden_cover"/>
+      <geom name="table_leg_2" type="box" pos="0.4 -0.85 -0.05" size="0.05 0.05 0.4" class="visual"
+            material="dark_wooden_cover"/>
+      <geom name="table_leg_3" type="box" pos="-0.4 0.85 -0.05" size="0.05 0.05 0.4" class="visual"
+            material="dark_wooden_cover"/>
+      <geom name="table_leg_4" type="box" pos="-0.4 -0.85 -0.05" size="0.05 0.05 0.4" class="visual"
+            material="dark_wooden_cover"/>
+      <geom name="table_leg_1_collision" type="box" pos="0.4 0.85 -0.05" size="0.05 0.05 0.4" class="collision"/>
+      <geom name="table_leg_2_collision" type="box" pos="0.4 -0.85 -0.05" size="0.05 0.05 0.4" class="collision"/>
+      <geom name="table_leg_3_collision" type="box" pos="-0.4 0.85 -0.05" size="0.05 0.05 0.4" class="collision"/>
+      <geom name="table_leg_4_collision" type="box" pos="-0.4 -0.85 -0.05" size="0.05 0.05 0.4"
+            class="collision"/>
+    </body>
+    <body name="object" pos="0.7 0 1" euler='-0 0 -0'>
+      <freejoint name="free_object"/>
+      <inertial pos="0 0 0" mass="0.3" diaginertia="0.001 0.001 0.001"/>
+      <geom name="object" type="box" size=".1 .1 .1" rgba="0.67 0.73 0.78 1" class="visual"/>
+      <geom name="object_collision" type="box" size=".1 .1 .1" class="collision"/>
+    </body>
+
+    <body name="target" mocap="true" pos="1.0 0.0 1.0">
+      <geom type="sphere" size="0.05" contype="0" conaffinity="0" rgba="0 1 0 .5"/>
+    </body>
+  </worldbody>
+</mujocoinclude>

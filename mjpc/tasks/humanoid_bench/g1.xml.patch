@@ -1,0 +1,22 @@
+diff --git a/g1_modified.xml b/g1_modified.xml
+--- a/g1_modified.xml
++++ b/g1_modified.xml
+@@ -1,4 +1,4 @@
+-<mujoco model="g1">
++<mujoco model="Unitree G1">
+   <compiler angle="radian" meshdir="assets" autolimits="true"/>
+ 
+   <visual>
+@@ -409,12 +409,6 @@
+     <motor class="hand_joint" name="right_five_joint" joint="right_five_joint"/>
+     <motor class="hand_joint" name="right_six_joint" joint="right_six_joint"/>
+   </actuator>
+-
+-  <sensor>
+-    <gyro name="imu-angular-velocity" site="imu" cutoff="34.9"/>
+-    <accelerometer name="imu-linear-acceleration" site="imu" cutoff="157"/>
+-    <framequat name="imu-body-quat" objtype="site" objname="imu"/>
+-  </sensor>
+ 
+   <keyframe>
+     <key name="stand"

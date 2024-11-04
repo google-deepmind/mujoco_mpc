@@ -44,10 +44,10 @@ void residual_callback(const mjModel* model, mjData* data, int stage) {
 double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
                                int steps_per_planning_iteration,
                                double total_time) {
-  std::cout << "Test MJPC Speed\n";
+  std::cout << "Test MJPC Speed: " << task_name << "\n";
   std::cout << " MuJoCo version " << mj_versionString() << "\n";
   if (mjVERSION_HEADER != mj_version()) {
-    mju_error("Headers and library have Different versions");
+    mju_error("Headers and library have different versions");
   }
   std::cout << " Hardware threads:  " << NumAvailableHardwareThreads() << "\n";
 
@@ -60,20 +60,20 @@ double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
     std::cerr << agent.GetTaskNames();
     return -1;
   }
-  auto load_model = agent.LoadModel();
-  mjModel* model = load_model.model.release();
+  Agent::LoadModelResult load_model = agent.LoadModel();
+  mjModel* model = load_model.model.get();
   if (!model) {
     std::cerr << load_model.error << "\n";
     return -1;
   }
   mjData* data = mj_makeData(model);
-  mj_forward(model, data);
 
   int home_id = mj_name2id(model, mjOBJ_KEY, "home");
   if (home_id >= 0) {
     std::cout << "home_id: " << home_id << "\n";
     mj_resetDataKeyframe(model, data, home_id);
   }
+  mj_forward(model, data);
 
   // the planner and its initial configuration is set in the XML
   agent.estimator_enabled = false;
@@ -123,7 +123,6 @@ double SynchronousPlanningCost(std::string task_name, int planner_thread_count,
             << total_cost / total_steps << "\n";
 
   mj_deleteData(data);
-  mj_deleteModel(model);
   mjcb_sensor = nullptr;
   return total_cost;
 }

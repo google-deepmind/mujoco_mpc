@@ -27,7 +27,7 @@
       arms :              6
       chair :             7
     -->
-    <key name="home" 
+    <key name="home"
     qpos="
     -0.5153
     0.03293
@@ -63,6 +63,6 @@
     0.99998
     -5.34e-05
     8.27e-05
-    0.00636"/> 
+    0.00636"/>
   </keyframe>
 </mujoco>

@@ -24,7 +24,7 @@
       arms :              6
       chair :             7
     -->
-    <key name="home" 
+    <key name="home"
     qpos="
         -0.5458
         0.0477

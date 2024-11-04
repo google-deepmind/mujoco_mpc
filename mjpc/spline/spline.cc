@@ -187,6 +187,16 @@ int TimeSpline::DiscardBefore(double time) {
   return nodes_to_remove;
 }
 
+void TimeSpline::ShiftTime(double start_time) {
+  if (times_.empty()) {
+    return;
+  }
+  double shift = start_time - times_[0];
+  for (int i = 0; i < times_.size(); i++) {
+    times_[i] += shift;
+  }
+}
+
 void TimeSpline::Clear() {
   times_.clear();
   values_begin_ = 0;

@@ -35,12 +35,12 @@ using ::agent::GetAllModesRequest;
 using ::agent::GetAllModesResponse;
 using ::agent::GetBestTrajectoryRequest;
 using ::agent::GetBestTrajectoryResponse;
-using ::agent::GetResidualsRequest;
-using ::agent::GetResidualsResponse;
 using ::agent::GetCostValuesAndWeightsRequest;
 using ::agent::GetCostValuesAndWeightsResponse;
 using ::agent::GetModeRequest;
 using ::agent::GetModeResponse;
+using ::agent::GetResidualsRequest;
+using ::agent::GetResidualsResponse;
 using ::agent::GetStateRequest;
 using ::agent::GetStateResponse;
 using ::agent::GetTaskParametersRequest;
@@ -115,8 +115,7 @@ grpc::Status AgentService::Init(grpc::ServerContext* context,
       << "Multiple instances of AgentService detected.";
   agent_model = agent_.GetModel();
   // copy the model before agent model's timestep and integrator are updated
-  CHECK_EQ(model, nullptr)
-      << "Multiple instances of AgentService detected.";
+  CHECK_EQ(model, nullptr) << "Multiple instances of AgentService detected.";
   model = mj_copyModel(nullptr, agent_model);
   data_ = mj_makeData(model);
   rollout_data_.reset(mj_makeData(model));
@@ -190,14 +189,14 @@ grpc::Status AgentService::GetAction(grpc::ServerContext* context,
   return out;
 }
 
-grpc::Status AgentService::GetResiduals(
-    grpc::ServerContext* context, const GetResidualsRequest* request,
-    GetResidualsResponse* response) {
+grpc::Status AgentService::GetResiduals(grpc::ServerContext* context,
+                                        const GetResidualsRequest* request,
+                                        GetResidualsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
-  return grpc_agent_util::GetResiduals(request, &agent_, model,
-                                       data_, response);
+  return grpc_agent_util::GetResiduals(request, &agent_, model, data_,
+                                       response);
 }
 
 grpc::Status AgentService::GetCostValuesAndWeights(
@@ -275,9 +274,9 @@ grpc::Status AgentService::GetTaskParameters(
   return grpc_agent_util::GetTaskParameters(request, &agent_, response);
 }
 
-grpc::Status AgentService::SetCostWeights(
-    grpc::ServerContext* context, const SetCostWeightsRequest* request,
-    SetCostWeightsResponse* response) {
+grpc::Status AgentService::SetCostWeights(grpc::ServerContext* context,
+                                          const SetCostWeightsRequest* request,
+                                          SetCostWeightsResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }
@@ -350,10 +349,9 @@ grpc::Status AgentService::GetBestTrajectory(
   return grpc::Status::OK;
 }
 
-
-grpc::Status AgentService::SetAnything(
-    grpc::ServerContext* context, const SetAnythingRequest* request,
-    SetAnythingResponse* response) {
+grpc::Status AgentService::SetAnything(grpc::ServerContext* context,
+                                       const SetAnythingRequest* request,
+                                       SetAnythingResponse* response) {
   if (!Initialized()) {
     return {grpc::StatusCode::FAILED_PRECONDITION, "Init not called."};
   }

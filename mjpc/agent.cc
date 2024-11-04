@@ -451,8 +451,8 @@ int Agent::SetModeByName(std::string_view name) {
 void Agent::ModifyScene(mjvScene* scn) {
   // if acting is off make all geom colors grayscale
   if (!action_enabled) {
-    int cube = mj_name2id(model_, mjOBJ_TEXTURE, "cube");
-    int graycube = mj_name2id(model_, mjOBJ_TEXTURE, "graycube");
+    int cube = mj_name2id(model_, mjOBJ_MATERIAL, "cube");
+    int graycube = mj_name2id(model_, mjOBJ_MATERIAL, "graycube");
     for (int i = 0; i < scn->ngeom; i++) {
       mjvGeom* g = scn->geoms + i;
       // skip static and decor geoms
@@ -463,8 +463,8 @@ void Agent::ModifyScene(mjvScene* scn) {
       double rgb_average = (g->rgba[0] + g->rgba[1] + g->rgba[2]) / 3;
       g->rgba[0] = g->rgba[1] = g->rgba[2] = rgb_average;
       // specifically for the hand task, make grayscale cube.
-      if (cube > -1 && graycube > -1 && g->texid == cube) {
-        g->texid = graycube;
+      if (cube > -1 && graycube > -1 && g->matid == cube) {
+        g->matid = graycube;
       }
     }
   }
@@ -508,14 +508,10 @@ void Agent::ModifyScene(mjvScene* scn) {
                   color);
 
       // make geometry
-      mjv_makeConnector(
+      mjv_connector(
           &scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width,
-          winner->trace[3 * num_trace * i + 3 * j],
-          winner->trace[3 * num_trace * i + 1 + 3 * j],
-          winner->trace[3 * num_trace * i + 2 + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 1 + 3 * j],
-          winner->trace[3 * num_trace * (i + 1) + 2 + 3 * j]);
+          winner->trace.data() + 3 * num_trace * i + 3 * j,
+          winner->trace.data() + 3 * num_trace * (i + 1) + 3 * j);
       // increment number of geometries
       scn->ngeom += 1;
     }

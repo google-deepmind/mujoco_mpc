@@ -15,12 +15,12 @@
 #ifndef MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 #define MJPC_TASKS_HUMANOID_INTERACT_CONTACT_KEYFRAME_H_
 
-
 #include <map>
 #include <string>
 #include <vector>
 
 #include <mujoco/mujoco.h>
+
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 

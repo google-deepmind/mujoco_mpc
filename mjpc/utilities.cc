@@ -751,8 +751,7 @@ void AddConnector(mjvScene* scene, mjtGeom type, mjtNum width,
   mjv_initGeom(&scene->geoms[scene->ngeom], type,
                /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, rgba);
   scene->geoms[scene->ngeom].category = mjCAT_DECOR;
-  mjv_makeConnector(&scene->geoms[scene->ngeom], type, width, from[0], from[1],
-                    from[2], to[0], to[1], to[2]);
+  mjv_connector(&scene->geoms[scene->ngeom], type, width, from, to);
 
   // increment ngeom
   scene->ngeom += 1;

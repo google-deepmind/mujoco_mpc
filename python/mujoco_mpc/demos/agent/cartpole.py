@@ -16,11 +16,11 @@
 import matplotlib.pyplot as plt
 import mediapy as media
 import mujoco
-import numpy as np
-import pathlib
-
 # set current directory: mujoco_mpc/python/mujoco_mpc
 from mujoco_mpc import agent as agent_lib
+import numpy as np
+
+import pathlib
 
 # %matplotlib inline
 

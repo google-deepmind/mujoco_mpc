@@ -74,9 +74,7 @@ grpc::Status DirectService::Init(grpc::ServerContext* context,
     // mjVFS structs need to be allocated on the heap, because it's ~2MB
     auto vfs = std::make_unique<mjVFS>();
     mj_defaultVFS(vfs.get());
-    mj_makeEmptyFileVFS(vfs.get(), file, mjb.size());
-    int file_idx = mj_findFileVFS(vfs.get(), file);
-    memcpy(vfs->filedata[file_idx], mjb.data(), mjb.size());
+    mj_addBufferVFS(vfs.get(), file, mjb.data(), mjb.size());
     tmp_model = {mj_loadModel(file, vfs.get()), mj_deleteModel};
     mj_deleteFileVFS(vfs.get(), file);
   } else if (request->has_model() && request->model().has_xml()) {
@@ -88,9 +86,7 @@ grpc::Status DirectService::Init(grpc::ServerContext* context,
     // mjVFS structs need to be allocated on the heap, because it's ~2MB
     auto vfs = std::make_unique<mjVFS>();
     mj_defaultVFS(vfs.get());
-    mj_makeEmptyFileVFS(vfs.get(), file, model_xml.size());
-    int file_idx = mj_findFileVFS(vfs.get(), file);
-    memcpy(vfs->filedata[file_idx], model_xml.data(), model_xml.size());
+    mj_addBufferVFS(vfs.get(), file, model_xml.data(), model_xml.size());
     tmp_model = {mj_loadXML(file, vfs.get(), load_error, sizeof(load_error)),
                  mj_deleteModel};
     mj_deleteFileVFS(vfs.get(), file);

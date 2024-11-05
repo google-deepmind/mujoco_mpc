@@ -40,6 +40,10 @@
 #include "mjpc/tasks/shadow_reorient/hand.h"
 #include "mjpc/tasks/swimmer/swimmer.h"
 #include "mjpc/tasks/walker/walker.h"
+// Humanoid Bench Tasks
+#include "mjpc/tasks/humanoid_bench/push/push.h"
+#include "mjpc/tasks/humanoid_bench/stand/stand.h"
+#include "mjpc/tasks/humanoid_bench/walk/walk.h"
 
 namespace mjpc {
 
@@ -69,6 +73,10 @@ std::vector<std::shared_ptr<Task>> GetTasks() {
       std::make_shared<QuadrupedHill>(),
       std::make_shared<Swimmer>(),
       std::make_shared<Walker>(),
+      // Humanoid Bench
+      std::make_shared<Walk_H1>(),
+      std::make_shared<Stand_H1>(),
+      std::make_shared<Push_H1>(),
   };
 }
 }  // namespace mjpc

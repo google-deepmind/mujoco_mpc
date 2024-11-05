@@ -82,6 +82,17 @@ add_library(
   tasks/swimmer/swimmer.h
   tasks/walker/walker.cc
   tasks/walker/walker.h
+  tasks/humanoid_bench/utility/dm_control_utils_rewards.cpp
+  tasks/humanoid_bench/walk/walk.cc
+  tasks/humanoid_bench/walk/walk.h
+  tasks/humanoid_bench/walk_reward.cc
+  tasks/humanoid_bench/walk_reward.h
+  tasks/humanoid_bench/stand/stand.cc
+  tasks/humanoid_bench/stand/stand.h
+  tasks/humanoid_bench/push/push.cc
+  tasks/humanoid_bench/push/push.h
+  tasks/humanoid_bench/utility/utility_functions.cpp
+  tasks/humanoid_bench/utility/utility_functions.h
   planners/planner.cc
   planners/planner.h
   planners/policy.h

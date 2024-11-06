@@ -203,6 +203,7 @@ class QuadrupedFlat : public Task {
     int cadence_param_id_     = -1;
     int amplitude_param_id_   = -1;
     int duty_param_id_        = -1;
+    int arm_posture_param_id_ = -1;
     int upright_cost_id_      = -1;
     int balance_cost_id_      = -1;
     int height_cost_id_       = -1;

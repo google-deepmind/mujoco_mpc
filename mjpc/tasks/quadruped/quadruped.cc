@@ -182,16 +182,21 @@ void QuadrupedFlat::ResidualFn::Residual(const mjModel* model,
   if (current_mode_ == kModeBiped) {
     // loosen the "hands" in Biped mode
     bool handstand = ReinterpretAsInt(parameters_[biped_type_param_id_]);
+    double arm_posture = parameters_[arm_posture_param_id_];
     if (handstand) {
-      residual[counter + 4] *= 0.03;
-      residual[counter + 5] *= 0.03;
-      residual[counter + 10] *= 0.03;
-      residual[counter + 11] *= 0.03;
+      residual[counter + 6] *= arm_posture;
+      residual[counter + 7] *= arm_posture;
+      residual[counter + 8] *= arm_posture;
+      residual[counter + 9] *= arm_posture;
+      residual[counter + 10] *= arm_posture;
+      residual[counter + 11] *= arm_posture;
     } else {
-      residual[counter + 1] *= 0.03;
-      residual[counter + 2] *= 0.03;
-      residual[counter + 7] *= 0.03;
-      residual[counter + 8] *= 0.03;
+      residual[counter + 0] *= arm_posture;
+      residual[counter + 1] *= arm_posture;
+      residual[counter + 2] *= arm_posture;
+      residual[counter + 3] *= arm_posture;
+      residual[counter + 4] *= arm_posture;
+      residual[counter + 5] *= arm_posture;
     }
   }
   counter += model->nu;
@@ -521,6 +526,7 @@ void QuadrupedFlat::ResetLocked(const mjModel* model) {
   residual_.cadence_param_id_ = ParameterIndex(model, "Cadence");
   residual_.amplitude_param_id_ = ParameterIndex(model, "Amplitude");
   residual_.duty_param_id_ = ParameterIndex(model, "Duty ratio");
+  residual_.arm_posture_param_id_ = ParameterIndex(model, "Arm posture");
   residual_.balance_cost_id_ = CostTermByName(model, "Balance");
   residual_.upright_cost_id_ = CostTermByName(model, "Upright");
   residual_.height_cost_id_ = CostTermByName(model, "Height");

@@ -584,7 +584,19 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
     std::cout << "  dV: " << expected << '\n';
     std::cout << "  dV[0]: " << backward_pass.dV[0] << '\n';
     std::cout << "  dV[1]: " << backward_pass.dV[1] << '\n';
-    std::cout << std::endl;
+
+    std::cout << "\niLQG Timing (ms)\n" << '\n';
+    std::cout << "  nominal: " << nominal_compute_time * 1.0e-3 << '\n';
+    std::cout << "  model derivative: "
+              << model_derivative_compute_time * 1.0e-3 << '\n';
+    std::cout << "  cost derivative: " << cost_derivative_compute_time * 1.0e-3
+              << '\n';
+    std::cout << "  backward pass: " << backward_pass_compute_time * 1.0e-3
+              << '\n';
+    std::cout << "  rollouts: " << rollouts_compute_time * 1.0e-3 << '\n';
+    std::cout << "  policy update: " << policy_update_compute_time * 1.0e-3
+              << '\n';
+    std::cout << "\n\n";
   }
 
   // stop timer

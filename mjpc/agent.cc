@@ -153,6 +153,19 @@ void Agent::Initialize(const mjModel* model) {
   planner_threads_ =
       std::max(1, NumAvailableHardwareThreads() - 3 - 2 * estimator_threads_);
 
+  // differentiable planning model
+  // by default gradient-based planners use a differentiable model
+  int gradient_planner = false;
+  if (planner_ == kGradientPlanner || planner_ == kILQGPlanner ||
+      planner_ == kILQSPlanner) {
+    gradient_planner = true;
+  }
+  differentiable_ =
+      GetNumberOrDefault(gradient_planner, model, "agent_differentiable");
+  jnt_solimp_.resize(model->njnt);
+  geom_solimp_.resize(model->ngeom);
+  pair_solimp_.resize(model->npair);
+
   // delete the previous model after all the planners have been updated to use
   // the new one.
   if (old_model) {
@@ -279,6 +292,22 @@ void Agent::PlanIteration(ThreadPool* pool) {
   steps_ =
       mju_max(mju_min(horizon_ / timestep_ + 1, kMaxTrajectoryHorizon), 1);
 
+  // make model differentiable
+  int differentiable = differentiable_;
+  if (differentiable) {
+    // cache solimp defaults
+    for (int i = 0; i < model_->njnt; i++) {
+      jnt_solimp_[i] = model_->jnt_solimp[mjNIMP * i];
+    }
+    for (int i = 0; i < model_->ngeom; i++) {
+      geom_solimp_[i] = model_->geom_solimp[mjNIMP * i];
+    }
+    for (int i = 0; i < model_->npair; i++) {
+      pair_solimp_[i] = model_->pair_solimp[mjNIMP * i];
+    }
+    MakeDifferentiable(model_);
+  }
+
   // plan
   if (!allocate_enabled) {
     // set state
@@ -311,6 +340,19 @@ void Agent::PlanIteration(ThreadPool* pool) {
 
     // release the planning residual function
     residual_fn_.reset();
+  }
+
+  // restore solimp defaults
+  if (differentiable) {
+    for (int i = 0; i < model_->njnt; i++) {
+      model_->jnt_solimp[mjNIMP * i] = jnt_solimp_[i];
+    }
+    for (int i = 0; i < model_->ngeom; i++) {
+      model_->geom_solimp[mjNIMP * i] = geom_solimp_[i];
+    }
+    for (int i = 0; i < model_->npair; i++) {
+      model_->pair_solimp[mjNIMP * i] = pair_solimp_[i];
+    }
   }
 }
 
@@ -644,21 +686,23 @@ void Agent::GUI(mjUI& ui) {
   }
 
   // ----- agent ----- //
-  mjuiDef defAgent[] = {{mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
-                        {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
-                        {mjITEM_SELECT, "Planner", 2, &planner_, ""},
-                        {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
-                        {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
-                        {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
-                        {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
-                        {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
-                        {mjITEM_SEPARATOR, "Agent Settings", 1},
-                        {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
-                        {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
-                        {mjITEM_SELECT, "Integrator", 2, &integrator_,
-                         "Euler\nRK4\nImplicit\nImplicitFast"},
-                        {mjITEM_SEPARATOR, "Planner Settings", 1},
-                        {mjITEM_END}};
+  mjuiDef defAgent[] = {
+      {mjITEM_SECTION, "Agent", 1, nullptr, "AP"},
+      {mjITEM_BUTTON, "Reset", 2, nullptr, " #459"},
+      {mjITEM_SELECT, "Planner", 2, &planner_, ""},
+      {mjITEM_SELECT, "Estimator", 2, &estimator_, ""},
+      {mjITEM_CHECKINT, "Plan", 2, &plan_enabled, ""},
+      {mjITEM_CHECKINT, "Action", 2, &action_enabled, ""},
+      {mjITEM_CHECKINT, "Plots", 2, &plot_enabled, ""},
+      {mjITEM_CHECKINT, "Traces", 2, &visualize_enabled, ""},
+      {mjITEM_SEPARATOR, "Agent Settings", 1},
+      {mjITEM_SLIDERNUM, "Horizon", 2, &horizon_, "0 1"},
+      {mjITEM_SLIDERNUM, "Timestep", 2, &timestep_, "0 1"},
+      {mjITEM_SELECT, "Integrator", 2, &integrator_,
+       "Euler\nRK4\nImplicit\nImplicitFast"},
+      {mjITEM_CHECKINT, "Differentiable", 2, &differentiable_, ""},
+      {mjITEM_SEPARATOR, "Planner Settings", 1},
+      {mjITEM_END}};
 
   // planner names
   mju::strcpy_arr(defAgent[2].other, planner_names_);
@@ -729,6 +773,14 @@ void Agent::AgentEvent(mjuiItem* it, mjData* data,
         // reset plots
         this->PlotInitialize();
         this->PlotReset();
+
+        // by default gradient-based planners use a differentiable model
+        if (planner_ == kGradientPlanner || planner_ == kILQGPlanner ||
+            planner_ == kILQSPlanner) {
+          differentiable_ = true;
+        } else {
+          differentiable_ = false;
+        }
 
         // reset agent
         uiloadrequest.fetch_sub(1);

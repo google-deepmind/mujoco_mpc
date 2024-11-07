@@ -33,6 +33,9 @@ namespace mjpc {
 // maximum number of traces that are visualized
 inline constexpr int kMaxTraces = 99;
 
+// make model differentiable by setting solimp[0] to zero
+void MakeDifferentiable(mjModel* model);
+
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state);
 

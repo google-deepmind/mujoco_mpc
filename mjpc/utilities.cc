@@ -56,6 +56,24 @@ extern "C" {
 }
 
 namespace mjpc {
+// make model differentiable by setting solimp[0] to zero
+void MakeDifferentiable(mjModel* model) {
+  // joints
+  for (int i = 0; i < model->njnt; i++) {
+    model->jnt_solimp[mjNIMP * i] = 0.0;
+  }
+
+  // geoms
+  for (int i = 0; i < model->ngeom; i++) {
+    model->geom_solimp[mjNIMP * i] = 0.0;
+  }
+
+  // contact pairs
+  for (int i = 0; i < model->npair; i++) {
+    model->pair_solimp[mjNIMP * i] = 0.0;
+  }
+}
+
 // set mjData state
 void SetState(const mjModel* model, mjData* data, const double* state) {
   mju_copy(data->qpos, state, model->nq);

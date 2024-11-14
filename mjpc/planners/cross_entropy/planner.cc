@@ -55,8 +55,11 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   // sampling noise
   std_initial_ =
       GetNumberOrDefault(0.1, model,
-                         "sampling_exploration");        // initial variance
-  std_min_ = GetNumberOrDefault(0.1, model, "std_min");  // minimum variance
+                         "sampling_exploration");         // initial variance
+  std_min_ = GetNumberOrDefault(0.01, model, "std_min");  // minimum variance
+  // fraction of the trajectories that will use full exploration noise
+  explore_fraction_ =
+      GetNumberOrDefault(0.0, model, "explore_fraction");
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -389,14 +392,21 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
 
   // lock std_min
   double std_min = std_min_;
+  double std_initial = std_initial_;
 
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
+    double std;
+    if (i < num_trajectory * explore_fraction_) {
+      std = std_initial;
+    } else {
+      std = std_min;
+    }
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   std_min, i]() {
+                   std, i]() {
       // copy nominal policy and sample noise
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -406,7 +416,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
             s.resampled_policy.plan.Interpolation());
 
         // sample noise
-        s.AddNoiseToPolicy(i, std_min);
+        s.AddNoiseToPolicy(i, std);
       }
 
       // ----- rollout sample policy ----- //
@@ -491,6 +501,7 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial_, "0 1"},
       {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min_, "0.01 0.5"},
+      {mjITEM_SLIDERNUM, "Explore", 2, &explore_fraction_, "0.0 1.0"},
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},
       {mjITEM_END}};
 

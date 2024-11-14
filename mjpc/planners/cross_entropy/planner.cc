@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
@@ -267,7 +268,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // update
   {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
+    const std::unique_lock<std::shared_mutex> lock(mtx_);
     policy.plan.Clear();
     policy.plan.SetInterpolation(interpolation_);
     for (int t = 0; t < num_spline_points; t++) {

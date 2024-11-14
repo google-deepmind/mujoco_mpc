@@ -227,12 +227,13 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   for (int i = 0; i < n_elite; i++) {
     // ordered trajectory index
     int idx = trajectory_order[i];
+    const TimeSpline& elite_plan = candidate_policy[idx].plan;
 
     // add parameters
-    for (int i = 0; i < num_spline_points; i++) {
-      TimeSpline::Node n = candidate_policy[idx].plan.NodeAt(i);
+    for (int t = 0; t < num_spline_points; t++) {
+      TimeSpline::ConstNode n = elite_plan.NodeAt(t);
       for (int j = 0; j < model->nu; j++) {
-        parameters_scratch[i * model->nu + j] += n.values()[j];
+        parameters_scratch[t * model->nu + j] += n.values()[j];
       }
     }
 
@@ -247,12 +248,15 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // loop over elites to compute variance
   std::fill(variance.begin(), variance.end(), 0.0);  // reset variance to zero
-  for (int t = 0; t < num_spline_points; t++) {
-    TimeSpline::Node n = candidate_policy[trajectory_order[0]].plan.NodeAt(t);
-    for (int j = 0; j < model->nu; j++) {
-      // average
-      double p_avg = parameters_scratch[t * model->nu + j];
-      for (int i = 0; i < n_elite; i++) {
+  for (int i = 0; i < n_elite; i++) {
+    int idx = trajectory_order[i];
+    const TimeSpline& elite_plan = candidate_policy[idx].plan;
+    for (int t = 0; t < num_spline_points; t++) {
+      TimeSpline::ConstNode n = elite_plan.NodeAt(t);
+      for (int j = 0; j < model->nu; j++) {
+        // average
+        double p_avg = parameters_scratch[t * model->nu + j];
+
         // candidate parameter
         double pi = n.values()[j];
         double diff = pi - p_avg;

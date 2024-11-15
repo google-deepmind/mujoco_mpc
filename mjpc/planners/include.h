@@ -22,6 +22,17 @@
 
 namespace mjpc {
 
+// planner types
+enum PlannerType : int {
+  kSamplingPlanner = 0,
+  kGradientPlanner,
+  kILQGPlanner,
+  kILQSPlanner,
+  kRobustPlanner,
+  kCrossEntropyPlanner,
+  kSampleGradientPlanner,
+};
+
 // Planner names, separated by '\n'.
 extern const char kPlannerNames[];
 

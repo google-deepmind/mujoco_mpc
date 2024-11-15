@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
@@ -54,8 +55,11 @@ void CrossEntropyPlanner::Initialize(mjModel* model, const Task& task) {
   // sampling noise
   std_initial_ =
       GetNumberOrDefault(0.1, model,
-                         "sampling_exploration");        // initial variance
-  std_min_ = GetNumberOrDefault(0.1, model, "std_min");  // minimum variance
+                         "sampling_exploration");         // initial variance
+  std_min_ = GetNumberOrDefault(0.01, model, "std_min");  // minimum variance
+  // fraction of the trajectories that will use full exploration noise
+  explore_fraction_ =
+      GetNumberOrDefault(0.0, model, "explore_fraction");
 
   // set number of trajectories to rollout
   num_trajectory_ = GetNumberOrDefault(10, model, "sampling_trajectories");
@@ -227,12 +231,13 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
   for (int i = 0; i < n_elite; i++) {
     // ordered trajectory index
     int idx = trajectory_order[i];
+    const TimeSpline& elite_plan = candidate_policy[idx].plan;
 
     // add parameters
-    for (int i = 0; i < num_spline_points; i++) {
-      TimeSpline::Node n = candidate_policy[idx].plan.NodeAt(i);
+    for (int t = 0; t < num_spline_points; t++) {
+      TimeSpline::ConstNode n = elite_plan.NodeAt(t);
       for (int j = 0; j < model->nu; j++) {
-        parameters_scratch[i * model->nu + j] += n.values()[j];
+        parameters_scratch[t * model->nu + j] += n.values()[j];
       }
     }
 
@@ -247,12 +252,15 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // loop over elites to compute variance
   std::fill(variance.begin(), variance.end(), 0.0);  // reset variance to zero
-  for (int t = 0; t < num_spline_points; t++) {
-    TimeSpline::Node n = candidate_policy[trajectory_order[0]].plan.NodeAt(t);
-    for (int j = 0; j < model->nu; j++) {
-      // average
-      double p_avg = parameters_scratch[t * model->nu + j];
-      for (int i = 0; i < n_elite; i++) {
+  for (int i = 0; i < n_elite; i++) {
+    int idx = trajectory_order[i];
+    const TimeSpline& elite_plan = candidate_policy[idx].plan;
+    for (int t = 0; t < num_spline_points; t++) {
+      TimeSpline::ConstNode n = elite_plan.NodeAt(t);
+      for (int j = 0; j < model->nu; j++) {
+        // average
+        double p_avg = parameters_scratch[t * model->nu + j];
+
         // candidate parameter
         double pi = n.values()[j];
         double diff = pi - p_avg;
@@ -263,7 +271,7 @@ void CrossEntropyPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
 
   // update
   {
-    const std::shared_lock<std::shared_mutex> lock(mtx_);
+    const std::unique_lock<std::shared_mutex> lock(mtx_);
     policy.plan.Clear();
     policy.plan.SetInterpolation(interpolation_);
     for (int t = 0; t < num_spline_points; t++) {
@@ -384,14 +392,21 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
 
   // lock std_min
   double std_min = std_min_;
+  double std_initial = std_initial_;
 
   // random search
   int count_before = pool.GetCount();
   for (int i = 0; i < num_trajectory; i++) {
+    double std;
+    if (i < num_trajectory * explore_fraction_) {
+      std = std_initial;
+    } else {
+      std = std_min;
+    }
     pool.Schedule([&s = *this, &model = this->model, &task = this->task,
                    &state = this->state, &time = this->time,
                    &mocap = this->mocap, &userdata = this->userdata, horizon,
-                   std_min, i]() {
+                   std, i]() {
       // copy nominal policy and sample noise
       {
         const std::shared_lock<std::shared_mutex> lock(s.mtx_);
@@ -401,7 +416,7 @@ void CrossEntropyPlanner::Rollouts(int num_trajectory, int horizon,
             s.resampled_policy.plan.Interpolation());
 
         // sample noise
-        s.AddNoiseToPolicy(i, std_min);
+        s.AddNoiseToPolicy(i, std);
       }
 
       // ----- rollout sample policy ----- //
@@ -486,6 +501,7 @@ void CrossEntropyPlanner::GUI(mjUI& ui) {
       {mjITEM_SLIDERINT, "Spline Pts", 2, &policy.num_spline_points, "0 1"},
       {mjITEM_SLIDERNUM, "Init. Std", 2, &std_initial_, "0 1"},
       {mjITEM_SLIDERNUM, "Min. Std", 2, &std_min_, "0.01 0.5"},
+      {mjITEM_SLIDERNUM, "Explore", 2, &explore_fraction_, "0.0 1.0"},
       {mjITEM_SLIDERINT, "Elite", 2, &n_elite_, "2 128"},
       {mjITEM_END}};
 

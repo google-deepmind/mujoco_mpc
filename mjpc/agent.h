@@ -247,6 +247,12 @@ class Agent {
 
   // max threads for estimation
   int estimator_threads_;
+
+  // differentiable planning model
+  bool differentiable_;
+  std::vector<double> jnt_solimp_;
+  std::vector<double> geom_solimp_;
+  std::vector<double> pair_solimp_;
 };
 
 }  // namespace mjpc

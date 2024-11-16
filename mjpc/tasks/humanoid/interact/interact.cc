@@ -14,10 +14,8 @@
 
 #include "mjpc/tasks/humanoid/interact/interact.h"
 
-#include <string>
-
 #include <mujoco/mujoco.h>
-#include "mjpc/tasks/humanoid/interact/contact_keyframe.h"
+
 #include "mjpc/utilities.h"
 
 namespace mjpc::humanoid {

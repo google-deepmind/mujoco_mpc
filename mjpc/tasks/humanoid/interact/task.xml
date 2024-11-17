@@ -3,15 +3,15 @@
   <!-- modified from: https://github.com/google-deepmind/dm_control/blob/main/dm_control/suite/humanoid.xml -->
   <include file="../humanoid_modified.xml" />
 
-  <!-- uncomment any scene below to activate it, one scene at a time -->
-    <!-- if you activate any of the scenes below, make sure to set kNumberOfFreeJoints=0-->
+<!-- uncomment any scene below to activate it, one scene at a time -->
+  <!-- if you activate any of the scenes below, make sure to set kNumberOfFreeJoints=0-->
   <include file="./scenes/armchair.xml"/>
   <!-- <include file="./scenes/bed.xml"/> -->
   <!-- <include file="./scenes/bench.xml"/> -->
   <!-- <include file="./scenes/stool.xml"/> -->
   <!-- <include file="./scenes/table.xml"/> -->
 
-    <!-- if you activate the scene below, make sure to set kNumberOfFreeJoints=1-->
+  <!-- if you activate the scene below, make sure to set kNumberOfFreeJoints=1-->
   <!-- <include file="./scenes/dining_chair.xml"/> -->
 
   <size memory="400K"/>
@@ -35,6 +35,9 @@
     <text name="task_transition" data="Sit Down|Stand Up|Relax|Stay Still" />
     <numeric name="residual_Head Height" data="1.4 0 2." />             <!--0-->
     <numeric name="residual_Torso Height" data="1.3 0 2." />            <!--1-->
+    <numeric name="residual_Dist. Tolerance" data="0.1 0. 2."/>         <!--2-->
+    <numeric name="residual_Time Limit" data="2. 0 10." />              <!--3-->
+    <numeric name="residual_Sustain Time" data="1. 0 5." />             <!--4-->
   </custom>
 
   <sensor>

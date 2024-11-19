@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
   mjpc::MjpcApp app(mjpc::GetTasks());
   mjpc::agent_grpc::UiAgentService service(app.Sim());
-  builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
+  builder.SetMaxReceiveMessageSize(80 * 1024 * 1024);
   builder.RegisterService(&service);
 
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());

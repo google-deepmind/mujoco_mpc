@@ -195,6 +195,18 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/op3/op3_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/op3/op3.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/op3/op3.xml.patch
+  #H1 WALK TASK
+  # copy h1 model from Menagerie
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${menagerie_SOURCE_DIR}/unitree_h1/h1.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/h1/h1.xml
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${menagerie_SOURCE_DIR}/unitree_h1/assets
+          ${CMAKE_CURRENT_BINARY_DIR}/h1/assets
+  # modified h1 model for task
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/h1/h1_modified.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/h1/h1.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/h1/h1.xml.patch
 
   COMMAND ${Python_EXECUTABLE}
           ${CMAKE_CURRENT_BINARY_DIR}/manipulation/merge_panda_robotiq.py

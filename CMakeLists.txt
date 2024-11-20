@@ -149,9 +149,9 @@ findorfetch(
   USE_SYSTEM_PACKAGE
   MJPC_USE_SYSTEM_GLFW
   PACKAGE_NAME
-  glfw
+  glfw3
   LIBRARY_NAME
-  glfw
+  glfw3
   GIT_REPO
   https://github.com/glfw/glfw.git
   GIT_TAG

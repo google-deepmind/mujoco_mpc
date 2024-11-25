@@ -118,14 +118,26 @@ void Clamp(double* x, const double* bounds, int n) {
 
 int64_t ReinterpretAsInt(double value) {
   static_assert(sizeof(double) == sizeof(int64_t),
-                 "double and int64_t must have same size");
+                "double and int64_t must have same size");
+#if defined(__cpp_lib_bit_cast)
   return std::bit_cast<int64_t>(value);
+#else
+  int64_t dst;
+  std::memcpy(&dst, &value, sizeof(int64_t));
+  return dst;
+#endif
 }
 
 double ReinterpretAsDouble(int64_t value) {
   static_assert(sizeof(double) == sizeof(int64_t),
-                 "double and int64_t must have same size");
+                "double and int64_t must have same size");
+#if defined(__cpp_lib_bit_cast)
   return std::bit_cast<double>(value);
+#else
+  double dst;
+  std::memcpy(&dst, &value, sizeof(double));
+  return dst;
+#endif
 }
 
 absl::flat_hash_map<std::string, std::vector<std::string>>

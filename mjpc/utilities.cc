@@ -15,6 +15,7 @@
 #include "mjpc/utilities.h"
 
 #include <algorithm>
+#include <bit>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>

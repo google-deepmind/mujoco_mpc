@@ -115,12 +115,16 @@ void Clamp(double* x, const double* bounds, int n) {
   }
 }
 
-int ReinterpretAsInt(double value) {
-  return *std::launder(reinterpret_cast<const int*>(&value));
+int64_t ReinterpretAsInt(double value) {
+  static_assert(sizeof(double) == sizeof(int64_t),
+                 "double and int64_t must have same size");
+  return std::bit_cast<int64_t>(value);
 }
 
 double ReinterpretAsDouble(int64_t value) {
-  return *std::launder(reinterpret_cast<const double*>(&value));
+  static_assert(sizeof(double) == sizeof(int64_t),
+                 "double and int64_t must have same size");
+  return std::bit_cast<double>(value);
 }
 
 absl::flat_hash_map<std::string, std::vector<std::string>>
@@ -225,7 +229,7 @@ int ParameterIndex(const mjModel* model, std::string_view name) {
 double DefaultResidualSelection(const mjModel* m, int numeric_index) {
   // list selections are stored as ints, but numeric values are doubles.
   int64_t value = m->numeric_data[m->numeric_adr[numeric_index]];
-  return *std::launder(reinterpret_cast<const double*>(&value));
+  return ReinterpretAsDouble(value);
 }
 
 int CostTermByName(const mjModel* m, const std::string& name) {

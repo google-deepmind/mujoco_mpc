@@ -214,3 +214,12 @@ set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
 
+file(GLOB_RECURSE HEADER_FILES "${CMAKE_SOURCE_DIR}/mjpc/*.h")
+foreach (HEADER_FILE IN ITEMS ${HEADER_FILES})
+  get_filename_component(ABSOLUTE_PATH ${HEADER_FILE} DIRECTORY)
+  file(RELATIVE_PATH REL_PATH ${CMAKE_SOURCE_DIR} ${ABSOLUTE_PATH})
+  install(FILES ${HEADER_FILE} DESTINATION include/${REL_PATH})
+endforeach ()
+
+install(TARGETS libmjpc threadpool DESTINATION lib)
+

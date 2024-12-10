@@ -1,0 +1,16 @@
+@PACKAGE_INIT@
+
+set(mujoco_mpc_VERSION 0.1.0)
+set(mujoco_mpc_FOUND ON)
+
+# Compute the installation prefix relative to this file.
+get_filename_component(_IMPORT_PREFIX "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+if(_IMPORT_PREFIX STREQUAL "/")
+  set(_IMPORT_PREFIX "")
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/abslTargets.cmake")
+add_library(libmjpc IMPORTED ${_IMPORT_PREFIX}/lib/libmjpc.a)

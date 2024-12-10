@@ -44,6 +44,8 @@ option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
 option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
 option(MJPC_BUILD_GRPC_SERVICE "Build MJPC gRPC service." OFF)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
+set_property(GLOBAL PROPERTY BUILD_ALL_TARGETS ON)
+set(CMAKE_INSTALL_COMPONENT ON)
 
 include(FindOrFetch)
 
@@ -216,23 +218,30 @@ add_subdirectory(mjpc)
 
 
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}")
+install(
+    EXPORT abslTargets
+    DESTINATION ${CONFIG_PACKAGE_LOCATION}
+    NAMESPACE absl::
+    FILE "abslTargets.cmake"
+)
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/lib DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 include(CMakePackageConfigHelpers)
-
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION 0.1.0
-    COMPATIBILITY AnyNewerVersion
+        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        VERSION 0.1.0
+        COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
-    cmake/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+        cmake/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+        INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION ${CONFIG_PACKAGE_LOCATION}
+        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_SOURCE_DIR}/mjpc/*.h")
@@ -242,11 +251,5 @@ foreach (HEADER_FILE IN ITEMS ${HEADER_FILES})
   install(FILES ${HEADER_FILE} DESTINATION include/${REL_PATH})
 endforeach ()
 
-install(
-    EXPORT abslTargets
-    DESTINATION ${CONFIG_PACKAGE_LOCATION}
-    NAMESPACE absl::
-    FILE "abslTargets.cmake"
-)
-
-install(DIRECTORY ${CMAKE_BINARY_DIR}/lib DESTINATION ${CMAKE_INSTALL_PREFIX})
+add_custom_target(build_all ALL DEPENDS scoped_set_env failure_signal_handler leak_check die_if_null log_flags log_initialize periodic_sampler
+        random_internal_distribution_test_util status statusor cordz_sample_token bad_any_cast_impl)

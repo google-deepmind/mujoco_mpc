@@ -44,6 +44,7 @@ option(MJPC_BUILD_TESTS "Build tests for MJPC" ON)
 option(MJPC_GRPC_BUILD_TESTS "Build tests for gRPC" ON)
 option(MJPC_BUILD_GRPC_SERVICE "Build MJPC gRPC service." OFF)
 option(PYMJPC_BUILD_TESTS "Build tests for Python bindings" ON)
+option(ABSL_ENABLE_INSTALL "Enable installing ABSL libraries" ON)
 
 include(FindOrFetch)
 
@@ -214,6 +215,27 @@ set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 
 add_subdirectory(mjpc)
 
+
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION 0.1.0
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    cmake/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION ${CONFIG_PACKAGE_LOCATION}
+)
+
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_SOURCE_DIR}/mjpc/*.h")
 foreach (HEADER_FILE IN ITEMS ${HEADER_FILES})
   get_filename_component(ABSOLUTE_PATH ${HEADER_FILE} DIRECTORY)
@@ -221,5 +243,42 @@ foreach (HEADER_FILE IN ITEMS ${HEADER_FILES})
   install(FILES ${HEADER_FILE} DESTINATION include/${REL_PATH})
 endforeach ()
 
-install(TARGETS libmjpc threadpool DESTINATION lib)
+install(TARGETS libmjpc mujoco threadpool glfw lodepng platform_ui_adapter  EXPORT libmjpcTargets)
+
+install(
+    EXPORT libmjpcTargets
+    DESTINATION ${CONFIG_PACKAGE_LOCATION}
+    NAMESPACE mujoco_mpc::
+    FILE "${PROJECT_NAME}Targets.cmake"
+)
+
+
+#install(EXPORT abslTargets
+#    FILE absl-targets.cmake
+#    DESTINATION ${CONFIG_PACKAGE_LOCATION})
+
+
+install(EXPORT libmjpcTargets
+    FILE libmjpc-targets.cmake
+    DESTINATION ${CONFIG_PACKAGE_LOCATION})
+
+
+#platform_ui_adapter base mujoco check any_invocable flat_hash_map log random_random
+#base_internal config core_headers dynamic_annotations log_severity spinlock_wait type_traits raw_logging_internal span
+#throw_delegate algorithm errno_saver atomic_hook  random_seed_sequences random_internal_randen_engine
+#random_internal_pool_urbg random_internal_pcg_engine random_internal_nonsecure_base random_distributions log_internal_log_impl
+#memory meta log_internal_strip log_internal_message log_internal_conditions strings random_internal_wide_multiply
+#random_internal_uniform_helper random_internal_traits  random_internal_iostream_state_saver random_internal_fastmath
+#random_internal_fast_uniform_bits random_internal_distribution_caller random_internal_generate_real random_internal_seed_material
+#random_internal_salted_seed_seq inlined_vector int128
+#random_seed_gen_exception random_internal_randen endian random_internal_randen_slow random_internal_randen_hwaes
+#random_internal_platform inlined_vector_internal optional bits fast_type_id utility bad_optional_access
+#compressed_tuple random_internal_randen_hwaes_impl strings_internal string_view log_internal_voidify
+
+#export(EXPORT libmjpcTargets
+#    FILE ${CMAKE_CURRENT_BINARY_DIR}/fast_forward_kinematics-targets.cmake)
+#install(
+#    EXPORT libmjpcTargets
+#    FILE fast_forward_kinematics-targets.cmake
+#    DESTINATION "${CMAKE_INSTALL_DATADIR}/fast_forward_kinematics/cmake")
 

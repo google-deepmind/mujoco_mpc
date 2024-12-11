@@ -9,5 +9,6 @@ set_target_properties(libmjpc PROPERTIES
   IMPORTED_LOCATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libmjpc.a"
 )
 target_include_directories(libmjpc INTERFACE @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_INCLUDEDIR@)
+target_link_libraries(libmjpc INTERFACE @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libmujoco.so)
 
 include("${CMAKE_CURRENT_LIST_DIR}/abslTargets.cmake")

@@ -87,7 +87,8 @@ void Agent::Initialize(const mjModel* model) {
   }
 
   // planner
-  planner_ = GetNumberOrDefault(0, model, "agent_planner");
+  planner_ =
+      static_cast<PlannerType>(GetNumberOrDefault(0, model, "agent_planner"));
 
   // estimator
   estimator_ =

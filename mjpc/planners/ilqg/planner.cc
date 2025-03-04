@@ -395,6 +395,7 @@ void iLQGPlanner::Iteration(int horizon, ThreadPool& pool) {
   model_derivative.Compute(
       model, data_, candidate_policy[0].trajectory.states.data(),
       candidate_policy[0].trajectory.actions.data(),
+      candidate_policy[0].trajectory.accelerations.data(),
       candidate_policy[0].trajectory.times.data(), dim_state,
       dim_state_derivative, dim_action, dim_sensor, horizon,
       settings.fd_tolerance, settings.fd_mode, pool, derivative_skip_);

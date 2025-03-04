@@ -59,6 +59,9 @@ void Trajectory::Allocate(int T) {
 
   // traces
   trace.resize(dim_trace * T);
+
+  // accelerations
+  accelerations.resize(dim_state * T); // TODO(taylorhowell): allocate nv x T
 }
 
 // reset memory to zeros
@@ -86,6 +89,9 @@ void Trajectory::Reset(int T, const double* initial_repeated_action) {
 
   // traces
   std::fill(trace.begin(), trace.begin() + dim_trace * T, 0.0);
+
+  // accelerations
+  std::fill(accelerations.begin(), accelerations.begin() + dim_state * T, 0.0);
 }
 
 // simulate model forward in time with continuous-time indexed policy
@@ -177,6 +183,9 @@ void Trajectory::NoisyRollout(
     mju_copy(DataAt(states, (t + 1) * dim_state + nq), data->qvel, nv);
     mju_copy(DataAt(states, (t + 1) * dim_state + nq + nv), data->act, na);
     times[t + 1] = data->time;
+
+    // record acceleration
+    mju_copy(DataAt(accelerations, t * nv), data->qacc, nv);
   }
 
   // check for step warnings
@@ -204,6 +213,9 @@ void Trajectory::NoisyRollout(
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
             task->num_trace);
+
+  // final acceleration
+  mju_copy(DataAt(accelerations, (horizon - 1) * nv), data->qacc, nv);
 
   // compute return
   UpdateReturn(task);
@@ -276,6 +288,9 @@ void Trajectory::RolloutDiscrete(
     mju_copy(DataAt(states, (t + 1) * dim_state + nq), data->qvel, nv);
     mju_copy(DataAt(states, (t + 1) * dim_state + nq + nv), data->act, na);
     times[t + 1] = data->time;
+
+    // record acceleration
+    mju_copy(DataAt(accelerations, t * nv), data->qacc, nv);
   }
 
   // check for step warnings
@@ -303,6 +318,9 @@ void Trajectory::RolloutDiscrete(
   // final trace
   GetTraces(DataAt(trace, (horizon - 1) * 3 * task->num_trace), model, data,
             task->num_trace);
+
+  // final acceleration
+  mju_copy(DataAt(accelerations, (horizon - 1) * nv), data->qacc, nv);
 
   // compute return
   UpdateReturn(task);

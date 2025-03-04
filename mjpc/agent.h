@@ -213,7 +213,7 @@ class Agent {
 
   // planners
   std::vector<std::unique_ptr<mjpc::Planner>> planners_;
-  int planner_;
+  PlannerType planner_;
 
   // estimators
   std::vector<std::unique_ptr<mjpc::Estimator>> estimators_;

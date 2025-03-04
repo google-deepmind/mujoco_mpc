@@ -21,6 +21,7 @@
 
 #include "gtest/gtest.h"
 #include <mujoco/mujoco.h>
+#include "mjpc/planners/include.h"
 #include "mjpc/planners/ilqs/planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/task.h"
@@ -71,7 +72,7 @@ class AgentTest : public ::testing::Test {
     // test
     EXPECT_EQ(agent->integrator_, 0);
     EXPECT_NEAR(agent->timestep_, 0.1, 1.0e-5);
-    EXPECT_EQ(agent->planner_, 0);
+    EXPECT_EQ(agent->planner_, kSamplingPlanner);
     EXPECT_NEAR(agent->horizon_, 1, 1.0e-5);
     EXPECT_EQ(agent->steps_, 11);
     EXPECT_FALSE(agent->plan_enabled);
@@ -152,7 +153,7 @@ class AgentTest : public ::testing::Test {
         0.0, 1.0e-1);
 
     // ----- switch to iLQG planner ----- //
-    agent->planner_ = 2;
+    agent->planner_ = kILQGPlanner;
     agent->Allocate();
     agent->Reset();
     exitrequest.store(false);
@@ -215,7 +216,7 @@ class AgentTest : public ::testing::Test {
     agent->plan_enabled = true;
 
     bool success = false;
-    agent->planner_ = 0;  // sampling
+    agent->planner_ = kSamplingPlanner;
     reinterpret_cast<SamplingPlanner*>(&agent->ActivePlanner())
         ->num_trajectory_ = 128;
 
@@ -278,7 +279,7 @@ class AgentTest : public ::testing::Test {
     agent->Reset();
     agent->plan_enabled = true;
 
-    agent->planner_ = 2;  // iLQG
+    agent->planner_ = kILQGPlanner;
 
     agent->Reset();
     data->qpos[0] = 0;
@@ -328,7 +329,7 @@ class AgentTest : public ::testing::Test {
     agent->Reset();
     agent->plan_enabled = true;
 
-    agent->planner_ = 3;  // iLQS
+    agent->planner_ = kILQSPlanner;
     iLQSPlanner* planner =
         reinterpret_cast<iLQSPlanner*>(&agent->ActivePlanner());
 

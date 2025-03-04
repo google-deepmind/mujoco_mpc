@@ -42,10 +42,10 @@ void ModelDerivatives::Reset(int dim_state_derivative, int dim_action,
 }
 
 // compute derivatives at all time steps
-void ModelDerivatives::Compute(const mjModel* m,
+void ModelDerivatives::Compute(mjModel* m,
                                const std::vector<UniqueMjData>& data,
                                const double* x, const double* u,
-                               const double* h, int dim_state,
+                               const double* a, const double* h, int dim_state,
                                int dim_state_derivative, int dim_action,
                                int dim_sensor, int T, double tol, int mode,
                                ThreadPool& pool, int skip) {
@@ -71,10 +71,23 @@ void ModelDerivatives::Compute(const mjModel* m,
     }
   }
 
+  // warmstart
+  int saved_flags = m->opt.disableflags;
+  m->opt.disableflags &= ~mjDSBL_WARMSTART;
+
+  // solver settings
+  int saved_iterations = m->opt.iterations;
+  mjtNum saved_tolerance = m->opt.tolerance;
+  if (m->opt.solver == mjSOL_NEWTON) {
+    m->opt.iterations = 1;
+    m->opt.tolerance = 0.0;
+  }
+  // TODO(taylorhowell): settings for CG and PGS
+
   // evaluate derivatives
   int count_before = pool.GetCount();
   for (int t : evaluate_) {
-    pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &h,
+    pool.Schedule([&m, &data, &A = A, &B = B, &C = C, &D = D, &x, &u, &a, &h,
                    dim_state, dim_state_derivative, dim_action, dim_sensor, tol,
                    mode, t, T]() {
       mjData* d = data[ThreadPool::WorkerId()].get();
@@ -84,6 +97,9 @@ void ModelDerivatives::Compute(const mjModel* m,
 
       // set action
       mju_copy(d->ctrl, u + t * dim_action, dim_action);
+
+      // set acceleration
+      mju_copy(d->qacc_warmstart, a + t * m->nv, m->nv);
 
       // Jacobians
       if (t == T - 1) {
@@ -104,6 +120,11 @@ void ModelDerivatives::Compute(const mjModel* m,
   }
   pool.WaitCount(count_before + evaluate_.size());
   pool.ResetCount();
+
+  // restore settings
+  m->opt.tolerance = saved_tolerance;
+  m->opt.iterations = saved_iterations;
+  m->opt.disableflags = saved_flags;
 
   // interpolate derivatives
   count_before = pool.GetCount();

@@ -1,0 +1,1323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="X7S">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.061403 0.00062999 0.18169"
+        rpy="0 0 0" />
+      <mass
+        value="27.286" />
+      <inertia
+        ixx="1.61101"
+        ixy="0.00464"
+        ixz="-0.16195"
+        iyy="1.99174"
+        iyz="0.00823"
+        izz="1.07279" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="link1">
+    <inertial>
+      <origin
+        xyz="-0.010805 -0.00069779 -0.059694"
+        rpy="0 0 0" />
+      <mass
+        value="6.205" />
+      <inertia
+        ixx="0.01994"
+        ixy="-0.00008"
+        ixz="-0.00198"
+        iyy="0.06039"
+        iyz="-0.00016"
+        izz="0.06721" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint1"
+    type="prismatic">
+    <origin
+      xyz="0.096 0 0.31"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="0"
+      upper="0.54"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link2">
+    <inertial>
+      <origin
+        xyz="-0.000779578835400224 0.053760645280584 0.220464314501233"
+        rpy="0 0 0" />
+      <mass
+        value="3.01262653552798" />
+      <inertia
+        ixx="0.03987"
+        ixy="0.00000"
+        ixz="-0.00003"
+        iyy="0.03461"
+        iyz="0.00039"
+        izz="0.00967" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint2"
+    type="revolute">
+    <origin
+      xyz="0.066 -0.0546 -0.06"
+      rpy="0 0 0" />
+    <parent
+      link="link1" />
+    <child
+      link="link2" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link3">
+    <inertial>
+      <origin
+        xyz="-1.2166451790474E-08 0.000155101086835956 0.0414775143344981"
+        rpy="0 0 0" />
+      <mass
+        value="0.429406588376073" />
+      <inertia
+        ixx="0.00027"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00026"
+        iyz="-0.00001"
+        izz="0.00018" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint3"
+    type="revolute">
+    <origin
+      xyz="0 0.0544 0.356"
+      rpy="0 0 0" />
+    <parent
+      link="link2" />
+    <child
+      link="link3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link4">
+    <inertial>
+      <origin
+        xyz="0.0145474612596931 0.0229595215513494 0.0787914285814235"
+        rpy="0 0 0" />
+      <mass
+        value="1.54420437039843" />
+      <inertia
+        ixx="0.00576"
+        ixy="-0.00007"
+        ixz="0.00018"
+        iyy="0.00477"
+        iyz="0.00015"
+        izz="0.00768" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint4"
+    type="revolute">
+    <origin
+      xyz="0 -0.025 0.049"
+      rpy="0 0 0" />
+    <parent
+      link="link3" />
+    <child
+      link="link4" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link5">
+    <inertial>
+      <origin
+        xyz="0.0203118776657915 0.0282074621926044 -0.000172803675324795"
+        rpy="0 0 0" />
+      <mass
+        value="0.131891884746085" />
+      <inertia
+        ixx="0.00012"
+        ixy="0.00004"
+        ixz="0.00000"
+        iyy="0.00009"
+        iyz="0.00000"
+        izz="0.00014" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint5"
+    type="revolute">
+    <origin
+      xyz="0 0.1424 0.28"
+      rpy="0 0 0" />
+    <parent
+      link="link2" />
+    <child
+      link="link5" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link6">
+    <inertial>
+      <origin
+        xyz="-0.0244518842072319 0.00440119803297737 -0.0251861647177716"
+        rpy="0 0 0" />
+      <mass
+        value="1.03161675931573" />
+      <inertia
+        ixx="0.00167"
+        ixy="0.00003"
+        ixz="0.00007"
+        iyy="0.00166"
+        iyz="0.00005"
+        izz="0.00088" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint6"
+    type="revolute">
+    <origin
+      xyz="0.02725 0.063 0"
+      rpy="0 0 0" />
+    <parent
+      link="link5" />
+    <child
+      link="link6" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link7">
+    <inertial>
+      <origin
+        xyz="0.000827778295739684 -0.00148365067233044 -0.105295191761956"
+        rpy="0 0 0" />
+      <mass
+        value="0.736099125577072" />
+      <inertia
+        ixx="0.00229"
+        ixy="0.00000"
+        ixz="0.00009"
+        iyy="0.00230"
+        iyz="0.00004"
+        izz="0.00060" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link7.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link7.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint7"
+    type="revolute">
+    <origin
+      xyz="-0.02725 0 -0.0865"
+      rpy="0 0 0" />
+    <parent
+      link="link6" />
+    <child
+      link="link7" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link8">
+    <inertial>
+      <origin
+        xyz="0.0593724453089232 0.0253235620813382 -0.0125969681001941"
+        rpy="0 0 0" />
+      <mass
+        value="0.487506795308259" />
+      <inertia
+        ixx="0.00040"
+        ixy="0.00003"
+        ixz="-0.00007"
+        iyy="0.00055"
+        iyz="-0.00001"
+        izz="0.00069" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link8.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link8.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint8"
+    type="revolute">
+    <origin
+      xyz="0 -0.02725 -0.1435"
+      rpy="0 0 0" />
+    <parent
+      link="link7" />
+    <child
+      link="link8" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link9">
+    <inertial>
+      <origin
+        xyz="0.0458969495196738 -0.000535552755431795 -9.66305755581987E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.487431771518004" />
+      <inertia
+        ixx="0.00024"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00027"
+        iyz="0.00000"
+        izz="0.00029" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link9.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link9.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint9"
+    type="revolute">
+    <origin
+      xyz="0.0945 0.02725 -0.015"
+      rpy="0 0 0" />
+    <parent
+      link="link8" />
+    <child
+      link="link9" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link10">
+    <inertial>
+      <origin
+        xyz="0.0575036493913677 0.0264951119112793 0.00135889493052876"
+        rpy="0 0 0" />
+      <mass
+        value="0.432944265521347" />
+      <inertia
+        ixx="0.00025"
+        ixy="0.00002"
+        ixz="-0.00002"
+        iyy="0.00033"
+        iyz="0.00000"
+        izz="0.00041" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link10.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link10.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint10"
+    type="revolute">
+    <origin
+      xyz="0.05 -0.02725 0"
+      rpy="0 0 0" />
+    <parent
+      link="link9" />
+    <child
+      link="link10" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link11">
+    <inertial>
+      <origin
+        xyz="0.0782374674886107 2.27688611500743E-05 0.0203907673011059"
+        rpy="0 0 0" />
+      <mass
+        value="0.471847835335863" />
+      <inertia
+        ixx="0.00040"
+        ixy="0.00000"
+        ixz="0.00006"
+        iyy="0.00043"
+        iyz="0.00000"
+        izz="0.00064" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link11.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link11.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint11"
+    type="revolute">
+    <origin
+      xyz="0.066 0.02725 -0.022"
+      rpy="0 0 0" />
+    <parent
+      link="link10" />
+    <child
+      link="link11" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="100" />
+  </joint>
+  <link
+    name="link12">
+    <inertial>
+      <origin
+        xyz="-0.000355222592141713 -0.00782703850949387 -0.00298831676915334"
+        rpy="0 0 0" />
+      <mass
+        value="0.0647981743053201" />
+      <inertia
+        ixx="0.00002"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00003"
+        iyz="0.00000"
+        izz="0.00003" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link12.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link12.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint12"
+    type="prismatic">
+    <origin
+      xyz="0.12737 0.024896 0.021756"
+      rpy="0 0 0" />
+    <parent
+      link="link11" />
+    <child
+      link="link12" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0.044"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link13">
+    <inertial>
+      <origin
+        xyz="-0.000355223470276722 0.00782768741060949 0.00242005652832489"
+        rpy="0 0 0" />
+      <mass
+        value="0.0647981725781686" />
+      <inertia
+        ixx="0.00002"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00003"
+        iyz="0.00000"
+        izz="0.00003" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link13.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link13.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint13"
+    type="prismatic">
+    <origin
+      xyz="0.12737 -0.0249 0.021756"
+      rpy="0 0 0" />
+    <parent
+      link="link11" />
+    <child
+      link="link13" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.044"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link14">
+    <inertial>
+      <origin
+        xyz="0.0203118776657806 -0.0282074621926024 -0.000172803675324684"
+        rpy="0 0 0" />
+      <mass
+        value="0.131891884746085" />
+      <inertia
+        ixx="0.00012"
+        ixy="-0.00004"
+        ixz="0.00000"
+        iyy="0.00009"
+        iyz="0.00000"
+        izz="0.00014" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link14.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link14.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint14"
+    type="revolute">
+    <origin
+      xyz="0 -0.0336 0.28"
+      rpy="0 0 0" />
+    <parent
+      link="link2" />
+    <child
+      link="link14" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link15">
+    <inertial>
+      <origin
+        xyz="-0.0244518746422262 -0.00440118072836032 -0.0251861194488474"
+        rpy="0 0 0" />
+      <mass
+        value="1.03161748745213" />
+      <inertia
+        ixx="0.00167"
+        ixy="-0.00003"
+        ixz="0.00007"
+        iyy="0.00166"
+        iyz="-0.00005"
+        izz="0.00088" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link15.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link15.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint15"
+    type="revolute">
+    <origin
+      xyz="0.02725 -0.063 0"
+      rpy="0 0 0" />
+    <parent
+      link="link14" />
+    <child
+      link="link15" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link16">
+    <inertial>
+      <origin
+        xyz="0.000827779970195369 0.0014843542246373 -0.105295189564578"
+        rpy="0 0 0" />
+      <mass
+        value="0.73609919110615" />
+      <inertia
+        ixx="0.00229"
+        ixy="0.00000"
+        ixz="0.00009"
+        iyy="0.00230"
+        iyz="-0.00004"
+        izz="0.00060" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link16.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link16.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint16"
+    type="revolute">
+    <origin
+      xyz="-0.02725 0 -0.0865"
+      rpy="0 0 0" />
+    <parent
+      link="link15" />
+    <child
+      link="link16" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link17">
+    <inertial>
+      <origin
+        xyz="0.0593724456215453 -0.025323327171846 -0.0127286630831199"
+        rpy="0 0 0" />
+      <mass
+        value="0.48750674832378" />
+      <inertia
+        ixx="0.00040"
+        ixy="-0.00003"
+        ixz="-0.00007"
+        iyy="0.00055"
+        iyz="0.00001"
+        izz="0.00069" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link17.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link17.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint17"
+    type="revolute">
+    <origin
+      xyz="0 0.02725 -0.1435"
+      rpy="0 0 0" />
+    <parent
+      link="link16" />
+    <child
+      link="link17" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link18">
+    <inertial>
+      <origin
+        xyz="0.0458969709559334 0.000535552755438318 -2.35788959310756E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.487431771518004" />
+      <inertia
+        ixx="0.00024"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00027"
+        iyz="0.00000"
+        izz="0.00029" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link18.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link18.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint18"
+    type="revolute">
+    <origin
+      xyz="0.0945 -0.02725 -0.015"
+      rpy="0 0 0" />
+    <parent
+      link="link17" />
+    <child
+      link="link18" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link19">
+    <inertial>
+      <origin
+        xyz="0.0575036493913393 -0.0265307053304072 0.00135892274814464"
+        rpy="0 0 0" />
+      <mass
+        value="0.432944265521347" />
+      <inertia
+        ixx="0.00025"
+        ixy="-0.00002"
+        ixz="-0.00002"
+        iyy="0.00033"
+        iyz="0.00000"
+        izz="0.00041" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link19.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link19.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint19"
+    type="revolute">
+    <origin
+      xyz="0.05 0.02725 0"
+      rpy="0 0 0" />
+    <parent
+      link="link18" />
+    <child
+      link="link19" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link20">
+    <inertial>
+      <origin
+        xyz="0.0782374674886106 2.27688611456334E-05 0.0203907673011835"
+        rpy="0 0 0" />
+      <mass
+        value="0.471847835335862" />
+      <inertia
+        ixx="0.00040"
+        ixy="0.00000"
+        ixz="0.00006"
+        iyy="0.00043"
+        iyz="0.00000"
+        izz="0.00064" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link20.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link20.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint20"
+    type="revolute">
+    <origin
+      xyz="0.066 -0.02725 -0.022"
+      rpy="0 0 0" />
+    <parent
+      link="link19" />
+    <child
+      link="link20" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-10"
+      upper="10"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link21">
+    <inertial>
+      <origin
+        xyz="-0.000355222592142046 -0.0078270385094939 -0.00298831676915345"
+        rpy="0 0 0" />
+      <mass
+        value="0.0647981743053201" />
+      <inertia
+        ixx="0.00002"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00003"
+        iyz="0.00000"
+        izz="0.00003" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link21.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link21.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint21"
+    type="prismatic">
+    <origin
+      xyz="0.12737 0.024896 0.021756"
+      rpy="0 0 0" />
+    <parent
+      link="link20" />
+    <child
+      link="link21" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0.044"
+      effort="100"
+      velocity="1000" />
+  </joint>
+  <link
+    name="link22">
+    <inertial>
+      <origin
+        xyz="-0.000355223470277055 0.00782768741060944 0.00242005652832467"
+        rpy="0 0 0" />
+      <mass
+        value="0.0647981725781687" />
+      <inertia
+        ixx="0.00002"
+        ixy="0.00000"
+        ixz="0.00000"
+        iyy="0.00003"
+        iyz="0.00000"
+        izz="0.00003" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link22.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://X7S/meshes/link22.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint22"
+    type="prismatic">
+    <origin
+      xyz="0.12737 -0.0249 0.021756"
+      rpy="0 0 0" />
+    <parent
+      link="link20" />
+    <child
+      link="link22" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0.044"
+      effort="100"
+      velocity="1000" />
+  </joint>
+</robot>

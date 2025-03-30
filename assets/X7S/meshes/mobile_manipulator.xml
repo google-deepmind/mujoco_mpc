@@ -1,0 +1,31 @@
+<mujoco model="mobile_manipulator">
+    <!--
+    <body name="chassis" pos="0 0 0" euler='0 0 0'>
+        <joint type="free"/>
+        <inertial pos="0 0 0" mass="1.0" diaginertia="0.1 0.1 0.1"/>
+    -->
+   <body name="base_link" pos="0 0 0" quat="0 0 0 1">
+	<inertial pos="-0.061403 0.00062999 0.18169" quat="0 0 0 1" mass="27.286" diaginertia="1.61101 1.99174 1.07279"/>
+	<geom type="mesh" mesh="base_link" rgba="0.89804 0.91765 0.92941 1"/>
+	
+	<joint armature="0.0001" axis="1 0 0" damping="1e+11" name="robot0:slide0" pos="0 0 0" type="slide"></joint>
+	<joint armature="0.0001" axis="0 1 0" damping="1e+11" name="robot0:slide1" pos="0 0 0" type="slide"></joint>
+	<joint armature="0.0001" axis="0 0 1" damping="1e+0" name="robot0:slide2" pos="0 0 0" type="slide"></joint>
+	<joint name="base_x_slide_joint" type="slide" pos="0 0 0" axis="1 0 0" limited="true" range="-1 1" damping="15000"/>
+        <joint name="base_z_hinge_joint" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14159 3.14159" damping="15000"/>
+
+
+        <!--
+        <body name="X7S_base" childclass="X7S_base" pos="0 0 0">
+            <include file="X7S_base.xml"/>
+        </body>
+        -->
+        
+        <body name="X7S_body" childclass="X7S_body">
+            <include file="X7S_body.xml"/>
+        </body>
+                
+    </body>
+
+
+</mujoco>

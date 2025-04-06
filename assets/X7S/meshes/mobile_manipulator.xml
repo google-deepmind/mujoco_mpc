@@ -22,7 +22,7 @@
         -->
         
         <body name="X7S_body" childclass="X7S_body">
-            <include file="X7S_body.xml"/>
+            <include file="X7S_body_.xml"/>
         </body>
                 
     </body>

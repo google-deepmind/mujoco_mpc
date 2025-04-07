@@ -29,7 +29,7 @@
             <inertial pos="0.0145475 0.0229595 0.0787914" quat="0.554609 0.487433 -0.484186 0.469448" mass="1.5442" diaginertia="0.0077037 0.00575032 0.00475598"/>
             <joint name="joint4" pos="0 0 0" axis="0 -1 0" range="-10 10" actuatorfrcrange="-100 100"/>
             <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="link4"/>
-            <camera name="head_cam" pos="1 1 1" quat="1 0 0 0"/>
+            <camera name="head_cam" pos="-0.1 0 0.1" quat="0.5 0.5 0.5 0.5"/>
           </body>
         </body>
         <body name="link5" pos="0 0.1424 0.28">

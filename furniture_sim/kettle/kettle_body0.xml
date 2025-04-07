@@ -1,0 +1,27 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: kettle (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+
+    <body name="kettleroot0" childclass="kettle">
+        <geom mesh="kettle"/>
+        <geom material="kettle_wood" euler="0 1.57 0" pos="0 0 0.259" size="0.032 0.1" type="capsule"/>
+        <geom material="kettle_wood" euler="0 1.57 0" pos="0 0 0.13" size="0.011" type="sphere"/>
+        <geom euler="0 1.57 0" pos="0 0 0.259" size="0.02 0.115" type="capsule"/>
+        <geom pos="0.092 0 0.186" size="0.02 0.07" type="capsule"/>
+        <geom pos="-0.092 0 0.185" size="0.02 0.07" type="capsule"/>
+        <geom material="kettle_wood" pos="-0.092 0 0.22" size="0.022 0.015" type="capsule"/>
+        <geom material="kettle_wood" pos="0.092 0 0.22" size="0.022 0.015" type="capsule"/>
+
+        <geom class="kettle_collision" euler="0 1.57 0" pos="0 0 0.259" size="0.032 0.1" type="capsule" mass='.02'/>
+        <geom class="kettle_collision" pos="0.092 0 0.18" size="0.023 0.06" type="capsule" mass='.02'/>
+        <geom class="kettle_collision" pos="-0.092 0 0.18" size="0.023 0.06" type="capsule" mass='.02'/>
+        <geom class="kettle_collision" euler="0 2.25 0" pos="-0.126 0 0.07" size="0.031 0.05" type="cylinder" mass='.02'/>
+        <geom class="kettle_collision" pos="0 0 0.058" size="0.122 0.122 0.058" type="box" mass='.8'/>
+        <site type="sphere" name="kettle_site0" pos="0 0 0.259" size=".01" group="3" rgba="1 0 0 1"/>
+    </body>
+</mujocoinclude>

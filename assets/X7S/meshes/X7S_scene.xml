@@ -25,7 +25,7 @@
 -->
 
 <mujoco model="X7S_scene">
-
+    <include file="../../../furniture_sim/simpleTable.xml"/>
     <include file="common.xml"/>
 
     <visual>

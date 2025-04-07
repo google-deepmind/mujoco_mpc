@@ -43,7 +43,7 @@ class RGBD_mujoco:
         raw_depth = cv2.flip(depth, 0)
         self.depth_image = self.linearize_depth(raw_depth)
 
-def run_rgbd_loop(model, data):
+def run_rgbd_loop(model, data, rgbd):
     glfw.init()
     window = glfw.create_window(640, 480, "MuJoCo RGBD", None, None)
     glfw.make_context_current(window)
@@ -54,14 +54,13 @@ def run_rgbd_loop(model, data):
 
     context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_150)
     viewport = MjrRect(0, 0, 640, 480)
-
     scene = mujoco.MjvScene(model, maxgeom=1000)
 
     rgbd = RGBD_mujoco()
     rgbd.set_intrinsics(model, cam, viewport)
+    rgbd.cam_id = cam.fixedcamid
 
     while True:
-        #mujoco.mj_step(model, data)  # Simulation step
 
         rgbd.get_rgbd(model, data, cam, context, viewport, scene)
         img = rgbd.color_image
@@ -72,15 +71,3 @@ def run_rgbd_loop(model, data):
                 break
 
         time.sleep(1.0 / 30)
-
-def main():
-    model = mujoco.MjModel.from_xml_path("../../../assets/X7S/meshes/X7S_scene.xml") 
-    data = mujoco.MjData(model)
-
-
-    threading.Thread(target=lambda: run_rgbd_loop(model, data), daemon=True).start()
-
-    viewer.launch(model, data)
-
-if __name__ == "__main__":
-    main()

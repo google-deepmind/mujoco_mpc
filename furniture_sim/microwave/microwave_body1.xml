@@ -1,0 +1,35 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: microwave (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+    <body name="microroot1" childclass="microwave">
+        <geom mesh="micro" material="micro_metal"/>
+        <geom material="micro_black" mesh="microfeet"/>
+        <geom material="micro_black" type="cylinder" size=".035 .02" pos="0.25 -.22 .11" euler="1.57 0 0" />
+
+        <geom class="micro_collision" pos="-0.316 0.023 0.187" size="0.029 0.199 0.187" type="box" mass=".5"/>
+        <geom class="micro_collision" pos="0.236 0.023 0.187" size="0.109 0.199 0.187" type="box" mass=".5"/>
+        <geom class="micro_collision" pos="-0.081 0.191 0.187" size="0.207 0.03 0.187" type="box" mass=".5"/>
+        <geom class="micro_collision" pos="-0.08 -0.007 0.355" size="0.207 0.169 0.019" type="box" mass=".5"/>
+        <geom class="micro_collision" pos="-0.08 -0.008 0.024" size="0.207 0.168 0.024" type="box" mass=".5"/>
+        <geom class="micro_collision" pos="0.26 -0.197 0.187" size="0.085 0.024 0.187" type="box" mass=".5"/>
+        <body name="microdoorroot1" pos="-0.345 -0.176 0.192">
+            <joint axis="0 0 1" limited="true" name="micro0joint" range="-2.094 0"/>
+            <geom mesh="microdoor" material="micro_metal" pos="0.345 0.176 -0.192"/>
+            <geom material="micro_window" mesh="microwindow" pos="0.345 0.176 -0.192"/>
+            <geom material="micro_metal" pos="0.475 -0.108 0" size="0.02 0.13" type="capsule"/>
+            <geom material="micro_metal" euler="1.57 0 0" pos="0.475 -0.075 .13" size="0.02 0.03" type="capsule"/>
+            <geom material="micro_metal" euler="1.57 0 0" pos="0.475 -0.075 -.13" size="0.02 0.03" type="capsule"/>
+
+            <geom class="micro_collision" pos="0.475 -0.108 0" size="0.02 0.13" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" euler="1.57 0 0" pos="0.475 -0.075 .13" size="0.02 0.03" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" euler="1.57 0 0" pos="0.475 -0.075 -.13" size="0.02 0.03" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" pos="0.259 -0.026 0" size="0.259 0.024 0.185" type="box" mass="0.20"/>
+            <site type="sphere" name="microhandle_site1" pos="0.475 -0.108 0" size=".01" group="3" rgba="1 1 0 1"/>
+        </body>
+    </body>
+</mujocoinclude>

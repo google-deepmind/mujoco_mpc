@@ -1,0 +1,43 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: microwave (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+    <body name="microroot3" childclass="microwave">
+        <geom type="box" size=".3 .02 .20" pos="0 .22 .20" material="micro_white"/> <!--back -->
+        <geom type="box" size=".3 .2 .02" pos="0 0 .02" material="micro_white"/> <!--bottom -->
+        <geom type="box" size=".3 .2 .02" pos="0 0 .38" material="micro_white"/> <!--top -->
+        <geom type="box" size=".05 .2 .199" pos="0.25 0 .20" material="micro_white"/>  <!--right-->
+        <geom type="box" size=".02 .2 .199" pos="-.28 0 .20" material="micro_white"/> <!--left -->
+
+        <geom class="micro_collision" type="box" size=".3 .02 .16" pos="0 .22 .16"/> <!--back -->
+        <geom class="micro_collision" type="box" size=".3 .2 .02" pos="0 0 .02"/> <!--bottom -->
+        <geom class="micro_collision" type="box" size=".3 .2 .02" pos="0 0 .30"/> <!--top -->
+        <geom class="micro_collision" type="box" size=".05 .2 .159" pos="0.25 0 .16"/>  <!--right-->
+        <geom class="micro_collision" type="box" size=".02 .2 .159" pos="-.28 0 .16"/> <!--left -->
+
+        <geom type="box" size=".05 .02 .20" pos="0.25 -.225 .20" material="micro_white"/>
+        <geom type="box" size=".03 .005 .03" pos="0.25 -.25 .08" material="micro_metal"/>
+        <geom class="micro_collision" type="box" size=".05 .02 .16" pos="0.25 -.225 .16"/>
+        <geom class="micro_collision" type="cylinder" size=".03 .01" pos="0.25 -.25 .08" euler="1.57 0 0"/>
+
+        <body name="microdoorroot3">
+            <joint axis="0 0 1" pos="-.3 -.2 .20" limited="true" name="micro0joint" range="-2.094 0"/>
+            <geom type="box" size=".245 .02 .20" pos="-.05 -.225 .20" material="micro_white"/>
+            <geom type="box" size=".2 .02 .12" pos="-.05 -.24 .20" material="micro_black" rgba=".1 0 0 .2"/>
+            <geom material="micro_metal" pos="0.15 -0.3 0.20" size="0.02 0.17" type="capsule"/>
+            <geom material="micro_metal" euler="1.57 0 0" pos="0.15 -0.27 .37" size="0.02 0.03" type="capsule"/>
+            <geom material="micro_metal" euler="1.57 0 0" pos="0.15 -0.27 .03" size="0.02 0.03" type="capsule"/>
+
+            <geom class="micro_collision" pos="0.15 -0.3 0.20" size="0.02 0.13" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" euler="1.57 0 0" pos="0.15 -0.27 .29" size="0.02 0.03" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" euler="1.57 0 0" pos="0.15 -0.27 .03" size="0.02 0.03" type="capsule" mass="0.020"/>
+            <geom class="micro_collision" type="box" size=".24 .02 .20" pos="-.05 -.225 .20" mass="0.20"/>
+            <site type="sphere" name="microhandle_site3" pos="0.15 -0.3 0.20" size=".01" group="3" rgba="1 1 0 1"/>
+        </body>
+    </body>
+
+</mujocoinclude>

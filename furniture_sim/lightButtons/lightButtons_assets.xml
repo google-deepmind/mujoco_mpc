@@ -1,0 +1,49 @@
+<!-- ===========Copyright 2019 | Vikash Kumar | vikashplus@gmail.com ==============
+    Model       :: light buttons
+    Mujoco      :: Advanced physics simulation engine
+        Source      : www.roboti.us
+        Version     : 2.00
+        Released    : 1Oct"18
+    Author      :: Vikash Kumar, Michael Wu
+        Contacts    : vikashplus@gmail.com, michael50wu@gmail.com
+        Last edits  : 6Jan'19
+    Copyright 2019 Vikash Kumar
+        Licensed under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+================================================================================= -->
+
+<mujocoinclude>
+
+    <asset>
+        <mesh name="ButtonHolder" file="../furniture_sim/lightButtons/meshes/ButtonHolder.stl" scale="0.01 0.01 0.01" />
+        <mesh name="lightsHolder" file="../furniture_sim/lightButtons/meshes/ButtonHolder.stl" scale="0.02 0.01 0.02" />
+        <texture name="T_Metal_lightButton" type="cube" height="1" width="1" file="../furniture_sim/common/textures/metal0.png" />
+        <material name="M_Metal_lightButton" texture="T_Metal_lightButton" texrepeat="3 3" reflectance="0.7" texuniform="false" />
+	</asset>
+
+    <equality>
+        <joint joint1='red button' joint2='red light' polycoef='0 1 0 0 0'/>
+        <joint joint1='blue button' joint2='blue light' polycoef='0 1 0 0 0'/>
+        <joint joint1='green button' joint2='green light' polycoef='0 1 0 0 0'/>
+    </equality>
+
+    <default>
+        <default class="class_button_col" >
+            <geom contype="1" conaffinity="1" rgba="0.8 0.9 0.7 1.0" group='4'/>
+            <joint limited="true" damping="0" stiffness="0" range="-0.005 0" />
+        </default>
+
+        <default class="viz_holder" >
+            <geom contype="0" conaffinity="0" group="1" material='M_Metal_lightButton'/>
+        </default>
+
+        <default class="class_lights_viz" >
+            <geom contype="0" conaffinity="0" group="1" />
+            <joint limited="true" damping="0" stiffness="0" range="-0.005 0" />
+        </default>
+
+         <default class="class_lights_col" >
+            <geom contype="1" conaffinity="1" rgba="0.8 0.9 0.7 1.0" group='4'/>
+        </default>
+   </default>
+
+</mujocoinclude>

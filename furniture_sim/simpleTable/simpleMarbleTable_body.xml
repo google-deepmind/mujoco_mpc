@@ -1,0 +1,26 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: simple marble table (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com), Michael Wu (michael50wu@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+
+    <!-- simpleMarbleTable -©vk©-->
+    <body name="simpleMarbleTable" pos="0 0 0" childclass="body_simpleTable" >
+        <geom class="viz_simpleMarbleTable" type="box" size=".7 .375 .025" pos="0 0 0.735"/>
+        <geom class="viz_simpleMarbleTable" rgba=".2 .1 .1 1" type="box" size="0.59 0.26 .05" pos="0 0 0.66"/>
+        <geom class="viz_simpleMarbleTable" rgba=".2 .1 .1 1" type="box" size="0.025 0.025 0.305" pos="-0.565 0.235 0.305"/>
+        <geom class="viz_simpleMarbleTable" rgba=".2 .1 .1 1" type="box" size="0.025 0.025 0.305" pos="-0.565 -0.235 0.305"/>
+        <geom class="viz_simpleMarbleTable" rgba=".2 .1 .1 1" type="box" size="0.025 0.025 0.305" pos="0.565 0.235 0.305"/>
+        <geom class="viz_simpleMarbleTable" rgba=".2 .1 .1 1" type="box" size="0.025 0.025 0.305" pos="0.565 -0.235 0.305"/>
+
+        <geom type="box" size=".6 .375 .025" pos="0 0 0.735" mass="40" />
+        <geom type="box" size="0.59 0.26 .05" pos="0 0 0.66"/>
+        <geom type="box" size="0.025 0.025 0.305" pos="-0.565 0.235 0.305"/>
+        <geom type="box" size="0.025 0.025 0.305" pos="-0.565 -0.235 0.305"/>
+        <geom type="box" size="0.025 0.025 0.305" pos="0.565 0.235 0.305"/>
+        <geom type="box" size="0.025 0.025 0.305" pos="0.565 -0.235 0.305"/>
+    </body>
+</mujocoinclude>

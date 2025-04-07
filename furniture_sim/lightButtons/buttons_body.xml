@@ -1,0 +1,72 @@
+<!-- ===========Copyright 2019 | Vikash Kumar | vikashplus@gmail.com ==============
+    Model       :: light buttons
+    Mujoco      :: Advanced physics simulation engine
+        Source      : www.roboti.us
+        Version     : 2.00
+        Released    : 1Oct"18
+    Author      :: Vikash Kumar, Michael Wu
+        Contacts    : vikashplus@gmail.com, michael50wu@gmail.com
+        Last edits  : 6Jan'19
+    Copyright 2019 Vikash Kumar
+        Licensed under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+================================================================================= -->
+
+<mujocoinclude>
+
+    <body name="red button" pos="-.2 0 0" childclass='class_button_col'>
+        <geom class="viz_holder" type="mesh" mesh="ButtonHolder" euler="-1.57 0 3.14"/>
+        <geom type="box" size=".002 .015 .015" pos="0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="-0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="0 0.035 .015" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0 -0.035 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 0.025 .015" euler="0 0 0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 -.785" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 -0.025 .015" euler="0 0 -0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 -0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 .785" />
+        <geom type="box" size=".02 .02 .002" pos="0 0 0" />
+        <body >
+            <geom type="cylinder" size=".03 .01" pos='0 0 .02' class='class_button_col' mass="0.01" />
+            <geom type="cylinder" size=".03 .01" pos='0 0 .02' rgba="0.3 0 0 1.0" class="viz_holder"/>
+            <joint name="red button" type="slide" pos="0 0 0" axis="0 0 1" damping="1" stiffness="10" />
+        </body>
+    </body>
+
+
+    <body name="green button" pos="0 0 0" childclass='class_button_col'>
+        <geom class="viz_holder" type="mesh" mesh="ButtonHolder" euler="-1.57 0 3.14"/>
+        <geom type="box" size=".002 .015 .015" pos="0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="-0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="0 0.035 .015" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0 -0.035 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 0.025 .015" euler="0 0 0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 -.785" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 -0.025 .015" euler="0 0 -0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 -0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 .785" />
+        <geom type="box" size=".02 .02 .002" pos="0 0 0" />
+        <body >
+            <geom type="cylinder"  size=".03 .01" pos='0 0 .02' class='class_button_col' mass="0.01" />
+            <geom type="cylinder"  size=".03 .01" pos='0 0 .02' rgba="0 0.3 0 1.0" class="viz_holder"/>
+            <joint name="green button" type="slide" pos="0 0 0" axis="0 0 1" damping="1" stiffness="10" />
+        </body>
+    </body>
+
+
+    <body name="blue button" pos="0.2 0 0" childclass='class_button_col'>
+        <geom class="viz_holder" type="mesh" mesh="ButtonHolder" euler="-1.57 0 3.14" />
+        <geom type="box" size=".002 .015 .015" pos="0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="-0.035 0 .015" />
+        <geom type="box" size=".002 .015 .015" pos="0 0.035 .015" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0 -0.035 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 1.57" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 0.025 .015" euler="0 0 0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 -.785" />
+        <geom type="box" size=".002 .015 .015" pos="0.025 -0.025 .015" euler="0 0 -0.785" />
+        <geom type="box" size=".002 .015 .015" pos="-0.025 -0.025 .015" rgba="0.8 0.9 0.7 1.0" euler="0 0 .785" />
+        <geom type="box" size=".02 .02 .002" pos="0 0 0" />
+        <body >
+            <geom type="cylinder"  size=".03 .01" pos='0 0 .02' class='class_button_col' mass="0.01" />
+            <geom type="cylinder"  size=".03 .01" pos='0 0 .02' rgba="0 0 0.3 1.0" class="viz_holder"/>
+            <joint name="blue button" type="slide" pos="0 0 0" axis="0 0 1" damping="1" stiffness="10" />
+        </body>
+    </body>
+
+</mujocoinclude>

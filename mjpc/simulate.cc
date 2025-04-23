@@ -261,7 +261,7 @@ void UpdateProfiler(mj::Simulate* sim) {
   memset(sim->figcost.linepnt, 0, mjMAXLINE*sizeof(int));
 
   // number of islands that have diagnostics
-  int nisland = mjMIN(sim->d->solver_nisland, mjNISLAND);
+  int nisland = mjMAX(1, mjMIN(sim->d->nisland, mjNISLAND));
 
   // iterate over islands
   for (int k=0; k < nisland; k++) {

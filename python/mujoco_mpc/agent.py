@@ -22,7 +22,9 @@ import re
 import socket
 import subprocess
 import tempfile
-from typing import Any, Literal, Mapping, Optional, Sequence
+import time
+import threading
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequence, Tuple, Union
 
 import grpc
 import mujoco
@@ -88,31 +90,38 @@ class Agent(contextlib.AbstractContextManager):
       subprocess_kwargs: Optional[Mapping[str, Any]] = None,
       connect_to: Optional[str] = None,
       run_init: bool = True,
+      auto_reconnect: bool = False,
+      reconnect_attempts: int = 3,
+      reconnect_delay: float = 2.0,
   ):
     self.task_id = task_id
     self.model = model
     self.port = (
         find_free_port() if connect_to is None else parse_port(connect_to)
     )
+    self.auto_reconnect = auto_reconnect
+    self.reconnect_attempts = reconnect_attempts
+    self.reconnect_delay = reconnect_delay
+    self._server_binary_path = server_binary_path
+    self._extra_flags = extra_flags
+    self._subprocess_kwargs = subprocess_kwargs or {}
+    self._real_time_speed = real_time_speed
+    self._is_connected = False
+    self._last_plan_time = 0.0
+    self._planning_metrics = {"avg_step_time": 0.0, "last_plan_duration": 0.0}
+    self._callback_registry = {}
 
     if server_binary_path is None:
       binary_name = "agent_server"
-      server_binary_path = pathlib.Path(__file__).parent / "mjpc" / binary_name
+      self._server_binary_path = str(pathlib.Path(__file__).parent / "mjpc" / binary_name)
 
     self.server_process = None
     if connect_to is None:
-      self.server_process = subprocess.Popen(
-          [str(server_binary_path), f"--mjpc_port={self.port}"]
-          + list(extra_flags),
-          **(subprocess_kwargs or {}),
-      )
-      atexit.register(self.server_process.kill)
+      self._start_server()
+    else:
+      self.server_addr = connect_to
 
-    self.server_addr = connect_to or f"localhost:{self.port}"
-    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
-    self.channel = grpc.secure_channel(self.server_addr, credentials)
-    grpc.channel_ready_future(self.channel).result(timeout=30)
-    self.stub = agent_pb2_grpc.AgentStub(self.channel)
+    self._establish_connection()
 
     if run_init:
       self.init(
@@ -122,10 +131,52 @@ class Agent(contextlib.AbstractContextManager):
           real_time_speed=real_time_speed,
       )
 
+  def _start_server(self):
+    self.server_process = subprocess.Popen(
+        [str(self._server_binary_path), f"--mjpc_port={self.port}"]
+        + list(self._extra_flags),
+        **self._subprocess_kwargs,
+    )
+    atexit.register(self.server_process.kill)
+    self.server_addr = f"localhost:{self.port}"
+
+  def _establish_connection(self):
+    credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)
+    self.channel = grpc.secure_channel(self.server_addr, credentials)
+    try:
+      grpc.channel_ready_future(self.channel).result(timeout=30)
+      self.stub = agent_pb2_grpc.AgentStub(self.channel)
+      self._is_connected = True
+    except grpc.FutureTimeoutError:
+      self._is_connected = False
+      raise ConnectionError(f"Failed to connect to server at {self.server_addr}")
+
+  def _try_reconnect(self):
+    if not self.auto_reconnect:
+      return False
+      
+    for attempt in range(self.reconnect_attempts):
+      self.channel.close()
+      if self.server_process and not self.server_process.poll():
+        self.server_process.kill()
+        self.server_process.wait()
+        
+      time.sleep(self.reconnect_delay)
+      
+      try:
+        self._start_server()
+        self._establish_connection()
+        return True
+      except (ConnectionError, grpc.RpcError):
+        continue
+    
+    return False
+
   def __exit__(self, exc_type, exc_value, traceback):
     self.close()
 
   def close(self):
+    self._is_connected = False
     self.channel.close()
 
     if self.server_process is not None:
@@ -178,7 +229,14 @@ class Agent(contextlib.AbstractContextManager):
     init_request = agent_pb2.InitRequest(
         task_id=task_id, model=model_message, real_time_speed=real_time_speed
     )
-    self.stub.Init(init_request)
+    
+    try:
+      self.stub.Init(init_request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        self.stub.Init(init_request)
+      else:
+        raise e
 
   def set_state(
       self,
@@ -218,10 +276,23 @@ class Agent(contextlib.AbstractContextManager):
     )
 
     set_state_request = agent_pb2.SetStateRequest(state=state)
-    self.stub.SetState(set_state_request)
+    
+    try:
+      self.stub.SetState(set_state_request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        self.stub.SetState(set_state_request)
+      else:
+        raise e
 
   def get_state(self) -> agent_pb2.State:
-    return self.stub.GetState(agent_pb2.GetStateRequest()).state
+    try:
+      return self.stub.GetState(agent_pb2.GetStateRequest()).state
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        return self.stub.GetState(agent_pb2.GetStateRequest()).state
+      else:
+        raise e
 
   def get_action(
       self,
@@ -245,45 +316,121 @@ class Agent(contextlib.AbstractContextManager):
         averaging_duration=averaging_duration,
         nominal_action=nominal_action,
     )
-    get_action_response = self.stub.GetAction(get_action_request)
-    return np.array(get_action_response.action)
+    
+    try:
+      get_action_response = self.stub.GetAction(get_action_request)
+      return np.array(get_action_response.action)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        get_action_response = self.stub.GetAction(get_action_request)
+        return np.array(get_action_response.action)
+      else:
+        raise e
 
   def get_total_cost(self) -> float:
-    terms = self.stub.GetCostValuesAndWeights(
-        agent_pb2.GetCostValuesAndWeightsRequest()
-    )
-    total_cost = 0
-    for _, value_weight in terms.values_weights.items():
-      total_cost += value_weight.weight * value_weight.value
-    return total_cost
+    try:
+      terms = self.stub.GetCostValuesAndWeights(
+          agent_pb2.GetCostValuesAndWeightsRequest()
+      )
+      total_cost = 0
+      for _, value_weight in terms.values_weights.items():
+        total_cost += value_weight.weight * value_weight.value
+      return total_cost
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        terms = self.stub.GetCostValuesAndWeights(
+            agent_pb2.GetCostValuesAndWeightsRequest()
+        )
+        total_cost = 0
+        for _, value_weight in terms.values_weights.items():
+          total_cost += value_weight.weight * value_weight.value
+        return total_cost
+      else:
+        raise e
 
   def get_cost_term_values(self) -> dict[str, float]:
-    terms = self.stub.GetCostValuesAndWeights(
-        agent_pb2.GetCostValuesAndWeightsRequest()
-    )
-    return {
-        name: value_weight.value
-        for name, value_weight in terms.values_weights.items()
-    }
+    try:
+      terms = self.stub.GetCostValuesAndWeights(
+          agent_pb2.GetCostValuesAndWeightsRequest()
+      )
+      return {
+          name: value_weight.value
+          for name, value_weight in terms.values_weights.items()
+      }
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        terms = self.stub.GetCostValuesAndWeights(
+            agent_pb2.GetCostValuesAndWeightsRequest()
+        )
+        return {
+            name: value_weight.value
+            for name, value_weight in terms.values_weights.items()
+        }
+      else:
+        raise e
 
   def get_residuals(self) -> dict[str, Sequence[float]]:
-    residuals = self.stub.GetResiduals(agent_pb2.GetResidualsRequest())
-    return {name: residual.values
-            for name, residual in residuals.values.items()}
+    try:
+      residuals = self.stub.GetResiduals(agent_pb2.GetResidualsRequest())
+      return {name: residual.values
+              for name, residual in residuals.values.items()}
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        residuals = self.stub.GetResiduals(agent_pb2.GetResidualsRequest())
+        return {name: residual.values
+                for name, residual in residuals.values.items()}
+      else:
+        raise e
 
   def planner_step(self):
     """Send a planner request."""
-    planner_step_request = agent_pb2.PlannerStepRequest()
-    self.stub.PlannerStep(planner_step_request)
+    start_time = time.time()
+    try:
+      planner_step_request = agent_pb2.PlannerStepRequest()
+      self.stub.PlannerStep(planner_step_request)
+      end_time = time.time()
+      self._planning_metrics["last_plan_duration"] = end_time - start_time
+      
+      # Update average step time with exponential moving average
+      alpha = 0.2  # Smoothing factor
+      self._planning_metrics["avg_step_time"] = (
+          alpha * self._planning_metrics["last_plan_duration"] + 
+          (1 - alpha) * self._planning_metrics["avg_step_time"]
+      )
+      self._last_plan_time = end_time
+      
+      # Run any registered callbacks
+      if "after_plan" in self._callback_registry:
+        for callback in self._callback_registry["after_plan"]:
+          callback(self)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        planner_step_request = agent_pb2.PlannerStepRequest()
+        self.stub.PlannerStep(planner_step_request)
+      else:
+        raise e
 
   def step(self):
     """Step the physics on the agent side."""
-    self.stub.Step(agent_pb2.StepRequest())
+    try:
+      self.stub.Step(agent_pb2.StepRequest())
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        self.stub.Step(agent_pb2.StepRequest())
+      else:
+        raise e
 
   def reset(self):
     """Reset the `Agent`'s data, settings, planner, and states."""
-    reset_request = agent_pb2.ResetRequest()
-    self.stub.Reset(reset_request)
+    try:
+      reset_request = agent_pb2.ResetRequest()
+      self.stub.Reset(reset_request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        reset_request = agent_pb2.ResetRequest()
+        self.stub.Reset(reset_request)
+      else:
+        raise e
 
   def set_task_parameter(self, name: str, value: float):
     """Set the `Agent`'s task parameters.
@@ -308,18 +455,38 @@ class Agent(contextlib.AbstractContextManager):
         request.parameters[name].selection = value
       else:
         request.parameters[name].numeric = value
-    self.stub.SetTaskParameters(request)
+    
+    try:
+      self.stub.SetTaskParameters(request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        self.stub.SetTaskParameters(request)
+      else:
+        raise e
 
   def get_task_parameters(self) -> dict[str, float | str]:
     """Returns the agent's task parameters."""
-    response = self.stub.GetTaskParameters(agent_pb2.GetTaskParametersRequest())
-    result = {}
-    for name, value in response.parameters.items():
-      if value.selection:
-        result[name] = value.selection
+    try:
+      response = self.stub.GetTaskParameters(agent_pb2.GetTaskParametersRequest())
+      result = {}
+      for name, value in response.parameters.items():
+        if value.selection:
+          result[name] = value.selection
+        else:
+          result[name] = value.numeric
+      return result
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        response = self.stub.GetTaskParameters(agent_pb2.GetTaskParametersRequest())
+        result = {}
+        for name, value in response.parameters.items():
+          if value.selection:
+            result[name] = value.selection
+          else:
+            result[name] = value.numeric
+        return result
       else:
-        result[name] = value.numeric
-    return result
+        raise e
 
   def set_cost_weights(
       self, weights: dict[str, float], reset_to_defaults: bool = False
@@ -334,27 +501,65 @@ class Agent(contextlib.AbstractContextManager):
     request = agent_pb2.SetCostWeightsRequest(
         cost_weights=weights, reset_to_defaults=reset_to_defaults
     )
-    self.stub.SetCostWeights(request)
+    
+    try:
+      self.stub.SetCostWeights(request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        self.stub.SetCostWeights(request)
+      else:
+        raise e
 
   def get_cost_weights(self) -> dict[str, float]:
     """Returns the agent's cost weights."""
-    terms = self.stub.GetCostValuesAndWeights(
-        agent_pb2.GetCostValuesAndWeightsRequest()
-    )
-    return {
-        name: value_weight.weight
-        for name, value_weight in terms.values_weights.items()
-    }
+    try:
+      terms = self.stub.GetCostValuesAndWeights(
+          agent_pb2.GetCostValuesAndWeightsRequest()
+      )
+      return {
+          name: value_weight.weight
+          for name, value_weight in terms.values_weights.items()
+      }
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        terms = self.stub.GetCostValuesAndWeights(
+            agent_pb2.GetCostValuesAndWeightsRequest()
+        )
+        return {
+            name: value_weight.weight
+            for name, value_weight in terms.values_weights.items()
+        }
+      else:
+        raise e
 
   def get_mode(self) -> str:
-    return self.stub.GetMode(agent_pb2.GetModeRequest()).mode
+    try:
+      return self.stub.GetMode(agent_pb2.GetModeRequest()).mode
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        return self.stub.GetMode(agent_pb2.GetModeRequest()).mode
+      else:
+        raise e
 
   def set_mode(self, mode: str):
-    request = agent_pb2.SetModeRequest(mode=mode)
-    self.stub.SetMode(request)
+    try:
+      request = agent_pb2.SetModeRequest(mode=mode)
+      self.stub.SetMode(request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        request = agent_pb2.SetModeRequest(mode=mode)
+        self.stub.SetMode(request)
+      else:
+        raise e
 
   def get_all_modes(self) -> Sequence[str]:
-    return self.stub.GetAllModes(agent_pb2.GetAllModesRequest()).mode_names
+    try:
+      return self.stub.GetAllModes(agent_pb2.GetAllModesRequest()).mode_names
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        return self.stub.GetAllModes(agent_pb2.GetAllModesRequest()).mode_names
+      else:
+        raise e
 
   def set_parameters(self, parameters: mjpc_parameters.MjpcParameters):
     # TODO(nimrod): Add a single RPC that does this
@@ -366,27 +571,128 @@ class Agent(contextlib.AbstractContextManager):
       self.set_cost_weights(parameters.cost_weights)
 
   def best_trajectory(self):
-    request = agent_pb2.GetBestTrajectoryRequest()
-    response = self.stub.GetBestTrajectory(request)
-    if self.model is None:
-      raise ValueError("model is None")
-    else:
-      return {
-          "states": np.array(response.states).reshape(
-              response.steps,
-              self.model.nq + self.model.nv + self.model.na,
-          ),
-          "actions": np.array(response.actions).reshape(
-              response.steps - 1, self.model.nu
-          ),
-          "times": np.array(response.times),
-      }
+    try:
+      request = agent_pb2.GetBestTrajectoryRequest()
+      response = self.stub.GetBestTrajectory(request)
+      if self.model is None:
+        raise ValueError("model is None")
+      else:
+        return {
+            "states": np.array(response.states).reshape(
+                response.steps,
+                self.model.nq + self.model.nv + self.model.na,
+            ),
+            "actions": np.array(response.actions).reshape(
+                response.steps - 1, self.model.nu
+            ),
+            "times": np.array(response.times),
+        }
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        request = agent_pb2.GetBestTrajectoryRequest()
+        response = self.stub.GetBestTrajectory(request)
+        if self.model is None:
+          raise ValueError("model is None")
+        else:
+          return {
+              "states": np.array(response.states).reshape(
+                  response.steps,
+                  self.model.nq + self.model.nv + self.model.na,
+              ),
+              "actions": np.array(response.actions).reshape(
+                  response.steps - 1, self.model.nu
+              ),
+              "times": np.array(response.times),
+          }
+      else:
+        raise e
 
   def set_mocap(self, mocap_map: Mapping[str, mjpc_parameters.Pose]):
-    request = agent_pb2.SetAnythingRequest()
-    for key, value in mocap_map.items():
-      if value.pos is not None:
-        request.mocap[key].pos.extend(value.pos)
-      if value.quat is not None:
-        request.mocap[key].quat.extend(value.quat)
-    self.stub.SetAnything(request)
+    try:
+      request = agent_pb2.SetAnythingRequest()
+      for key, value in mocap_map.items():
+        if value.pos is not None:
+          request.mocap[key].pos.extend(value.pos)
+        if value.quat is not None:
+          request.mocap[key].quat.extend(value.quat)
+      self.stub.SetAnything(request)
+    except grpc.RpcError as e:
+      if self._try_reconnect():
+        request = agent_pb2.SetAnythingRequest()
+        for key, value in mocap_map.items():
+          if value.pos is not None:
+            request.mocap[key].pos.extend(value.pos)
+          if value.quat is not None:
+            request.mocap[key].quat.extend(value.quat)
+        self.stub.SetAnything(request)
+      else:
+        raise e
+        
+  def get_planning_metrics(self) -> Dict[str, float]:
+    """Return metrics about the planning process."""
+    return self._planning_metrics.copy()
+    
+  def register_callback(self, event_type: str, callback: Callable[["Agent"], None]):
+    """Register a callback function to be called on specific events.
+    
+    Args:
+      event_type: The type of event to trigger the callback. Currently supported:
+                  "after_plan" - called after each planner_step() completes
+      callback: A function that takes this Agent instance as its only argument
+    """
+    if event_type not in self._callback_registry:
+      self._callback_registry[event_type] = []
+    self._callback_registry[event_type].append(callback)
+    
+  def unregister_callback(self, event_type: str, callback: Callable[["Agent"], None]):
+    """Remove a previously registered callback function.
+    
+    Args:
+      event_type: The event type the callback was registered for
+      callback: The callback function to remove
+    """
+    if event_type in self._callback_registry:
+      if callback in self._callback_registry[event_type]:
+        self._callback_registry[event_type].remove(callback)
+        
+  def run_planning_loop(self, iterations: int, async_mode: bool = False):
+    """Run the planner for a specified number of iterations.
+    
+    Args:
+      iterations: Number of planning steps to run
+      async_mode: If True, run planning in a background thread
+    
+    Returns:
+      If async_mode is False, returns a dict of planning metrics
+      If async_mode is True, returns a thread object
+    """
+    def _planning_loop():
+      for _ in range(iterations):
+        self.planner_step()
+        
+    if async_mode:
+      thread = threading.Thread(target=_planning_loop)
+      thread.start()
+      return thread
+    else:
+      _planning_loop()
+      return self.get_planning_metrics()
+      
+  def save_model(self, filepath: str):
+    """Save the current model to a file.
+    
+    Args:
+      filepath: Path where to save the model
+    """
+    if self.model is None:
+      raise ValueError("No model available to save")
+      
+    mujoco.mj_saveModel(self.model, filepath, None)
+    
+  def is_connected(self) -> bool:
+    """Check if the connection to the server is active.
+    
+    Returns:
+      True if connected, False otherwise
+    """
+    return self._is_connected

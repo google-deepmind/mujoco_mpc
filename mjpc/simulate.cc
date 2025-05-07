@@ -291,7 +291,7 @@ void UpdateProfiler(mj::Simulate* sim) {
       sim->figconstraint.linedata[start + 4][2*i] = i;
 
       // y
-      int nefc = nisland == 1 ? sim->d->nefc : sim->d->island_efcnum[k];
+      int nefc = nisland == 1 ? sim->d->nefc : sim->d->island_nefc[k];
       sim->figconstraint.linedata[start + 0][2*i+1] = nefc;
       const mjSolverStat* stat = sim->d->solver + k*mjNSOLVER + i;
       sim->figconstraint.linedata[start + 1][2*i+1] = stat->nactive;

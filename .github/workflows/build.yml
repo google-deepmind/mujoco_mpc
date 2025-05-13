@@ -12,15 +12,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            additional_label: "with Clang 12"
+          - os: ubuntu-22.04
+            additional_label: "with Clang 13"
             cmake_args: >-
               -G Ninja
-              -DCMAKE_C_COMPILER:STRING=clang-12
-              -DCMAKE_CXX_COMPILER:STRING=clang++-12
+              -DCMAKE_C_COMPILER:STRING=clang-13
+              -DCMAKE_CXX_COMPILER:STRING=clang++-13
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             tmpdir: "/tmp"
-          - os: macos-12
+          - os: macos-15
             cmake_args: >-
               -G Ninja
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON

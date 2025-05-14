@@ -1,0 +1,38 @@
+<mujoco model="X7S_base">
+    <!--
+    <body name="base_link" pos="0 0 0" quat="0 0 0 1">
+	  <inertial pos="-0.061403 0.00062999 0.18169" quat="0 0 0 1" mass="27.286"
+		    diaginertia="1.61101 1.99174 1.07279"/>
+	  <geom type="mesh" mesh="base_link" rgba="0.89804 0.91765 0.92941 1"/>
+    </body>
+    -->
+
+    <body name="front_r_wheel_link" pos="0.22 -0.18 0.026" euler='1.5708 0.785398 0'>
+        <inertial pos="0 0 0" mass="4.3542" diaginertia="0.005 0.0045 0.0045"/>
+        <joint name="front_r_wheel_joint" pos="0 0 0" axis="0 0 -1" type="hinge" damping="0.1"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" contype="1" conaffinity="1" class="collision"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" class="visual"/>
+    </body>
+    
+    <body name="back_r_wheel_link" pos="-0.22 -0.18 0.026" euler='1.5708 -0.785398 0'>
+        <inertial pos="0 0 0" mass="4.3542" diaginertia="0.005 0.0045 0.0045"/>
+        <joint name="back_r_wheel_joint" pos="0 0 0" axis="0 0 -1" type="hinge" damping="0.1"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" contype="1" conaffinity="1" class="collision"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" class="visual"/>
+    </body>
+    
+    <body name="front_l_wheel_link" pos="0.22 0.18 0.026" euler='1.5708 -0.785398 0'>
+        <inertial pos="0 0 0" mass="4.3542" diaginertia="0.005 0.0045 0.0045"/>
+        <joint name="front_l_wheel_joint" pos="0 0 0" axis="0 0 -1" type="hinge" damping="0.1"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" contype="1" conaffinity="1" class="collision"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" class="visual"/>
+    </body>
+    
+    <body name="back_l_wheel_link" pos="-0.22 0.18 0.026" euler='1.5708 0.785398 0'>
+        <inertial pos="0 0 0" mass="4.3542" diaginertia="0.005 0.0045 0.0045"/>
+        <joint name="back_l_wheel_joint" pos="0 0 0" axis="0 0 -1" type="hinge" damping="0.1"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" contype="1" conaffinity="1" class="collision"/>
+        <geom size="0.08 0.08 0.05" type="ellipsoid" class="visual"/>
+    </body>
+    
+</mujoco>

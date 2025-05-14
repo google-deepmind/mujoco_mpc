@@ -1,0 +1,9 @@
+<mujocoinclude>
+    <body name="box_counter" childclass="counters">
+        <geom material="counter_marble" pos="-0.855 -0.508 1.57" size="0.463 1.08 0.03" type="box"/>
+        <geom material="counter_blue" pos="-0.86 -0.5 0.78" size="0.46 1.07 0.777" type="box"/>
+
+        <geom class="counter_collision" pos="-0.86 -0.5 0.78" size="0.46 1.07 0.777" type="box" mass="5"/>
+        <geom class="counter_collision" pos="-0.855 -0.508 1.57" size="0.463 1.08 0.03" type="box" mass=".5"/>
+    </body>
+</mujocoinclude>

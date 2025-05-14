@@ -33,3 +33,4 @@ MJDATA.TXT
 MJMODEL.TXT
 # Python
 python/dist/
+.env

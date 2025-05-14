@@ -18,7 +18,6 @@ import mujoco
 from mujoco_mpc import direct as direct_lib
 import numpy as np
 
-
 # %%
 # 2D Particle Model
 xml = """

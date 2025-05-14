@@ -1,0 +1,50 @@
+<mujoco model="kitchen">
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: Kitchen3 (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+    <compiler angle="radian" inertiafromgeom='auto' inertiagrouprange='4 5' meshdir='..' texturedir='..'/>
+    <visual>
+        <headlight diffuse=".9 .9 .9"/>
+    </visual>
+    <include file="../../furniture_sim/oven/oven_asset.xml"/>
+    <include file="../../furniture_sim/counters/counters_asset.xml"/>
+    <include file="../../furniture_sim/backwall/backwall_asset.xml"/>
+    <include file="../../furniture_sim/slidecabinet/slidecabinet_asset.xml"/>
+    <include file="../../furniture_sim/hingecabinet/hingecabinet_asset.xml"/>
+    <include file="../../furniture_sim/microwave/microwave_asset.xml"/>
+    <include file="../../furniture_sim/kettle/kettle_asset.xml"/>
+    <worldbody>
+        <body name="kitchen" pos="0 0 0">
+            <body name="sink" pos="-1.620 0 0">
+                <include file="../../furniture_sim/counters/sink_counter_body.xml"/>
+            </body>
+            <body name="island" pos="1.92 0 0">
+                <include file="../../furniture_sim/counters/box_counter_body.xml"/>
+            </body>
+            <body name="oven" pos="0.0 0 0">
+                <include file="../../furniture_sim/oven/oven_body.xml"/>
+            </body>
+            <!-- <body name="backwall" pos="0.3 0 0">
+                <include file="../../furniture_sim/backwall/backwall_body.xml"/>
+            </body> -->
+            <body name="slidecabinet" pos="-.5 0.28 2.6" euler="0 3.14 0">
+                <include file="../../furniture_sim/slidecabinet/slidecabinet_body.xml"/>
+            </body>
+            <body name="hingecabinet" pos=".4 0.28 2.6">
+                <include file="../../furniture_sim/hingecabinet/hingecabinet_body.xml"/>
+            </body>
+            <body name="microwave" pos="1. -.25 1.6" euler="0 0 -.3">
+                <include file="../../furniture_sim/microwave/microwave_body0.xml"/>
+            </body>
+        </body>
+        <body name="kettle" pos="-0.133 -.42 1.626">
+            <freejoint/>
+            <include file="../../furniture_sim/kettle/kettle_body2.xml"/>
+        </body>
+    </worldbody>
+
+</mujoco>

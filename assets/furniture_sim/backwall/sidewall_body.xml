@@ -1,0 +1,17 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: backwall (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+
+    <body euler="0 0 1.57" name="sidewall" childclass="backwall" pos="-1.305 -0.546 1.587">
+        <geom pos="0.044 .06 0.6" size="1.079 0.07 0.6" type="box"/>
+        <geom material="wall_white" pos="0.044 .06 0.145" size="1.079 0.08 0.145" type="box"/>
+
+        <geom class="wall_collision" pos="0.044 .06 0.6" size="1.079 0.07 0.6" type="box" mass=".2"/>
+        <geom class="wall_collision" pos="0.044 .06 0.145" size="1.079 0.08 0.145" type="box" mass=".2"/>
+    </body>
+</mujocoinclude>

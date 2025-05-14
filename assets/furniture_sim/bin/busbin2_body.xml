@@ -1,0 +1,17 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2022 Vikash Kumar
+    Model   :: busbin (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+
+    <geom class="viz_stl_Metal_bin" type="mesh" mesh="busbin" euler="0 0 3.14" group="1" contype="0" conaffinity="0"/>
+    <geom type='box' pos='-.21 0 .09' size='.012 .33 .09' euler='0 -0.11 0' group="3" />
+    <geom type='box' pos='.21 0 .09' size='.012 .33 .09' euler='0 0.11 0' group="3" />
+    <geom type='box' pos='0 -.3 .09' size='.012 .24 .09' euler='0.11 0 1.57' group="3" />
+    <geom type='box' pos='0 .3 .09' size='.012 .24 .09' euler='-0.11 0 1.57' group="3"/>
+    <geom type='box' pos='0 0 .012' size='.21 .3 .012' group="3" />
+
+</mujocoinclude>

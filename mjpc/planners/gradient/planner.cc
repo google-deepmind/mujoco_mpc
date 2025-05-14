@@ -448,10 +448,14 @@ void GradientPlanner::Traces(mjvScene* scn) {
                      color);
 
         // make geometry
-        mjv_connector(
+        mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectory[k].trace.data() + 3 * task->num_trace * i + 3 * j,
-            trajectory[k].trace.data() + 3 * task->num_trace * (i + 1) + 3 * j);
+            trajectory[k].trace[3 * task->num_trace * i + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
         // increment number of geometries
         scn->ngeom += 1;

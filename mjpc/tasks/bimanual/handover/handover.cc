@@ -14,7 +14,8 @@
 
 #include "mjpc/tasks/bimanual/handover/handover.h"
 
-#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <string>
 
 #include <absl/random/random.h>
@@ -67,11 +68,9 @@ void Handover::ResidualFn::Residual(const mjModel* model, const mjData* data,
     name[7] = finger_name[segment][1];
     int finger_sensor_id = mj_name2id(model, mjOBJ_SENSOR, name);
     finger[segment] = model->sensor_objid[finger_sensor_id];
-    assert(finger[segment] > 0);
   }
   int target_sensor_id = mj_name2id(model, mjOBJ_SENSOR, "box");
   int object_id = model->sensor_objid[target_sensor_id];
-  assert(object_id > 0);
 
   // loop over contacts, add up (and maybe flip) relevant normals
   int ncon = data->ncon;
@@ -143,11 +142,8 @@ void Handover::TransitionLocked(mjModel* model, mjData* data) {
     last_solve_time = data->time;
   }
 
-  int target_id = mj_name2id(model, mjOBJ_GEOM, "target");
-  assert(target_id > 0);
-
   // reset target on success
-  if (data->time > 0 && dist < model->geom_size[target_id * 3]) {
+  if (data->time > 0 && dist < .01) {
     absl::BitGen gen_;
 
     // move target

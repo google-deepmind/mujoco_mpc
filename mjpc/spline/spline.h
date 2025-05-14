@@ -242,11 +242,6 @@ class TimeSpline {
   // Returns the number of nodes removed.
   int DiscardBefore(double time);
 
-  // Keeps all existing nodes, but shifts the time of the first node to be
-  // `start_time`, and all other times are shifted accordingly. No resampling
-  // is performed.
-  void ShiftTime(double start_time);
-
   // Removes all existing nodes.
   void Clear();
 

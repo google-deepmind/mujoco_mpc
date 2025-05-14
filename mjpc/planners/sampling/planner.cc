@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <mutex>
 #include <shared_mutex>
 
 #include <absl/random/random.h>
@@ -113,11 +112,8 @@ void SamplingPlanner::Reset(int horizon,
   time = 0.0;
 
   // policy parameters
-  {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
-    policy.Reset(horizon, initial_repeated_action);
-    previous_policy.Reset(horizon, initial_repeated_action);
-  }
+  policy.Reset(horizon, initial_repeated_action);
+  previous_policy.Reset(horizon, initial_repeated_action);
 
   // scratch
   plan_scratch.Clear();
@@ -154,9 +150,6 @@ void SamplingPlanner::SetState(const State& state) {
 
 int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
                                               ThreadPool& pool) {
-  // resample nominal policy to current time
-  this->UpdateNominalPolicy(horizon);
-
   // if num_trajectory_ has changed, use it in this new iteration.
   // num_trajectory_ might change while this function runs. Keep it constant
   // for the duration of this function.
@@ -195,6 +188,9 @@ int SamplingPlanner::OptimizePolicyCandidates(int ncandidates, int horizon,
 
 // optimize nominal policy using random sampling
 void SamplingPlanner::OptimizePolicy(int horizon, ThreadPool& pool) {
+  // resample nominal policy to current time
+  this->UpdateNominalPolicy(horizon);
+
   OptimizePolicyCandidates(1, horizon, pool);
 
   // ----- update policy ----- //
@@ -270,19 +266,10 @@ void SamplingPlanner::UpdateNominalPolicy(int horizon) {
       time_shift = time_horizon;
     }
 
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
-
-    // special case for when simulation time is reset (which doesn't cause
-    // Planner::Reset)
-    if (policy.plan.Size() && policy.plan.begin()->time() > nominal_time) {
-      // time went backwards. keep the nominal plan, but start at the new time
-      policy.plan.ShiftTime(nominal_time);
-      previous_policy.plan.ShiftTime(nominal_time);
-    }
-
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     policy.plan.DiscardBefore(nominal_time);
     if (policy.plan.Size() == 0) {
-      policy.plan.AddNode(nominal_time);
+      policy.plan.AddNode(time);
     }
     while (policy.plan.Size() < num_spline_points) {
       // duplicate the last node, with a time further in the future.
@@ -316,7 +303,7 @@ void SamplingPlanner::UpdateNominalPolicy(int horizon) {
 
     // copy scratch into plan
     {
-      const std::unique_lock<std::shared_mutex> lock(mtx_);
+      const std::shared_lock<std::shared_mutex> lock(mtx_);
       policy.plan = plan_scratch;
     }
   }
@@ -430,10 +417,14 @@ void SamplingPlanner::Traces(mjvScene* scn) {
                      color);
 
         // make geometry
-        mjv_connector(
+        mjv_makeConnector(
             &scn->geoms[scn->ngeom], mjGEOM_LINE, width,
-            trajectory[k].trace.data() + 3 * task->num_trace * i + 3 * j,
-            trajectory[k].trace.data() + 3 * task->num_trace * (i + 1) + 3 * j);
+            trajectory[k].trace[3 * task->num_trace * i + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * i + 2 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 1 + 3 * j],
+            trajectory[k].trace[3 * task->num_trace * (i + 1) + 2 + 3 * j]);
 
         // increment number of geometries
         scn->ngeom += 1;
@@ -536,7 +527,7 @@ void SamplingPlanner::CopyCandidateToPolicy(int candidate) {
   winner = trajectory_order[candidate];
 
   {
-    const std::unique_lock<std::shared_mutex> lock(mtx_);
+    const std::shared_lock<std::shared_mutex> lock(mtx_);
     previous_policy = policy;
     policy = candidate_policy[winner];
   }

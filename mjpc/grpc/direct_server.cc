@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   builder.AddListeningPort(server_address, server_credentials);
 
   mjpc::direct_grpc::DirectService service;
-  builder.SetMaxReceiveMessageSize(40 * 1024 * 1024);
+  builder.SetMaxReceiveMessageSize(80 * 1024 * 1024);
   builder.RegisterService(&service);
 
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());

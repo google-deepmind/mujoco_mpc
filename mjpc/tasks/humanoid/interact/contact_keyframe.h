@@ -20,12 +20,22 @@
 #include <vector>
 
 #include <mujoco/mujoco.h>
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 namespace mjpc::humanoid {
 
 // ---------- Constants ----------------- //
 constexpr int kNotSelectedInteract = -1;
 constexpr int kNumberOfContactPairsInteract = 5;
+
+// ---------- Enums --------------------- //
+enum ContactKeyframeErrorType : int {
+  kMax = 0,
+  kMean = 1,
+  kSum = 2,
+  kNorm = 3,
+};
 
 class ContactPair {
  public:
@@ -41,6 +51,9 @@ class ContactPair {
         local_pos2{0.} {}
 
   void Reset();
+
+  // populates the distance vector between the two contact points
+  void GetDistance(mjtNum distance[3], const mjData* data) const;
 };
 
 class ContactKeyframe {
@@ -54,10 +67,31 @@ class ContactKeyframe {
   // weight of all residual terms (name -> value map)
   std::map<std::string, mjtNum> weight;
 
-  ContactKeyframe() : name(""), contact_pairs{}, facing_target(), weight() {}
+  ContactKeyframe()
+      : name(""),
+        contact_pairs{},
+        facing_target(),
+        weight(),
+        time_limit(10.),
+        success_sustain_time(2.),
+        target_distance_tolerance(0.1) {}
 
   void Reset();
+
+  mjtNum time_limit;  // maximum time (in seconds) allowed for attempting a
+                      // single keyframe before resetting
+  mjtNum success_sustain_time;  // minimum time (in seconds) that the objective
+                                // needs to be satisfied within the distance
+                                // threshold to consider the keyframe successful
+  mjtNum target_distance_tolerance;  // the proximity to the keyframe objective
+                                     // that needs to be maintained for a
+                                     // certain time
 };
+
+void to_json(json& j, const ContactPair& contact_pair);
+void from_json(const json& j, ContactPair& contact_pair);
+void to_json(json& j, const ContactKeyframe& keyframe);
+void from_json(const json& j, ContactKeyframe& keyframe);
 
 }  // namespace mjpc::humanoid
 

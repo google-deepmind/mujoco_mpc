@@ -54,6 +54,8 @@ add_library(
   tasks/humanoid/interact/interact.h
   tasks/humanoid/interact/contact_keyframe.cc
   tasks/humanoid/interact/contact_keyframe.h
+  tasks/humanoid/interact/motion_strategy.cc
+  tasks/humanoid/interact/motion_strategy.h
   tasks/humanoid/stand/stand.cc
   tasks/humanoid/stand/stand.h
   tasks/humanoid/tracking/tracking.cc
@@ -163,6 +165,7 @@ target_link_libraries(
   mujoco::platform_ui_adapter
   threadpool
   Threads::Threads
+  nlohmann_json::nlohmann_json
 )
 target_include_directories(libmjpc
   PUBLIC
@@ -236,3 +239,7 @@ endif()
 if(MJPC_BUILD_GRPC_SERVICE)
   add_subdirectory(grpc)
 endif()
+
+include(FetchContent)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)

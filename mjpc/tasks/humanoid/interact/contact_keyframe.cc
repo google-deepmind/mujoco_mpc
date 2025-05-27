@@ -27,11 +27,61 @@ void ContactPair::Reset() {
   }
 }
 
+void ContactPair::GetDistance(mjtNum distance[3], const mjData* data) const {
+  mjtNum selected_global_pos1[3] = {0.};
+  mju_mulMatVec(selected_global_pos1, data->xmat + 9 * body1, local_pos1, 3, 3);
+  mju_addTo3(selected_global_pos1, data->xpos + 3 * body1);
+
+  mjtNum selected_global_pos2[3] = {0.};
+  mju_mulMatVec(selected_global_pos2, data->xmat + 9 * body2, local_pos2, 3, 3);
+  mju_addTo3(selected_global_pos2, data->xpos + 3 * body2);
+
+  mju_sub3(distance, selected_global_pos1, selected_global_pos2);
+}
+
 void ContactKeyframe::Reset() {
   name.clear();
   for (auto& contact_pair : contact_pairs) contact_pair.Reset();
 
   facing_target.clear();
   weight.clear();
+}
+
+void to_json(json& j, const ContactPair& contact_pair) {
+  j = json{{"body1", contact_pair.body1},
+           {"body2", contact_pair.body2},
+           {"geom1", contact_pair.geom1},
+           {"geom2", contact_pair.geom2},
+           {"local_pos1", contact_pair.local_pos1},
+           {"local_pos2", contact_pair.local_pos2}};
+}
+
+void from_json(const json& j, ContactPair& contact_pair) {
+  j.at("body1").get_to(contact_pair.body1);
+  j.at("body2").get_to(contact_pair.body2);
+  j.at("geom1").get_to(contact_pair.geom1);
+  j.at("geom2").get_to(contact_pair.geom2);
+  j.at("local_pos1").get_to(contact_pair.local_pos1);
+  j.at("local_pos2").get_to(contact_pair.local_pos2);
+}
+
+void to_json(json& j, const ContactKeyframe& keyframe) {
+  j = json{{"name", keyframe.name},
+           {"contacts", keyframe.contact_pairs},
+           {"facing_target", keyframe.facing_target},
+           {"time_limit", keyframe.time_limit},
+           {"success_sustain_time", keyframe.success_sustain_time},
+           {"target_distance_tolerance", keyframe.target_distance_tolerance},
+           {"weight", keyframe.weight}};
+}
+
+void from_json(const json& j, ContactKeyframe& keyframe) {
+  j.at("name").get_to(keyframe.name);
+  j.at("contacts").get_to(keyframe.contact_pairs);
+  j.at("facing_target").get_to(keyframe.facing_target);
+  j.at("time_limit").get_to(keyframe.time_limit);
+  j.at("success_sustain_time").get_to(keyframe.success_sustain_time);
+  j.at("target_distance_tolerance").get_to(keyframe.target_distance_tolerance);
+  j.at("weight").get_to(keyframe.weight);
 }
 }  // namespace mjpc::humanoid

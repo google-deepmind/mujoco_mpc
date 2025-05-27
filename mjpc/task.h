@@ -139,6 +139,7 @@ class Task {
   std::vector<int> num_norm_parameter;
   std::vector<NormType> norm;
   std::vector<double> weight;
+  std::vector<std::string> weight_names;
   std::vector<double> norm_parameter;
   double risk;
 

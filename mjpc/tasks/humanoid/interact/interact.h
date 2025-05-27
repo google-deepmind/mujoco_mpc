@@ -22,13 +22,17 @@
 
 #include "mjpc/task.h"
 #include "mjpc/tasks/humanoid/interact/contact_keyframe.h"
+#include "mjpc/tasks/humanoid/interact/motion_strategy.h"
 
 namespace mjpc::humanoid {
 
 // ---------- Constants ----------------- //
+constexpr int kNumberOfFreeJoints = 0;
 constexpr int kHeadHeightParameterIndex = 0;
 constexpr int kTorsoHeightParameterIndex = 1;
-constexpr int kNumberOfFreeJoints = 0;
+constexpr int kDistanceToleranceParameterIndex = 2;
+constexpr int kTimeLimitParameterIndex = 3;
+constexpr int kSustainTimeParameterIndex = 4;
 
 // ---------- Enums ----------------- //
 enum TaskMode : int {
@@ -47,14 +51,15 @@ const std::vector<std::vector<double>> default_weights = {
 };
 
 // ----------- Default colors for the contact pair points ------------ //
-constexpr float CONTACT_POINTS_COLOR[kNumberOfContactPairsInteract][4] = {
+constexpr float kContactPairColor[kNumberOfContactPairsInteract][4] = {
     {0., 0., 1., 0.8},  // blue
     {0., 1., 0., 0.8},  // green
     {0., 1., 1., 0.8},  // cyan
     {1., 0., 0., 0.8},  // red
     {1., 0., 1., 0.8},  // magenta
 };
-constexpr float FACING_DIRECTION_COLOR[] = {1., 1., 1., 0.8};
+constexpr float kFacingDirectionColor[] = {1., 1., 1., 0.8};
+constexpr double kVisualPointSize[3] = {0.02};
 
 class Interact : public Task {
  public:
@@ -120,6 +125,10 @@ class Interact : public Task {
 
  private:
   ResidualFn residual_;
+  MotionStrategy motion_strategy_;
+
+  void SaveParamsToKeyframe(ContactKeyframe& kf) const;
+  void LoadParamsFromKeyframe(const ContactKeyframe& kf);
 
   // draw task-related geometry in the scene
   void ModifyScene(const mjModel* model, const mjData* data,

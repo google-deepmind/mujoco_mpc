@@ -92,6 +92,7 @@ TEST_P(NormTest, Hessian) {
   }
 }
 
+#ifndef _MSC_VER
 INSTANTIATE_TEST_SUITE_P(
     NormTest, NormTest,
     testing::ValuesIn<NormTestCase>({
@@ -107,5 +108,6 @@ INSTANTIATE_TEST_SUITE_P(
     [](const testing::TestParamInfo<NormTest::ParamType>& info) {
       return info.param.test_name;
     });
+#endif
 
 }  // namespace

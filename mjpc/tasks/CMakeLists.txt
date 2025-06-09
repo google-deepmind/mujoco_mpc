@@ -46,6 +46,9 @@ add_custom_target(
   COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/particle/particle_modified.xml
           ${CMAKE_CURRENT_BINARY_DIR}/particle/particle.xml
           <${CMAKE_CURRENT_SOURCE_DIR}/particle/particle.xml.patch
+  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/particle/particle_modified_red.xml
+          ${CMAKE_CURRENT_BINARY_DIR}/particle/particle.xml
+          <${CMAKE_CURRENT_SOURCE_DIR}/particle/particle_red.xml.patch
   # swimmer
   COMMAND ${CMAKE_COMMAND} -E copy
           ${dm_control_SOURCE_DIR}/dm_control/suite/swimmer.xml

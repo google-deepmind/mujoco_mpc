@@ -54,12 +54,15 @@ class Agent {
   // destructor
   ~Agent() {
     if (model_) mj_deleteModel(model_);  // we made a copy in Initialize
+    if (model_estimator_)
+      mj_deleteModel(model_estimator_);  // we made a copy in Initialize
   }
 
   // ----- methods ----- //
 
   // initialize data, settings, planners, states
-  void Initialize(const mjModel* model);
+  void Initialize(const mjModel* model,
+                  const mjModel* estimator_model = nullptr);
 
   // allocate memory
   void Allocate();
@@ -120,6 +123,8 @@ class Agent {
   std::string GetTaskNames() const { return task_names_; }
   int GetTaskIdByName(std::string_view name) const;
   std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
+  std::string GetPlannerXmlPath(int id) const { return tasks_[id]->PlannerXmlPath(); }
+  std::string GetEstimatorXmlPath(int id) const { return tasks_[id]->EstimatorXmlPath(); }
 
   // load the latest task model, based on GUI settings
   struct LoadModelResult {
@@ -190,6 +195,7 @@ class Agent {
  private:
   // model
   mjModel* model_ = nullptr;
+  mjModel* model_estimator_ = nullptr;
 
   UniqueMjModel model_override_ = {nullptr, mj_deleteModel};
 

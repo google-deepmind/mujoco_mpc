@@ -68,10 +68,20 @@ Agent::Agent(const mjModel* model, std::shared_ptr<Task> task)
 }
 
 // initialize data, settings, planners, state
-void Agent::Initialize(const mjModel* model) {
+void Agent::Initialize(const mjModel* model, const mjModel* estimator_model) {
   // ----- model ----- //
+
+  // planner model
   mjModel* old_model = model_;
   model_ = mj_copyModel(nullptr, model);  // agent's copy of model
+
+  // estimator model
+  if (model_estimator_) mj_deleteModel(model_estimator_);
+  if (estimator_model) {
+    model_estimator_ = mj_copyModel(nullptr, estimator_model);
+  } else {
+    model_estimator_ = mj_copyModel(nullptr, model);
+  }
 
   // check for limits on all actuators
   int num_missing = 0;
@@ -120,7 +130,7 @@ void Agent::Initialize(const mjModel* model) {
   // initialize estimator
   if (reset_estimator && estimator_enabled) {
     for (const auto& estimator : estimators_) {
-      estimator->Initialize(model_);
+      estimator->Initialize(model_estimator_);
       estimator->Reset();
     }
   }

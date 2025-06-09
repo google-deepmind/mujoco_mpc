@@ -1,0 +1,52 @@
+<!-- ===========Copyright 2019 | Vikash Kumar | vikashplus@gmail.com ==============
+    Model       :: light buttons
+    Mujoco      :: Advanced physics simulation engine
+        Source      : www.roboti.us
+        Version     : 2.00
+        Released    : 1Oct"18
+    Author      :: Vikash Kumar, Michael Wu
+        Contacts    : vikashplus@gmail.com, michael50wu@gmail.com
+        Last edits  : 6Jan'19
+    Copyright 2019 Vikash Kumar
+        Licensed under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+================================================================================= -->
+
+<mujocoinclude>
+
+	<body name="red light" pos="-.2 .15 0" childclass="class_lights_viz" >
+        <geom type="mesh" mesh="lightsHolder" euler="-1.57 0 3.14"/>
+    	<geom type="cylinder" size=".06 .001" pos="0 0 .011" rgba="0 0 0 1.0" group="1" contype="0" conaffinity="0" />
+    	<geom type="cylinder" size=".08 .02" pos="0 0 .011" class='class_lights_col'/>
+
+    	<body>
+	        <geom type="cylinder" size=".06 .0075" rgba=".4 .5 .6 1" group="3" mass="0.01" />
+	        <geom type="cylinder" size=".06 .0075" rgba="1 0 0 .4" group="1" mass="0.01" />
+	        <joint name="red light" type="slide" axis="0 0 -1" />
+	    </body>
+    </body>
+
+    <body name="green light" pos="0 .15 0" childclass="class_lights_viz" >
+        <geom type="mesh" mesh="lightsHolder" euler="-1.57 0 3.14"/>
+    	<geom type="cylinder" size=".06 .001" pos="0 0 .011" rgba="0 0 0 1.0" group="1" contype="0" conaffinity="0" />
+    	<geom type="cylinder" size=".08 .02" pos="0 0 .011" class='class_lights_col'/>
+
+        <body>
+	        <geom type="cylinder" size=".06 .0075" rgba=".4 .5 .6 1" group="3" mass="0.01" />
+	        <geom type="cylinder" size=".06 .0075" rgba="0 1 0 .4" group="1" mass="0.01" />
+	        <joint name="green light" type="slide" axis="0 0 -1" />
+	    </body>
+    </body>
+
+    <body name="blue light" pos=".2 .15 0" childclass="class_lights_viz" >
+        <geom type="mesh" mesh="lightsHolder" euler="-1.57 0 3.14"/>
+    	<geom type="cylinder" size=".06 .001" pos="0 0 .011" rgba="0 0 0 1.0" group="1" contype="0" conaffinity="0" />
+    	<geom type="cylinder" size=".08 .02" pos="0 0 .011" class='class_lights_col'/>
+
+        <body>
+	        <geom type="cylinder" size=".06 .0075" rgba=".4 .5 .6 1" group="3" mass="0.01" />
+	        <geom type="cylinder" size=".06 .0075" rgba="0 0 1 .4" group="1" mass="0.01" />
+	        <joint name="blue light" type="slide" axis="0 0 -1" />
+	    </body>
+    </body>
+
+</mujocoinclude>

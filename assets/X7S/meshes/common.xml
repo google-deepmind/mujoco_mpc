@@ -1,0 +1,144 @@
+<mujoco>
+<option gravity="0 0 -9.81" />
+<compiler angle="radian" autolimits="true"/>
+<option integrator="implicitfast"/>
+
+<default>
+   <default class="X7S_base">
+            <joint armature="0" damping="0" limited="false"/>
+
+            <default class="visual">
+                <geom conaffinity="0" contype="0" group="2" density="0"/>
+            </default>
+
+            <default class="collision">
+                <geom conaffinity="0" condim="3" group="3" friction="1 0.5 0.5"/>
+            </default>
+            
+        </default>
+
+    <default class="X7S_body">
+      <default class="position">
+        <position ctrlrange="-3.1415 3.1415" kp="4500" kv="450" forcerange="-100 100"/>
+        <default class="position_limited">
+          <position ctrlrange="-1.5708 1.5708" kp="3500" kv="350"/>
+        </default>
+        <default class="position_small">
+          <position kp="2000" kv="200" forcerange="-28 28"/>
+        </default>
+        <default class="position_finger">
+          <position ctrlrange="0 0.044" kp="10000" kv="1000" forcerange="-250 250"/>
+        </default>
+      </default>
+    </default>
+</default>
+
+  <asset>
+    <texture builtin="checker" height="100" name="texplane" rgb1="0.6 0.6 0.6" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+    <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="60 60" texture="texplane" />
+    <mesh name="r_wheel_link" file="r_wheel_link.STL" scale="1.2 1.2 1.2"/>
+    <mesh name="r_wheel_link_collision" file="r_wheel_link_collision.STL" scale="1.2 1.2 1.2"/>
+    <mesh name="l_wheel_link" file="l_wheel_link.STL" scale="1.2 1.2 1.2"/>
+    <mesh name="l_wheel_link_collision" file="l_wheel_link_collision.STL" scale="1.2 1.2 1.2"/>
+    <mesh name="base_link" file="base_link.STL"/>
+    <mesh name="link1" file="link1.STL"/>
+    <mesh name="link2" file="link2.STL"/>
+    <mesh name="link3" file="link3.STL"/>
+    <mesh name="link4" file="link4.STL"/>
+    <mesh name="link5" file="link5.STL"/>
+    <mesh name="link6" file="link6.STL"/>
+    <mesh name="link7" file="link7.STL"/>
+    <mesh name="link8" file="link8.STL"/>
+    <mesh name="link9" file="link9.STL"/>
+    <mesh name="link10" file="link10.STL"/>
+    <mesh name="link11" file="link11.STL"/>
+    <mesh name="link12" file="link12.STL"/>
+    <mesh name="link13" file="link13.STL"/>
+    <mesh name="link14" file="link14.STL"/>
+    <mesh name="link15" file="link15.STL"/>
+    <mesh name="link16" file="link16.STL"/>
+    <mesh name="link17" file="link17.STL"/>
+    <mesh name="link18" file="link18.STL"/>
+    <mesh name="link19" file="link19.STL"/>
+    <mesh name="link20" file="link20.STL"/>
+    <mesh name="link21" file="link21.STL"/>
+    <mesh name="link22" file="link22.STL"/>
+  </asset>
+  
+  <tendon>
+        <fixed name="left_finger_split">
+            <joint joint="joint12" coef="0.5"/>
+            <joint joint="joint13" coef="0.5"/>
+        </fixed>
+  </tendon>
+  
+  <equality>
+        <joint joint1="joint12" joint2="joint13" solimp="0.95 0.99 0.01" solref="0.01 1"/>
+  </equality>
+  
+  <tendon>
+        <fixed name="right_finger_split">
+            <joint joint="joint21" coef="0.5"/>
+            <joint joint="joint22" coef="0.5"/>
+        </fixed>
+  </tendon>
+  
+  <equality>
+        <joint joint1="joint21" joint2="joint22" solimp="0.95 0.99 0.01" solref="0.01 1"/>
+  </equality>
+  
+  <actuator>
+  	<position ctrllimited="true" ctrlrange="-1 1" joint="base_x_slide_joint" kp="10000" kv="1000" name="base_x_slide_joint" user="1"/>
+  	<position ctrllimited="true" ctrlrange="-3.14159 3.14159" kp="10000" kv="1000" joint="base_z_hinge_joint" name="base_z_hinge_joint" user="1"/>
+  </actuator>
+  
+  <actuator>
+  <!-- body -->
+	  <position name="joint1" joint="joint1" kp="5000" kv="500" ctrlrange="0 0.54" forcerange="-200 200"/>
+
+	  <position class="position_limited" name="joint2" joint="joint2"/>
+	  
+	  <!-- head -->
+	  <position class="position_limited" name="joint3" joint="joint3"/>
+	  <position class="position_limited" name="joint4" joint="joint4"/>
+
+	  <!-- left arm -->
+	  <position class="position_limited" name="joint5" joint="joint5"/>
+	  <position class="position_limited" name="joint6" joint="joint6"/>
+	  <position class="position_limited" name="joint7" joint="joint7"/>
+	  <position class="position_limited" name="joint8" joint="joint8"/>
+	  <position class="position_small" name="joint9" joint="joint9"/>
+	  <position class="position_small" name="joint10" joint="joint10"/>
+	  <position class="position_small" name="joint11" joint="joint11"/>
+	  
+	  <!-- left finger (both prismatic) -->
+<!--
+	  <general name="left_finger_actuator" tendon="left_finger_split" forcerange="-100 100"ctrlrange="0 255"
+            gainprm="0.00017 0 0" biasprm="0 -100 -10"/>
+-->
+
+	  <position class="position_finger" name="joint12" joint="joint12"/>
+	  <position class="position_finger" name="joint13" joint="joint13"/>
+
+
+	  <!-- Right arm -->
+	  <position class="position_limited" name="joint14" joint="joint14"/>
+	  <position class="position_limited" name="joint15" joint="joint15"/>
+	  <position class="position_limited" name="joint16" joint="joint16"/>
+	  <position class="position_limited" name="joint17" joint="joint17"/>
+	  <position class="position_small" name="joint18" joint="joint18"/>
+	  <position class="position_small" name="joint19" joint="joint19"/>
+	  <position class="position_small" name="joint20" joint="joint20"/>
+	  
+	  <!-- right finger (both prismatic) -->
+<!--
+	  <general name="right_finger_actuator" tendon="right_finger_split" forcerange="-100 100" ctrlrange="0 255"
+            gainprm="0.00017 0 0" biasprm="0 -100 -10"/>
+	  -->
+
+	  <position class="position_finger" name="joint21" joint="joint21"/>
+	  <position class="position_finger" name="joint22" joint="joint22"/>
+
+  </actuator>
+
+</mujoco>

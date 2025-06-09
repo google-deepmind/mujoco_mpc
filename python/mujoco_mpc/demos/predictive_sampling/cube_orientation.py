@@ -147,6 +147,14 @@ for _ in range(steps):
   # render and save frames
   renderer.update_scene(data)
   pixels = renderer.render()
-  frames.append(pixels)
+  # print(f"Render output type: {type(pixels)}")
+
+  if pixels is not None:
+    frames.append(pixels)
+
+renderer.close()
+
 # %%
+# print(f"Number of frames captured: {len(frames)}")
+
 media.show_video(frames, fps=FPS)

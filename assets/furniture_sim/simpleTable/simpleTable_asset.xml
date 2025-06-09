@@ -1,0 +1,40 @@
+<mujocoinclude>
+<!-- =================================================
+    Copyright 2019 Vikash Kumar
+    Model   :: simple table (MuJoCoV2.0)
+    Author  :: Vikash Kumar (vikashplus@gmail.com), Michael Wu (michael50wu@gmail.com)
+    Details :: https://github.com/vikashplus/furniture_sim
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -©vk©-->
+
+    <asset>
+        <texture name="T_simpleWoodTable" type="cube" height="1" width="1" file="../../furniture_sim/common/textures/wood1.png" />
+        <material name="M_simpleWoodTable" texture="T_simpleWoodTable" rgba="0.8 0.8 0.8 1" shininess="0.2" reflectance="0.3" texuniform="false" />
+        <texture name="T_simpleMarbleTable" type="cube" height="1" width="1" file="../../furniture_sim/common/textures/stone0.png" />
+        <material name="M_simpleMarbleTable" texture="T_simpleMarbleTable" rgba="0.75 0.75 0.75 1" shininess="1" reflectance="1" texuniform="false" />
+        <texture name="T_simpleGraniteTable" type="cube" height="1" width="1" file="../../furniture_sim/common/textures/stone1.png" />
+        <material name="M_simpleGraniteTable" texture="T_simpleGraniteTable" rgba="0.75 0.75 0.75 1" shininess="1" reflectance="1" texuniform="false" />
+    </asset>
+
+    <default>
+
+        <default class="viz_simpleWoodTable" >
+            <geom group="1" contype="0" conaffinity="0" type="mesh" material="M_simpleWoodTable"/>
+        </default>
+
+        <default class="viz_simpleMarbleTable" >
+            <geom group="1" contype="0" conaffinity="0" type="mesh" material="M_simpleMarbleTable"/>
+        </default>
+
+        <default class="viz_simpleGraniteTable" >
+            <geom group="1" contype="0" conaffinity="0" type="mesh" material="M_simpleGraniteTable"/>
+        </default>
+
+        <default class="body_simpleTable" >
+            <geom contype="1" conaffinity="1" group="4" rgba=".4 .5 .6 1" />
+            <joint limited="true" damping="1" frictionloss="0.5" armature=".01" />
+        </default>
+
+   </default>
+
+</mujocoinclude>

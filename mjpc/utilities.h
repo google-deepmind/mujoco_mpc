@@ -66,8 +66,8 @@ T GetNumberOrDefault(T default_value, const mjModel* m, std::string_view name) {
   return GetNumber<T>(m, name).value_or(default_value);
 }
 
-// reinterpret double as int
-int ReinterpretAsInt(double value);
+// reinterpret double as int64_t
+int64_t ReinterpretAsInt(double value);
 
 // reinterpret int64_t as double
 double ReinterpretAsDouble(int64_t value);

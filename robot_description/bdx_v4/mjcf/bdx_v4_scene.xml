@@ -1,0 +1,33 @@
+<mujoco model="bdx_v4_scene">
+  <include file="bdx_v4.xml"/>
+
+  <!-- Add mocap bodies for interactive targets -->
+  <worldbody>
+    <body name="base_target" mocap="true" pos="0.0 0.0 0.5">
+      <geom type="sphere" size="0.08" rgba="0 0 1 0.7" contype="0" conaffinity="0"/>
+    </body>
+    <body name="head_target" mocap="true" pos="0.1 0.0 0.55">
+      <geom type="sphere" size="0.06" rgba="1 1 0 0.7" contype="0" conaffinity="0"/>
+    </body>
+    <body name="left_foot_target" mocap="true" pos="0.0 0.08 0.0">
+      <geom type="sphere" size="0.05" rgba="1 0 0 0.7" contype="0" conaffinity="0"/>
+    </body>
+    <body name="right_foot_target" mocap="true" pos="0.0 -0.08 0.0">
+      <geom type="sphere" size="0.05" rgba="1 0 0 0.7" contype="0" conaffinity="0"/>
+    </body>
+    <body name="com_target" mocap="true" pos="0.0 0.0 0.3">
+      <geom type="sphere" size="0.04" rgba="0 1 0 0.7" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- Visualization markers for balance analysis -->
+    <body name="feet_center_vis" pos="0.0 0.0 0.02" mocap="true">
+      <geom name="feet_center_vis_geom" type="sphere" size="0.01" rgba="0 1 0 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="com_proj_vis" pos="0.0 0.0 0.02" mocap="true">
+      <geom name="com_proj_vis_geom" type="sphere" size="0.01" rgba="0 0.5 1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="com_line_vis" pos="0.0 0.0 0.15" mocap="true">
+      <geom name="com_line_vis_geom" type="capsule" size="0.005 0.1" rgba="0 0.5 1 0.5" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+</mujoco>

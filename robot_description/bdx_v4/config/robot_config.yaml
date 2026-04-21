@@ -1,0 +1,125 @@
+name: robot
+body_names:
+- base_link
+- left_hip_yaw_link
+- left_hip_roll_link
+- left_hip_pitch_link
+- left_knee_link
+- left_ankle_link
+- right_hip_yaw_link
+- right_hip_roll_link
+- right_hip_pitch_link
+- right_knee_link
+- right_ankle_link
+- neck_forward_link
+- neck_pitch_link
+- neck_yaw_link
+- neck_roll_link
+- left_ear_link
+- right_ear_link
+joint_names:
+- left_hip_yaw_joint
+- left_hip_roll_joint
+- left_hip_pitch_joint
+- left_knee_joint
+- left_ankle_joint
+- right_hip_yaw_joint
+- right_hip_roll_joint
+- right_hip_pitch_joint
+- right_knee_joint
+- right_ankle_joint
+- neck_forward_joint
+- neck_pitch_joint
+- neck_yaw_joint
+- neck_roll_joint
+joint_stiffness:
+- 10.0
+- 15.0
+- 15.0
+- 15.0
+- 10.0
+- 10.0
+- 15.0
+- 15.0
+- 15.0
+- 10.0
+- 10.0
+- 5.0
+- 5.0
+- 5.0
+joint_damping:
+- 0.3
+- 0.6
+- 0.6
+- 0.6
+- 0.3
+- 0.3
+- 0.6
+- 0.6
+- 0.6
+- 0.3
+- 0.3
+- 0.2
+- 0.2
+- 0.2
+joint_default_pos:
+- 0.0
+- 0.0
+- 0.904
+- -1.143
+- 0.24
+- 0.0
+- 0.0
+- 0.904
+- -1.143
+- 0.24
+- 0.5
+- -0.5
+- 0.0
+- 0.0
+joint_position_limits:
+  min:
+  - -0.349066
+  - -0.698132
+  - -0.52359
+  - -2.321287
+  - -1.39626
+  - -0.349066
+  - -0.261799
+  - -0.52359
+  - -2.321287
+  - -1.39626
+  - 0.0
+  - -1.5708
+  - -1.0472
+  - -0.436332
+  max:
+  - 0.349066
+  - 0.261799
+  - 2.356194
+  - 0.01
+  - 1.39626
+  - 0.349066
+  - 0.698132
+  - 2.356194
+  - 0.01
+  - 1.39626
+  - 1.69297
+  - 0.0
+  - 1.0472
+  - 0.436332
+joint_max_effort:
+- 23.7
+- 34.0
+- 34.0
+- 34.0
+- 23.7
+- 23.7
+- 34.0
+- 34.0
+- 34.0
+- 23.7
+- 23.7
+- 4.8
+- 4.8
+- 4.8

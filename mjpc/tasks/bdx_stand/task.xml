@@ -1,0 +1,40 @@
+<mujoco model="BDX Stand">
+  <include file="../../../../robot_description/bdx_v4/mjcf/bdx_v4_no_sensors.xml"/>
+  <size memory="400K" nkey="1"/>  <!-- 明确指定 keyframe 数量 -->
+
+  <custom>
+    <numeric name="agent_planner" data="0" />
+    <numeric name="agent_horizon" data="0.5" />
+    <numeric name="agent_timestep" data="0.01" />
+    <numeric name="sampling_trajectories" data="32.0"/>
+    <numeric name="sampling_spline_points" data="3.0" />
+    <numeric name="sampling_exploration" data="0.1" />
+    <numeric name="residual_Height Goal" data="0.29" />
+    <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="ilqg_regularization_type" data="1" />
+    <numeric name="ilqg_representation" data="2" />
+  </custom>
+
+  <sensor>
+    <user name="Height" dim="1" user="6 100.0 0.0 10.0 0.1" /> 
+    <user name="Feet Height" dim="1" user="6 50.0 0.0 20.0 0.01" />
+    <user name="Balance" dim="1" user="6 50.0 0.0 100.0 0.1" />
+    <user name="CoM Vel" dim="2" user="0 10.0 0.0 100.0" />
+    <user name="Control" dim="14" user="0 0.25 0.0 1.0" />
+    <user name="Upright" dim="1" user="2 5.0 0.0 25.0 0.01" />
+    <user name="Joint Vel" dim="14" user="0 1.0e-5 0 1.0e-3" />
+    
+    <framepos name="stand_left_foot_pos" objtype="site" objname="left_foot"/>
+    <framepos name="stand_right_foot_pos" objtype="site" objname="right_foot"/>
+    <framepos name="base_pos" objtype="site" objname="imu_in_body"/>
+    <subtreecom name="stand_com" body="base_link"/>
+    <subtreelinvel name="stand_com_vel" body="base_link"/>
+    <framezaxis name="stand_torso_up" objtype="site" objname="imu_in_body"/>
+  </sensor>
+
+  <!-- 使用计算出的正确高度：base_z = 0.2857 让脚接触地面 -->
+  <keyframe>
+    <key name="home"
+         qpos="0 0.0 0.2857 0.9974451486002708 0.0 -0.07143651400917983 0.0 0.15859770987964114 -0.04609423694526421 1.0163769487153105 -1.2849543172957427 0.404831642132787 -0.15859770987964114 0.04609423694526422 1.0163769487153103 -1.284953691253669 0.404831642132787 0.7853981633974483 -0.7155849933176751 0.0 0.0"/>
+  </keyframe>
+</mujoco>

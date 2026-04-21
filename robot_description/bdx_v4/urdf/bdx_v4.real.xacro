@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<robot name="bdx_v4" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:arg name="mesh_path" default="file://$(find robot_description)/robots/bdx_v4/mesh" />
+    <xacro:include filename="bdx_v4.urdf" />
+    <xacro:include filename="ros2_control_real.xacro" />
+
+    <xacro:real_ros2_control />
+
+</robot>

@@ -1,0 +1,53 @@
+# ros2_control configuration for bdx_v4 robot - RL Policy Execution Mode
+# PID gains are derived from policy_config.yaml stiffness/damping values (lower gains for compliant control)
+# Use this config when running RL policies (laugh_big, standing, etc.)
+
+controller_manager:
+  ros__parameters:
+    use_sim_time: True
+    update_rate: 500  # Hz - matches policy execution frequency
+
+    # Controller type definitions
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    joint_pd_controller:
+      type: sim_gazebo/JointPDController
+
+# Publishes joint states to /joint_states topic
+joint_state_broadcaster:
+  ros__parameters:
+    publish_rate: 500.0  # Hz
+
+joint_pd_controller:
+  ros__parameters:
+    joints:
+      # Left leg (5 DOF)
+      - left_hip_yaw_joint
+      - left_hip_roll_joint
+      - left_hip_pitch_joint
+      - left_knee_joint
+      - left_ankle_joint
+      # Right leg (5 DOF)
+      - right_hip_yaw_joint
+      - right_hip_roll_joint
+      - right_hip_pitch_joint
+      - right_knee_joint
+      - right_ankle_joint
+      # Neck/Head (4 DOF)
+      - neck_forward_joint
+      - neck_pitch_joint
+      - neck_yaw_joint
+      - neck_roll_joint
+
+    command_interfaces:
+      - effort
+
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+
+    # Note: initial_position and max_effort are now loaded from policy_config.yaml
+    # See: src/policy_assets/{framework}/{robot}/config/policy_config.yaml
+

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<robot name="bdx_v4" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:arg name="mesh_path" default="file://$(find robot_description)/robots/bdx_v4/mesh" />
+    <xacro:include filename="bdx_v4.urdf" />
+    <xacro:include filename="ros2_control_gazebo.xacro" />
+
+    <xacro:gazebo_ros2_control />
+
+    <!-- IMU Sensor -->
+    <xacro:gazebo_imu_sensor name="imu_link" />
+
+    <xacro:gazebo_friction refer="left_foot" mu1="0.6" mu2="0.6" kp="1e6" kd="1.0"/>
+    <xacro:gazebo_friction refer="right_foot" mu1="0.6" mu2="0.6" kp="1e6" kd="1.0"/>
+
+</robot>

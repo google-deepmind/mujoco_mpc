@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+    <xacro:macro name="joint_control" params="name">
+        <joint name="${name}">
+            <command_interface name="effort" />
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
+            <state_interface name="velocity" />
+            <state_interface name="effort" />
+        </joint>
+    </xacro:macro>
+
+    <!-- IMU Sensor for Gazebo -->
+    <xacro:macro name="gazebo_imu_sensor" params="name">
+        <gazebo reference="${name}">
+            <gravity>true</gravity>
+            <sensor name="${name}" type="imu">
+                <always_on>true</always_on>
+                <update_rate>1000</update_rate>
+                <visualize>true</visualize>
+                <topic>__default_topic__</topic>
+                <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+                    <bodyName>${name}</bodyName>
+                    <updateRateHZ>1000.0</updateRateHZ>
+                    <gaussianNoise>0.0</gaussianNoise>
+                    <xyzOffset>0 0 0</xyzOffset>
+                    <rpyOffset>0 0 0</rpyOffset>
+                    <frameName>${name}</frameName>
+                </plugin>
+                <pose>0 0 0 0 0 0</pose>
+            </sensor>
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="gazebo_friction" params="refer mu1 mu2 kp kd">
+        <gazebo reference="${refer}">
+            <mu1 value="${mu1}" />
+            <mu2 value="${mu2}" />
+            <kp value="${kp}" />
+            <kd value="${kd}" />
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="gazebo_ros2_control">
+        <ros2_control name="GazeboSystem" type="system">
+            <hardware>
+                <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+            </hardware>
+
+            <!-- Left Leg Joints -->
+            <xacro:joint_control name="left_hip_yaw_joint" />
+            <xacro:joint_control name="left_hip_roll_joint" />
+            <xacro:joint_control name="left_hip_pitch_joint" />
+            <xacro:joint_control name="left_knee_joint" />
+            <xacro:joint_control name="left_ankle_joint" />
+            <!-- Right Leg Joints -->
+            <xacro:joint_control name="right_hip_yaw_joint" />
+            <xacro:joint_control name="right_hip_roll_joint" />
+            <xacro:joint_control name="right_hip_pitch_joint" />
+            <xacro:joint_control name="right_knee_joint" />
+            <xacro:joint_control name="right_ankle_joint" />
+
+            <!-- Neck Joints -->
+            <xacro:joint_control name="neck_forward_joint" />
+            <xacro:joint_control name="neck_pitch_joint" />
+            <xacro:joint_control name="neck_yaw_joint" />
+            <xacro:joint_control name="neck_roll_joint" />
+
+        </ros2_control>
+
+        <gazebo>
+            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+                <parameters>$(find robot_description)/robots/bdx_v4/config/controller_gazebo.yaml</parameters>
+            </plugin>
+        </gazebo>
+    </xacro:macro>
+
+</robot>

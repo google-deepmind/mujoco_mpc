@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+    <xacro:macro name="joint_control" params="name motor_type='go_motor' motor_id=1 peripheral_id=6 baud_rate=0">
+        <joint name="${name}">
+            <command_interface name="effort" />
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
+            <state_interface name="velocity" />
+            <state_interface name="effort" />
+            <!-- Motor Configuration Parameters -->
+            <param name="motor_type" value="${motor_type}"/>
+            <param name="motor_id" value="${motor_id}"/>
+            <param name="peripheral_id" value="${peripheral_id}"/>
+            <xacro:if value="${baud_rate != 0}">
+                <param name="baud_rate" value="${baud_rate}"/>
+            </xacro:if>
+        </joint>
+    </xacro:macro>
+
+    <!--
+    Motor Configuration (based on comms-board-h723-duck firmware):
+
+    Motor types: "go_motor", "a1_motor", "dynamixel", "myactuator_x8"
+
+    UART to peripheral_id mapping:
+    UART1 -> peripheral_id=1 (4 Mbps)
+    UART2 -> peripheral_id=2 (4 Mbps)
+    UART3 -> peripheral_id=3 (4.8 Mbps)
+    UART5 -> peripheral_id=5 (4.8 Mbps)
+    UART6 -> peripheral_id=6 (4 Mbps)
+    UART7 -> peripheral_id=7 (4 Mbps)
+    UART8 -> peripheral_id=8 (4.5 Mbps)
+    UART9 -> peripheral_id=9 (4.8 Mbps)
+
+    If baud_rate is omitted or set to 0, the motor type's default baud rate will be used.
+    -->
+    <xacro:macro name="real_ros2_control">
+        <ros2_control name="RealHardwareSystem" type="system">
+            <hardware>
+                <plugin>hardware_interface_real/HardwareInterfaceReal</plugin>
+                <param name="robot_ip">192.168.2.131</param>
+                <param name="robot_port">55151</param>
+                <param name="imu_frame_id">imu_link</param>
+            </hardware>
+
+            <!-- Left Leg Joints -->
+            <!-- UART6: GoMotor (4 Mbps) -->
+            <xacro:joint_control name="left_hip_yaw_joint" motor_type="go_motor" motor_id="1" peripheral_id="6" baud_rate="4000000" />
+            <!-- UART3: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="left_hip_roll_joint" motor_type="a1_motor" motor_id="0" peripheral_id="3" baud_rate="4800000" />
+            <!-- UART5: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="left_hip_pitch_joint" motor_type="a1_motor" motor_id="0" peripheral_id="5" baud_rate="4800000" />
+            <!-- UART5: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="left_knee_joint" motor_type="a1_motor" motor_id="1" peripheral_id="5" baud_rate="4800000" />
+            <!-- UART1: GoMotor (4 Mbps) -->
+            <xacro:joint_control name="left_ankle_joint" motor_type="go_motor" motor_id="0" peripheral_id="1" baud_rate="4000000" />
+
+            <!-- Right Leg Joints -->
+            <!-- UART6: GoMotor (4 Mbps) -->
+            <xacro:joint_control name="right_hip_yaw_joint" motor_type="go_motor" motor_id="0" peripheral_id="6" baud_rate="4000000" />
+            <!-- UART3: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="right_hip_roll_joint" motor_type="a1_motor" motor_id="1" peripheral_id="3" baud_rate="4800000" />
+            <!-- UART9: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="right_hip_pitch_joint" motor_type="a1_motor" motor_id="0" peripheral_id="9" baud_rate="4800000" />
+            <!-- UART9: A1Motor (4.8 Mbps) -->
+            <xacro:joint_control name="right_knee_joint" motor_type="a1_motor" motor_id="1" peripheral_id="9" baud_rate="4800000" />
+            <!-- UART2: GoMotor (4 Mbps) -->
+            <xacro:joint_control name="right_ankle_joint" motor_type="go_motor" motor_id="0" peripheral_id="2" baud_rate="4000000" />
+
+            <!-- Neck Joints -->
+            <!-- UART7: GoMotor (4 Mbps) -->
+            <xacro:joint_control name="neck_forward_joint" motor_type="go_motor" motor_id="0" peripheral_id="7" baud_rate="4000000" />
+            <!-- UART8: Dynamixel (4.5 Mbps) -->
+            <xacro:joint_control name="neck_pitch_joint" motor_type="dynamixel" motor_id="1" peripheral_id="8" baud_rate="4500000" />
+            <!-- UART8: Dynamixel (4.5 Mbps) -->
+            <xacro:joint_control name="neck_yaw_joint" motor_type="dynamixel" motor_id="2" peripheral_id="8" baud_rate="4500000" />
+            <!-- UART8: Dynamixel (4.5 Mbps) -->
+            <xacro:joint_control name="neck_roll_joint" motor_type="dynamixel" motor_id="3" peripheral_id="8" baud_rate="4500000" />
+
+        </ros2_control>
+
+    </xacro:macro>
+</robot>

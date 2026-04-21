@@ -1,0 +1,451 @@
+<?xml version="1.0"?>
+<robot name="bdx_v4">
+
+    <material name="black"> <color rgba="0.0 0.0 0.0 1.0"/> </material>
+    <material name="white"> <color rgba="1.0 1.0 1.0 1.0"/> </material>
+    <material name="red"> <color rgba="0.8 0.0 0.0 1.0"/> </material>
+    <material name="yellow"> <color rgba="1.0 1.0 0.0 1.0"/> </material>
+    <material name="blue"> <color rgba="0.0 0.0 0.8 1.0"/> </material>
+    <material name="green"> <color rgba="0.0 0.8 0.0 1.0"/> </material>
+    <material name="orange"> <color rgba="1 0.4235 0.0392 1.0"/> </material>
+    <material name="silver"> <color rgba="0.9137 0.9137 0.8471 1.0"/> </material>
+
+    <link name="trunk"/>
+    <link name="base_link">
+        <inertial>
+            <origin xyz="-0.019956547048000001 -9.4562330000000003e-05 0.069185614313999999" rpy="0 0 0"/>
+            <mass value="6.6133790757300002"/>
+            <inertia ixx="0.039260766863999999" ixy="-0.00012462819199999999" ixz="0.002935471379"
+                     iyy="0.081055838429999999" iyz="1.8834257999999999e-05" izz="0.070623365802999993"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/base_link.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/base_link.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="dummy_joint" type="fixed">
+        <parent link="trunk"/>
+        <child link="base_link"/>
+    </joint>
+    <link name="left_hip_yaw_link">
+        <inertial>
+            <origin xyz="-0.0013704825649999974 0.0047008836579999977 -0.053614463938000005" rpy="0 0 0"/>
+            <mass value="0.72758306889699997"/>
+            <inertia ixx="0.0011982664849999999" ixy="7.3257500000000001e-06" ixz="-1.7438007000000001e-05"
+                     iyy="0.00087218245400000002" iyz="9.8185919999999993e-06" izz="0.00054045132699999995"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_hip_yaw.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="left_hip_yaw_joint" type="revolute">
+        <origin xyz="-0.019800000000000002 0.048750000000000002 0.065100000000000005" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="left_hip_yaw_link"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-0.349066" upper="0.349066" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_hip_roll_link">
+        <inertial>
+            <origin xyz="0.002434906132 0.031075164804000001 -4.3982000000000003e-08" rpy="0 0 0"/>
+            <mass value="0.17816248602099999"/>
+            <inertia ixx="0.00022406375199999999" ixy="2.7766400000000001e-06" ixz="4.0480000000000001e-09"
+                     iyy="4.8951405000000001e-05" iyz="-1.227e-09" izz="0.000207381101"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_hip_roll.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="left_hip_roll_joint" type="revolute">
+        <origin xyz="0.017800000000000003 0.0054999999999999979 -0.065100000000000005" rpy="0 0 0"/>
+        <parent link="left_hip_yaw_link"/>
+        <child link="left_hip_roll_link"/>
+        <axis xyz="1 0 0"/>
+        <limit lower="-0.698132" upper="0.261799" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_hip_pitch_link">
+        <inertial>
+            <origin xyz="-0.001943711844 0.021611905602999998 -0.05843281744" rpy="0 0 0"/>
+            <mass value="1.546391155801"/>
+            <inertia ixx="0.0068089450609999996" ixy="-1.4453136000000001e-05" ixz="2.7927387000000001e-05"
+                     iyy="0.0077723212580000003" iyz="1.6869981000000001e-05" izz="0.0015997177419999999"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_hip_pitch.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="left_hip_pitch_joint" type="revolute">
+        <origin xyz="0.002 0.066700000000000009 0" rpy="0 0 0"/>
+        <parent link="left_hip_roll_link"/>
+        <child link="left_hip_pitch_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-0.52359" upper="2.356194" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_knee_link">
+        <inertial>
+            <origin xyz="-0.0052928658590000004 -0.010948343791000001 -0.099493215772999993" rpy="0 0 0"/>
+            <mass value="0.84008606801999997"/>
+            <inertia ixx="0.0031077569760000002" ixy="2.4678204000000001e-05" ixz="0.00015599091799999999"
+                     iyy="0.0035335563340000002" iyz="-0.000120939988" izz="0.00061717738599999998"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_knee.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_knee.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="left_knee_joint" type="revolute">
+        <origin xyz="0 0 -0.12" rpy="0 0 0"/>
+        <parent link="left_hip_pitch_link"/>
+        <child link="left_knee_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-2.321287" upper="0" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_ankle_link">
+        <inertial>
+            <origin xyz="0.021285777794999999 -0.0018934604689999912 -0.037131302197999982" rpy="0 0 0"/>
+            <mass value="0.42536362871400002"/>
+            <inertia ixx="0.00043347552500000002" ixy="3.7516683e-05" ixz="9.9205912999999994e-05" iyy="0.001268967094"
+                     iyz="-7.3035450999999995e-05" izz="0.00097118438400000003"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_ankle.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_ankle.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="left_ankle_joint" type="revolute">
+        <origin xyz="0 0.0083000000000000018 -0.14000000000000001" rpy="0 0 0"/>
+        <parent link="left_knee_link"/>
+        <child link="left_ankle_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.39626" upper="1.39626" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_foot">
+        <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1e-9"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+    </link>
+    <joint name="left_foot_joint" type="fixed">
+        <origin xyz="0.025 0.0 -0.08" rpy="0 0 0"/>
+        <parent link="left_ankle_link"/>
+        <child link="left_foot"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+    <link name="right_hip_yaw_link">
+        <inertial>
+            <origin xyz="-0.0013603342579999976 -0.0047002975830000016 -0.053616255320000007" rpy="0 0 0"/>
+            <mass value="0.72757471832700005"/>
+            <inertia ixx="0.0011981470590000001" ixy="-7.198172e-06" ixz="-1.8172661999999999e-05"
+                     iyy="0.00087193251399999996" iyz="-9.8259989999999994e-06" izz="0.00054025604299999996"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_hip_yaw.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="right_hip_yaw_joint" type="revolute">
+        <origin xyz="-0.019800000000000002 -0.048750000000000002 0.065100000000000005" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="right_hip_yaw_link"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-0.349066" upper="0.349066" effort="1000" velocity="100"/>
+    </joint>
+    <link name="right_hip_roll_link">
+        <inertial>
+            <origin xyz="0.0024349059750000002 -0.031075318821999993 -6.9957999999999997e-08" rpy="0 0 0"/>
+            <mass value="0.17816248882999999"/>
+            <inertia ixx="0.000224062441" ixy="-2.7761439999999999e-06" ixz="-4.3610000000000001e-09"
+                     iyy="4.8951320999999997e-05" iyz="-5.69e-10" izz="0.00020738011399999999"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_hip_roll.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="right_hip_roll_joint" type="revolute">
+        <origin xyz="0.0178 -0.0054999999999999979 -0.065100000000000005" rpy="0 0 0"/>
+        <parent link="right_hip_yaw_link"/>
+        <child link="right_hip_roll_link"/>
+        <axis xyz="1 0 0"/>
+        <limit lower="-0.261799" upper="0.698132" effort="1000" velocity="100"/>
+    </joint>
+    <link name="right_hip_pitch_link">
+        <inertial>
+            <origin xyz="-0.0017495255789999999 -0.021683786784999992 -0.059785911971" rpy="0 0 0"/>
+            <mass value="1.508634573091"/>
+            <inertia ixx="0.0065804438140000003" ixy="1.1502983999999999e-05" ixz="2.2573144999999999e-05"
+                     iyy="0.0074799455270000001" iyz="-3.3984170000000002e-06" izz="0.0015198501160000001"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_hip_pitch.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="right_hip_pitch_joint" type="revolute">
+        <origin xyz="0.002 -0.066700000000000009 0" rpy="0 0 0"/>
+        <parent link="right_hip_roll_link"/>
+        <child link="right_hip_pitch_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-0.52359" upper="2.356194" effort="1000" velocity="100"/>
+    </joint>
+    <link name="right_knee_link">
+        <inertial>
+            <origin xyz="-0.005292586264 0.010948402630000006 -0.099493689787000017" rpy="0 0 0"/>
+            <mass value="0.84007571389500002"/>
+            <inertia ixx="0.0031077264559999998" ixy="-2.4679593000000001e-05" ixz="0.00015599712700000001"
+                     iyy="0.00353351394" iyz="0.000120938625" izz="0.00061717107400000005"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_knee.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_knee.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="right_knee_joint" type="revolute">
+        <origin xyz="0 0 -0.12" rpy="0 0 0"/>
+        <parent link="right_hip_pitch_link"/>
+        <child link="right_knee_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-2.321287" upper="0" effort="1000" velocity="100"/>
+    </joint>
+    <link name="right_ankle_link">
+        <inertial>
+            <origin xyz="0.021197320038000001 0.0019986848659999945 -0.037122430854999999" rpy="0 0 0"/>
+            <mass value="0.42488534599799999"/>
+            <inertia ixx="0.000433924631" ixy="-3.7258127999999998e-05" ixz="9.7928312999999998e-05"
+                     iyy="0.0012674148629999999" iyz="7.3878333999999993e-05" izz="0.00096987049100000005"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_ankle.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_ankle.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="right_ankle_joint" type="revolute">
+        <origin xyz="0 -0.0083000000000000018 -0.14000000000000001" rpy="0 0 0"/>
+        <parent link="right_knee_link"/>
+        <child link="right_ankle_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.39626" upper="1.39626" effort="1000" velocity="100"/>
+    </joint>
+        <link name="right_foot">
+        <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1e-9"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+    </link>
+    <joint name="right_foot_joint" type="fixed">
+        <origin xyz="0.025 0.0 -0.08" rpy="0 0 0"/>
+        <parent link="right_ankle_link"/>
+        <child link="right_foot"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+    <link name="neck_forward_link">
+        <inertial>
+            <origin xyz="-0.076888397088999999 0.010328186919999999 0.025215684911999992" rpy="0 0 0"/>
+            <mass value="0.38277457890700001"/>
+            <inertia ixx="0.00021265397800000001" ixy="0.00010316241499999999" ixz="0.00019113018000000001"
+                     iyy="0.00095137714099999997" iyz="-3.2163338999999997e-05" izz="0.00093832168299999997"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/neck_forward.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="neck_forward_joint" type="revolute">
+        <origin xyz="0.078200000000000006 -0.014999999999999999 0.12675" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="neck_forward_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="0" upper="1.69297" effort="1000" velocity="100"/>
+    </joint>
+    <link name="neck_pitch_link">
+        <inertial>
+            <origin xyz="-0.0079329644990000017 -0.025125774388999999 0.036720492466999988" rpy="0 0 0"/>
+            <mass value="0.114367939988"/>
+            <inertia ixx="0.00013656656000000001" ixy="5.0904099999999999e-07" ixz="1.3831610000000001e-05"
+                     iyy="0.00012280284800000001" iyz="-2.6129910000000002e-06" izz="7.3288706000000005e-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/neck_pitch.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="neck_pitch_joint" type="revolute">
+        <origin xyz="-0.13085017638000002 0.01529999999999995 0.033249305877000007" rpy="0 0 0"/>
+        <parent link="neck_forward_link"/>
+        <child link="neck_pitch_link"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.5708" upper="0" effort="1000" velocity="100"/>
+    </joint>
+    <link name="neck_yaw_link">
+        <inertial>
+            <origin xyz="0.013784319136999998 3.2433919999999474e-06 0.023272566920999993" rpy="0 0 0"/>
+            <mass value="0.26127167026199999"/>
+            <inertia ixx="0.000148809168" ixy="9.0984000000000003e-08" ixz="-5.272893e-06" iyy="0.000163327401"
+                     iyz="3.1030000000000001e-08" izz="0.00022262619099999999"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/neck_yaw.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="neck_yaw_joint" type="revolute">
+        <origin xyz="-1.8036100000312638e-07 0.000499999999999997 0.033999999998999997" rpy="0 0 0"/>
+        <parent link="neck_pitch_link"/>
+        <child link="neck_yaw_link"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-1.0472" upper="1.0472" effort="1000" velocity="100"/>
+    </joint>
+    <link name="neck_roll_link">
+        <inertial>
+            <origin xyz="-0.041045045562000004 0.0040131266840000004 0.019271782804000021" rpy="0 0 0"/>
+            <mass value="1.665580908708"/>
+            <inertia ixx="0.011711821107" ixy="-0.00091213401500000004" ixz="-0.00027195199800000001"
+                     iyy="0.017430081654999999" iyz="-0.00017468378799999999" izz="0.027365107553"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/neck_roll.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/neck_roll.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="neck_roll_joint" type="revolute">
+        <origin xyz="0.052749913798000002 0 0.016250279823999986" rpy="0 0 0"/>
+        <parent link="neck_yaw_link"/>
+        <child link="neck_roll_link"/>
+        <axis xyz="1 0 0"/>
+        <limit lower="-0.436332" upper="0.436332" effort="1000" velocity="100"/>
+    </joint>
+    <link name="left_ear_link">
+        <inertial>
+            <origin xyz="-0.050447081206 0.027057884695000006 0.015957557960000035" rpy="0 0 0"/>
+            <mass value="0.028229970613000002"/>
+            <inertia ixx="1.4040807e-05" ixy="5.590687e-06" ixz="3.2075715000000003e-05" iyy="0.00010995048"
+                     iyz="-1.8955849999999999e-06" izz="9.8995915e-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/left_ear.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="left_ear_joint" type="fixed">
+        <origin xyz="-0.187998839724 0.083299999999999999 0.026339002718999999" rpy="0 0 0"/>
+        <parent link="neck_roll_link"/>
+        <child link="left_ear_link"/>
+        <axis xyz="0 1 0"/>
+    </joint>
+    <link name="right_ear_link">
+        <inertial>
+            <origin xyz="-0.050406020175999988 -0.027060168963000009 0.016025766692999988" rpy="0 0 0"/>
+            <mass value="0.028240494080000001"/>
+            <inertia ixx="1.4076728e-05" ixy="-5.5886049999999997e-06" ixz="3.2117250000000002e-05" iyy="0.000110008266"
+                     iyz="1.8901379999999999e-06" izz="9.9017573000000005e-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://robot_description/robots/bdx_v4/mesh/right_ear.STL"/>
+            </geometry>
+            <material name="silver"/>
+        </visual>
+    </link>
+    <joint name="right_ear_joint" type="fixed">
+        <origin xyz="-0.187998839724 -0.083299999999999999 0.026339002718999999" rpy="0 0 0"/>
+        <parent link="neck_roll_link"/>
+        <child link="right_ear_link"/>
+        <axis xyz="0 -1 0"/>
+    </joint>
+    <link name="imu_link"/>
+    <joint name="imu_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="imu_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+</robot>

@@ -42,6 +42,7 @@ mjModel* LoadTestModel(std::string_view path) {
   mjModel* model = mj_loadXML(filename, nullptr, loadError, 1000);
   if (loadError[0]) std::cerr << "load error: " << loadError << '\n';
 
+  mj_freeLastXML();
   return model;
 }
 

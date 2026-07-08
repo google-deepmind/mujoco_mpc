@@ -162,18 +162,18 @@ class Direct:
   ) -> dict[str, np.ndarray]:
     # assemble inputs
     inputs = direct_pb2.Data(
-        configuration=configuration,
-        velocity=velocity,
-        acceleration=acceleration,
-        time=time,
-        configuration_previous=configuration_previous,
-        sensor_measurement=sensor_measurement,
-        sensor_prediction=sensor_prediction,
-        sensor_mask=sensor_mask,
-        force_measurement=force_measurement,
-        force_prediction=force_prediction,
-        parameters=parameters,
-        parameters_previous=parameters_previous,
+        configuration=configuration,  # pyrefly: ignore[bad-argument-type]
+        velocity=velocity,  # pyrefly: ignore[bad-argument-type]
+        acceleration=acceleration,  # pyrefly: ignore[bad-argument-type]
+        time=time,  # pyrefly: ignore[bad-argument-type]
+        configuration_previous=configuration_previous,  # pyrefly: ignore[bad-argument-type]
+        sensor_measurement=sensor_measurement,  # pyrefly: ignore[bad-argument-type]
+        sensor_prediction=sensor_prediction,  # pyrefly: ignore[bad-argument-type]
+        sensor_mask=sensor_mask,  # pyrefly: ignore[bad-argument-type]
+        force_measurement=force_measurement,  # pyrefly: ignore[bad-argument-type]
+        force_prediction=force_prediction,  # pyrefly: ignore[bad-argument-type]
+        parameters=parameters,  # pyrefly: ignore[bad-argument-type]
+        parameters_previous=parameters_previous,  # pyrefly: ignore[bad-argument-type]
     )
 
     # data request
@@ -297,9 +297,9 @@ class Direct:
   ) -> dict[str, np.ndarray]:
     # assemble input noise
     inputs = direct_pb2.Noise(
-        process=process,
-        sensor=sensor,
-        parameter=parameter,
+        process=process,  # pyrefly: ignore[bad-argument-type]
+        sensor=sensor,  # pyrefly: ignore[bad-argument-type]
+        parameter=parameter,  # pyrefly: ignore[bad-argument-type]
     )
 
     # noise request
@@ -433,7 +433,7 @@ class Direct:
     # return measurements from sensor data
     index = info["start_index"]
     dim = info["dim_measurements"]
-    return data[index : (index + dim)]
+    return data[index : (index + dim)]  # pyrefly: ignore[bad-index, bad-return]
 
   def print_cost(self):
     # get costs

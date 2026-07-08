@@ -107,10 +107,10 @@ def instruction_cost(
           obj_instruction, local_spur, spur_pos, spur_vel
       )
       residuals.append(pos_err)
-      weights.append(0.016)
+      weights.append(0.016)  # pyrefly: ignore[bad-argument-type]
       norm_p.append(0.005)
       residuals.append(vel_err)
-      weights.append(0.16)
+      weights.append(0.16)  # pyrefly: ignore[bad-argument-type]
       norm_p.append(0.1)
 
   # NormType::kL2: y = sqrt(x*x' + p^2) - p

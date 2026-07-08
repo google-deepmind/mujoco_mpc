@@ -209,12 +209,12 @@ class Agent(contextlib.AbstractContextManager):
 
     state = agent_pb2.State(
         time=time if time is not None else None,
-        qpos=qpos if qpos is not None else [],
-        qvel=qvel if qvel is not None else [],
-        act=act if act is not None else [],
-        mocap_pos=mocap_pos if mocap_pos is not None else [],
-        mocap_quat=mocap_quat if mocap_quat is not None else [],
-        userdata=userdata if userdata is not None else [],
+        qpos=qpos if qpos is not None else [],  # pyrefly: ignore[bad-argument-type]
+        qvel=qvel if qvel is not None else [],  # pyrefly: ignore[bad-argument-type]
+        act=act if act is not None else [],  # pyrefly: ignore[bad-argument-type]
+        mocap_pos=mocap_pos if mocap_pos is not None else [],  # pyrefly: ignore[bad-argument-type]
+        mocap_quat=mocap_quat if mocap_quat is not None else [],  # pyrefly: ignore[bad-argument-type]
+        userdata=userdata if userdata is not None else [],  # pyrefly: ignore[bad-argument-type]
     )
 
     set_state_request = agent_pb2.SetStateRequest(state=state)

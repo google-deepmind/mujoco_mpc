@@ -162,8 +162,8 @@ class Filter:
   ):
     # request
     request = filter_pb2.UpdateRequest(
-        ctrl=ctrl,
-        sensor=sensor,
+        ctrl=ctrl,  # pyrefly: ignore[bad-argument-type]
+        sensor=sensor,  # pyrefly: ignore[bad-argument-type]
         mode=mode,
     )
 
@@ -174,7 +174,7 @@ class Filter:
       self, state: Optional[npt.ArrayLike] = [], time: Optional[float] = None
   ) -> dict[str | float, np.ndarray]:
     # input
-    input = filter_pb2.State(state=state, time=time)
+    input = filter_pb2.State(state=state, time=time)  # pyrefly: ignore[bad-argument-type]
 
     # request
     request = filter_pb2.StateRequest(
@@ -219,8 +219,8 @@ class Filter:
   ) -> dict[str, np.ndarray]:
     # inputs
     inputs = filter_pb2.Noise(
-        process=process,
-        sensor=sensor,
+        process=process,  # pyrefly: ignore[bad-argument-type]
+        sensor=sensor,  # pyrefly: ignore[bad-argument-type]
     )
 
     # request

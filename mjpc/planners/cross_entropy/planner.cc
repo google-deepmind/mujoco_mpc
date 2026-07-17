@@ -302,9 +302,10 @@ void CrossEntropyPlanner::NominalTrajectory(int horizon) {
   };
 
   // rollout nominal policy
-  nominal_trajectory.Rollout(nominal_policy, task, model,
-                             data_[ThreadPool::WorkerId()].get(), state.data(),
-                             time, mocap.data(), userdata.data(), horizon);
+  int worker_id = ThreadPool::WorkerId();
+  mjData* d = data_[worker_id >= 0 ? worker_id : 0].get();
+  nominal_trajectory.Rollout(nominal_policy, task, model, d, state.data(), time,
+                             mocap.data(), userdata.data(), horizon);
 }
 void CrossEntropyPlanner::NominalTrajectory(int horizon, ThreadPool& pool) {
   NominalTrajectory(horizon);

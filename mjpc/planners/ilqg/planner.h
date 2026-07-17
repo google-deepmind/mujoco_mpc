@@ -154,9 +154,10 @@ class iLQGPlanner : public Planner {
   // mutex
   mutable std::shared_mutex mtx_;
 
+  int num_rollouts_gui_ = 1;
+
  private:
   int num_trajectory_ = 1;
-  int num_rollouts_gui_ = 1;
   int derivative_skip_ = 0;
 };
 

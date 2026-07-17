@@ -15,11 +15,13 @@
 #include "mjpc/utilities.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <new>
@@ -33,6 +35,8 @@
 #include <absl/strings/match.h>
 #include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
+#include <absl/strings/string_view.h>
+#include <absl/strings/strip.h>
 #include <mujoco/mujoco.h>
 
 #include "mjpc/array_safety.h"
@@ -132,7 +136,7 @@ ResidualSelectionLists(const mjModel* m) {
       continue;
     }
     std::string name = &m->names[m->name_textadr[i]];
-    std::string_view options(m->text_data + m->text_adr[i]);
+    absl::string_view options(m->text_data + m->text_adr[i]);
     result[absl::StripPrefix(name, "residual_list_")] =
         absl::StrSplit(options, '|');
   }
@@ -150,8 +154,8 @@ std::string ResidualSelection(const mjModel* m, std::string_view name,
     if (list_name == &m->names[m->name_textadr[i]]) {
       // get the nth element in the list of options (without constructing a
       // vector<string>)
-      std::string_view options(m->text_data + m->text_adr[i]);
-      for (std::string_view value : absl::StrSplit(options, '|')) {
+      absl::string_view options(m->text_data + m->text_adr[i]);
+      for (absl::string_view value : absl::StrSplit(options, '|')) {
         if (list_index == 0) return std::string(value);
         list_index--;
       }
@@ -166,11 +170,11 @@ double ResidualParameterFromSelection(const mjModel* m, std::string_view name,
   for (int i = 0; i < m->ntext; i++) {
     if (list_name == &m->names[m->name_textadr[i]]) {
       int64_t list_index = 0;
-      std::string_view options(m->text_data + m->text_adr[i],
-                               m->text_size[i] - 1);
+      absl::string_view options(m->text_data + m->text_adr[i],
+                                m->text_size[i] - 1);
       std::vector<std::string> values = absl::StrSplit(options, '|');
-      for (std::string_view v : absl::StrSplit(options, '|')) {
-        if (v == value) {
+      for (absl::string_view v : absl::StrSplit(options, '|')) {
+        if (std::string_view(v.data(), v.size()) == value) {
           return ReinterpretAsDouble(list_index);
         }
         list_index++;

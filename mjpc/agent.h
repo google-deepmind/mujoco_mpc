@@ -34,6 +34,11 @@
 
 namespace mjpc {
 
+inline constexpr double kMinPlanningHorizon = 1.0e-5;
+inline constexpr double kMaxPlanningHorizon = 2.5;
+inline constexpr double kMinTimeStep = 0.0001;
+inline constexpr double kMaxTimeStep = 0.1;
+
 // figures
 struct AgentPlots {
   mjvFigure action;
@@ -120,6 +125,12 @@ class Agent {
   std::string GetTaskNames() const { return task_names_; }
   int GetTaskIdByName(std::string_view name) const;
   std::string GetTaskXmlPath(int id) const { return tasks_[id]->XmlPath(); }
+  int FindTaskIndexByXmlPath(std::string_view path) const {
+    for (int i = 0; i < tasks_.size(); i++) {
+      if (tasks_[i]->XmlPath() == path) return i;
+    }
+    return -1;
+  }
 
   // load the latest task model, based on GUI settings
   struct LoadModelResult {
@@ -136,6 +147,27 @@ class Agent {
   mjpc::Planner& ActivePlanner() const { return *planners_[planner_]; }
   mjpc::Estimator& ActiveEstimator() const { return *estimators_[estimator_]; }
   int ActiveEstimatorIndex() const { return estimator_; }
+
+  PlannerType GetPlannerType() const { return planner_; }
+  void SetPlannerType(PlannerType type);
+
+  int GetEstimatorType() const { return estimator_; }
+  void SetEstimatorType(int type, mjData* data = nullptr);
+
+  double GetHorizon() const { return horizon_; }
+  void SetHorizon(double horizon) { horizon_ = horizon; }
+
+  double GetTimeStep() const { return timestep_; }
+  void SetTimeStep(double timestep) { timestep_ = timestep; }
+
+  int GetIntegrator() const { return integrator_; }
+  void SetIntegrator(int integrator) { integrator_ = integrator; }
+
+  bool GetDifferentiable() const { return differentiable_; }
+  void SetDifferentiable(bool differentiable) {
+    differentiable_ = differentiable;
+  }
+
   double ComputeTime() const { return agent_compute_time_; }
   Task* ActiveTask() const { return tasks_[active_task_id_].get(); }
   // a residual function that can be used from trajectory rollouts. must only
@@ -168,6 +200,7 @@ class Agent {
 
   // threads
   int planner_threads() const { return planner_threads_;}
+  void SetPlannerThreads(int threads) { planner_threads_ = threads; }
   int estimator_threads() const { return estimator_threads_;}
 
   // status flags, logically should be bool, but mjUI needs int pointers
@@ -186,6 +219,7 @@ class Agent {
   std::vector<double> ctrl;
   bool reset_estimator = true;
   bool estimator_enabled = false;
+  const AgentPlots* GetPlots() const { return &plots_; }
 
  private:
   // model

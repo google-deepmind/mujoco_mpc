@@ -19,11 +19,13 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/match.h>
@@ -46,12 +48,6 @@ namespace mjpc {
 namespace mju = ::mujoco::util_mjpc;
 
 namespace {
-// ----- agent constants ----- //
-inline constexpr double kMinTimeStep = 1.0e-4;
-inline constexpr double kMaxTimeStep = 0.1;
-inline constexpr double kMinPlanningHorizon = 1.0e-5;
-inline constexpr double kMaxPlanningHorizon = 2.5;
-
 // maximum number of actions to plot
 const int kMaxActionPlots = 25;
 
@@ -1162,6 +1158,31 @@ void Agent::PlotShow(mjrRect* rect, mjrContext* con) {
   mjr_figure(viewport, &plots_.action, con);
   viewport.bottom += rect->height / num_sections;
   mjr_figure(viewport, &plots_.cost, con);
+}
+
+void Agent::SetPlannerType(PlannerType type) {
+  planner_ = type;
+  if (model_) {
+    PlotInitialize();
+    PlotReset();
+    if (planner_ == kGradientPlanner || planner_ == kILQGPlanner ||
+        planner_ == kILQSPlanner) {
+      differentiable_ = true;
+    } else {
+      differentiable_ = false;
+    }
+  }
+}
+
+void Agent::SetEstimatorType(int type, mjData* data) {
+  estimator_ = type;
+  if (model_) {
+    PlotInitialize();
+    PlotReset();
+    if (data) {
+      ActiveEstimator().Reset(data);
+    }
+  }
 }
 
 }  // namespace mjpc

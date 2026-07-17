@@ -158,9 +158,10 @@ class GradientPlanner : public Planner {
   double gradient_compute_time;
   double policy_update_compute_time;
 
+  int derivative_skip_ = 0;
+
  private:
   mutable std::shared_mutex mtx_;
-  int derivative_skip_ = 0;
 };
 
 }  // namespace mjpc

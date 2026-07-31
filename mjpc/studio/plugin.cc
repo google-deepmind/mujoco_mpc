@@ -114,6 +114,7 @@ void MjpcSensorCallback(const mjModel* model, mjData* data, int stage) {
 }
 
 void MjpcPluginPostModelLoaded(mujoco::platform::ModelPlugin* self,
+                               const mjModel* model,
                                const char* model_path) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   state->model_changed = true;

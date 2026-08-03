@@ -23,7 +23,7 @@ from mujoco_mpc.mjx.tasks.bimanual import handover
 import numpy as np
 
 # %%
-sim_model_cpu, plan_model_cpu, cost_fn = handover.get_models_and_cost_fn()
+sim_model_cpu, plan_model_cpu, cost_fn = handover.get_models_and_cost_fn()  # pyrefly: ignore[bad-unpacking]
 # %%
 p = predictive_sampling.Planner(
     model=mjx.put_model(plan_model_cpu),
@@ -67,7 +67,7 @@ frame_skip = 5
 frames = []
 renderer = mujoco.Renderer(sim_model_cpu)
 d = mujoco.MjData(sim_model_cpu)
-qs = trajectories.q[0, ...].reshape(-1, sim_model_cpu.nq)[0:-1:frame_skip, :]
+qs = trajectories.q[0, ...].reshape(-1, sim_model_cpu.nq)[0:-1:frame_skip, :]  # pyrefly: ignore[unknown-name]
 for qpos in qs:
   d.qpos = qpos
   mujoco.mj_forward(sim_model_cpu, d)

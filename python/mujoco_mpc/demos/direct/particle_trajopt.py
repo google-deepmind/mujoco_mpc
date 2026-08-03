@@ -15,7 +15,7 @@
 
 import matplotlib.pyplot as plt
 import mujoco
-import direct_optimizer
+import direct_optimizer  # pyrefly: ignore[missing-import]
 import numpy as np
 # %%
 ## Example

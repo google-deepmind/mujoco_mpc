@@ -55,7 +55,7 @@ def diff_differentiatePos(
         blk1 = np.zeros((3, 3))
         blk2 = np.zeros((3, 3))
         mujoco.mjd_subQuat(
-            qpos2[padr : (padr + 4)], qpos1[padr : (padr + 4)], blk2, blk1
+            qpos2[padr : (padr + 4)], qpos1[padr : (padr + 4)], blk2, blk1  # pyrefly: ignore[bad-index]
         )
         idx = slice(vadr, vadr + 3)
         jac1[idx, idx] = blk1
@@ -64,7 +64,7 @@ def diff_differentiatePos(
         blk1 = np.zeros((3, 3))
         blk2 = np.zeros((3, 3))
         idxq = slice(padr, padr + 4)
-        mujoco.mjd_subQuat(qpos2[idxq], qpos1[idxq], blk2, blk1)
+        mujoco.mjd_subQuat(qpos2[idxq], qpos1[idxq], blk2, blk1)  # pyrefly: ignore[bad-index]
         idxv = slice(vadr, vadr + 3)
         jac1[idxv, idxv] = blk1
         jac2[idxv, idxv] = blk2
@@ -106,8 +106,8 @@ def qpos_to_qvel_qacc(
   # loop over configurations
   for t in range(1, horizon):
     # previous and current configurations
-    q0 = qpos[:, t - 1]
-    q1 = qpos[:, t]
+    q0 = qpos[:, t - 1]  # pyrefly: ignore[bad-index]
+    q1 = qpos[:, t]  # pyrefly: ignore[bad-index]
 
     # compute velocity
     v1 = np.zeros(model.nv)
@@ -151,13 +151,13 @@ def diff_qpos_to_qvel_qacc(
   # loop over configurations
   for t in range(1, horizon):
     # previous and current configurations
-    q1 = qpos[:, t - 1]
-    q2 = qpos[:, t]
+    q1 = qpos[:, t - 1]  # pyrefly: ignore[bad-index]
+    q2 = qpos[:, t]  # pyrefly: ignore[bad-index]
 
     # velocity Jacobians
     D0, D1 = diff_differentiatePos(model, model.opt.timestep, q1, q2)
-    dvdq0[t] = D0
-    dvdq1[t] = D1
+    dvdq0[t] = D0  # pyrefly: ignore[unsupported-operation]
+    dvdq1[t] = D1  # pyrefly: ignore[unsupported-operation]
 
     # acceleration Jacobians
     if t > 1:
@@ -203,9 +203,9 @@ def inverse_dynamics(
   # loop over horizon
   for t in range(1, horizon - 1):
     # set data
-    data.qpos = qpos[:, t]
-    data.qvel = qvel[:, t]
-    data.qacc = qacc[:, t]
+    data.qpos = qpos[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qvel = qvel[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qacc = qacc[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
 
     # inverse dynamics
     mujoco.mj_inverse(model, data)
@@ -271,9 +271,9 @@ def diff_inverse_dynamics(
   # loop over horizon
   for t in range(1, horizon - 1):
     # set data
-    data.qpos = qpos[:, t]
-    data.qvel = qvel[:, t]
-    data.qacc = qacc[:, t]
+    data.qpos = qpos[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qvel = qvel[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qacc = qacc[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
 
     # Jacobian
     mujoco.mjd_inverseFD(
@@ -337,7 +337,7 @@ def diff_inverse_dynamics_parameters(
       Tuple[npt.ArrayLike, npt.ArrayLike]: sensor and force Jacobians wrt parameters trajectories
   """
   # number of parameters
-  num_parameter = len(parameter)
+  num_parameter = len(parameter)  # pyrefly: ignore[bad-argument-type]
 
   dsdp = np.array(
       [np.zeros((model.nsensordata, num_parameter)) for _ in range(horizon)]
@@ -348,9 +348,9 @@ def diff_inverse_dynamics_parameters(
   for t in range(1, horizon - 1):
     ## nominal
     # set data
-    data.qpos = qpos[:, t]
-    data.qvel = qvel[:, t]
-    data.qacc = qacc[:, t]
+    data.qpos = qpos[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qvel = qvel[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
+    data.qacc = qacc[:, t]  # pyrefly: ignore[bad-assignment, bad-index]
 
     ## perturb
     perturb = np.zeros(num_parameter)
@@ -359,14 +359,14 @@ def diff_inverse_dynamics_parameters(
       perturb[i] = eps
 
       # update model
-      parameter_update(model_update, parameter + perturb)
+      parameter_update(model_update, parameter + perturb)  # pyrefly: ignore[unsupported-operation]
 
       # inverse dynamics
       mujoco.mj_inverse(model_update, data)
 
       # derivative
-      dsdp[t][:, i] = (data.sensordata - sensor[:, t]) / eps
-      dfdp[t][:, i] = (data.qfrc_inverse - force[:, t]) / eps
+      dsdp[t][:, i] = (data.sensordata - sensor[:, t]) / eps  # pyrefly: ignore[bad-index, unsupported-operation]
+      dfdp[t][:, i] = (data.qfrc_inverse - force[:, t]) / eps  # pyrefly: ignore[bad-index, unsupported-operation]
 
       # restore
       perturb[i] = 0.0
@@ -411,11 +411,11 @@ def diff_sensor(
   ]
   # loop over horizon
   for t in range(1, horizon - 1):
-    dsdq012[t][:, 0 : model.nv] = dsdv[t] @ dvdq0[t] + dsda[t] @ dadq0[t]
+    dsdq012[t][:, 0 : model.nv] = dsdv[t] @ dvdq0[t] + dsda[t] @ dadq0[t]  # pyrefly: ignore[bad-index, unsupported-operation]
     dsdq012[t][:, model.nv : (2 * model.nv)] = (
-        dsdq[t] + dsdv[t] @ dvdq1[t] + dsda[t] @ dadq1[t]
+        dsdq[t] + dsdv[t] @ dvdq1[t] + dsda[t] @ dadq1[t]  # pyrefly: ignore[bad-index, unsupported-operation]
     )
-    dsdq012[t][:, (2 * model.nv) : (3 * model.nv)] = dsda[t] @ dadq2[t]
+    dsdq012[t][:, (2 * model.nv) : (3 * model.nv)] = dsda[t] @ dadq2[t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
   return dsdq012
 
@@ -456,11 +456,11 @@ def diff_force(
 
   # loop over horizon
   for t in range(1, horizon - 1):
-    dfdq012[t][:, 0 : model.nv] = dfdv[t] @ dvdq0[t] + dfda[t] @ dadq0[t]
+    dfdq012[t][:, 0 : model.nv] = dfdv[t] @ dvdq0[t] + dfda[t] @ dadq0[t]  # pyrefly: ignore[bad-index, unsupported-operation]
     dfdq012[t][:, model.nv : (2 * model.nv)] = (
-        dfdq[t] + dfdv[t] @ dvdq1[t] + dfda[t] @ dadq1[t]
+        dfdq[t] + dfdv[t] @ dvdq1[t] + dfda[t] @ dadq1[t]  # pyrefly: ignore[bad-index, unsupported-operation]
     )
-    dfdq012[t][:, (2 * model.nv) : (3 * model.nv)] = dfda[t] @ dadq2[t]
+    dfdq012[t][:, (2 * model.nv) : (3 * model.nv)] = dfda[t] @ dadq2[t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
   return dfdq012
 
@@ -493,10 +493,10 @@ def cost_force(
   # loop over horizon
   for t in range(1, horizon - 1):
     # residual
-    res = force[:, t] - target[:, t]
+    res = force[:, t] - target[:, t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
     # quadratic cost
-    quad_cost = 0.5 * res.T @ np.diag(weights[:, t]) @ res
+    quad_cost = 0.5 * res.T @ np.diag(weights[:, t]) @ res  # pyrefly: ignore[bad-index, missing-attribute]
 
     # scale
     scale = (model.opt.timestep**4) / (model.nv * (horizon - 2))
@@ -534,7 +534,7 @@ def diff_cost_force(
   grad_p = None
   hess_pq = None
   if dfdp is not None:
-    nparam = dfdp[1].shape[1]
+    nparam = dfdp[1].shape[1]  # pyrefly: ignore[bad-index, missing-attribute]
     grad_p = np.zeros(nparam)
     hess_pq = np.zeros((nparam, model.nv * horizon + nparam))
 
@@ -549,39 +549,39 @@ def diff_cost_force(
   # loop over horizon
   for t in range(1, horizon - 1):
     # residual
-    res = force[:, t] - target[:, t]
+    res = force[:, t] - target[:, t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
     # scale
     scale = (model.opt.timestep**4) / (model.nv * (horizon - 2))
 
     # quadratic norm gradient
-    norm_grad = scale * np.diag(weights[:, t]) @ res
+    norm_grad = scale * np.diag(weights[:, t]) @ res  # pyrefly: ignore[bad-index]
 
     # quadratic norm Hessian
-    norm_hess = np.diag(scale * weights[:, t])
+    norm_hess = np.diag(scale * weights[:, t])  # pyrefly: ignore[bad-index, unsupported-operation]
 
     # indices
     idx = slice((t - 1) * model.nv, (t + 2) * model.nv)
 
     # gradient
-    grad_q[idx] += (dfdq012[t].T @ norm_grad).ravel()
+    grad_q[idx] += (dfdq012[t].T @ norm_grad).ravel()  # pyrefly: ignore[bad-index, missing-attribute]
 
     # Hessian
-    blk = dfdq012[t].T @ norm_hess @ dfdq012[t]
+    blk = dfdq012[t].T @ norm_hess @ dfdq012[t]  # pyrefly: ignore[bad-index, missing-attribute]
     hess_qq = add_block_in_band(
         hess_qq, blk, 1.0, ntotal, nband, 3 * model.nv, (t - 1) * model.nv
     )
 
     if nparam > 0:
       # gradient
-      grad_p[:] += (dfdp[t].T @ norm_grad).ravel()
+      grad_p[:] += (dfdp[t].T @ norm_grad).ravel()  # pyrefly: ignore[bad-index, missing-attribute, unsupported-operation]
 
       # dense rows
-      hess_pq[:, (t - 1) * model.nv : (t + 2) * model.nv] += (
-          dfdp[t].T @ norm_hess @ dfdq012[t]
+      hess_pq[:, (t - 1) * model.nv : (t + 2) * model.nv] += (  # pyrefly: ignore[unsupported-operation]
+          dfdp[t].T @ norm_hess @ dfdq012[t]  # pyrefly: ignore[bad-index, missing-attribute, unsupported-operation]
       )
 
-  return grad_q, hess_qq, grad_p, hess_pq
+  return grad_q, hess_qq, grad_p, hess_pq  # pyrefly: ignore[bad-return]
 
 
 # %%
@@ -612,7 +612,7 @@ def cost_sensor(
   # loop over horizon
   for t in range(1, horizon - 1):
     # residual
-    res = sensor[:, t] - target[:, t]
+    res = sensor[:, t] - target[:, t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
     # loop over sensors
     for i in range(model.nsensor):
@@ -627,7 +627,7 @@ def cost_sensor(
       idx = slice(adr, adr + dim)
 
       # quadratic cost
-      quad_cost = 0.5 * weights[i, t] * np.dot(res[idx], res[idx])
+      quad_cost = 0.5 * weights[i, t] * np.dot(res[idx], res[idx])  # pyrefly: ignore[bad-index, unsupported-operation]
 
       # scale
       time_scale = 1.0
@@ -670,7 +670,7 @@ def diff_cost_sensor(
   grad_p = None
   hess_pq = None
   if dsdp is not None:
-    nparam = dsdp[1].shape[1]
+    nparam = dsdp[1].shape[1]  # pyrefly: ignore[bad-index, missing-attribute]
     grad_p = np.zeros(nparam)
     hess_pq = np.zeros((nparam, model.nv * horizon + nparam))
 
@@ -685,7 +685,7 @@ def diff_cost_sensor(
   # loop over horizon
   for t in range(1, horizon - 1):
     # residual
-    res = sensor[:, t] - target[:, t]
+    res = sensor[:, t] - target[:, t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
     # loop over sensors
     for i in range(model.nsensor):
@@ -708,16 +708,16 @@ def diff_cost_sensor(
       scale = time_scale / (dim * horizon)
 
       # quadratic norm gradient
-      normi_grad = (scale * weights[i, t] * res[idx]).reshape((dim, 1))
+      normi_grad = (scale * weights[i, t] * res[idx]).reshape((dim, 1))  # pyrefly: ignore[bad-index]
 
       # quadratic norm Hessian
-      normi_hess = (scale * weights[i, t] * np.eye(dim)).reshape((dim, dim))
+      normi_hess = (scale * weights[i, t] * np.eye(dim)).reshape((dim, dim))  # pyrefly: ignore[bad-index]
 
       # indices
       idxt = slice((t - 1) * model.nv, (t + 2) * model.nv)
 
       # subblock
-      dsidq012 = dsdq012[t][idx, :].reshape((dim, 3 * model.nv))
+      dsidq012 = dsdq012[t][idx, :].reshape((dim, 3 * model.nv))  # pyrefly: ignore[bad-index, missing-attribute]
 
       # gradient
       grad_q[idxt] += (dsidq012.T @ normi_grad).ravel()
@@ -731,14 +731,14 @@ def diff_cost_sensor(
       # parameters
       if nparam > 0:
         # gradient
-        grad_p[:] += (dsdp[t][idx, :].T @ normi_grad).ravel()
+        grad_p[:] += (dsdp[t][idx, :].T @ normi_grad).ravel()  # pyrefly: ignore[bad-index, missing-attribute, unsupported-operation]
 
         # dense row
-        hess_pq[:, (t - 1) * model.nv : (t + 2) * model.nv] += (
-            dsdp[t][idx, :].T @ normi_hess @ dsidq012
+        hess_pq[:, (t - 1) * model.nv : (t + 2) * model.nv] += (  # pyrefly: ignore[unsupported-operation]
+            dsdp[t][idx, :].T @ normi_hess @ dsidq012  # pyrefly: ignore[bad-index, missing-attribute, unsupported-operation]
         )
 
-  return grad_q, hess_qq, grad_p, hess_pq
+  return grad_q, hess_qq, grad_p, hess_pq  # pyrefly: ignore[bad-return]
 
 
 # %%
@@ -771,11 +771,11 @@ def configuration_update(
   tpin = 0
   for t in range(horizon):
     # current qpos
-    q = np.array(qpos[:, t])
+    q = np.array(qpos[:, t])  # pyrefly: ignore[bad-index]
 
     # skip pinned qpos
-    if not pinned[t]:
-      dq = update[(tpin * model.nv) : ((tpin + 1) * model.nv)]
+    if not pinned[t]:  # pyrefly: ignore[bad-index]
+      dq = update[(tpin * model.nv) : ((tpin + 1) * model.nv)]  # pyrefly: ignore[bad-index]
       mujoco.mj_integratePos(model, q, dq, step)
 
       # increment
@@ -822,7 +822,7 @@ def add_block_in_band(
 
     # add block row into band row
     band_update[shift + i, column_shift : (column_shift + width)] += (
-        scale * block[i, :width]
+        scale * block[i, :width]  # pyrefly: ignore[bad-index, unsupported-operation]
     )
 
   return band_update
@@ -971,21 +971,21 @@ class DirectOptimizer:
     self.cost_initial = 0.0
 
     # cost derivatives
-    self._ntotal = model.nv * horizon + num_parameter
+    self._ntotal = model.nv * horizon + num_parameter  # pyrefly: ignore[unsupported-operation]
     self._ntotal_pin = self._ntotal
     self._nband = 3 * model.nv
     self._ndense = num_parameter
     self._gradient = np.zeros(self._ntotal)
 
     self._hessian = np.zeros(
-        (self._ntotal_pin - self._ndense) * self._nband
-        + self._ndense * self._ntotal_pin
+        (self._ntotal_pin - self._ndense) * self._nband  # pyrefly: ignore[unsupported-operation]
+        + self._ndense * self._ntotal_pin  # pyrefly: ignore[unsupported-operation]
     )
 
     # cost Hessian factor
     self._hessian_factor = np.zeros(
-        (self._ntotal_pin - self._ndense) * self._nband
-        + self._ndense * self._ntotal_pin
+        (self._ntotal_pin - self._ndense) * self._nband  # pyrefly: ignore[unsupported-operation]
+        + self._ndense * self._ntotal_pin  # pyrefly: ignore[unsupported-operation]
     )
 
     # search direction
@@ -1015,7 +1015,7 @@ class DirectOptimizer:
     self.regularization_scale = np.sqrt(10.0)
 
     # parameters
-    if num_parameter > 0 and parameter_update is not None:
+    if num_parameter > 0 and parameter_update is not None:  # pyrefly: ignore[unsupported-operation]
       self._parameter_flag = True
     else:
       self._parameter_flag = False
@@ -1024,14 +1024,14 @@ class DirectOptimizer:
     self._num_parameter = num_parameter
     self._parameter_update = parameter_update
     self._model_update = self.model.__copy__()
-    self.parameter = np.zeros(num_parameter)
-    self.parameter_target = np.zeros(num_parameter)
+    self.parameter = np.zeros(num_parameter)  # pyrefly: ignore[no-matching-overload]
+    self.parameter_target = np.zeros(num_parameter)  # pyrefly: ignore[no-matching-overload]
     self.weight_parameter = 0.0
-    self._parameter_copy = np.zeros(num_parameter)
+    self._parameter_copy = np.zeros(num_parameter)  # pyrefly: ignore[no-matching-overload]
     self._dsdp = [
-        np.zeros((model.nsensordata, num_parameter)) for t in range(horizon)
+        np.zeros((model.nsensordata, num_parameter)) for t in range(horizon)  # pyrefly: ignore[no-matching-overload]
     ]
-    self._dfdp = [np.zeros((model.nv, num_parameter)) for t in range(horizon)]
+    self._dfdp = [np.zeros((model.nv, num_parameter)) for t in range(horizon)]  # pyrefly: ignore[no-matching-overload]
 
   def cost(
       self, qpos: npt.ArrayLike, parameter: Optional[npt.ArrayLike] = None
@@ -1047,15 +1047,15 @@ class DirectOptimizer:
     """
     # set parameters
     if self._parameter_flag and parameter is not None:
-      self._parameter_update(self.model, parameter)
+      self._parameter_update(self.model, parameter)  # pyrefly: ignore[not-callable]
 
     # compute finite-difference velocity and acceleration
-    self.qvel, self.qacc = qpos_to_qvel_qacc(
+    self.qvel, self.qacc = qpos_to_qvel_qacc(  # pyrefly: ignore[bad-assignment]
         self.model, self.qpos, self.horizon
     )
 
     # evaluate inverse dynamics
-    self.sensor, self.force = inverse_dynamics(
+    self.sensor, self.force = inverse_dynamics(  # pyrefly: ignore[bad-assignment]
         self.model,
         self.data,
         qpos,
@@ -1111,18 +1111,18 @@ class DirectOptimizer:
     """
     # model parameters
     if self._parameter_flag and parameter is not None:
-      self._parameter_update(self.model, parameter)
+      self._parameter_update(self.model, parameter)  # pyrefly: ignore[not-callable]
 
     # evaluate cost to compute intermediate values
     self.cost(qpos, parameter)
 
     # finite-difference Jacobians
     (
-        self._dvdq0,
-        self._dvdq1,
-        self._dadq0,
-        self._dadq1,
-        self._dadq2,
+        self._dvdq0,  # pyrefly: ignore[bad-assignment]
+        self._dvdq1,  # pyrefly: ignore[bad-assignment]
+        self._dadq0,  # pyrefly: ignore[bad-assignment]
+        self._dadq1,  # pyrefly: ignore[bad-assignment]
+        self._dadq2,  # pyrefly: ignore[bad-assignment]
     ) = diff_qpos_to_qvel_qacc(
         self.model,
         qpos,
@@ -1131,12 +1131,12 @@ class DirectOptimizer:
 
     # inverse dynamics Jacobians
     (
-        self._dfdq,
-        self._dfdv,
-        self._dfda,
-        self._dsdq,
-        self._dsdv,
-        self._dsda,
+        self._dfdq,  # pyrefly: ignore[bad-assignment]
+        self._dfdv,  # pyrefly: ignore[bad-assignment]
+        self._dfda,  # pyrefly: ignore[bad-assignment]
+        self._dsdq,  # pyrefly: ignore[bad-assignment]
+        self._dsdv,  # pyrefly: ignore[bad-assignment]
+        self._dsda,  # pyrefly: ignore[bad-assignment]
     ) = diff_inverse_dynamics(
         self.model,
         self.data,
@@ -1148,7 +1148,7 @@ class DirectOptimizer:
 
     # inverse dynamics Jacobians wrt parameters
     if self._parameter_flag:
-      self._dsdp, self._dfdp = diff_inverse_dynamics_parameters(
+      self._dsdp, self._dfdp = diff_inverse_dynamics_parameters(  # pyrefly: ignore[bad-assignment]
           self.model,
           self._model_update,
           self.data,
@@ -1158,12 +1158,12 @@ class DirectOptimizer:
           self.sensor,
           self.force,
           self.parameter,
-          self._parameter_update,
+          self._parameter_update,  # pyrefly: ignore[bad-argument-type]
           self.horizon,
       )
 
     # force derivatives
-    self._dfdq012 = diff_force(
+    self._dfdq012 = diff_force(  # pyrefly: ignore[bad-assignment]
         self.model,
         self._dfdq,
         self._dfdv,
@@ -1177,7 +1177,7 @@ class DirectOptimizer:
     )
 
     # sensor derivatives
-    self._dsdq012 = diff_sensor(
+    self._dsdq012 = diff_sensor(  # pyrefly: ignore[bad-assignment]
         self.model,
         self._dsdq,
         self._dsdv,
@@ -1220,7 +1220,7 @@ class DirectOptimizer:
     # parameters
     dense = None
     if self._parameter_flag:
-      dense = np.zeros((self._num_parameter, self._ntotal_pin))
+      dense = np.zeros((self._num_parameter, self._ntotal_pin))  # pyrefly: ignore[no-matching-overload]
 
     # total gradient, Hessian
     hess = np.zeros((self._ntotal_pin, self._nband))
@@ -1232,36 +1232,36 @@ class DirectOptimizer:
 
       if self.pinned[t]:
         # gradient
-        fq[idx_t] = 0.0
-        sq[idx_t] = 0.0
+        fq[idx_t] = 0.0  # pyrefly: ignore[unsupported-operation]
+        sq[idx_t] = 0.0  # pyrefly: ignore[unsupported-operation]
 
         # Hessian
-        fqq[idx_t, :] = 0.0
-        sqq[idx_t, :] = 0.0
+        fqq[idx_t, :] = 0.0  # pyrefly: ignore[unsupported-operation]
+        sqq[idx_t, :] = 0.0  # pyrefly: ignore[unsupported-operation]
 
         if t + 1 < self.horizon:
           idx_tt = slice((t + 1) * nv, (t + 2) * nv)
           idx_c1 = slice(nv, 2 * nv)
 
-          fqq[idx_tt, idx_c1] = 0.0
-          sqq[idx_tt, idx_c1] = 0.0
+          fqq[idx_tt, idx_c1] = 0.0  # pyrefly: ignore[unsupported-operation]
+          sqq[idx_tt, idx_c1] = 0.0  # pyrefly: ignore[unsupported-operation]
 
         if t + 2 < self.horizon:
           idx_ttt = slice((t + 2) * nv, (t + 3) * nv)
           idx_c0 = slice(0, nv)
 
-          fqq[idx_ttt, idx_c0] = 0.0
-          sqq[idx_ttt, idx_c0] = 0.0
+          fqq[idx_ttt, idx_c0] = 0.0  # pyrefly: ignore[unsupported-operation]
+          sqq[idx_ttt, idx_c0] = 0.0  # pyrefly: ignore[unsupported-operation]
 
         continue
 
       # set data
-      self._gradient[idx_tpin] = fq[idx_t] + sq[idx_t]
-      hess[idx_tpin, :] = fqq[idx_t, :] + sqq[idx_t, :]
+      self._gradient[idx_tpin] = fq[idx_t] + sq[idx_t]  # pyrefly: ignore[bad-index, unsupported-operation]
+      hess[idx_tpin, :] = fqq[idx_t, :] + sqq[idx_t, :]  # pyrefly: ignore[bad-index, unsupported-operation]
 
       # parameter
       if self._parameter_flag:
-        dense[:, idx_tpin] = fpq[:, idx_t] + spq[:, idx_t]
+        dense[:, idx_tpin] = fpq[:, idx_t] + spq[:, idx_t]  # pyrefly: ignore[bad-index, unsupported-operation]
 
       # increment
       tpin += 1
@@ -1274,18 +1274,18 @@ class DirectOptimizer:
     if self._parameter_flag:
       # gradient
       self._gradient[ndq_pin:] = (
-          fp
+          fp  # pyrefly: ignore[unsupported-operation]
           + sp
           + self.weight_parameter * (self.parameter - self.parameter_target)
       )
 
       # Hessian
-      dense[:, ndq_pin:] = self.weight_parameter * np.eye(self._num_parameter)
+      dense[:, ndq_pin:] = self.weight_parameter * np.eye(self._num_parameter)  # pyrefly: ignore[no-matching-overload, unsupported-operation]
 
       # dense rows
       ndense = self._num_parameter * (ndq_pin + self._num_parameter)
       idx = ndq_pin * self._nband
-      self._hessian[idx : (idx + ndense)] = dense.ravel()
+      self._hessian[idx : (idx + ndense)] = dense.ravel()  # pyrefly: ignore[missing-attribute]
 
   def _eval_search_direction(self) -> bool:
     """Compute search direction.
@@ -1301,7 +1301,7 @@ class DirectOptimizer:
           self._hessian_factor,
           self._ntotal_pin,
           self._nband,
-          self._ndense,
+          self._ndense,  # pyrefly: ignore[bad-argument-type]
           self._regularization,
           0.0,
       )
@@ -1328,7 +1328,7 @@ class DirectOptimizer:
         self._gradient,
         self._ntotal_pin,
         self._nband,
-        self._ndense,
+        self._ndense,  # pyrefly: ignore[bad-argument-type]
     )
 
     # update Hessian w/ regularization
@@ -1361,9 +1361,9 @@ class DirectOptimizer:
         self._search_direction,
         self._ntotal_pin,
         self._nband,
-        self._ndense,
+        self._ndense,  # pyrefly: ignore[bad-argument-type]
         1,
-        1,
+        1,  # pyrefly: ignore[bad-argument-type]
     )
     expected += 0.5 * np.dot(self._search_direction, tmp)
 
@@ -1457,7 +1457,7 @@ class DirectOptimizer:
           return
 
         # compute new variables
-        self.qpos = configuration_update(
+        self.qpos = configuration_update(  # pyrefly: ignore[bad-assignment]
             self.model,
             self._qpos_copy,
             self._search_direction,

@@ -183,7 +183,7 @@ cd python
 
 Install the Python module:
 ```sh
-python setup.py install
+python -m pip install .
 ```
 
 Test that installation was successful:

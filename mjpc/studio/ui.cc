@@ -70,13 +70,13 @@ void DrawFigure(const mjvFigure& fig, float height) {
           label = absl::StrCat("##line_", i);
         }
 
-        ImPlot::PushStyleColor(ImPlotCol_Line,
-                               ImVec4(fig.linergb[i][0], fig.linergb[i][1],
-                                      fig.linergb[i][2], 1.0f));
+        ImPlotSpec spec(
+            ImPlotProp_LineColor,
+            ImVec4(fig.linergb[i][0], fig.linergb[i][1],
+                   fig.linergb[i][2], 1.0f),
+            ImPlotProp_Stride, (int)(2 * sizeof(float)));
         ImPlot::PlotLine(label.c_str(), &fig.linedata[i][0],
-                         &fig.linedata[i][1], fig.linepnt[i], 0, 0,
-                         2 * sizeof(float));
-        ImPlot::PopStyleColor();
+                         &fig.linedata[i][1], fig.linepnt[i], spec);
       }
     }
     ImPlot::EndPlot();

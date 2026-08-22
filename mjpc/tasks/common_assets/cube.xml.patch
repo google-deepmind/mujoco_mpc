@@ -1,4 +1,4 @@
-mjpc/tasks/cube.xml.patch--- common_assets/reorientation_cube.xml	2024-02-11 18:42:07
+--- common_assets/reorientation_cube.xml	2024-02-11 18:42:07
 +++ hand/cube.xml	2024-02-12 14:52:27
 @@ -19,9 +19,9 @@
    </asset>

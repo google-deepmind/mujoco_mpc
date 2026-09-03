@@ -113,7 +113,7 @@ void MjpcSensorCallback(const mjModel* model, mjData* data, int stage) {
   }
 }
 
-void MjpcPluginPostModelLoaded(mujoco::platform::ModelPlugin* self,
+void MjpcPluginPostModelLoaded(mujoco::studio::ModelPlugin* self,
                                const mjModel* model,
                                const char* model_path) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
@@ -121,7 +121,7 @@ void MjpcPluginPostModelLoaded(mujoco::platform::ModelPlugin* self,
   state->loaded_model_path = model_path ? model_path : "";
 }
 
-bool MjpcModelPluginDoUpdate(mujoco::platform::ModelPlugin* self,
+bool MjpcModelPluginDoUpdate(mujoco::studio::ModelPlugin* self,
                              mjModel* model, mjData* data) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   state->current_model = model;
@@ -198,7 +198,7 @@ bool MjpcModelPluginDoUpdate(mujoco::platform::ModelPlugin* self,
   return false;  // Let Studio handle stepping
 }
 
-void MjpcModelPluginPreStep(mujoco::platform::ModelPlugin* self,
+void MjpcModelPluginPreStep(mujoco::studio::ModelPlugin* self,
                             const mjModel* model, mjData* data) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   if (state && state->agent_active && state->agent) {
@@ -207,7 +207,7 @@ void MjpcModelPluginPreStep(mujoco::platform::ModelPlugin* self,
   }
 }
 
-void MjpcModelPluginPostStep(mujoco::platform::ModelPlugin* self,
+void MjpcModelPluginPostStep(mujoco::studio::ModelPlugin* self,
                              const mjModel* model, mjData* data) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   if (state && state->agent_active && state->agent) {
@@ -215,7 +215,7 @@ void MjpcModelPluginPostStep(mujoco::platform::ModelPlugin* self,
   }
 }
 
-void MjpcModelPluginEnhanceScene(mujoco::platform::ScenePlugin* self,
+void MjpcModelPluginEnhanceScene(mujoco::studio::ScenePlugin* self,
                                  const mjModel* model, mjData* data,
                                  mjvScene* scene) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
@@ -228,7 +228,7 @@ void MjpcModelPluginEnhanceScene(mujoco::platform::ScenePlugin* self,
   }
 }
 
-const char* MjpcPluginGetModelToLoad(mujoco::platform::ModelPlugin* self,
+const char* MjpcPluginGetModelToLoad(mujoco::studio::ModelPlugin* self,
                                      int* size, char* content_type,
                                      int content_type_size, char* model_name,
                                      int model_name_size) {
@@ -245,7 +245,7 @@ const char* MjpcPluginGetModelToLoad(mujoco::platform::ModelPlugin* self,
   return nullptr;
 }
 
-void MjpcGuiPluginUpdate(mujoco::platform::GuiPlugin* self) {
+void MjpcGuiPluginUpdate(mujoco::studio::GuiPlugin* self) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   if (state && state->agent && state->current_model && state->current_data) {
     static int frame_count = 0;
@@ -293,7 +293,7 @@ void MjpcGuiPluginUpdate(mujoco::platform::GuiPlugin* self) {
   }
 }
 
-void MjpcPlotsPluginUpdate(mujoco::platform::GuiPlugin* self) {
+void MjpcPlotsPluginUpdate(mujoco::studio::GuiPlugin* self) {
   auto* state = static_cast<MjpcPluginState*>(self->data);
   if (state && state->agent && state->current_model && state->current_data &&
       state->agent_active) {
@@ -371,7 +371,7 @@ mjPLUGIN_LIB_INIT(mjpc_studio) {
   mjcb_sensor = MjpcSensorCallback;
 
   // Register Model Plugin
-  mujoco::platform::ModelPlugin model_plugin;
+  mujoco::studio::ModelPlugin model_plugin;
   model_plugin.data = g_state.get();
   model_plugin.name = "MJPC";
   model_plugin.get_model_to_load = MjpcPluginGetModelToLoad;
@@ -379,67 +379,67 @@ mjPLUGIN_LIB_INIT(mjpc_studio) {
   model_plugin.do_update = MjpcModelPluginDoUpdate;
   model_plugin.pre_step = MjpcModelPluginPreStep;
   model_plugin.post_step = MjpcModelPluginPostStep;
-  mujoco::platform::RegisterPlugin(model_plugin);
+  mujoco::studio::RegisterPlugin(model_plugin);
 
-  mujoco::platform::ScenePlugin scene_plugin;
+  mujoco::studio::ScenePlugin scene_plugin;
   scene_plugin.data = g_state.get();
   scene_plugin.name = "MJPC";
   scene_plugin.enhance_scene = MjpcModelPluginEnhanceScene;
-  mujoco::platform::RegisterPlugin(scene_plugin);
+  mujoco::studio::RegisterPlugin(scene_plugin);
 
   // Register GUI Plugin
-  mujoco::platform::GuiPlugin gui_plugin;
+  mujoco::studio::GuiPlugin gui_plugin;
   gui_plugin.data = g_state.get();
   gui_plugin.name = "MJPC";
   gui_plugin.active = true;
   gui_plugin.update = MjpcGuiPluginUpdate;
-  mujoco::platform::RegisterPlugin(gui_plugin);
+  mujoco::studio::RegisterPlugin(gui_plugin);
 
   // Register Plots GUI Plugin
-  mujoco::platform::GuiPlugin plots_plugin;
+  mujoco::studio::GuiPlugin plots_plugin;
   plots_plugin.data = g_state.get();
   plots_plugin.name = "Plots";
   plots_plugin.active = true;
   plots_plugin.update = MjpcPlotsPluginUpdate;
-  mujoco::platform::RegisterPlugin(plots_plugin);
+  mujoco::studio::RegisterPlugin(plots_plugin);
 
   // Register Key Handlers
-  mujoco::platform::KeyHandlerPlugin plan_key;
+  mujoco::studio::KeyHandlerPlugin plan_key;
   plan_key.data = g_state.get();
   plan_key.name = "MJPC Plan Toggle";
   plan_key.key_chord = ImGuiKey_Enter;
-  plan_key.on_key_pressed = [](mujoco::platform::KeyHandlerPlugin* self) {
+  plan_key.on_key_pressed = [](mujoco::studio::KeyHandlerPlugin* self) {
     auto* state = static_cast<MjpcPluginState*>(self->data);
     if (state && state->agent && state->agent_active) {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->agent->plan_enabled = !state->agent->plan_enabled;
     }
   };
-  mujoco::platform::RegisterPlugin(plan_key);
+  mujoco::studio::RegisterPlugin(plan_key);
 
-  mujoco::platform::KeyHandlerPlugin action_key;
+  mujoco::studio::KeyHandlerPlugin action_key;
   action_key.data = g_state.get();
   action_key.name = "MJPC Action Toggle";
   action_key.key_chord = ImGuiKey_Backslash;
-  action_key.on_key_pressed = [](mujoco::platform::KeyHandlerPlugin* self) {
+  action_key.on_key_pressed = [](mujoco::studio::KeyHandlerPlugin* self) {
     auto* state = static_cast<MjpcPluginState*>(self->data);
     if (state && state->agent && state->agent_active) {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->agent->action_enabled = !state->agent->action_enabled;
     }
   };
-  mujoco::platform::RegisterPlugin(action_key);
+  mujoco::studio::RegisterPlugin(action_key);
 
-  mujoco::platform::KeyHandlerPlugin traces_key;
+  mujoco::studio::KeyHandlerPlugin traces_key;
   traces_key.data = g_state.get();
   traces_key.name = "MJPC Traces Toggle";
   traces_key.key_chord = ImGuiKey_9;
-  traces_key.on_key_pressed = [](mujoco::platform::KeyHandlerPlugin* self) {
+  traces_key.on_key_pressed = [](mujoco::studio::KeyHandlerPlugin* self) {
     auto* state = static_cast<MjpcPluginState*>(self->data);
     if (state && state->agent && state->agent_active) {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->agent->visualize_enabled = !state->agent->visualize_enabled;
     }
   };
-  mujoco::platform::RegisterPlugin(traces_key);
+  mujoco::studio::RegisterPlugin(traces_key);
 }

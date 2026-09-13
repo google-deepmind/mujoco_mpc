@@ -181,10 +181,12 @@ Next, change to the python directory:
 cd python
 ```
 
-Install the Python module:
+Install the Python module with pip:
 ```sh
-python setup.py install
+python -m pip install .
 ```
+
+Using pip invokes the supported build and install flow. Direct `setup.py install` is deprecated and can cause setuptools to try to resolve the package being installed as an external dependency.
 
 Test that installation was successful:
 ```sh

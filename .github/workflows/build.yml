@@ -18,6 +18,8 @@ jobs:
               -G Ninja
               -DCMAKE_C_COMPILER:STRING=clang-13
               -DCMAKE_CXX_COMPILER:STRING=clang++-13
+              -DCMAKE_EXE_LINKER_FLAGS:STRING=-rtlib=compiler-rt
+              -DCMAKE_SHARED_LINKER_FLAGS:STRING=-rtlib=compiler-rt
               -DMJPC_BUILD_GRPC_SERVICE:BOOL=ON
             tmpdir: "/tmp"
           - os: macos-15
@@ -36,8 +38,10 @@ jobs:
       run: >
         sudo apt-get update && sudo apt-get install
         libgl1-mesa-dev
+        libwayland-dev
         libxinerama-dev
         libxcursor-dev
+        libxkbcommon-dev
         libxrandr-dev
         libxi-dev
         ninja-build
@@ -63,6 +67,7 @@ jobs:
         mkdir build &&
         cd build &&
         cmake .. -DCMAKE_BUILD_TYPE:STRING=Release
+        -DCMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=OFF
         ${{ matrix.cmake_args }}
         $cmake_extra_args
     - name: Build MuJoCo MPC

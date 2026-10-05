@@ -61,7 +61,7 @@ set(MUJOCO_MPC_MUJOCO_GIT_TAG
 )
 
 set(MUJOCO_MPC_MENAGERIE_GIT_TAG
-    a88bc450470d97ebc1f282e5969675fb4d1f0ed7
+    7618485a6b874a1526bf0619f56fd6a45e5efe01
     CACHE STRING "Git revision for MuJoCo Menagerie."
 )
 
@@ -139,6 +139,16 @@ findorfetch(
   absl::core_headers
   EXCLUDE_FROM_ALL
 )
+if(APPLE)
+  foreach(_target random_internal_randen_hwaes random_internal_randen_hwaes_impl)
+    if(TARGET ${_target})
+      get_target_property(_copts ${_target} COMPILE_OPTIONS)
+      list(REMOVE_ITEM _copts "-Xarch_x86_64" "-maes" "-msse4.1")
+      set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_copts}")
+      target_compile_options(${_target} PRIVATE "SHELL:-Xarch_x86_64 -maes" "SHELL:-Xarch_x86_64 -msse4.1")
+    endif()
+  endforeach()
+endif()
 
 set(GLFW_BUILD_EXAMPLES OFF)
 set(GLFW_BUILD_TESTS OFF)
@@ -209,6 +219,9 @@ if(NOT TARGET lodepng)
   endif()
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
+  list(APPEND EXTRA_COMPILE_OPTIONS -Wno-unknown-warning-option -Wno-deprecated-builtins)
+endif()
 set(MJPC_COMPILE_OPTIONS "${AVX_COMPILE_OPTIONS}" "${EXTRA_COMPILE_OPTIONS}")
 set(MJPC_LINK_OPTIONS "${EXTRA_LINK_OPTIONS}")
 

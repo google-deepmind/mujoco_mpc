@@ -30,6 +30,7 @@ set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF)
 set(RE2_BUILD_TESTING OFF)
 set(ZLIB_BUILD_EXAMPLES OFF)
 
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 findorfetch(
   USE_SYSTEM_PACKAGE
   OFF
@@ -44,6 +45,15 @@ findorfetch(
   TARGETS
   gRPC
 )
+unset(CMAKE_POLICY_VERSION_MINIMUM)
+
+if(EXISTS "${grpc_SOURCE_DIR}/src/core/lib/promise/detail/basic_seq.h")
+  file(READ "${grpc_SOURCE_DIR}/src/core/lib/promise/detail/basic_seq.h" _basic_seq_contents)
+  if(_basic_seq_contents MATCHES "Traits::template CallSeqFactory\\(")
+    string(REPLACE "Traits::template CallSeqFactory(" "Traits::CallSeqFactory(" _basic_seq_contents "${_basic_seq_contents}")
+    file(WRITE "${grpc_SOURCE_DIR}/src/core/lib/promise/detail/basic_seq.h" "${_basic_seq_contents}")
+  endif()
+endif()
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)

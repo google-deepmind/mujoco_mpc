@@ -159,7 +159,7 @@ def mpc_rollout(
       d = mjx.step(sim_model, d)
       return d, (
           cost,
-          brax_base.State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),  # pytype: disable=wrong-arg-types
+          brax_base.State(q=d.qpos, qd=d.qvel, x=None, xd=None, contact=None),  # pyrefly: ignore[bad-argument-type]
           terms,
       )
     actions = get_actions(p, policy)

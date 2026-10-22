@@ -11,6 +11,10 @@
   </a>
 </p>
 
+<p align="center">
+  <b>English</b> · <a href="https://github.com/google-deepmind/mujoco_mpc/blob/main/README.zh.md">简体中文</a>
+</p>
+
 **MuJoCo MPC (MJPC)** is an interactive application and software framework for
 real-time predictive control with [MuJoCo](https://mujoco.org/), developed by
 Google DeepMind.

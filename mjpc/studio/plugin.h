@@ -15,7 +15,7 @@
 #ifndef MJPC_MJPC_STUDIO_PLUGIN_H_
 #define MJPC_MJPC_STUDIO_PLUGIN_H_
 
-#include "third_party/mujoco/src/experimental/studio/launcher.h"
+#include "third_party/mujoco/studio/launcher.h"
 
 namespace mjpc::studio {
 

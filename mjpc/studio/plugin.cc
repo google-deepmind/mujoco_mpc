@@ -35,8 +35,8 @@ ABSL_FLAG(std::string, task, "Quadruped Flat",
 #include "third_party/dear_imgui/imgui.h"
 #include "third_party/dear_imgui/imgui_internal.h"
 #include <mujoco/mujoco.h>
-#include "third_party/mujoco/src/experimental/studio/launcher.h"
-#include "third_party/mujoco/src/experimental/studio/ux/plugin.h"
+#include "third_party/mujoco/studio/launcher.h"
+#include "third_party/mujoco/studio/ux/plugin.h"
 #include "mjpc/agent.h"
 #include "third_party/mujoco_mpc/mjpc/studio/ui.h"
 #include "mjpc/task.h"

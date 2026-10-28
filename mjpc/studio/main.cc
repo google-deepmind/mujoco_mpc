@@ -17,7 +17,7 @@
 #include <absl/flags/parse.h>
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
-#include "third_party/mujoco/src/experimental/studio/launcher.h"
+#include "third_party/mujoco/studio/launcher.h"
 #include "third_party/mujoco_mpc/mjpc/studio/plugin.h"
 
 // Define model_file flag here as it is not defined in launcher library.

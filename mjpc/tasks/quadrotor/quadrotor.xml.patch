@@ -1,7 +1,7 @@
 diff --git a/quadrotor_modified.xml b/quadrotor_modified.xml
 --- a/quadrotor_modified.xml
 +++ b/quadrotor_modified.xml
-@@ -25,13 +25,12 @@
+@@ -25,12 +25,11 @@
      <texture type="2d" file="X2_lowpoly_texture_SpinningProps_1024.png"/>
      <material name="phong3SG" texture="X2_lowpoly_texture_SpinningProps_1024"/>
      <material name="invisible" rgba="0 0 0 0"/>
@@ -10,13 +10,12 @@ diff --git a/quadrotor_modified.xml b/quadrotor_modified.xml
    </asset>
  
    <worldbody>
-     <light name="spotlight" mode="targetbodycom" target="x2" pos="0 -1 2"/>
 -    <body name="x2" pos="0 0 0.1" childclass="x2">
 +    <body name="x2" pos="0 0 0.1" quat="0 0 0 1" childclass="x2">
        <freejoint/>
        <camera name="track" pos="-1 0 .5" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
        <site name="imu" pos="0 0 .02"/>
-@@ -58,14 +57,4 @@
+@@ -57,14 +56,4 @@
      <motor class="x2" name="thrust3" site="thrust3" gear="0 0 1 0 0  .0201"/>
      <motor class="x2" name="thrust4" site="thrust4" gear="0 0 1 0 0 -.0201"/>
    </actuator>

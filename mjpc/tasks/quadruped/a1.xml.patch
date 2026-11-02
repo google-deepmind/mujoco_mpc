@@ -47,11 +47,10 @@ diff --git a/a1_modified.xml b/a1_modified.xml
          </default>
        </default>
      </default>
-@@ -67,11 +67,13 @@
+@@ -67,10 +67,13 @@
    </asset>
 
    <worldbody>
--    <light name="spotlight" mode="targetbodycom" target="trunk" pos="0 -1 2"/>
 -    <body name="trunk" pos="0 0 0.43" childclass="a1">
 +    <body name="trunk" pos="0.0 0.0 0.5" quat="1 0 0 0" childclass="a1">
 +      <light pos="0 0 5" mode="trackcom" diffuse="0.8 0.8 0.8"/>

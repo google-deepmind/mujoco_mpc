@@ -196,7 +196,7 @@ class Filter:
   ) -> np.ndarray:
     # input
     inputs = filter_pb2.Covariance(
-        covariance=covariance.flatten() if covariance is not None else None,
+        covariance=np.asarray(covariance).flatten() if covariance is not None else None,
     )
 
     # request

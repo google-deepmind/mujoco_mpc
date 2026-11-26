@@ -13,15 +13,41 @@
 # limitations under the License.
 # ==============================================================================
 
+from unittest import mock
+
 from absl.testing import absltest
 import mujoco
 from mujoco_mpc import filter as filter_lib
+from mujoco_mpc.proto import filter_pb2
 import numpy as np
 
 import pathlib
 
 
 class FilterTest(absltest.TestCase):
+
+  def test_covariance_accepts_array_like(self):
+    client = filter_lib.Filter.__new__(filter_lib.Filter)
+    client._colab_logging = False
+    client.stub = mock.Mock()
+    matrix = [[2.0, 0.5], [0.5, 3.0]]
+    response = filter_pb2.CovarianceResponse(
+        covariance=filter_pb2.Covariance(
+            covariance=[2.0, 0.5, 0.5, 3.0], dimension=2
+        )
+    )
+    client.stub.Covariance.future.return_value.result.return_value = response
+
+    for value in (matrix, np.array(matrix), None):
+      with self.subTest(value=value):
+        result = client.covariance(value)
+        expected = filter_pb2.CovarianceRequest(
+            covariance=filter_pb2.Covariance(
+                covariance=[] if value is None else [2.0, 0.5, 0.5, 3.0]
+            )
+        )
+        client.stub.Covariance.future.assert_called_with(expected)
+        np.testing.assert_array_equal(result, matrix)
 
   def test_updates(self):
     # load model

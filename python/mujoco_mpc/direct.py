@@ -77,7 +77,8 @@ class Direct:
         [str(server_binary_path), f"--mjpc_port={self.port}"],
         stdout=subprocess.PIPE if colab_logging else None,
     )
-    os.set_blocking(self.server_process.stdout.fileno(), False)
+    if self.server_process.stdout is not None:
+      os.set_blocking(self.server_process.stdout.fileno(), False)
     atexit.register(self.server_process.kill)
 
     credentials = grpc.local_channel_credentials(grpc.LocalConnectionType.LOCAL_TCP)

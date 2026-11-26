@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+from unittest import mock
+
 from absl.testing import absltest
 import mujoco
 from mujoco_mpc import filter as filter_lib
@@ -22,6 +24,29 @@ import pathlib
 
 
 class FilterTest(absltest.TestCase):
+
+  def test_without_colab_logging(self):
+    model = mujoco.MjModel.from_xml_string("<mujoco/>")
+    # The subprocess inherits stdout when logging is disabled. Stub out the
+    # server connection so this test only exercises client startup.
+    with (
+        mock.patch.object(filter_lib.subprocess, "Popen") as popen,
+        mock.patch.object(filter_lib.os, "set_blocking") as set_blocking,
+        mock.patch.object(filter_lib.atexit, "register"),
+        mock.patch.object(filter_lib.grpc, "secure_channel"),
+        mock.patch.object(filter_lib.grpc, "channel_ready_future"),
+        mock.patch.object(filter_lib.filter_pb2_grpc, "StateEstimationStub"),
+        mock.patch.object(filter_lib.Filter, "init") as init,
+    ):
+      popen.return_value.stdout = None
+      client = filter_lib.Filter(model=model, colab_logging=False)
+      try:
+        self.assertIsNone(client.server_process.stdout)
+        self.assertIsNone(popen.call_args.kwargs["stdout"])
+        set_blocking.assert_not_called()
+        init.assert_called_once()
+      finally:
+        client.close()
 
   def test_updates(self):
     # load model

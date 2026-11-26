@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+from unittest import mock
+
 from absl.testing import absltest
 import mujoco
 from mujoco_mpc import direct as direct_lib
@@ -22,6 +24,29 @@ import pathlib
 
 
 class DirectTest(absltest.TestCase):
+
+  def test_without_colab_logging(self):
+    model = mujoco.MjModel.from_xml_string("<mujoco/>")
+    # The subprocess inherits stdout when logging is disabled. Stub out the
+    # server connection so this test only exercises client startup.
+    with (
+        mock.patch.object(direct_lib.subprocess, "Popen") as popen,
+        mock.patch.object(direct_lib.os, "set_blocking") as set_blocking,
+        mock.patch.object(direct_lib.atexit, "register"),
+        mock.patch.object(direct_lib.grpc, "secure_channel"),
+        mock.patch.object(direct_lib.grpc, "channel_ready_future"),
+        mock.patch.object(direct_lib.direct_pb2_grpc, "DirectStub"),
+        mock.patch.object(direct_lib.Direct, "init") as init,
+    ):
+      popen.return_value.stdout = None
+      client = direct_lib.Direct(model=model, configuration_length=5, colab_logging=False)
+      try:
+        self.assertIsNone(client.server_process.stdout)
+        self.assertIsNone(popen.call_args.kwargs["stdout"])
+        set_blocking.assert_not_called()
+        init.assert_called_once()
+      finally:
+        client.close()
 
   def setUp(self):
     super().setUp()

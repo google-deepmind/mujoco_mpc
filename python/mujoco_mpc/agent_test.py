@@ -14,11 +14,13 @@
 # ==============================================================================
 
 import os
+from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 import grpc
 import mujoco
 from mujoco_mpc import agent as agent_lib
+from mujoco_mpc import mjpc_parameters
 import numpy as np
 
 import pathlib
@@ -42,6 +44,30 @@ def environment_reset(model, data):
 
 
 class AgentTest(parameterized.TestCase):
+
+  def test_set_parameters_applies_mocap(self):
+    with (
+        mock.patch.object(agent_lib.grpc, "secure_channel"),
+        mock.patch.object(agent_lib.grpc, "channel_ready_future"),
+        mock.patch.object(agent_lib.agent_pb2_grpc, "AgentStub") as stub,
+    ):
+      with agent_lib.Agent(
+          task_id="Particle", connect_to="localhost:12345", run_init=False
+      ) as agent:
+        agent.set_parameters(
+            mjpc_parameters.MjpcParameters(
+                mocap={
+                    "goal": mjpc_parameters.Pose(
+                        pos=np.array([1.0, 2.0, 3.0]),
+                        quat=np.array([1.0, 0.0, 0.0, 0.0]),
+                    ),
+                }
+            )
+        )
+        expected = agent_pb2.SetAnythingRequest()
+        expected.mocap["goal"].pos.extend([1.0, 2.0, 3.0])
+        expected.mocap["goal"].quat.extend([1.0, 0.0, 0.0, 0.0])
+        stub.return_value.SetAnything.assert_called_once_with(expected)
 
   def test_set_task_parameters(self):
     model_path = (

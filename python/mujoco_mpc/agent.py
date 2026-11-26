@@ -364,6 +364,8 @@ class Agent(contextlib.AbstractContextManager):
       self.set_task_parameters(parameters.task_parameters)
     if parameters.cost_weights:
       self.set_cost_weights(parameters.cost_weights)
+    if parameters.mocap:
+      self.set_mocap(parameters.mocap)
 
   def best_trajectory(self):
     request = agent_pb2.GetBestTrajectoryRequest()

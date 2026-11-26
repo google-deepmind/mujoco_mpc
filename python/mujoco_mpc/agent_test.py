@@ -14,6 +14,7 @@
 # ==============================================================================
 
 import os
+from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 import grpc
@@ -42,6 +43,50 @@ def environment_reset(model, data):
 
 
 class AgentTest(parameterized.TestCase):
+
+  def test_reinitialize_updates_model_for_best_trajectory(self):
+    old_model = mujoco.MjModel.from_xml_string("<mujoco/>")
+    model = mujoco.MjModel.from_xml_string("""
+        <mujoco>
+          <worldbody>
+            <body>
+              <joint name="slide" type="slide"/>
+              <geom size="0.1"/>
+            </body>
+          </worldbody>
+          <actuator><motor joint="slide"/></actuator>
+        </mujoco>
+        """)
+    with (
+        mock.patch.object(agent_lib.grpc, "secure_channel"),
+        mock.patch.object(agent_lib.grpc, "channel_ready_future"),
+        mock.patch.object(agent_lib.agent_pb2_grpc, "AgentStub") as stub,
+    ):
+      with agent_lib.Agent(
+          task_id="initial", model=old_model, connect_to="localhost:12345",
+          run_init=False,
+      ) as agent:
+        agent.init("updated", model, send_as="mjb")
+        stub.return_value.GetBestTrajectory.return_value = (
+            agent_pb2.GetBestTrajectoryResponse(
+                states=[1.0, 2.0, 3.0, 4.0],
+                actions=[0.5], times=[0.0, 0.1], steps=2,
+            )
+        )
+        trajectory = agent.best_trajectory()
+        np.testing.assert_array_equal(
+            trajectory["states"], [[1.0, 2.0], [3.0, 4.0]]
+        )
+        np.testing.assert_array_equal(trajectory["actions"], [[0.5]])
+        self.assertEqual(agent.task_id, "updated")
+        self.assertIs(agent.model, model)
+
+        # An unsuccessful initialization must preserve the previous metadata.
+        stub.return_value.Init.side_effect = RuntimeError("init failed")
+        with self.assertRaisesRegex(RuntimeError, "init failed"):
+          agent.init("failed", old_model, send_as="mjb")
+        self.assertEqual(agent.task_id, "updated")
+        self.assertIs(agent.model, model)
 
   def test_set_task_parameters(self):
     model_path = (

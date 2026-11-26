@@ -179,6 +179,8 @@ class Agent(contextlib.AbstractContextManager):
         task_id=task_id, model=model_message, real_time_speed=real_time_speed
     )
     self.stub.Init(init_request)
+    self.task_id = task_id
+    self.model = model
 
   def set_state(
       self,

@@ -59,7 +59,7 @@ def parse_port(server_addr: str) -> int:
   Returns:
     int: the port
   """
-  match = re.search(r":(\d+)", server_addr)
+  match = re.search(r":([0-9]+)\Z", server_addr)
   if match is None:
     raise ValueError(f"Port not specified in server address: '{server_addr}'")
   return int(match.group(1))

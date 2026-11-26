@@ -43,6 +43,19 @@ def environment_reset(model, data):
 
 class AgentTest(parameterized.TestCase):
 
+  @parameterized.parameters(
+      ("localhost:12345", 12345),
+      ("[::1]:12345", 12345),
+      ("[2001:db8:12::1]:54321", 54321),
+  )
+  def test_parse_port(self, address, expected_port):
+    self.assertEqual(agent_lib.parse_port(address), expected_port)
+
+  @parameterized.parameters("[::1]", "localhost:123junk")
+  def test_parse_port_requires_terminal_port(self, address):
+    with self.assertRaisesRegex(ValueError, "Port not specified"):
+      agent_lib.parse_port(address)
+
   def test_set_task_parameters(self):
     model_path = (
         pathlib.Path(__file__).parent.parent.parent

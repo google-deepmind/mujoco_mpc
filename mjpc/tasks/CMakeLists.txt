@@ -172,12 +172,6 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/aloha/scene.xml
           ${CMAKE_CURRENT_BINARY_DIR}/bimanual/scene.xml
-  COMMAND ${CMAKE_COMMAND} -E copy
-          ${menagerie_SOURCE_DIR}/aloha/mjx_scene.patch
-          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.patch
-  COMMAND patch -o ${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.xml
-          ${CMAKE_CURRENT_BINARY_DIR}/bimanual/scene.xml
-          <${CMAKE_CURRENT_BINARY_DIR}/bimanual/mjx_scene.patch
 
   COMMAND ${CMAKE_COMMAND} -E copy
           ${menagerie_SOURCE_DIR}/aloha/mjx_filtered_cartesian_actuators.patch

@@ -104,10 +104,12 @@ TEST(RobustPlannerTest, RandomSearch) {
               state.mocap()[0], 1.0e-1);
   EXPECT_NEAR(planner.BestTrajectory()->states[final_state_index + 1],
               state.mocap()[1], 1.0e-1);
+  // velocity weight is 0.1 (vs 5.0 for position) and robust rollouts add
+  // force perturbations, so terminal velocity has higher variance
   EXPECT_NEAR(planner.BestTrajectory()->states[final_state_index + 2], 0.0,
-              1.0e-1);
+              2.5e-1);
   EXPECT_NEAR(planner.BestTrajectory()->states[final_state_index + 3], 0.0,
-              1.0e-1);
+              2.5e-1);
 
   // test action limits
   for (int t = 0; t < steps - 1; t++) {
